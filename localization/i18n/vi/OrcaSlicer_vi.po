@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -2568,13 +2568,6 @@ msgstr "Có bản cập nhật khả dụng. Hãy mở hộp thoại gói cài �
 msgid "%s has been removed."
 msgstr "%s đã bị xóa."
 
-
-msgid "Select the language"
-msgstr "Chọn ngôn ngữ"
-
-msgid "Language"
-msgstr "Ngôn ngữ"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -3878,12 +3871,14 @@ msgid "Switch track at Filament Track Switch"
 msgstr "Chuyển đường dẫn tại Filament Track Switch"
 
 # AI Translated
-msgid "The maximum temperature cannot exceed "
-msgstr "Nhiệt độ tối đa không được vượt quá "
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Nhiệt độ tối đa không được vượt quá %d"
 
 # AI Translated
-msgid "The minmum temperature should not be less than "
-msgstr "Nhiệt độ tối thiểu không được thấp hơn "
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Nhiệt độ tối thiểu không được thấp hơn %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -4834,6 +4829,15 @@ msgstr ""
 "Sao chép G-code tạm thời sang G-code đầu ra thất bại. Có thể thẻ SD bị khóa ghi?\n"
 "Thông báo lỗi: %1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"Sao chép G-code tạm sang G-code đầu ra thất bại.\n"
+"Thông báo lỗi: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Sao chép G-code tạm thời sang G-code đầu ra thất bại. Có thể có vấn đề với thiết bị đích, vui lòng thử xuất lại hoặc dùng thiết bị khác. G-code đầu ra bị hỏng ở %1%.tmp."
@@ -5634,10 +5638,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Giá trị %s nằm ngoài phạm vi. Phạm vi hợp lệ từ %d đến %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"Là %s%% hay %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "Là %s%% hay %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5664,20 +5669,16 @@ msgid "System agents"
 msgstr "Tác nhân hệ thống"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Chưa chọn plugin"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Thêm plugin"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Chọn plugin"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Xóa plugin"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Chưa chọn plugin"
 
 # AI Translated
 msgid "Configure"
@@ -5960,14 +5961,20 @@ msgstr "Đặt về mức tối ưu"
 msgid "Regroup filament"
 msgstr "Nhóm lại filament"
 
-msgid "up to"
-msgstr "lên đến"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "lên đến %1% mm"
 
-msgid "above"
-msgstr "trên"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "trên %1% mm"
 
-msgid "from"
-msgstr "từ"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "từ %1% đến %2% mm"
 
 msgid "Usage"
 msgstr "Sử dụng"
@@ -6351,7 +6358,7 @@ msgstr "Thể tích:"
 msgid "Size:"
 msgstr "Kích thước:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Đã tìm thấy xung đột đường đi G-code tại lớp %d, Z = %.2lfmm. Vui lòng tách các vật thể xung đột ra xa hơn (%s <-> %s)."
 
@@ -6683,11 +6690,13 @@ msgstr "Lưu dự án thành"
 msgid "Save current project as"
 msgstr "Lưu dự án hiện tại thành"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "Xuất bản 3MF"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "Xuất một tệp 3MF có nhúng các cài đặt đã chọn"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Nhập 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8017,6 +8026,14 @@ msgid "Bottom"
 msgstr "Dưới"
 
 # AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "Cài đặt này không chỉ định loại năng lực plugin."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "Cài đặt này chỉ định một loại năng lực plugin không nhận dạng được: "
+
+# AI Translated
 msgid "Plugin Selection"
 msgstr "Chọn plugin"
 
@@ -8629,11 +8646,13 @@ msgstr "Vui lòng xác nhận G-code trong các preset này an toàn để ngăn
 msgid "Customized Preset"
 msgstr "Preset tùy chỉnh"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "Không thể áp dụng một số cài đặt đã xuất bản:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "Một số khe filament đã bị thay đổi:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Tên của các thành phần bên trong file STEP không phải định dạng UTF-8!"
@@ -9062,13 +9081,17 @@ msgstr "Lưu file đã slice dưới dạng:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "File %s đã được gửi đến không gian lưu trữ của máy in và có thể được xem trên máy in."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "Xuất bản tệp 3MF thành:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"Xuất tệp 3MF đã xuất bản thất bại.\n"
+"Vui lòng kiểm tra xem thư mục có tồn tại trực tuyến không, hoặc có chương trình khác đang mở tệp này không."
 
 msgid "Publish"
 msgstr "Xuất bản"
@@ -9303,7 +9326,6 @@ msgstr "Bạn có muốn tiếp tục?"
 msgid "Language selection"
 msgstr "Chọn ngôn ngữ"
 
-
 msgid "Asia-Pacific"
 msgstr "Châu Á-Thái Bình Dương"
 
@@ -9418,6 +9440,9 @@ msgstr "Đường dẫn phiên bản hiện tại: "
 
 msgid "General"
 msgstr "Chung"
+
+msgid "Language"
+msgstr "Ngôn ngữ"
 
 msgid "Metric"
 msgstr "Hệ mét"
@@ -9918,9 +9943,6 @@ msgstr "Khi kéo thanh trượt lớp trong bản xem trước đã slice, kết
 msgid "Dimmed layer brightness"
 msgstr "Độ sáng của lớp bị làm mờ"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -10357,63 +10379,80 @@ msgstr "Đang tải dữ liệu lên"
 msgid "Jump to webpage"
 msgstr "Chuyển đến trang web"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "Vật liệu"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "Filament pha trộn"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "Một số filament pha trộn phụ thuộc vào các filament sẽ không được xuất bản:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "Filament %d (pha trộn)"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% cần %2%, nhưng filament này chưa được bật."
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% cần %2%, nhưng vật liệu của nó sẽ không được xuất bản."
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "Để xuất bản một filament pha trộn, hãy bật mọi filament mà nó sử dụng rồi chọn Xuất bản đầy đủ, hoặc đáp ứng yêu cầu Loại của nó."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "Vẫn xuất bản"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "Xuất bản 3MF..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "Chọn những cài đặt sẽ được xuất bản trong tệp 3MF"
 
+# AI Translated
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "Wiki về Xuất bản 3MF"
 
+# AI Translated
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "Hướng dẫn video về Xuất bản 3MF"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "Filament pha trộn - được xuất bản trọn bộ khi chọn \"Bật\" ở trên"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "Xuất bản filament pha trộn này và bật + xuất bản đầy đủ các filament thành phần của nó"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "Xuất bản khe filament này trong tệp 3MF"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "Xuất bản đầy đủ"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "Nhúng toàn bộ filament của khe này vào tệp 3MF"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "Lọc mục chưa chọn"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -10432,6 +10471,10 @@ msgstr "Sao chép tất cả các giá trị kế thừa từ preset cha vào pr
 # AI Translated
 msgid "Detach from parent"
 msgstr "Tách khỏi vật thể cha"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "Lưu không kèm vật thể cha"
 
 # AI Translated
 msgid "Unique preset"
@@ -11195,8 +11238,16 @@ msgstr "Prime tower là bắt buộc để phát hiện vón cục. Nếu không
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Bật cả chiều cao Z chính xác và tháp mồi có thể gây ra lỗi cắt lớp. Bạn vẫn muốn bật chiều cao Z chính xác?"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "Timelapse mượt cần prime tower ở mọi lớp, điều này không tương thích với \"Không có lớp thưa\". \"Không có lớp thưa\" đã được tắt."
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Cần có prime tower để timelapse mượt. Có thể có khuyết điểm trên model nếu không có prime tower. Bạn có muốn bật prime tower?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "\"Không có lớp thưa\" không tương thích với timelapse mượt, vốn cần prime tower ở mọi lớp. Timelapse đã chuyển sang chế độ truyền thống."
 
 msgid "Still print by object?"
 msgstr "Vẫn in theo đối tượng?"
@@ -11570,10 +11621,6 @@ msgstr "Hồ sơ quy trình tương thích"
 
 msgid "Printable space"
 msgstr "Không gian in"
-
-# AI Translated
-msgid "Printer Agent"
-msgstr "Tác nhân máy in"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
@@ -11997,14 +12044,6 @@ msgstr "Số lượng đầu đùn"
 
 msgid "Capabilities"
 msgstr "Khả năng"
-
-# AI Translated
-msgid "Left: "
-msgstr "Trái: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Phải: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "Hiển thị tất cả preset (bao gồm cả không tương thích)"
@@ -12921,14 +12960,21 @@ msgstr "Sửa chữa đã hủy"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Sao chép file %1% sang %2% thất bại: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "Đang tải xuống hồ sơ nhà cung cấp mới: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Gói cấu hình: %1% đã cập nhật lên %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "Tải xuống hồ sơ nhà cung cấp thất bại: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Cần kiểm tra các thay đổi chưa lưu trước khi cập nhật cấu hình."
-
-msgid "Configuration package: "
-msgstr "Gói cấu hình: "
-
-msgid " updated to "
-msgstr " đã cập nhật lên "
 
 msgid "Open G-code file:"
 msgstr "Mở file G-code:"
@@ -12996,12 +13042,14 @@ msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping chỉ được Klipper, RepRapFirmware và Marlin 2 hỗ trợ."
 
 # AI Translated
-msgid "Grouping error: "
-msgstr "Lỗi nhóm: "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Lỗi nhóm: %1% không thể đặt vào đầu phun trái"
 
 # AI Translated
-msgid " can not be placed in the "
-msgstr " không thể được đặt vào "
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Lỗi nhóm: %1% không thể đặt vào đầu phun phải"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -13115,6 +13163,10 @@ msgstr "%1% quá gần các đối tượng khác, và có thể gây va chạm.
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% quá cao, và sẽ gây va chạm."
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "Vị trí tương đối giữa mô hình và prime tower không đáp ứng yêu cầu của tính năng \"Không có lớp thưa\". Vui lòng điều chỉnh vị trí tương đối của chúng, hạ chiều cao mô hình, hoặc tắt \"Không có lớp thưa\"."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " quá gần vùng loại trừ, có thể có va chạm khi in."
@@ -13489,6 +13541,10 @@ msgstr "Dùng 3MF thay cho G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Bật tùy chọn này nếu máy in nhận file 3MF làm tác vụ in. Khi bật, Orca Slicer sẽ gửi file đã slice dưới dạng .gcode.3mf thay vì file .gcode thuần."
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "Tác nhân máy in"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -14581,6 +14637,10 @@ msgstr "Thẳng hàng căn chỉnh"
 msgid "Concentric"
 msgstr "Đồng tâm"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "Xoắn ốc thụt vào"
+
 msgid "Hilbert Curve"
 msgstr "Đường cong Hilbert"
 
@@ -14672,13 +14732,13 @@ msgstr "Thứ tự lấp bề mặt trên"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Hướng lấp các bề mặt trên khi dùng mẫu dựa trên tâm (Đồng tâm, Dây cung Archimedes, Xoắn ốc bát giác).\n"
-"Ra ngoài bắt đầu từ tâm bề mặt, nhờ đó vật liệu dư bị đẩy về phía mép nơi ít nhìn thấy nhất. Vào trong bắt đầu từ mép và kết thúc bằng các đường cong hẹp ở tâm.\n"
-"Mặc định dùng thứ tự đường đi ngắn nhất, có thể chạy theo hướng bất kỳ."
+"Hướng lấp đầy các bề mặt trên khi dùng mẫu xuất phát từ tâm (Đồng tâm, Xoắn ốc thụt vào, Dây cung Archimedes, Xoắn ốc bát giác).\n"
+"Ra ngoài bắt đầu từ tâm bề mặt, nên vật liệu dư bị đẩy về phía mép, nơi ít lộ nhất. Vào trong bắt đầu từ mép và kết thúc bằng những đường cong hẹp ở tâm.\n"
+"Mặc định dùng thứ tự theo đường đi ngắn nhất, có thể chạy theo hướng nào cũng được."
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -14686,13 +14746,13 @@ msgstr "Thứ tự lấp bề mặt dưới"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Hướng lấp các bề mặt dưới khi dùng mẫu dựa trên tâm (Đồng tâm, Dây cung Archimedes, Xoắn ốc bát giác).\n"
-"Vào trong bắt đầu mỗi bề mặt bằng các đường cong ngoài rộng hơn, giúp cải thiện độ bám lớp đầu tiên trên những bàn in mà các đường cong hẹp ở tâm có thể không dính. Ra ngoài bắt đầu từ tâm, đẩy vật liệu dư về phía mép.\n"
-"Mặc định dùng thứ tự đường đi ngắn nhất, có thể chạy theo hướng bất kỳ."
+"Hướng lấp đầy các bề mặt dưới khi dùng mẫu xuất phát từ tâm (Đồng tâm, Xoắn ốc thụt vào, Dây cung Archimedes, Xoắn ốc bát giác).\n"
+"Vào trong bắt đầu mỗi bề mặt bằng những đường cong ngoài rộng hơn, giúp lớp đầu tiên bám tốt hơn trên các bàn in mà những đường cong hẹp ở tâm có thể không dính. Ra ngoài bắt đầu từ tâm, đẩy vật liệu dư về phía mép.\n"
+"Mặc định dùng thứ tự theo đường đi ngắn nhất, có thể chạy theo hướng nào cũng được."
 
 msgid "Internal solid infill pattern"
 msgstr "Mẫu infill đặc bên trong"
@@ -14795,6 +14855,14 @@ msgstr "Ngược chiều kim đồng hồ"
 
 msgid "Clockwise"
 msgstr "Cùng chiều kim đồng hồ"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "Khoảng cách tới thanh"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "Khoảng cách ngang từ mũi đầu phun tới mép xa hơn của thanh. Dùng để tránh va chạm khi in theo đối tượng."
 
 msgid "Height to rod"
 msgstr "Chiều cao đến thanh"
@@ -17071,6 +17139,20 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "Phát hiện phần trăm nhô tương đối với độ rộng đường và sử dụng tốc độ khác nhau để in. Đối với phần nhô 100%%, tốc độ cầu được sử dụng."
 
 # AI Translated
+msgid "Print unsupported walls last"
+msgstr "In các thành không được đỡ sau cùng"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"Các vòng wall nằm hoàn toàn lơ lửng trên không chỉ được in khi đã có thứ gì đó giữ được chúng:\n"
+"chúng được đùn sau các thành khác trong cùng đảo, bắt đầu từ vòng trong cùng, bất kể thứ tự thành là gì.\n"
+"Một vòng mà chỉ các cầu của lớp này mới neo được sẽ đợi cho tới khi các cầu đó được in, trong khi một vòng chạy dọc theo một thành có điểm tựa vẫn giữ vị trí của nó trước infill, vốn cần nó làm điểm neo."
+
+# AI Translated
 msgid "Outer walls"
 msgstr "Thành ngoài"
 
@@ -17519,6 +17601,39 @@ msgstr "Lau trên vòng"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "Để giảm thiểu khả năng nhìn thấy đường nối trong đùn vòng kín, một chuyển động vào trong nhỏ được thực hiện trước khi extruder rời khỏi vòng."
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "Lau vào trong"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"Chỉ áp dụng cho các thành ngoài, kể cả biên của lỗ. Trong lúc lau, đầu phun nóng được đưa về phía các thành trong đã in để giảm việc nung lại phần nhựa vừa in và giảm vết đường nối.\n"
+"\n"
+"Đặc biệt hữu ích ở chiều cao lớp dưới 0,1 mm, nơi vết lau dễ thấy hơn.\n"
+"\n"
+"Dùng cách lau thông thường nếu chưa có thành trong liền kề nào được in (vùng chỉ có một thành hoặc thứ tự thành Ngoài/Trong), hoặc nếu không tìm được đường đi vào trong có điểm tựa, ví dụ ở các góc hẹp hay khe hở đường nối."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "Khoảng cách lau vào trong"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"Khoảng cách mà đường lau được dịch ra xa khỏi chu vi ngoài, tính bằng milimét hoặc theo phần trăm độ rộng đùn thực tế của thành ngoài.\n"
+"\n"
+"Ví dụ, 50% dịch đường đi một nửa độ rộng thành ngoài. Độ dịch thực tế bị giới hạn bởi cả độ rộng thật của thành ngoài lẫn khoảng trống còn lại tới thành liền kề, nên các giá trị trên 100% hoặc khoảng cách tuyệt đối tương đương sẽ không có thêm tác dụng. Đặt 0 để tắt việc dịch chuyển."
+
 msgid "Wipe before external loop"
 msgstr "Lau trước vòng ngoài"
 
@@ -17788,8 +17903,9 @@ msgstr "Lấy công cụ mới mà không chờ nó đạt nhiệt độ in, di 
 msgid "No sparse layers (beta)"
 msgstr "Không có lớp thưa (beta)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Nếu được bật, wipe tower sẽ không được in trên các lớp không có thay đổi công cụ. Trên các lớp có thay đổi công cụ, extruder sẽ di chuyển xuống để in wipe tower. Người dùng chịu trách nhiệm đảm bảo không có va chạm với bản in."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "Nếu bật, wipe tower sẽ không được in ở những lớp không có đổi công cụ. Ở những lớp có đổi công cụ, extruder sẽ đi xuống để in wipe tower, nên tháp nằm thấp hơn mô hình và đầu công cụ phải với xuống tới đó. Những bố trí khiến điều này va chạm với một vật thể đã in sẽ bị từ chối. Không có tác dụng với timelapse mượt hoặc phát hiện đóng cục ở đầu phun, vì chúng cần có tháp ở mọi lớp."
 
 msgid "Prime all printing extruders"
 msgstr "Nạp tất cả extruder in"
@@ -17815,6 +17931,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Tuần hoàn"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "Thứ tự vòng lặp"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"Trình tự filament tùy chỉnh mà thứ tự đổi công cụ theo vòng lặp sử dụng, viết dưới dạng các số filament ngăn cách bằng dấu phẩy (ví dụ \"3,2,1,4\").\n"
+"Mỗi lớp in các filament của nó theo trình tự này; các filament không được liệt kê sẽ in sau cùng, theo thứ tự tăng dần.\n"
+"Để trống để luân phiên các filament theo thứ tự tăng dần."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "Áp dụng thứ tự vòng lặp cho lớp đầu tiên"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"Áp dụng thứ tự đổi công cụ theo vòng lặp cho cả lớp đầu tiên.\n"
+"Mặc định tùy chọn này tắt, vì lớp đầu tiên được sắp xếp theo hướng bám dính đế tốt nhất: những filament in các chi tiết nhỏ, mỏng manh của lớp đầu tiên sẽ được in sau cùng, nhờ đó các lần đổi công cụ và di chuyển tiếp theo ít có khả năng làm bong những phần bám yếu đó. Thứ tự lớp đầu tiên này cũng tôn trọng trình tự filament tùy chỉnh cho lớp đầu tiên nếu có thiết lập. Lợi ích của thứ tự vòng lặp (thêm lần đổi công cụ giúp mỗi lớp có nhiều thời gian nguội hơn) không áp dụng cho lớp đầu tiên, vốn được in chậm và nóng để bám dính.\n"
+"Chỉ bật tùy chọn này nếu bạn cần đúng cùng một trình tự công cụ ở mọi lớp, kể cả lớp đầu, đánh đổi bằng việc mất tối ưu bám dính nói trên."
+
 msgid "Slice gap closing radius"
 msgstr "Bán kính đóng khe slice"
 
@@ -17823,9 +17967,6 @@ msgstr "Vết nứt nhỏ hơn 2x bán kính đóng khe được lấp trong sli
 
 msgid "Slicing Mode"
 msgstr "Chế độ slice"
-
-msgid "Other"
-msgstr "Khác"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Sử dụng \"Chẵn-lẻ\" cho model máy bay 3DLabPrint. Sử dụng \"Đóng lỗ\" để đóng tất cả các lỗ trong model."
@@ -18859,6 +19000,14 @@ msgstr "Không kiểm tra"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Không chạy bất kỳ kiểm tra tính hợp lệ nào, chẳng hạn như kiểm tra xung đột đường dẫn G-code."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "Chế độ nghiêm ngặt"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "Thoát với mã khác 0 khi việc slice phát sinh một cảnh báo không nghiêm trọng mà bình thường chỉ được ghi log, chẳng hạn mô hình cần support trong khi support đang tắt. Hãy dùng trong CI hoặc các quy trình chạy bằng script vốn không bao giờ được xuất ra kết quả slice hỏng một cách khó nhận ra. Mỗi cảnh báo như vậy cũng được liệt kê kèm một lớp ổn định trong mảng `warnings` của result.json, tệp chỉ được ghi trên Linux. Không thể kết hợp với --no-check, tùy chọn bỏ qua việc kiểm tra support."
+
 msgid "Normative check"
 msgstr "Kiểm tra quy chuẩn"
 
@@ -18871,11 +19020,28 @@ msgstr "Xuất thông tin model"
 msgid "This outputs the model’s information."
 msgstr "Xuất thông tin của model."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "Kiểm tra lưới (JSON ra stdout)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "In ra stdout bản tóm tắt JSON của từng vật thể đã nạp rồi thoát: các hộp bao của nó và các mặt bao lồi mà nó có thể nằm lên, kèm pháp tuyến, diện tích và tâm của chúng. Đây chính là những mặt mà các tùy chọn --ground-* lựa chọn. Lựa chọn thay thế đọc được bằng máy cho --info."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "Kiểm tra phần vẽ (JSON ra stdout)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "In bản tóm tắt JSON có cấu trúc của mọi lớp đã vẽ (support, đường nối, màu MMU, fuzzy skin) đang được lưu trên mô hình đã nạp — số mặt, diện tích bề mặt và hộp bao theo tọa độ lưới cho từng trạng thái — rồi thoát. Lựa chọn thay thế đọc được bằng máy cho việc mở các gizmo vẽ trong giao diện."
+
 msgid "Export Settings"
 msgstr "Xuất cài đặt"
 
-msgid "This exports settings to a file."
-msgstr "Xuất cài đặt vào file."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "Lệnh này xuất cài đặt ra một tệp. Dùng - để ghi chúng ra stdout."
 
 msgid "Send progress to pipe"
 msgstr "Gửi tiến trình đến pipe"
@@ -18930,6 +19096,30 @@ msgstr "Xoay xung quanh Y"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Góc xoay xung quanh trục Y tính bằng độ."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "Đặt lên mặt lớn nhất"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Đặt mỗi vật thể lên mặt lớn nhất của bao lồi rồi thả xuống bàn in. Trong số các mặt lớn bằng nhau, mặt đang hướng xuống sẽ được giữ lại. Những vật thể không có mặt đủ lớn để nằm lên sẽ được giữ nguyên. Các phép biến đổi chạy theo thứ tự trên dòng lệnh, nên các phép xoay đặt trước tùy chọn này vẫn được tôn trọng. --orient 1 chạy sau tất cả các phép biến đổi và thay thế hướng đặt."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "Đặt lên mặt theo pháp tuyến"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Đặt mỗi vật thể lên mặt của bao lồi có pháp tuyến hướng ra ngoài gần nhất với hướng NX,NY,NZ rồi thả xuống bàn in. Hướng này tính theo tọa độ vật thể, vốn đã bao gồm các phép xoay đặt trước tùy chọn này và trùng với các trục của bàn in trừ khi tệp đầu vào có xoay vật thể. Ví dụ, 1,0,0 dựng vật thể lên mặt +X của nó. --orient 1 chạy sau tất cả các phép biến đổi và thay thế hướng đặt."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "Đặt lên mặt tại điểm"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Đặt mỗi vật thể lên mặt của bao lồi có chứa điểm X,Y,Z rồi thả xuống bàn in. Điểm này tính theo tọa độ vật thể, vốn đã bao gồm các phép xoay đặt trước tùy chọn này; --inspect-mesh báo tâm các mặt theo đúng hệ tọa độ đó. Những vật thể không có mặt như vậy sẽ được giữ nguyên, và lần chạy sẽ thất bại nếu không vật thể nào có mặt đó. --orient 1 chạy sau tất cả các phép biến đổi và thay thế hướng đặt."
 
 msgid "Scale the model by a float factor."
 msgstr "Tỷ lệ model theo hệ số số thực."
@@ -22235,14 +22425,17 @@ msgstr "Thao tác này không thể hoàn tác. Tiếp tục?"
 msgid "Skipping objects."
 msgstr "Đang bỏ qua các vật thể."
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "Tỉ lệ vật liệu"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "Chiều cao mô hình"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "Tỉ lệ"
 
 # AI Translated
 msgid "Select Filament"
@@ -22559,12 +22752,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Sấy - Hút ẩm"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " nhiệt độ sấy tối đa là "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Nhiệt độ sấy tối đa của %s là %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " nhiệt độ sấy tối thiểu là "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Nhiệt độ sấy tối thiểu của %s là %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -23014,6 +23209,101 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Other"
+#~ msgstr "Khác"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Trái: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Phải: "
+
+# AI Translated
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Nhiệt độ tối đa không được vượt quá "
+
+# AI Translated
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Nhiệt độ tối thiểu không được thấp hơn "
+
+#~ msgid "up to"
+#~ msgstr "lên đến"
+
+#~ msgid "above"
+#~ msgstr "trên"
+
+#~ msgid "from"
+#~ msgstr "từ"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Gói cấu hình: "
+
+#~ msgid " updated to "
+#~ msgstr " đã cập nhật lên "
+
+# AI Translated
+#~ msgid "Grouping error: "
+#~ msgstr "Lỗi nhóm: "
+
+# AI Translated
+#~ msgid " can not be placed in the "
+#~ msgstr " không thể được đặt vào "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " nhiệt độ sấy tối đa là "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " nhiệt độ sấy tối thiểu là "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "cần"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "chưa bật"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "vật liệu chưa xuất bản"
+
+#~ msgid "Select the language"
+#~ msgstr "Chọn ngôn ngữ"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Chọn plugin"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Hướng lấp các bề mặt trên khi dùng mẫu dựa trên tâm (Đồng tâm, Dây cung Archimedes, Xoắn ốc bát giác).\n"
+#~ "Ra ngoài bắt đầu từ tâm bề mặt, nhờ đó vật liệu dư bị đẩy về phía mép nơi ít nhìn thấy nhất. Vào trong bắt đầu từ mép và kết thúc bằng các đường cong hẹp ở tâm.\n"
+#~ "Mặc định dùng thứ tự đường đi ngắn nhất, có thể chạy theo hướng bất kỳ."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Hướng lấp các bề mặt dưới khi dùng mẫu dựa trên tâm (Đồng tâm, Dây cung Archimedes, Xoắn ốc bát giác).\n"
+#~ "Vào trong bắt đầu mỗi bề mặt bằng các đường cong ngoài rộng hơn, giúp cải thiện độ bám lớp đầu tiên trên những bàn in mà các đường cong hẹp ở tâm có thể không dính. Ra ngoài bắt đầu từ tâm, đẩy vật liệu dư về phía mép.\n"
+#~ "Mặc định dùng thứ tự đường đi ngắn nhất, có thể chạy theo hướng bất kỳ."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Nếu được bật, wipe tower sẽ không được in trên các lớp không có thay đổi công cụ. Trên các lớp có thay đổi công cụ, extruder sẽ di chuyển xuống để in wipe tower. Người dùng chịu trách nhiệm đảm bảo không có va chạm với bản in."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Xuất cài đặt vào file."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

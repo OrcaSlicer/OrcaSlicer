@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_SPARKX_i7",
-	"default_materials": "Generic PETG @SPARKX i7-all;Generic PLA @SPARKX i7-all;CR-PLA Matte @SPARKX i7-all;Generic PLA Silk @SPARKX i7-all"
+	"default_materials": "Generic PETG @SPARKX i7-all;Generic PLA @SPARKX i7-all;CR-PLA Matte @SPARKX i7-all;Generic PLA-Silk @SPARKX i7-all"
 }

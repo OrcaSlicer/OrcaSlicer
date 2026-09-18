@@ -7,5 +7,5 @@
 	"family": "TiQ",
 	"bed_model": "TiQ2.stl",
 	"bed_texture": "TiQ2_texture.svg",
-	"default_materials": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle"
+	"default_materials": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle;Generic PLA @System"
 }
