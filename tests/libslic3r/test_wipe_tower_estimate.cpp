@@ -179,6 +179,38 @@ TEST_CASE("A single filament only gets a tower when one is printed anyway", "[Wi
     CHECK_THAT(estimate(config, 1, 0.2, 5.).depth, WithinAbs(WipeTower::get_limit_depth_by_height(5.f), 1e-9));
 }
 
+TEST_CASE("A single filament still gets a tower when the flush matrix purges", "[WipeTowerEstimate]") {
+    // SEMM + purge_in_prime_tower purges the flush matrix, whose average is non-zero for one
+    // filament (empty or not - filament_minimal_purge_on_wipe_tower folds in at 15 mm3). So the
+    // estimate reports a tower here while normalize_fdm_2 clears it: this answers how big a
+    // tower is, never whether there is one. Reading a non-zero depth as "a tower is printed"
+    // reserves space for, or blocks on, a phantom.
+    DynamicPrintConfig config = make_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+    config.set_key_value("purge_in_prime_tower", new ConfigOptionBool(true));
+    // One nozzle, two filaments: a 2x2 block, so the fold over nozzles has one term.
+    config.set_key_value("flush_volumes_matrix", new ConfigOptionFloats({0., 140., 140., 0.}));
+
+    CHECK(estimate(config, 1, 0.2, 100.).depth > 0.);
+
+    // Type1 is the exception: the flush volume replaces Type2's purge volume, while Type1 decides
+    // from its per-filament purge list, and one filament is never changed to. A Type1 printer
+    // therefore reserves nothing here - and the scene draws nothing either, since it reads the
+    // same estimate, so the two still agree. Type2 is the default for every non-Bambu printer,
+    // which is what an IDEX/IQEX printer is.
+    CHECK_THAT(estimate(config, 1, 0.2, 100., WipeTowerType::Type1).depth, WithinAbs(0., 1e-9));
+
+    // The disagreement itself: same config, and the slicer's own rule prints no tower.
+    DynamicPrintConfig normalized = config;
+    normalized.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    normalized.normalize_fdm_2(/*num_objects=*/1, /*used_filaments=*/1);
+    CHECK_FALSE(normalized.option<ConfigOptionBool>("enable_prime_tower")->value);
+
+    // Same plate, same matrix, purging back in the object: nothing to reserve.
+    config.set_key_value("purge_in_prime_tower", new ConfigOptionBool(false));
+    CHECK_THAT(estimate(config, 1, 0.2, 100.).depth, WithinAbs(0., 1e-9));
+}
+
 TEST_CASE("A tool change reserves a tower even with nothing to purge", "[WipeTowerEstimate]") {
     // The purge volumes are configurable down to zero, but the tool changes are still printed
     // on the tower and both planners still floor it - so the estimate has to floor it too.
