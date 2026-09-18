@@ -414,13 +414,30 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
+    // A Global shortcut also runs while a text field has the focus, so its hint names the keys it can use.
+    const bool     global = (shortcut_info(shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
+    const wxString advice = global_key_advice();
+    const wxString typing = _L("Global shortcuts also apply while typing.");
+    const wxString rule   = _L("A key that types a character cannot be a global shortcut.");
+    m_hint      = global ? typing + "\n" + advice : _L("Esc cancels, Enter confirms.");
+    m_rejection = rule + "\n" + advice;
+
+    // Wide enough for each sentence on a line of its own where the translation allows, within limits.
+    int width = FromDIP(450);
+    for (const wxString& sentence : { typing, rule, advice }) {
+        int extent = 0;
+        GetTextExtent(sentence, &extent, nullptr, nullptr, nullptr, &wxGetApp().normal_font());
+        width = std::max(width, extent);
+    }
+    width = std::min(width, FromDIP(550));
+
     auto prompt = new Label(this, wxGetApp().normal_font(), wxString::Format(_L("Press the new shortcut for\n\"%s\""), _(shortcut_info(shortcut).name)), LB_AUTO_WRAP);
-    prompt->SetMinSize(wxSize(FromDIP(400), -1));
+    prompt->SetMinSize(wxSize(width, -1));
     sizer->Add(prompt, 0, wxALL, FromDIP(20));
 
     // Keyboard focus stays on this box so the buttons never receive the key presses.
     const wxColour box_colour = StateColor::darkModeColorFor(*wxWHITE);
-    StaticBox* capture = new StaticBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(400), FromDIP(60)), wxWANTS_CHARS);
+    StaticBox* capture = new StaticBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(240), FromDIP(40)), wxWANTS_CHARS);
     capture->SetCornerRadius(FromDIP(4));
     capture->SetBorderColorNormal(StateColor::darkModeColorFor(wxColour("#DBDBDB")));
     capture->SetBackgroundColorNormal(box_colour);
@@ -436,13 +453,10 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture->Bind(wxEVT_KEY_DOWN, &ShortcutCaptureDialog::on_key, this);
     capture->Bind(wxEVT_CHAR, &ShortcutCaptureDialog::on_char, this);
     capture->Bind(wxEVT_LEFT_DOWN, [capture](wxMouseEvent&) { capture->SetFocus(); });
-    sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
+    sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_HORIZONTAL, FromDIP(20));
 
-    // A Global shortcut also runs while a text field has the focus, so its hint names the keys it can use.
-    const bool global = (shortcut_info(shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
-    m_hint = global ? _L("Global shortcuts also apply while typing.") + "\n" + global_key_advice() : _L("Esc cancels, Enter confirms.");
     m_status = new Label(this, wxGetApp().normal_font(), m_hint, LB_AUTO_WRAP);
-    m_status->SetMinSize(wxSize(FromDIP(400), 3 * m_status->GetCharHeight()));   // room for three lines, so the dialog keeps its size while keys are tried
+    m_status->SetMinSize(wxSize(width, 3 * m_status->GetCharHeight()));   // room for three lines, so the dialog keeps its size while keys are tried
     m_status_colour = m_status->GetForegroundColour();
     sizer->Add(m_status, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(20));
 
@@ -504,12 +518,14 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
 {
     m_chord = chord;
     m_chord_label->SetLabel(join_keys(to_wx(chord.display_parts())));
-    m_chord_label->GetParent()->Layout();
+    wxWindow* box = m_chord_label->GetParent();
+    box->SetMinSize(wxSize(std::max(box->GetSize().x, m_chord_label->GetBestSize().x + FromDIP(20)), box->GetSize().y));   // a long chord widens the box
+    box->Layout();
 
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
     if (global && !chord.is_menu_accelerator()) {
         m_status->SetForegroundColour(ERROR_COLOUR);
-        m_status->SetLabel(_L("A key that types a character cannot be a global shortcut.") + "\n" + global_key_advice());
+        m_status->SetLabel(m_rejection);
         m_conflicts.clear();
         m_ok->Enable(false);
     } else {
