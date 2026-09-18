@@ -6,6 +6,7 @@
 #include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 
 #include <cmath>
 #include <numeric>
@@ -380,4 +381,42 @@ TEST_CASE("A config missing a tower key falls back to that key's default", "[Wip
     defaulted.set_key_value("wipe_tower_extra_spacing",
                             print_config_def.get("wipe_tower_extra_spacing")->default_value->clone());
     CHECK_THAT(estimate(partial, 3, 0.2, 5.).depth, WithinAbs(estimate(defaulted, 3, 0.2, 5.).depth, 1e-9));
+}
+
+TEST_CASE("prime_tower_is_printed answers exactly what normalize_fdm_2 decides", "[WipeTowerEstimate]") {
+    // The estimate says how big a tower is; this says whether there is one, and the authority is
+    // normalize_fdm_2, which clears enable_prime_tower before the plate is sliced. Pre-slice
+    // consumers cannot call it (it mutates a config), so the rule is mirrored - and mirrored rules
+    // drift, which is what this pins. Every combination the rule looks at, both verdicts compared.
+    const int  used_filaments = GENERATE(1, 2, 3);
+    const bool has_mixed      = GENERATE(false, true);
+    const int  num_objects    = GENERATE(1, 2);
+    const bool by_object      = GENERATE(false, true);
+    const bool smooth         = GENERATE(false, true);
+    const bool wrapping       = GENERATE(false, true);
+
+    DynamicPrintConfig config = preset_shaped_defaults();
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    config.set_deserialize_strict("print_sequence", by_object ? "by object" : "by layer");
+    config.set_deserialize_strict("timelapse_type", smooth ? "1" : "0");
+    config.set_key_value("enable_wrapping_detection", new ConfigOptionBool(wrapping));
+    config.set_key_value("filament_is_mixed", new ConfigOptionBools(
+        has_mixed ? std::vector<unsigned char>{0, 1} : std::vector<unsigned char>{0, 0}));
+    REQUIRE(has_any_mixed_filament(config.option<ConfigOptionBools>("filament_is_mixed")->values) == has_mixed);
+
+    DynamicPrintConfig normalized = config;
+    normalized.normalize_fdm_2(num_objects, used_filaments);
+    const bool slicer_prints_one = normalized.opt_bool("enable_prime_tower");
+
+    CHECK(prime_tower_is_printed(config, used_filaments, num_objects, has_mixed) == slicer_prints_one);
+}
+
+TEST_CASE("prime_tower_is_printed follows the option the user set", "[WipeTowerEstimate]") {
+    DynamicPrintConfig config = preset_shaped_defaults();
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
+    CHECK_FALSE(prime_tower_is_printed(config, 2, 1, false));
+
+    // Below one filament normalize_fdm_2 leaves the option alone, so this does too.
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    CHECK(prime_tower_is_printed(config, 0, 1, false));
 }

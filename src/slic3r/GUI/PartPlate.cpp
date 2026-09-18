@@ -1118,27 +1118,28 @@ Polygon PartPlate::imex_wipe_tower_hull() const
         return Polygon();
 
     const DynamicPrintConfig& print_cfg = preset_bundle->prints.get_edited_preset().config;
-    const ConfigOptionBool*   enable_opt = print_cfg.option<ConfigOptionBool>("enable_prime_tower");
-    if (!enable_opt || !enable_opt->value)
+
+    // Whether a tower is PRINTED is normalize_fdm_2's rule, shared with the slicer through
+    // prime_tower_is_printed() rather than re-derived here - re-deriving it is what let this
+    // validate a tower the slicer had already cancelled. Do not substitute the footprint
+    // estimate: it reports a tower for a single filament whenever the flush matrix purges
+    // (SEMM + purge_in_prime_tower, the Klipper default), which hard-blocks a plate with
+    // nothing drawn on screen to move.
+    //
+    // Counts are the ones normalize_fdm_2 is handed: filament slots as authored, so a mixed
+    // slot counts once, and distinct objects rather than instances. filament_is_mixed is a
+    // project option, hence read separately.
+    const auto* mixed_opt = preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+    const bool  has_mixed = mixed_opt != nullptr && has_any_mixed_filament(mixed_opt->values);
+    std::set<int> plate_objects;
+    for (const auto& pr : obj_to_instance_set)
+        plate_objects.insert(pr.first);
+    if (!prime_tower_is_printed(print_cfg, (int) get_extruders(true, /*expand_mixed=*/false).size(),
+                                (int) plate_objects.size(), has_mixed))
         return Polygon();
 
-    // Approximates normalize_fdm_2(), which is what actually decides whether a tower is
-    // printed: it clears enable_prime_tower for one filament, or ByObject over several
-    // objects, unless smooth timelapse or wrapping detection forces one.
-    //
-    // Do not substitute the footprint estimate's answer. It reports a tower for a single
-    // filament whenever the flush matrix purges (SEMM + purge_in_prime_tower, the Klipper
-    // default), which would hard-block a plate whose tower normalize_fdm_2 already cleared -
-    // with nothing drawn on screen to move. See test_wipe_tower_estimate.cpp.
-    auto timelapse_type = print_cfg.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool need_wipe_tower = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
-    // enable_wrapping_detection is a PRINT option; read from the printer preset it returns
-    // nullptr and silently skips validation for a tower the user can see and drag.
-    if (auto wrapping_opt = print_cfg.option<ConfigOptionBool>("enable_wrapping_detection"))
-        need_wipe_tower |= wrapping_opt->value;
+    // The estimate's floor counts what is purged, so a mixed slot counts as its components here.
     const int plate_extruder_size = (int) get_extruders(true).size();
-    if (!need_wipe_tower && plate_extruder_size < 2)
-        return Polygon();
 
     Vec3d wt_pos, wt_size;
     // full_config(), not the print preset: wipe_tower_x/y are project options the estimate
