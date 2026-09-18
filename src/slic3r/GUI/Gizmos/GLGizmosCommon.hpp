@@ -238,7 +238,10 @@ public:
     void set_position_to_init_layer();
     const ClippingPlane* get_clipping_plane(bool ignore_hide_clipped = false) const;
     void render_cut(const std::vector<size_t>* ignore_idxs = nullptr) const;
-    void set_position_by_ratio(double pos, bool keep_normal, bool vertical_normal=false);
+    //ORCA: `vertical_invert` flips the world-Z normal to (0,0,-1) so the cut hides
+    //      the BOTTOM of the part instead of the top. Only meaningful when
+    //      vertical_normal=true; ignored otherwise.
+    void set_position_by_ratio(double pos, bool keep_normal, bool vertical_normal=false, bool vertical_invert=false);
     void set_range_and_pos(const Vec3d& cpl_normal, double cpl_offset, double pos);
     void set_behavior(bool hide_clipped, bool fill_cut, double contour_width);
     

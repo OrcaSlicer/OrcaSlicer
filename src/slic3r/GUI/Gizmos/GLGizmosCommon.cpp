@@ -368,7 +368,7 @@ std::vector<Vec3d> ObjectClipper::point_per_contour() const
 }
 
 
-void ObjectClipper::set_position_by_ratio(double pos, bool keep_normal, bool vertical_normal)
+void ObjectClipper::set_position_by_ratio(double pos, bool keep_normal, bool vertical_normal, bool vertical_invert)
 {
     const ModelObject* mo = get_pool()->selection_info()->model_object();
     int active_inst = get_pool()->selection_info()->get_active_instance();
@@ -376,7 +376,7 @@ void ObjectClipper::set_position_by_ratio(double pos, bool keep_normal, bool ver
 
     Vec3d normal;
     if(vertical_normal) {
-        normal = {0, 0, 1};
+        normal = vertical_invert ? Vec3d{0, 0, -1} : Vec3d{0, 0, 1};
     }else {
         //Vec3d camera_dir = wxGetApp().plater()->get_camera().get_dir_forward();
         //if (abs(camera_dir(0)) > EPSILON || abs(camera_dir(1)) > EPSILON)
