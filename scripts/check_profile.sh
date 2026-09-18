@@ -38,7 +38,7 @@ PROFILES_DIR="${REPO_ROOT}/resources/profiles"
 WORK_DIR="${REPO_ROOT}/.test/check_profiles"
 VALIDATOR="${ORCA_PROFILE_VALIDATOR:-}"
 # Vendor to check, named after its <Vendor>.json - empty means every vendor, which is exactly what
-# both the validator's -v and orca_extra_profile_check.py's --vendor take an empty value to mean.
+# both the validator's -v and orca_profile_tool.py check's --vendor take an empty value to mean.
 # So the flag is passed unconditionally below rather than kept in an array bash 3.2 cannot expand
 # empty under `set -u`.
 VENDOR=""
@@ -46,7 +46,7 @@ LOG_LEVEL=2
 PREFER_DOWNLOAD=0
 REFRESH=0
 
-ALL_CHECKS=(extra_json_check validate_system validate_slice validate_filament_subtypes validate_custom)
+ALL_CHECKS=(profile_tool validate_system validate_slice validate_filament_subtypes validate_custom)
 CHECKS=()
 # "<check><TAB>pass|fail" per check that ran, plus "<check><TAB>skip<TAB>why" for one a vendor
 # scope left out; a string rather than an array because bash 3.2 (still the /bin/bash on macOS)
@@ -60,7 +60,7 @@ Run the profile checks from .github/workflows/check_profiles.yml locally.
 Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
 Checks (default: all, in this order):
-  extra_json_check              scripts/orca_extra_profile_check.py
+  profile_tool                  scripts/orca_profile_tool.py check
   validate_system               validator -p <profiles> -l <level>
   validate_slice                validator -p <profiles> -s -l <level>
   validate_filament_subtypes    validator -p <profiles> -l <level> -f
@@ -79,14 +79,16 @@ Options:
   -l, --log-level N    validator log level (default: ${LOG_LEVEL}, as in CI)
   -h, --help           show this help
 
-Note: extra_json_check always looks at the tree next to the script
-(<repo>/resources/profiles); --profiles only redirects the validator checks.
+Note: profile_tool is the only check that is not the validator binary; it makes the static
+checks the validator cannot, because the validator loads the tree the way the slicer does
+and so never sees a profile no <vendor>.json indexes, a preset name two files claim, or a
+file normalize and update-index would still rewrite.
 
 Note: --vendor narrows validate_custom too, by keeping only that vendor's presets in each
 fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
 printers; the summary reports that one as skipped, and naming it explicitly still runs it.
-extra_json_check keeps its two cross-vendor checks (setting_id and filament_id) tree-wide,
-so a scoped run can still fail on another vendor's files.
+profile_tool keeps its two cross-vendor checks (setting_id and filament_id) tree-wide, so a
+scoped run can still fail on another vendor's files.
 EOF
 }
 
@@ -361,8 +363,8 @@ resolve_validator() {
 
 # ---------------------------------------------------------------------------- checks
 
-check_extra_json_check() {
-    python3 "${REPO_ROOT}/scripts/orca_extra_profile_check.py" --vendor "${VENDOR}"
+check_profile_tool() {
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --profiles "${PROFILES_DIR}" --vendor "${VENDOR}"
 }
 
 check_validate_system() {
@@ -548,7 +550,7 @@ EOF
 # Heading CI puts above this check's log in the PR comment.
 comment_heading() {
     case "$1" in
-        extra_json_check) echo "### Extra JSON Check Failed" ;;
+        profile_tool) echo "### Profile Check Failed (orca_profile_tool.py)" ;;
         validate_system) echo "### System Profile Validation Failed" ;;
         validate_slice) echo "### Slice Validation Failed (custom g-code expansion)" ;;
         validate_filament_subtypes) echo "### Filament Subtype Validation Failed" ;;
@@ -638,7 +640,9 @@ fi
 ${RESULTS}
 INNER
     echo "---"
-    echo "*Please fix the above errors and push a new commit.*"
+    # Single-quoted on purpose: the backticks below are markdown, not command substitution.
+    # shellcheck disable=SC2016
+    echo '*Fix the errors above and push a new commit. To reproduce this run locally: `scripts/check_profile.sh`, or `scripts\check_profile.bat` on Windows.*'
 } > "${WORK_DIR}/pr_comment.md"
 
 printf '\n%sOne or more profile checks failed.%s Logs: %s\n' "${C_RED}" "${C_RESET}" "${LOG_DIR}"

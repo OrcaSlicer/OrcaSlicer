@@ -7,6 +7,6 @@
 	"nozzle_diameter": "0.4",
 	"bed_model": "M3D Enabler D8500 MM Model_bed_model.stl",
 	"bed_texture": "M3D Enabler D8500 MM Model_bed_texture.svg",
-	"default_materials": "Generic PLA @system",
+	"default_materials": "Generic PLA @System",
 	"scan_folder": "1"
 }

@@ -144,7 +144,6 @@
 		"Spiral Lift"
 	],
 	"nozzle_type": "hardened_steel",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nPRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single]\n",
 	"machine_end_gcode": "PRINT_END",

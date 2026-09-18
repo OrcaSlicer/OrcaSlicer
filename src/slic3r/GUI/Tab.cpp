@@ -1736,16 +1736,46 @@ void Tab::toggle_option(const std::string& opt_key, bool toggle, int opt_index/*
 
 void Tab::toggle_line(const std::string &opt_key, bool toggle, int opt_index)
 {
-    if (!m_active_page) return;
-    Line *line = m_active_page->get_line(opt_key, opt_index);
-    if (line) line->toggle_visible = toggle;
+    // Apply to every page that owns the option, not just m_active_page. ConfigManipulation runs while
+    // each tab updates at preset load, so the Speed Dial sees the same visibility regardless of page.
+    for (const PageShp& page : m_pages) {
+        if (!page) continue;
+        if (Line *line = page->get_line(opt_key, opt_index))
+            line->toggle_visible = toggle;
+    }
 };
 
 void Tab::set_option_label(const std::string &opt_key, const wxString &label, int opt_index)
 {
-    if (!m_active_page) return;
-    Line *line = m_active_page->get_line(opt_key, opt_index);
-    if (line) line->set_label(label);
+    // Same as toggle_line: a runtime rename (brim_width -> "Brim ear radius") must reach every page
+    // so the Speed Dial titles the setting before the page has been shown.
+    for (const PageShp& page : m_pages) {
+        if (!page) continue;
+        if (Line *line = page->get_line(opt_key, opt_index))
+            line->set_label(label);
+    }
+}
+
+Tab::SettingRowState Tab::setting_row_state(const std::string &opt_id) const
+{
+    bool found = false;
+    for (const PageShp& page : m_pages) {
+        if (!page) continue;
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups) {
+            if (!group) continue;
+            for (const Line& line : group->get_lines()) {
+                for (const Option& opt : line.get_options()) {
+                    if (opt.opt_id != opt_id)
+                        continue;
+                    if (line.toggle_visible) // shown on any owning page is enough
+                        return {true, line.label, line.get_options().size() > 1};
+                    found = true;
+                }
+            }
+        }
+    }
+    // Never registered on a page -> visible, but with no row label to contribute.
+    return {!found, wxString(), false};
 }
 
 // To be called by custom widgets, load a value into a config,
@@ -1992,6 +2022,20 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     // reload scene to update timelapse wipe tower
     if (opt_key == "timelapse_type") {
+        // Smooth timelapse parks the nozzle on the prime tower every layer, so it needs a tower on
+        // every layer. That is exactly what "No sparse layers" removes, and with both on the tower is
+        // planned full height and then dropped on emission. Drop "No sparse layers" and tell the user.
+        if (boost::any_cast<int>(value) == (int) TimelapseType::tlSmooth && m_config->opt_bool("wipe_tower_no_sparse_layers")) {
+            MessageDialog dlg(wxGetApp().plater(),
+                              _L("Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". "
+                                 "\"No sparse layers\" has been turned off."),
+                              _L("Warning"), wxICON_WARNING | wxOK);
+            dlg.ShowModal();
+            DynamicPrintConfig new_conf = *m_config;
+            new_conf.set_key_value("wipe_tower_no_sparse_layers", new ConfigOptionBool(false));
+            m_config_manipulation.apply(m_config, &new_conf);
+        }
+
         bool wipe_tower_enabled = m_config->option<ConfigOptionBool>("enable_prime_tower")->value;
         if (!wipe_tower_enabled && boost::any_cast<int>(value) == (int)TimelapseType::tlSmooth) {
             MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower\?"),
@@ -2003,6 +2047,23 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 wxGetApp().plater()->update();
             }
         } else {
+            wxGetApp().plater()->update();
+        }
+    }
+
+    // Mirror of the timelapse_type branch above: enabling "No sparse layers" while smooth timelapse
+    // is active would leave the tower on every layer anyway, so fall back to traditional timelapse.
+    if (opt_key == "wipe_tower_no_sparse_layers" && boost::any_cast<bool>(value)) {
+        auto timelapse_type = m_config->option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
+        if (timelapse_type && timelapse_type->value == TimelapseType::tlSmooth) {
+            MessageDialog dlg(wxGetApp().plater(),
+                              _L("\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. "
+                                 "Timelapse has been switched to traditional mode."),
+                              _L("Warning"), wxICON_WARNING | wxOK);
+            dlg.ShowModal();
+            DynamicPrintConfig new_conf = *m_config;
+            new_conf.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(TimelapseType::tlTraditional));
+            m_config_manipulation.apply(m_config, &new_conf);
             wxGetApp().plater()->update();
         }
     }
@@ -2669,6 +2730,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("role_based_wipe_speed","quality_settings_seam#role-based-wipe-speed");
         optgroup->append_single_option_line("wipe_speed", "quality_settings_seam#wipe-speed");
         optgroup->append_single_option_line("wipe_on_loops","quality_settings_seam#wipe-on-loop-inward-movement");
+        optgroup->append_single_option_line("wipe_inward", "quality_settings_seam#wipe-inward");
+        optgroup->append_single_option_line("wipe_inward_distance", "quality_settings_seam#wipe-inward");
         optgroup->append_single_option_line("wipe_before_external_loop","quality_settings_seam#wipe-before-external");
 
 
@@ -2761,6 +2824,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Overhangs"), L"param_overhang");
         optgroup->append_single_option_line("detect_overhang_wall", "quality_settings_overhangs#detect-overhang-wall");
+        optgroup->append_single_option_line("unsupported_wall_last", "quality_settings_overhangs#unsupported-wall-last");
         optgroup->append_single_option_line("make_overhang_printable", "quality_settings_overhangs#make-overhang-printable");
         optgroup->append_single_option_line("make_overhang_printable_angle", "quality_settings_overhangs#maximum-angle");
         optgroup->append_single_option_line("make_overhang_printable_hole_size", "quality_settings_overhangs#hole-area");
@@ -3024,6 +3088,8 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Advanced"), L"advanced");
         optgroup->append_single_option_line("interlocking_beam", "multimaterial_settings_advanced#interlocking-beam");
         optgroup->append_single_option_line("toolchange_ordering", "multimaterial_settings_advanced#toolchange-ordering");
+        optgroup->append_single_option_line("toolchange_cyclic_order", "multimaterial_settings_advanced#toolchange-order");
+        optgroup->append_single_option_line("toolchange_cyclic_first_layer", "multimaterial_settings_advanced#toolchange-order");
         optgroup->append_single_option_line("interface_shells", "multimaterial_settings_advanced#interface-shells");
         optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_advanced#maximum-width-of-segmented-region");
         optgroup->append_single_option_line("mmu_segmented_region_interlocking_depth", "multimaterial_settings_advanced#interlocking-depth-of-segmented-region");
@@ -5105,6 +5171,7 @@ void TabPrinter::build_fff()
 
         optgroup = page->new_optgroup(L("Extruder Clearance"), "param_extruder_clearance");
         optgroup->append_single_option_line("extruder_clearance_radius", "printer_basic_information_extruder_clearance#radius");
+        optgroup->append_single_option_line("extruder_clearance_dist_to_rod", "printer_basic_information_extruder_clearance#distance-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_rod", "printer_basic_information_extruder_clearance#height-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_lid", "printer_basic_information_extruder_clearance#height-to-lid");
 
@@ -5745,11 +5812,11 @@ if (is_marlin_flavor)
     } else if (m_extruders_count_old == 1) {
         first_extruder_title = wxString::Format("Extruder %d", 1);
     }
-    auto & searcher = wxGetApp().sidebar().get_searcher();
+    auto & index = wxGetApp().sidebar().settings_index();
     for (auto &group : m_pages[n_before_extruders]->m_optgroups) {
         group->set_config_category_and_type(first_extruder_title, m_type);
         for (auto &opt : group->opt_map())
-            searcher.add_key(opt.first + "#0", m_type, group->title, first_extruder_title);
+            index.add_key(opt.first + "#0", m_type, group->title, first_extruder_title, group->icon);
     }
 
     Thaw();
@@ -7833,10 +7900,10 @@ wxSizer* TabPrinter::create_bed_shape_widget(wxWindow* parent)
         }));
 
     {
-        Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-        const Search::GroupAndCategory& gc = searcher.get_group_and_category("printable_area");
-        searcher.add_key("bed_custom_texture", m_type, gc.group, gc.category);
-        searcher.add_key("bed_custom_model", m_type, gc.group, gc.category);
+        Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+        const Search::GroupAndCategory& gc = index.get_group_and_category("printable_area");
+        index.add_key("bed_custom_texture", m_type, gc.group, gc.category, gc.icon);
+        index.add_key("bed_custom_model", m_type, gc.group, gc.category, gc.icon);
     }
 
     return sizer;
