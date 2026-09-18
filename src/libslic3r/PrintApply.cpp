@@ -1,4 +1,5 @@
 #include "ClipperUtils.hpp"
+#include "IMEXHelpers.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
 #include "FilamentMixer.hpp"
@@ -1308,6 +1309,35 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         for (int e_index = 0; e_index < variant_opt->values.size(); e_index++)
         {
             print_variant_index[e_index] = e_index;
+        }
+    }
+
+    // Fill in physical_extruder_map when the printer profile has not authored one. It has one
+    // entry per logical extruder, so it is sized from the nozzle count -- not from
+    // printer_extruder_id, which is indexed by variant slot.
+    //
+    // IMEX printers only. physical_extruder_map carries two readings in this tree (see
+    // IMEXHelpers.hpp): the IMEX paths need one entry per logical extruder, the inherited BBL
+    // paths read it through the clamping get_at(), which collapses every logical extruder to
+    // physical 0 while the profile default is the single-element {0}. Deriving the identity
+    // unconditionally would impose the IMEX reading on printers that mean the other one and
+    // change what they emit -- {first_tools}/{first_filaments}/{first_non_support_*} and
+    // {most_used_physical_extruder_id}/{curr_physical_extruder_id} in custom start G-code, plus
+    // the `; physical_extruder_map =` line in the G-code config block -- for every multi-nozzle
+    // profile that never authored a map. Non-IMEX printers therefore keep the config value
+    // exactly as it arrives, which is what upstream slices with.
+    const auto* is_imex_opt = new_full_config.option<ConfigOptionBool>("is_imex");
+    if (is_imex_opt && is_imex_opt->value) {
+        auto* pem = new_full_config.option<ConfigOptionInts>("physical_extruder_map", true);
+        if (pem) {
+            pem->values = effective_physical_extruder_map(pem, extruder_count).values;
+            // m_ori_full_print_config was snapshotted above, before this derivation, and the
+            // selector write-back path rebuilds m_full_print_config from that snapshot. Without
+            // mirroring the derived map into it, m_full_print_config keeps the unexpanded default
+            // while every later apply re-derives the expanded one, so an unchanged config diffs
+            // on physical_extruder_map forever and invalidates all steps on every re-apply.
+            if (auto* ori_pem = m_ori_full_print_config.option<ConfigOptionInts>("physical_extruder_map", true))
+                ori_pem->values = pem->values;
         }
     }
 

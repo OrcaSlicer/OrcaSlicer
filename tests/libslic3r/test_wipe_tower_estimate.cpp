@@ -6,6 +6,7 @@
 #include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 
 #include <cmath>
 #include <numeric>
@@ -179,6 +180,38 @@ TEST_CASE("A single filament only gets a tower when one is printed anyway", "[Wi
     CHECK_THAT(estimate(config, 1, 0.2, 5.).depth, WithinAbs(WipeTower::get_limit_depth_by_height(5.f), 1e-9));
 }
 
+TEST_CASE("A single filament still gets a tower when the flush matrix purges", "[WipeTowerEstimate]") {
+    // SEMM + purge_in_prime_tower purges the flush matrix, whose average is non-zero for one
+    // filament (empty or not - filament_minimal_purge_on_wipe_tower folds in at 15 mm3). So the
+    // estimate reports a tower here while normalize_fdm_2 clears it: this answers how big a
+    // tower is, never whether there is one. Reading a non-zero depth as "a tower is printed"
+    // reserves space for, or blocks on, a phantom.
+    DynamicPrintConfig config = make_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+    config.set_key_value("purge_in_prime_tower", new ConfigOptionBool(true));
+    // One nozzle, two filaments: a 2x2 block, so the fold over nozzles has one term.
+    config.set_key_value("flush_volumes_matrix", new ConfigOptionFloats({0., 140., 140., 0.}));
+
+    CHECK(estimate(config, 1, 0.2, 100.).depth > 0.);
+
+    // Type1 is the exception: the flush volume replaces Type2's purge volume, while Type1 decides
+    // from its per-filament purge list, and one filament is never changed to. A Type1 printer
+    // therefore reserves nothing here - and the scene draws nothing either, since it reads the
+    // same estimate, so the two still agree. Type2 is the default for every non-Bambu printer,
+    // which is what an IDEX/IQEX printer is.
+    CHECK_THAT(estimate(config, 1, 0.2, 100., WipeTowerType::Type1).depth, WithinAbs(0., 1e-9));
+
+    // The disagreement itself: same config, and the slicer's own rule prints no tower.
+    DynamicPrintConfig normalized = config;
+    normalized.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    normalized.normalize_fdm_2(/*num_objects=*/1, /*used_filaments=*/1);
+    CHECK_FALSE(normalized.option<ConfigOptionBool>("enable_prime_tower")->value);
+
+    // Same plate, same matrix, purging back in the object: nothing to reserve.
+    config.set_key_value("purge_in_prime_tower", new ConfigOptionBool(false));
+    CHECK_THAT(estimate(config, 1, 0.2, 100.).depth, WithinAbs(0., 1e-9));
+}
+
 TEST_CASE("A tool change reserves a tower even with nothing to purge", "[WipeTowerEstimate]") {
     // The purge volumes are configurable down to zero, but the tool changes are still printed
     // on the tower and both planners still floor it - so the estimate has to floor it too.
@@ -348,4 +381,42 @@ TEST_CASE("A config missing a tower key falls back to that key's default", "[Wip
     defaulted.set_key_value("wipe_tower_extra_spacing",
                             print_config_def.get("wipe_tower_extra_spacing")->default_value->clone());
     CHECK_THAT(estimate(partial, 3, 0.2, 5.).depth, WithinAbs(estimate(defaulted, 3, 0.2, 5.).depth, 1e-9));
+}
+
+TEST_CASE("prime_tower_is_printed answers exactly what normalize_fdm_2 decides", "[WipeTowerEstimate]") {
+    // The estimate says how big a tower is; this says whether there is one, and the authority is
+    // normalize_fdm_2, which clears enable_prime_tower before the plate is sliced. Pre-slice
+    // consumers cannot call it (it mutates a config), so the rule is mirrored - and mirrored rules
+    // drift, which is what this pins. Every combination the rule looks at, both verdicts compared.
+    const int  used_filaments = GENERATE(1, 2, 3);
+    const bool has_mixed      = GENERATE(false, true);
+    const int  num_objects    = GENERATE(1, 2);
+    const bool by_object      = GENERATE(false, true);
+    const bool smooth         = GENERATE(false, true);
+    const bool wrapping       = GENERATE(false, true);
+
+    DynamicPrintConfig config = preset_shaped_defaults();
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    config.set_deserialize_strict("print_sequence", by_object ? "by object" : "by layer");
+    config.set_deserialize_strict("timelapse_type", smooth ? "1" : "0");
+    config.set_key_value("enable_wrapping_detection", new ConfigOptionBool(wrapping));
+    config.set_key_value("filament_is_mixed", new ConfigOptionBools(
+        has_mixed ? std::vector<unsigned char>{0, 1} : std::vector<unsigned char>{0, 0}));
+    REQUIRE(has_any_mixed_filament(config.option<ConfigOptionBools>("filament_is_mixed")->values) == has_mixed);
+
+    DynamicPrintConfig normalized = config;
+    normalized.normalize_fdm_2(num_objects, used_filaments);
+    const bool slicer_prints_one = normalized.opt_bool("enable_prime_tower");
+
+    CHECK(prime_tower_is_printed(config, used_filaments, num_objects, has_mixed) == slicer_prints_one);
+}
+
+TEST_CASE("prime_tower_is_printed follows the option the user set", "[WipeTowerEstimate]") {
+    DynamicPrintConfig config = preset_shaped_defaults();
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
+    CHECK_FALSE(prime_tower_is_printed(config, 2, 1, false));
+
+    // Below one filament normalize_fdm_2 leaves the option alone, so this does too.
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    CHECK(prime_tower_is_printed(config, 0, 1, false));
 }

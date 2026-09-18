@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <float.h>
 #include <set>
+#include <tuple>
 #include <unordered_set>
 
 namespace Slic3r {
@@ -102,6 +103,7 @@ public:
 
             bool is_visible() const { return m_visible; }
             void set_visible(bool visible) { m_visible = visible; }
+            void set_color(const ColorRGBA& color) { m_model.set_color(color); }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
             void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
@@ -150,6 +152,7 @@ public:
         };
 
         Marker marker;
+        std::vector<Marker> m_imex_secondary_markers; // one per active secondary carriage in IDEX/IQEX mode
         GCodeWindow gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
@@ -206,6 +209,93 @@ private:
 
     ConfigOptionMode m_user_mode;
     bool m_fold = {false};
+    std::string m_marker_filename;      // cached for lazy secondary marker init
+
+    // IDEX/IQEX: everything render() needs to place the secondary carriage markers and the
+    // toolhead footprint boxes, resolved from the printer preset, the active mode and the
+    // plate bed. Resolving it walks the mode string through compute_imex_zone_layout()
+    // (several string parses plus a zone-grid rebuild), and none of its inputs change
+    // between frames, so it is resolved once per input change -- see ImexMarkerKey -- and
+    // replayed on every other frame.
+    struct ImexMarkerPlan
+    {
+        // One entry per secondary carriage that owns a zone, in marker order. Each axis
+        // either TRACKS the primary (pos + term) or MIRRORS it about the boundary the two
+        // zones share (term - pos); which of the two, and the term itself, depend only on
+        // the zone geometry, so both are resolved up front.
+        struct Carriage
+        {
+            bool  mirror_x     = false;
+            bool  mirror_y     = false;
+            float x_term       = 0.0f;
+            float y_term       = 0.0f;
+            float box_offset_x = 0.0f;
+            float box_offset_y = 0.0f;
+        };
+        std::vector<Carriage> carriages;        // empty => no secondary carriages to draw
+        float pri_box_offset_x = 0.0f;
+        float pri_box_offset_y = 0.0f;
+        float box_wx = 0.0f;                    // imex_nozzle_clearance_x / _y
+        float box_wy = 0.0f;
+    };
+
+    // Invalidation key for the plan above: every input the plan is derived from, and
+    // nothing that changes between frames. A stale plan would put the preview markers
+    // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
+    // drift the shared layout call exists to prevent -- so this deliberately mirrors
+    // PartPlate::build_imex_cache_key(). The two keys are not field-for-field identical, and
+    // the differences are deliberate rather than incidental:
+    //   - bed extents and plate_index are here and not there. Zone centres scale with the
+    //     extents, and one preview serves every plate, so the preview must key what the plate
+    //     gets for free -- it re-bakes on set_shape() and is keyed by being that plate.
+    //   - mode_names / mode_active_tools hold the printer's WHOLE mode table; the plate resolves
+    //     one active mode and keys that roster plus its primary head. Same information reached
+    //     two ways, so a change to the active mode moves both keys.
+    //   - imex_carriage_margin is there and not here: it only sizes the plate's advisory bands,
+    //     which the preview never draws.
+    // imex_tool_layout is in both, which the plate's key gained for the reason this one has it:
+    // the T0-corner flip moves every zone rectangle while nothing else keyed changes.
+    struct ImexMarkerKey
+    {
+        // Scalar half. Built fresh on the stack each frame -- it allocates nothing -- and
+        // compared as a tuple.
+        struct Scalars
+        {
+            int    plate_index      = -1;
+            int    gantry_count     = 0;
+            int    tools_per_gantry = 0;
+            int    tool_layout      = -1;
+            double clearance_x      = 0.0;
+            double clearance_y      = 0.0;
+            bool   firmware_managed = false;
+            double bed_min_x = 0.0, bed_min_y = 0.0, bed_max_x = 0.0, bed_max_y = 0.0;
+
+            auto tied() const {
+                return std::tie(plate_index, gantry_count, tools_per_gantry, tool_layout,
+                                clearance_x, clearance_y, firmware_managed,
+                                bed_min_x, bed_min_y, bed_max_x, bed_max_y);
+            }
+            bool operator==(const Scalars& rhs) const { return tied() == rhs.tied(); }
+        };
+        Scalars s;
+        // Resolved active mode (the plate's mode beats the process preset), plus the printer
+        // preset's whole mode table. The name alone is not identity: two presets can carry
+        // the same mode name over different tool rosters, and editing a roster in place
+        // moves neither the name nor any scalar above. Compared by value, never copied
+        // unless something actually changed.
+        std::string              mode;
+        std::vector<std::string> mode_names;
+        std::vector<std::string> mode_active_tools;
+    };
+    ImexMarkerKey  m_imex_marker_key;
+    ImexMarkerPlan m_imex_marker_plan;
+    static ImexMarkerPlan resolve_imex_marker_plan(const DynamicPrintConfig& printer_cfg,
+                                                   const std::string&        mode,
+                                                   const BoundingBoxf&       bed_extents);
+
+    GLModel     m_imex_toolhead_box;    // shared box mesh for all carriage footprint overlays
+    float       m_imex_box_mesh_wx{ 0.0f };  // clearance dimensions m_imex_toolhead_box was built for
+    float       m_imex_box_mesh_wy{ 0.0f };
 
     size_t m_extruders_count;
     std::vector<float> m_filament_diameters;

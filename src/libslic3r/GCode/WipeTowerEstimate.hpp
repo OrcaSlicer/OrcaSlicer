@@ -44,4 +44,17 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase               
                                                  double                           layer_height,
                                                  double                           max_object_height);
 
+// Whether a prime tower is PRINTED for a plate. The footprint estimate above answers how big a
+// tower is and reports one for a single filament whenever the flush matrix purges, so it cannot
+// answer this; the authority is DynamicPrintConfig::normalize_fdm_2(), which clears
+// enable_prime_tower before the plate is sliced. This mirrors that rule so pre-slice consumers can
+// ask it without mutating a config, and a test pins the two together.
+//
+// used_filaments: the plate's filament SLOTS as authored - a mixed slot counts once, matching
+//                 Print::extruders(), which is what normalize_fdm_2 is handed.
+// num_objects:    objects printed on the plate; only ByObject sequencing looks at it.
+// has_mixed_filament: filament_is_mixed is a PROJECT option, so it is passed rather than read -
+//                 `config` only has to carry the print preset's own keys.
+bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int num_objects, bool has_mixed_filament);
+
 } // namespace Slic3r

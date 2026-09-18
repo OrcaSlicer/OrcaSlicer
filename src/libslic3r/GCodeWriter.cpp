@@ -2,6 +2,7 @@
 #include "CustomGCode.hpp"
 #include "I18N.hpp"
 #include "PrintConfig.hpp"
+#include "IMEXHelpers.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry/ArcWelder.hpp"
 #include "Line.hpp"
@@ -285,8 +286,16 @@ std::string GCodeWriter::set_temperature(unsigned int temperature, GCodeFlavor f
 std::string GCodeWriter::set_temperature(unsigned int temperature, bool wait, int tool) const
 {
     // set tool to -1 to make sure we won't emit T parameter for single extruder or SEMM
-    if (!this->multiple_extruders || m_single_extruder_multi_material)
+    if (!this->multiple_extruders || m_single_extruder_multi_material) {
         tool = -1;
+    } else {
+        // Every caller of this overload addresses filaments by LOGICAL id, but M104/M109
+        // name a physical heater -- so translate at the one point they all pass through.
+        // The static overload below is already physical-in (GCode.cpp:5952,
+        // GCode/GCodeProcessor.cpp:1410) and must not be remapped, which is why the
+        // translation lives here and not there.
+        tool = imex_physical_heater_for(this->config.is_imex.value, this->config.physical_extruder_map, tool);
+    }
     return set_temperature(temperature, this->config.gcode_flavor, wait, tool);
 }
 
@@ -497,26 +506,43 @@ std::string GCodeWriter::set_junction_deviation(double junction_deviation){
     return gcode.str();
 }
 
-std::string GCodeWriter::set_pressure_advance(double pa) const
+std::string GCodeWriter::set_pressure_advance(double pa, int tool) const
 {
     std::ostringstream gcode;
     if (pa < 0)
         return gcode.str();
-    if(m_is_bbl_printers){
-        //SoftFever: set L1000 to use linear model
-        gcode << "M900 K" <<std::setprecision(4)<< pa << " L1000 M10 ; Override pressure advance value\n";
-    }
-    else{
-        if (FLAVOR_IS(gcfKlipper))
-            gcode << "SET_PRESSURE_ADVANCE ADVANCE=" << std::setprecision(4) << pa << "; Override pressure advance value\n";
-        else if(FLAVOR_IS(gcfRepRapFirmware))
-            gcode << ("M572 D0 S") << std::setprecision(4) << pa << "; Override pressure advance value\n";
-        else if (FLAVOR_IS(gcfRepetier))
-            // Repetier M233: X is quadratic (K), Y is linear (L).
-            // Applying the value to both parameters simultaneously.
-            gcode << "M233 X" << std::setprecision(4) << pa << " Y" << std::setprecision(4) << pa << " ; Override pressure advance value\n";
-        else
-            gcode << "M900 K" <<std::setprecision(4)<< pa << "; Override pressure advance value\n";
+    if (m_is_bbl_printers) {
+        // SoftFever: set L1000 to use linear model
+        gcode << "M900 K" << std::setprecision(4) << pa << " L1000 M10 ; Override pressure advance value\n";
+    } else if (FLAVOR_IS(gcfKlipper)) {
+        // Klipper routes PA by extruder name, not active tool.
+        // Convention: first extruder is "extruder", subsequent are "extruder1", "extruder2", etc.
+        gcode << "SET_PRESSURE_ADVANCE ADVANCE=" << std::setprecision(4) << pa;
+        if (tool > 0)
+            gcode << " EXTRUDER=extruder" << tool;
+        else if (tool == 0)
+            gcode << " EXTRUDER=extruder";
+        gcode << "; Override pressure advance value\n";
+    } else if (FLAVOR_IS(gcfRepRapFirmware)) {
+        // RRF: M572 D<n> targets a specific extruder; a bare M572 applies to whatever tool is
+        // currently selected and errors when there isn't one. Callers with no tool index keep
+        // the historical D0 rather than the bare form: PA would otherwise depend on
+        // tool-selection state for every RRF user, none of whom are asking for IMEX.
+        gcode << "M572 D" << (tool >= 0 ? tool : 0)
+              << " S" << std::setprecision(4) << pa << "; Override pressure advance value\n";
+    } else if (FLAVOR_IS(gcfRepetier)) {
+        // Repetier M233: X is quadratic (K), Y is linear (L).
+        // Applying the value to both parameters simultaneously.
+        gcode << "M233 X" << std::setprecision(4) << pa << " Y" << std::setprecision(4) << pa << " ; Override pressure advance value\n";
+    } else if (FLAVOR_IS(gcfMarlinFirmware)) {
+        // Marlin 2.x supports T parameter for per-extruder LA
+        gcode << "M900 K" << std::setprecision(4) << pa;
+        if (tool >= 0)
+            gcode << " T" << tool;
+        gcode << "; Override pressure advance value\n";
+    } else {
+        // Marlin Legacy and everything else: single-extruder M900, no tool parameter
+        gcode << "M900 K" << std::setprecision(4) << pa << "; Override pressure advance value\n";
     }
     return gcode.str();
 }

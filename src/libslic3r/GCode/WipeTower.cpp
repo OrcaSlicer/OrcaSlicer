@@ -1406,6 +1406,10 @@ public:
     void set_multi_nozzle_group_result(const MultiNozzleUtils::LayeredNozzleGroupResult *multi_nozzle_group_result) { m_multi_nozzle_group_result = multi_nozzle_group_result; }
     void set_physical_extruder_map(const std::vector<int> &physical_extruder_map) { m_physical_extruder_map = physical_extruder_map; }
 
+    // physical_extruder_map defaults to the single element {0} and is only widened to one entry
+    // per extruder on IMEX printers, so indexing it by tool is out of range on any other
+    // multi-extruder machine. Fall back to the tool's own index, matching the bounds-checked
+    // form GCodeProcessor uses for the same map.
 private:
     std::string set_normal_acceleration() {
         std::vector<unsigned int> accelerations = m_is_first_layer ? m_first_layer_normal_accelerations : m_normal_accelerations;
