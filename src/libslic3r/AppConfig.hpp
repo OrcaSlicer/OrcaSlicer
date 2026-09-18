@@ -63,6 +63,7 @@ namespace Slic3r {
 struct BBLocalMachine
 {
     std::string dev_name;
+    std::string local_name;
     std::string dev_ip;
     std::string dev_id; /* serial number */
     std::string printer_type; /* model_id */
@@ -77,8 +78,8 @@ struct BBLocalMachine
 
     bool operator==(const BBLocalMachine& other) const
     {
-        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type &&
-               printer_agent_id == other.printer_agent_id && access_code == other.access_code;
+        return dev_name == other.dev_name && local_name == other.local_name && dev_ip == other.dev_ip && dev_id == other.dev_id &&
+               printer_type == other.printer_type && printer_agent_id == other.printer_agent_id && access_code == other.access_code;
     }
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };

@@ -4,6 +4,7 @@ add_executable(${_TEST_NAME}_tests
     test_bambu_filament_ids.cpp
     test_creality_cfs_match.cpp
     test_dev_mapping.cpp
+    test_device_names.cpp
     test_filament_bitmap_utils.cpp
     test_network_versions.cpp
     test_action_source.cpp
