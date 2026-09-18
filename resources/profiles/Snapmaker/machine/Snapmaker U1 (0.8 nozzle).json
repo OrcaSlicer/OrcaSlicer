@@ -34,7 +34,7 @@
 		"0",
 		"0"
 	],
-	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n",
+	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n\n; U1 nozzle flow metadata, one value per logical filament\n; filament_volume_type = {regex_replace(regex_replace(zdigits(0, size(filament_type)), /0/, \"standard,\"), /,$/, \"\")}\n",
 	"machine_max_jerk_z": [
 		"3",
 		"0.4"
