@@ -7,8 +7,10 @@
 #include "slic3r/GUI/AI/Model/SurfaceSelectionState.hpp"
 #include "slic3r/GUI/AI/Model/ModelArtifact.hpp"
 #include "ModelColorPreviewShader.hpp"
+#include "ModelPreviewNormals.hpp"
 #include "ModelPreviewPalette.hpp"
 #include "ModelPreviewColorControls.hpp"
+#include "ModelSemanticColoring.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include <unordered_set>
 #include "slic3r/GUI/GUI_App.hpp"
@@ -51,6 +53,7 @@ public:
     enum class SelectionGesture { Lasso, Brush, Protect, Similar, Orbit };
     using SelectionState = AI::SurfaceSelectionPersistence::SelectionState;
     using FaceColorOverrides = AI::SurfaceSelectionPersistence::FaceColorOverrides;
+    using SubfaceColorOverrides = AI::SemanticColoring::SubfaceColors;
     explicit ModelPreview3D(wxWindow* parent)
         : wxPanel(parent)
     {
@@ -66,6 +69,8 @@ public:
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) { finish_region_preparation(); }, m_region_prepare_timer.GetId());
         m_surface_timer.SetOwner(this);
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) { finish_surface_selection(); }, m_surface_timer.GetId());
+        m_semantic_timer.SetOwner(this);
+        Bind(wxEVT_TIMER, [this](wxTimerEvent&) { finish_semantic_coloring(); }, m_semantic_timer.GetId());
         m_color_trial = new ModelPreviewColorControls(this);
         sizer->Add(m_color_trial, 0, wxEXPAND);
         m_color_trial->Hide();
@@ -73,6 +78,7 @@ public:
             m_trial_toggle_started = std::chrono::steady_clock::now();
             m_color_trial_enabled = m_color_trial->enabled();
             m_trial_palette = m_color_trial->colors();
+            update_semantic_coloring();
             m_canvas->Refresh(false);
             BOOST_LOG_TRIVIAL(info) << "AI color trial toggled: enabled=" << m_color_trial_enabled
                 << ", palette=" << m_trial_palette.size() << ", geometry_reloaded=false";
@@ -187,6 +193,8 @@ public:
     }
 
     ~ModelPreview3D() override {
+        m_semantic_timer.Stop();
+        m_semantic_controller.reset();
         cancel_surface_selection();
         m_surface_timer.Stop();
         if (m_surface_worker.joinable()) m_surface_worker.join();
@@ -228,6 +236,7 @@ public:
         FaceColorOverrides face_color_overrides;
         std::optional<SelectionState> selection;
         std::optional<ModelPreviewColorControls::State> color_trial;
+        std::shared_ptr<const AI::SemanticColoring::MeshSnapshot> semantic_source;
     };
 
     static bool prepare_model(const boost::filesystem::path& path, PreparedModel& prepared,
@@ -280,6 +289,15 @@ public:
         }
         const bool has_vertex_colors = obj_info.vertex_colors.size() == its.vertices.size();
         const bool has_face_colors = obj_info.face_colors.size() == its.indices.size();
+        if (has_vertex_colors || has_face_colors) {
+            auto source = std::make_shared<AI::SemanticColoring::MeshSnapshot>();
+            source->mesh = its;
+            source->vertex_colors = obj_info.vertex_colors;
+            source->face_colors = obj_info.face_colors;
+            source->geometry_id = prepared.geometry_id;
+            source->content_id = AI::SemanticColoring::content_fingerprint(*source);
+            prepared.semantic_source = std::move(source);
+        }
         const RGBA fallback {ColorRGBA::ORCA().r(), ColorRGBA::ORCA().g(), ColorRGBA::ORCA().b(), 1.0f};
         GLModel::Geometry geometry;
         geometry.format = {GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3N3T2};
@@ -297,16 +315,14 @@ public:
             for (const RGBA& color : obj_info.vertex_colors)
                 packed_vertex_colors.push_back(preview_rgb8(color[0], color[1], color[2]));
         }
+        const auto corner_normals = ModelPreviewNormals::corner_normals(its);
         for (size_t face_index = 0; face_index < its.indices.size(); ++face_index) {
             const auto lock = locked_colors.find(face_index);
             const auto& indices = its.indices[face_index];
             const Vec3f& a = its.vertices[indices[0]];
             const Vec3f& b = its.vertices[indices[1]];
             const Vec3f& c = its.vertices[indices[2]];
-            Vec3f normal = (b - a).cross(c - a);
-            const double area_weight = normal.norm();
-            if (normal.squaredNorm() > 1e-12f) normal.normalize();
-            else normal = Vec3f::UnitZ();
+            const double area_weight = (b - a).cross(c - a).norm();
             const auto base = static_cast<unsigned int>(geometry.vertices_count());
             const RGBA uniform_color = has_face_colors ? obj_info.face_colors[face_index] : fallback;
             const uint32_t uniform_packed = has_vertex_colors ? 0 :
@@ -324,7 +340,7 @@ public:
                 }
                 const uint32_t shown = lock == locked_colors.end() ? packed
                     : preview_rgb8(lock->second[0], lock->second[1], lock->second[2]);
-                geometry.add_vertex(its.vertices[indices[corner]], normal,
+                geometry.add_vertex(its.vertices[indices[corner]], corner_normals[face_index * 3 + corner],
                     Vec2f(float(shown), lock == locked_colors.end() ? color[3] : -1.0f));
             }
             geometry.add_triangle(base, base + 1, base + 2);
@@ -338,7 +354,8 @@ public:
         prepared.triangles = its.indices.size();
         prepared.colors = observed_colors.size();
         const auto palette_started = std::chrono::steady_clock::now();
-        prepared.trial_palette = trial_histogram->palette(6, {}, true);
+        const size_t preview_color_count = std::clamp(prepared.colors, size_t(1), PreviewPalette::max_preview_colors);
+        prepared.trial_palette = trial_histogram->palette(preview_color_count, {}, true);
         prepared.trial_histogram = std::move(trial_histogram);
         BOOST_LOG_TRIVIAL(info) << "AI color trial palette: colors=" << prepared.trial_palette.size()
             << ", clustering_ms=" << std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -379,6 +396,7 @@ public:
         m_pending_vertex_colors = std::move(prepared.vertex_colors);
         m_geometry_id = std::move(prepared.geometry_id);
         m_face_color_overrides = std::move(prepared.face_color_overrides);
+        m_semantic_source = std::move(prepared.semantic_source);
         m_pending_selection = std::move(prepared.selection);
         m_model_path = std::move(prepared.path);
         m_model_stamp = prepared.stamp;
@@ -415,6 +433,7 @@ public:
         m_pending_vertex_colors = std::move(cached->vertex_colors);
         m_geometry_id = std::move(cached->geometry_id);
         m_face_color_overrides = std::move(cached->face_color_overrides);
+        m_semantic_source = std::move(cached->semantic_source);
         m_pending_selection = std::move(cached->selection);
         m_model_path = std::move(cached->path);
         m_model_stamp = cached->stamp;
@@ -464,6 +483,9 @@ private:
     void clear_current_preview()
     {
         cancel_surface_selection();
+        if (m_semantic_controller) m_semantic_controller->cancel();
+        m_semantic_source.reset(); m_automatic_face_colors.clear(); m_automatic_subface_colors.clear();
+        m_semantic_analysis.reset(); m_semantic_ready = false;
         m_protected_faces.clear();
         m_foreground_faces.clear(); m_selection_domain.clear();
         m_pending_selection.reset(); m_geometry_id.clear(); m_face_color_overrides.clear();
@@ -477,6 +499,7 @@ private:
         if (m_context != nullptr && m_canvas != nullptr)
             m_canvas->SetCurrent(*m_context);
         m_models.clear();
+        m_semantic_model.reset();
         m_selection_model.reset();
         m_protection_model.reset();
         m_region_editor = std::make_shared<AI::VertexColorRegionEditor>();
@@ -558,6 +581,20 @@ public:
     }
     const std::string& geometry_id() const { return m_geometry_id; }
     const FaceColorOverrides& face_color_overrides() const { return m_face_color_overrides; }
+    FaceColorOverrides import_face_color_overrides(bool use_current_trial = true) const {
+        return AI::SemanticColoring::compose(m_automatic_face_colors, m_face_color_overrides,
+            use_current_trial && m_color_trial_enabled && m_color_trial->semantic_optimization() && m_semantic_ready);
+    }
+    SubfaceColorOverrides import_subface_color_overrides(bool use_current_trial = true) const {
+        return AI::SemanticColoring::compose_subfaces(m_automatic_subface_colors, m_face_color_overrides,
+            use_current_trial && m_color_trial_enabled && m_color_trial->semantic_optimization() && m_semantic_ready);
+    }
+    nlohmann::json semantic_color_metadata() const {
+        if (!m_semantic_analysis) return nlohmann::json::object();
+        return {{"schema", "orca.semantic-color-provenance/v1"}, {"signature", m_semantic_analysis->signature},
+            {"content_sha256", m_semantic_analysis->content_id}, {"body", m_semantic_analysis->body_identity},
+            {"face", m_semantic_analysis->face_identity}};
+    }
     nlohmann::json selection_metadata() const {
         return AI::SurfaceSelectionPersistence::encode(selection_state(), m_triangle_count, m_geometry_id);
     }
@@ -855,6 +892,7 @@ private:
         FaceColorOverrides face_color_overrides;
         std::optional<SelectionState> selection;
         std::optional<ModelPreviewColorControls::State> color_trial;
+        std::shared_ptr<const AI::SemanticColoring::MeshSnapshot> semantic_source;
     };
 
     static FileStamp file_stamp(const boost::filesystem::path& path)
@@ -897,6 +935,7 @@ private:
         m_cached_preview = std::make_unique<CachedPreview>();
         m_cached_preview->geometry_id = m_geometry_id;
         m_cached_preview->face_color_overrides = m_face_color_overrides;
+        m_cached_preview->semantic_source = m_semantic_source;
         m_cached_preview->selection = selection_state();
         m_cached_preview->color_trial = m_color_trial->state();
         m_cached_preview->models = std::move(m_models);
@@ -921,7 +960,9 @@ private:
         m_cached_preview->trial_histogram = m_trial_histogram;
         // New model loads reset the trial; never relabel a previous custom or
         // project palette as a fresh automatic suggestion on a cache hit.
-        m_cached_preview->trial_palette = m_trial_histogram ? m_trial_histogram->palette(6, {}, true) : m_trial_palette;
+        const size_t preview_color_count = std::clamp(m_color_count, size_t(1), PreviewPalette::max_preview_colors);
+        m_cached_preview->trial_palette = m_trial_histogram
+            ? m_trial_histogram->palette(preview_color_count, {}, true) : m_trial_palette;
     }
 
     struct RegionPreparation {
@@ -1388,7 +1429,9 @@ private:
                     glsafe(::glDisable(GL_MULTISAMPLE));
                     glsafe(::glDisable(GL_DITHER));
                 }
-                for (const std::unique_ptr<GLModel>& model : m_models)
+                if (m_semantic_ready && m_semantic_model && m_color_trial_enabled && m_color_trial->semantic_optimization() && !m_gray_view)
+                    m_semantic_model->render(shader);
+                else for (const std::unique_ptr<GLModel>& model : m_models)
                     model->render(shader);
                 if (multisample) glsafe(::glEnable(GL_MULTISAMPLE));
                 if (dither) glsafe(::glEnable(GL_DITHER));
@@ -1460,6 +1503,16 @@ private:
     }
 
     wxGLCanvas* m_canvas {nullptr};
+    void update_semantic_coloring();
+    void finish_semantic_coloring();
+    wxTimer m_semantic_timer;
+    std::unique_ptr<ModelSemanticColoring> m_semantic_controller;
+    std::shared_ptr<const AI::SemanticColoring::MeshSnapshot> m_semantic_source;
+    std::shared_ptr<const AI::SemanticColoring::Analysis> m_semantic_analysis;
+    std::unique_ptr<GLModel> m_semantic_model;
+    bool m_semantic_ready {false};
+    FaceColorOverrides m_automatic_face_colors;
+    SubfaceColorOverrides m_automatic_subface_colors;
     ModelPreviewColorControls* m_color_trial {nullptr};
     std::vector<PreviewPalette::Color> m_trial_palette;
     std::shared_ptr<const PreviewPalette::Histogram> m_trial_histogram;

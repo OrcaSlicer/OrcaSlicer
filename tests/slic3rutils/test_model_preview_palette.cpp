@@ -7,6 +7,17 @@
 
 using namespace Slic3r::GUI::PreviewPalette;
 
+TEST_CASE("Initial trial count follows usable project filaments and bounds the fallback",
+          "[ModelPreviewPalette][Regression]")
+{
+    CHECK(initial_trial_color_count(4, 18) == 4);
+    CHECK(initial_trial_color_count(1, 18) == 1);
+    CHECK(initial_trial_color_count(6, 4) == 6);
+    CHECK(initial_trial_color_count(0, 5) == 5);
+    CHECK(initial_trial_color_count(0, 0) == 1);
+    CHECK(initial_trial_color_count(40, 4) == max_preview_colors);
+}
+
 TEST_CASE("Portrait card keeps skin and lips separate and recolors cool clothing", "[FilamentColorPack]")
 {
     const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
@@ -44,6 +55,95 @@ TEST_CASE("Portrait matching preserves locally painted filament colors on repeat
     CHECK(portrait_pack_mapping({rounded}, card).target_colors == std::vector<Color>{card[4]});
 }
 
+TEST_CASE("Portrait matching leaves pink unused for six neutral and golden source groups", "[FilamentColorPack][Regression]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    // Dark features, blue clothing and three golden fur shades contain no red accent.
+    const std::vector<Color> source {card[1], card[4], {140.f/255,105.f/255,72.f/255},
+        {201.f/255,164.f/255,118.f/255}, {232.f/255,205.f/255,164.f/255}, card[2]};
+    const auto mapped = portrait_pack_mapping(source, card);
+    REQUIRE(mapped.enabled);
+    REQUIRE(mapped.mapping_colors == source);
+    REQUIRE(mapped.target_colors.size() == source.size());
+    CHECK(std::find(mapped.target_colors.begin(), mapped.target_colors.end(), card[3]) == mapped.target_colors.end());
+    CHECK(mapped.target_colors[3] == card[0]);
+    CHECK(mapped.target_colors[4] == mapped.target_colors[5]);
+    CHECK(mapped.target_colors[0] == card[1]);
+    CHECK(mapped.target_colors[1] == card[4]);
+}
+
+TEST_CASE("Portrait source groups retain their material when other groups use the same role", "[FilamentColorPack][Regression]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    const Color skin {204.f/255,148.f/255,112.f/255};
+    const auto alone = portrait_pack_mapping({skin}, card);
+    const auto together = portrait_pack_mapping({skin, card[0], card[3]}, card);
+    REQUIRE(alone.enabled);
+    REQUIRE(together.enabled);
+    REQUIRE(together.mapping_colors == std::vector<Color>{skin, card[0], card[3]});
+    CHECK(together.target_colors[0] == alone.target_colors[0]);
+    CHECK(together.target_colors[0] == card[0]);
+    CHECK(together.target_colors[1] == card[0]);
+    CHECK(together.target_colors[2] == card[3]);
+    CHECK(portrait_pack_mapping(together.target_colors, card).target_colors == together.target_colors);
+}
+
+TEST_CASE("Portrait matching separates muted skin boundaries from red lips", "[FilamentColorPack][Regression]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    // Rounded area-weighted centers from a real portrait. The muted boundary
+    // and lips have almost the same hue and lightness, but distinct chroma.
+    const std::vector<Color> source {{38.f/255,38.f/255,37.f/255}, {55.f/255,54.f/255,54.f/255},
+        {175.f/255,91.f/255,80.f/255}, {159.f/255,110.f/255,103.f/255},
+        {184.f/255,148.f/255,130.f/255}, {227.f/255,222.f/255,226.f/255}};
+    const auto mapped = portrait_pack_mapping(source, card);
+    REQUIRE(mapped.enabled);
+    REQUIRE(mapped.mapping_colors == source);
+    CHECK(mapped.target_colors == std::vector<Color>{card[1], card[1], card[3], card[0], card[0], card[2]});
+    CHECK(portrait_pack_mapping({source[3]}, card).target_colors == std::vector<Color>{card[0]});
+}
+
+TEST_CASE("Portrait matching retains red accents across lightness variations", "[FilamentColorPack][Regression]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    const std::vector<Color> reds {{175.f/255,91.f/255,80.f/255}, {190.f/255,105.f/255,97.f/255}};
+    CHECK(portrait_pack_mapping(reds, card).target_colors == std::vector<Color>{card[3], card[3]});
+}
+
+TEST_CASE("Portrait matching keeps gray and near-neutral ramps neutral and ordered", "[FilamentColorPack][Regression]")
+{
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    const std::vector<Color> neutral_targets {card[1], card[5], card[2]};
+    for (int warm : {0, 1}) {
+        float previous_lightness = -1.f;
+        // The second ramp includes a small warm cast, as in baked cloth shading.
+        for (int gray = warm ? 16 : 0; gray <= (warm ? 239 : 255); ++gray) {
+            const Color source {(gray + 2*warm)/255.f, gray/255.f, (gray - warm)/255.f};
+            INFO("gray=" << gray << ", warm=" << warm);
+            const auto lab = to_lab(source);
+            REQUIRE(std::hypot(lab[1], lab[2]) < .015f);
+            const auto mapped = portrait_pack_mapping({source}, card);
+            REQUIRE(mapped.enabled);
+            REQUIRE(mapped.target_colors.size() == 1);
+            const auto& target = mapped.target_colors.front();
+            CHECK(std::find(neutral_targets.begin(), neutral_targets.end(), target) != neutral_targets.end());
+            const float lightness = to_lab(target)[0];
+            CHECK(lightness + 1e-6f >= previous_lightness);
+            previous_lightness = lightness;
+        }
+    }
+}
+
 TEST_CASE("The portrait color pack preserves the supplied physical slot order", "[FilamentColorPack]")
 {
     const auto pack = Slic3r::GUI::young_portrait_color_pack();
@@ -70,7 +170,9 @@ TEST_CASE("Preview palettes stay bounded and deterministic for a color gradient"
     const auto colors = histogram.palette();
     REQUIRE(colors.size() == 6);
     REQUIRE(histogram.palette() == colors);
-    REQUIRE(histogram.palette(100).size() == 6);
+    REQUIRE(histogram.palette(12).size() == 12);
+    REQUIRE(histogram.palette(32).size() == 32);
+    REQUIRE(histogram.palette(100).size() == max_preview_colors);
     REQUIRE(histogram.palette(0).empty());
     for (const auto& color : colors) for (float c : color) {
         REQUIRE(std::isfinite(c)); REQUIRE(c >= 0); REQUIRE(c <= 1);
@@ -219,6 +321,111 @@ TEST_CASE("A saturated speck cannot reserve a protected color within a muted hue
     for (const auto& color : histogram.palette(6, {}, true))
         error = std::min(error, distance(to_lab(color), to_lab(speck)));
     REQUIRE(error > .000225f);
+}
+
+TEST_CASE("Protected palettes retain small accents within an already chromatic material", "[ModelPreviewPalette][Regression]")
+{
+    Histogram histogram;
+    histogram.add(0x262626, 5000);
+    histogram.add(0xececec, 5000);
+    histogram.add(0xca9c81, 10000);
+    histogram.add(0xb65c46, 20);
+    // Both colors have C > .045 and fall in the same 30-degree hue bucket.
+    // The accent has greater chroma, rather than merely different lightness.
+    const Color accent {182.f/255, 92.f/255, 70.f/255};
+    const auto candidates = histogram.hue_candidates();
+    REQUIRE(candidates.size() == 2);
+    float candidate_error = 100;
+    for (const auto& color : candidates)
+        candidate_error = std::min(candidate_error, distance(to_lab(color), to_lab(accent)));
+    CHECK_THAT(candidate_error, Catch::Matchers::WithinAbs(0, 1e-8));
+
+    const auto colors = histogram.palette(6, {}, true);
+    float palette_error = 100;
+    for (const auto& color : colors)
+        palette_error = std::min(palette_error, distance(to_lab(color), to_lab(accent)));
+    CHECK_THAT(palette_error, Catch::Matchers::WithinAbs(0, 1e-8));
+}
+
+TEST_CASE("Unsupported chromatic tails do not reserve an accent color", "[ModelPreviewPalette][Regression]")
+{
+    Histogram histogram;
+    histogram.add(0x262626, 5000);
+    histogram.add(0xececec, 5000);
+    histogram.add(0xca9c81, 10000);
+    // The same accent occupies only 0.01% of the surface here.
+    histogram.add(0xb65c46, 2);
+    const auto candidates = histogram.hue_candidates();
+    REQUIRE(candidates.size() == 1);
+    const Color accent {182.f/255, 92.f/255, 70.f/255};
+    CHECK(distance(to_lab(candidates.front()), to_lab(accent)) > .000225f);
+}
+
+TEST_CASE("Baked lightness variations do not create chromatic accent candidates", "[ModelPreviewPalette][Regression]")
+{
+    Histogram histogram;
+    const auto material = to_lab({202.f/255, 156.f/255, 129.f/255});
+    for (float lightness : {.5f, .65f, .8f}) {
+        auto sample = material;
+        sample[0] = lightness;
+        const auto rgb = to_rgb(sample);
+        const auto channel = [](float c) { return uint32_t(std::lround(c*255)); };
+        histogram.add((channel(rgb[0]) << 16) | (channel(rgb[1]) << 8) | channel(rgb[2]), 1000);
+    }
+    CHECK(histogram.hue_candidates().size() == 1);
+}
+
+TEST_CASE("Supported middle gray retains a source group in a chromatic palette", "[ModelPreviewPalette][Regression]")
+{
+    Histogram histogram;
+    histogram.add(0x262626, 20000);
+    histogram.add(0xececec, 20000);
+    histogram.add(0x808080, 5000);
+    for (uint32_t rgb : {0xff0000u, 0x00ff00u, 0x0000ffu, 0xffff00u})
+        histogram.add(rgb, 1000);
+    // Four supported hues must not consume every position between black and white.
+    const auto colors = histogram.palette(6, {}, true);
+    REQUIRE(colors.size() == 6);
+    const Color gray {128.f/255, 128.f/255, 128.f/255};
+    std::vector<Color> centers;
+    for (const auto& color : colors) centers.push_back(to_lab(color));
+    const size_t group = nearest_lab_index(to_lab(gray), centers);
+    REQUIRE(group < colors.size());
+    CHECK_THAT(distance(centers[group], to_lab(gray)), Catch::Matchers::WithinAbs(0, 1e-8));
+
+    const std::vector<Color> card {{247.f/255,226.f/255,218.f/255}, {40.f/255,38.f/255,41.f/255},
+        {246.f/255,247.f/255,249.f/255}, {234.f/255,154.f/255,146.f/255},
+        {102.f/255,140.f/255,182.f/255}, {149.f/255,139.f/255,134.f/255}};
+    const auto mapped = portrait_pack_mapping(colors, card);
+    REQUIRE(mapped.target_colors.size() == colors.size());
+    CHECK(mapped.target_colors[group] == card[5]);
+}
+
+TEST_CASE("Neutral and accent protection respect user locks and small palette limits", "[ModelPreviewPalette][Regression]")
+{
+    Histogram histogram;
+    histogram.add(0x262626, 20000);
+    histogram.add(0xececec, 20000);
+    histogram.add(0x808080, 5000);
+    histogram.add(0xca9c81, 10000);
+    histogram.add(0xb65c46, 50);
+    histogram.add(0x39433b, 1000);
+    const std::vector<Color> locks {{.713f,.297f,.631f}, {.128f,.923f,.317f}};
+    CHECK(histogram.palette(0, locks, true).empty());
+    for (size_t limit = 1; limit <= 6; ++limit) {
+        INFO("limit=" << limit);
+        const auto colors = histogram.palette(limit, locks, true);
+        REQUIRE(colors.size() <= limit);
+        REQUIRE(colors.size() >= std::min(limit, locks.size()));
+        for (size_t i = 0; i < std::min(limit, locks.size()); ++i)
+            CHECK(colors[i] == locks[i]);
+        CHECK(histogram.palette(limit, locks, true) == colors);
+        for (const auto& color : colors) for (float c : color) {
+            CHECK(std::isfinite(c));
+            CHECK(c >= 0);
+            CHECK(c <= 1);
+        }
+    }
 }
 
 TEST_CASE("Preview color locks retain exact values and order across reclustering", "[ModelPreviewPalette]")

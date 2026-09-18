@@ -46,6 +46,48 @@ TEST_CASE("Updating colors rejects changed geometry without modifying the target
     CHECK(target->volumes.front()->mmu_segmentation_facets.timestamp() == before);
 }
 
+TEST_CASE("Semantic midpoint leaves apply to the unchanged imported MMU topology", "[ModelColorUpdate][SubfaceColor]")
+{
+    const indexed_triangle_set mesh = its_make_cube(20, 30, 40);
+    TriangleMesh triangle_mesh(mesh);
+    TriangleSelector selector(triangle_mesh);
+    selector.set_facet(0, EnforcerBlockerType::Extruder1);
+    selector.set_facet(1, EnforcerBlockerType::Extruder2);
+    auto painting = selector.serialize();
+    const std::array<float, 3> skin {.8f,.5f,.3f}, white {.95f,.95f,.95f};
+    const std::vector<std::pair<size_t, std::array<float, 3>>> roots {{0, skin}, {1, white}};
+    const std::vector<AI::ModelSubfaceColorOverride> leaves {{0, 1, 0, white}};
+    std::string error;
+    REQUIRE(apply_subface_color_overrides(mesh, mesh, painting, roots, leaves, error));
+    CHECK(error.empty());
+
+    TriangleSelector restored(triangle_mesh);
+    restored.deserialize(painting);
+    EnforcerBlockerType state;
+    CHECK_FALSE(restored.facet_state(0, state));
+    CHECK(restored.facet_state(1, state));
+    CHECK(state == EnforcerBlockerType::Extruder2);
+    CHECK(restored.num_facets(EnforcerBlockerType::Extruder1) == 3);
+    CHECK(restored.num_facets(EnforcerBlockerType::Extruder2) == 2);
+}
+
+TEST_CASE("Semantic midpoint import rejects changed topology transactionally", "[ModelColorUpdate][SubfaceColor]")
+{
+    const indexed_triangle_set expected = its_make_cube(20, 30, 40);
+    const indexed_triangle_set changed = its_make_cube(21, 30, 40);
+    TriangleMesh triangle_mesh(changed);
+    TriangleSelector selector(triangle_mesh);
+    selector.set_facet(0, EnforcerBlockerType::Extruder1);
+    auto painting = selector.serialize();
+    const auto before = painting;
+    const std::array<float, 3> skin {.8f,.5f,.3f};
+    std::string error;
+    REQUIRE_FALSE(apply_subface_color_overrides(expected, changed, painting,
+        {{0, skin}}, {{0, 1, 0, skin}}, error));
+    CHECK_FALSE(error.empty());
+    CHECK(painting == before);
+}
+
 TEST_CASE("Native preparation preserves source and targets total world height", "[ai][OrcaModelPreparation]")
 {
     Model model;

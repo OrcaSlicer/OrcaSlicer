@@ -360,6 +360,23 @@ public:
     // Set facet of the mesh to a given state. Only works for original triangles.
     void set_facet(int facet_idx, EnforcerBlockerType state);
 
+    struct MidpointSubfaceState {
+        // One or two four-way midpoint levels. The first child occupies the
+        // most-significant used pair of bits, matching semantic SubfacePath.
+        uint8_t depth {0};
+        uint8_t path {0};
+        EnforcerBlockerType state {EnforcerBlockerType::NONE};
+    };
+
+    // Replace one original facet with a deterministic midpoint tree. Missing
+    // children inherit root_state. Input is validated before the selector is
+    // changed, so false leaves the existing facet untouched.
+    bool set_facet_midpoint_subfaces(int facet_idx, EnforcerBlockerType root_state,
+                                     const std::vector<MidpointSubfaceState>& leaves);
+
+    // Read an unsplit original facet without exposing the selector tree.
+    bool facet_state(int facet_idx, EnforcerBlockerType& state) const;
+
     // Clear everything and make the tree empty.
     void reset();
 

@@ -50,8 +50,8 @@ uniform int preview_color_count;
 uniform bool preview_lighting;
 uniform float preview_lightness_weight;
 uniform bool gray_view;
-uniform vec3 preview_rgb[6];
-uniform vec3 preview_lab[6];
+uniform vec3 preview_rgb[32];
+uniform vec3 preview_lab[32];
 vec3 to_oklab(vec3 rgb) {
     vec3 linear_rgb = mix(rgb / 12.92, pow((rgb + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), rgb));
     vec3 lms = vec3(dot(linear_rgb, vec3(0.4122214708,0.5363325363,0.0514459929)),
@@ -69,7 +69,7 @@ void main() {
         vec3 lab = to_oklab(source_rgb);
         vec3 selected = source_rgb;
         float best = 100.0;
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < 32; ++i) {
             if (local_color_lock > 0.5) break;
             if (i >= preview_color_count) break;
             vec3 difference = lab - preview_lab[i];

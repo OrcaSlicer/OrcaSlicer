@@ -521,6 +521,9 @@ TEST_CASE("Logical filaments beyond the nozzle count retain painting and assignm
     TriangleSelector selector(volume->mesh());
     for (size_t i = 0; i < face_count; ++i)
         selector.set_facet(static_cast<int>(i), states[i % states.size()]);
+    REQUIRE(selector.set_facet_midpoint_subfaces(0, EnforcerBlockerType::Extruder5,
+        {{1, 0, EnforcerBlockerType::Extruder6},
+         {2, uint8_t((1u << 2) | 3u), EnforcerBlockerType::Extruder7}}));
     REQUIRE(volume->mmu_segmentation_facets.set(selector));
 
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();

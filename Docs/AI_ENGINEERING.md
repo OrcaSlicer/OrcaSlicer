@@ -7,6 +7,7 @@
 - 三人开发、集成与飞书协作：[ADR-007](architecture/ADR-007-three-developer-feishu-integration.md)、[日常同步、合入与版本存档](coordination/team-integration-sop.md)、[落地和接入状态](audits/2026-09-09-team-feishu-integration.md)、[分支准备工具](../scripts/team_collaboration/README.md)、[飞书服务](../tools/team_integration/README.md)。采用四条新的 `codex/team/*` 分支，旧角色分支停止用于新工作；先通知和候选检查，人工合入。
 
 - 当前实现：工作树代码和对应测试；报告须说明使用 HEAD 还是含未提交修改的工作树。
+- 模型配色持续优化：[计划、问题与迭代记录](plans/model-coloring/README.md)。每轮改动均登记假设、版本、固定区域对照、结果和回退基线，保留未通过的视觉问题。
 - 最新体验与修改：[性能、质量提示和 3D 美颜](audits/2026-09-09-performance-advisory-finishing.md)，含实际模型加载、美颜保存回退与原生导入取消验证；质量判断不再拦截下一步。
 - 当前产品修正：[不限色生成与本地三维修整](audits/2026-09-09-unrestricted-generation-and-finishing.md)；保留单色写实，仅[AI 原生配色交接](plans/2026-09-09-ai-native-color-matching-handoff.md)由同事实施。[RGB 预检误拦修复](audits/2026-09-09-reference-preflight-fix.md)已验证实际任务恢复、图片确认和切页；其他 GUI 主路径仍需验收，不能用编译结果代替。
 - 本机续建编译路径：先看 [2026-09-12 共享依赖与磁盘存储](coordination/local-build-storage.md) 中的 D 盘公共依赖及兼容入口；[2026-09-08 工具链与构建记录](plans/2026-09-08-ai-journey-interaction-fixes.md#本机构建路径2026-09-08-复核) 保留 MSVC、CMake 和历史配置参数。各项目及验证任务保持独立增量构建。

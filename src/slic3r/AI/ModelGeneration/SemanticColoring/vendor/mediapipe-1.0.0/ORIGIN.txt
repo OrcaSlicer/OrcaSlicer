@@ -1,0 +1,4 @@
+Unmodified C ABI headers from google-ai-edge/mediapipe v1.0.0
+Commit: 6d31f1ebc3284db74d211d62bdc4f0a0c29ea120
+Source: https://raw.githubusercontent.com/google-ai-edge/mediapipe/6d31f1ebc3284db74d211d62bdc4f0a0c29ea120/
+See LICENSE for Apache License 2.0.

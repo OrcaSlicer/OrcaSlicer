@@ -1012,6 +1012,65 @@ void TriangleSelector::set_facet(int facet_idx, EnforcerBlockerType state)
     m_triangles[facet_idx].set_state(state);
 }
 
+bool TriangleSelector::set_facet_midpoint_subfaces(
+    int facet_idx, EnforcerBlockerType root_state, const std::vector<MidpointSubfaceState>& leaves)
+{
+    const auto valid_state = [](EnforcerBlockerType state) {
+        const int value = int(state);
+        return value >= int(EnforcerBlockerType::NONE) && value <= int(EnforcerBlockerType::ExtruderMax);
+    };
+    if (facet_idx < 0 || facet_idx >= m_orig_size_indices || !valid_state(root_state))
+        return false;
+
+    std::vector<MidpointSubfaceState> ordered = leaves;
+    for (const MidpointSubfaceState& leaf : ordered) {
+        if (leaf.depth == 0 || leaf.depth > 2 || !valid_state(leaf.state))
+            return false;
+        const unsigned path_limit = 1u << (2u * leaf.depth);
+        if (unsigned(leaf.path) >= path_limit)
+            return false;
+    }
+    std::sort(ordered.begin(), ordered.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.depth != rhs.depth ? lhs.depth < rhs.depth : lhs.path < rhs.path;
+    });
+    for (size_t i = 1; i < ordered.size(); ++i)
+        if (ordered[i - 1].depth == ordered[i].depth && ordered[i - 1].path == ordered[i].path)
+            return false;
+
+    set_facet(facet_idx, root_state);
+    for (const MidpointSubfaceState& leaf : ordered) {
+        int current = facet_idx;
+        Vec3i32 neighbors = m_neighbors[facet_idx];
+        for (uint8_t level = 0; level < leaf.depth; ++level) {
+            if (!m_triangles[current].is_split()) {
+                const EnforcerBlockerType inherited = m_triangles[current].get_state();
+                m_triangles[current].set_division(3, 0);
+                perform_split(current, neighbors, inherited);
+            } else if (m_triangles[current].number_of_split_sides() != 3 ||
+                       m_triangles[current].special_side() != 0) {
+                return false;
+            }
+            const unsigned shift = 2u * unsigned(leaf.depth - level - 1);
+            const int child = int((unsigned(leaf.path) >> shift) & 3u);
+            const Vec3i32 child_neighbors_value = child_neighbors(m_triangles[current], neighbors, child);
+            current = m_triangles[current].children[child];
+            neighbors = child_neighbors_value;
+        }
+        if (m_triangles[current].is_split())
+            return false;
+        m_triangles[current].set_state(leaf.state);
+    }
+    return true;
+}
+
+bool TriangleSelector::facet_state(int facet_idx, EnforcerBlockerType& state) const
+{
+    if (facet_idx < 0 || facet_idx >= m_orig_size_indices || m_triangles[facet_idx].is_split())
+        return false;
+    state = m_triangles[facet_idx].get_state();
+    return true;
+}
+
 // called by select_patch()->select_triangle()...select_triangle()
 // to decide which sides of the triangle to split and to actually split it calling set_division() and perform_split().
 void TriangleSelector::split_triangle(int facet_idx, const Vec3i32 &neighbors)

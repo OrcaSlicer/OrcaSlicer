@@ -2754,7 +2754,12 @@ void ModelGenerationPanel::import_local_artifact(const boost::filesystem::path& 
             m_import_color_source == nullptr || m_import_color_source->GetSelection() == 0);
         AI::ModelColorTrial choice {trial.mapping_colors, trial.target_colors};
         if (trial.enabled && choice.valid()) request.color_trial = std::move(choice);
-        request.face_color_overrides = m_model_preview->face_color_overrides();
+        request.face_color_overrides = m_model_preview->import_face_color_overrides(
+            m_import_color_source == nullptr || m_import_color_source->GetSelection() == 0);
+        for (const auto& item : m_model_preview->import_subface_color_overrides(
+                 m_import_color_source == nullptr || m_import_color_source->GetSelection() == 0))
+            request.subface_color_overrides.push_back(
+                {item.face_id, item.path.depth, item.path.value, item.color});
         request.face_color_geometry_id = m_model_preview->geometry_id();
     }
     const bool has_color_intent = !m_color_intent_path.empty() || !m_color_intent_schema.empty() ||

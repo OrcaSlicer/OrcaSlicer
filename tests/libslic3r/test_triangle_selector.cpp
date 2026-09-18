@@ -123,3 +123,40 @@ TEST_CASE("Extruder states match the CONST_FILAMENTS hex encoding", "[TriangleSe
     INFO("Hex " << c.hex << " -> extruder " << c.state);
     REQUIRE(TriangleSelector::has_facets(data, EnforcerBlockerType(c.state)));
 }
+
+TEST_CASE("Deterministic midpoint subfaces survive MMU serialization", "[TriangleSelector][SubfaceColor]")
+{
+    const TriangleMesh mesh = test_mesh();
+    TriangleSelector selector(mesh);
+    const std::vector<TriangleSelector::MidpointSubfaceState> leaves {
+        {1, 0, EnforcerBlockerType::Extruder2},
+        // First child 1, then centre child 3.
+        {2, uint8_t((1u << 2) | 3u), EnforcerBlockerType::Extruder3},
+    };
+    REQUIRE(selector.set_facet_midpoint_subfaces(0, EnforcerBlockerType::Extruder1, leaves));
+    CHECK(selector.num_facets(EnforcerBlockerType::Extruder1) == 5);
+    CHECK(selector.num_facets(EnforcerBlockerType::Extruder2) == 1);
+    CHECK(selector.num_facets(EnforcerBlockerType::Extruder3) == 1);
+
+    const auto encoded = selector.serialize();
+    TriangleSelector restored(mesh);
+    restored.deserialize(encoded);
+    CHECK(restored.serialize() == encoded);
+    CHECK(restored.num_facets(EnforcerBlockerType::Extruder1) == 5);
+    CHECK(restored.num_facets(EnforcerBlockerType::Extruder2) == 1);
+    CHECK(restored.num_facets(EnforcerBlockerType::Extruder3) == 1);
+}
+
+TEST_CASE("Invalid midpoint subface input leaves the original facet unchanged", "[TriangleSelector][SubfaceColor]")
+{
+    const TriangleMesh mesh = test_mesh();
+    TriangleSelector selector(mesh);
+    selector.set_facet(0, EnforcerBlockerType::Extruder4);
+    const auto before = selector.serialize();
+    CHECK_FALSE(selector.set_facet_midpoint_subfaces(0, EnforcerBlockerType::Extruder1,
+        {{2, 16, EnforcerBlockerType::Extruder2}}));
+    CHECK(selector.serialize() == before);
+    CHECK_FALSE(selector.set_facet_midpoint_subfaces(0, EnforcerBlockerType::Extruder1,
+        {{1, 2, EnforcerBlockerType::Extruder2}, {1, 2, EnforcerBlockerType::Extruder3}}));
+    CHECK(selector.serialize() == before);
+}

@@ -1006,6 +1006,11 @@ def _source_requirements(document: dict[str, Any]) -> tuple[tuple[str, str, str]
         ),
         (
             "src/CMakeLists.txt",
+            r'include\("\$\{CMAKE_SOURCE_DIR\}/cmake/OrcaWindowsAIRuntimeInstall\.cmake"\)',
+            "installed runtime verification module wiring",
+        ),
+        (
+            "cmake/OrcaWindowsAIRuntimeInstall.cmake",
             r'verify_bundled_runtime\.py',
             "installed runtime verification",
         ),

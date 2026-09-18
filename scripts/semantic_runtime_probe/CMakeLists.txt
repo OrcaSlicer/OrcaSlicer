@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.15)
+project(semantic_runtime_probe LANGUAGES CXX)
+add_executable(abi_probe abi_probe.cpp)
+add_executable(resource_probe resource_probe.cpp)
+foreach(probe IN ITEMS abi_probe resource_probe)
+    target_compile_features(${probe} PRIVATE cxx_std_17)
+    target_include_directories(${probe} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../src/slic3r/AI/ModelGeneration/SemanticColoring/vendor/mediapipe-1.0.0")
+    if(MSVC)
+        target_compile_options(${probe} PRIVATE /utf-8 /W4)
+    endif()
+endforeach()

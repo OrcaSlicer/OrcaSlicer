@@ -11,6 +11,7 @@ add_executable(${_TEST_NAME}_tests
     test_model_generation_presentation.cpp
     test_model_generation_client.cpp
     test_model_preview_palette.cpp
+    test_model_preview_normals.cpp
     test_model_preview_state.cpp
     test_model_color_import.cpp
     test_plugin_host_api.cpp
@@ -29,6 +30,11 @@ add_executable(${_TEST_NAME}_tests
     test_surface_selection_refinement.cpp
     test_surface_selection_state.cpp
     test_color_trial_state.cpp
+    test_semantic_coloring.cpp
+    test_semantic_mask_refinement.cpp
+    test_semantic_material_regions.cpp
+    test_mediapipe_face_masks.cpp
+    test_model_semantic_coloring.cpp
     test_model_finishing.cpp
     test_model_artifact.cpp
     test_orca_model_preparation.cpp

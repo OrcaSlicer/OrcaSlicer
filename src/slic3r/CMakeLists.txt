@@ -361,7 +361,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/AI/AIDesktopFeatureHost.hpp
     GUI/AI/SmartSlicing/SmartSlicingFeatureHost.cpp
     GUI/AI/SmartSlicing/SmartSlicingFeatureHost.hpp
-    GUI/AI/Model/VertexColorRegionEditor.cpp GUI/AI/Model/ModelFinishing.cpp GUI/AI/ModelGeneration/ModelGenerationFinishingView.cpp
     GUI/AI/Model/VertexColorRegionEditor.hpp GUI/AI/Model/ModelArtifact.cpp GUI/AI/Model/ModelArtifact.hpp GUI/AI/Model/GlbGeometryEditing.cpp
     GUI/AIModelGenerationClient.cpp
     GUI/AIModelGenerationClient.hpp
@@ -885,6 +884,7 @@ else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES} ${ORCA_BUILD_INFO_SOURCE})
 endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+include("${CMAKE_SOURCE_DIR}/cmake/OrcaModelColoring.cmake")
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)

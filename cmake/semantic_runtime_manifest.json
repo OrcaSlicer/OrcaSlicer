@@ -1,0 +1,59 @@
+{
+  "schema": "orcaslicer.portrait-semantics-runtime/v1",
+  "platform": "windows-x86_64",
+  "provider": "mediapipe.cpu.v1",
+  "execution": "native C ABI, CPU, local RGB image input",
+  "source_commit": "6d31f1ebc3284db74d211d62bdc4f0a0c29ea120",
+  "source_tag": "v1.0.0",
+  "runtime_subdirectory": "ai/portrait_semantics",
+  "downloads": [
+    {
+      "key": "wheel",
+      "url": "https://files.pythonhosted.org/packages/68/53/ffb67e668f23130aff197ec49be912be910c128b60658000d8bf263207c9/mediapipe-1.0.0-py3-none-win_amd64.whl",
+      "filename": "mediapipe-1.0.0-py3-none-win_amd64.whl",
+      "sha256": "da57e6719bbab05007272c91d6ca2e0e2e370709491cbe344a372f87e25cf604",
+      "bytes": 16057095
+    },
+    {
+      "key": "body",
+      "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite",
+      "filename": "selfie_multiclass_256x256.tflite",
+      "sha256": "c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0",
+      "bytes": 16371837
+    },
+    {
+      "key": "face",
+      "url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      "filename": "face_landmarker.task",
+      "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+      "bytes": 3758596
+    }
+  ],
+  "wheel_entries": [
+    {
+      "entry": "mediapipe/tasks/c/libmediapipe.dll",
+      "filename": "libmediapipe.dll",
+      "sha256": "a8970c645c8c87c25ec9965cb5c898e803c6c42f7192b7de9a0541c62ae48cef",
+      "bytes": 43301376
+    },
+    {
+      "entry": "mediapipe-1.0.0.dist-info/licenses/LICENSE",
+      "filename": "LICENSE",
+      "sha256": "8707eef0533987efc5b155d64761eeb6e20793f50b9bd1a68dad1cf4719d0ed8",
+      "bytes": 12331
+    },
+    {
+      "entry": "mediapipe-1.0.0.dist-info/licenses/NOTICE",
+      "filename": "NOTICE",
+      "sha256": "d3b4a80a24a01fd445d4b70a610fd836ec3547c3a62eb835a1041956c38d9f56",
+      "bytes": 1540836
+    }
+  ],
+  "body_labels": ["background", "hair", "body_skin", "face_skin", "clothes", "accessories"],
+  "face_landmarks": 478,
+  "minimum_confidence": 0.7,
+  "default_providers": {
+    "body_provider": "mediapipe.cpu.v1",
+    "face_provider": "mediapipe.cpu.v1"
+  }
+}

@@ -99,7 +99,7 @@ wxWindow* ModelGenerationPanel::build_model_finishing(wxWindow* parent)
     wrap_workbench_text(hint, FromDIP(260));
     sizer->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_finishing_tool = new wxChoice(m_finishing_panel, wxID_ANY);
-    for (const auto& label : {_L("整体美颜"), _L("局部修整"), _L("六色试色"), _L("网格修复"), _L("统一这块颜色"), _L("清理小杂点")})
+    for (const auto& label : {_L("整体美颜"), _L("局部修整"), _L("多色试色"), _L("网格修复"), _L("统一这块颜色"), _L("清理小杂点")})
         m_finishing_tool->Append(label);
     m_finishing_tool->SetSelection(0);
     sizer->Add(m_finishing_tool, 0, wxEXPAND | wxALL, FromDIP(10));
@@ -668,6 +668,7 @@ void ModelGenerationPanel::accept_model_finishing()
     }
     metadata["face_color_intent"] = m_model_preview->face_color_metadata();
     metadata["color_trial"] = m_model_preview->color_trial_metadata();
+    metadata["semantic_color_state"] = m_model_preview->semantic_color_metadata();
     if (!m_finishing_options.repair_mesh && m_finishing_selection_state.selected.size() == m_finishing_result.faces_after)
         metadata["local_selection"] = AI::SurfaceSelectionPersistence::encode(m_finishing_selection_state,
             m_finishing_result.faces_after, m_model_preview->geometry_id());

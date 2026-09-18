@@ -20,9 +20,11 @@ namespace Slic3r::AI::ColorTrialPersistence {
 // by the host; dynamic pack indices and project signatures are not persisted.
 struct State {
     std::vector<GUI::PreviewPalette::Color> colors, mapping_colors;
-    std::array<bool, 6> locks {};
+    std::array<bool, GUI::PreviewPalette::max_preview_colors> locks {};
     int source {0}, count {6};
     bool enabled {false}, fidelity {true}, lighting {false};
+    bool semantic_optimization {true};
+    std::vector<GUI::PreviewPalette::Color> semantic_palette, semantic_mapping_palette, semantic_portrait_card;
 };
 
 namespace detail {
@@ -35,10 +37,14 @@ inline bool valid_fingerprint(const std::string& value)
 
 inline bool valid_state(const State& state)
 {
-    if (state.source < 0 || state.source > 2 || state.count < 1 || state.count > 6 ||
+    if (state.semantic_palette.size() > 6 ||
+        (!state.semantic_mapping_palette.empty() && state.semantic_mapping_palette.size() != state.semantic_palette.size()) ||
+        (!state.semantic_portrait_card.empty() && state.semantic_portrait_card.size() != 6)) return false;
+    if (state.source < 0 || state.source > 2 || state.count < 1 ||
+        state.count > int(GUI::PreviewPalette::max_preview_colors) ||
         state.colors.size() > size_t(state.count) || state.colors.size() != state.mapping_colors.size() ||
         (state.enabled && state.colors.empty())) return false;
-    for (const auto* palette : {&state.colors, &state.mapping_colors})
+    for (const auto* palette : {&state.colors, &state.mapping_colors, &state.semantic_palette, &state.semantic_mapping_palette, &state.semantic_portrait_card})
         for (const auto& color : *palette)
             for (float channel : color)
                 if (!std::isfinite(channel) || channel < 0.0f || channel > 1.0f) return false;
@@ -53,9 +59,10 @@ inline bool read_unsigned(const nlohmann::json& value, uint64_t& result)
     return true;
 }
 
-inline bool read_palette(const nlohmann::json& value, std::vector<GUI::PreviewPalette::Color>& palette)
+inline bool read_palette(const nlohmann::json& value, std::vector<GUI::PreviewPalette::Color>& palette,
+                         size_t maximum = GUI::PreviewPalette::max_preview_colors)
 {
-    if (!value.is_array() || value.size() > 6) return false;
+    if (!value.is_array() || value.size() > maximum) return false;
     for (const auto& entry : value) {
         if (!entry.is_array() || entry.size() != 3) return false;
         GUI::PreviewPalette::Color color;
@@ -78,7 +85,10 @@ inline nlohmann::json encode(const State& state, size_t actual_face_count, const
     return {{"schema", "orca.color-trial/v1"}, {"geometry_sha256", fingerprint}, {"face_count", actual_face_count},
             {"colors", state.colors}, {"mapping_colors", state.mapping_colors}, {"locks", state.locks},
             {"source", state.source}, {"count", state.count}, {"enabled", state.enabled},
-            {"fidelity", state.fidelity}, {"lighting", state.lighting}};
+            {"fidelity", state.fidelity}, {"lighting", state.lighting},
+            {"semantic_optimization", state.semantic_optimization},
+            {"semantic_palette", state.semantic_palette}, {"semantic_mapping_palette", state.semantic_mapping_palette},
+            {"semantic_portrait_card", state.semantic_portrait_card}};
 }
 
 // Reject mismatched geometry or malformed fields before returning any state.
@@ -98,26 +108,43 @@ inline bool decode(const nlohmann::json& doc, size_t actual_face_count, const st
     if (!doc.contains("face_count") || !detail::read_unsigned(doc["face_count"], face_count) || face_count != actual_face_count)
         return fail("The saved trial color face count does not match the loaded mesh.");
     if (!doc.contains("source") || !detail::read_unsigned(doc["source"], source) || source > 2 ||
-        !doc.contains("count") || !detail::read_unsigned(doc["count"], count) || count < 1 || count > 6)
+        !doc.contains("count") || !detail::read_unsigned(doc["count"], count) || count < 1 ||
+        count > GUI::PreviewPalette::max_preview_colors)
         return fail("Invalid trial color source or color count.");
     for (const char* field : {"enabled", "fidelity", "lighting"})
         if (!doc.contains(field) || !doc[field].is_boolean()) return fail("Trial color options must be explicit booleans.");
-    if (!doc.contains("locks") || !doc["locks"].is_array() || doc["locks"].size() != 6)
-        return fail("Trial colors require six lock flags.");
+    if (!doc.contains("locks") || !doc["locks"].is_array() ||
+        (doc["locks"].size() != 6 && doc["locks"].size() != GUI::PreviewPalette::max_preview_colors))
+        return fail("Trial color lock flags do not match a supported preview version.");
     State restored;
-    for (size_t i = 0; i < restored.locks.size(); ++i) {
+    for (size_t i = 0; i < doc["locks"].size(); ++i) {
         if (!doc["locks"][i].is_boolean()) return fail("Trial color locks must be booleans.");
         restored.locks[i] = doc["locks"][i].get<bool>();
     }
     if (!doc.contains("colors") || !doc.contains("mapping_colors") ||
         !detail::read_palette(doc["colors"], restored.colors) ||
         !detail::read_palette(doc["mapping_colors"], restored.mapping_colors))
-        return fail("Trial colors require normalized RGB palettes with at most six colors.");
+        return fail("Trial colors require normalized RGB palettes within the preview limit.");
     restored.source = int(source);
     restored.count = int(count);
     restored.enabled = doc["enabled"].get<bool>();
     restored.fidelity = doc["fidelity"].get<bool>();
     restored.lighting = doc["lighting"].get<bool>();
+    // Existing saved manual trials predate semantic suggestions. Restoring
+    // them must not silently reinterpret the user's original group assignments.
+    restored.semantic_optimization = false;
+    if (doc.contains("semantic_optimization")) {
+        if (!doc["semantic_optimization"].is_boolean()) return fail("Invalid semantic color option.");
+        restored.semantic_optimization = doc["semantic_optimization"].get<bool>();
+    }
+    if (doc.contains("semantic_palette") && !detail::read_palette(doc["semantic_palette"], restored.semantic_palette, 6))
+        return fail("Invalid semantic palette.");
+    if (doc.contains("semantic_mapping_palette") && !detail::read_palette(doc["semantic_mapping_palette"], restored.semantic_mapping_palette, 6))
+        return fail("Invalid semantic candidate assignments.");
+    if (doc.contains("semantic_portrait_card") && !detail::read_palette(doc["semantic_portrait_card"], restored.semantic_portrait_card, 6))
+        return fail("Invalid semantic portrait card.");
+    if (!restored.semantic_portrait_card.empty() && restored.semantic_portrait_card.size() != 6)
+        return fail("A semantic portrait card requires six roles.");
     if (!detail::valid_state(restored)) return fail("Trial color centers and targets must form valid pairs.");
     output = std::move(restored);
     return true;

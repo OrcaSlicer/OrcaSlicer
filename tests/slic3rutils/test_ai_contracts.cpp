@@ -74,9 +74,9 @@ TEST_CASE("neutral AI contracts preserve accepted defaults and legacy includes",
     CHECK(palette.compatible_colors.front() == "#112233");
 }
 
-TEST_CASE("an import color trial accepts one through six paired normalized colors", "[AIContracts][ModelColorTrial]")
+TEST_CASE("an import color trial accepts one through thirty two paired normalized colors", "[AIContracts][ModelColorTrial]")
 {
-    for (size_t count = 1; count <= 6; ++count) {
+    for (size_t count = 1; count <= kMaxModelColorTrialColors; ++count) {
         DYNAMIC_SECTION(count << " paired colors") {
             ModelColorTrial trial;
             trial.mapping_colors.assign(count, {0.f, 0.5f, 1.f});
@@ -88,7 +88,8 @@ TEST_CASE("an import color trial accepts one through six paired normalized color
 
 TEST_CASE("an import color trial rejects empty mismatched and oversized palettes", "[AIContracts][ModelColorTrial]")
 {
-    for (const auto& sizes : {std::pair<size_t, size_t>{0, 0}, {0, 1}, {1, 0}, {1, 2}, {2, 1}, {7, 7}}) {
+    for (const auto& sizes : {std::pair<size_t, size_t>{0, 0}, {0, 1}, {1, 0}, {1, 2}, {2, 1},
+                              {kMaxModelColorTrialColors + 1, kMaxModelColorTrialColors + 1}}) {
         DYNAMIC_SECTION(sizes.first << " mapping colors and " << sizes.second << " target colors") {
             ModelColorTrial trial;
             trial.mapping_colors.assign(sizes.first, {0.f, 0.5f, 1.f});

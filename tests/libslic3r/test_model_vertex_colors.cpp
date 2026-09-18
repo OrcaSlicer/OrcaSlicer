@@ -18,6 +18,7 @@ using namespace Slic3r;
 TEST_CASE("Fixed import palettes keep edited target colors and source regions", "[ModelVertexColors][FixedPalette]")
 {
     const bool include_vertex_colors = GENERATE(false, true);
+    const bool share_target_color = GENERATE(false, true);
     TexturedMesh mesh;
     for (int part = 0; part < 2; ++part) {
         const int first = (int)mesh.vertices.size();
@@ -35,14 +36,27 @@ TEST_CASE("Fixed import palettes keep edited target colors and source regions", 
     settings.smooth_weight = 0;
     settings.fixed_mapping_palette = {{255,0,0}, {0,0,255}, {0,255,0}};
     settings.fixed_palette = {{0,0,255}, {255,0,0}, {255,255,0}};
+    if (share_target_color)
+        settings.fixed_palette[1] = settings.fixed_palette[0];
     PaintedMesh painted;
     REQUIRE(face_colors_to_painting(mesh, painted, settings));
     REQUIRE(painted.face_colors.size() == mesh.indices.size());
     for (size_t i = 0; i < painted.face_colors.size(); ++i)
         CHECK(painted.face_colors[i] == settings.fixed_palette[i < 4 ? 0 : 1]);
-    CHECK(painted.cluster_colors.size() == 2);
+    CHECK(painted.cluster_colors.size() == (share_target_color ? 1 : 2));
     CHECK(painted.vertices == mesh.vertices);
     CHECK(painted.indices == mesh.indices);
+
+    if (share_target_color) {
+        settings.fixed_palette[1] = {247,226,218};
+        REQUIRE(face_colors_to_painting(mesh, painted, settings));
+        REQUIRE(painted.face_colors.size() == mesh.indices.size());
+        for (size_t i = 0; i < painted.face_colors.size(); ++i)
+            CHECK(painted.face_colors[i] == settings.fixed_palette[i < 4 ? 0 : 1]);
+        CHECK(painted.cluster_colors.size() == 2);
+        CHECK(painted.vertices == mesh.vertices);
+        CHECK(painted.indices == mesh.indices);
+    }
 }
 
 TEST_CASE("Fixed import palettes reject invalid colors and mismatched source centers", "[ModelVertexColors][FixedPalette]")

@@ -255,6 +255,9 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
 {
     AI::ModelImportResult result;
     result.color_mode = request.color_mode;
+    result.subface_color_count = request.subface_color_overrides.size();
+    TriangleMesh semantic_source_mesh;
+    bool has_semantic_source_mesh = false;
     if (m_plater == nullptr || !AI::is_model_artifact(request.artifact.local_path)) {
         result.outcome = AI::ModelImportOutcome::InvalidArtifact;
         result.error = "The generated OBJ/GLB is missing or invalid.";
@@ -262,26 +265,38 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
     }
 
     boost::filesystem::path path = request.artifact.local_path;
-    if (request.color_mode == AI::ImportColorMode::NativeMatch && !request.face_color_overrides.empty()) {
-        TriangleMesh source_mesh;
+    if (request.color_mode == AI::ImportColorMode::NativeMatch &&
+        (!request.face_color_overrides.empty() || !request.subface_color_overrides.empty())) {
         ObjInfo source_colors;
-        if (!AI::load_model_artifact(path, source_mesh, source_colors, result.error)) {
+        if (!AI::load_model_artifact(path, semantic_source_mesh, source_colors, result.error)) {
             result.outcome = AI::ModelImportOutcome::InvalidArtifact;
             return result;
         }
-        const auto identity = AI::SurfaceSelectionPersistence::geometry_fingerprint(source_mesh.its);
+        has_semantic_source_mesh = true;
+        const auto identity = AI::SurfaceSelectionPersistence::geometry_fingerprint(semantic_source_mesh.its);
         if (identity.empty() || identity != request.face_color_geometry_id) {
             result.outcome = AI::ModelImportOutcome::InvalidArtifact;
             result.error = "The locally edited surface belongs to another model version. Reload the model before importing.";
             return result;
         }
         for (const auto& override : request.face_color_overrides) {
-            if (override.first >= source_mesh.its.indices.size() ||
+            if (override.first >= semantic_source_mesh.its.indices.size() ||
                 std::any_of(override.second.begin(), override.second.end(), [](float channel) {
                     return !std::isfinite(channel) || channel < 0.f || channel > 1.f;
                 })) {
                 result.outcome = AI::ModelImportOutcome::InvalidArtifact;
                 result.error = "The locally edited surface contains an invalid face or color. Reload the model before importing.";
+                return result;
+            }
+        }
+        for (const auto& override : request.subface_color_overrides) {
+            if (override.face_id >= semantic_source_mesh.its.indices.size() || override.depth == 0 ||
+                override.depth > 2 || unsigned(override.path) >= (1u << (2u * override.depth)) ||
+                std::any_of(override.color.begin(), override.color.end(), [](float channel) {
+                    return !std::isfinite(channel) || channel < 0.f || channel > 1.f;
+                })) {
+                result.outcome = AI::ModelImportOutcome::InvalidArtifact;
+                result.error = "The locally edited surface contains an invalid subface or color. Reload the model before importing.";
                 return result;
             }
         }
@@ -420,6 +435,37 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
         return result;
     }
 
+    bool subface_import_incomplete = false;
+    if (!request.subface_color_overrides.empty()) {
+        std::string subface_error;
+        ModelVolume* volume = nullptr;
+        if (!has_semantic_source_mesh || loaded.size() != 1 || loaded.front() >= m_plater->model().objects.size()) {
+            subface_error = "Semantic subfaces require one unchanged imported model.";
+        } else if (ModelObject* object = m_plater->model().objects[loaded.front()]) {
+            for (ModelVolume* candidate : object->volumes) {
+                if (!candidate || !candidate->is_model_part()) continue;
+                if (volume != nullptr) { volume = nullptr; break; }
+                volume = candidate;
+            }
+            if (volume == nullptr) subface_error = "Semantic subfaces require one unchanged model-part volume.";
+        } else {
+            subface_error = "The imported model is unavailable for semantic subfaces.";
+        }
+        if (volume != nullptr) {
+            auto painting = volume->mmu_segmentation_facets.get_data();
+            if (apply_subface_color_overrides(semantic_source_mesh.its, volume->mesh().its, painting,
+                    request.face_color_overrides, request.subface_color_overrides, subface_error)) {
+                volume->mmu_segmentation_facets.set_data(std::move(painting));
+                result.subface_colors_applied = true;
+                result.colors_applied = true;
+                m_plater->changed_mesh(int(loaded.front()));
+            }
+        }
+        subface_import_incomplete = !result.subface_colors_applied;
+        if (subface_import_incomplete)
+            BOOST_LOG_TRIVIAL(warning) << "Semantic subfaces retained safe whole-face colors: " << subface_error;
+    }
+
     workflow.update_ai_workflow_step(Sidebar::AIImportModel, Sidebar::AIWorkflowStatus::Success);
     workflow.update_ai_workflow_step(Sidebar::AICheckMesh, Sidebar::AIWorkflowStatus::Running);
 
@@ -427,7 +473,8 @@ AI::ModelImportResult OrcaWorkspaceAdapter::import_artifact(const AI::ModelImpor
         result.color_mapping_collapsed = request.color_mode != AI::ImportColorMode::SingleColor && result.colors_applied &&
                                          result.source_color_count > 1 && result.mapped_color_count < 2;
         result.manual_coloring_required = request.color_mode != AI::ImportColorMode::SingleColor &&
-                                          (!result.colors_applied || result.color_mapping_collapsed);
+                                          (!result.colors_applied || result.color_mapping_collapsed ||
+                                           subface_import_incomplete);
         BOOST_LOG_TRIVIAL(info) << "AI OBJ color import: mode=" << static_cast<int>(request.color_mode)
                                 << ", source_colours=" << result.source_color_count
                                 << ", mapped_colours=" << result.mapped_color_count

@@ -3,15 +3,21 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
 namespace Slic3r::GUI::PreviewPalette {
 using Color = std::array<float, 3>;
+inline constexpr size_t max_preview_colors = 32;
+inline size_t initial_trial_color_count(size_t project_filaments, size_t model_suggestion)
+{
+    return std::clamp(project_filaments ? project_filaments : model_suggestion, size_t(1), max_preview_colors);
+}
 struct ColorTrialMapping {
     bool enabled {false};
     // Source centers determine group membership; editable target colors do
-    // not change that assignment. Values are normalized sRGB, at most six.
+    // not change that assignment. Values are normalized sRGB.
     std::vector<Color> mapping_colors;
     std::vector<Color> target_colors;
 };
@@ -104,6 +110,22 @@ class Histogram {
                 for (int c = 0; c < 3; ++c) accent.sum[c] += sample.lab[c]*sample.weight;
             }
         }
+        // Relative high-chroma tails distinguish small accents from an already
+        // chromatic dominant material in the same hue bucket.
+        std::array<Bin, 12> tails {};
+        for (const auto& sample : samples) {
+            const float chroma = std::hypot(sample.lab[1], sample.lab[2]);
+            if (chroma < .045f) continue;
+            float angle = std::atan2(sample.lab[2], sample.lab[1]);
+            if (angle < 0) angle += 2*pi;
+            const size_t index = std::min(size_t(11), size_t(angle*12/(2*pi)));
+            const auto& hue = hues[index];
+            if (hue.weight <= 0) continue;
+            const float mean_chroma = std::hypot(float(hue.sum[1]/hue.weight), float(hue.sum[2]/hue.weight));
+            if (chroma < mean_chroma + accent_chroma_gap) continue;
+            auto& tail = tails[index]; tail.weight += sample.weight;
+            for (int c = 0; c < 3; ++c) tail.sum[c] += sample.lab[c]*sample.weight;
+        }
         std::vector<Sample> candidates;
         for (size_t index = 0; index < hues.size(); ++index) {
             const auto& hue = hues[index];
@@ -118,13 +140,18 @@ class Histogram {
             // A small saturated accent can share a hue with a much larger
             // muted material. Keep its supported chroma separately instead
             // of averaging it away; brightness alone does not add a candidate.
-            const auto& accent = accents[index];
-            if (accent.weight > 0 && accent.weight >= total*.0005) {
+            const auto add_accent = [&](const Bin& accent) {
+                if (accent.weight <= 0 || accent.weight < total*.0005) return false;
                 Color accent_lab {};
                 for (int c = 0; c < 3; ++c) accent_lab[c] = float(accent.sum[c]/accent.weight);
-                if (!supported || std::hypot(accent_lab[1], accent_lab[2]) - std::hypot(lab[1], lab[2]) >= accent_chroma_gap)
-                    candidates.push_back({accent_lab, accent.weight/total});
-            }
+                if (supported && std::hypot(accent_lab[1], accent_lab[2]) - std::hypot(lab[1], lab[2]) < accent_chroma_gap)
+                    return false;
+                candidates.push_back({accent_lab, accent.weight/total});
+                return true;
+            };
+            // Retain the former absolute-chroma accent when the relative
+            // tail lacks area support or separation from the material mean.
+            if (!add_accent(tails[index])) add_accent(accents[index]);
         }
         std::vector<Color> selected;
         while (selected.size() < limit) {
@@ -178,7 +205,7 @@ public:
     // exact duplicates are ignored. Automatic protection is intentionally opt-in.
     std::vector<Color> palette(size_t limit = 6, const std::vector<Color>& locked = {}, bool preserve_hues = false) const
     {
-        limit = std::min(size_t(6), limit);
+        limit = std::min(max_preview_colors, limit);
         if (limit == 0) return {};
         std::vector<Color> locked_rgb, centers;
         for (const auto& color : locked) {
@@ -190,16 +217,9 @@ public:
         const auto source_samples = samples();
         if (source_samples.empty()) return locked_rgb;
         if (preserve_hues && limit > 2) {
-            // Keep two positions available for neutral/dominant tones. User
-            // locks take precedence over all automatically protected centers.
-            for (const auto& hue : select_hues(source_samples, limit - 2)) {
-                if (centers.size() >= limit - 2) break;
-                if (std::any_of(centers.begin(), centers.end(), [&](const Color& c) { return distance(hue, c) < .000225f; })) continue;
-                centers.push_back(hue);
-            }
-            // A dark chromatic center can otherwise absorb all dark neutral
-            // samples during clustering. Keep supported neutral endpoints as
-            // well, using area quantiles rather than noise-prone extrema.
+            // Reserve supported neutral tones before allocating hue slots.
+            // Otherwise gray cloth between black hair and white highlights
+            // can be assigned to a warm skin center by the hue-weighted metric.
             std::vector<Sample> neutral;
             double neutral_area = 0, total_area = 0;
             for (const auto& sample : source_samples) {
@@ -208,19 +228,50 @@ public:
                     neutral.push_back(sample); neutral_area += sample.weight;
                 }
             }
+            std::vector<Color> neutral_centers;
             if (neutral_area >= total_area*.05) {
                 std::sort(neutral.begin(), neutral.end(), [](const Sample& a, const Sample& b) { return a.lab[0] < b.lab[0]; });
                 for (double quantile : {.05, .95}) {
-                    if (centers.size() == limit) break;
                     double cumulative = 0;
                     for (const auto& sample : neutral) {
                         cumulative += sample.weight;
                         if (cumulative < neutral_area*quantile) continue;
-                        if (std::none_of(centers.begin(), centers.end(), [&](const Color& c) { return distance(sample.lab, c) < .000225f; }))
-                            centers.push_back(sample.lab);
+                        if (neutral_centers.empty() || distance(sample.lab, neutral_centers.front()) >= .000225f)
+                            neutral_centers.push_back(sample.lab);
                         break;
                     }
                 }
+                if (neutral_centers.size() == 2 && limit >= 5) {
+                    // Endpoints alone cannot represent a supported middle tone.
+                    // Require separation from both area-quantile endpoints and
+                    // meaningful area, so isolated shading does not take a slot.
+                    constexpr float middle_lightness_gap = .12f;
+                    Bin middle;
+                    for (const auto& sample : neutral) {
+                        if (sample.lab[0] <= neutral_centers[0][0] + middle_lightness_gap ||
+                            sample.lab[0] >= neutral_centers[1][0] - middle_lightness_gap) continue;
+                        middle.weight += sample.weight;
+                        for (int c = 0; c < 3; ++c) middle.sum[c] += sample.lab[c]*sample.weight;
+                    }
+                    if (middle.weight >= total_area*.005) {
+                        Color lab {};
+                        for (int c = 0; c < 3; ++c) lab[c] = float(middle.sum[c]/middle.weight);
+                        neutral_centers.push_back(lab);
+                    }
+                }
+            }
+            // User locks still take precedence. With no supported neutrals,
+            // keep two slots free for dominant tones during ordinary filling.
+            const size_t neutral_budget = std::max(size_t(2), neutral_centers.size());
+            for (const auto& hue : select_hues(source_samples, limit - neutral_budget)) {
+                if (centers.size() >= limit - neutral_budget) break;
+                if (std::any_of(centers.begin(), centers.end(), [&](const Color& c) { return distance(hue, c) < .000225f; })) continue;
+                centers.push_back(hue);
+            }
+            for (const auto& lab : neutral_centers) {
+                if (centers.size() == limit) break;
+                if (std::none_of(centers.begin(), centers.end(), [&](const Color& c) { return distance(lab, c) < .000225f; }))
+                    centers.push_back(lab);
             }
         }
         const size_t fixed = centers.size();
@@ -238,7 +289,7 @@ public:
             centers.push_back(candidate);
         }
         for (int iteration = 0; iteration < 20; ++iteration) {
-            std::array<Bin, 6> totals {};
+            std::vector<Bin> totals(centers.size());
             for (const auto& sample : source_samples) {
                 const size_t nearest = nearest_lab_index(sample.lab, centers);
                 totals[nearest].weight += sample.weight;
