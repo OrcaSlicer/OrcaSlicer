@@ -216,8 +216,22 @@ private:
     }
 
 
-	bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
+    bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
 	bool   m_enable_filament_ramming = true;
+    // Orca: multimaterial tower (prime_tower_multimaterial). Every filament owns one region of
+    // the tower footprint - the outer shell ring or the inner core - and purges into it, so a
+    // filament is only ever printed on top of itself. Requested by the config, turned on in
+    // generate() once the finished plan shows the layout is possible; see mm_activate().
+    bool   m_mm_requested       = false;
+    bool   m_mm_active          = false;
+    size_t m_mm_shell_tool      = size_t(-1); // prints the shell ring, and with it the brim
+    size_t m_mm_core_tool       = size_t(-1); // prints the core
+    int    m_mm_shell_loops     = 0;          // shell thickness, in wall loops
+    float  m_mm_loop_pitch      = 0.f;        // shell loop pitch, fixed for the whole tower
+    // How much of the current layer's regions is laid down already. A filament that purges more
+    // than once on a layer lays its region down in as many chunks, the last one completing it.
+    int    m_mm_shell_loops_done = 0;
+    int    m_mm_core_rows_done   = 0;
 	bool   m_is_mk4mmu3         = false;
     int    m_wipe_tower_filament = 0;   // 1-based config value, 0 means auto
     Vec2f  m_wipe_tower_pos; 			// Left front corner of the wipe tower in mm.
@@ -436,7 +450,41 @@ private:
 
     Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
 
+    // Lay the brim loops around the tower outline (first layer only) and record the brim width
+    // and first-layer bounding box the Print object needs for the skirt and the preview box.
+    // `poly` comes in as the tower outline and comes back as the outermost brim loop, which the
+    // caller uses to place the wipe path.
+    void extrude_brim(WipeTowerWriter2& writer, Polygon& poly, float spacing);
+
     void compute_wall_skip_points();
+
+    // --- Multimaterial tower ---------------------------------------------------------------
+    // Decide whether the finished plan can use the multimaterial layout, and which filament
+    // gets the shell and which the core.
+    void mm_activate();
+    // Size the tower for the multimaterial layout: every region deep enough for the whole purge
+    // its filament takes on the busiest layer. Replaces plan_tower() while it is active.
+    void mm_plan_tower();
+    // Row pitch of the core's purge rows. Fixed for the whole tower, so unlike the stock tower
+    // the first layer uses the same lattice - the shell/core boundary must not move by layer.
+    float mm_row_pitch() const { return m_extra_spacing_wipe * m_perimeter_width; }
+    // Centerline rectangle of shell loop `loop`; loop 0 is the tower's outer wall.
+    WipeTower::box_coordinates mm_shell_loop_box(int loop, float outer_depth) const;
+    float mm_shell_loop_length(int loop, float outer_depth) const;
+    // Centerline bounds of the core's purge rows, half a line width clear of the shell.
+    WipeTower::box_coordinates mm_core_box(float outer_depth) const;
+    int   mm_core_row_count(float outer_depth) const;
+    float mm_core_row_length(float outer_depth) const;
+    // Loops / rows still owed to purge `volume`, capped at what the region has left to lay down.
+    int   mm_units_for_volume(bool shell, float volume, int done, float outer_depth, float layer_height) const;
+    void  mm_extrude_shell(WipeTowerWriter2& writer, int loops, bool first_layer);
+    void  mm_extrude_core(WipeTowerWriter2& writer, int rows, bool first_layer);
+    void  mm_extrude_region(WipeTowerWriter2& writer, int units, bool first_layer);
+    // The layer's incoming filament laying down its own region, without a toolchange.
+    WipeTower::ToolChangeResult mm_region_layer(int units);
+    // A toolchange that purges the new filament into that filament's own region.
+    WipeTower::ToolChangeResult mm_tool_change(size_t new_tool, int units);
+    void mm_generate_layer(const WipeTowerInfo& layer, std::vector<WipeTower::ToolChangeResult>& layer_result);
 
     // Computes the depth reserved for a toolchange (shared by plan_toolchange() and the
     // rib-wall square-tower replanning in generate()).
