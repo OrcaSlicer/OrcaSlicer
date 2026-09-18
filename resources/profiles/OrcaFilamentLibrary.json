@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.06",
+	"version": "02.04.00.07",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -449,6 +449,10 @@
 			"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @base.json"
 		},
 		{
+			"name": "JAYO PETG @base",
+			"sub_path": "filament/JAYO/JAYO PETG @base.json"
+		},
+		{
 			"name": "NIT PETG @base",
 			"sub_path": "filament/NIT/NIT PETG @base.json"
 		},
@@ -647,6 +651,14 @@
 		{
 			"name": "INSLOGIC PLA Pro @base",
 			"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @base.json"
+		},
+		{
+			"name": "JAYO PLA @base",
+			"sub_path": "filament/JAYO/JAYO PLA @base.json"
+		},
+		{
+			"name": "JAYO PLA Classic @base",
+			"sub_path": "filament/JAYO/JAYO PLA Classic @base.json"
 		},
 		{
 			"name": "NIT PLA @base",
@@ -1341,6 +1353,22 @@
 			"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @P1-X1.json"
 		},
 		{
+			"name": "JAYO PETG @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PETG @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PETG @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PETG @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @System",
+			"sub_path": "filament/JAYO/JAYO PETG @System.json"
+		},
+		{
 			"name": "NIT PETG @System",
 			"sub_path": "filament/NIT/NIT PETG @System.json"
 		},
@@ -1719,6 +1747,38 @@
 		{
 			"name": "INSLOGIC PLA Pro @P1-X1",
 			"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @P1-X1.json"
+		},
+		{
+			"name": "JAYO PLA @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PLA @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @System",
+			"sub_path": "filament/JAYO/JAYO PLA @System.json"
+		},
+		{
+			"name": "JAYO PLA Classic @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA Classic @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA Classic @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PLA Classic @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @System",
+			"sub_path": "filament/JAYO/JAYO PLA Classic @System.json"
 		},
 		{
 			"name": "NIT PLA @System",
