@@ -1580,6 +1580,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "spiral_starting_flow_ratio"
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (opt_key == "brim_filament") {
+            // Only the brim's tool assignment changes: the brim geometry and the object are untouched.
+            invalidated |= m_print->invalidate_steps({ psSkirtBrim, psWipeTower, psGCodeExport });
         } else if (
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
@@ -3809,6 +3812,8 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
+    if (config.brim_filament.value > (int)num_extruders)
+        config.brim_filament.value = 0;
     return config;
 }
 
