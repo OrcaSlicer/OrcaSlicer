@@ -99,7 +99,7 @@ int TabCtrl::AppendItem(const wxString& item, int image, int selImage, void* cli
     btns.push_back(btn);
     if (btns.size() > 1)
         sizer->GetItem(sizer->GetItemCount() - 1)->SetMinSize({0, 0});
-    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, item_space);
+    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL);
     sizer->AddStretchSpacer(1);
     relayout();
     return btns.size() - 1;
@@ -256,12 +256,12 @@ void TabCtrl::relayout()
     int item   = sel + 1;
     int first  = 0;
     for (int i = 0; i < item; ++i)
-        offset += btns[i]->GetMinSize().x + item_space * 2;
+        offset += btns[i]->GetMinSize().x;
     if (item < btns.size())
-        offset += btns[item]->GetMinSize().x + item_space * 2;
+        offset += btns[item]->GetMinSize().x;
     int width = GetSize().x;
     for (int i = 0; i < btns.size(); ++i) {
-        auto size = btns[i]->GetMinSize().x + item_space * 2;
+        auto size = btns[i]->GetMinSize().x;
         if (i < sel && offset > width) {
             sizer->Show(i * 2 + 1, false);
             sizer->Show(i * 2 + 2, false);
@@ -284,26 +284,17 @@ void TabCtrl::relayout()
     if (item >= btns.size())
         --item;
     // Keep spacing 2 ~ 10 TAB_BUTTON_SPACE
-    int b = GetSize().x - offset - 10 - (item + 1 - first) * item_space * 8;
+    int b = GetSize().x - offset - 10 - (item + 1 - first) * 16;
     sizer->GetItem(item * 2 + 2)->SetMinSize({b > 0 ? b : 0, 0});
     Layout();
 }
 
-void TabCtrl::SetItemSpace(int space)
-{
-    if (space < 0 || space == item_space)
-        return;
-    item_space = space;
-    relayout();
-    Refresh();
-}
-
 int TabCtrl::GetFullSize() const
 {
-    // Mirrors relayout(): a 10px leading spacer plus every button's min width and spacing.
+    // Mirrors relayout(): a 10px leading spacer plus every button's min width.
     int width = 10;
     for (const Button* btn : btns)
-        width += btn->GetMinSize().x + item_space * 2;
+        width += btn->GetMinSize().x;
     return width;
 }
 

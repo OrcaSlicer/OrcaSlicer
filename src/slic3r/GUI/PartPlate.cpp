@@ -1134,7 +1134,7 @@ Polygon PartPlate::imex_wipe_tower_hull() const
     std::set<int> plate_objects;
     for (const auto& pr : obj_to_instance_set)
         plate_objects.insert(pr.first);
-    if (!prime_tower_is_printed(print_cfg, (int) get_extruders(true, /*expand_mixed=*/false).size(),
+    if (!prime_tower_is_printed(print_cfg, (int) get_extruders(true, /*expand_mixed_slots=*/false).size(),
                                 (int) plate_objects.size(), has_mixed))
         return Polygon();
 
@@ -1227,7 +1227,7 @@ bool PartPlate::has_imex_multimaterial_conflict() const
     // blend reads as 2 filaments to the badge and 1 to validate -- the badge stays silent and
     // the slice is then refused, or it warns about "multi-material objects" on a plate the user
     // sees as single-colour. Undo the expansion so both sides count the same way.
-    const std::vector<int> used_1b = get_extruders(true, /*expand_mixed=*/false);
+    const std::vector<int> used_1b = get_extruders(true, /*expand_mixed_slots=*/false);
     std::vector<int> used_0b;
     used_0b.reserve(used_1b.size());
     for (int e : used_1b) if (e > 0) used_0b.push_back(e - 1);
@@ -1945,7 +1945,13 @@ void PartPlate::render_grid(bool bottom) {
 
 void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
 {
-	if (m_print && m_print->config().print_sequence == PrintSequence::ByObject && mode != HEIGHT_LIMIT_NONE)
+	// Orca: a prime tower compacted by "No sparse layers" drags the nozzle back down to the plate on
+	// every toolchange, so the rod and the lid limit how tall a neighbouring object may be exactly as
+	// they do in sequential printing. The reference lines are just as useful there.
+	const bool relevant_for_print_mode = m_print && (m_print->config().print_sequence == PrintSequence::ByObject ||
+	                                                 (m_print->config().print_sequence == PrintSequence::ByLayer &&
+	                                                  wipe_tower_sparse_layers_skipped(m_print->config()) && m_print->has_wipe_tower()));
+	if (relevant_for_print_mode && mode != HEIGHT_LIMIT_NONE)
 	{
 		// draw lower limit
 	    // ORCA: OpenGL Core Profile
@@ -2462,19 +2468,19 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand_mixed) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand_mixed_slots) const
 {
 	std::vector<int> plate_extruders;
     if (check_objects_empty_and_gcode3mf(plate_extruders)) {
         return plate_extruders;
     }
-	return get_extruders(conside_custom_gcode, wxGetApp().preset_bundle->prints.get_edited_preset().config, wxGetApp().preset_bundle->project_config, expand_mixed);
+	return get_extruders(conside_custom_gcode, wxGetApp().preset_bundle->prints.get_edited_preset().config, wxGetApp().preset_bundle->project_config, expand_mixed_slots);
 }
 
 // The plate's filaments, with the global keys read from the given configs rather than the
 // application's presets: the wipe tower estimate is also called under the CLI, which has no
 // application object. get_extruders(bool) passes the edited presets; a full config serves both.
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots) const
 {
 	std::vector<int> plate_extruders;
 	// A plate from a sliced .gcode.3mf holds no objects, so report the filaments the G-code
@@ -2637,7 +2643,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	{
 		const auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
 		const auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
-		if (expand_mixed && is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+		if (expand_mixed_slots && is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
 			std::vector<unsigned int> ext_0based;
 			for (int e : plate_extruders)
 				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
@@ -2651,7 +2657,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	return plate_extruders;
 }
 
-std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const
+std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots) const
 {
     std::vector<int> plate_extruders;
 
@@ -2812,7 +2818,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     // Expand mixed filament slots to their physical components. A mixed slot is virtual and
     // is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
     // physical filaments it resolves to instead.
-    {
+    if (expand_mixed_slots) {
         auto* is_mixed_opt = full_config.option<ConfigOptionBools>("filament_is_mixed");
         auto* comp_strs_opt = full_config.option<ConfigOptionStrings>("filament_mixed_components");
         if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {

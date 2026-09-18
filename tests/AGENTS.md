@@ -10,16 +10,17 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 - `libnest2d`: 2D nesting and packing.
 - `slic3rutils`: the Python plugin system and its slicing-pipeline bindings.
 - `filament_group`: filament-to-extruder grouping, checked against golden files.
+- `cli`: end-to-end runs of the built `orca-slicer` binary, Linux only. These tests carry the `RequiresApp` label, which the CI unit-test job excludes because it receives only `build/tests`; run them with `ctest --test-dir build/tests -C Release -L RequiresApp`.
 
 ## Building and running
 
 Tests are off by default, so the build has to be told to include them.
 
-- Windows: `build_release_vs.bat tests`, then `ctest --test-dir build/tests -C Release`
+- Windows: `build_win.bat -ds --run-tests`, which builds the dependencies and the tests and runs them (`-l -x` for the clang-cl and Ninja build CI uses)
 - macOS: `./build_release_macos.sh -s -a arm64 -T`, which builds and runs them
-- Linux: `./build_linux.sh -t`, then `ctest --test-dir build/tests`
+- Linux: `./build_linux.sh -t`, then `ctest --test-dir build/tests -C Release`
 
-Rebuild a single suite with `cmake --build build --config Release --target <suite>_tests`. Visual Studio and Xcode are multi-configuration generators, so `ctest` needs `-C` there; on Linux it does not.
+Rebuild a single suite with `cmake --build build --config Release --target <suite>_tests`. Visual Studio, Xcode and the Ninja Multi-Config generator that `build_linux.sh` uses are all multi-configuration, so `ctest` needs `-C` on every platform; without it, tests registered with plain `add_test()` lose their labels and report "Not Run".
 
 ## Where a test goes
 

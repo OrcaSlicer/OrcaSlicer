@@ -85,6 +85,15 @@ jobs:
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
+          # clang-cl refuses a precompiled header from another cl.exe build and ccache
+          # does not hash that build, so each one gets its own cache. The build number
+          # is read from cl.exe itself; the toolset directory keeps its name across patches.
+          if [ "${{ runner.os }}" = Windows ]; then
+            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
+            toolset=$(tr -d '\r\n' < "$("$vswhere" -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')")
+            cl=$("$vswhere" -latest -products '*' -find 'VC\Tools\MSVC\'"$toolset"'\**\cl.exe' | tr -d '\r' | head -1)
+            leg="$leg-vc$("$cl" 2>&1 | grep -o -E 'Version [0-9.]+' | cut -d' ' -f2)"
+          fi
           echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
           echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
@@ -96,14 +105,17 @@ jobs:
         id: ccache
         if: ${{ !inputs.macos-combine-only }}
         continue-on-error: true
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@v1.2.24
         with:
           key: ${{ env.CCACHE_LEG }}
           max-size: 3G
           restore: false
           save: false
+          # ccache -s runs as its own step; no summary table per job.
+          job-summary: ''
 
       - name: Restore compiler cache
+        id: ccache_restore
         if: ${{ steps.ccache.outcome == 'success' }}
         uses: actions/cache/restore@v6
         with:
@@ -447,21 +459,13 @@ jobs:
         # env:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
-        # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
+        # --tests builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
-          $arch = "${{ inputs.arch }}"
-          # -l selects clang-cl and -x Ninja; together they build the slicer with clang.
-          $clang = "${{ inputs.compiler }}" -eq "clang"
-          $flags = if ($clang) { "-l", "-x" } else { @() }
-          if ($clang) {
-            # Build against the same VC toolchain and SDK as the dependencies.
-            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-            $vs = & $vswhere -latest -property installationPath
-            $devArch = if ($arch -eq "arm64") { "arm64" } else { "amd64" }
-            Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-            Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=$devArch"
-          }
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 @flags tests } else { .\build_release_vs.bat slicer @flags tests }
+          # cache-path is the install directory inside the deps build directory.
+          $deps = (Split-Path "${{ inputs.cache-path }}").Replace('\', '/')
+          # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
+          $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
+          .\build_win.bat -s --tests -i --arch ${{ inputs.arch }} --build-dir $env:BUILD_DIR --deps-dir $deps @flags
         shell: pwsh
 
       - name: Build system preset cache (Windows)
@@ -722,31 +726,40 @@ jobs:
           asset_content_type: application/octet-stream
           max_releases: 1
 
+      # The build has just touched everything it can use, so an object
+      # untouched for a week is dead, usually orphaned by a flag change.
       - name: Compiler cache statistics
         if: ${{ always() && steps.ccache.outcome == 'success' }}
         shell: bash
-        run: ccache -s -v || ccache -s
+        run: |
+          ccache --evict-older-than 7d
+          ccache -s -v || ccache -s
 
       # Entries are immutable, so the new one is saved first and the older
       # ones for this leg on this ref are dropped afterwards: a failed save
-      # leaves the previous entry in place.
+      # leaves the previous entry in place. A cancelled or failed build saves
+      # too, since what it compiled is still valid; a restore that did not
+      # finish does not, since the directory may be a truncated copy.
       - name: Save compiler cache
         id: ccache_save
-        if: ${{ steps.ccache.outcome == 'success' && github.event_name != 'pull_request' }}
+        if: ${{ always() && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
         uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/.ccache
           key: ${{ env.CCACHE_ENTRY }}
 
       - name: Drop older compiler cache entries
-        if: ${{ steps.ccache_save.outcome == 'success' }}
+        if: ${{ always() && steps.ccache_save.outcome == 'success' }}
         # A read-only token (fork PRs) cannot delete; that only costs storage.
+        # Older means a lower run id, so two runs finishing close together keep
+        # the newer entry whichever of them cleans up last.
         continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh cache list --ref "$GITHUB_REF" --key "ccache-$CCACHE_LEG-" --limit 100 --json id,key \
-            | jq -r --arg keep "$CCACHE_ENTRY" '.[] | select(.key != $keep) | .id' \
+            | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \
+                '.[] | select((.key | ltrimstr($prefix) | split("-")[0] | tonumber?) < $run) | .id' \
             | tr -d '\r' \
             | while read -r id; do gh cache delete "$id"; done

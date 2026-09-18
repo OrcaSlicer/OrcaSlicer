@@ -438,12 +438,12 @@ public:
     arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
-    // expand_mixed=false returns the plate's filament slots as authored, without resolving a
-    // mixed slot into its components. Callers that mirror Print::validate need that form --
-    // validate counts the mixed slot itself, so an expanded list makes the two disagree.
-    std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed = true) const;
-    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed = true) const;
-    std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const;
+    // expand_mixed_slots = false keeps mixed filament slots as slots instead of their components.
+    // Callers that mirror Print::validate need that form: validate counts the mixed slot itself,
+    // so an expanded list makes the two disagree.
+    std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed_slots = true) const;
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true) const;
+    std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
     std::vector<int> get_used_filaments();
