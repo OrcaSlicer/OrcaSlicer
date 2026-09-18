@@ -1409,9 +1409,10 @@ int OrcaPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
 
-    const int start_rc = cloud->start_cloud_print_job(params.dev_id, job_id, remote_gcode_name(params), /*start=*/true);
-    if (start_rc != BAMBU_NETWORK_SUCCESS)
-        return start_rc;
+    result = start_sdcard_print(params, update_fn, cancel_fn);
+
+    if (result != BAMBU_NETWORK_SUCCESS)
+        return result;
 
     if (update_fn)
         update_fn(PrintingStageFinished, 100, "Print started");
