@@ -24,6 +24,9 @@
 
 #include "GUI_App.hpp"
 #include "FilamentMapDialog.hpp"
+#include "MsgDialog.hpp"
+#include "Plater.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -113,19 +116,71 @@ namespace {
 #endif
 	}
 
-	// Orca: Resolve the type of a validation option based on its key
+	// Resolve by which tab actually stores the option, not by the global PrintConfigDef
+	// (every registered key exists there, so printer-first would send filament keys to the printer tab).
 	Preset::Type resolve_validation_option_type(const std::string& opt_key)
 	{
 		if (opt_key.empty())
 			return Preset::TYPE_PRINT;
 
-		if (wxGetApp().get_tab(Preset::TYPE_PRINTER)->get_config()->def()->has(opt_key))
-			return Preset::TYPE_PRINTER;
+		auto tab_has = [&](Preset::Type type) {
+			Tab *tab = wxGetApp().get_tab(type);
+			return tab && tab->get_config() && tab->get_config()->has(opt_key);
+		};
 
-		if (wxGetApp().get_tab(Preset::TYPE_FILAMENT)->get_config()->def()->has(opt_key))
+		if (tab_has(Preset::TYPE_PRINT))
+			return Preset::TYPE_PRINT;
+		if (tab_has(Preset::TYPE_FILAMENT))
 			return Preset::TYPE_FILAMENT;
-
+		if (tab_has(Preset::TYPE_PRINTER))
+			return Preset::TYPE_PRINTER;
 		return Preset::TYPE_PRINT;
+	}
+
+	void disable_filament_ramming(const std::string &opt)
+	{
+		GUI_App &app = wxGetApp();
+		if (opt == "enable_filament_ramming") {
+			DynamicPrintConfig cfg;
+			cfg.set_key_value("enable_filament_ramming", new ConfigOptionBool(false));
+			if (Tab *tab = app.get_tab(Preset::TYPE_PRINTER))
+				tab->load_config(cfg);
+			return;
+		}
+
+		PresetBundle *bundle = app.preset_bundle;
+		if (!bundle)
+			return;
+
+		auto turn_off = [](Preset *preset) {
+			if (!preset)
+				return;
+			if (auto *ramming = preset->config.option<ConfigOptionBools>("filament_multitool_ramming")) {
+				for (size_t i = 0; i < ramming->values.size(); ++i)
+					ramming->values[i] = false;
+			}
+		};
+
+		for (const std::string &name : bundle->filament_presets)
+			turn_off(bundle->filaments.find_preset(name));
+		turn_off(&bundle->filaments.get_edited_preset());
+
+		if (Tab *tab = app.get_tab(Preset::TYPE_FILAMENT)) {
+			tab->reload_config();
+			tab->update_dirty();
+		}
+		if (app.plater())
+			app.plater()->on_config_change(bundle->full_config());
+	}
+
+	void offer_disable_filament_ramming(const std::string &opt, const std::string &err_text)
+	{
+		MessageDialog dlg(wxGetApp().plater(),
+		                  from_u8(err_text) + "\n\n" + _L("Turn off filament ramming now?"),
+		                  _L("Multimaterial prime tower"),
+		                  wxYES_NO | wxICON_WARNING);
+		if (dlg.ShowModal() == wxID_YES)
+			disable_filament_ramming(opt);
 	}
 }
 
@@ -1933,7 +1988,8 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 			[id = mo ? mo->id() : (mi ? mi->id() : 0),
              parent_id = mi ? mi->get_object()->id() : 0,
              is_inst = (mi != nullptr),
-             opt = error.opt_key](wxEvtHandler*) {
+             opt = error.opt_key,
+             err_text = error.string](wxEvtHandler*) {
 			auto& objects = wxGetApp().model().objects;
 
             if (is_inst) {
@@ -1983,6 +2039,8 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 					wxGetApp().params_panel()->switch_to_object();
 
 				wxGetApp().sidebar().jump_to_option(opt, opt_type, L"");
+				if (opt == "filament_multitool_ramming" || opt == "enable_filament_ramming")
+					offer_disable_filament_ramming(opt, err_text);
 			}
 			else {
 				wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);

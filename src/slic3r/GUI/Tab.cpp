@@ -3053,6 +3053,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("prime_tower_width", "multimaterial_settings_prime_tower#width");
         optgroup->append_single_option_line("prime_volume", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_brim_width", "multimaterial_settings_prime_tower#brim-width");
+        optgroup->append_single_option_line("prime_tower_brim_object_gap", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("prime_tower_brim_flow_ratio", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_infill_gap", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("wipe_tower_rotation_angle", "multimaterial_settings_prime_tower#wipe-tower-rotation-angle");
         optgroup->append_single_option_line("wipe_tower_bridging", "multimaterial_settings_prime_tower#maximal-bridging-distance");
@@ -3065,6 +3067,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");
         optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_no_sparse_layers", "multimaterial_settings_prime_tower#no-sparse-layers");
+        optgroup->append_single_option_line("wipe_tower_use_first_layer_height", "multimaterial_settings_prime_tower#no-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");

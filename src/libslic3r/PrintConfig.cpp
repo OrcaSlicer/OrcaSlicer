@@ -645,7 +645,6 @@ static const t_config_enum_values s_keys_map_PrimeVolumeMode = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrimeVolumeMode)
 
-
 //BBS
 std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type)
 {
@@ -6701,6 +6700,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wipe_tower_use_first_layer_height", coBool);
+    def->label = L("Use first layer height");
+    def->tooltip = L("If enabled together with \"No sparse layers\", the first wipe tower layer that is actually printed uses the print's first layer height. "
+                    "Without this, that layer follows the thinner object layer it happens to land on, which can weaken bed adhesion.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("single_extruder_multi_material_priming", coBool);
     def->label = L("Prime all printing extruders");
     def->tooltip = L("If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print.");
@@ -7679,6 +7685,26 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("-1");
     def->enum_labels.push_back(L("Auto"));
     def->set_default_value(new ConfigOptionFloat(3.));
+
+    def = this->add("prime_tower_brim_object_gap", coFloat);
+    def->label = L("Brim-object gap");
+    def->tooltip = L("This creates a gap between the innermost brim line and the prime tower and can make the brim easier to remove. "
+                     "A negative value presses the brim into the prime tower. "
+                     "The model's Brim-object gap is not used here.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = -1;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("prime_tower_brim_flow_ratio", coFloat);
+    def->label = L("Brim flow ratio");
+    def->tooltip = L("This factor affects the amount of material for the prime tower brim. The model's Brim flow ratio is not used here.\n\n"
+                     "The actual brim flow used is calculated by multiplying this value by the filament flow ratio.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
 
     def = this->add("wipe_tower_cone_angle", coFloat);
     def->label = L("Stabilization cone apex angle");

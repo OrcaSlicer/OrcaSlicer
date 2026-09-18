@@ -353,6 +353,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_multimaterial"
             || opt_key == "prime_tower_width"
             || opt_key == "prime_tower_brim_width"
+            || opt_key == "prime_tower_brim_object_gap"
+            || opt_key == "prime_tower_brim_flow_ratio"
             || opt_key == "wipe_tower_type"
             || opt_key == "prime_tower_skip_points"
             || opt_key == "prime_tower_flat_ironing"
@@ -378,6 +380,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_bridging"
             || opt_key == "wipe_tower_extra_flow"
             || opt_key == "wipe_tower_no_sparse_layers"
+            || opt_key == "wipe_tower_use_first_layer_height"
             || opt_key == "flush_volumes_matrix"
             || opt_key == "prime_volume"
             || opt_key == "flush_into_infill"
@@ -1939,12 +1942,22 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (m_config.wipe_tower_wall_type != WipeTowerWallType::wtwRectangle)
                 return { L("The multimaterial prime tower requires the rectangular prime tower wall type."), nullptr,
                          "prime_tower_multimaterial" };
-            for (unsigned int extruder_id : extruders)
-                if ((m_config.single_extruder_multi_material && m_config.enable_filament_ramming) ||
-                    m_config.filament_multitool_ramming.get_at(extruder_id))
-                    return { L("The multimaterial prime tower cannot be used when the old filament is rammed into the "
-                               "tower. Turn off filament ramming, or turn off the multimaterial prime tower."),
-                             nullptr, "prime_tower_multimaterial" };
+            const bool semm_ramming = m_config.single_extruder_multi_material && m_config.enable_filament_ramming;
+            std::string rammed;
+            for (unsigned int extruder_id : extruders) {
+                if (!semm_ramming && !m_config.filament_multitool_ramming.get_at(extruder_id))
+                    continue;
+                if (!rammed.empty())
+                    rammed += ", ";
+                const std::string type = m_config.filament_type.get_at(extruder_id);
+                rammed += type.empty() ? (boost::format("#%1%") % (extruder_id + 1)).str()
+                                       : (boost::format("%1% (#%2%)") % type % (extruder_id + 1)).str();
+            }
+            if (!rammed.empty())
+                return { Slic3r::format(L("The multimaterial prime tower cannot be used when the old filament is rammed into the "
+                                          "tower (%1%). Turn off filament ramming, or turn off the multimaterial prime tower."),
+                                        rammed),
+                         nullptr, semm_ramming ? "enable_filament_ramming" : "filament_multitool_ramming" };
         }
             
 #if 0
