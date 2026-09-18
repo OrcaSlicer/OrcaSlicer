@@ -2555,22 +2555,6 @@
 		{
 			"name": "Generic PLA Silk @Prusa MK4S 0.8",
 			"sub_path": "filament/Generic PLA Silk @Prusa MK4S 0.8.json"
-		},
-		{
-			"name": "INSLOGIC PA6-66 @Prusa CORE One",
-			"sub_path": "filament/INSLOGIC PA6-66 @Prusa CORE One.json"
-		},
-		{
-			"name": "INSLOGIC PA6-CF @Prusa CORE One",
-			"sub_path": "filament/INSLOGIC PA6-CF @Prusa CORE One.json"
-		},
-		{
-			"name": "INSLOGIC PETG Pro @Prusa CORE One",
-			"sub_path": "filament/INSLOGIC PETG Pro @Prusa CORE One.json"
-		},
-		{
-			"name": "INSLOGIC PLA Pro @Prusa CORE One",
-			"sub_path": "filament/INSLOGIC PLA Pro @Prusa CORE One.json"
 		}
 	],
 	"machine_list": [
