@@ -1,5 +1,6 @@
 #include "BoundingBox.hpp"
 #include "Config.hpp"
+#include "GCode/WipePathHelpers.hpp"
 #include "GCodeWriter.hpp"
 #include "Polygon.hpp"
 #include "PrintConfig.hpp"
@@ -438,7 +439,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         auto& writer = gcodegen.writer();
         auto& config = gcodegen.config();
         auto extruder = writer.filament();
-        auto extruder_id = extruder->extruder_id();
         auto last_pos = gcodegen.last_pos();
         
         // Declare & initialize retraction lengths
@@ -475,13 +475,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         wipe_speed = std::max(wipe_speed, 10.0);
 
         // Process wipe path & calculate wipe path length
-        double wipe_dist = scale_(config.wipe_distance.get_at(extruder_id));
+        double wipe_dist = scale_(config.wipe_distance.get_at(extruder->config_index()));
         Polyline wipe_path = {last_pos};
         wipe_path.append(this->path.points.begin() + 1, this->path.points.end());
         double wipe_path_length = std::min(wipe_path.length(), wipe_dist);
 
         // Calculate the maximum retraction amount during wipe
-        retraction_length_during_wipe = config.retraction_speed.get_at(extruder_id) * 
+        retraction_length_during_wipe = config.retraction_speed.get_at(extruder->config_index()) *
             unscale_(wipe_path_length) / wipe_speed;
 
         // If the maximum retraction amount during wipe is too small,
@@ -564,6 +564,16 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return default_value;
     }
 
+    // Orca: rebuild the stored wipe path while preserving Polyline's boundary deduplication.
+    void Wipe::update_path(const ExtrusionPaths &paths, bool reverse)
+    {
+        reset_path();
+        for (const ExtrusionPath& extrusion_path : paths)
+            path.append(extrusion_path.polyline.to_polyline());
+        if (reverse)
+            path.reverse();
+    }
+
     std::string Wipe::wipe(GCode& gcodegen,double length, bool toolchange, bool is_last)
     {
         std::string gcode;
@@ -616,14 +626,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (gcodegen.enable_cooling_markers() && !is_last)
                     cooling_mark = /*gcodegen.config().role_based_wipe_speed ? ";_EXTERNAL_PERIMETER" : */";_WIPE";
 
+                // Orca: set speed once because wipe_speed is constant for all segments.
                 gcode += gcodegen.writer().set_speed(_wipe_speed * 60, "", cooling_mark);
                 for (const Line& line : wipe_path.lines()) {
                     double segment_length = line.length();
                     double dE = length * (segment_length / wipe_dist);
-                    //BBS: fix this FIXME
-                    //FIXME one shall not generate the unnecessary G1 Fxxx commands, here wipe_speed is a constant inside this cycle.
-                    // Is it here for the cooling markers? Or should it be outside of the cycle?
-                    //gcode += gcodegen.writer().set_speed(wipe_speed * 60, "", gcodegen.enable_cooling_markers() ? ";_WIPE" : "");
                     gcode += gcodegen.writer().extrude_to_xy(
                         gcodegen.point_to_gcode(line.b),
                         -dE,
@@ -1021,11 +1028,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         double current_z = gcodegen.writer().get_position().z();
         if (z == -1.) // in case no specific z was provided, print at current_z pos
             z = current_z;
-        if (!is_approx(z, current_z)) {
+        // Orca: wipe_tower_no_sparse_layers crash guard. With sparse layers skipped the tower is
+        // compacted far below the object, so descending to it is only safe once the nozzle is parked
+        // over the tower - which is what the is_finish_first travel above does. Otherwise the nozzle
+        // is still over the model and this descent would drive it into the print, so defer it to the
+        // re-descents below, which run after the travel to the tower.
+        const bool defer_compacted_descend = m_sparse_layers_skipped
+            && !tcr.priming && !tcr.is_finish_first && (current_z - z) > EPSILON;
+        if (!is_approx(z, current_z) && !defer_compacted_descend) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
             gcode += gcodegen.writer().unretract();
         }
+        // Tower compacted below the object, so any extrusion emitted without an explicit z has to be
+        // pulled back down to it first.
+        const bool compacted_below_object = m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON;
 
         // Process the end filament gcode.
         bool        add_change_filament_624 = false;
@@ -1078,11 +1095,23 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string nozzle_change_gcode_trans;
         if (is_nozzle_change) {
             // move to start_pos before nozzle change
+            // Orca: travel_to() lifts to the object layer height to clear the print. That lift is
+            // needed when arriving from the model, but is a wasted full-height Z bounce when the
+            // nozzle already sits on the compacted tower, so travel at the compacted z instead.
+            const bool compact_intower_nc_travel = compacted_below_object
+                && (tcr.print_z - gcodegen.writer().get_position().z()) > EPSILON;
             std::string start_pos_str;
             start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(tcr.nozzle_change_result.start_pos) + plate_origin_2d), erMixed,
-                "Move to nozzle change start pos");
+                "Move to nozzle change start pos", compact_intower_nc_travel ? z : DBL_MAX);
             check_add_eol(start_pos_str);
             nozzle_change_gcode_trans += start_pos_str;
+            // The nozzle-change wipe below carries no explicit z, so it would extrude at the object
+            // layer height and float above the compacted tower. Descend unless the travel stayed down.
+            if (!compact_intower_nc_travel && compacted_below_object) {
+                std::string nc_z_descend = gcodegen.writer().travel_to_z(z, "Descend to compacted wipe tower z (no sparse layers)");
+                check_add_eol(nc_z_descend);
+                nozzle_change_gcode_trans += nc_z_descend;
+            }
             nozzle_change_gcode_trans += gcodegen.unretract();
             nozzle_change_gcode_trans += transform_gcode(tcr.nozzle_change_result.gcode, tcr.nozzle_change_result.start_pos, wipe_tower_offset, wipe_tower_rotation);
             gcodegen.set_last_pos(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(tcr.nozzle_change_result.end_pos) + plate_origin_2d));
@@ -1420,6 +1449,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         start_filament_gcode_str = start_filament_gcode_str + wipe_next_start_point_str + toolchange_unretract_str;
+
+        // Orca: the custom change_filament_gcode lifts to the object layer height and the unretract
+        // de-hops back to it, so every tower extrusion emitted after it (purge moves, and the wall
+        // when it prints after the toolchange) would float above the compacted tower. Descend first.
+        if (compacted_below_object) {
+            std::string z_descend = gcodegen.writer().travel_to_z(z, "Descend to compacted wipe tower z (no sparse layers)");
+            check_add_eol(z_descend);
+            start_filament_gcode_str += z_descend;
+        }
 
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
@@ -1908,11 +1946,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     // resulting in a wipe tower with sparse layers.
                     double wipe_tower_z  = -1;
                     bool   ignore_sparse = false;
-                    if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
+                    if (m_sparse_layers_skipped) {
                         wipe_tower_z  = m_last_wipe_tower_print_z;
-                        ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                         m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool &&
-                                         m_layer_idx != 0);
+                        ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]) && m_layer_idx != 0;
                         if (m_tool_change_idx == 0 && !ignore_sparse)
                         wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
                     }
@@ -1928,12 +1964,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // resulting in a wipe tower with sparse layers.
             double wipe_tower_z  = -1;
             bool   ignore_sparse = false;
-            if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-                wipe_tower_z  = m_last_wipe_tower_print_z;
-                ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                 m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
-                if (m_tool_change_idx == 0 && !ignore_sparse)
-                    wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
+            if (m_sparse_layers_skipped) {
+                ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
+                wipe_tower_z  = m_compacted_tower_z[m_layer_idx];
             }
 
             if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
@@ -1946,10 +1979,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
                     throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
 
-                if (!ignore_sparse) {
+                if (!ignore_sparse)
                     gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
-                    m_last_wipe_tower_print_z = wipe_tower_z;
-                }
             }
         }
 
@@ -1963,9 +1994,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             return true;
 
         bool   ignore_sparse = false;
-        if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-            ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 && m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
-        }
+        if (m_sparse_layers_skipped)
+            ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
 
         if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
             return false;
@@ -2901,6 +2931,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     const bool skip_config_block = print.config().gcode_skip_config_block;
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
+    // Orca: Calibration overrides are reapplied after object/region settings in _extrude().
+    // Keep inward wiping from masking retraction and pressure advance artifacts.
+    switch (print.calib_mode()) {
+    case CalibMode::Calib_PA_Line:
+    case CalibMode::Calib_PA_Pattern:
+    case CalibMode::Calib_PA_Tower:
+    case CalibMode::Calib_Auto_PA_Line:
+    case CalibMode::Calib_Retraction_tower:
+        m_calib_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+        break;
+    default:
+        break;
+    }
     // resets analyzer's tracking data
     m_last_height  = 0.f;
     m_last_layer_z = 0.f;
@@ -3555,7 +3598,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
         auto used_filaments = print.get_slice_used_filaments(false);
         this->placeholder_parser().set("is_all_bbl_filament", std::all_of(used_filaments.begin(), used_filaments.end(), [&](auto idx) {
-            return m_config.filament_vendor.values[idx] == "Bambu Lab";
+            return m_config.filament_vendor.get_at(idx) == "Bambu Lab";
             }));
 
         //add during_print_exhaust_fan_speed
@@ -3572,7 +3615,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
 
         auto first_layer_filaments = print.get_slice_used_filaments(true);
-        bool has_tpu_in_first_layer = std::any_of(first_layer_filaments.begin(), first_layer_filaments.end(), [&](unsigned int idx) { return m_config.filament_type.values[idx] == "TPU"; });
+        bool has_tpu_in_first_layer = std::any_of(first_layer_filaments.begin(), first_layer_filaments.end(), [&](unsigned int idx) { return m_config.filament_type.get_at(idx) == "TPU"; });
         this->placeholder_parser().set("has_tpu_in_first_layer", new ConfigOptionBool(has_tpu_in_first_layer));
 
         if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
@@ -6308,8 +6351,13 @@ LayerResult GCode::process_layer(
                                 all_label_ids.insert(inst.label_object_id);
                         break;
                     }
-            std::vector<size_t> filament_instances_id(all_label_ids.begin(), all_label_ids.end());
-            m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+            // Orca: A scheduled extruder may have no object instances on this layer.
+            // Clear any pending mask so it cannot be emitted for the wrong toolchange.
+            m_filament_instances_code.clear();
+            if (!all_label_ids.empty()) {
+                std::vector<size_t> filament_instances_id(all_label_ids.begin(), all_label_ids.end());
+                m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+            }
         }
 
         // The inline _extrude hook may already have taken the snapshot mid-extrusion on a
@@ -6555,6 +6603,8 @@ LayerResult GCode::process_layer(
                         }
                         // Then print infill
                         gcode += this->extrude_infill(print, by_region_specific, false);
+                        // Then the walls left hanging in mid air, now that the infill can anchor them
+                        gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false, true);
                         // Then print perimeters of regions that has is_infill_first == true
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                     }
@@ -6850,6 +6900,7 @@ LayerResult GCode::process_layer(
                             has_insert_timelapse_gcode = true;
                         }
                         gcode += this->extrude_infill(print, by_region_specific, false);
+                        gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false, true);
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                         // ironing
                         gcode += this->extrude_infill(print, by_region_specific, true);
@@ -7199,7 +7250,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
                                 const std::string&          description,
                                 double                      speed,
                                 const ExtrusionEntitiesPtr& region_perimeters,
-                                const Point*                start_point)
+                                const Point*                start_point,
+                                const WipeInwardSupport*     wipe_support)
 {
     // get a copy; don't modify the orientation of the original loop object otherwise
     // next copies (if any) would not detect the correct orientation
@@ -7429,62 +7481,79 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         m_processor.result().print_statistics.total_seam_scarf_distance += static_cast<float>(seam_scarf_distance_mm);
     }
 
-    // BBS
+    // Orca: share the post-extrusion nozzle position between wipe_inward and wipe_on_loops.
+    const bool is_ccw = loop.is_counter_clockwise();
+
+    std::optional<Point> wipe_on_loops_dest;
+    if (m_config.wipe_on_loops.value && paths.back().role() == erExternalPerimeter &&
+        m_layer != nullptr && m_config.wall_loops.value > 1 && paths.front().size() >= 2 &&
+        paths.back().polyline.points.size() >= 2)
+        wipe_on_loops_dest = wipe_on_loops_destination(paths, scale_(nozzle_diameter), is_ccw, is_hole);
+
+    bool wipe_inward_applied = false;
+    // Orca: store loop paths in print order because inward offsets use this orientation.
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
-        m_wipe.path = Polyline();
-        for (ExtrusionPath &path : paths) {
-            //BBS: Don't need to save duplicated point into wipe path
-            if (!m_wipe.path.empty() && !path.empty() &&
-                m_wipe.path.last_point() == Point(path.first_point().x(), path.first_point().y())) {
-                // Convert Points3 to Points
-                for (auto it = path.polyline.points.begin() + 1; it != path.polyline.points.end(); ++it)
-                    m_wipe.path.append(Point(it->x(), it->y()));
-            } else
-                m_wipe.path.append(path.polyline.to_polyline());  // TODO: don't limit wipe to last path
+        m_wipe.update_path(paths);
+
+        // Orca: loop wipe paths retain print direction. Their material side is
+        // therefore left for CCW contours and right for CW contours, with the
+        // result inverted for holes. Only external perimeters are eligible.
+        // Calibration overrides are applied during extrusion, after the region
+        // context was created. Check the effective setting again at execution.
+        if (m_config.wipe_inward && m_config.wipe_inward_distance.value > 0. &&
+            wipe_support != nullptr && !wipe_support->inner_lines.empty() &&
+            // A loop's role is its first path's role. An overhanging start must
+            // not hide ordinary external-wall segments elsewhere in the loop.
+            std::any_of(paths.begin(), paths.end(),
+                [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); }) &&
+            m_wipe.path.points.size() >= 2) {
+            // Orca: use the actual extrusion width from the path, not the config
+            // value — outer_wall_line_width=0 (Auto) would make get_abs_value
+            // return 0 and silently disable the feature, and Arachne may produce
+            // a different width than the config default.
+            const double outer_wall_line_width = paths.front().width;
+            const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_line_width);
+            const double offset_dist = scale_(std::min(requested_offset, outer_wall_line_width));
+            if (offset_dist > SCALED_EPSILON) {
+                const Point seam_start = paths.front().first_point();
+                const Point seam_end   = paths.back().last_point();
+                const Point wipe_start = wipe_on_loops_dest.value_or(seam_end);
+                const double max_wipe_length = scale_(FILAMENT_CONFIG(wipe_distance));
+                // Orca: Wipe::wipe() replaces points[0] with last_pos and executes
+                // from points[1]. The helper preserves that sentinel and atomically
+                // replaces the remaining points, or leaves the path untouched.
+                // Orca: a configured wall count does not guarantee that Arachne
+                // generated an adjacent wall for this particular loop. Only
+                // earlier entities are considered because later walls have
+                // not been printed yet (for example with Outer/Inner order).
+                // Inner walls determine the material side; every earlier wall
+                // remains available to validate the executable wipe path.
+                const double support_distance = scale_(std::max(nozzle_diameter, outer_wall_line_width));
+                Polyline inward_path = m_wipe.path;
+                if (offset_wipe_path_toward_support(
+                        inward_path, seam_start, seam_end, wipe_start,
+                        wipe_offset_direction(is_ccw, is_hole), offset_dist, max_wipe_length,
+                        wipe_support->inner_lines, wipe_support->printed_lines,
+                        m_wipe.path.lines(), support_distance)) {
+                    m_wipe.path = std::move(inward_path);
+                    wipe_inward_applied = true;
+                }
+            }
         }
     }
 
-    // make a little move inwards before leaving loop
-    if (m_config.wipe_on_loops.value && paths.back().role() == erExternalPerimeter && m_layer != NULL && m_config.wall_loops.value > 1 && paths.front().size() >= 2 && paths.back().polyline.points.size() >= 3) {
-        // detect angle between last and first segment
-        // the side depends on the original winding order of the polygon (inwards for contours, outwards for holes)
-        //FIXME improve the algorithm in case the loop is tiny.
-        //FIXME improve the algorithm in case the loop is split into segments with a low number of points (see the Point b query).
-        const Point3 &a3 = paths.front().polyline.points[1];  // second point
-        Point a = Point(a3.x(), a3.y());
-        const Point3 &b3 = *(paths.back().polyline.points.end()-3);       // second to last point
-        Point b = Point(b3.x(), b3.y());
-        if (is_hole == loop.is_counter_clockwise()) {
-            // swap points
-            Point c = a; a = b; b = c;
-        }
-
-        double angle = paths.front().first_point().ccw_angle(a, b) / 3;
-
-        // turn inwards if contour, turn outwards if hole
-        if (is_hole == loop.is_counter_clockwise()) angle *= -1;
-
-        // create the destination point along the first segment and rotate it
-        // we make sure we don't exceed the segment length because we don't know
-        // the rotation of the second segment so we might cross the object boundary
-        Vec2d  p1 = paths.front().polyline.points.front().cast<double>().head<2>();
-        Vec2d  p2 = paths.front().polyline.points[1].cast<double>().head<2>();
-        Vec2d  v  = p2 - p1;
-        double nd = scale_(EXTRUDER_CONFIG(nozzle_diameter));
-        double l2 = v.squaredNorm();
-        // Shift by no more than a nozzle diameter.
-        //FIXME Hiding the seams will not work nicely for very densely discretized contours!
-        //BBS. shorten the travel distant before the wipe path
-        double threshold = 0.2;
-        Point  pt = (p1 + v * threshold).cast<coord_t>();
-        if (nd * nd < l2)
-            pt = (p1 + threshold * v * (nd / sqrt(l2))).cast<coord_t>();
-        //Point pt = ((nd * nd >= l2) ? (p1+v*0.4): (p1 + 0.2 * v * (nd / sqrt(l2)))).cast<coord_t>();
-        const Point3 &center3 = paths.front().polyline.points.front();
-        pt.rotate(angle, Point(center3.x(), center3.y()));
-        // generate the travel move
-        gcode += m_writer.extrude_to_xy(this->point_to_gcode(pt), 0, "move inwards before travel", true);
+    // Orca: make the configured inward move before leaving the loop.
+    if (wipe_on_loops_dest) {
+        gcode += m_writer.extrude_to_xy(
+            this->point_to_gcode(*wipe_on_loops_dest), 0, "move inwards before travel", true);
+        this->set_last_pos(*wipe_on_loops_dest);
     }
+
+    // Execute the accepted path before another extrusion replaces it. Wiping
+    // must not force retraction or Z-hop across a short travel to the next wall.
+    // Ordinary travel planning decides whether to retract from the new position.
+    if (wipe_inward_applied)
+        gcode += m_wipe.wipe(*this, 0.);
 
     return gcode;
 }
@@ -7519,21 +7588,9 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const
         m_multi_flow_segment_path_pa_set = true;
     }
 
-    // BBS
-    if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
-        m_wipe.path = Polyline();
-        for (const ExtrusionPath &path : multipath.paths) {
-            //BBS: Don't need to save duplicated point into wipe path
-            if (!m_wipe.path.empty() && !path.empty() &&
-                m_wipe.path.last_point() == Point(path.first_point().x(), path.first_point().y())) {
-                // Convert Points3 to Points
-                for (auto it = path.polyline.points.begin() + 1; it != path.polyline.points.end(); ++it)
-                    m_wipe.path.append(Point(it->x(), it->y()));
-            } else
-                m_wipe.path.append(path.polyline.to_polyline()); // TODO: don't limit wipe to last path
-        }
-        m_wipe.path.reverse();
-    }
+    // Orca: multipath wipes retrace the extrusion in reverse order.
+    if (m_wipe.enable && FILAMENT_CONFIG(wipe))
+        m_wipe.update_path(multipath.paths, true);
 
     return gcode;
 }
@@ -7541,14 +7598,15 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const
 std::string GCode::extrude_entity(const ExtrusionEntity&      entity,
                                   const std::string&          description,
                                   double                      speed,
-                                  const ExtrusionEntitiesPtr& region_perimeters)
+                                  const ExtrusionEntitiesPtr& region_perimeters,
+                                  const WipeInwardSupport*     wipe_support)
 {
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity))
         return this->extrude_path(*path, description, speed);
     else if (const ExtrusionMultiPath* multipath = dynamic_cast<const ExtrusionMultiPath*>(&entity))
         return this->extrude_multi_path(*multipath, description, speed);
     else if (const ExtrusionLoop* loop = dynamic_cast<const ExtrusionLoop*>(&entity))
-        return this->extrude_loop(*loop, description, speed, region_perimeters);
+        return this->extrude_loop(*loop, description, speed, region_perimeters, nullptr, wipe_support);
     else
         throw Slic3r::InvalidArgument("Invalid argument supplied to extrude()");
     return "";
@@ -7562,6 +7620,7 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
     //    description += ExtrusionEntity::role_to_string(path.role());
     std::string gcode = this->_extrude(path, description, speed);
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
+        m_wipe.reset_path();
         m_wipe.path = path.polyline.to_polyline();
         if (is_tree(this->config().support_type) && is_support(path.role())) {
             if ((m_wipe.path.first_point() - m_wipe.path.last_point()).cast<double>().norm() > scale_(0.2)) {
@@ -7582,7 +7641,7 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
 }
 
 // Extrude perimeters: Decide where to put seams (hide or align seams).
-std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first)
+std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only)
 {
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region)
@@ -7594,8 +7653,36 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 : (m_config.is_infill_first == is_infill_first);
             if (!should_print) continue;
 
-            for (const ExtrusionEntity* ee : region.perimeters)
-                gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters);
+            // Build the printed prefix once in emission order, scoped to this
+            // region. Disabled or zero-length wipes need no support geometry.
+            std::optional<WipeInwardSupport> wipe_support;
+            if (m_wipe.enable && FILAMENT_CONFIG(wipe) && m_config.wipe_inward &&
+                m_config.wipe_inward_distance.value > 0. &&
+                scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON)
+                wipe_support.emplace();
+
+            // ORCA: loops flagged as extruded in mid air, out of reach of the layer below, are held back
+            // for a second pass after the infill that anchors them. Infill already precedes infill first walls.
+            const bool defer_unsupported = !is_infill_first;
+            auto waits_for_infill = [](const ExtrusionEntity *ee) {
+                return ee->is_loop() && static_cast<const ExtrusionLoop *>(ee)->print_after_infill;
+            };
+
+            // The deferred pass runs after the infill, so the loops the first pass emitted are
+            // already down and belong in the prefix an inward wipe may land on.
+            if (wipe_support && defer_unsupported && unsupported_loops_only)
+                for (const ExtrusionEntity* ee : region.perimeters)
+                    if (!waits_for_infill(ee))
+                        wipe_support->append(*ee);
+
+            for (const ExtrusionEntity* ee : region.perimeters) {
+                if (defer_unsupported && waits_for_infill(ee) != unsupported_loops_only)
+                    continue;
+                gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
+                                             wipe_support ? &*wipe_support : nullptr);
+                if (wipe_support)
+                    wipe_support->append(*ee);
+            }
         }
     return gcode;
 }
@@ -7836,7 +7923,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // path is 2D. But in slope lift case, lift z is done in travel_to function.
     // Add m_need_change_layer_lift_z when change_layer in case of no lift if m_last_pos is equal to path.first_point() by chance
     Point first_point = path.first_point();
-    if (!m_last_pos_defined || m_last_pos.to_point() != first_point || m_need_change_layer_lift_z || slope_need_z_travel) {
+    if (!m_last_pos_defined || m_last_pos.to_point() != first_point || m_need_change_layer_lift_z ||
+        slope_need_z_travel) {
         const bool _last_pos_undefined = !m_last_pos_defined;
 
         double z = DBL_MAX;
@@ -9469,12 +9557,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             if (old_filament_id_in_new_extruder == -1)
                 wipe_volume = 0;
             else {
-                wipe_volume = flush_matrix[old_filament_id_in_new_extruder * number_of_extruders + new_filament_id];
+                size_t flush_idx = size_t(old_filament_id_in_new_extruder) * number_of_extruders + new_filament_id;
+                wipe_volume = flush_idx < flush_matrix.size() ? flush_matrix[flush_idx] : 0.f;
                 wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
             }
         }
         else {
-            wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
+            size_t flush_idx = size_t(old_filament_id) * number_of_extruders + new_filament_id;
+            wipe_volume = flush_idx < flush_matrix.size() ? flush_matrix[flush_idx] : 0.f;
             wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);  // if is multi_extruder only use the fist extruder matrix
         }
         wipe_volume = std::max(0.f, wipe_volume-grab_purge_volume);

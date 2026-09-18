@@ -4,11 +4,14 @@
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
+#include "PublishSettings.hpp"
 #include "enum_bitmask.hpp"
 
 #include <memory>
+#include <map>
 #include <set>
 #include <shared_mutex>
+#include <tuple>
 #include <unordered_map>
 #include <optional>
 #include <array>
@@ -166,6 +169,30 @@ struct PresetBundleMetadata
     {
         RWMtx.unlock();
     }
+};
+
+// A "published" 3MF project: keeps the user's currently-selected presets and overlays only the
+// author-selected published keys onto the edited presets.
+struct PublishedConfig
+{
+    bool                        published = false;
+    std::vector<std::string>    published_keys;
+    // Per-slot published material keys, applied positionally (author slot N -> receiver slot N).
+    // Partial entries are gated by the author's optional type requirement and written onto the
+    // slot's stored preset in place; full entries instead detach (see PublishedMaterialEntry in
+    // PublishSettings.hpp).
+    std::vector<PublishedMaterialEntry> material_keys;
+    // Keys that could not be applied (missing on the user's machine or vector size mismatch),
+    // filled in by load_config_file_config for notification purposes.
+    std::vector<std::string>    skipped_keys;
+    // Human-readable notices of the slot material replacements performed while loading a
+    // published project, for the load notification.
+    std::vector<std::string>    material_replacements;
+    // Mixed-filament entries that had to be moved off their authored slot on load (a real,
+    // physical filament occupied it): maps the author's zero-based slot number to its final
+    // zero-based slot. Consumers (e.g. model extruder/color-painting remapping) use this to
+    // keep geometry references pointing at the relocated definitions.
+    std::map<int, int>          mixed_slot_relocations;
 };
 
 // Bundle of Print + Filament + Printer presets.
@@ -464,8 +491,8 @@ public:
 
     // Load configuration that comes from a model file containing configuration, such as 3MF et al.
     // This method is called by the Plater.
-    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver())
-        { this->load_config_file_config(name, true, std::move(config), file_version); }
+    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver(), PublishedConfig *published_config = nullptr)
+        { this->load_config_file_config(name, true, std::move(config), file_version, false, published_config); }
 
     // Load an external config file containing the print, filament and printer presets.
     // Instead of a config file, a G-code may be loaded containing the full set of parameters.
@@ -590,6 +617,11 @@ public:
     // compatible_prints references a deleted (unknown) or renamed (old) preset name.
     bool check_preset_references() const;
 
+    // Validator-only: every system FFF printer variant needs a compatible system filament
+    // named in its model's default_materials, every name there and in the printer's
+    // default_filament_profile must resolve to a system filament.
+    bool check_printer_default_materials() const;
+
     // Merge one vendor's presets with the other vendor's presets, report duplicates.
     // Public so per-vendor-cache consumers (e.g. the setup wizard) can assemble a
     // bundle out of several per-vendor caches loaded into separate PresetBundle instances.
@@ -626,6 +658,17 @@ private:
     bool m_generate_vendor_caches { false };
     bool m_preserve_vendor_source_paths { false };
 
+    // Vendor trees loaded by resolve_preset_config's manifest path, so every preset
+    // resolved through this bundle shares one load per source root and vendor. The
+    // filament library is one such tree, shared by every vendor under its root.
+    std::map<std::tuple<std::string, std::string, ForwardCompatibilitySubstitutionRule>, std::unique_ptr<PresetBundle>>
+        m_source_vendor_bundles;
+
+    const PresetBundle *load_source_vendor(const boost::filesystem::path &root_dir,
+                                           const std::string &vendor_id,
+                                           ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                           std::string &error);
+
     // Orca: validation only - flag any printer with two or more compatible
     // filament presets sharing one filament_id (ambiguous AMS subtype match).
     bool check_duplicate_filament_subtypes() const;
@@ -646,7 +689,7 @@ private:
     // Load print, filament & printer presets from a config. If it is an external config, then the name is extracted from the external path.
     // and the external config is just referenced, not stored into user profile directory.
     // If it is not an external config, then the config will be stored into the user profile directory.
-    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false);
+    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false, PublishedConfig *published_config = nullptr);
     /*ConfigSubstitutions         load_config_file_config_bundle(
         const std::string &path, const boost::property_tree::ptree &tree, ForwardCompatibilitySubstitutionRule compatibility_rule);*/
 

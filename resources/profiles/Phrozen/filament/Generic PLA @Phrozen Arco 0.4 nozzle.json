@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Phrozen Arco 0.4 nozzle",
-	"inherits": "Generic PLA @System",
 	"renamed_from": "Phrozen PLA @Phrozen Arco 0.4 nozzle;Phrozen PLA Phrozen Arco 0.4 nozzle",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "xTeHmDOY48Bik10J",
 	"instantiation": "true",
@@ -108,9 +108,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"31.925"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -179,9 +176,6 @@
 	],
 	"filament_toolchange_delay": [
 		"0"
-	],
-	"filament_unload_time": [
-		"24.75"
 	],
 	"filament_unloading_speed": [
 		"0"

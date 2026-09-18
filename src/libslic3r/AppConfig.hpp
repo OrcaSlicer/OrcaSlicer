@@ -46,6 +46,11 @@ using namespace nlohmann;
 #define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
 #define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
 
+#define SETTING_SPEED_DIAL_RECENT_COUNT "speed_dial_recent_count"
+#define SPEED_DIAL_RECENT_COUNT_MIN 0
+#define SPEED_DIAL_RECENT_COUNT_DEFAULT 5
+#define SPEED_DIAL_RECENT_COUNT_MAX 10
+
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
 #else
@@ -393,6 +398,9 @@ public:
     // Number of plugin pages shown as fixed tabs before the rest are collapsed into a
     // dropdown on the last tab.
     int get_plugin_pages_visible_count() const;
+
+    // Number of recently launched actions shown at the top of the Speed Dial; 0 hides them.
+    int get_speed_dial_recent_count() const;
 
     std::vector<std::string> get_skipped_network_versions() const;
     void add_skipped_network_version(const std::string& version);

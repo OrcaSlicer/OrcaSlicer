@@ -17,6 +17,7 @@
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
@@ -3436,16 +3437,18 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
+    // Whole sentences: the bare "up to"/"above"/"from"/"to" these used to be glued from gave a
+    // translator no context, and left the unit and the numbers stuck in English word order.
     auto upto_label = [](double z) {
         char buf[64];
         ::sprintf(buf, "%.2f", z);
-        return _u8L("up to") + " " + std::string(buf) + " " + _u8L("mm");
+        return format(_u8L("up to %1% mm"), buf);
     };
 
     auto above_label = [](double z) {
         char buf[64];
         ::sprintf(buf, "%.2f", z);
-        return _u8L("above") + " " + std::string(buf) + " " + _u8L("mm");
+        return format(_u8L("above %1% mm"), buf);
     };
 
     auto fromto_label = [](double z1, double z2) {
@@ -3453,7 +3456,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf1, "%.2f", z1);
         char buf2[64];
         ::sprintf(buf2, "%.2f", z2);
-        return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + _u8L("mm");
+        return format(_u8L("from %1% to %2% mm"), buf1, buf2);
     };
 
     auto role_time_and_percent = [this, total_estimated_time](libvgcode::EGCodeExtrusionRole role) {

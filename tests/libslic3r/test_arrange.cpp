@@ -4,6 +4,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::arrangement;
@@ -24,11 +26,13 @@ ArrangePolygon make_square(coord_t side)
     return ap;
 }
 
-ArrangePolygons squares(int n, double side_mm)
+ArrangePolygons squares(int n, double side_mm, double height_mm = 0.)
 {
     ArrangePolygons items;
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < n; ++i) {
         items.emplace_back(make_square(scaled(side_mm)));
+        items.back().height = height_mm;
+    }
     return items;
 }
 
@@ -80,6 +84,38 @@ bool disjoint(const ExPolygons &shapes)
 void require_no_overlap(const ArrangePolygons &items)
 {
     REQUIRE(disjoint(placed_shapes(items)));
+}
+
+// The sequential-print floor is chosen by comparing object height against the nozzle,
+// so the two are defined together and every expectation is derived from them.
+constexpr double NOZZLE_HEIGHT_MM = 2.5;
+constexpr double CLEARANCE_MM     = 30.;
+constexpr double NOZZLE_FLOOR_MM  = MAX_OUTER_NOZZLE_DIAMETER / 2.;
+
+ArrangeParams seq_print_params(coord_t min_dist)
+{
+    ArrangeParams p       = quiet_params(min_dist);
+    p.is_seq_print        = true;
+    p.clearance_radius    = float(CLEARANCE_MM);
+    p.nozzle_height       = float(NOZZLE_HEIGHT_MM);
+    p.object_skirt_offset = 0.f;
+    return p;
+}
+
+// update_selected_items_inflation reads the bed out of the config to cap inflation.
+DynamicPrintConfig bed_config()
+{
+    DynamicPrintConfig c;
+    c.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {200, 0}, {200, 200}, {0, 200}});
+    return c;
+}
+
+ArrangePolygons squares_of_heights(const std::vector<double> &heights_mm)
+{
+    ArrangePolygons items;
+    for (double height_mm : heights_mm)
+        items.push_back(squares(1, 20., height_mm).front());
+    return items;
 }
 
 } // namespace
@@ -221,4 +257,62 @@ TEST_CASE("Arrange aligns the pile to a custom center", "[Arrange]")
     for (const ArrangePolygon &ap : items)
         REQUIRE(ap.bed_idx == 0);
     require_no_overlap(items);
+}
+
+TEST_CASE("Sequential print floors the object distance by object height", "[Arrange]")
+{
+    // The only place sequential-print clearance is enforced. The arrange menu offers
+    // no floor of its own, so a stored 0 has to be raised here or not at all.
+    struct Case
+    {
+        std::string         description;
+        std::vector<double> heights;
+        double              skirt_offset_mm;
+        double              expected_floor_mm;
+    };
+
+    auto c = GENERATE(values<Case>({
+        {"objects taller than the nozzle need the full clearance",     {NOZZLE_HEIGHT_MM * 2, NOZZLE_HEIGHT_MM * 2}, 0., CLEARANCE_MM},
+        {"an object exactly at the nozzle height counts as tall",      {NOZZLE_HEIGHT_MM,     NOZZLE_HEIGHT_MM},     0., CLEARANCE_MM},
+        {"one tall object among short ones is enough",                 {NOZZLE_HEIGHT_MM / 2, NOZZLE_HEIGHT_MM * 2}, 0., CLEARANCE_MM},
+        {"objects the nozzle clears keep only the nozzle-width floor", {NOZZLE_HEIGHT_MM / 2, NOZZLE_HEIGHT_MM / 2}, 0., NOZZLE_FLOOR_MM},
+        {"a wide skirt raises the floor for short objects",            {NOZZLE_HEIGHT_MM / 2, NOZZLE_HEIGHT_MM / 2}, 3., 6.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        ArrangePolygons    items = squares_of_heights(c.heights);
+        DynamicPrintConfig cfg   = bed_config();
+        ArrangeParams      p     = seq_print_params(0);
+        p.object_skirt_offset    = float(c.skirt_offset_mm);
+
+        update_selected_items_inflation(items, &cfg, p);
+
+        CHECK(p.min_obj_distance >= scaled(c.expected_floor_mm));
+        CHECK(p.min_obj_distance <= scaled(c.expected_floor_mm + 0.01));
+        // Half each, so a pair ends up a full min_obj_distance apart.
+        CHECK(items.front().inflation == p.min_obj_distance / 2);
+    }
+}
+
+TEST_CASE("Sequential print keeps an object distance already above the floor", "[Arrange]")
+{
+    const coord_t      stored = scaled(CLEARANCE_MM * 2);
+    ArrangePolygons    items  = squares_of_heights({NOZZLE_HEIGHT_MM * 2, NOZZLE_HEIGHT_MM * 2});
+    DynamicPrintConfig cfg    = bed_config();
+    ArrangeParams      p      = seq_print_params(stored);
+
+    update_selected_items_inflation(items, &cfg, p);
+    CHECK(p.min_obj_distance == stored);
+}
+
+TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
+{
+    ArrangePolygons    items = squares_of_heights({NOZZLE_HEIGHT_MM * 2, NOZZLE_HEIGHT_MM * 2});
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = seq_print_params(0);
+    p.is_seq_print           = false;
+
+    update_selected_items_inflation(items, &cfg, p);
+    CHECK(p.min_obj_distance == 0);
 }

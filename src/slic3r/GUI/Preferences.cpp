@@ -2,12 +2,14 @@
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "WebViewDialog.hpp"
 #include "Plater.hpp"
 #include "GLCanvas3D.hpp" // ORCA: for live preview refresh when toggling "Dim lower layers"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Format/DRC.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -366,7 +368,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
         wxLANGUAGE_VIETNAMESE,
-        wxLANGUAGE_THAI
+        wxLANGUAGE_THAI,
+        wxLANGUAGE_ROMANIAN
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
@@ -507,25 +510,13 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                     }
                 }
 
-
-                // the dialog needs to be destroyed before the call to switch_language()
-                // or sometimes the application crashes into wxDialogBase() destructor
-                // so we put it into an inner scope
-                MessageDialog msg_wingow(nullptr, _L("Switching languages requires the application to restart.\n") + "\n" + _L("Do you want to continue?"),
-                                         L("Language selection"), wxICON_QUESTION | wxOK | wxCANCEL);
-                if (msg_wingow.ShowModal() == wxID_CANCEL) {
+                MessageDialog msg_window(nullptr, _L("Switching languages requires the application to restart.\n") + "\n" + _L("Do you want to continue?"),
+                                         _L("Language selection"), wxICON_QUESTION | wxOK | wxCANCEL);
+                if (msg_window.ShowModal() == wxID_CANCEL) {
                     combobox->SetSelection(m_current_language_selected);
                     return;
                 }
             }
-
-            auto check = [](bool yes_or_no) {
-                // if (yes_or_no)
-                //    return true;
-                int act_btns = ActionButtons::SAVE;
-                return wxGetApp().check_and_keep_current_preset_changes(_L("Switching application language"),
-                                                                        _L("Switching application language while some presets are modified."), act_btns);
-            };
 
             m_current_language_selected = combobox->GetSelection();
             if (m_current_language_selected >= 0 && m_current_language_selected < vlist.size()) {
@@ -1030,11 +1021,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent &e) {
         app_config->set_bool(param, checkbox->GetValue());
         app_config->save();
-
-        // if (param == "staff_pick_switch") {
-        //     bool pbool = app_config->get("staff_pick_switch") == "true";
-        //     wxGetApp().switch_staff_pick(pbool);
-        // }
 
         if (param == "sync_user_preset") {
             bool sync = app_config->get("sync_user_preset") == "true" ? true : false;
@@ -1740,6 +1726,36 @@ void PreferencesDialog::create_items()
     auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
     g_sizer->Add(item_multi_machine);
 
+    auto item_speed_dial = create_item_checkbox(_L("Open the Speed Dial with the Space key"),
+        _L("When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."),
+        "enable_speed_dial");
+    g_sizer->Add(item_speed_dial);
+
+    auto item_speed_dial_recents = create_item_spinctrl(
+        _L("Recent actions"),
+        "",
+        _L("actions"),
+        _L("How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."),
+        SETTING_SPEED_DIAL_RECENT_COUNT,
+        SPEED_DIAL_RECENT_COUNT_MIN,
+        SPEED_DIAL_RECENT_COUNT_MAX);
+    g_sizer->Add(item_speed_dial_recents);
+
+#ifdef SLIC3R_CAD
+    auto item_cad_feature      = create_item_checkbox(_L("CAD feature (experimental)"),
+        _L("With this option enabled, the Design tab is shown, where models can be built and edited "
+           "parametrically. This feature is experimental and still under development."),
+        "enable_cad_feature", _L("(Requires restart)"));
+    g_sizer->Add(item_cad_feature);
+
+    auto item_auto_close_sketch_loops = create_item_checkbox(_L("Auto-close sketch loops"),
+        _L("Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. "
+           "Off: only exactly coincident endpoints join, so a loop with a tiny gap is "
+           "shown as open instead of being closed for you."),
+        "auto_close_sketch_loops");
+    g_sizer->Add(item_auto_close_sketch_loops);
+#endif
+
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it
@@ -1815,6 +1831,21 @@ void PreferencesDialog::create_items()
 
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
+
+#ifdef SLIC3R_CAD
+    // Design-tab only, so it stays out of the way while the CAD feature is switched off.
+    if (wxGetApp().is_enable_cad_feature()) {
+        auto item_connector_face_glyph = create_item_checkbox(_L("Draw mate connectors as a face"),
+            _L("In the Design tab, draw a mate connector as a small face instead of the conventional "
+               "disc with a roll quadrant. A face's orientation is read without being learned. "
+               "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
+        g_sizer->Add(item_connector_face_glyph);
+    }
+
+    // Push the weld preference into the kernel now so toggling it takes effect without
+    // a restart (the sketch tool also re-pushes on activation, see DesignSketchTool::begin).
+    Slic3r::set_sketch_auto_close(wxGetApp().is_auto_close_sketch_loops());
+#endif
 
     std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
     auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
