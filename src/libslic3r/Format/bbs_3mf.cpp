@@ -311,6 +311,10 @@ static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_ATTR = "other_layers_pr
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_NUMS_ATTR = "other_layers_print_sequence_nums";
 static constexpr const char* SPIRAL_VASE_MODE = "spiral_mode";
 static constexpr const char* IMEX_PARALLEL_MODE_ATTR = "imex_parallel_mode";
+// The same attribute before the feature was renamed IMEX. Plate metadata is matched by exact
+// string and written with set_key_value, so it never passes through handle_legacy: without this
+// a project saved in that window loads every plate back on the Primary mode, silently.
+static constexpr const char* IXEX_PARALLEL_MODE_ATTR_LEGACY = "ixex_parallel_mode";
 static constexpr const char* IMEX_HEAD_FILAMENT_MAP_ATTR = "imex_head_filament_map";
 static constexpr const char* FILAMENT_MAP_MODE_ATTR = "filament_map_mode";
 static constexpr const char* FILAMENT_MAP_ATTR = "filament_maps";
@@ -4484,7 +4488,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::istringstream(value) >> std::boolalpha >> spiral_mode;
                 m_curr_plater->config.set_key_value("spiral_mode", new ConfigOptionBool(spiral_mode));
             }
-            else if (key == IMEX_PARALLEL_MODE_ATTR) {
+            else if (key == IMEX_PARALLEL_MODE_ATTR || key == IXEX_PARALLEL_MODE_ATTR_LEGACY) {
                 m_curr_plater->config.set_key_value("imex_parallel_mode", new ConfigOptionString(value));
             }
             else if (key == IMEX_HEAD_FILAMENT_MAP_ATTR) {

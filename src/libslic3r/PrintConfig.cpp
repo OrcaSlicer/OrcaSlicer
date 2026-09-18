@@ -9331,6 +9331,24 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     else if (opt_key == "wall_direction" && value == "auto") {
         value = "ccw";
     }
+    // Orca: the IDEX/IQEX parallel printing keys shipped to testers as ixex_* before the feature
+    // was renamed IMEX, and the two clearance keys were renamed again to say what they measure:
+    // nozzle to carriage edge on the collision side, not the carriage's full width. Without this
+    // an existing printer profile loses every one of these values silently.
+    // is_ixex is the master gate: without it every other key below migrates into a feature that
+    // stays switched off, which is worse than losing them all, because the settings then look
+    // configured. ixex_primary_col/_row are the only era-1 keys with no modern counterpart (the
+    // primary is a role in the mode's tools string now); they were never in an option list, so no
+    // saved file carries them, and the has() check at the end of this function drops them anyway.
+    else if (opt_key == "is_ixex") {
+        opt_key = "is_imex";
+    } else if (opt_key.compare(0, 5, "ixex_") == 0) {
+        opt_key = "imex_" + opt_key.substr(5);
+        if (opt_key == "imex_carriage_width_x")
+            opt_key = "imex_nozzle_clearance_x";
+        else if (opt_key == "imex_carriage_width_y")
+            opt_key = "imex_nozzle_clearance_y";
+    }
 
     // Ignore the following obsolete configuration keys:
     static std::set<std::string> ignore = {

@@ -1298,3 +1298,69 @@ TEST_CASE("min_object_distance yields no floor when an FFF config lacks the opti
         CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
     }
 }
+
+TEST_CASE("handle_legacy migrates every IDEX/IQEX key testers already have", "[Config]") {
+    // Three eras of saved profiles: the feature shipped as iXex (is_ixex + ixex_*), the clearance
+    // pair was renamed to say what it measures, then the whole prefix became imex_. Driven from the
+    // full era-1 key list, because the gap this test was rewritten to catch was a key the earlier
+    // hand-picked version simply did not mention.
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+
+    DynamicPrintConfig era1;
+    era1.set_deserialize("is_ixex", "1", ctxt);
+    era1.set_deserialize("ixex_gantry_count", "2", ctxt);
+    era1.set_deserialize("ixex_tools_per_gantry", "2", ctxt);
+    era1.set_deserialize("ixex_carriage_width_x", "12.5", ctxt);
+    era1.set_deserialize("ixex_carriage_width_y", "7.25", ctxt);
+    era1.set_deserialize("ixex_carriage_margin", "1.5", ctxt);
+    era1.set_deserialize("ixex_tool_layout", "front-right", ctxt);
+    era1.set_deserialize("ixex_viz_theme", "deuteranopia", ctxt);
+    era1.set_deserialize("ixex_parallel_mode", "copy", ctxt);
+    era1.set_deserialize("ixex_mode_names", "\"Duplicate\";\"Mirror\"", ctxt);
+    era1.set_deserialize("ixex_mode_active_tools", "\"0:P,1:C\";\"0:P,1:M\"", ctxt);
+    era1.set_deserialize("ixex_mode_gcodes", "\"M118 copy\";\"M118 mirror\"", ctxt);
+
+    // The gate first: every other value is inert without it, and a populated but disabled config is
+    // worse than an empty one because it looks configured.
+    REQUIRE(era1.option("is_imex") != nullptr);
+    CHECK(era1.opt_bool("is_imex"));
+
+    CHECK(era1.opt_int("imex_gantry_count") == 2);
+    CHECK(era1.opt_int("imex_tools_per_gantry") == 2);
+    CHECK(era1.opt_float("imex_nozzle_clearance_x") == Catch::Approx(12.5));
+    CHECK(era1.opt_float("imex_nozzle_clearance_y") == Catch::Approx(7.25));
+    CHECK(era1.opt_float("imex_carriage_margin") == Catch::Approx(1.5));
+    CHECK(era1.opt_string("imex_parallel_mode") == "copy");
+
+    // Both enums changed type from coString, and a forward-compatible substitution would hand back
+    // a default rather than fail, so assert the value and not merely that the option exists.
+    CHECK(era1.opt_enum<ImexToolLayout>("imex_tool_layout") == ImexToolLayout::FrontRight);
+    CHECK(era1.opt_enum<ImexVizTheme>("imex_viz_theme") == ImexVizTheme::Deuteranopia);
+
+    // The three lists carry escaped, semicolon-separated values - the likeliest place for a silent
+    // change - so check both elements survive in order.
+    CHECK(era1.opt_string("imex_mode_names", 0u) == "Duplicate");
+    CHECK(era1.opt_string("imex_mode_names", 1u) == "Mirror");
+    CHECK(era1.opt_string("imex_mode_active_tools", 0u) == "0:P,1:C");
+    CHECK(era1.opt_string("imex_mode_gcodes", 1u) == "M118 mirror");
+
+    // Era 2: renamed clearance keys, still under the old prefix.
+    DynamicPrintConfig era2;
+    era2.set_deserialize("ixex_nozzle_clearance_x", "3.5", ctxt);
+    CHECK(era2.opt_float("imex_nozzle_clearance_x") == Catch::Approx(3.5));
+
+    // Era 3 (current) is untouched by the branch.
+    DynamicPrintConfig era3;
+    era3.set_deserialize("imex_nozzle_clearance_x", "9.0", ctxt);
+    CHECK(era3.opt_float("imex_nozzle_clearance_x") == Catch::Approx(9.0));
+
+    // The two keys with no modern counterpart are dropped and reported, not mapped onto a key that
+    // does not exist.
+    ConfigSubstitutionContext obsolete_ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+    DynamicPrintConfig        obsolete;
+    obsolete.set_deserialize("ixex_primary_col", "1", obsolete_ctxt);
+    obsolete.set_deserialize("ixex_primary_row", "0", obsolete_ctxt);
+    CHECK(obsolete.option("imex_primary_col") == nullptr);
+    CHECK(obsolete.option("imex_primary_row") == nullptr);
+    CHECK(obsolete_ctxt.unrecogized_keys.size() == 2);
+}
