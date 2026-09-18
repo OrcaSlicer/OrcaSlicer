@@ -505,6 +505,23 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
     if (evt.GetEventType() == wxEVT_CHAR) {
         // Char event
         const auto key = evt.GetUnicodeKey();
+        // THE MEASUREMENT THAT CANNOT LIE. This is the ONLY place in the application where ImGui
+        // is ever handed a character, so an ImGui text field that stays empty while reporting
+        // itself active has exactly two possible causes, and this line separates them: no output
+        // at all means the wxEVT_CHAR never reached the GL canvas (a focus problem, upstream of
+        // ImGui entirely), while output with unicode=0 means the character arrived empty and is
+        // being dropped right here.
+        //
+        // It lives here rather than on the canvas because a probe bound on the canvas CANNOT
+        // answer this: GLCanvas3D::on_char is bound later than any constructor-time probe, wx
+        // runs handlers in reverse bind order, and on_char returns without Skip() whenever this
+        // function returns true — so such a probe stays silent whether or not the key arrived.
+        // A day was lost to reading that silence as evidence.
+        if (std::getenv("ORCA_CAD_UXTRACE")) {
+            fprintf(stderr, "[UX] imgui_char unicode=%d keycode=%d want_text=%d\n",
+                    (int) key, evt.GetKeyCode(), (int) io.WantTextInput);
+            fflush(stderr);
+        }
         if (key != 0) {
             io.AddInputCharacter(key);
         }

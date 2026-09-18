@@ -15,6 +15,8 @@
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
 
+#include <sstream>
+
 using namespace Slic3r;
 
 SCENARIO("Generic config validation performs as expected.", "[Config]") {
@@ -486,6 +488,59 @@ TEST_CASE("save_to_json round-trips plugin capability references as strings", "[
     REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
     CHECK(reason.empty());
     CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
+}
+
+TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    config.set_key_value("filament_type", new ConfigOptionStrings({ "PLA", "PETG" }));
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28\nG1 Z5"));
+
+    ScopedTemporaryFile tmp(".json");
+    config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0");
+    std::string file_contents;
+    {
+        boost::nowide::ifstream ifs(tmp.string());
+        file_contents.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    // The file format: one tab per nesting level and a trailing newline.
+    REQUIRE_FALSE(file_contents.empty());
+    CHECK(file_contents.rfind("{\n\t\"", 0) == 0);
+    CHECK(file_contents.back() == '\n');
+
+    std::ostringstream strict, replaced;
+    config.save_to_json(strict, "test_preset", "User", "1.0.0.0");
+    config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true);
+    CHECK(strict.str() == file_contents);
+    CHECK(replaced.str() == file_contents);
+    CHECK(nlohmann::json::parse(strict.str())["machine_start_gcode"] == "G28\nG1 Z5");
+}
+
+TEST_CASE("save_to_json replaces invalid UTF-8 in a stream only when asked", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    std::ostringstream strict, replaced;
+    CHECK_THROWS_AS(config.save_to_json(strict, "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+    REQUIRE_NOTHROW(config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true));
+    CHECK(nlohmann::json::parse(replaced.str())["machine_start_gcode"] == "G28 ; \xEF\xBF\xBD");
+}
+
+TEST_CASE("save_to_json leaves an existing file untouched when the config cannot be serialized", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << "previous";
+    }
+    CHECK_THROWS_AS(config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+
+    boost::nowide::ifstream ifs(tmp.string());
+    const std::string contents((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    CHECK(contents == "previous");
 }
 
 TEST_CASE("plugin capability references survive string-map serialization", "[Config][plugins]") {

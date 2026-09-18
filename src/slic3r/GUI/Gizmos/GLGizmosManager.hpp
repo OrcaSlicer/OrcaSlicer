@@ -90,6 +90,12 @@ public:
         Assembly,
         Simplify,
         BrimEars,
+#ifdef SLIC3R_CAD
+        // Both need the CAD kernel (GeometryEngine); keep them last so that with
+        // SLIC3R_CAD off the enum matches upstream's numbering exactly.
+        Primitive,
+        Sketch,
+#endif
         //SlaSupports,
         // BBS
         //FaceRecognition,

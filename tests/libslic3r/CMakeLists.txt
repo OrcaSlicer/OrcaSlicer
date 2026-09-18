@@ -37,18 +37,31 @@ add_executable(${_TEST_NAME}_tests
     test_triangle_selector.cpp
     test_meshboolean.cpp
     test_marchingsquares.cpp
+    test_lay_on_face.cpp
     test_model.cpp
     test_utils.cpp
     test_timeutils.cpp
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
     test_wipe_tower.cpp
+    test_wipe_path.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
     ../libnest2d/printer_parts.cpp
     )
+
+if (SLIC3R_CAD)
+    target_sources(${_TEST_NAME}_tests PRIVATE
+        test_caddocument.cpp
+        test_sketchconstraints.cpp
+        test_sketchedit.cpp
+        test_sketchprofile.cpp
+        test_sketchimport.cpp
+        test_sketchinference.cpp
+        test_slvs_constraints.cpp)
+endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)

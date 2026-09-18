@@ -1053,7 +1053,13 @@ void PartPlate::render_grid(bool bottom) {
 
 void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
 {
-	if (m_print && m_print->config().print_sequence == PrintSequence::ByObject && mode != HEIGHT_LIMIT_NONE)
+	// Orca: a prime tower compacted by "No sparse layers" drags the nozzle back down to the plate on
+	// every toolchange, so the rod and the lid limit how tall a neighbouring object may be exactly as
+	// they do in sequential printing. The reference lines are just as useful there.
+	const bool relevant_for_print_mode = m_print && (m_print->config().print_sequence == PrintSequence::ByObject ||
+	                                                 (m_print->config().print_sequence == PrintSequence::ByLayer &&
+	                                                  wipe_tower_sparse_layers_skipped(m_print->config()) && m_print->has_wipe_tower()));
+	if (relevant_for_print_mode && mode != HEIGHT_LIMIT_NONE)
 	{
 		// draw lower limit
 	    // ORCA: OpenGL Core Profile
@@ -3491,7 +3497,7 @@ bool PartPlate::intersects(const BoundingBoxf3& bb) const
 	return print_volume.intersects(bb);
 }
 
-void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id, bool render_cali, bool show_grid)
+void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id, bool render_cali, bool show_grid, bool hide_chrome)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
 
@@ -3542,16 +3548,18 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
     if (wxGetApp().show_plate_gridlines() && show_grid)
         render_grid(bottom);
 
-    if (!bottom && m_selected && !force_background_color) {
+    if (!hide_chrome && !bottom && m_selected && !force_background_color) {
         if (m_partplate_list)
             render_logo(bottom, m_partplate_list->render_cali_logo && render_cali);
         else
             render_logo(bottom);
     }
 
-    render_icons(bottom, only_body, hover_id);
-    if (!force_background_color) {
-        render_only_numbers(bottom);
+    if (!hide_chrome) {
+        render_icons(bottom, only_body, hover_id);
+        if (!force_background_color) {
+            render_only_numbers(bottom);
+        }
     }
 
     glsafe(::glDisable(GL_DEPTH_TEST));
@@ -5946,7 +5954,7 @@ void PartPlateList::postprocess_arrange_polygon(arrangement::ArrangePolygon& arr
 
 /*rendering related functions*/
 //render
-void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
+void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid, bool hide_chrome)
 {
 	const std::lock_guard<std::mutex> local_lock(m_plates_mutex);
 	std::vector<PartPlate*>::iterator it = m_plate_list.begin();
@@ -5971,15 +5979,15 @@ void PartPlateList::render(const Transform3d& view_matrix, const Transform3d& pr
 		if (current_index == m_current_plate) {
 			PartPlate::HeightLimitMode height_mode = (only_current)?PartPlate::HEIGHT_LIMIT_NONE:m_height_limit_mode;
 			if (plate_hover_index == current_index)
-                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, height_mode, plate_hover_action, render_cali, show_grid);
+                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, height_mode, plate_hover_action, render_cali, show_grid, hide_chrome);
 			else
-                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, height_mode, -1, render_cali, show_grid);
+                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, height_mode, -1, render_cali, show_grid, hide_chrome);
 		}
 		else {
 			if (plate_hover_index == current_index)
-				(*it)->render(view_matrix, projection_matrix, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, plate_hover_action, render_cali, show_grid);
+				(*it)->render(view_matrix, projection_matrix, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, plate_hover_action, render_cali, show_grid, hide_chrome);
 			else
-                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, -1, render_cali, show_grid);
+                (*it)->render(view_matrix, projection_matrix, bottom, only_body, false, PartPlate::HEIGHT_LIMIT_NONE, -1, render_cali, show_grid, hide_chrome);
 		}
 	}
 }

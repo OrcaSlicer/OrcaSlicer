@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -2431,13 +2431,6 @@ msgstr "Доступно обновление. Проверьте меню па�
 msgid "%s has been removed."
 msgstr "%s был удалён."
 
-
-msgid "Select the language"
-msgstr "Выбор языка"
-
-msgid "Language"
-msgstr "Язык"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "Не удалось переключить язык на %s."
@@ -3696,11 +3689,15 @@ msgstr "Втянуть текущий материал на Filament Track Switc
 msgid "Switch track at Filament Track Switch"
 msgstr "Переключить подачу на Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Температура не должна превышать "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Температура не должна превышать %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Температура не должна быть ниже "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Температура не должна быть ниже %d"
 
 msgid "Type to filter..."
 msgstr "Поиск..."
@@ -4577,6 +4574,15 @@ msgstr ""
 "Не удалось скопировать временный G-код в целевое расположение. Возможно, накопитель защищён от записи?\n"
 "Сообщение об ошибке: %1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"Не удалось скопировать временный G-код в выходной G-код.\n"
+"Сообщение об ошибке: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Не удалось скопировать временный G-код в целевое расположение. Возможно, проблема с устройством хранения, попробуйте выполнить экспорт снова или использовать другое устройство. Повреждённый выходной файл G-кода находится в %1%.tmp."
@@ -5334,10 +5340,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Значение %s выходит за пределы допустимого диапазона. Допустимый диапазон - от %d до %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"Имелось ввиду %s%% или %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "Имелось ввиду %s%% или %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5362,17 +5369,14 @@ msgstr "Недопустимый формат. Ожидаемый векторн
 msgid "System agents"
 msgstr "Системные агенты"
 
-msgid "No plugin selected"
-msgstr "Плагины не выбраны"
-
 msgid "Add plugin"
 msgstr "Добавить плагин"
 
-msgid "Select plugin"
-msgstr "Выбрать плагин"
-
 msgid "Remove plugin"
 msgstr "Удалить плагин"
+
+msgid "No plugin selected"
+msgstr "Плагины не выбраны"
 
 msgid "Configure"
 msgstr "Настроить"
@@ -5656,14 +5660,20 @@ msgstr "Оптимизировать"
 msgid "Regroup filament"
 msgstr "Изменить"
 
-msgid "up to"
-msgstr "до"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "до %1% мм"
 
-msgid "above"
-msgstr "после"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "выше %1% мм"
 
-msgid "from"
-msgstr "с"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "от %1% до %2% мм"
 
 msgid "Usage"
 msgstr "Расход"
@@ -6025,7 +6035,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "В G-коде на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
@@ -6372,11 +6382,13 @@ msgstr "Сохранить проект как"
 msgid "Save current project as"
 msgstr "Сохранить текущий проект как"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "Опубликовать 3MF"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "Экспорт файла 3MF со встроенными выбранными настройками"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Импорт 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7662,6 +7674,14 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "Снизу"
 
+# AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "Эта настройка не указывает тип возможности плагина."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "Эта настройка указывает нераспознанный тип возможности плагина: "
+
 msgid "Plugin Selection"
 msgstr "Выбор плагинов"
 
@@ -8212,11 +8232,13 @@ msgstr "Во избежание повреждения принтера убед
 msgid "Customized Preset"
 msgstr "Пользовательский профиль"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "Некоторые опубликованные настройки не удалось применить:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "Некоторые слоты материалов были изменены:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Имена компонентов внутри файла STEP не в формате UTF-8."
@@ -8630,13 +8652,17 @@ msgstr "Сохранить нарезанный файл как:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Файл %s отправлен в память принтера и может быть просмотрен на нём."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "Опубликовать файл 3MF как:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"Не удалось экспортировать опубликованный файл 3MF.\n"
+"Проверьте, доступна ли папка в сети и не открыт ли файл в других программах."
 
 msgid "Publish"
 msgstr "Опубликовать"
@@ -8846,7 +8872,6 @@ msgstr "Хотите продолжить?"
 msgid "Language selection"
 msgstr "Выбор языка"
 
-
 msgid "Asia-Pacific"
 msgstr "Азиатско-Тихоокеанский"
 
@@ -8951,6 +8976,9 @@ msgstr "Расположение: "
 
 msgid "General"
 msgstr "Общие"
+
+msgid "Language"
+msgstr "Язык"
 
 msgid "Metric"
 msgstr "Метрическая СИ"
@@ -9392,9 +9420,6 @@ msgstr "Затемнять слои, находящиеся ниже текущ�
 msgid "Dimmed layer brightness"
 msgstr "Яркость затемнённых слоёв"
 
-msgid "%"
-msgstr "%"
-
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
 "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
@@ -9800,63 +9825,80 @@ msgstr "Отправка данных"
 msgid "Jump to webpage"
 msgstr "Перейти на страницу"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "Материал"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "Смешанный материал"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "Некоторые смешанные материалы зависят от материалов, которые не будут опубликованы:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "Материал %d (смешанный)"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% требует %2%, но он не включён."
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% требует %2%, но его материал не будет опубликован."
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "Чтобы опубликовать смешанный материал, включите каждый используемый им материал и выберите «Полная публикация» либо выполните требование «Тип»."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "Всё равно опубликовать"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "Опубликовать 3MF..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "Выберите, какие настройки будут опубликованы в файле 3MF"
 
+# AI Translated
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "Wiki по публикации 3MF"
 
+# AI Translated
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "Видеоруководство по публикации 3MF"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "Смешанный материал — публикуется целиком, когда выше выбрано «Включить»"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "Опубликовать этот смешанный материал и включить + полностью опубликовать его составляющие материалы"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "Опубликовать этот слот материала в файле 3MF"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "Полная публикация"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "Встроить материал этого слота целиком в файл 3MF"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "Фильтровать невыбранные"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9874,6 +9916,10 @@ msgstr "Копирует в этот профиль все значения, у�
 
 msgid "Detach from parent"
 msgstr "Сделать независимым"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "Сохранить без родителя"
 
 # AI Translated
 msgid "Unique preset"
@@ -10551,8 +10597,16 @@ msgstr "Для обнаружения налипаний на сопле тре�
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Включение «Точной высоты по Z» совместно с черновой башней может привести к ошибкам нарезки. Продолжить?"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "Для плавного таймлапса требуется черновая башня на каждом слое, что несовместимо с параметром «Без разреженных слоёв». Параметр «Без разреженных слоёв» отключён."
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Для сглаженного таймлапса требуется черновая башня, без неё на модели могут возникнуть дефекты. Включить черновую башню?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "Параметр «Без разреженных слоёв» несовместим с плавным таймлапсом, которому требуется черновая башня на каждом слое. Таймлапс переключён в обычный режим."
 
 msgid "Still print by object?"
 msgstr "Продолжить печать по очереди?"
@@ -10958,9 +11012,6 @@ msgstr "Совместимые настройки"
 msgid "Printable space"
 msgstr "Область печати"
 
-msgid "Printer Agent"
-msgstr "Сетевой агент"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Реализация сетевого агента для обмена информацией с принтером. Доступные реализации определяются при запуске."
 
@@ -11362,12 +11413,6 @@ msgstr "Количество экструдеров"
 # Какая-то древняя строка. Ранее – "Характеристики принтера", сейчас используется ещё и в конфигурации плагинов в профиле материала (вкладка "Расширенные")
 msgid "Capabilities"
 msgstr "Возможности"
-
-msgid "Left: "
-msgstr "Левый: "
-
-msgid "Right: "
-msgstr "Правый: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "Показать все профили (включая несовместимые)"
@@ -12203,14 +12248,21 @@ msgstr "Восстановление отменено"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Не удалось скопировать файл %1% в %2%: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "Загрузка новых профилей производителей: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Пакет профилей: %1% обновлён до %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "Не удалось загрузить профили производителей: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Перед обновлением профилей необходимо проверить несохранённые изменения."
-
-msgid "Configuration package: "
-msgstr "Пакет профилей: "
-
-msgid " updated to "
-msgstr " обновлён до "
 
 msgid "Open G-code file:"
 msgstr "Выберите G-код файл:"
@@ -12271,12 +12323,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input shaping поддерживается только в Klipper, RepRapFirmware и Marlin 2."
 
-msgid "Grouping error: "
-msgstr "Ошибка группировки: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Ошибка группировки: %1% нельзя разместить в левом сопле"
 
-# filament_type + <перевод> + extruder_name
-msgid " can not be placed in the "
-msgstr " нельзя заправить в "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Ошибка группировки: %1% нельзя разместить в правом сопле"
 
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Ошибка группировки в ручном режиме. Проверьте количество сопел или измените группировку."
@@ -12388,6 +12443,10 @@ msgstr "%1% находится слишком близко к другим, чт
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "Модель «%1%» слишком высокая, что приведёт к столкновению механики."
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "Взаимное расположение модели и черновой башни не отвечает требованиям функции «Без разреженных слоёв». Измените их взаимное расположение, уменьшите высоту модели или отключите параметр «Без разреженных слоёв»."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " находится слишком близко к области исключения, что может привести к столкновению при печати."
@@ -12739,6 +12798,9 @@ msgstr "Сжатие G-кода перед отправкой"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Рекомендуется для принтеров, поддерживающих печать из архивов 3MF. Файлы печати будут отправляться с расширением \".gcode.3mf\"."
+
+msgid "Printer Agent"
+msgstr "Сетевой агент"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Реализация сетевого агента для обмена информацией с принтером."
@@ -13846,6 +13908,10 @@ msgstr "Ровный зигзаг"
 msgid "Concentric"
 msgstr "Эквидистанты"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "Спиральный отступ"
+
 msgid "Hilbert Curve"
 msgstr "Кривая Гильберта"
 
@@ -13939,28 +14005,28 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Направление печати"
 
+# AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Направление печати спирали/эквидистант на верхних поверхностях. Позволяет управляемо распределять избыток материала.\n"
-"• По умолчанию: использовать кратчайший путь.\n"
-"• Наружу: от центра шаблона к краю модели.\n"
-"• Внутрь: от края модели к центру шаблона."
+"Направление заполнения верхних поверхностей при использовании шаблона, идущего от центра (Эквидистанты, Спиральный отступ, Спираль Архимеда, Спиральная октаграмма).\n"
+"Наружу начинает от центра поверхности, поэтому излишек материала вытесняется к краю, где он менее заметен. Внутрь начинает от края и заканчивается тесными изгибами в центре.\n"
+"По умолчанию используется порядок по кратчайшему пути, который может идти в любом направлении."
 
 msgid "Bottom surface fill order"
 msgstr "Направление печати"
 
+# AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Направление печати спирали/эквидистант на нижних поверхностях. Позволяет управляемо распределять избыток материала.\n"
-"• По умолчанию: использовать кратчайший путь.\n"
-"• Наружу: от центра шаблона к краю модели.\n"
-"• Внутрь: от края модели к центру шаблона."
+"Направление заполнения нижних поверхностей при использовании шаблона, идущего от центра (Эквидистанты, Спиральный отступ, Спираль Архимеда, Спиральная октаграмма).\n"
+"Внутрь начинает каждую поверхность с более широких внешних изгибов, что улучшает адгезию первого слоя на столах, к которым тесные изгибы в центре могут не прилипать. Наружу начинает от центра, вытесняя излишек материала к краю.\n"
+"По умолчанию используется порядок по кратчайшему пути, который может идти в любом направлении."
 
 msgid "Internal solid infill pattern"
 msgstr "Шаблон сплошного заполнения"
@@ -14077,6 +14143,14 @@ msgstr "Против часовой стрелки"
 
 msgid "Clockwise"
 msgstr "По часовой стрелке"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "Расстояние до штанги"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "Расстояние по горизонтали от кончика сопла до дальнего края штанги. Используется для предотвращения столкновений при печати моделей по очереди."
 
 msgid "Height to rod"
 msgstr "Высота до вала"
@@ -16454,6 +16528,20 @@ msgstr "Обнаруживать нависающие периметры"
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Использовать разную скорость печати в зависимости от выноса линии относительно её опоры. Для нависаний без опоры используется скорость печати мостов."
 
+# AI Translated
+msgid "Print unsupported walls last"
+msgstr "Печатать неподдерживаемые периметры последними"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"Контуры периметров, полностью висящие в воздухе, печатаются только тогда, когда их есть чему удержать:\n"
+"они выдавливаются после остальных периметров своего острова, начиная с самого внутреннего, независимо от порядка периметров.\n"
+"Контур, который могут закрепить только мосты этого слоя, ждёт, пока эти мосты будут напечатаны, а контур, идущий вдоль опирающегося периметра, сохраняет своё место перед заполнением, которому он нужен как якорь."
+
 # В секции "Материал для линий"
 msgid "Outer walls"
 msgstr "Внешние периметры"
@@ -16964,6 +17052,39 @@ msgstr ""
 "\n"
 "Примечание: при отключении настройки зазор не будет заполняться остатками материала, что также может уменьшить заметность шва в сочетании с быстрым переходом к внутренним периметрам."
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "Очистка внутрь"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"Применяется только к внешним периметрам, включая контуры отверстий. Во время очистки перемещает горячее сопло к уже напечатанным внутренним периметрам, чтобы уменьшить повторный нагрев только что напечатанного пластика и следы шва.\n"
+"\n"
+"Особенно полезно при высоте слоя менее 0,1 мм, где следы очистки заметнее.\n"
+"\n"
+"Использует обычную очистку, если рядом нет уже напечатанного внутреннего периметра (области с одним периметром или порядок периметров «Снаружи внутрь») либо если не удаётся найти опирающийся путь внутрь, например в тесных углах или разрывах шва."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "Расстояние очистки внутрь"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"Расстояние, на которое путь очистки смещается от внешнего периметра, задаётся в миллиметрах или в процентах от фактической ширины линии внешнего периметра.\n"
+"\n"
+"Например, 50% смещает путь на половину ширины внешнего периметра. Фактическое смещение ограничено как реальной шириной внешнего периметра, так и доступным промежутком до соседнего периметра, поэтому значения выше 100% или эквивалентное абсолютное расстояние не дают дополнительного эффекта. Задайте 0, чтобы отключить смещение."
+
 # Подворот начала линии на шве, упреждающая подача перед внешним периметром,
 # заглубление подачи ..., смещённая подача
 msgid "Wipe before external loop"
@@ -17255,9 +17376,9 @@ msgstr "Забирает новый инструмент, не дожидаяс�
 msgid "No sparse layers (beta)"
 msgstr "Без разреженных слоёв (beta)"
 
-# Requires refactoring
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Если включено, черновая башня не будет печататься на слоях, где не происходит смена материала/инструмента. На слоях, где происходит смена материала, экструдер будет опускаться вниз до верхней части черновой башни, чтобы напечатать её. Слайсер не проверяет столкновения при перемещении, и пользователь сам несет ответственность за правильную настройку всех соответствующих параметров."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "Если включено, черновая башня не будет печататься на слоях без смены инструмента. На слоях со сменой инструмента экструдер опустится вниз, чтобы напечатать черновую башню, поэтому башня оказывается ниже модели, и печатающей голове приходится тянуться к ней вниз. Компоновки, при которых это привело бы к столкновению с уже напечатанной моделью, отклоняются. Не действует при плавном таймлапсе и при обнаружении налипаний, которым нужна башня на каждом слое."
 
 msgid "Prime all printing extruders"
 msgstr "Подготовка всех печатающих экструдеров"
@@ -17282,6 +17403,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Цикличный"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "Циклический порядок"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"Пользовательская последовательность материалов, используемая циклическим порядком смены инструмента, в виде номеров материалов через запятую (например, «3,2,1,4»).\n"
+"Каждый слой печатает свои материалы в этой последовательности; не указанные материалы печатаются последними, по возрастанию.\n"
+"Оставьте пустым, чтобы перебирать материалы по возрастанию."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "Применять циклический порядок к первому слою"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"Применяет циклический порядок смены инструмента и к первому слою.\n"
+"По умолчанию отключено, поскольку первый слой вместо этого упорядочивается для наилучшей адгезии к столу: материалы, которыми печатаются мелкие хрупкие элементы первого слоя, печатаются последними, поэтому последующие смены инструмента и перемещения реже отрывают эти слабо закреплённые части. Этот порядок первого слоя учитывает также заданную пользователем последовательность материалов для первого слоя, если она указана. Преимущество циклического порядка (дополнительные смены инструмента дают каждому слою больше времени на остывание) к первому слою не относится, так как он печатается медленно и горячим ради адгезии.\n"
+"Включайте это, только если вам нужна в точности одна и та же последовательность инструментов на каждом слое, включая первый, ценой такой оптимизации адгезии."
+
 msgid "Slice gap closing radius"
 msgstr "Радиус закрытия зазоров полигональной сетки"
 
@@ -17291,9 +17440,6 @@ msgstr "Часто в импортируемых в программу моде�
 
 msgid "Slicing Mode"
 msgstr "Режим нарезки"
-
-msgid "Other"
-msgstr "Прочее"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr ""
@@ -18398,6 +18544,14 @@ msgstr "Без проверки"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Не запускать никакие проверки валидности, такие как проверка на конфликт путей в G-коде."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "Строгий режим"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "Завершает работу с ненулевым кодом, если при нарезке возникает некритическое предупреждение, которое иначе только записывается в журнал, например модель, которой нужны поддержки, когда поддержки отключены. Используйте это в CI или скриптовых конвейерах, которые никогда не должны выдавать незаметно испорченную нарезку. Каждое такое предупреждение также перечисляется с устойчивым классом в массиве `warnings` файла result.json, который создаётся только в Linux. Нельзя сочетать с --no-check, который пропускает проверку поддержек."
+
 msgid "Normative check"
 msgstr "Нормативная проверка"
 
@@ -18412,12 +18566,29 @@ msgstr "Информация о модели"
 msgid "This outputs the model’s information."
 msgstr "Вывод информации о модели."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "Проверить полисетку (JSON в stdout)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "Выводит в stdout сводку JSON по каждой загруженной модели и завершает работу: её ограничивающие параллелепипеды и грани выпуклой оболочки, на которые её можно положить, с их нормалями, площадями и центрами. Именно из этих граней выбирают параметры --ground-*. Машиночитаемая альтернатива --info."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "Проверить покраску (JSON в stdout)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "Выводит структурированную сводку JSON по каждому окрашенному слою (поддержки, шов, цвет MMU, нечёткая оболочка), уже сохранённому в загруженной модели, — количество граней, площадь поверхности и ограничивающий параллелепипед в координатах полисетки для каждого состояния — и завершает работу. Машиночитаемая альтернатива открытию инструментов покраски в интерфейсе."
+
 # ???
 msgid "Export Settings"
 msgstr "Экспорт настроек"
 
-msgid "This exports settings to a file."
-msgstr "Экспорт настроек в файл."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "Экспортирует настройки в файл. Используйте -, чтобы записать их в stdout."
 
 # командная строка? нужен ли пеевод?
 msgid "Send progress to pipe"
@@ -18476,6 +18647,30 @@ msgstr "Поворот вокруг оси Y"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Угол поворота вокруг оси Y в градусах."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "Положить на наибольшую грань"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Кладёт каждую модель на наибольшую грань её выпуклой оболочки и опускает на стол. Из одинаковых по площади граней сохраняется та, что уже обращена вниз. Модели без достаточно большой грани для опоры остаются без изменений. Преобразования выполняются в порядке командной строки, поэтому повороты, заданные до этого параметра, учитываются. --orient 1 выполняется после всех преобразований и заменяет ориентацию."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "Положить на грань по нормали"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Кладёт каждую модель на ту грань выпуклой оболочки, внешняя нормаль которой ближе всего к направлению NX,NY,NZ, и опускает её на стол. Направление задаётся в координатах модели, которые включают повороты, указанные до этого параметра, и совпадают с осями стола, если входной файл не поворачивает модель. Например, 1,0,0 ставит модель на сторону +X. --orient 1 выполняется после всех преобразований и заменяет ориентацию."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "Положить на грань в точке"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Кладёт каждую модель на ту грань выпуклой оболочки, которая содержит точку X,Y,Z, и опускает её на стол. Точка задаётся в координатах модели, которые включают повороты, указанные до этого параметра; --inspect-mesh выводит центры граней именно в них. Модели без такой грани остаются без изменений, а запуск завершается ошибкой, если такой грани нет ни у одной модели. --orient 1 выполняется после всех преобразований и заменяет ориентацию."
 
 msgid "Scale the model by a float factor."
 msgstr "Масштабировать модель с помощью коэффициента."
@@ -21611,14 +21806,17 @@ msgstr "Это действие необратимо. Продолжить?"
 msgid "Skipping objects."
 msgstr "Исключение объектов."
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "Доля материала"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "Высота модели"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "Доля"
 
 msgid "Select Filament"
 msgstr "Выбрать материал"
@@ -21868,11 +22066,15 @@ msgstr "Сушка — нагрев"
 msgid "Drying-Dehumidifying"
 msgstr "Сушка — вывод влаги"
 
-msgid " maximum drying temperature is "
-msgstr " максимальная температура сушки — "
+# AI Translated
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Максимальная температура сушки для %s — %d°C."
 
-msgid " minimum drying temperature is "
-msgstr " минимальная температура сушки — "
+# AI Translated
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Минимальная температура сушки для %s — %d°C."
 
 msgid "This filament may not be completely dried."
 msgstr "Сушка этого материала может не быть эффективной."
@@ -22296,6 +22498,94 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid "Other"
+#~ msgstr "Прочее"
+
+#~ msgid "Left: "
+#~ msgstr "Левый: "
+
+#~ msgid "Right: "
+#~ msgstr "Правый: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Температура не должна превышать "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Температура не должна быть ниже "
+
+#~ msgid "up to"
+#~ msgstr "до"
+
+#~ msgid "above"
+#~ msgstr "после"
+
+#~ msgid "from"
+#~ msgstr "с"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Пакет профилей: "
+
+#~ msgid " updated to "
+#~ msgstr " обновлён до "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Ошибка группировки: "
+
+# filament_type + <перевод> + extruder_name
+#~ msgid " can not be placed in the "
+#~ msgstr " нельзя заправить в "
+
+#~ msgid " maximum drying temperature is "
+#~ msgstr " максимальная температура сушки — "
+
+#~ msgid " minimum drying temperature is "
+#~ msgstr " минимальная температура сушки — "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "требует"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "не включён"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "материал не опубликован"
+
+#~ msgid "Select the language"
+#~ msgstr "Выбор языка"
+
+#~ msgid "Select plugin"
+#~ msgstr "Выбрать плагин"
+
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Направление печати спирали/эквидистант на верхних поверхностях. Позволяет управляемо распределять избыток материала.\n"
+#~ "• По умолчанию: использовать кратчайший путь.\n"
+#~ "• Наружу: от центра шаблона к краю модели.\n"
+#~ "• Внутрь: от края модели к центру шаблона."
+
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Направление печати спирали/эквидистант на нижних поверхностях. Позволяет управляемо распределять избыток материала.\n"
+#~ "• По умолчанию: использовать кратчайший путь.\n"
+#~ "• Наружу: от центра шаблона к краю модели.\n"
+#~ "• Внутрь: от края модели к центру шаблона."
+
+# Requires refactoring
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Если включено, черновая башня не будет печататься на слоях, где не происходит смена материала/инструмента. На слоях, где происходит смена материала, экструдер будет опускаться вниз до верхней части черновой башни, чтобы напечатать её. Слайсер не проверяет столкновения при перемещении, и пользователь сам несет ответственность за правильную настройку всех соответствующих параметров."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Экспорт настроек в файл."
 
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Для нативного отображения трансляции в Wayland требуется gtksink (плагин для GStreamer). Установите необходимый пакет плагинов и перезапустите OrcaSlicer."

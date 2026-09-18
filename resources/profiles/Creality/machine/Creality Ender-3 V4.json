@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_Ender_3_V4",
-	"default_materials": "Creality Generic ABS @Ender-3 V4-all;Creality Generic ASA @Ender-3 V4-all;Creality Generic PETG @Ender-3 V4-all;Creality Generic PLA @Ender-3 V4-all;Creality Generic PLA Matte @Ender-3 V4-all;Creality Generic PLA Silk @Ender-3 V4-all;Creality Generic TPU @Ender-3 V4-all"
+	"default_materials": "Generic ABS @Ender-3 V4-all;Generic ASA @System;Generic PETG @Ender-3 V4-all;Generic PLA @Ender-3 V4-all;Generic PLA Matte @System;Generic PLA-Silk @Ender-3 V4-all;Generic TPU @Ender-3 V4-all"
 }

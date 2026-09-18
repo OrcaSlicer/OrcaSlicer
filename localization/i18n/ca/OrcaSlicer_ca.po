@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2522,13 +2522,6 @@ msgstr "Hi ha una actualització disponible. Obriu el quadre de diàleg del paqu
 msgid "%s has been removed."
 msgstr "%s s'ha eliminat."
 
-
-msgid "Select the language"
-msgstr "Seleccioneu l'idioma"
-
-msgid "Language"
-msgstr "Idioma"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -3782,11 +3775,15 @@ msgstr "Retirar el filament actual al Filament Track Switch"
 msgid "Switch track at Filament Track Switch"
 msgstr "Canviar de via al Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "La temperatura màxima no pot superar "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "La temperatura màxima no pot superar %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "La temperatura mínima no hauria de ser inferior a "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "La temperatura mínima no hauria de ser inferior a %d"
 
 # AI Translated
 msgid "Type to filter..."
@@ -4687,6 +4684,15 @@ msgstr ""
 "Error en copiar el codi-G temporal al codi-G de sortida. Potser la targeta SD està bloquejada contra escriptura?\n"
 "Missatge d'error: %1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"Ha fallat la còpia del codi-G temporal al codi-G de sortida.\n"
+"Missatge d'error: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Error en copiar el codi-G temporal al codi-G de sortida. Hi pot haver un problema amb el dispositiu de destinació, intenteu exportar novament o utilitzeu un dispositiu diferent. El codi-G de sortida malmès és a %1%.tmp."
@@ -5428,10 +5434,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "El valor %s està fora de rang. El rang vàlid és de %d a %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"És %s%% or %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "És %s%% or %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5458,20 +5465,16 @@ msgid "System agents"
 msgstr "Agents del sistema"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Cap connector seleccionat"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Afegir connector"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Seleccionar connector"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Eliminar connector"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Cap connector seleccionat"
 
 # AI Translated
 msgid "Configure"
@@ -5731,14 +5734,20 @@ msgstr "Estableix a l'òptim"
 msgid "Regroup filament"
 msgstr "Reagrupa filaments"
 
-msgid "up to"
-msgstr "fins a"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "fins a %1% mm"
 
-msgid "above"
-msgstr "sobre"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "per sobre de %1% mm"
 
-msgid "from"
-msgstr "des de"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "de %1% a %2% mm"
 
 msgid "Usage"
 msgstr "Ús"
@@ -6101,7 +6110,7 @@ msgstr "Volum:"
 msgid "Size:"
 msgstr "Mida:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -6415,11 +6424,13 @@ msgstr "Desa el projecte com a"
 msgid "Save current project as"
 msgstr "Desar el projecte actual com"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "Publicar 3MF"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "Exportar un fitxer 3MF amb la configuració seleccionada incrustada"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importar 3MF STL/STEP/SVG/OBJ/AMF"
@@ -7705,6 +7716,14 @@ msgid "Bottom"
 msgstr "Inferior"
 
 # AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "Aquesta opció no especifica cap tipus de capacitat del connector."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "Aquesta opció especifica un tipus de capacitat del connector no reconegut: "
+
+# AI Translated
 msgid "Plugin Selection"
 msgstr "Selecció de connectors"
 
@@ -8275,11 +8294,13 @@ msgstr "Confirmeu que els Codis-G d'aquests perfils són segurs per evitar danys
 msgid "Customized Preset"
 msgstr "Perfil personalitzat"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "No s'han pogut aplicar algunes opcions publicades:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "S'han canviat algunes ranures de filament:"
 
 # AI Translated
 msgid "Component name(s) inside step file not in UTF-8 format!"
@@ -8693,13 +8714,17 @@ msgstr "Desa el fitxer Laminat com a:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "El fitxer %s s'ha enviat a l'emmagatzematge de la impressora i es pot visualitzar a la impressora."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "Publicar el fitxer 3MF com a:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"No s'ha pogut exportar el fitxer 3MF publicat.\n"
+"Comproveu si la carpeta existeix en línia o si altres programes tenen el fitxer obert."
 
 msgid "Publish"
 msgstr "Publicar"
@@ -8918,7 +8943,6 @@ msgstr "Voleu continuar?"
 msgid "Language selection"
 msgstr "Selecció d'idiomes"
 
-
 msgid "Asia-Pacific"
 msgstr "Àsia-Pacífic"
 
@@ -9023,6 +9047,9 @@ msgstr "Ruta de la Instància Actual: "
 # AI Translated
 msgid "General"
 msgstr "General"
+
+msgid "Language"
+msgstr "Idioma"
 
 msgid "Metric"
 msgstr "Mètric"
@@ -9489,9 +9516,6 @@ msgstr "En desplaçar el control lliscant de capes a la previsualització lamina
 msgid "Dimmed layer brightness"
 msgstr "Brillantor de les capes enfosquides"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -9910,63 +9934,80 @@ msgstr "Carregant dades"
 msgid "Jump to webpage"
 msgstr "Anar a la pàgina web"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "Material"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "Filament mixt"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "Alguns filaments mixtos depenen de filaments que no es publicaran:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "Filament %d (mixt)"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% necessita %2%, que no està activat."
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% necessita %2%, el material del qual no es publicarà."
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "Per publicar un filament mixt, activeu tots els filaments que fa servir i trieu Publicació completa o compliu el seu requisit de Tipus."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "Publicar igualment"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "Publicar 3MF..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
-msgstr ""
+msgstr "Seleccioneu quines opcions es publicaran al fitxer 3MF"
 
+# AI Translated
 msgid "Publish 3MF Wiki"
-msgstr ""
+msgstr "Wiki de Publicar 3MF"
 
+# AI Translated
 msgid "Publish 3MF Video Guide"
-msgstr ""
+msgstr "Guia en vídeo de Publicar 3MF"
 
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "Filament mixt - es publica com un conjunt quan se selecciona \"Activar\" a dalt"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "Publicar aquest filament mixt i activar + publicar completament els seus filaments components"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "Publicar aquesta ranura de filament al fitxer 3MF"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "Publicació completa"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "Incrustar tot el filament d'aquesta ranura al fitxer 3MF"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "Filtrar els no seleccionats"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9984,6 +10025,10 @@ msgstr "Copia en aquest perfil tots els valors heretats del perfil pare i elimin
 
 msgid "Detach from parent"
 msgstr "Desvincula del pare"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "Desar sense pare"
 
 # AI Translated
 msgid "Unique preset"
@@ -10692,8 +10737,16 @@ msgstr "Es necessita una torre de purga per a la detecció d'acumulació. Pot ha
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Activar tant l'alçada Z precisa com la torre de purga pot causar errors de tall. Voleu activar l'alçada Z precisa igualment?"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "El timelapse suau necessita una Torre de Purga a cada capa, cosa que no és compatible amb \"Sense capes poc denses\". S'ha desactivat \"Sense capes poc denses\"."
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "La Torre de Purga és necessària per a un timelapse suau. Pot haver-hi defectes en el model sense Torre de Purga. Vols habilitar la Torre de Purga?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "\"Sense capes poc denses\" no és compatible amb el timelapse suau, que necessita una Torre de Purga a cada capa. El timelapse ha canviat al mode tradicional."
 
 msgid "Still print by object?"
 msgstr "Continuar imprimint per objecte?"
@@ -11071,9 +11124,6 @@ msgstr "Perfils de processos compatibles"
 
 msgid "Printable space"
 msgstr "Espai imprimible"
-
-msgid "Printer Agent"
-msgstr "Agent de la impressora"
 
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora. Els agents disponibles es registren a l'inici."
@@ -11494,14 +11544,6 @@ msgstr "Nombre d'extrusors"
 
 msgid "Capabilities"
 msgstr "Capacitats"
-
-# AI Translated
-msgid "Left: "
-msgstr "Esquerra: "
-
-# AI Translated
-msgid "Right: "
-msgstr "Dreta: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "Mostra tots els perfils ( inclosos els incompatibles )"
@@ -12355,14 +12397,21 @@ msgstr "Reparació cancel·lada"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "La còpia del fitxer %1% a %2% ha fallat: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "S'estan descarregant perfils de fabricant nous: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Paquet de configuració: %1% actualitzat a %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "No s'han pogut descarregar els perfils de fabricant: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Cal comprovar els canvis no desats abans de les actualitzacions de configuració."
-
-msgid "Configuration package: "
-msgstr "Paquet de configuració: "
-
-msgid " updated to "
-msgstr " actualitzat a "
 
 msgid "Open G-code file:"
 msgstr "Obre el fitxer de Codi-G:"
@@ -12428,11 +12477,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "L'Input Shaping només és compatible amb Klipper, RepRapFirmware i Marlin 2."
 
-msgid "Grouping error: "
-msgstr "Error d'agrupació: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Error d'agrupació: %1% no es pot col·locar al broquet esquerre"
 
-msgid " can not be placed in the "
-msgstr " no es pot col·locar al "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Error d'agrupació: %1% no es pot col·locar al broquet dret"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12546,6 +12599,10 @@ msgstr "%1% està massa a prop d'altres i es poden produir col·lisions."
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% és massa alt i es provocaran col·lisions."
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "La posició relativa del model i la Torre de Purga no compleix els requisits de la funció \"Sense capes poc denses\". Ajusteu-ne les posicions relatives, reduïu l'alçada del model o desactiveu \"Sense capes poc denses\"."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " està massa a prop de l'àrea d'exclusió, pot haver-hi col·lisions en imprimir."
@@ -12910,6 +12967,9 @@ msgstr "Utilitzar 3MF en lloc de G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Activeu-ho si la impressora accepta un fitxer 3MF com a treball d'impressió. Quan està activat, Orca Slicer envia el fitxer laminat com a .gcode.3mf, en lloc d'un fitxer .gcode simple."
+
+msgid "Printer Agent"
+msgstr "Agent de la impressora"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora."
@@ -13987,6 +14047,10 @@ msgstr "Alineat Rectilini"
 msgid "Concentric"
 msgstr "Concèntric"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "Espiral interior"
+
 msgid "Hilbert Curve"
 msgstr "Corba de Hilbert"
 
@@ -14078,13 +14142,13 @@ msgstr "Ordre d'emplenament de la superfície superior"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direcció en què s'omplen les superfícies superiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
-"Cap a fora comença al centre de la superfície, de manera que l'excés de material es desplaça cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
-"Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
+"Direcció en què s'omplen les superfícies superiors quan es fa servir un patró basat en el centre (Concèntric, Espiral interior, Acords d'Arquimedes, Octograma en Espiral).\n"
+"Cap a fora comença al centre de la superfície, de manera que el material sobrant s'empeny cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
+"Per defecte fa servir l'ordre del camí més curt, que pot anar en qualsevol dels dos sentits."
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -14092,13 +14156,13 @@ msgstr "Ordre d'emplenament de la superfície inferior"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direcció en què s'omplen les superfícies inferiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
-"Cap a dins comença cada superfície amb les corbes exteriors més amples, cosa que millora l'adherència de la capa inicial en plaques on les corbes tancades del centre poden no adherir-se. Cap a fora comença al centre i desplaça l'excés de material cap a la vora.\n"
-"Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
+"Direcció en què s'omplen les superfícies inferiors quan es fa servir un patró basat en el centre (Concèntric, Espiral interior, Acords d'Arquimedes, Octograma en Espiral).\n"
+"Cap a dins comença cada superfície per les corbes exteriors més amples, cosa que millora l'adhesió de la capa inicial en llits on les corbes tancades del centre poden no agafar-se. Cap a fora comença al centre i empeny el material sobrant cap a la vora.\n"
+"Per defecte fa servir l'ordre del camí més curt, que pot anar en qualsevol dels dos sentits."
 
 msgid "Internal solid infill pattern"
 msgstr "Patró de farciment sòlid intern"
@@ -14202,6 +14266,14 @@ msgstr "En sentit contrari a les agulles del rellotge"
 
 msgid "Clockwise"
 msgstr "En el sentit de les agulles del rellotge"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "Distància a la barra"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "Distància horitzontal de la punta del broquet a la vora més llunyana de la barra. Es fa servir per evitar col·lisions en la impressió per objecte."
 
 msgid "Height to rod"
 msgstr "Alçada a la tija"
@@ -16422,6 +16494,20 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "Detectar el percentatge de voladís en relació amb l'amplada de la línia i utilitzar una velocitat diferent per imprimir. Per al voladís del 100%%, s'utilitza la velocitat de pont."
 
 # AI Translated
+msgid "Print unsupported walls last"
+msgstr "Imprimir al final els perímetres sense suport"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"Els bucles de perímetre que queden completament a l'aire s'imprimeixen quan alguna cosa els pot sostenir:\n"
+"s'extrudeixen després dels altres perímetres de la seva illa, començant pel més interior, sigui quin sigui l'ordre de perímetres.\n"
+"Un bucle que només poden ancorar els ponts d'aquesta capa espera que s'imprimeixin aquests ponts, mentre que un bucle que va al costat d'un perímetre amb suport manté el seu lloc abans del farciment, que el necessita com a ancoratge."
+
+# AI Translated
 msgid "Outer walls"
 msgstr "Perímetres exteriors"
 
@@ -16869,6 +16955,39 @@ msgstr "Neteja en bucles"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "Per minimitzar la visibilitat de la costura en una extrusió de bucle tancat, s'executa un petit moviment cap a l'interior abans que l'extrusora surti del bucle."
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "Netejar cap a dins"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"Només s'aplica als perímetres exteriors, inclosos els contorns dels forats. Durant la neteja mou el broquet calent cap als perímetres interiors ja impresos per reduir el reescalfament del plàstic acabat d'imprimir i les marques de costura.\n"
+"\n"
+"És especialment útil amb alçades de capa per sota de 0,1 mm, on les marques de neteja es veuen més.\n"
+"\n"
+"Fa servir la neteja normal si no hi ha cap perímetre interior contigu ja imprès (zones d'un sol perímetre o ordre de perímetres Exterior/Interior) o si no es troba cap trajectòria cap a dins amb suport, per exemple a cantonades tancades o a buits de la costura."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "Distància de neteja cap a dins"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"Distància que es desplaça la trajectòria de neteja allunyant-se del perímetre exterior, indicada en mil·límetres o com a percentatge de l'amplada d'extrusió real del perímetre exterior.\n"
+"\n"
+"Per exemple, 50% desplaça la trajectòria la meitat de l'amplada del perímetre exterior. El desplaçament efectiu està limitat tant per l'amplada real del perímetre exterior com per l'espai disponible fins al perímetre contigu, de manera que els valors per sobre de 100% o una distància absoluta equivalent no tenen cap efecte addicional. Poseu-hi 0 per desactivar el desplaçament."
+
 msgid "Wipe before external loop"
 msgstr "Netejar abans del bucle extern"
 
@@ -17133,8 +17252,9 @@ msgstr "Recull la nova eina sense esperar que arribi a la temperatura d'impressi
 msgid "No sparse layers (beta)"
 msgstr "Sense capes poc denses( beta )"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Si està habilitat, la Torre de Purga no s'imprimeix en capes sense canvis d'eina. En capes amb canvi d'eina, l'extrusor es desplaçarà cap avall per imprimir la Torre de Purga. L'usuari és responsable de garantir que no hi hagi col·lisió amb la impressió."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "Si s'activa, la Torre de Purga no s'imprimirà a les capes sense canvis d'eina. A les capes amb un canvi d'eina, l'extrusor baixarà per imprimir la Torre de Purga, de manera que la torre queda per sota del model i el capçal ha de baixar fins a ella. Es rebutgen les disposicions en què això xocaria amb un objecte ja imprès. No té cap efecte amb el timelapse suau ni amb la detecció d'obstruccions al broquet, que necessiten una torre a cada capa."
 
 msgid "Prime all printing extruders"
 msgstr "Purgar tots els extrusors d'impressió"
@@ -17160,6 +17280,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Cíclic"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "Ordre cíclic"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"Seqüència de filaments personalitzada que fa servir l'ordre cíclic de canvis d'eina, com a números de filament separats per comes (p. ex. \"3,2,1,4\").\n"
+"Cada capa imprimeix els seus filaments seguint aquesta seqüència; els filaments que no hi consten s'imprimeixen al final, en ordre ascendent.\n"
+"Deixeu-ho buit per recórrer els filaments en ordre ascendent."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "Aplicar l'ordre cíclic a la capa inicial"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"Aplica l'ordre cíclic de canvis d'eina també a la capa inicial.\n"
+"Per defecte està desactivat, perquè la capa inicial s'ordena en lloc d'això per aconseguir la millor adhesió al llit: els filaments que imprimeixen detalls petits i fràgils de la capa inicial s'imprimeixen al final, de manera que els canvis d'eina i els recorreguts posteriors tenen menys probabilitats d'arrencar aquestes peces mal ancorades. Aquest ordre de la capa inicial també respecta una seqüència de filaments personalitzada per a la capa inicial quan se n'ha definit una. L'avantatge de l'ordre cíclic (els canvis d'eina addicionals donen a cada capa més temps per refredar-se) no s'aplica a la capa inicial, que s'imprimeix a poc a poc i calenta per afavorir l'adhesió.\n"
+"Activeu-ho només si necessiteu exactament la mateixa seqüència d'eines a totes les capes, inclosa la primera, a costa d'aquesta optimització de l'adhesió."
+
 msgid "Slice gap closing radius"
 msgstr "Radi de tancament dels buits en laminar"
 
@@ -17168,9 +17316,6 @@ msgstr "Les esquerdes de menys de dues vegades el radi de tancament de buits s'o
 
 msgid "Slicing Mode"
 msgstr "Mode de laminat"
-
-msgid "Other"
-msgstr "Altre"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Utilitzeu \"Parell-imparell\" per als models d'avió 3DLabPrint. Utilitzeu \"Tancar forats\" per tancar tots els forats del model."
@@ -18189,6 +18334,14 @@ msgstr "No comprovar"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "No executar cap comprovació de validesa, com ara la comprovació de conflictes de trajectòria al Codi-G."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "Mode estricte"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "Surt amb un codi diferent de zero quan el llescat genera un avís no crític que altrament només es registraria, com ara un model que necessita suports mentre els suports estan desactivats. Feu-ho servir en CI o en processos automatitzats que mai no han de lliurar un llescat subtilment defectuós. Cadascun d'aquests avisos també apareix amb una classe estable a la matriu `warnings` de result.json, que només s'escriu a Linux. No es pot combinar amb --no-check, que omet la comprovació de suports."
+
 msgid "Normative check"
 msgstr "Comprovació normativa"
 
@@ -18201,11 +18354,28 @@ msgstr "Informació del model de sortida"
 msgid "This outputs the model’s information."
 msgstr "Emet la informació del model."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "Inspeccionar la malla (JSON a stdout)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "Escriu a stdout un resum JSON de cada objecte carregat i després surt: les seves capses contenidores i les cares de l'envolupant convexa sobre les quals es pot recolzar, amb les normals, àrees i centres corresponents. Aquestes són les cares entre les quals trien les opcions --ground-*. Alternativa llegible per màquina a --info."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "Inspeccionar el pintat (JSON a stdout)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "Escriu un resum JSON estructurat de cada capa pintada (suports, costura, color MMU, pell difusa) ja desada al model carregat — nombre de facetes, àrea de superfície i capsa contenidora local a la malla per a cada estat — i després surt. Alternativa llegible per màquina a obrir les eines de pintat a la interfície."
+
 msgid "Export Settings"
 msgstr "Exportar Configuració"
 
-msgid "This exports settings to a file."
-msgstr "Exporta la configuració a un fitxer."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "Això exporta la configuració a un fitxer. Feu servir - per escriure-la a stdout."
 
 msgid "Send progress to pipe"
 msgstr "Envia el progrés a la canalització"
@@ -18260,6 +18430,30 @@ msgstr "Rotar al voltant de l'eix Y"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Angle de rotació al voltant de l'eix Y en graus."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "Recolzar sobre la cara més gran"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Recolza cada objecte sobre la cara més gran de la seva envolupant convexa i el deixa caure sobre el llit. Entre cares igual de grans es conserva la que ja mira cap avall. Els objectes sense una cara prou gran per recolzar-s'hi es deixen tal com estan. Les transformacions s'apliquen en l'ordre de la línia d'ordres, de manera que es respecten les rotacions indicades abans d'aquesta opció. --orient 1 s'executa després de totes les transformacions i substitueix l'orientació."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "Recolzar sobre la cara segons la normal"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Recolza cada objecte sobre la cara de l'envolupant convexa la normal exterior de la qual sigui més propera a la direcció NX,NY,NZ i el deixa caure sobre el llit. La direcció és en coordenades de l'objecte, que inclouen les rotacions indicades abans d'aquesta opció i coincideixen amb els eixos de la safata llevat que el fitxer d'entrada giri l'objecte. Per exemple, 1,0,0 recolza l'objecte sobre el seu costat +X. --orient 1 s'executa després de totes les transformacions i substitueix l'orientació."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "Recolzar sobre la cara en un punt"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Recolza cada objecte sobre la cara de l'envolupant convexa que conté el punt X,Y,Z i el deixa caure sobre el llit. El punt és en coordenades de l'objecte, que inclouen les rotacions indicades abans d'aquesta opció; --inspect-mesh indica els centres de les cares en aquestes coordenades. Els objectes sense una cara així es deixen tal com estan, i l'execució falla si cap objecte en té. --orient 1 s'executa després de totes les transformacions i substitueix l'orientació."
 
 msgid "Scale the model by a float factor."
 msgstr "Escala el model amb un factor flotant"
@@ -21457,14 +21651,17 @@ msgstr "Aquesta acció no es pot desfer. Continuar?"
 msgid "Skipping objects."
 msgstr "Ometent objectes."
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "Proporció de material"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "Alçada del model"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "Proporció"
 
 msgid "Select Filament"
 msgstr "Seleccioneu filament"
@@ -21749,12 +21946,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Assecatge - Deshumidificació"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " la temperatura màxima d'assecatge és "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "La temperatura màxima d'assecatge de %s és %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " la temperatura mínima d'assecatge és "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "La temperatura mínima d'assecatge de %s és %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22199,6 +22398,97 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Other"
+#~ msgstr "Altre"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "Esquerra: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "Dreta: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "La temperatura màxima no pot superar "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "La temperatura mínima no hauria de ser inferior a "
+
+#~ msgid "up to"
+#~ msgstr "fins a"
+
+#~ msgid "above"
+#~ msgstr "sobre"
+
+#~ msgid "from"
+#~ msgstr "des de"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Paquet de configuració: "
+
+#~ msgid " updated to "
+#~ msgstr " actualitzat a "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Error d'agrupació: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " no es pot col·locar al "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " la temperatura màxima d'assecatge és "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " la temperatura mínima d'assecatge és "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "necessita"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "no activat"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "material no publicat"
+
+#~ msgid "Select the language"
+#~ msgstr "Seleccioneu l'idioma"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Seleccionar connector"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Direcció en què s'omplen les superfícies superiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
+#~ "Cap a fora comença al centre de la superfície, de manera que l'excés de material es desplaça cap a la vora, on és menys visible. Cap a dins comença a la vora i acaba amb les corbes tancades del centre.\n"
+#~ "Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Direcció en què s'omplen les superfícies inferiors quan s'utilitza un patró centrat (Concèntric, Acords d'Arquimedes, Octograma en Espiral).\n"
+#~ "Cap a dins comença cada superfície amb les corbes exteriors més amples, cosa que millora l'adherència de la capa inicial en plaques on les corbes tancades del centre poden no adherir-se. Cap a fora comença al centre i desplaça l'excés de material cap a la vora.\n"
+#~ "Per defecte utilitza l'ordenació pel camí més curt, que pot anar en qualsevol direcció."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Si està habilitat, la Torre de Purga no s'imprimeix en capes sense canvis d'eina. En capes amb canvi d'eina, l'extrusor es desplaçarà cap avall per imprimir la Torre de Purga. L'usuari és responsable de garantir que no hi hagi col·lisió amb la impressió."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Exporta la configuració a un fitxer."
 
 # AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."

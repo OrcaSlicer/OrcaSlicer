@@ -682,6 +682,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/bambu_networking.hpp
     Utils/Bonjour.cpp
     Utils/Bonjour.hpp
+    Utils/MeshInspect.cpp
+    Utils/MeshInspect.hpp
+    Utils/PaintCLI.cpp
+    Utils/PaintCLI.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
     Utils/ColorSpaceConvert.cpp
@@ -785,6 +789,30 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
     Utils/wxInspectorPlugins/Registration.hpp
 )
+
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP control socket.
+# All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
+if (SLIC3R_CAD)
+    list(APPEND SLIC3R_GUI_SOURCES
+        GUI/CAD/DesignPanel.cpp
+        GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignCanvas.cpp
+        GUI/CAD/DesignCanvas.hpp
+        GUI/CAD/DesignSketchTool.cpp
+        GUI/CAD/DesignSketchTool.hpp
+        GUI/CAD/DesignOffer.hpp
+        GUI/CAD/DesignInteraction.hpp
+        GUI/CAD/SketchInlineEditor.cpp
+        GUI/CAD/SketchInlineEditor.hpp
+        GUI/CAD/McpControl.cpp
+        GUI/CAD/McpControl.hpp
+        GUI/Gizmos/GLGizmoSketch.cpp
+        GUI/Gizmos/GLGizmoSketch.hpp
+        # Needs GeometryEngine (make_primitive / apply_fillet / tessellate).
+        GUI/Gizmos/GLGizmoPrimitive.cpp
+        GUI/Gizmos/GLGizmoPrimitive.hpp
+    )
+endif ()
 
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)
