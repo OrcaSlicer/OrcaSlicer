@@ -2288,7 +2288,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         // Fill the real per-printer max color count into the %s template.
         if (!params.empty())
             msg = wxString::Format(m_pre_print_checker.get_pre_state_msg(status), params[0], params[0]);
-    } else if (status == PrintDialogStatus::PrintStatusAmsMappingU0Invalid) {
+    }
+
+    else if (status == PrintDialogStatus::PrintStatusAmsMappingU0Invalid) {
         wxString msg_text;
         if (params.size() > 1)
             msg_text = wxString::Format(_L("Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."), params[0], params[1]);
@@ -2314,7 +2316,7 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
-    } else if (status == PrintDialogStatus::PrintStatusUnsupportedPrinter ||
+    }else if (status == PrintDialogStatus::PrintStatusUnsupportedPrinter ||
               status == PrintDialogStatus::PrintStatusOptionalPrinterModel) {
         wxString msg_text;
         const bool block_send = status == PrintDialogStatus::PrintStatusUnsupportedPrinter;

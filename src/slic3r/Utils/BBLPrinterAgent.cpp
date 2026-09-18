@@ -1,8 +1,11 @@
 #include "BBLPrinterAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "libslic3r/Utils.hpp"
+#include "NetworkAgent.hpp"
 
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
@@ -10,6 +13,10 @@ using json = nlohmann::json;
 
 #include <type_traits>
 #include <unordered_map>
+#include <memory>
+#include <nlohmann/json.hpp>
+#include <cmath>
+#include <slic3r/GUI/DeviceManager.hpp>
 
 namespace Slic3r {
 
@@ -133,13 +140,24 @@ BBLPrinterAgent::~BBLPrinterAgent() = default;
 
 void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 {
-    m_cloud_agent = cloud;
+    (void) cloud;
     // BBL DLL manages tokens internally, so this is just for interface compliance
 }
 
 // ============================================================================
 // Communication
 // ============================================================================
+
+int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode)
+{
+    const int rtn = lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0) : send_message(dev_id, j.dump(), 0, 0);
+    if (rtn == 0) {
+        BOOST_LOG_TRIVIAL(info) << "publish_json: " << j.dump() << " code: " << rtn;
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "publish_json: " << j.dump() << " code: " << rtn;
+    }
+    return rtn;
+}
 
 int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)
 {
@@ -473,8 +491,15 @@ int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateS
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    return dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
+    int result = dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
         BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
+    if (result != 0) {
+        BOOST_LOG_TRIVIAL(error) << "start_send_gcode_to_sdcard failed: result=" << result
+            << ", try_emmc_print=" << params.try_emmc_print
+            << ", legacy_mode=" << BBLNetworkPlugin::instance().use_legacy_network()
+            << ", dev_ip=" << params.dev_ip << ", dev_id=" << params.dev_id;
+    }
+    return result;
 }
 
 int BBLPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)

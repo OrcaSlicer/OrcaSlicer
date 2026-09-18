@@ -1,5 +1,7 @@
 #include <catch2/catch_all.hpp>
 
+#include <slic3r/Utils/BBLPrinterAgent.hpp>
+#include <slic3r/Utils/MoonrakerPrinterAgent.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
 
@@ -8,10 +10,163 @@
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
+#include <atomic>
+#include <chrono>
+#include <future>
+#include <memory>
 #include <string>
+#include <thread>
 
 using namespace Slic3r;
 namespace py = pybind11;
+
+class MoonrakerParserProbe : public MoonrakerPrinterAgent
+{
+public:
+    using MoonrakerPrinterAgent::parse_nozzle_diameter;
+
+    explicit MoonrakerParserProbe(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
+};
+
+TEST_CASE("Moonraker parses nozzle diameter from configfile settings", "[unit][moonraker]")
+{
+    const auto response = nlohmann::json::parse(R"({
+        "result": {
+            "status": {
+                "configfile": {
+                    "settings": {
+                        "extruder": {
+                            "nozzle_diameter": 0.6
+                        }
+                    }
+                }
+            }
+        }
+    })");
+
+    CHECK(MoonrakerParserProbe::parse_nozzle_diameter(response) == Catch::Approx(0.6f));
+}
+
+TEST_CASE("Moonraker parses nozzle diameter from raw config and tolerates missing data", "[unit][moonraker]")
+{
+    const auto raw_config_response = nlohmann::json::parse(R"({
+        "result": {
+            "status": {
+                "configfile": {
+                    "config": {
+                        "extruder": {
+                            "nozzle_diameter": "0.8"
+                        }
+                    }
+                }
+            }
+        }
+    })");
+    const auto missing_response = nlohmann::json::object();
+
+    CHECK(MoonrakerParserProbe::parse_nozzle_diameter(raw_config_response) == Catch::Approx(0.8f));
+    CHECK(MoonrakerParserProbe::parse_nozzle_diameter(missing_response) == 0.0f);
+}
+
+// why: these builders preserve the Bambu firmware dialect byte-for-byte, including its trailing space.
+TEST_CASE("unit: BBL AMS gcode builders preserve command bytes", "[unit][bbl]")
+{
+    CHECK(BBLPrinterAgent::ams_refresh_rfid_gcode("123") == "M620 R123 \n");
+    CHECK(BBLPrinterAgent::ams_calibrate_gcode(123) == "M620 C123 \n");
+    CHECK(BBLPrinterAgent::ams_select_tray_gcode("123") == "M620 P123 \n");
+}
+
+// why: an agent without a Bambu-dialect translation must refuse these commands before any network or wx path.
+TEST_CASE("unit: default AMS commands report not supported", "[unit][moonraker]")
+{
+    MoonrakerPrinterAgent agent("");
+
+    CHECK(agent.command_ams_refresh_rfid("dev", "123", 1, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.command_ams_calibrate("dev", 1, 2, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.command_ams_select_tray("dev", "123", 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+}
+
+TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
+{
+    CHECK(moonraker_is_light_name("caselight"));
+    CHECK(moonraker_is_light_name("LED_STRIP"));
+    CHECK_FALSE(moonraker_is_light_name("beeper"));
+    CHECK(moonraker_is_light_name("FLASHLIGHT_SWITCH"));
+    CHECK(moonraker_is_light_name("MODLELIGHT_SWITCH"));
+}
+
+// ===========================================================================
+// UNIT - handle_request's not-supported default.
+// The agent is the only thing that knows what it can translate, so an untranslated
+// command has to say so instead of returning success and letting the UI believe the
+// control worked. Guards the inverse too: the pushing namespace is genuinely
+// satisfied by the websocket status stream, and it re-fires from the keepalive timer
+// roughly once a second, so it must stay a success or it would raise a dialog on a
+// timer. Only branches that touch neither the network nor wx are exercised.
+// ===========================================================================
+TEST_CASE("unit: Moonraker reports untranslated commands as not supported", "[unit][moonraker]")
+{
+    MoonrakerPrinterAgent agent("");
+
+    CHECK(agent.send_message("dev", R"({"print":{"command":"ams_change_filament"}})", 0, 0) ==
+          ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.send_message("dev", R"({"system":{"command":"set_door_stat"}})", 0, 0) ==
+          ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.send_message("dev", R"({"xcam":{"command":"xcam_control_set"}})", 0, 0) ==
+          ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+
+    CHECK(agent.send_message("dev", R"({"pushing":{"command":"pushall"}})", 0, 0) == BAMBU_NETWORK_SUCCESS);
+    CHECK(agent.send_message("dev", R"({"pushing":{"command":"start"}})", 0, 0) == BAMBU_NETWORK_SUCCESS);
+
+    // why: malformed input is a different failure than an untranslated command, and the
+    // default must not swallow it into a misleading not-supported verdict.
+    CHECK(agent.send_message("dev", "{not json", 0, 0) == BAMBU_NETWORK_ERR_INVALID_RESULT);
+}
+
+// why: IPrinterAgent::fetch_filament_info is the single virtual hook derived agents override
+// (MoonrakerPrinterAgent's own override is synchronous, but QidiPrinterAgent's override is
+// fire-and-forget: it spawns a detached thread and returns immediately). QidiPrinterAgent is
+// `final`, so this probes the same contract with a controllable double instead.
+TEST_CASE("unit: a fire-and-forget override of fetch_filament_info is not waited on by the caller",
+          "[unit][moonraker]")
+{
+    class RecordingAgent : public Slic3r::MoonrakerPrinterAgent
+    {
+    public:
+        explicit RecordingAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
+
+        std::atomic<bool>  invoked{false};
+        std::promise<void> release_gate;
+        std::promise<void> done_promise;
+
+        bool fetch_filament_info(std::string /*dev_id*/, FilamentSyncMode /*sync_mode*/ = FilamentSyncMode::pull) override
+        {
+            std::thread([this]() {
+                invoked.store(true);
+                // Block here until the test explicitly releases us, proving the caller
+                // (fetch_filament_info) does not wait for this to run.
+                release_gate.get_future().wait();
+                done_promise.set_value();
+            }).detach();
+            return true;
+        }
+    };
+
+    auto agent = std::make_shared<RecordingAgent>(std::string{});
+    auto done_future = agent->done_promise.get_future();
+
+    bool immediate_result = agent->fetch_filament_info("test-dev");
+
+    // fetch_filament_info must return before its background work completes — prove
+    // it by confirming the background call is still blocked on the gate right now.
+    REQUIRE(immediate_result == true);
+    REQUIRE(done_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
+
+    // Now let the background call finish and confirm it actually ran (polymorphic dispatch).
+    agent->release_gate.set_value();
+    REQUIRE(done_future.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+    REQUIRE(agent->invoked.load() == true);
+}
 
 // ===========================================================================
 // UNIT - printer-agent registry duplicate handling.

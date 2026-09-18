@@ -14,8 +14,19 @@
 
 #include <curl/curl.h>
 
-#ifdef OPENSSL_CERT_OVERRIDE
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/x509err.h>
+
+#ifdef _WIN32
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#    include <wincrypt.h>
+// wincrypt.h uses this token for a certificate-name property identifier.
+#    undef X509_NAME
 #endif
 
 namespace fs = boost::filesystem;
@@ -937,6 +948,45 @@ std::string Http::tls_system_cert_store()
 #endif
 
     return ret;
+}
+
+void Http::add_platform_root_certificates(SSL_CTX* ssl_context)
+{
+#ifdef _WIN32
+    X509_STORE* openssl_store = SSL_CTX_get_cert_store(ssl_context);
+    if (!openssl_store)
+        throw std::runtime_error("unable to get OpenSSL certificate store");
+
+    const auto load_store = [&](DWORD location) {
+        HCERTSTORE windows_store = CertOpenStore(CERT_STORE_PROV_SYSTEM_W, 0, 0,
+                                                 location | CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG,
+                                                 L"ROOT");
+        if (!windows_store)
+            return;
+
+        PCCERT_CONTEXT windows_certificate = nullptr;
+        while ((windows_certificate = CertEnumCertificatesInStore(windows_store, windows_certificate)) != nullptr) {
+            const unsigned char* encoded = windows_certificate->pbCertEncoded;
+            X509* certificate = d2i_X509(nullptr, &encoded, static_cast<long>(windows_certificate->cbCertEncoded));
+            if (!certificate) {
+                ERR_clear_error();
+                continue;
+            }
+
+            ERR_clear_error();
+            if (X509_STORE_add_cert(openssl_store, certificate) != 1)
+                ERR_clear_error();
+            X509_free(certificate);
+        }
+
+        CertCloseStore(windows_store, 0);
+    };
+
+    load_store(CERT_SYSTEM_STORE_CURRENT_USER);
+    load_store(CERT_SYSTEM_STORE_LOCAL_MACHINE);
+#else
+    (void)ssl_context;
+#endif
 }
 
 std::string Http::url_encode(const std::string &str)
