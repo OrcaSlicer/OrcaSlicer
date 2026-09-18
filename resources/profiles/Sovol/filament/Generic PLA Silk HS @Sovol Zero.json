@@ -1,11 +1,12 @@
 {
 	"type": "filament",
-	"name": "Sovol Zero PLA Silk HS Nozzle",
-	"inherits": "Generic PLA @System",
+	"filament_id": "OF5AD8m1",
+	"setting_id": "S9hpHQLYKlYVKbs5",
+	"name": "Generic PLA Silk HS @Sovol Zero",
+	"renamed_from": "Sovol Zero Silk PLA - Hardened Steel;Sovol ZERO Silk PLA - Hardened Steel;Sovol Zero PLA Silk HS Nozzle",
 	"from": "system",
-	"setting_id": "XxEJBNFLRltR2Xwn",
-	"filament_id": "OFAO9A7J",
 	"instantiation": "true",
+	"inherits": "fdm_filament_pla",
 	"filament_flow_ratio": [
 		"0.98"
 	],
@@ -15,7 +16,11 @@
 	"enable_pressure_advance": "1",
 	"pressure_advance": "0.027",
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"245"
@@ -66,5 +71,29 @@
 	"additional_cooling_fan_speed": "75%",
 	"activate_air_filtration": "1",
 	"during_print_exhaust_fan_speed": "80%",
-	"complete_print_exhaust_fan_speed": "80%"
+	"complete_print_exhaust_fan_speed": "80%",
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	]
 }
