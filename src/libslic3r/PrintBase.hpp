@@ -62,7 +62,8 @@ public:
         SlicingReplaceInitEmptyLayers,
         SlicingNeedSupportOn,
         SlicingEmptyGcodeLayers,
-        SlicingGcodeOverlap
+        SlicingGcodeOverlap,
+        SlicingExclusionVolumeToolpath
     };
 
     typedef size_t TimeStamp;

@@ -971,6 +971,19 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     return out_string;
 }
 
+std::pair<double, double> GCodeWriter::planned_travel_z(const Vec3d &point, const bool force_z) const
+{
+    double destination_z = point.z();
+    if (std::abs(m_to_lift) > EPSILON) {
+        if ((!this->is_current_position_clear() || m_pos != point) &&
+            m_to_lift + m_pos.z() > point.z())
+            destination_z = m_to_lift + m_pos.z();
+    } else if (!force_z && !this->will_move_z(point.z())) {
+        destination_z = m_pos.z();
+    }
+    return { m_pos.z(), destination_z };
+}
+
 std::string GCodeWriter::travel_to_z(double z, const std::string &comment, bool force)
 {
     /*  If target Z is lower than current Z but higher than nominal Z

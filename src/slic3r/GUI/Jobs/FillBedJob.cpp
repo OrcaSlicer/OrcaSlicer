@@ -55,6 +55,7 @@ void FillBedJob::prepare()
             bool selected = (oidx == m_object_idx);
 
             ArrangePolygon ap = get_instance_arrange_poly(mo->instances[inst_idx], global_config);
+            set_arrange_polygon_bed_exclusion_extruders(ap, *mo, *plate, global_config);
             BoundingBox ap_bb = ap.transformed_poly().contour.bounding_box();
             ap.name = mo->name;
 
@@ -122,8 +123,8 @@ void FillBedJob::prepare()
     bool enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
     //add the virtual object into unselect list if has
     double scaled_exclusion_gap = scale_(1);
-    plate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scaled_exclusion_gap);
-    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping);
+    plate_list.preprocess_exclude_areas(params.excluded_regions, global_config, enable_wrapping, 1, scaled_exclusion_gap);
+    plate_list.preprocess_exclude_areas(m_unselected, global_config, enable_wrapping);
 
     m_bedpts = get_bed_shape(*m_plater->config());
 
@@ -149,11 +150,14 @@ void FillBedJob::prepare()
     auto polys = offset_ex(m_selected.front().poly, params.min_obj_distance / 2);
     ExPolygon poly = polys.empty() ? m_selected.front().poly : polys.front();
     double poly_area = poly.area() / sc;
+    const ArrangePolygon &fill_template = m_selected.front();
     double unsel_area = std::accumulate(m_unselected.begin(),
                                         m_unselected.end(), 0.,
-                                        [cur_plate_index](double s, const auto &ap) {
+                                        [cur_plate_index, &fill_template](double s, const auto &ap) {
                                             //BBS: m_unselected instance is in the same partplate
-                                            return s + (ap.bed_idx == cur_plate_index) * ap.poly.area();
+                                            const bool exclusion_applies = !ap.is_bed_exclusion ||
+                                                bed_exclusion_applies(fill_template, ap);
+                                            return s + (ap.bed_idx == cur_plate_index && exclusion_applies) * ap.poly.area();
                                             //return s + (ap.bed_idx == 0) * ap.poly.area();
                                         }) / sc;
 
@@ -168,36 +172,24 @@ void FillBedJob::prepare()
     //sel_id = std::max(sel_id, 0);
     ModelInstance *mi = model_object->instances[sel_id];
     ArrangePolygon template_ap = get_instance_arrange_poly(mi, global_config);
+    set_arrange_polygon_bed_exclusion_extruders(template_ap, *model_object, *plate, global_config);
 
-    int obj_idx;
-    double offset_base, offset;
-    bool was_one_instance;
-    if (m_instances) {
-        obj_idx = m_plater->get_selected_object_idx();
-        offset_base = m_plater->canvas3D()->get_size_proportional_to_max_bed_size(0.05);
-        offset = offset_base;
-        was_one_instance = model_object->instances.size()==1;
-    }
-
-    for (int i = 0; i < needed_items; ++i, offset += offset_base) {
+    for (int i = 0; i < needed_items; ++i) {
         ArrangePolygon ap = template_ap;
         ap.poly = m_selected.front().poly;
         ap.bed_idx = PartPlateList::MAX_PLATES_COUNT;
         ap.itemid = -1;
-        ap.setter = [this, offset](const ArrangePolygon &p) {
+        ap.setter = [this, mi](const ArrangePolygon &p) {
             ModelObject *mo = m_plater->model().objects[m_object_idx];
-            ModelObject *obj;
             if (m_instances) {
-                ModelInstance* model_instance = mo->instances.back();
-                Vec3d offset_vec = model_instance->get_offset() + Vec3d(offset, offset, 0.0);
-                mo->add_instance(offset_vec, model_instance->get_scaling_factor(), model_instance->get_rotation(), model_instance->get_mirror());
-                obj = mo;
+                ModelInstance *new_instance = mo->add_instance(*mi);
+                new_instance->apply_arrange_result(p.translation.cast<double>(), p.rotation);
             } else {
                 ModelObject* newObj = m_plater->model().add_object(*mo);
                 newObj->name = mo->name +" "+ std::to_string(p.itemid);
-                obj = newObj;
+                for (ModelInstance *new_instance : newObj->instances)
+                    new_instance->apply_arrange_result(p.translation.cast<double>(), p.rotation);
             }
-            for (ModelInstance *newInst : obj->instances) { newInst->apply_arrange_result(p.translation.cast<double>(), p.rotation); }            
             //m_plater->sidebar().obj_list()->paste_objects_into_list({m_plater->model().objects.size()-1});
         };
         m_selected.emplace_back(ap);
@@ -252,22 +244,71 @@ void FillBedJob::process(Ctl &ctl)
     };
     // final align用的是凸包，在有fixed item的情况下可能找到的参考点位置是错的，这里就不做了。见STUDIO-3265
     params.do_final_align = !is_bbl;
+    if (has_bed_exclusion_regions(params.excluded_regions))
+        params.do_final_align = false;
 
-    if (m_selected.size() > 100){
+    if (m_selected.size() > 100) {
         // too many items, just find grid empty cells to put them
-        Vec2f step = unscaled<float>(get_extents(m_selected.front().poly).size()) + Vec2f(m_selected.front().brim_width, m_selected.front().brim_width);
-        std::vector<Vec2f> empty_cells = Plater::get_empty_cells(step);
-        size_t n=std::min(m_selected.size(), empty_cells.size());
-        for (size_t i = 0; i < n; i++) {
-            m_selected[i].translation = scaled<coord_t>(empty_cells[i]);
-            m_selected[i].bed_idx= 0;
+        std::vector<BoundingBoxf> occupied_boxes;
+        for (const ArrangePolygon &fixed : m_unselected) {
+            if (fixed.bed_idx != 0 || fixed.is_extrusion_cali_object)
+                continue;
+
+            if (fixed.is_bed_exclusion) {
+                const bool relevant = std::any_of(
+                    m_selected.begin(), m_selected.end(), [&fixed](const ArrangePolygon &item) {
+                        return bed_exclusion_applies(item, fixed);
+                    });
+                if (!relevant)
+                    continue;
+            }
+
+            BoundingBox bbox = get_extents(fixed.transformed_poly());
+            bbox.offset(std::max<coord_t>(0, fixed.inflation));
+            occupied_boxes.emplace_back(unscale(bbox.min), unscale(bbox.max));
         }
-        for (size_t i = n; i < m_selected.size(); i++) {
-            m_selected[i].bed_idx = -1;
+
+        // Fill the remaining space without disturbing instances which are
+        // already placed. Besides matching the meaning of "Fill bed", this
+        // also prevents candidates rejected by the grid from remaining under
+        // newly placed copies at their old positions.
+        const Vec3d plate_origin = partplate_list.get_curr_plate()->get_origin();
+        for (const ArrangePolygon &existing : m_selected) {
+            if (existing.priority == 0 || existing.bed_idx != 0)
+                continue;
+
+            BoundingBox bbox = get_extents(existing.transformed_poly());
+            bbox.offset(std::max<coord_t>(0, existing.inflation));
+            BoundingBoxf local_box(unscale(bbox.min), unscale(bbox.max));
+            local_box.translate(Vec2d(-plate_origin.x(), -plate_origin.y()));
+            occupied_boxes.emplace_back(std::move(local_box));
         }
-    }
-    else
+
+        const Vec2f step = unscaled<float>(get_extents(m_selected.front().poly).size()) +
+                           Vec2f(m_selected.front().brim_width, m_selected.front().brim_width);
+        const bool has_conditional_exclusions = has_bed_exclusion_regions(m_unselected);
+        const std::vector<Vec2f> empty_cells =
+            Plater::get_empty_cells(step, occupied_boxes, !has_conditional_exclusions);
+
+        size_t cell_index = 0;
+        for (ArrangePolygon &item : m_selected) {
+            if (item.priority != 0)
+                continue;
+
+            if (cell_index < empty_cells.size()) {
+                item.translation = scaled<coord_t>(empty_cells[cell_index++]);
+                item.bed_idx = 0;
+            } else {
+                item.bed_idx = arrangement::UNARRANGED;
+            }
+        }
+
+        invalidate_bed_exclusion_conflicts(
+            m_selected, m_unselected, Vec2crd(scale_(plate_origin.x()), scale_(plate_origin.y())));
+    } else {
         arrangement::arrange(m_selected, m_unselected, m_bedpts, params);
+        invalidate_bed_exclusion_conflicts(m_selected, m_unselected);
+    }
 
     // finalize just here.
     ctl.update_status(100, ctl.was_canceled() ?
@@ -332,6 +373,17 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
             obj_list->update_printable_state(i, 0);
         }
 
+        if (m_instances && model_object->instances.size() > inst_cnt) {
+            const size_t new_instance_count = model_object->instances.size() - inst_cnt;
+            // Match the normal add-instance flow: update the scene before the
+            // object tree starts referring to the newly created instances.
+            m_plater->update();
+            // A single-instance object has no instance children in the object
+            // tree yet, so the first refresh must add the original as well.
+            obj_list->increase_object_instances(
+                m_object_idx, inst_cnt == 1 ? new_instance_count + 1 : new_instance_count);
+        }
+
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": paste_objects_into_list";
 
         /*for (ArrangePolygon& ap : m_selected) {
@@ -342,10 +394,9 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
         //model_object->ensure_on_bed();
         //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": model_object->ensure_on_bed()";
 
-        if (m_instances) {// && wxGetApp().app_config->get("auto_arrange") == "true") {
-            m_plater->set_prepare_state(Job::PREPARE_STATE_MENU);
-            m_plater->arrange();
-        }
+        // FillBedJob has already computed and validated the final positions.
+        // The instance tree is synchronized above, so rerunning the general
+        // arranger here would only risk discarding a valid fill result.
         m_plater->update();
     }
 
