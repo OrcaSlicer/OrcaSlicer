@@ -15,7 +15,6 @@
 #endif
 #include <imgui/imgui_internal.h>
 
-#define L(s) Slic3r::GUI::I18N::translate((s)).c_str()
 #define UL(s) Slic3r::GUI::I18N::translate_utf8((s)).c_str()
 
 namespace Slic3r {
@@ -374,15 +373,15 @@ void GLGizmoSketch::on_render_input_window(float x, float y, float bottom_limit)
     };
 
     if (m_sp.is_pocket && has_sel) {
-        if (btn(L("Pocket (Cut)"), ok)) apply_pocket();
+        if (btn(_u8L("Pocket (Cut)").c_str(), ok)) apply_pocket();
     } else if (is_revolve) {
-        if (btn(L("Revolve"), ok)) apply_revolve();
+        if (btn(_u8L("Revolve").c_str(), ok)) apply_revolve();
     } else {
-        if (btn(L("Extrude"), ok)) apply_extrude();
+        if (btn(_u8L("Extrude").c_str(), ok)) apply_extrude();
     }
 
-    if (ImGui::Button(L("Clear All"), {-1,0})) clear_all();
-    if (ImGui::Button(L("Close"), {-1,0})) m_parent.reset_all_gizmos();
+    if (ImGui::Button(_u8L("Clear All").c_str(), {-1,0})) clear_all();
+    if (ImGui::Button(_u8L("Close").c_str(), {-1,0})) m_parent.reset_all_gizmos();
 
     GizmoImguiEnd();
     ImGuiWrapper::pop_toolbar_style();

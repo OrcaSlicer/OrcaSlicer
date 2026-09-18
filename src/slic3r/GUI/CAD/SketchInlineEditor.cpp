@@ -121,7 +121,7 @@ void SketchInlineEditor::do_commit()
         // just sits there and the user has no idea what it wants. Say so in the title line and
         // keep editing.
         ux_trace("refused", m_title, std::string("typed=") + m_buf);
-        m_err = (m_buf[0] == '\0') ? into_u8(_L("Enter a number")) : into_u8(_L("Not a number"));
+        m_err = (m_buf[0] == '\0') ? _u8L("Enter a number") : _u8L("Not a number");
         m_focus_pending = true;
         return;
     }
