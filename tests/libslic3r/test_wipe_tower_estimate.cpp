@@ -80,6 +80,16 @@ TEST_CASE("A rectangle wall tower is sized by the purge volume", "[WipeTowerEsti
     CHECK_THAT(estimate(config, 3, 0.1, 5.).depth, WithinAbs(40., 1e-9));
 }
 
+TEST_CASE("The wipe tower brim estimate includes the brim-object gap", "[WipeTowerEstimate]") {
+    DynamicPrintConfig config = make_config();
+    config.set_key_value("prime_tower_brim_object_gap", new ConfigOptionFloat(1.5));
+    CHECK_THAT(estimate(config, 3, 0.2, 5.).brim_width,
+               WithinAbs(printed_brim(3., WipeTowerType::Type2) + 1.5, 1e-6));
+    config.set_key_value("prime_tower_brim_object_gap", new ConfigOptionFloat(-1.));
+    CHECK_THAT(estimate(config, 3, 0.2, 5.).brim_width,
+               WithinAbs(printed_brim(3., WipeTowerType::Type2) - 1., 1e-6));
+}
+
 TEST_CASE("Each planner spaces its purge lines by its own option", "[WipeTowerEstimate]") {
     // Type2 reads wipe_tower_extra_spacing and Type1 prime_tower_infill_gap; neither sees the
     // other's key. Type2's extra flow cancels out of its depth.

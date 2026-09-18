@@ -17786,6 +17786,37 @@ msgstr "Без разреженных слоёв (beta)"
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Если включено, черновая башня не будет печататься на слоях без смены инструмента. На слоях со сменой инструмента экструдер опустится вниз, чтобы напечатать черновую башню, поэтому башня оказывается ниже модели, и печатающей голове приходится тянуться к ней вниз. Компоновки, при которых это привело бы к столкновению с уже напечатанной моделью, отклоняются. Не действует при плавном таймлапсе и при обнаружении налипаний, которым нужна башня на каждом слое."
 
+# AI Translated
+msgid "Use first layer height"
+msgstr "Использовать высоту первого слоя"
+
+# AI Translated
+msgid "If enabled together with \"No sparse layers\", the first wipe tower layer that is actually printed uses the print's first layer height. Without this, that layer follows the thinner object layer it happens to land on, which can weaken bed adhesion."
+msgstr "Если включено вместе с «Без разреженных слоёв», первый реально печатаемый слой башни использует высоту первого слоя печати. Без этой опции этот слой берёт более тонкую высоту слоя модели, на который он попадает, и сцепление с платформой может быть хуже."
+
+# AI Translated
+msgid "This creates a gap between the innermost brim line and the prime tower and can make the brim easier to remove. A negative value presses the brim into the prime tower. The model's Brim-object gap is not used here."
+msgstr "Создаёт зазор между внутренней линией каймы и черновой башней, чтобы кайму было проще снять. Отрицательное значение вдавливает кайму в башню. Зазор каймы модели здесь не используется."
+
+# AI Translated
+msgid ""
+"This factor affects the amount of material for the prime tower brim. The model's Brim flow ratio is not used here.\n"
+"\n"
+"The actual brim flow used is calculated by multiplying this value by the filament flow ratio."
+msgstr ""
+"Коэффициент количества материала для каймы черновой башни. Коэффициент потока каймы модели здесь не используется.\n"
+"\n"
+"Фактический поток каймы получается умножением этого значения на коэффициент потока филамента."
+
+# AI Translated
+msgid "The multimaterial prime tower cannot be used when the old filament is rammed into the tower (%1%). Turn off filament ramming, or turn off the multimaterial prime tower."
+msgstr "Мультиматериальную черновую башню нельзя использовать, пока старый филамент утрамбовывается (ramming) в башню (%1%). Отключите ramming филамента или мультиматериальную черновую башню."
+
+# AI Translated
+msgid "Turn off filament ramming now?"
+msgstr "Отключить ramming филамента сейчас?"
+
+
 msgid "Prime all printing extruders"
 msgstr "Подготовка всех печатающих экструдеров"
 

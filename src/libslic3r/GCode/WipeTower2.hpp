@@ -241,6 +241,8 @@ private:
 	float  m_wipe_tower_cone_angle = 0.f;
     float  m_wipe_tower_brim_width      = 0.f; 	// Width of brim (mm) from config
     float  m_wipe_tower_brim_width_real = 0.f; 	// Width of brim (mm) after generation
+    float  m_wipe_tower_brim_object_gap = 0.f;
+    float  m_wipe_tower_brim_flow_ratio = 1.f;
     BoundingBoxf m_first_layer_bbx;              // Actual first-layer bounding box (incl. brim/ribs)
 	float  m_wipe_tower_rotation_angle = 0.f; // Wipe tower rotation angle in degrees (with respect to x axis)
     float  m_internal_rotation  = 0.f;
@@ -282,6 +284,8 @@ private:
     float           m_extra_loading_move        = 0.f;
     float           m_bridging                  = 0.f;
     bool            m_sparse_layers_skipped     = false;
+    bool            m_use_first_layer_height    = false;
+    float           m_initial_layer_print_height = 0.f;
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
@@ -362,6 +366,12 @@ private:
 
 	// Calculates depth for all layers and propagates them downwards
 	void plan_tower();
+
+    // With no_sparse_layers, G-code drops every plan layer that has no tool change,
+    // including the object's first layer. The first layer that actually prints then
+    // carries that later object-layer height. When the option is on, reprint that
+    // layer at initial_layer_print_height so the tower still sits on a first-layer bead.
+    void apply_no_sparse_first_layer_height();
 
     // Goes through m_plan, calculates border and finish_layer extrusions and subtracts them from last wipe
     void save_on_last_wipe();

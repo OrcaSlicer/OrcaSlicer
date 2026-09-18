@@ -718,6 +718,7 @@ public:
 
 	WipeTowerWriter& 			 set_extrusion_flow(float flow)
 		{ m_extrusion_flow = flow; return *this; }
+    float                        get_extrusion_flow() const { return m_extrusion_flow; }
 
 	WipeTowerWriter&				 set_y_shift(float shift) {
         m_current_pos.y() -= shift-m_y_shift;
@@ -1899,6 +1900,8 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_wipe_tower_height(wipe_tower_height),
     m_wipe_tower_rotation_angle(float(config.wipe_tower_rotation_angle)),
     m_wipe_tower_brim_width(float(config.prime_tower_brim_width)),
+    m_wipe_tower_brim_object_gap(float(config.prime_tower_brim_object_gap)),
+    m_wipe_tower_brim_flow_ratio(float(config.prime_tower_brim_flow_ratio)),
     m_y_shift(0.f),
     m_z_pos(0.f),
     //m_bridging(float(config.wipe_tower_bridging)),
@@ -3861,6 +3864,15 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
     }
 
     if (loops_num > 0) {
+        const float old_flow = writer.get_extrusion_flow();
+        if (first_layer) {
+            if (std::abs(m_wipe_tower_brim_object_gap) > EPSILON) {
+                Polygons gapped = offset(outer_wall, scaled(m_wipe_tower_brim_object_gap));
+                if (!gapped.empty())
+                    outer_wall = gapped.front();
+            }
+            writer.set_extrusion_flow(old_flow * m_wipe_tower_brim_flow_ratio);
+        }
         //box_coordinates box = wt_box;
         for (size_t i = 0; i < loops_num; ++i) {
             outer_wall = offset(outer_wall, scaled(spacing)).front();
@@ -3874,9 +3886,10 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
             }*/
 
         if (first_layer) {
+            writer.set_extrusion_flow(old_flow);
             // Save actual brim width to be later passed to the Print object, which will use it
             // for skirt calculation and pass it to GLCanvas for precise preview box
-            m_wipe_tower_brim_width_real = loops_num * spacing + spacing / 2.f;
+            m_wipe_tower_brim_width_real = std::max(0.f, loops_num * spacing + spacing / 2.f + m_wipe_tower_brim_object_gap);
             //m_wipe_tower_brim_width_real = wt_box.ld.x() - box.ld.x() + spacing / 2.f;
         }
         //wt_box = box;

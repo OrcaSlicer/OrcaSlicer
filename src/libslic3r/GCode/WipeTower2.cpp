@@ -368,6 +368,7 @@ public:
 
 	WipeTowerWriter2& 			 set_extrusion_flow(float flow)
 		{ m_extrusion_flow = flow; return *this; }
+    float                        get_extrusion_flow() const { return m_extrusion_flow; }
 
 	WipeTowerWriter2&				 set_y_shift(float shift) {
         m_current_pos.y() -= shift-m_y_shift;
@@ -1030,6 +1031,8 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_wipe_tower_width(float(config.prime_tower_width)),
     m_wipe_tower_rotation_angle(float(config.wipe_tower_rotation_angle)),
     m_wipe_tower_brim_width(float(config.prime_tower_brim_width)),
+    m_wipe_tower_brim_object_gap(float(config.prime_tower_brim_object_gap)),
+    m_wipe_tower_brim_flow_ratio(float(config.prime_tower_brim_flow_ratio)),
     m_wipe_tower_cone_angle(float(config.wipe_tower_cone_angle)),
     m_extra_flow(float(config.wipe_tower_extra_flow/100.)),
     m_extra_spacing_wipe(float(config.wipe_tower_extra_spacing/100. * config.wipe_tower_extra_flow/100.)),
@@ -1038,6 +1041,8 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_z_pos(0.f),
     m_bridging(float(config.wipe_tower_bridging)),
     m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(config)),
+    m_use_first_layer_height(config.wipe_tower_use_first_layer_height),
+    m_initial_layer_print_height(float(config.initial_layer_print_height.value)),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
@@ -2098,6 +2103,15 @@ void WipeTower2::extrude_brim(WipeTowerWriter2& writer, Polygon& poly, float spa
 
     size_t loops_num = (brim_width + spacing / 2.f) / spacing;
 
+    if (std::abs(m_wipe_tower_brim_object_gap) > WT_EPSILON) {
+        Polygons gapped = offset(poly, scale_(m_wipe_tower_brim_object_gap));
+        if (!gapped.empty())
+            poly = gapped.front();
+    }
+
+    const float old_flow = writer.get_extrusion_flow();
+    writer.set_extrusion_flow(old_flow * m_wipe_tower_brim_flow_ratio);
+
     for (size_t i = 0; i < loops_num; ++ i) {
         poly = offset(poly, scale_(spacing)).front();
         int cp = poly.closest_point_index(Point::new_scale(writer.x(), writer.y()));
@@ -2110,10 +2124,11 @@ void WipeTower2::extrude_brim(WipeTowerWriter2& writer, Polygon& poly, float spa
                 break;
         }
     }
+    writer.set_extrusion_flow(old_flow);
     writer.append("; WIPE_TOWER_BRIM_END\n");
     // Save actual brim width to be later passed to the Print object, which will use it
     // for skirt calculation and pass it to GLCanvas for precise preview box
-    m_wipe_tower_brim_width_real = loops_num * spacing;
+    m_wipe_tower_brim_width_real = std::max(0.f, loops_num * spacing + m_wipe_tower_brim_object_gap);
 
     // Compute actual first-layer bounding box from the outermost brim polygon,
     // matching how WipeTower::get_bbx() uses m_outer_wall extents.
@@ -2283,7 +2298,26 @@ WipeTower2::WipeTowerInfo::ToolChange WipeTower2::set_toolchange(size_t old_tool
 	return WipeTowerInfo::ToolChange(old_tool, new_tool, ramming_depth + wiping_depth, ramming_depth, first_wipe_line, wipe_volume);
 }
 
+void WipeTower2::apply_no_sparse_first_layer_height()
+{
+    if (!m_sparse_layers_skipped || !m_use_first_layer_height)
+        return;
+    const float first_h = m_initial_layer_print_height;
+    if (first_h <= WT_EPSILON)
+        return;
 
+    for (size_t idx = 0; idx < m_plan.size(); ++idx) {
+        if (m_plan[idx].tool_changes.empty())
+            continue; // G-code skips this sparse layer
+        m_plan[idx].height = first_h;
+        // Point is_first_layer() at the layer that actually prints, so first-layer
+        // speed, flow, brim and wipe-depth planning follow the thicker bead.
+        m_first_layer_idx = idx;
+        for (WipeTowerInfo::ToolChange &tc : m_plan[idx].tool_changes)
+            tc = set_toolchange(tc.old_tool, tc.new_tool, first_h, tc.wipe_volume, true);
+        break;
+    }
+}
 
 void WipeTower2::plan_tower()
 {
@@ -2691,7 +2725,7 @@ WipeTower::ToolChangeResult WipeTower2::mm_region_layer(int units)
     // Same first-layer test as finish_layer(): with no_sparse_layers the plan's first
     // entry is often sparse and G-code later drops it, so the brim belongs on the first
     // toolchange instead.
-    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
+    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
     const float  outer_depth = m_layer_info->depth + m_perimeter_width;
 
     WipeTowerWriter2 writer(m_layer_height, m_perimeter_width, m_gcode_flavor, m_filpar, m_enable_arc_fitting);
@@ -2714,7 +2748,7 @@ WipeTower::ToolChangeResult WipeTower2::mm_tool_change(size_t new_tool, int unit
 {
     const size_t old_tool    = m_current_tool;
     const bool   shell       = new_tool == m_mm_shell_tool;
-    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
+    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
     const float  outer_depth = m_layer_info->depth + m_perimeter_width;
     // The old filament is not rammed here (mm_activate() requires it), so this box only tells the
     // unload and load sequences where the nozzle is; the purge itself goes into the new
@@ -2836,6 +2870,8 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 {
 	if (m_plan.empty())
         return;
+
+    apply_no_sparse_first_layer_height();
 
     mm_activate();
 

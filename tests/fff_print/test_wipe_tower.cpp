@@ -11,6 +11,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_helpers.hpp"
@@ -562,6 +563,53 @@ TEST_CASE("The prime tower keeps its brim when sparse layers are skipped", "[Wip
     }
 }
 
+TEST_CASE("No sparse layers can print the first tower layer at the print's first layer height", "[WipeTower]")
+{
+    // No sparse layers drops the plan's first (often sparse) entries, so the first layer
+    // that actually prints is a later object layer at layer_height. The option reprints
+    // that layer at initial_layer_print_height so the tower still sits on a first-layer bead.
+    const double first_h = 0.25;
+    const double layer_h = 0.10;
+    const bool   use_first     = GENERATE(false, true);
+    const bool   multimaterial = GENERATE(false, true);
+    DYNAMIC_SECTION("use first layer height " << (use_first ? "on" : "off")
+                    << ", multimaterial tower " << (multimaterial ? "on" : "off")) {
+        DynamicPrintConfig config = multimaterial_tower_config(multimaterial);
+        config.set_deserialize_strict({
+            { "wipe_tower_no_sparse_layers",       "1" },
+            { "wipe_tower_use_first_layer_height", use_first ? "1" : "0" },
+            { "initial_layer_print_height",        first_h },
+            { "layer_height",                      layer_h },
+            { "top_surface_filament_id",           1 },
+            { "bottom_surface_filament_id",        1 },
+            { "outer_wall_filament_id",            1 },
+            { "inner_wall_filament_id",            1 },
+            { "internal_solid_filament_id",        1 },
+            { "sparse_infill_filament_id",         2 },
+        });
+
+        Print print;
+        Model model;
+        slice_prime_tower(config, print, model);
+
+        const WipeTowerData &data = print.wipe_tower_data();
+        REQUIRE(data.tool_changes.size() > 1);
+        REQUIRE(std::any_of(data.tool_changes.begin(), data.tool_changes.end(), tower_layer_is_sparse));
+
+        float printed_h = 0.f;
+        bool  found     = false;
+        for (const std::vector<WipeTower::ToolChangeResult> &layer : data.tool_changes) {
+            if (tower_layer_is_sparse(layer))
+                continue;
+            printed_h = layer.front().layer_height;
+            found     = true;
+            break;
+        }
+        REQUIRE(found);
+        CHECK_THAT(printed_h, Catch::Matchers::WithinAbs(use_first ? first_h : layer_h, 1e-4));
+    }
+}
+
 TEST_CASE("The multimaterial prime tower is rejected for more than two filaments", "[WipeTower]")
 {
     // Three filaments would need nested rings; the generator only lays out the two regions, so
@@ -587,4 +635,68 @@ TEST_CASE("The multimaterial prime tower is rejected for more than two filaments
     REQUIRE(print.extruders().size() == 3);
     REQUIRE(print.has_wipe_tower());
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("exactly two filaments"));
+}
+
+TEST_CASE("Prime tower brim object gap is added outside the tower wall", "[WipeTower]")
+{
+    const bool multimaterial = GENERATE(false, true);
+    DYNAMIC_SECTION("multimaterial tower " << (multimaterial ? "on" : "off")) {
+        auto brim_width = [&](const char *gap) {
+            DynamicPrintConfig config = multimaterial_tower_config(multimaterial);
+            config.set_deserialize_strict({
+                { "prime_tower_brim_width",      "5" },
+                { "prime_tower_brim_object_gap", gap },
+            });
+            Print print;
+            Model model;
+            slice_prime_tower(config, print, model);
+            return print.wipe_tower_data().brim_width;
+        };
+        CHECK(brim_width("1") > brim_width("0") + 0.5f);
+        CHECK(brim_width("-1") + 0.5f < brim_width("0"));
+    }
+}
+
+TEST_CASE("Prime tower brim flow ratio scales brim extrusion", "[WipeTower]")
+{
+    auto brim_e = [](const char *ratio) {
+        DynamicPrintConfig config = multimaterial_tower_config(false);
+        config.set_deserialize_strict({
+            { "prime_tower_brim_width",       "5" },
+            { "prime_tower_brim_flow_ratio",  ratio },
+        });
+        const std::string gcode_str = slice_with_prime_tower(config);
+        bool   in_brim = false;
+        double e       = 0;
+        GCodeReader parser;
+        parser.parse_buffer(gcode_str, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (line.raw().find("WIPE_TOWER_BRIM_START") != std::string::npos)
+                in_brim = true;
+            else if (line.raw().find("WIPE_TOWER_BRIM_END") != std::string::npos)
+                in_brim = false;
+            else if (in_brim && line.extruding(self))
+                e += line.dist_E(self);
+        });
+        return e;
+    };
+    const double full = brim_e("1");
+    const double half = brim_e("0.5");
+    REQUIRE(full > 0);
+    CHECK_THAT(half / full, Catch::Matchers::WithinAbs(0.5, 0.1));
+}
+
+TEST_CASE("The multimaterial prime tower names the rammed filament and points at ramming", "[WipeTower]")
+{
+    DynamicPrintConfig config = multimaterial_tower_config(true);
+    config.set_key_value("filament_type", new ConfigOptionStrings{"PLA", "PETG"});
+    config.set_key_value("filament_multitool_ramming", new ConfigOptionBools{false, true});
+
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    const StringObjectException err = print.validate();
+    CHECK(err.opt_key == "filament_multitool_ramming");
+    CHECK_THAT(err.string, Catch::Matchers::ContainsSubstring("PETG"));
+    CHECK_THAT(err.string, Catch::Matchers::ContainsSubstring("#2"));
 }
