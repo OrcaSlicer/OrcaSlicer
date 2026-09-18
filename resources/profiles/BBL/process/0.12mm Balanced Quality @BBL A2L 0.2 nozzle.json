@@ -27,7 +27,6 @@
 	"slowdown_end_height": [
 		"225"
 	],
-	"smooth_coefficient": "4",
 	"travel_acceleration": [
 		"8000"
 	],

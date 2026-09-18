@@ -85,6 +85,15 @@ jobs:
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
+          # clang-cl refuses a precompiled header from another cl.exe build and ccache
+          # does not hash that build, so each one gets its own cache. The build number
+          # is read from cl.exe itself; the toolset directory keeps its name across patches.
+          if [ "${{ runner.os }}" = Windows ]; then
+            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
+            toolset=$(tr -d '\r\n' < "$("$vswhere" -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')")
+            cl=$("$vswhere" -latest -products '*' -find 'VC\Tools\MSVC\'"$toolset"'\**\cl.exe' | tr -d '\r' | head -1)
+            leg="$leg-vc$("$cl" 2>&1 | grep -o -E 'Version [0-9.]+' | cut -d' ' -f2)"
+          fi
           echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
           echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
@@ -450,21 +459,13 @@ jobs:
         # env:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
-        # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
+        # --tests builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
-          $arch = "${{ inputs.arch }}"
-          # -l selects clang-cl and -x Ninja; together they build the slicer with clang.
-          $clang = "${{ inputs.compiler }}" -eq "clang"
-          $flags = if ($clang) { "-l", "-x" } else { @() }
-          if ($clang) {
-            # Build against the same VC toolchain and SDK as the dependencies.
-            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-            $vs = & $vswhere -latest -property installationPath
-            $devArch = if ($arch -eq "arm64") { "arm64" } else { "amd64" }
-            Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-            Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=$devArch"
-          }
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 @flags tests } else { .\build_release_vs.bat slicer @flags tests }
+          # cache-path is the install directory inside the deps build directory.
+          $deps = (Split-Path "${{ inputs.cache-path }}").Replace('\', '/')
+          # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
+          $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
+          .\build_win.bat -s --tests -i --arch ${{ inputs.arch }} --build-dir $env:BUILD_DIR --deps-dir $deps @flags
         shell: pwsh
 
       - name: Build system preset cache (Windows)

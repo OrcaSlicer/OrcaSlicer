@@ -37,12 +37,14 @@ add_executable(${_TEST_NAME}_tests
     test_triangle_selector.cpp
     test_meshboolean.cpp
     test_marchingsquares.cpp
+    test_lay_on_face.cpp
     test_model.cpp
     test_utils.cpp
     test_timeutils.cpp
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
     test_wipe_tower.cpp
+    test_wipe_path.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     # test_png_io.cpp
