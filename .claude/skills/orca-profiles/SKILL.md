@@ -1,6 +1,6 @@
 ---
 name: orca-profiles
-description: Use when creating, modifying, reviewing or debugging OrcaSlicer FFF system profiles under resources/profiles, including printer/vendor/nozzle/material additions, bundle indexes and versions, preset renames, setting_id, filament_id and filament_id_snapshot.json. Also use for missing presets or vendors, ignored profile settings, ambiguous AMS filament matches, and failures from orca_profile_tool.py, check_profile.sh/.bat, OrcaSlicer_profile_validator or the Check profiles CI job.
+description: Use when creating, modifying, reviewing or debugging OrcaSlicer FFF system profiles under resources/profiles, including printer/vendor/nozzle/material additions, bundle indexes and versions, preset renames, setting_id and filament_id. Also use for missing presets or vendors, ignored profile settings, ambiguous AMS filament matches, and failures from orca_profile_tool.py, check_profile.sh/.bat, OrcaSlicer_profile_validator or the Check profiles CI job.
 ---
 
 # OrcaSlicer system profiles
@@ -21,7 +21,7 @@ Paths below are relative to this skill. Commands run from the repository root.
 | Add a printer or nozzle; change models, variants, assets or extruder vectors | [machine-profiles.md](references/machine-profiles.md) |
 | Add a quality tier or tune a process | [process-profiles.md](references/process-profiles.md) |
 | Create a vendor bundle; diagnose loading or inheritance; migrate preset names | [vendor-bundle.md](references/vendor-bundle.md) |
-| Change ids or snapshot claims; diagnose AMS identity | [ids.md](references/ids.md), then `docs/HLSD/filament_id.md` for identity changes |
+| Change ids; diagnose AMS identity | [ids.md](references/ids.md), then `docs/HLSD/filament_id.md` for identity changes |
 | Review a profile diff | [review-checklist.md](references/review-checklist.md) |
 | Run checks, interpret failures, test another tree or verify in the app | [validation.md](references/validation.md) |
 
@@ -71,14 +71,11 @@ Paths below are relative to this skill. Commands run from the repository root.
    python3 scripts/orca_profile_tool.py normalize --vendor "<Vendor>"
    python3 scripts/orca_profile_tool.py update-index --vendor "<Vendor>"
    python3 scripts/orca_profile_tool.py generate-id --vendor "<Vendor>"
-   python3 scripts/orca_profile_tool.py update-snapshot
    python3 scripts/orca_profile_tool.py check
    ```
 
    Writing commands support `--dry-run`. Inspect their diffs: `normalize` changes content and can
-   reformat entire files. `update-snapshot` is tree-wide; include its diff whenever a filament id
-   **or claim** changes, even if no new id was minted. Skip it when filament identity and claims
-   are unchanged. Stop and resolve command errors before proceeding.
+   reformat entire files. Stop and resolve command errors before proceeding.
 
    **Do not use `trim` in this workflow:** it can delete newly authored, unindexed profiles.
    Do not use `normalize --force` for routine edits.

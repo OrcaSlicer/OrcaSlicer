@@ -10,23 +10,19 @@ commands:
   normalize        rewrite profile files into their canonical shape
   trim             delete profile files no <vendor>.json list references
   update-index     regenerate the *_list sections of <vendor>.json
-  update-snapshot  re-record scripts/filament_id_snapshot.json
 
 options shared by several commands:
   --vendor VENDOR      act on one vendor bundle only; repeatable, empty means all
-                       (every command but update-snapshot)
   --profile-type TYPE  one of machine_model/process/filament/machine; repeatable
                        (normalize, trim, update-index)
   --dry-run            report what would change and write nothing (every command
                        that writes)
-  --profiles DIR       act on another profile tree (default: resources/profiles);
-                       check and update-snapshot then need --snapshot PATH too,
-                       since the snapshot describes resources/profiles alone
+  --profiles DIR       act on another profile tree (default: resources/profiles)
 
 After adding, renaming or deleting profile files, run:
-  normalize -> update-index -> generate-id -> update-snapshot -> check
+  normalize -> update-index -> generate-id -> check
 normalize supplies missing types; update-index registers presets before id
-generation. update-snapshot is needed when filament ids or claims change.
+generation.
 Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
 the current index and can delete newly added, unindexed presets.
 
@@ -55,8 +51,8 @@ filament_id policy (see docs/HLSD/filament_id.md):
         filament_id = "OF" + base62_6( uuid5(FILAMENT_ID_NAMESPACE,
             "filament_product/<filament_vendor>/<filament_type>/<filament_name>") )
     8 chars total, which satisfies the AMS length limit. Nobody invents ids by
-    hand, and nothing but the triple feeds the mint — not the rest of the tree,
-    not the snapshot. Two products whose triples mint one id (a base62
+    hand, and nothing but the triple feeds the mint — not the rest of the tree.
+    Two products whose triples mint one id (a base62
     collision; odds ~1e-5 over the whole tree) is an error --check reports and
     --generate refuses to write; the remedy is a rename so the triples differ,
     never a salted or hand-picked second id.
@@ -70,12 +66,6 @@ filament_id policy (see docs/HLSD/filament_id.md):
     the app applies at the printer boundary), the QD_* ids a Qidi box composes at
     runtime, and the P+7-hex ids CreatePresetsDialog.cpp gives user-created
     filaments all fail the format rule like any other stray value.
-  * scripts/filament_id_snapshot.json is the sanctioned-state snapshot: one
-    entry per id, carrying the product triple it is minted from and the
-    "Vendor/Filament" presets claiming it. It must exactly equal the tree-derived
-    state at all times, so any id/claim/triple change shows up as a reviewable
-    diff to that file (the maintainer gate). It sanctions state, never
-    exceptions: no check consults it to excuse a preset from the rules above.
 
 setting_id policy (see AGENTS.md "Critical Constraints"):
   * setting_id is a PRESET id, a pure function of the preset's identity:
@@ -123,7 +113,6 @@ FILAMENT_ID_LENGTH = 6  # base62 digits after the "OF" prefix -> 8 chars total
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROFILES_DIR = os.path.normpath(os.path.join(SCRIPTS_DIR, "..", "resources", "profiles"))
-SNAPSHOT_PATH = os.path.join(SCRIPTS_DIR, "filament_id_snapshot.json")
 # The single source of truth for the map path; update_bambu_filament_ids.py
 # imports this rather than recomputing it.
 BAMBU_MAP_PATH = os.path.normpath(
@@ -193,7 +182,6 @@ _JSON_STR = r'"(?:[^"\\]|\\.)*"'
 
 GENERATE_CMD = "python scripts/orca_profile_tool.py generate-id"
 SETTING_ID_CMD = '"python scripts/orca_profile_tool.py generate-id --setting-id"'
-UPDATE_HINT = 'run "python scripts/orca_profile_tool.py update-snapshot" and commit the diff for maintainer review'
 BAMBU_MAP_HINT = 'regenerate the map with "python scripts/update_bambu_filament_ids.py" and commit the diff for maintainer review'
 NORMALIZE_HINT = 'try "python scripts/orca_profile_tool.py normalize" to fix common issues automatically'
 
@@ -246,8 +234,8 @@ def _base62_tail(n, length):
     """The low `length` base62 digits of n, most-significant first.
 
     The shared tail of both id rules. Its output bytes are pinned by the C++
-    golden vectors (tests/libslic3r/test_preset_setting_id.cpp) and by the
-    filament_id snapshot — never change it.
+    golden vectors (tests/libslic3r/test_preset_setting_id.cpp) and by every
+    filament_id in the tree — never change it.
     """
     digits = []
     for _ in range(length):
@@ -483,9 +471,8 @@ def resolve_triple(name, filaments, ofl_filaments):
 def analyze_tree(profiles_dir):
     """Load every vendor bundle and derive the full filament_id state.
 
-    Returns a dict with the tree-derived snapshot sections plus the working data
-    the checks and the assign pass need. All claims are "Vendor/Filament" strings
-    over INSTANTIATED system filaments, tree-wide including OFL and BBL.
+    Returns a dict of the tree-derived state the checks and the assign pass need,
+    tree-wide including OFL and BBL.
     """
     profiles_dir = str(profiles_dir)
     vendor_names = list_vendor_names(profiles_dir)
@@ -507,11 +494,6 @@ def analyze_tree(profiles_dir):
             rec["id_source"] = src
         vendors[vendor] = filaments
 
-    # id -> set of "Vendor/Filament" claims over instantiated presets. Every id
-    # occurring in the tree is a key; ids only ever DECLARED (e.g. on a root
-    # none of whose descendants instantiate) keep an empty claim list, so that
-    # the snapshot exactly equals the tree-derived state.
-    ids = {}
     vendor_ids = {}             # vendor -> set of ids occurring there (declared or effective)
     declared_ids = {}           # vendor -> set of ids DECLARED in that vendor's own files
     missing_effective = []      # (vendor, name, file) instantiated presets resolving no id
@@ -532,7 +514,6 @@ def analyze_tree(profiles_dir):
                 fid = rec["filament_id"]
                 occurring.add(fid)
                 declared_ids.setdefault(vendor, set()).add(fid)
-                ids.setdefault(fid, set())
                 declarer_triples.append((vendor, rec, fid, triple))
                 triples.setdefault(fid, set()).add(triple)
                 filament_triples.setdefault(
@@ -545,11 +526,10 @@ def analyze_tree(profiles_dir):
                 missing_effective.append((vendor, rec["name"], rec["file"]))
                 continue
             occurring.add(eff)
-            ids.setdefault(eff, set()).add(f"{vendor}/{base_name(rec['name'])}")
             if not rec.get("filament_id") and OF_ID_RE.match(eff):
                 inherited.append((vendor, rec, eff, triple))
 
-    # Cross-bundle triple divergence (check 4, warning only): the same filament
+    # Cross-bundle triple divergence (check 3, warning only): the same filament
     # name declared in several bundles with different triples cannot converge
     # on one id until the divergence is fixed.
     name_bundles = {}
@@ -564,7 +544,6 @@ def analyze_tree(profiles_dir):
     return {
         "vendors": vendors,
         "read_errors": read_errors,
-        "ids": {fid: sorted(claims) for fid, claims in ids.items()},
         "vendor_ids": vendor_ids,
         "declared_ids": declared_ids,
         "missing_effective": sorted(missing_effective),
@@ -579,56 +558,15 @@ def analyze_tree(profiles_dir):
 
 
 # ---------------------------------------------------------------------------
-# Snapshot IO
-# ---------------------------------------------------------------------------
-
-def snapshot_from_analysis(analysis):
-    """One entry per id, in id order: the product triple it is minted from and
-    the "Vendor/Filament" claims on it. Requires exactly one declared triple per
-    id (update_snapshot refuses any other state; check 3 rejects it anyway)."""
-    ids = {}
-    for fid, claims in sorted(analysis["ids"].items()):
-        [(vendor, ftype, filament_name)] = analysis["triples"][fid]
-        ids[fid] = {"filaments": sorted(claims), "name": filament_name,
-                    "filament_type": ftype, "filament_vendor": vendor}
-    return {"ids": ids}
-
-
-def snapshot_triple(entry):
-    return [entry["filament_vendor"], entry["filament_type"], entry["name"]]
-
-
-def load_snapshot(path):
-    """Return the snapshot dict, or None when the file does not exist."""
-    if not os.path.exists(path):
-        return None
-    data = load_json(path)
-    data.setdefault("ids", {})
-    return data
-
-
-def write_snapshot(path, obj):
-    """Deterministic serialization: snapshot_from_analysis order, indent 1, LF,
-    trailing newline."""
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(obj, f, indent=1, ensure_ascii=False)
-        f.write("\n")
-
-
-# ---------------------------------------------------------------------------
 # filament_id validation
 # ---------------------------------------------------------------------------
 
-def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
-                       map_path=BAMBU_MAP_PATH):
+def check_filament_ids(profiles_dir=PROFILES_DIR, map_path=BAMBU_MAP_PATH):
     """Validate filament_id state across every vendor. Returns the error count.
 
     1. Format: every id occurring in the tree (declared or effective) must
-       match ^OF[0-9A-Za-z]{6}$. No exceptions: not the snapshot, not BBL.
-    2. Snapshot equality, both directions: every id in the tree, the filaments
-       claiming it and the triple its declarers resolve must equal the snapshot
-       entry exactly (the snapshot diff is the maintainer gate).
-    3. Identity: the id is a function of the triple alone, and there is no
+       match ^OF[0-9A-Za-z]{6}$. No exceptions, not even BBL.
+    2. Identity: the id is a function of the triple alone, and there is no
        second acceptable value. (a) A declared id must equal the one id the
        declarer's own triple mints; (b) the id an instantiated preset inherits
        must equal the one ITS own triple mints — how it inherits it (a root, a
@@ -636,30 +574,21 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
        filament resolves an effective id at all (an id-less one is a hard load
        error in C++); (d) no two products mint one id (a base62 collision,
        resolved by renaming one of them).
-    4. Triple integrity: (a) every declarer resolves non-empty filament_vendor
+    3. Triple integrity: (a) every declarer resolves non-empty filament_vendor
        and filament_type; (b) declarers of one (bundle, filament) resolve
        identical triples; cross-bundle divergence on the same filament name is a
        warning only.
-    5. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
+    4. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
        carry source/bambustudio_commit/generated, key only OF-format ids, map
        each Bambu id at most once, and for every row whose key the tree claims,
        the tree's triple for that id must equal the row's (vendor, type, name).
-
-    Nothing is grandfathered: the snapshot sanctions state, never exceptions.
     """
     _utf8_console()
     errors = 0
     analysis = analyze_tree(profiles_dir)
-    snapshot = load_snapshot(snapshot_path)
-    if snapshot is None:
-        print_error(f"filament_id snapshot not found at {snapshot_path}; {UPDATE_HINT}")
-        return 1
     for msg in analysis["read_errors"]:
         print_error(msg)
         errors += 1
-
-    snap_ids = snapshot["ids"]
-    tree_ids = analysis["ids"]
 
     # -- 1. format ----------------------------------------------------------
     for vendor in sorted(analysis["vendor_ids"]):
@@ -671,47 +600,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 f'filament ids must come from "{GENERATE_CMD}"')
             errors += 1
 
-    # -- 2. snapshot equality (both directions) -----------------------------
-    tree_triples = analysis["triples"]
-    for fid in sorted(tree_ids):
-        entry = snap_ids.get(fid)
-        if entry is None:
-            print_error(
-                f'filament_id "{fid}" is not sanctioned by '
-                f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
-            errors += 1
-            continue
-        for claim in tree_ids[fid]:
-            if claim not in entry["filaments"]:
-                print_error(
-                    f'filament_id "{fid}" claim "{claim}" is not sanctioned by '
-                    f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
-                errors += 1
-        # Every tree id has at least one declarer; the snapshot records one
-        # triple per id, so a divergent declarer is a mismatch in both directions.
-        sanctioned = snapshot_triple(entry)
-        for t in tree_triples[fid]:
-            if t != sanctioned:
-                print_error(
-                    f'filament_id "{fid}" triple "{"/".join(t)}" is not sanctioned by '
-                    f'scripts/filament_id_snapshot.json, which records '
-                    f'"{"/".join(sanctioned)}"; {UPDATE_HINT}')
-                errors += 1
-    for fid in sorted(snap_ids):
-        if fid not in tree_ids:
-            print_error(
-                f'filament_id stability: snapshot id "{fid}" vanished from the tree; '
-                f"{UPDATE_HINT}")
-            errors += 1
-            continue
-        for claim in snap_ids[fid]["filaments"]:
-            if claim not in tree_ids[fid]:
-                print_error(
-                    f'filament_id stability: snapshot claim "{claim}" of id "{fid}" '
-                    f"vanished from the tree; {UPDATE_HINT}")
-                errors += 1
-
-    # -- 3. identity: the id is a function of the triple alone ---------------
+    # -- 2. identity: the id is a function of the triple alone ---------------
     # One triple, one id: a declaration must carry exactly the mint of its
     # triple, and there is no second acceptable value — not a salt, not a
     # hand-picked one, not whatever another preset of the product carries. Two
@@ -727,10 +616,9 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f'filament_id "{fid}" declared by "{rec["name"]}" ({rec["file"]}) does '
             f'not match the mint of its triple "{"/".join(triple)}": expected '
             f'"{want}"; paste the expected id, or fix the triple and run '
-            f'"{GENERATE_CMD} --vendor {vendor}" (preview with --dry-run), then '
-            f"--update-snapshot")
+            f'"{GENERATE_CMD} --vendor {vendor}" (preview with --dry-run)')
         errors += 1
-    # (3b) An inherited id is held to the same single value, and every preset
+    # (2b) An inherited id is held to the same single value, and every preset
     # missing it is listed — a variant under a wrong root as much as a preset
     # riding another product's root. Nothing is folded into the declarer's
     # error: the report names each preset whose id is wrong.
@@ -755,7 +643,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f'run "{GENERATE_CMD}" (expected id for filament '
             f'"{vendor}/{base_name(name)}": "{expected}")')
         errors += 1
-    # (3d) The mint is injective over the tree's products, or two of them are
+    # (2d) The mint is injective over the tree's products, or two of them are
     # indistinguishable to every device that matches on the id.
     for fid, ts in sorted(analysis["collisions"].items()):
         print_error(
@@ -764,7 +652,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"of them so their triples differ")
         errors += 1
 
-    # -- 4. triple integrity ---------------------------------------------------
+    # -- 3. triple integrity ---------------------------------------------------
     for vendor, rec, fid, triple in sorted(
             analysis["declarer_triples"], key=lambda x: (x[0], x[1]["file"])):
         if triple[0] and triple[1]:
@@ -797,7 +685,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"({detail}); bundles of one product converge on one id only once "
             f"their triples agree")
 
-    # -- 6. Bambu catalog map --------------------------------------------------
+    # -- 4. Bambu catalog map --------------------------------------------------
     try:
         bambu_map = load_json(map_path)
         if not isinstance(bambu_map, dict):
@@ -838,7 +726,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 errors += 1
             else:
                 bambu_id_owners[bambu_id] = fid
-            claimed = tree_triples.get(fid)
+            claimed = analysis["triples"].get(fid)
             if not claimed:
                 continue  # a product BambuStudio ships that the tree does not (yet)
             row_triple = [row.get("vendor", ""), row.get("type", ""), row.get("name", "")]
@@ -1404,7 +1292,7 @@ def check_normalized(profiles_dir, vendor):
 # check
 # ---------------------------------------------------------------------------
 
-def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSHOT_PATH):
+def check_profiles(profiles_dir=PROFILES_DIR, vendors=None):
     """Validate the whole profile tree. Returns the error count.
 
     The per-vendor checks honour `vendors`; the setting_id and filament_id checks are
@@ -1468,7 +1356,7 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
     # Cross-vendor checks: setting_id uniqueness and the whole filament_id state,
     # both validated over the entire tree regardless of --vendor.
     errors_found += check_setting_id_uniqueness(profiles_dir)
-    errors_found += check_filament_ids(profiles_dir, snapshot_path)
+    errors_found += check_filament_ids(profiles_dir)
 
     print("\n==================== SUMMARY ====================")
     print_info(f"Checked vendors     : {len(checked)}")
@@ -1484,69 +1372,6 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
     if errors_found > 0 or warnings_found > 0:
         print_warning(f"Issue(s) found, {NORMALIZE_HINT}")
     return errors_found
-
-
-# ---------------------------------------------------------------------------
-# update-snapshot
-# ---------------------------------------------------------------------------
-
-def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH, dry_run=False):
-    """Regenerate the snapshot from the tree.
-
-    Refuses to sanction a tree it could not read whole, and an id declared under
-    more than one triple: neither state can be recorded truthfully, so writing it
-    would only hide the mistake until CI. It does not judge the ids themselves —
-    the snapshot records state and check judges it, so an id that is not a mint
-    lands in the diff and fails check 1.
-    Idempotent: a second run over an unchanged tree changes nothing. Returns 0
-    on success.
-    """
-    analysis = analyze_tree(profiles_dir)
-    # A tree that could not be read whole cannot be sanctioned: the snapshot
-    # would silently drop the unreadable bundle's ids and claims, and the diff
-    # would read as a deliberate removal.
-    refusals = len(analysis["read_errors"])
-    for msg in analysis["read_errors"]:
-        print_error(msg)
-
-    for fid, ts in sorted(analysis["triples"].items()):
-        if len(ts) > 1:
-            print_error(
-                f'refusing to sanction filament_id "{fid}": declared under {len(ts)} '
-                f'triples ({"; ".join("/".join(t) for t in ts)}); one id names one '
-                f"product (check 3)")
-            refusals += 1
-    if refusals:
-        return 1
-
-    new_snap = snapshot_from_analysis(analysis)
-    old_snap = load_snapshot(snapshot_path)
-    old_ids = old_snap["ids"] if old_snap else {}
-
-    # Diff summary.
-    added_ids = sorted(set(new_snap["ids"]) - set(old_ids))
-    removed_ids = sorted(set(old_ids) - set(new_snap["ids"]))
-    added_claims = sum(
-        len(set(entry["filaments"]) - set(old_ids.get(fid, {}).get("filaments", [])))
-        for fid, entry in new_snap["ids"].items())
-    removed_claims = sum(
-        len(set(entry["filaments"]) - set(new_snap["ids"].get(fid, {}).get("filaments", [])))
-        for fid, entry in old_ids.items())
-    changed = new_snap != (old_snap or {"ids": {}})
-
-    if changed and not dry_run:
-        write_snapshot(snapshot_path, new_snap)
-
-    print_info(f"snapshot ids      : {len(new_snap['ids'])} (+{len(added_ids)} / -{len(removed_ids)})")
-    print_info(f"claims added      : {added_claims}")
-    print_info(f"claims removed    : {removed_claims}")
-    if changed and dry_run:
-        print_success(f"dry run: {snapshot_path} would be rewritten; nothing written")
-    elif changed:
-        print_success(f"snapshot written to {snapshot_path}")
-    else:
-        print_success("snapshot already up to date; nothing changed")
-    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -1692,9 +1517,9 @@ def generate_filament_ids(profiles_dir=PROFILES_DIR, vendors=None, dry_run=False
       * an instantiated filament that resolves no id at all gets one inserted
         into its root(s): the id-less presets of the SAME filament its members
         inherit, or the member itself (a parent of another filament cannot carry
-        this filament's id — check 3).
+        this filament's id — check 2).
     A declaration is left alone exactly when it already equals the one id its
-    triple mints (check 3). Two products minting one id (check 3d) are reported
+    triple mints (check 2). Two products minting one id (check 2d) are reported
     and left unwritten: nothing salts past a collision, a rename resolves it.
 
     `vendors` restricts what is WRITTEN; the id is a function of the triple
@@ -1702,9 +1527,7 @@ def generate_filament_ids(profiles_dir=PROFILES_DIR, vendors=None, dry_run=False
     reports whatever it was not allowed to touch. `changed_paths`, when a set is
     passed, collects the files that changed. A file whose layout offers no
     anchor for the edit is reported and counted as an error, so one odd profile
-    cannot abort the pass over all the others. Never reads or touches the
-    snapshot — run --update-snapshot afterwards and review the diff. Returns
-    (files_changed, errors).
+    cannot abort the pass over all the others. Returns (files_changed, errors).
     """
     _utf8_console()
     analysis = analyze_tree(profiles_dir)
@@ -1959,9 +1782,9 @@ def run_generate_id(profiles_dir, vendors, filament_id, setting_id, dry_run):
     do_filament = filament_id or not setting_id
     do_setting = setting_id or not filament_id
     changed = set()  # one file the two passes both touch is still one file
-    filament_files = errors = 0
+    errors = 0
     if do_filament:
-        filament_files, e = generate_filament_ids(profiles_dir, vendors, dry_run, changed)
+        _n, e = generate_filament_ids(profiles_dir, vendors, dry_run, changed)
         errors += e
     if do_setting:
         _n, e = generate_setting_ids(profiles_dir, vendors, dry_run, changed)
@@ -1973,11 +1796,6 @@ def run_generate_id(profiles_dir, vendors, filament_id, setting_id, dry_run):
         print_error(f"{summary}; {errors} error(s)")
     else:
         print_success(summary)
-    if filament_files and not dry_run:
-        # A filament_id write may or may not move the sanctioned state (an id repaired
-        # back to the value the snapshot already records does not), so regenerate and
-        # let the diff - empty or not - say.
-        print_warning(f"now {UPDATE_HINT}")
     return 1 if errors else 0
 
 
@@ -2439,13 +2257,11 @@ examples:
       preview exactly that; writes nothing
   orca_profile_tool.py generate-id --setting-id --vendor Elegoo
       setting_id only, and only in that bundle
-  orca_profile_tool.py update-snapshot
-      re-record the sanctioned filament_id state after a generate-id run
 
 after adding, renaming or deleting profile files, run in this order:
-  normalize -> update-index -> generate-id -> update-snapshot -> check
+  normalize -> update-index -> generate-id -> check
 normalize supplies missing types; update-index registers presets before id
-generation. update-snapshot is needed when filament ids or claims change.
+generation.
 Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
 the current index and can delete newly added, unindexed presets.
 """
@@ -2473,12 +2289,6 @@ def build_parser():
     dry_run_opt.add_argument("--dry-run", "--dryrun", dest="dry_run", action="store_true",
                              help="report what would change and write nothing")
 
-    snapshot_opt = argparse.ArgumentParser(add_help=False)
-    snapshot_opt.add_argument("--snapshot", default=None, metavar="PATH",
-                              help="the sanctioned filament_id state of that tree "
-                                   "(default: scripts/filament_id_snapshot.json, which "
-                                   "describes resources/profiles and no other tree)")
-
     parser = argparse.ArgumentParser(
         prog="orca_profile_tool.py", allow_abbrev=False,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -2496,7 +2306,7 @@ def build_parser():
             allow_abbrev=False, formatter_class=argparse.RawDescriptionHelpFormatter)
 
     add(
-        "check", [vendor_opt, snapshot_opt, profiles_opt],
+        "check", [vendor_opt, profiles_opt],
         "validate the whole profile tree -- what CI runs",
         "Validate the whole profile tree: preset name uniqueness, index coverage\n"
         "both ways, compatible_printers, default-material references, obsolete,\n"
@@ -2560,11 +2370,6 @@ def build_parser():
         "Use trim only for deliberate unindexed-file cleanup, previewed with\n"
         "--dry-run; it can also delete newly authored presets.")
 
-    add("update-snapshot", [dry_run_opt, snapshot_opt, profiles_opt],
-        "re-record scripts/filament_id_snapshot.json",
-        "Re-record the sanctioned filament_id state after a generate-id run, and\n"
-        "commit the diff for maintainer review.")
-
     return parser
 
 
@@ -2590,28 +2395,13 @@ def main(argv=None):
             return 1
     profile_types = tuple(getattr(args, "profile_type", []) or ()) or None
 
-    snapshot_path = getattr(args, "snapshot", None)
-    if snapshot_path is None:
-        if (args.command in ("check", "update-snapshot")
-                and os.path.abspath(profiles_dir) != os.path.abspath(PROFILES_DIR)):
-            # The repo snapshot is the sanctioned state of resources/profiles alone:
-            # checking another tree against it is meaningless, and re-recording one
-            # into it would overwrite the tracked file with a foreign tree's state.
-            parser.error(f"{args.command} reads and writes the sanctioned state of the "
-                         f"tree it is given, so --profiles needs --snapshot PATH for "
-                         f"that tree too")
-        snapshot_path = SNAPSHOT_PATH
-
     if args.command == "check":
-        errors = check_profiles(profiles_dir, vendors, snapshot_path)
+        errors = check_profiles(profiles_dir, vendors)
         return 1 if errors else 0
 
     if args.command == "generate-id":
         return run_generate_id(profiles_dir, vendors, args.filament_id, args.setting_id,
                                args.dry_run)
-
-    if args.command == "update-snapshot":
-        return update_snapshot(profiles_dir, snapshot_path, dry_run=args.dry_run)
 
     if args.command == "normalize":
         _changed, errors = normalize_profiles(profiles_dir, vendors, profile_types,

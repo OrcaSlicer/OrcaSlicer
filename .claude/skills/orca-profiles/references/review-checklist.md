@@ -51,11 +51,11 @@ and take the whole vendor bundle down; an unindexed file gets reviewed, merged a
 ## 3. Are ids generated, not written?
 
 No hand-typed or copied `setting_id` / `filament_id`. Instantiated presets have a `setting_id`; bases do
-not. A filament id change comes with a `scripts/filament_id_snapshot.json` diff in the same commit.
-`check` enforces all of that; what it cannot tell you is whether the identity *should* have moved.
+not. `check` enforces all of that; what it cannot tell you is whether the identity *should* have moved.
 
-Read the snapshot diff as the identity gate: a removed id or a changed triple means a product's identity
-moved, and the old id is not forwarded anywhere. Confirm that was intended.
+A rewritten or removed `filament_id` means a product's identity moved — a rename, or an edited
+`filament_vendor` / `filament_type` — and the old id is not forwarded anywhere. Confirm that was
+intended, and that a new id is not a rename in disguise.
 
 *Why:* a duplicate `filament_id` on one printer makes AMS spool matching a coin toss; a copied
 `setting_id` breaks preset identity. See [ids.md](ids.md).

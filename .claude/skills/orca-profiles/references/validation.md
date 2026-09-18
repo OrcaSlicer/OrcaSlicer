@@ -62,8 +62,7 @@ as SKIP for a vendor with no `machine/` folder.
 ## `orca_profile_tool.py check`
 
 `check` is one subcommand of the tool that also owns
-`generate-id`, `normalize`, `trim`, `update-index` and `update-snapshot`; see [ids.md](ids.md) for the
-writing half.
+`generate-id`, `normalize`, `trim` and `update-index`; see [ids.md](ids.md) for the writing half.
 
 | Per vendor | Catches |
 | --- | --- |
@@ -177,21 +176,14 @@ pre-existing user files may be present.
 
 ## Checking a copy of the tree
 
-Use `--profiles DIR` on the Python tool and `-p DIR` on the validator.
-`check` and `update-snapshot` describe a tree's sanctioned id state, so pointing them elsewhere also
-needs `--snapshot PATH` for that tree — passing `--profiles` without it exits 2 rather than silently
-judging the copy against `resources/profiles`'s snapshot.
-
-**The wrappers' `--profiles` / `-ProfilesDir` redirects only their validator checks.** Their
-`profile_tool` check still reads this checkout's `resources/profiles`. To validate a copy fully,
-run the Python check separately with that tree's snapshot, then name only validator checks:
+Use `--profiles DIR` on the Python tool and `-p DIR` on the validator. The wrappers' `--profiles` /
+`-ProfilesDir` passes the tree to both, so one run validates a copy fully:
 
 ```bash
-python3 scripts/orca_profile_tool.py check --profiles "<tree>" --snapshot "<snapshot.json>"
-./scripts/check_profile.sh --profiles "<tree>" validate_system validate_slice validate_filament_subtypes validate_custom
+./scripts/check_profile.sh --profiles "<tree>"
 ```
 
-On Windows use `py -3` and `scripts\check_profile.bat -ProfilesDir "<tree>"` with the same check names.
+On Windows use `scripts\check_profile.bat -ProfilesDir "<tree>"`.
 
 ## Testing in the app
 
@@ -238,7 +230,6 @@ Keep stems tidy too, but a space immediately before `.json` is not a trailing pa
 | `[ERROR] … normalize would <change>` / `<V>.json: update-index would rebuild <lists>` | run that command and commit the result |
 | `[ERROR] <V> has N <type> profiles named "<name>"` | identify the intended preset and remove or rename the duplicate; use `trim --dry-run` only for deliberate unindexed-file cleanup |
 | `[ERROR] … must not have a setting_id` / `is missing a setting_id` | `generate-id --setting-id` |
-| `[ERROR] filament_id "<id>" is not sanctioned by …snapshot.json` | `update-snapshot`, commit the diff |
 | `inherits filament_id "X" but its own triple … mints "Y"` | `generate-id` will **not** fix this — see [ids.md](ids.md) |
 | `vendor <V>'s config version: <s> invalid` | the `version` string is not Semver-parseable |
 | `[json.exception.type_error.302] type must be string` | locate the non-string value in the index or model; see [failure scopes](vendor-bundle.md#failure-modes-ranked-by-blast-radius) |
@@ -260,5 +251,5 @@ once the run is green.
 
 The job name is also the required check for the delegated-merge bot, which lets a vendor maintainer
 self-merge a `resources/profiles/<Their vendor>/` PR with no human review — so whatever CI does not check
-is what ships unreviewed. Its denied patterns refuse `^scripts/` and any `.py`, so a PR that must update
-`scripts/filament_id_snapshot.json` always needs a maintainer.
+is what ships unreviewed. Its denied patterns refuse `^scripts/` and any `.py`, so a PR that touches the
+tooling always needs a maintainer.

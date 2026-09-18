@@ -82,9 +82,7 @@ Options:
 Note: profile_tool is the only check that is not the validator binary; it makes the static
 checks the validator cannot, because the validator loads the tree the way the slicer does
 and so never sees a profile no <vendor>.json indexes, a preset name two files claim, or a
-file normalize and update-index would still rewrite. It always looks at the tree next to
-the script (<repo>/resources/profiles); --profiles only redirects the validator checks,
-because validating another tree's ids needs that tree's own filament_id snapshot too.
+file normalize and update-index would still rewrite.
 
 Note: --vendor narrows validate_custom too, by keeping only that vendor's presets in each
 fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
@@ -366,7 +364,7 @@ resolve_validator() {
 # ---------------------------------------------------------------------------- checks
 
 check_profile_tool() {
-    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --vendor "${VENDOR}"
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --profiles "${PROFILES_DIR}" --vendor "${VENDOR}"
 }
 
 check_validate_system() {
