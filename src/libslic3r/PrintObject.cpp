@@ -3447,8 +3447,10 @@ void PrintObject::bridge_over_infill()
                             if (&lower_region->region() != &candidate.region->region() ||
                                 intersection(area_to_be_bridge, to_polygons(lower_region->fill_surfaces.filter_by_type(stInternal))).empty())
                                 continue;
-                            bridging_angle = calculate_infill_rotation_angle(po, layer->lower_layer->id(), region_config.infill_direction.value,
-                                                                            region_config.sparse_infill_rotate_template.value) + 0.5 * PI;
+                            bridging_angle = calculate_infill_rotation_angle(po, layer->lower_layer->id(), 
+                                                                             !region_config.sparse_infill_rotate_template.value.empty() ?
+                                                                                 0. : region_config.infill_direction.value,
+                                                                             region_config.sparse_infill_rotate_template.value) + 0.5 * PI;
                             // Orca: Apply model alignment as infill generation does, then normalize
                             // the undirected bridge angle to [0, PI), including negative rotations.
                             if (region_config.align_infill_direction_to_model) {
