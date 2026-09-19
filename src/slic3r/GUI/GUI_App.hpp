@@ -350,6 +350,11 @@ public:
     int             OnExit() override;
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
+#ifdef SLIC3R_CAD
+    inline bool     is_enable_cad_feature() { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+    inline bool     is_auto_close_sketch_loops() { return !this->app_config
+        || this->app_config->get_bool("auto_close_sketch_loops"); }
+#endif
 
     std::map<std::string, bool> test_url_state;
 
@@ -594,6 +599,11 @@ public:
     std::string     get_saved_mode_str();
     std::string     get_mode_str();
     void            save_mode(const /*ConfigOptionMode*/int mode) ;
+    // Switch to `mode` from the Speed Dial: a developer-mode override hides the saved mode
+    // (get_mode returns comDevelop), so clear it first and persist the choice.
+    void            set_mode(ConfigOptionMode mode);
+    // Turn the developer-mode override on and refresh the UI (used before jumping to a Developer setting).
+    void            enable_developer_mode();
     void            update_mode();
     void            update_internal_development();
     void            show_ip_address_enter_dialog(wxString title = wxEmptyString);
@@ -632,6 +642,9 @@ public:
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
+    void            refresh_plugins();
+    void            install_local_plugin();
     void            open_terminal_dialog();
     void            open_speed_dial();
     ActionRegistry& action_registry() { return m_action_registry; }

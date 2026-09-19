@@ -9,6 +9,7 @@
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Format/DRC.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -367,7 +368,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
         wxLANGUAGE_VIETNAMESE,
-        wxLANGUAGE_THAI
+        wxLANGUAGE_THAI,
+        wxLANGUAGE_ROMANIAN
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
@@ -1003,6 +1005,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetToolTip(tip);
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
+    if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
@@ -1028,6 +1031,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().stop_sync_user_preset();
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
+        }
+        else if (param == SETTING_OPENGL_SCENE_CACHE) {
+            if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -1724,6 +1730,36 @@ void PreferencesDialog::create_items()
     auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
     g_sizer->Add(item_multi_machine);
 
+    auto item_speed_dial = create_item_checkbox(_L("Open the Speed Dial with the Space key"),
+        _L("When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."),
+        "enable_speed_dial");
+    g_sizer->Add(item_speed_dial);
+
+    auto item_speed_dial_recents = create_item_spinctrl(
+        _L("Recent actions"),
+        "",
+        _L("actions"),
+        _L("How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."),
+        SETTING_SPEED_DIAL_RECENT_COUNT,
+        SPEED_DIAL_RECENT_COUNT_MIN,
+        SPEED_DIAL_RECENT_COUNT_MAX);
+    g_sizer->Add(item_speed_dial_recents);
+
+#ifdef SLIC3R_CAD
+    auto item_cad_feature      = create_item_checkbox(_L("CAD feature (experimental)"),
+        _L("With this option enabled, the Design tab is shown, where models can be built and edited "
+           "parametrically. This feature is experimental and still under development."),
+        "enable_cad_feature", _L("(Requires restart)"));
+    g_sizer->Add(item_cad_feature);
+
+    auto item_auto_close_sketch_loops = create_item_checkbox(_L("Auto-close sketch loops"),
+        _L("Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. "
+           "Off: only exactly coincident endpoints join, so a loop with a tiny gap is "
+           "shown as open instead of being closed for you."),
+        "auto_close_sketch_loops");
+    g_sizer->Add(item_auto_close_sketch_loops);
+#endif
+
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it
@@ -1799,6 +1835,21 @@ void PreferencesDialog::create_items()
 
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
+
+#ifdef SLIC3R_CAD
+    // Design-tab only, so it stays out of the way while the CAD feature is switched off.
+    if (wxGetApp().is_enable_cad_feature()) {
+        auto item_connector_face_glyph = create_item_checkbox(_L("Draw mate connectors as a face"),
+            _L("In the Design tab, draw a mate connector as a small face instead of the conventional "
+               "disc with a roll quadrant. A face's orientation is read without being learned. "
+               "Turn this off for the conventional CAD representation."), "design_connector_face_glyph");
+        g_sizer->Add(item_connector_face_glyph);
+    }
+
+    // Push the weld preference into the kernel now so toggling it takes effect without
+    // a restart (the sketch tool also re-pushes on activation, see DesignSketchTool::begin).
+    Slic3r::set_sketch_auto_close(wxGetApp().is_auto_close_sketch_loops());
+#endif
 
     std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
     auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
@@ -1912,9 +1963,32 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fps_cap);
 
+    auto item_scene_cache = create_item_checkbox(
+        _L("Reuse the 3D scene while idle"),
+        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+           "and reuses the previous frame's scene instead. Reduces GPU load.\n"
+           "Disable it if the viewport shows stale or missing contents.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SCENE_CACHE
+    );
+    g_sizer->Add(item_scene_cache);
+
+    auto item_skip_identical_frames = create_item_checkbox(
+        _L("Skip unchanged frames"),
+        _L("Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+           "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+           "Disable it if a hover highlight, tooltip or animation stops updating.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
+    );
+    g_sizer->Add(item_skip_identical_frames);
+    if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(app_config->get_bool(SETTING_OPENGL_SCENE_CACHE));
+
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
-        _L("Displays current viewport FPS in the top-right corner."),
+        _L("Displays rendering counts in the top-right corner of the viewport.") + "\n" +
+        _L("FPS: frames presented to the screen per second.") + "\n" +
+        _L("3D: frames per second that redrew the 3D scene."),
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);
