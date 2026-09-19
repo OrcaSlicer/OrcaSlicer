@@ -54,9 +54,11 @@ static void png_read_callback(png_struct *png_ptr,
     // Retrieve our input buffer through the png_ptr
     auto reader = static_cast<IStream *>(png_get_io_ptr(png_ptr));
 
-    if (!reader || !reader->is_ok()) return;
-
-    reader->read(static_cast<std::uint8_t *>(outBytes), byteCountToRead);
+    // libpng expects a short read to be reported through png_error(); returning quietly would leave
+    // it decoding whatever happened to be in outBytes.
+    if (!reader || !reader->is_ok() ||
+        reader->read(static_cast<std::uint8_t *>(outBytes), byteCountToRead) != byteCountToRead)
+        png_error(png_ptr, "PNG data is truncated");
 }
 
 bool decode_png(IStream &in_buf, ImageGreyscale &out_img)
@@ -76,6 +78,11 @@ bool decode_png(IStream &in_buf, ImageGreyscale &out_img)
 
     dsc.info = png_create_info_struct(dsc.png);
     if(!dsc.info) return false;
+
+    // libpng reports a corrupt or truncated image by longjmp()ing back here. Without a jump buffer
+    // it abort()s the whole process instead.
+    if (setjmp(png_jmpbuf(dsc.png)))
+        return false;
 
     png_set_read_fn(dsc.png, static_cast<void *>(&in_buf), png_read_callback);
 
@@ -125,6 +132,12 @@ bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img)
     if(!dsc.info) {
         BOOST_LOG_TRIVIAL(error) << boost::format("decode_colored_png: png_create_info_struct failed");
         png_destroy_read_struct(&dsc.png, &dsc.info, NULL);
+        return false;
+    }
+
+    // See decode_png().
+    if (setjmp(png_jmpbuf(dsc.png))) {
+        BOOST_LOG_TRIVIAL(error) << "decode_colored_png: corrupt or truncated PNG data";
         return false;
     }
 
