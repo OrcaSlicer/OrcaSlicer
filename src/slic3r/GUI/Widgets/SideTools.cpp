@@ -164,7 +164,7 @@ void SideToolsPanel::doRender(wxDC &dc)
 
         wxString no_printer_str = _L("No printer");
         auto sizet = dc.GetTextExtent(no_printer_str);
-        auto left_add_bitmap = size.x - FromDIP(30) - m_wifi_none_img.GetBmpSize().x - m_none_add_img.GetBmpSize().x;
+        auto left_add_bitmap = size.x - FromDIP(30) /* - m_wifi_none_img.GetBmpSize().x */ - m_none_add_img.GetBmpSize().x;
         auto size_width = left_add_bitmap - left;
 
         if (sizet.x > size_width) {
@@ -183,7 +183,7 @@ void SideToolsPanel::doRender(wxDC &dc)
 
         dc.DrawText(no_printer_str, wxPoint(left, (size.y - sizet.y) / 2));
 
-        left = size.x - FromDIP(30) - m_wifi_none_img.GetBmpSize().x;
+        left = size.x - FromDIP(30) /* - m_wifi_none_img.GetBmpSize().x */ ;
         dc.DrawBitmap(m_none_add_img.bmp(), left, (size.y - m_none_add_img.GetBmpSize().y) / 2);
     } else {
         dc.DrawBitmap(m_printing_img.bmp(), left, (size.y - m_printing_img.GetBmpSize().y) / 2);
@@ -527,6 +527,7 @@ void SideTools::show_status(int status)
         m_connection_info->SetLabel(_L("Connecting..."));
         m_connection_info->SetBackgroundColor(0x009688);
         m_connection_info->SetBorderColor(0x009688);
+        m_connection_info->SetTextColor(0xFEFEFE); // ORCA readable color for text
         m_connection_info->Show();
         m_more_button->Hide();
         m_side_error_panel->Hide();
