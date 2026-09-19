@@ -1,11 +1,12 @@
 {
 	"type": "filament",
-	"name": "Generic PETG @Sovol Zero",
-	"inherits": "Generic PETG @System",
-	"renamed_from": "Sovol Zero PETG",
-	"from": "system",
+	"filament_id": "OFYPdQJh",
 	"setting_id": "i4OW2eAtXOKdtVNj",
+	"name": "Generic PETG @Sovol Zero",
+	"renamed_from": "Sovol Zero PETG - Brass;Sovol Zero PETG;Sovol ZERO PETG - Brass",
+	"from": "system",
 	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
 	"filament_flow_ratio": [
 		"1.0348"
 	],
@@ -72,6 +73,37 @@
 	"during_print_exhaust_fan_speed": "50",
 	"complete_print_exhaust_fan_speed": "50",
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle"
+	],
+	"cool_plate_temp": [
+		"85"
+	],
+	"eng_plate_temp": [
+		"85"
+	],
+	"textured_plate_temp": [
+		"85"
+	],
+	"cool_plate_temp_initial_layer": [
+		"85"
+	],
+	"eng_plate_temp_initial_layer": [
+		"85"
+	],
+	"textured_plate_temp_initial_layer": [
+		"85"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
 	]
 }

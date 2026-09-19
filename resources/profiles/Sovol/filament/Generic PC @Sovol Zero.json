@@ -1,11 +1,12 @@
 {
 	"type": "filament",
-	"name": "Generic PC @Sovol Zero",
-	"inherits": "Generic PC @System",
-	"renamed_from": "Sovol Zero PC",
-	"from": "system",
+	"filament_id": "OFLakOUI",
 	"setting_id": "yRKCiPMN6fxibcyg",
+	"name": "Generic PC @Sovol Zero",
+	"renamed_from": "Sovol Zero PC;Sovol ZERO PC",
+	"from": "system",
 	"instantiation": "true",
+	"inherits": "fdm_filament_pc",
 	"filament_flow_ratio": [
 		"0.98"
 	],
@@ -13,7 +14,11 @@
 		"21"
 	],
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"290"
@@ -64,5 +69,11 @@
 	"additional_cooling_fan_speed": "0",
 	"activate_air_filtration": "1",
 	"during_print_exhaust_fan_speed": "50",
-	"complete_print_exhaust_fan_speed": "50"
+	"complete_print_exhaust_fan_speed": "50",
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"bed_type": [
+		"Cool Plate"
+	]
 }

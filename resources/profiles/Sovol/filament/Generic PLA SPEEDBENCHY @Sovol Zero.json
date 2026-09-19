@@ -1,23 +1,26 @@
 {
 	"type": "filament",
-	"filament_id": "OFgbpcy9",
-	"setting_id": "MlY6WQ41FE8zDPSV",
-	"name": "Generic TPU @Sovol Zero",
-	"renamed_from": "Sovol Zero TPU;Sovol ZERO TPU",
+	"filament_id": "OFIUkWYN",
+	"setting_id": "MC2InZ7iKDjIGike",
+	"name": "Generic PLA SPEEDBENCHY @Sovol Zero",
+	"renamed_from": "Sovol Zero SPEEDBENCHY PLA",
 	"from": "system",
 	"instantiation": "true",
-	"inherits": "fdm_filament_tpu",
+	"inherits": "fdm_filament_pla",
 	"filament_flow_ratio": [
-		"0.98"
+		"1"
 	],
 	"filament_max_volumetric_speed": [
-		"3.2"
+		"50"
 	],
-	"nozzle_temperature": [
-		"235"
+	"compatible_printers": [
+		"Sovol Zero 0.4 nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
-		"250"
+		"245"
+	],
+	"nozzle_temperature": [
+		"225"
 	],
 	"nozzle_temperature_range_low": [
 		"190"
@@ -26,51 +29,61 @@
 		"250"
 	],
 	"hot_plate_temp": [
-		"85"
+		"65"
 	],
 	"hot_plate_temp_initial_layer": [
-		"85"
+		"65"
+	],
+	"enable_pressure_advance": "1",
+	"pressure_advance": "0.032",
+	"fan_min_speed": [
+		"100"
 	],
 	"fan_max_speed": [
 		"100"
 	],
-	"fan_min_speed": [
-		"80"
-	],
 	"fan_cooling_layer_time": [
-		"50"
+		"30"
 	],
 	"full_fan_speed_layer": [
 		"3"
 	],
 	"slow_down_layer_time": [
-		"5"
+		"1.7"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"40"
 	],
 	"overhang_fan_speed": [
 		"100"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"75%"
 	],
-	"temperature_vitrification": [
-		"60"
-	],
+	"additional_cooling_fan_speed": "100",
 	"filament_z_hop": [
-		"0.4"
+		"0"
 	],
-	"additional_cooling_fan_speed": "50",
-	"activate_air_filtration": "1",
-	"during_print_exhaust_fan_speed": "100",
-	"complete_print_exhaust_fan_speed": "50",
-	"compatible_printers": [
-		"Sovol Zero 0.2 nozzle",
-		"Sovol Zero 0.4 nozzle",
-		"Sovol Zero 0.6 nozzle",
-		"Sovol Zero 0.8 nozzle",
-		"Sovol Zero 1.0 nozzle"
+	"filament_retraction_length": [
+		"0.35"
+	],
+	"filament_retraction_speed": [
+		"90"
+	],
+	"filament_deretraction_speed": [
+		"90"
+	],
+	"filament_retract_before_wipe": [
+		"0%"
+	],
+	"filament_wipe_distance": [
+		"2"
+	],
+	"filament_retract_when_changing_layer": [
+		"0"
+	],
+	"filament_diameter": [
+		"1.75"
 	],
 	"cool_plate_temp": [
 		"60"
@@ -87,19 +100,16 @@
 	"eng_plate_temp_initial_layer": [
 		"55"
 	],
-	"textured_plate_temp_initial_layer": [
-		"55"
-	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
-	],
-	"filament_retraction_length": [
-		"nil"
 	],
 	"bed_type": [
 		"Cool Plate"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
+	],
+	"temperature_vitrification": [
+		"100"
 	]
 }

@@ -1,17 +1,12 @@
 {
 	"type": "filament",
-	"name": "Generic PLA Silk @Sovol Zero",
-	"inherits": "Generic PLA Silk @System",
-	"renamed_from": "Sovol Zero PLA Silk",
-	"from": "system",
+	"filament_id": "OFesA6rF",
 	"setting_id": "Se2yKerHRStYtWf5",
+	"name": "Generic PLA Silk @Sovol Zero",
+	"renamed_from": "Sovol Zero Silk PLA - Brass;Sovol Zero PLA Silk;Sovol ZERO Silk PLA - Brass",
+	"from": "system",
 	"instantiation": "true",
-	"filament_multitool_ramming_flow": [
-		"20"
-	],
-	"filament_retraction_length": [
-		"nil"
-	],
+	"inherits": "fdm_filament_pla",
 	"filament_flow_ratio": [
 		"0.98"
 	],
@@ -21,7 +16,11 @@
 	"enable_pressure_advance": "1",
 	"pressure_advance": "0.029",
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"245"
@@ -72,5 +71,35 @@
 	"additional_cooling_fan_speed": "75%",
 	"activate_air_filtration": "1",
 	"during_print_exhaust_fan_speed": "80%",
-	"complete_print_exhaust_fan_speed": "80%"
+	"complete_print_exhaust_fan_speed": "80%",
+	"filament_multitool_ramming_flow": [
+		"20"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	]
 }
