@@ -317,6 +317,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // BBS
     , m_recent_projects(18)
     , m_settings_dialog(this)
+    , m_idle([] { return wxGetApp().input_idle_ms(); })
     , diff_dialog(this)
 {
 #ifdef __WXOSX__
@@ -1186,6 +1187,7 @@ void MainFrame::update_edge_panels()
 void MainFrame::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "MainFrame::shutdown enter";
+    m_idle.stop();
     if (m_project != nullptr)
         m_project->shutdown();
     m_plugin_pages.shutdown();
@@ -1312,19 +1314,6 @@ void MainFrame::show_option(bool show)
     }
 }
 
-#ifdef SLIC3R_CAD
-DesignPanel* MainFrame::ensure_design_panel()
-{
-    if (m_design_panel == nullptr && m_design_page != nullptr) {
-        wxBusyCursor busy;
-        m_design_panel = new DesignPanel(m_design_page);
-        m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
-        m_design_page->Layout();
-    }
-    return m_design_panel;
-}
-#endif
-
 void MainFrame::init_tabpanel() {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on
     // Windows 10 with multiple high resolution displays connected.
@@ -1367,14 +1356,10 @@ void MainFrame::init_tabpanel() {
         //    m_param_panel->OnActivate();
 #ifdef SLIC3R_CAD
         else if (m_design_page != nullptr && panel == m_design_page) {
-            // Built on first activation, never at startup: the panel creates several hundred
-            // controls and its own GL canvas, which a user who does not open the tab should
-            // not pay for.
-            ensure_design_panel();
             // Re-sync the Design bed to the active printer: the panel is built before the
             // printer profile is fully applied, so its bed must refresh on activation or the
             // grid (true bed) spills past the stale default bed quad.
-            m_design_panel->on_tab_shown();
+            DesignPanel::ensure()->on_tab_shown();
         }
 #endif
         else if (panel == m_monitor) {
@@ -1383,7 +1368,8 @@ void MainFrame::init_tabpanel() {
 #ifdef SLIC3R_CAD
         // Any page that is not Design takes the Design status line down with it — see
         // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
-        if (m_design_panel != nullptr && panel != m_design_page) m_design_panel->on_tab_hidden();
+        if (DesignPanel* design = DesignPanel::if_built(); design != nullptr && panel != m_design_page)
+            design->on_tab_hidden();
 #endif
 #ifndef __APPLE__
         if (m_last_selected_tab == TAB_ID_PREPARE) {
@@ -1416,15 +1402,13 @@ void MainFrame::init_tabpanel() {
     wxGetApp().plater_ = m_plater;
 
 #ifdef SLIC3R_CAD
-    // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
-    // the tab is selected (see the page-changed handler above), so nothing it constructs sits
-    // on the startup path. The experimental feature is off by default, and when it is off the
-    // page is never created, so the tab does not appear at all (the preference takes effect on
-    // the next start, like the other feature toggles).
+    // The experimental feature is off by default, and when it is off the page is never
+    // created, so the tab does not appear at all (the preference takes effect on the next
+    // start, like the other feature toggles).
     if (wxGetApp().is_enable_cad_feature()) {
-        m_design_page = new wxPanel(this);
-        m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
-        m_design_page->Hide();
+        // Experimental and heavy enough that building it unasked would cost more than it saves.
+        m_design_page = new LazyPage<DesignPanel>(this, TAB_ID_DESIGN, -1);
+        m_lazy_pages.push_back(m_design_page);
         start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
     }
 #endif
@@ -1565,7 +1549,8 @@ void MainFrame::show_device(bool should_use_native) {
 
         fit_tab_labels(); // ORCA on printer change
         m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
-
+        if (m_prebuild_started)
+            m_idle.start();
         return;
     }
 
@@ -1645,6 +1630,8 @@ void MainFrame::show_device(bool should_use_native) {
     }
     fit_tab_labels(); // ORCA on printer change
     m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
+    if (m_prebuild_started)
+        m_idle.start();
 }
 
 bool MainFrame::is_prepare_or_preview_tab() const
@@ -4041,6 +4028,30 @@ void MainFrame::select_tab(wxPanel* panel)
     /*if (page_idx != wxNOT_FOUND && m_layout == ESettingsLayout::Dlg)
         page_idx++;*/
     select_tab(page_name);
+}
+
+// The book shows its first page as it is inserted, while the frame is hidden and nothing
+// may build; the first show completes that page.
+bool MainFrame::Show(bool show)
+{
+    const bool changed = DPIFrame::Show(show);
+    if (show && m_tabpanel != nullptr)
+        if (wxWindow* page = m_tabpanel->GetCurrentPage())
+            page->Show(true);
+    return changed;
+}
+
+// A page out of the book stays registered and is passed over; a negative order is never
+// registered.
+void MainFrame::prebuild_pages_when_idle()
+{
+    m_idle.clear();
+    for (LazyBase* page : m_lazy_pages)
+        if (page->prebuild_order() >= 0)
+            m_idle.add(*page);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
+    m_idle.start();
+    m_prebuild_started = true;
 }
 
 //BBS

@@ -26,6 +26,8 @@
 #include "Widgets/SideButton.hpp"
 #include "Widgets/SideMenuPopup.hpp"
 #include "FilamentGroupPopup.hpp"
+#include "LazyPage.hpp"
+#include "IdleScheduler.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -136,6 +138,10 @@ class MainFrame : public DPIFrame
 #endif
     bool     m_loaded {false};
     wxTimer* m_reset_title_text_colour_timer{ nullptr };
+    IdleScheduler         m_idle;
+    bool                  m_prebuild_started{ false };
+    // Every LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    std::vector<LazyBase*> m_lazy_pages;
 
     wxString    m_qs_last_input_file = wxEmptyString;
     wxString    m_qs_last_output_file = wxEmptyString;
@@ -377,6 +383,9 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
+    // Builds the lazy tab pages while the user is idle; post_init() calls it once.
+    void        prebuild_pages_when_idle();
+    bool        Show(bool show = true) override;
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     void        update_shortcut_labels();
@@ -435,16 +444,10 @@ public:
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+    // Lazy pages, created once and kept for the frame's life; their panels are reached
+    // through LazyInstance's statics, and show_device() only moves pages in and out of the book.
 #ifdef SLIC3R_CAD
-    // The tab page is the placeholder; m_design_panel stays null until the tab is first
-    // selected, so everything the Design panel builds stays off the startup path.
-    wxPanel*              m_design_page { nullptr };
-    DesignPanel*          m_design_panel { nullptr };
-    // Builds the Design panel if it does not exist yet and returns it (null only before the
-    // placeholder page itself exists). Main thread only -- it creates wx controls. Both the
-    // tab activation and the MCP socket go through this: the socket is driven headlessly,
-    // with nobody to click the tab, and without this every verb would answer "not ready".
-    DesignPanel*          ensure_design_panel();
+    LazyPage<DesignPanel>* m_design_page { nullptr };
 #endif
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };

@@ -10264,8 +10264,8 @@ void Plater::priv::reset(bool apply_presets_change)
     // Same reason, one level up: the Design tab keeps the editable document, not the Model, so
     // clearing the recipe alone leaves the tab showing the previous project's feature tree —
     // and its next edit syncs that tree straight back into the new project.
-    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->m_design_panel != nullptr)
-        wxGetApp().mainframe->m_design_panel->clear_document();
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->clear_document();
 #endif
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
@@ -13765,8 +13765,8 @@ void Plater::priv::unbind_canvas_event_handlers()
     // The Design tab's viewport is a fourth GLCanvas3D on the same shared GL context, owned by
     // MainFrame rather than by us — same reach as reset() uses for clear_document(). Null until
     // the tab has been opened once, so most sessions skip it.
-    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->m_design_panel != nullptr)
-        wxGetApp().mainframe->m_design_panel->unbind_canvas_event_handlers();
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->unbind_canvas_event_handlers();
 #endif
 }
 
@@ -13779,8 +13779,8 @@ void Plater::priv::reset_canvas_volumes()
         preview->get_canvas3d()->reset_volumes();
 
 #ifdef SLIC3R_CAD
-    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->m_design_panel != nullptr)
-        wxGetApp().mainframe->m_design_panel->reset_canvas_volumes();
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->reset_canvas_volumes();
 #endif
 }
 

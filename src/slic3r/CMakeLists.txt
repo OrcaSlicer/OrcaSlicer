@@ -278,6 +278,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentMapDialog.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
+    GUI/IdleScheduler.cpp
+    GUI/IdleScheduler.hpp
     GUI/ImageGrid.cpp
     GUI/ImageGrid.h
     GUI/ImGuiWrapper.cpp
@@ -339,6 +341,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/KBShortcutsDialog.hpp
     GUI/KeyChord.cpp
     GUI/KeyChord.hpp
+    GUI/Lazy.cpp
+    GUI/Lazy.hpp
+    GUI/LazyPage.cpp
+    GUI/LazyPage.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/LinuxDisplayBackend.cpp
@@ -425,6 +431,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Plater.hpp
     GUI/PlateSettingsDialog.cpp
     GUI/PlateSettingsDialog.hpp
+    GUI/PrebuildQueue.hpp
     GUI/Preferences.cpp
     GUI/Preferences.hpp
     GUI/PresetBundleDialog.cpp
@@ -504,6 +511,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/SliceInfoPanel.hpp
     GUI/SlicingProgressNotification.cpp
     GUI/SlicingProgressNotification.hpp
+    GUI/StagedBuild.hpp
     GUI/StatusPanel.cpp
     GUI/StatusPanel.hpp
     GUI/StepMeshDialog.cpp

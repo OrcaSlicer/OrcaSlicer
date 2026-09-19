@@ -912,6 +912,7 @@ void GUI_App::post_init()
 
     plater_->trigger_restore_project(1);
     //#endif
+    mainframe->prebuild_pages_when_idle();
 
     //BBS: remove GCodeViewer as seperate APP logic
     /*if (this->init_params->start_as_gcodeviewer) {
@@ -4132,10 +4133,18 @@ void GUI_App::select_machine(const std::string& agent_id)
     if (mainframe && mainframe->m_monitor) {
         mainframe->m_monitor->select_machine(dev_id);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
-    } else {
-        // Fallback if MonitorPanel not available
-        m_device_manager->set_selected_machine(dev_id);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": fallback set_selected_machine dev_id=" << dev_id;
+    } else if (m_device_manager->set_selected_machine(dev_id)) {
+        // Without the Device tab, the selection's sidebar side is done here; the tab's own
+        // state waits for the tab.
+        if (MachineObject* obj = m_device_manager->get_selected_machine()) {
+            obj->last_cali_version = -1;
+            obj->reset_pa_cali_history_result();
+            obj->reset_pa_cali_result();
+            Sidebar& sidebar = this->sidebar();
+            sidebar.update_sync_status(obj);
+            sidebar.set_need_auto_sync_after_connect_printer(sidebar.need_auto_sync_extruder_list_after_connect_priner(obj));
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": set_selected_machine dev_id=" << dev_id;
     }
 }
 
@@ -4659,6 +4668,7 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
 
     //BBS: trigger restore project logic here, and skip confirm
     plater_->trigger_restore_project(1);
+    mainframe->prebuild_pages_when_idle();
 
     // #ys_FIXME_delete_after_testing  Do we still need this  ?
 //     CallAfter([]() {
@@ -8173,6 +8183,19 @@ ConfigOptionMode GUI_App::get_saved_mode()
         return comSimple;
 
     return saved_mode_from_string(app_config->get("user_mode"));
+}
+
+int GUI_App::input_idle_ms() const
+{
+    return int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_input).count());
+}
+
+// Every wxCommandEvent claims the user-input category, so only real mouse and key events count.
+int GUI_App::FilterEvent(wxEvent& event)
+{
+    if (!event.IsCommandEvent() && (event.GetEventCategory() & wxEVT_CATEGORY_USER_INPUT))
+        m_last_input = std::chrono::steady_clock::now();
+    return Event_Skip;
 }
 
 ConfigOptionMode GUI_App::get_mode()
