@@ -32,6 +32,7 @@ add_executable(${_TEST_NAME}_tests
     test_placeholder_parser.cpp
     test_polygon.cpp
     test_print_state.cpp
+    test_slicing_admission.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
     test_minimum_spanning_tree.cpp

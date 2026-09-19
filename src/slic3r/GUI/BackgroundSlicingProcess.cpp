@@ -363,6 +363,9 @@ void BackgroundSlicingProcess::thread_proc()
         m_print->finalize();
         lck.lock();
         m_state = m_print->canceled() ? STATE_CANCELED : STATE_FINISHED;
+        // The worker reached a terminal state. Release before notifying the UI
+        // so another live or isolated job may be admitted immediately.
+        m_live_slicing_admission.reset();
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__
                                  << boost::format(": process finished, state %1%, print cancel_status %2%") % m_state %
                                         m_print->cancel_status();
@@ -554,8 +557,16 @@ bool BackgroundSlicingProcess::start()
         return false;
     if (!this->idle())
         throw Slic3r::RuntimeError("Cannot start a background task, the worker thread is not idle.");
-    m_state = STATE_STARTED;
+
+    SlicingAdmissionToken admission = try_acquire_slicing_admission(SlicingAdmissionMode::LiveSlicing);
+    if (!admission) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": slicing admission is busy";
+        return false;
+    }
+
     m_print->set_cancel_callback([this]() { this->stop_internal(); });
+    m_live_slicing_admission = std::move(admission);
+    m_state = STATE_STARTED;
     lck.unlock();
     m_condition.notify_one();
     return true;

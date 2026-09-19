@@ -11,6 +11,7 @@ add_executable(${_TEST_NAME}_tests
     test_staged_build.cpp
     test_network_versions.cpp
     test_action_source.cpp
+    test_background_slicing_admission.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
     test_precise_seam_plugin.cpp

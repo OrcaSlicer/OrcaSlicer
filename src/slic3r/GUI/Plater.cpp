@@ -1,6 +1,7 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/SlicingAdmission.hpp"
 #include "libslic3r_version.h"
 
 #include <cstddef>
@@ -14580,6 +14581,12 @@ void Plater::priv::set_bed_shape(const Pointfs       &shape,
                                  const std::string   &custom_model,
                                  bool                 force_as_custom)
 {
+    SlicingAdmissionToken scale_change_admission = try_acquire_slicing_admission(SlicingAdmissionMode::ScaleChanging);
+    if (!scale_change_admission) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": bed shape change rejected while isolated slicing is active";
+        return;
+    }
+
     //Orca: reduce resolution for large bed printer
     BoundingBoxf bed_size = get_extents(shape);
     if (bed_size.size().maxCoeff() <= LARGE_BED_THRESHOLD)
