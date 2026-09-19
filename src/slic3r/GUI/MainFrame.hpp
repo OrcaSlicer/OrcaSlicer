@@ -450,7 +450,7 @@ public:
     LazyPage<DesignPanel>* m_design_page { nullptr };
 #endif
     //BBS: GUI refactor
-    MonitorPanel*         m_monitor{ nullptr };
+    LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
     //AuxiliaryPanel*       m_auxiliary{ nullptr };
     MultiMachinePage*     m_multi_machine{ nullptr };

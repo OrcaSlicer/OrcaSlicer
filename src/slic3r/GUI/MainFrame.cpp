@@ -1362,7 +1362,7 @@ void MainFrame::init_tabpanel() {
             DesignPanel::ensure()->on_tab_shown();
         }
 #endif
-        else if (panel == m_monitor) {
+        else if (panel == m_monitor_page) {
             //monitor
         }
 #ifdef SLIC3R_CAD
@@ -1416,9 +1416,9 @@ void MainFrame::init_tabpanel() {
     create_preset_tabs();
 
         //BBS add pages
-    m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_monitor->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor, _L("Device"), "tab_monitor_active");
+    m_monitor_page = new LazyPage<MonitorPanel>(m_tabpanel, TAB_ID_MONITOR, 20);
+    m_lazy_pages.push_back(m_monitor_page);
+    m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor_page, _L("Device"), "tab_monitor_active");
 
     m_printer_view = new PrinterWebView(m_tabpanel);
     Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
@@ -1483,18 +1483,13 @@ void MainFrame::show_device(bool should_use_native) {
     }
 
     if (use_printer_agents) {
-        if (!m_monitor) {
-            m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_monitor->SetBackgroundColour(*wxWHITE);
-        }
-
-        if (m_tabpanel->FindPage(m_monitor) == wxNOT_FOUND) {
+        if (!m_monitor_page->in_book()) {
             if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
                 m_printer_view->Show(false);
                 m_tabpanel->RemovePage(idx);
             }
-            m_monitor->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor,
+            m_monitor_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                    _L("Device"), "tab_monitor_active");
         }
 
@@ -1555,7 +1550,7 @@ void MainFrame::show_device(bool should_use_native) {
     }
 
     if (should_use_native) {
-        if (m_tabpanel->FindPage(m_monitor) != wxNOT_FOUND) {
+        if (m_monitor_page->in_book()) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
@@ -1565,13 +1560,9 @@ void MainFrame::show_device(bool should_use_native) {
             m_tabpanel->RemovePage(idx);
         }
 
-        // Create/insert monitor page
-        if (!m_monitor) {
-            m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_monitor->SetBackgroundColour(*wxWHITE);
-        }
-        m_monitor->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor,
+        // Insert monitor page
+        m_monitor_page->Show(false);
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                _L("Device"), "tab_monitor_active");
 
         if (wxGetApp().is_enable_multi_machine()) {
@@ -1611,8 +1602,8 @@ void MainFrame::show_device(bool should_use_native) {
             m_multi_machine->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if ((idx = m_tabpanel->FindPage(m_monitor)) != wxNOT_FOUND) {
-            m_monitor->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_monitor_page)) != wxNOT_FOUND) {
+            m_monitor_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
         if (m_printer_view == nullptr) {
@@ -2678,8 +2669,7 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     //if (m_layout != ESettingsLayout::Dlg) // Do not update tabs if the Settings are in the separated dialog
     m_param_panel->msw_rescale();
     m_project->msw_rescale();
-    if(m_monitor)
-        m_monitor->msw_rescale();
+    MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
     if(m_multi_machine)
         m_multi_machine->msw_rescale();
     if(m_calibration)
@@ -2745,8 +2735,7 @@ void MainFrame::on_sys_color_changed()
 
     // update Plater
     wxGetApp().plater()->sys_color_changed();
-    if(m_monitor)
-        m_monitor->on_sys_color_changed();
+    MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.on_sys_color_changed(); });
     if(m_calibration)
         m_calibration->on_sys_color_changed();
     // update Tabs
@@ -4057,11 +4046,9 @@ void MainFrame::prebuild_pages_when_idle()
 //BBS
 void MainFrame::jump_to_monitor(std::string dev_id)
 {
-    if(!m_monitor)
-        return;
     m_tabpanel->SelectPageByName(TAB_ID_MONITOR);
     if (!dev_id.empty()) {
-        ((MonitorPanel*)m_monitor)->select_machine(dev_id);
+        MonitorPanel::ensure()->select_machine(dev_id);
     }
 }
 

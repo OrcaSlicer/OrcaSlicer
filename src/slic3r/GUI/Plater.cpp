@@ -19831,7 +19831,7 @@ void Plater::print_job_finished(wxCommandEvent &evt)
     dev->set_selected_machine(evt.GetString().ToStdString());
     p->main_frame->request_select_tab(TAB_ID_MONITOR);
     //jump to monitor and select device status panel
-    MonitorPanel* curr_monitor = p->main_frame->m_monitor;
+    MonitorPanel* curr_monitor = MonitorPanel::ensure();
     if(curr_monitor)
        curr_monitor->get_tabpanel()->ChangeSelection(MonitorPanel::PrinterTab::PT_STATUS);
 }
@@ -20843,7 +20843,8 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
 {
     printer_name.Replace("Bambu Lab", "", false);
     wxString content;
-    bool device_page = (wxGetApp().mainframe == nullptr) && (wxGetApp().mainframe->m_monitor->IsShown());
+    bool device_page = (wxGetApp().mainframe == nullptr) && (MonitorPanel::if_built() != nullptr) &&
+                       (MonitorPanel::if_built()->IsShown());
     if (type == PrinterWarningType::NOT_CONNECTED) {
         if (device_page) {
             content = wxString::Format(_L("Printer not connected. Please go to the device page to connect %s before syncing."),

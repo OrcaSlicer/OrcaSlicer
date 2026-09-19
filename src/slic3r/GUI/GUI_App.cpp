@@ -1927,9 +1927,9 @@ bool GUI_App::hot_reload_network_plugin()
         m_device_manager->add_user_subscribe();
     }
 
-    if (mainframe && mainframe->m_monitor) {
-        mainframe->m_monitor->update_network_version_footer();
-        mainframe->m_monitor->set_default();
+    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+        monitor->update_network_version_footer();
+        monitor->set_default();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reset monitor panel";
     }
 
@@ -4130,8 +4130,8 @@ void GUI_App::select_machine(const std::string& agent_id)
 
     // Use MonitorPanel::select_machine() to trigger full selection flow
     // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
-    if (mainframe && mainframe->m_monitor) {
-        mainframe->m_monitor->select_machine(dev_id);
+    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+        monitor->select_machine(dev_id);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
     } else if (m_device_manager->set_selected_machine(dev_id)) {
         // Without the Device tab, the selection's sidebar side is done here; the tab's own

@@ -49,6 +49,7 @@
 #include "slic3r/GUI/AmsWidgets.hpp"
 #include "Widgets/SideTools.hpp"
 #include "SelectMachinePop.hpp"
+#include "Lazy.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -72,7 +73,7 @@ public:
 	void msw_rescale();
 };
 
-class MonitorPanel : public wxPanel
+class MonitorPanel : public wxPanel, public LazyInstance<MonitorPanel>
 {
 private:
     Tabbook*		m_tabpanel{ nullptr };

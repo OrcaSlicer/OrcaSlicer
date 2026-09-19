@@ -2228,8 +2228,10 @@ void StatusBasePanel::expand_filament_loading(wxMouseEvent& e)
     m_filament_step->Show(tag_show);
     Layout();
     Fit();
-    wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
-    wxGetApp().mainframe->m_monitor->Layout();
+    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+        monitor->get_status_panel()->Layout();
+        monitor->Layout();
+    }
 }
 
 void StatusBasePanel::show_ams_group(bool show)
@@ -2240,7 +2242,8 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control->Fit();
         Layout();
         Fit();
-        wxGetApp().mainframe->m_monitor->Layout();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->Layout();
     }
 
     // On rack printers, don't clobber the rack view when the user has the switch on "Hotends".
@@ -2253,7 +2256,8 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control->Fit();
         Layout();
         Fit();
-        wxGetApp().mainframe->m_monitor->Layout();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->Layout();
     }
 }
 
@@ -2277,8 +2281,10 @@ void StatusBasePanel::show_filament_load_group(bool show)
         Layout();
         Fit();
 
-        wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
-        wxGetApp().mainframe->m_monitor->Layout();
+        if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+            monitor->get_status_panel()->Layout();
+            monitor->Layout();
+        }
     }
 }
 
@@ -5216,7 +5222,9 @@ void StatusPanel::set_default()
     m_filament_step->Hide();
     error_info_reset();
 #ifndef __WXGTK__
-    SetFocus();
+    // Also reached while the panel is built off screen.
+    if (IsShownOnScreen())
+        SetFocus();
 #endif
 }
 

@@ -103,6 +103,7 @@ MonitorPanel::MonitorPanel(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     : wxPanel(parent, id, pos, size, style),
     m_select_machine(SelectMachinePopup(this))
 {
+    SetBackgroundColour(*wxWHITE);
 #ifdef __WINDOWS__
     SetDoubleBuffered(true);
 #endif //__WINDOWS__
@@ -180,7 +181,9 @@ void MonitorPanel::init_tabpanel()
             auto title = m_tabpanel->GetPageText(m_tabpanel->GetSelection());
             m_media_file_panel->SwitchStorage(title == _L("Storage"));
         }
-        page->SetFocus();
+        // The first page is selected while the panel is built off screen.
+        if (page->IsShownOnScreen())
+            page->SetFocus();
         update_all();
         }, m_tabpanel->GetId());
 
