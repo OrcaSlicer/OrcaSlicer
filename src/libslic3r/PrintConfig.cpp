@@ -2522,6 +2522,169 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool{false});
 
+    def           = this->add("stuffed_inner_walls", coPercent);
+    def->label    = L("Stuffed inner walls");
+    def->tooltip  = L("Switches to inner walls printing mode with variable flow.\n"
+                      "It allows you change the physical parameters of wall strength without significantly changing their shape (the stuffing effect) by additional mixing of the filament in the extruder.\n" 
+                      "This function increases the overload of extruder unit in proportion to the specified parameter values.\n\n"
+                      "Settable values:\n"
+                      "0% - this option is off;\n"
+                      "1%...100% - change in the stuffing flow;\n" 
+                      ">100%...200% - change in flow with retraction (Every 10% overdraft corresponds to a material volume equal to the square of the nozzle diameter multiplied by the extrusion height = d²*h).\n"
+                      "CAUTION! The values with retraction are EXPERIMENTAL!\n"
+                      "Make sure your printer can correctly process G-codes with reverse movement in the extruder and does not treat them as a regular retraction. "
+                      "Check the the printer and Orca Slicer settings for this!\n"
+                      "The printing speed remains virtually unchanged in retract‑free mode. "
+                      "When retracting, the printing speed may decrease by an amount corresponding to the transient processes.\n");
+    def->min      = 0;
+    def->max      = 200;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def          = this->add("stuffed_outer_walls", coPercent);
+    def->label   = L("Stuffed outer walls");
+    def->tooltip = L("Switches to outer walls printing mode with variable flow.\n"
+                     "It allows you change the physical parameters of wall strength without significantly changing their shape (the stuffing effect) by additional mixing of the filament in the extruder.\n"
+                     "This function increases the overload of extruder unit in proportion to the specified parameter values.\n\n"
+                     "Settable values:\n"
+                     "0% - this option is off;\n"
+                     "1%...100% - change in the stuffing flow;\n"
+                     ">100%...200% - change in flow with retraction (Every 10% overdraft corresponds to a material volume equal to the square of the nozzle diameter multiplied by the extrusion height = d²*h).\n"
+                     "CAUTION! The values with retraction are EXPERIMENTAL!\n"
+                     "Make sure your printer can correctly process G-codes with reverse movement in the extruder and does not treat them as a regular retraction. "
+                     "Check the the printer and Orca Slicer settings for this!\n""The printing speed remains virtually unchanged in retract‑free mode. "
+                     "When retracting, the printing speed may decrease by an amount corresponding to the transient processes.\n");
+    def->min      = 0;
+    def->max      = 200;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def           = this->add("stuffed_top_infill", coPercent);
+    def->label    = L("Stuffed top infill");
+    def->tooltip  = L("Switches to top infill printing mode with variable flow.\n"
+                      "It allows you change the physical parameters of layer strength without significantly changing their shape (the "
+                      "stuffing effect) by additional mixing of the filament in the extruder.\n"
+                      "This function increases the overload of extruder unit in proportion to the specified parameter values.\n\n"
+                      "Settable values:\n"
+                      "0% - this option is off;\n"
+                      "1%...100% - change in the stuffing flow;\n"
+                      ">100%...200% - change in flow with retraction (Every 10% overdraft corresponds to a material volume equal to the "
+                      "square of the nozzle diameter multiplied by the extrusion height = d²*h).\n"
+                      "CAUTION! The values with retraction are EXPERIMENTAL!\n"
+                      "Make sure your printer can correctly process G-codes with reverse movement in the extruder and does not treat them "
+                      "as a regular retraction. "
+                      "Check the the printer and Orca Slicer settings for this!\n"
+                      "The printing speed remains virtually unchanged in retract‑free mode. "
+                      "When retracting, the printing speed may decrease by an amount corresponding to the transient processes.\n");
+    def->min      = 0;
+    def->max      = 200;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def           = this->add("stuffed_first_layer_perimeters", coPercent);
+    def->label    = L("Stuffed first layer perimeters");
+    def->tooltip  = L("Switches to first layer perimeters printing mode with variable flow.\n"
+                      "It allows you change the physical parameters of layer strength without significantly changing their shape (the "
+                     "stuffing effect) by additional mixing of the filament in the extruder.\n"
+                     "This function increases the overload of extruder unit in proportion to the specified parameter values.\n\n"
+                     "Settable values:\n"
+                     "0% - this option is off;\n"
+                     "1%...100% - change in the stuffing flow;\n"
+                     ">100%...200% - change in flow with retraction (Every 10% overdraft corresponds to a material volume equal to the "
+                     "square of the nozzle diameter multiplied by the extrusion height = d²*h).\n"
+                     "CAUTION! The values with retraction are EXPERIMENTAL!\n"
+                     "Make sure your printer can correctly process G-codes with reverse movement in the extruder and does not treat them "
+                     "as a regular retraction. "
+                     "Check the the printer and Orca Slicer settings for this!\n"
+                     "The printing speed remains virtually unchanged in retract‑free mode. "
+                     "When retracting, the printing speed may decrease by an amount corresponding to the transient processes.\n");
+    def->min      = 0;
+    def->max      = 200;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def           = this->add("stuffed_first_layer_infill", coPercent);
+    def->label    = L("Stuffed first layer infill");
+    def->tooltip  = L("Switches to first layer infill printing mode with variable flow.\n"
+                      "It allows you change the physical parameters of layer strength without significantly changing their shape (the "
+                      "stuffing effect) by additional mixing of the filament in the extruder.\n"
+                      "This function increases the overload of extruder unit in proportion to the specified parameter values.\n\n"
+                      "Settable values:\n"
+                      "0% - this option is off;\n"
+                      "1%...100% - change in the stuffing flow;\n"
+                      ">100%...200% - change in flow with retraction (Every 10% overdraft corresponds to a material volume equal to the "
+                      "square of the nozzle diameter multiplied by the extrusion height = d²*h).\n"
+                      "CAUTION! The values with retraction are EXPERIMENTAL!\n"
+                      "Make sure your printer can correctly process G-codes with reverse movement in the extruder and does not treat them "
+                      "as a regular retraction. "
+                      "Check the the printer and Orca Slicer settings for this!\n"
+                      "The printing speed remains virtually unchanged in retract‑free mode. "
+                      "When retracting, the printing speed may decrease by an amount corresponding to the transient processes.\n");
+    def->min      = 0;
+    def->max      = 200;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def           = this->add("stuff_divider", coFloat);
+    def->label    = L("Stuff divider");
+    def->category = L("Other");
+    def->tooltip  = L("Allows to set the frequency samples coefficient for stuffing.\n"
+                      "When the value is 1, it equals the sample length equal to the [nozzle_diameter] or [line_width] parameter.\n"
+                      "When the parameter is increased, the G‑code size will be proportionally increased for the involved stuffed lines. "
+                      "This may slow down printing on old printers or increase the size of the transmitted G‑code data. ");
+    def->min      = 1;
+    def->max      = 8;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(2));
+
+    def           = this->add("stuff_force", coFloat);
+    def->label    = L("Stuff force");
+    def->category = L("Other");
+    def->tooltip  = L("It allows you to increase the strength of the stuffing by reducing the extrusion distance. ");
+    def->min      = 1;
+    def->max      = 4;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1));
+
+    def           = this->add("stuff_z_tamping", coPercent);
+    def->label    = L("Z-tamping");
+    def->tooltip  = L("Additional compaction of the material using additional movement of the extruder along the Z‑axis.\n"
+                      "This option is EXPERIMENTAL! Use it at your own risk. \n"  
+                      "Make sure your printer supports this function and that there won’t be any problems with the additional load on the extruder unit and the Z‑axis as a whole due to the vibrations that may occur.\n"
+                      "100% means the vibration amplitude is equal to the [layer_height]. "
+                      "A negative value implies aggressive tamping. ");
+    def->min      = -100;
+    def->max      = 100;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def          = this->add("stuff_z_tamping_first_layer", coPercent);
+    def->label   = L("Z-tamping on first layer");
+    def->tooltip = L("Additional compaction of the material using additional movement of the extruder along the Z‑axis on the first layer.\n"
+                     "This option is EXPERIMENTAL! Use it at your own risk. \n"
+                     "Make sure your printer supports this function and that there won’t be any problems with the additional load on the "
+                     "extruder unit and the Z‑axis as a whole due to the vibrations that may occur.\n"
+                     "100% means the vibration amplitude is equal to the [layer_height]. "
+                     "A negative value implies aggressive tamping. ");
+    def->min     = -100;
+    def->max     = 100;
+    def->sidetext = L("%");
+    def->category = L("Other");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(0));
+
     def = this->add("wall_direction", coEnum);
     def->label = L("Wall loop direction");
     def->category = L("Quality");
