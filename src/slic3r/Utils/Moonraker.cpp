@@ -174,7 +174,7 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
 bool Moonraker::start_print(wxString &error_msg, const std::string &filename) const
 {
     //ORCA: POST /printer/print/start with JSON body { "filename": "<name>.gcode" }.
-    //      `filename` is what /server/files/upload returned as result.item.path (the storage-relative
+    //      `filename` is what /server/files/upload returned as item.path (the storage-relative
     //      path inside `root`, no leading slash, with extension). Build the body via property_tree
     //      so that special characters in the filename (server-side collision-suffix could produce
     //      paths with quotes / backslashes on exotic file systems) are properly escaped.
@@ -215,8 +215,9 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     //ORCA: POST /server/files/upload as multipart/form-data with:
     //          file = <gcode file>
     //          root = <storage root>     (Moonraker default: "gcodes")
+    //          path = <subdirectory from root> (optional)
     //      Successful response shape:
-    //          { "result": { "item": { "path": "<name>.gcode", "root": "<root>" }, "print_started": <bool> } }
+    //          { "item": { "path": "<name>.gcode", "root": "<root>" }, "print_started": <bool> }
     //      We always start the print explicitly via /printer/print/start regardless of `print_started`
     //      so the user can rely on a single call site for state.
     wxString test_msg;
@@ -242,11 +243,12 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     //      servers that don't use it ignore the unknown form field.
     const std::string plateindex = upload_data.extended("plateindex");
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, filename=%5%, plateindex=%6%, start_print=%7%)")
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, path=%5%, filename=%6%, plateindex=%7%, start_print=%8%)")
         % name
         % upload_data.source_path
         % url
         % root
+        % upload_parent_path.string()
         % upload_filename.string()
         % (plateindex.empty() ? "-" : plateindex)
         % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false");
@@ -254,6 +256,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     auto http = Http::post(std::move(url));
     set_auth(http);
     http.form_add("root", root);
+    http.form_add("path", upload_parent_path.string());
     if (!plateindex.empty())
         http.form_add("plateindex", plateindex);
     http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
@@ -264,18 +267,18 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
                 pt::ptree ptree;
                 pt::read_json(ss, ptree);
 
-                //ORCA: Moonraker confirms the storage-relative path in result.item.path. We pass exactly
+                //ORCA: Moonraker confirms the storage-relative path in item.path. We pass exactly
                 //      that string to /printer/print/start so any server-side renaming (collision suffix,
                 //      etc.) is respected.
-                const auto stored_path = ptree.get_optional<std::string>("result.item.path");
+                const auto stored_path = ptree.get_optional<std::string>("item.path");
                 if (stored_path) {
                     uploaded_path = *stored_path;
                 } else {
-                    //ORCA: fallback if the server response omits result.item.path (older Moonraker, or
+                    //ORCA: fallback if the server response omits item.path (older Moonraker, or
                     //      a buddy-fork that returns a slimmer envelope). Use the original filename.
                     uploaded_path = upload_filename.string();
                     BOOST_LOG_TRIVIAL(warning) << boost::format(
-                        "%1%: upload response missing result.item.path, falling back to original filename `%2%`")
+                        "%1%: upload response missing item.path, falling back to original filename `%2%`")
                         % name % uploaded_path;
                 }
             } catch (const std::exception &ex) {
