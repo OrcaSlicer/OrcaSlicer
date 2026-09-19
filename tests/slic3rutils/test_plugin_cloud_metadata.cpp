@@ -9,6 +9,7 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
 #include "plugin_test_utils.hpp"
+#include "python_test_support.hpp"
 
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
@@ -31,7 +32,13 @@ namespace {
 // same as any other plugin.
 struct ScopedManagerShutdown
 {
-    bool initialized = PluginManager::instance().initialize();
+    bool initialized = false;
+
+    ScopedManagerShutdown()
+    {
+        release_test_python_interpreter();
+        initialized = PluginManager::instance().initialize();
+    }
 
     ~ScopedManagerShutdown()
     {

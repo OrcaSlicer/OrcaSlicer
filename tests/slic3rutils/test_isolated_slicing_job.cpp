@@ -101,7 +101,13 @@ void set_printer_technology(
 
 struct ScopedIsolatedPluginManager
 {
-    bool initialized = Slic3r::PluginManager::instance().initialize();
+    bool initialized = false;
+
+    ScopedIsolatedPluginManager()
+    {
+        release_test_python_interpreter();
+        initialized = Slic3r::PluginManager::instance().initialize();
+    }
 
     ~ScopedIsolatedPluginManager()
     {

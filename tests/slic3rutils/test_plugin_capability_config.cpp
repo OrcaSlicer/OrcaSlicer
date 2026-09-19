@@ -8,6 +8,7 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
 #include "plugin_test_utils.hpp"
+#include "python_test_support.hpp"
 
 #include <nlohmann/json.hpp>
 #include <pybind11/embed.h>
@@ -38,7 +39,13 @@ namespace {
 // before this destructor's shutdown() runs.
 struct ScopedPluginManager
 {
-    bool initialized = PluginManager::instance().initialize();
+    bool initialized = false;
+
+    ScopedPluginManager()
+    {
+        release_test_python_interpreter();
+        initialized = PluginManager::instance().initialize();
+    }
 
     ~ScopedPluginManager()
     {
@@ -47,7 +54,7 @@ struct ScopedPluginManager
     }
 };
 
-py::module_ import_orca_module()
+py::module_ import_orca_module_for_config()
 {
     (void) PythonPluginBridge::instance(); // force the embedded module registration into the binary
     return py::module_::import("orca");
@@ -63,7 +70,7 @@ py::object make_capability(const std::string& class_name,
 {
     // Import first: it brings the interpreter up, and any py:: object built before it would touch a
     // Python that does not exist yet.
-    py::module_ orca = import_orca_module();
+    py::module_ orca = import_orca_module_for_config();
 
     py::dict globals;
     globals["orca"] = orca;
@@ -106,7 +113,7 @@ TEST_CASE("Capability config API is exposed on every Python capability", "[Plugi
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
     py::gil_scoped_acquire gil; // released before plugin_system's destructor shuts Python down
 
-    py::module_ orca = import_orca_module();
+    py::module_ orca = import_orca_module_for_config();
     REQUIRE(py::hasattr(orca, "PythonPluginBase"));
 
     py::object base = orca.attr("PythonPluginBase");
