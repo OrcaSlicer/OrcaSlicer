@@ -830,6 +830,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_ai_monitoring = new CheckBox(parent);
     text_ai_monitoring = new Label(parent, _L("Enable AI monitoring of printing"));
     text_ai_monitoring->SetFont(Label::Body_14);
+    m_cb_ai_monitoring->BindLabel(text_ai_monitoring);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_ai_monitoring, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_ai_monitoring, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -860,6 +861,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_spaghetti_detection = new CheckBox(ai_refine_panel);
     text_spaghetti_detection = new Label(ai_refine_panel, _L("Spaghetti Detection"));
     text_spaghetti_detection->SetFont(Label::Body_14);
+    m_cb_spaghetti_detection->BindLabel(text_spaghetti_detection);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_spaghetti_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_spaghetti_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -904,6 +906,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_purgechutepileup_detection = new CheckBox(ai_refine_panel);
     text_purgechutepileup_detection = new Label(ai_refine_panel, _L("Purge Chute Pile-Up Detection"));
     text_purgechutepileup_detection->SetFont(Label::Body_14);
+    m_cb_purgechutepileup_detection->BindLabel(text_purgechutepileup_detection);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_purgechutepileup_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_purgechutepileup_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -943,6 +946,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_nozzleclumping_detection = new CheckBox(ai_refine_panel);
     text_nozzleclumping_detection = new Label(ai_refine_panel, _L("Nozzle Clumping Detection"));
     text_nozzleclumping_detection->SetFont(Label::Body_14);
+    m_cb_nozzleclumping_detection->BindLabel(text_nozzleclumping_detection);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_nozzleclumping_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_nozzleclumping_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -984,6 +988,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_airprinting_detection = new CheckBox(ai_refine_panel);
     text_airprinting_detection = new Label(ai_refine_panel, _L("Air Printing Detection"));
     text_airprinting_detection->SetFont(Label::Body_14);
+    m_cb_airprinting_detection->BindLabel(text_airprinting_detection);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_airprinting_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_airprinting_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1032,6 +1037,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_plate_mark = new CheckBox(parent);
     text_plate_mark = new Label(parent, _L("Enable detection of build plate position"));
     text_plate_mark->SetFont(Label::Body_14);
+    m_cb_plate_mark->BindLabel(text_plate_mark);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_plate_mark, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_plate_mark, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1065,6 +1071,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_first_layer = new CheckBox(parent);
     text_first_layer = new Label(parent, _L("First Layer Inspection"));
     text_first_layer->SetFont(Label::Body_14);
+    m_cb_first_layer->BindLabel(text_first_layer);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_first_layer, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_first_layer, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1082,6 +1089,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_auto_recovery = new CheckBox(parent);
     text_auto_recovery = new Label(parent, _L("Auto-recover from step loss"));
     text_auto_recovery->SetFont(Label::Body_14);
+    m_cb_auto_recovery->BindLabel(text_auto_recovery);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_auto_recovery, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_auto_recovery, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1099,6 +1107,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_save_remote_print_file_to_storage = new CheckBox(parent);
     text_save_remote_print_file_to_storage = new Label(parent, _L("Store Sent Files on External Storage"));
     text_save_remote_print_file_to_storage->SetFont(Label::Body_14);
+    m_cb_save_remote_print_file_to_storage->BindLabel(text_save_remote_print_file_to_storage);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_save_remote_print_file_to_storage, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_save_remote_print_file_to_storage, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1116,6 +1125,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_sup_sound = new CheckBox(parent);
     text_sup_sound = new Label(parent, _L("Allow Prompt Sound"));
     text_sup_sound->SetFont(Label::Body_14);
+    m_cb_sup_sound->BindLabel(text_sup_sound);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_sup_sound, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_sup_sound, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1134,6 +1144,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_filament_tangle = new CheckBox(parent);
     text_filament_tangle = new Label(parent, _L("Filament Tangle Detection"));
     text_filament_tangle->SetFont(Label::Body_14);
+    m_cb_filament_tangle->BindLabel(text_filament_tangle);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_filament_tangle, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_filament_tangle, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1152,6 +1163,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_nozzle_blob = new CheckBox(parent);
     text_nozzle_blob = new Label(parent, _L("Nozzle Clumping Detection"));
     text_nozzle_blob->SetFont(Label::Body_14);
+    m_cb_nozzle_blob->BindLabel(text_nozzle_blob);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_nozzle_blob, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_nozzle_blob, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1185,6 +1197,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_purify_air_at_print_end = new CheckBox(parent);
     text_purify_air = new Label(parent, _L("Purify Air at Print End"));
     text_purify_air->SetFont(Label::Body_14);
+    m_cb_purify_air_at_print_end->BindLabel(text_purify_air);
     text_purify_air_context = new Label(parent, wxEmptyString);
     text_purify_air_context->SetFont(Label::Body_12);
     text_purify_air_context->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
@@ -1208,6 +1221,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_plate_align = new CheckBox(parent);
     text_plate_align = new Label(parent, _L("Alignment Detection"));
     text_plate_align->SetFont(Label::Body_14);
+    m_cb_plate_align->BindLabel(text_plate_align);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_plate_align, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_plate_align, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1231,6 +1245,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_fod_check = new CheckBox(parent);
     text_fod_check = new Label(parent, _L("Foreign Object Detection"));
     text_fod_check->SetFont(Label::Body_14);
+    m_cb_fod_check->BindLabel(text_fod_check);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_fod_check, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_fod_check, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1254,6 +1269,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_displacement_detection = new CheckBox(parent);
     text_displacement_detection = new Label(parent, _L("Printed Part Displacement Detection"));
     text_displacement_detection->SetFont(Label::Body_14);
+    m_cb_displacement_detection->BindLabel(text_displacement_detection);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_displacement_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_displacement_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1302,6 +1318,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_open_door = new CheckBox(parent);
     text_open_door = new Label(parent, _L("Open Door Detection"));
     text_open_door->SetFont(Label::Body_14);
+    m_cb_open_door->BindLabel(text_open_door);
     open_door_switch_board = new SwitchBoard(parent, _L("Notification"), _L("Pause printing"), wxSize(FromDIP(200), FromDIP(26)));
     open_door_switch_board->Disable();
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1318,6 +1335,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_snapshot_enable = new CheckBox(parent);
     Label* text_snapshot = new Label(parent, _L("Print Status Snapshot"));
     text_snapshot->SetFont(Label::Body_14);
+    m_cb_snapshot_enable->BindLabel(text_snapshot);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_snapshot_enable, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_snapshot, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));

@@ -645,6 +645,8 @@ void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &st
             m_selected_storage = selectd_storage;
         });
 
+        radiobox->BindLabel(storage_text);
+
         m_storage_sizer->Add(radiobox, 0, wxALIGN_CENTER, 0);
         m_storage_sizer->Add(0, 0, 0, wxEXPAND|wxLEFT, FromDIP(6));
         m_storage_sizer->Add(storage_text, 0, wxALIGN_CENTER,0);

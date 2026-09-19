@@ -192,6 +192,7 @@ wxBoxSizer* SafetyOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_open_door = new CheckBox(parent);
     m_text_open_door = new Label(parent, _L("Open Door Detection"));
     m_text_open_door->SetFont(Label::Body_14);
+    m_cb_open_door->BindLabel(m_text_open_door);
     m_open_door_switch_board = new SwitchBoard(parent, _L("Notification"), _L("Pause printing"), wxSize(FromDIP(200), FromDIP(26)));
     m_open_door_switch_board->Disable();
     line_sizer->AddSpacer(FromDIP(5));
@@ -212,6 +213,7 @@ wxBoxSizer* SafetyOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_idel_heating_protection = new CheckBox(m_idel_heating_container);
     m_text_idel_heating_protection = new Label(m_idel_heating_container, _L("Idle Heating Protection"));
     m_text_idel_heating_protection->SetFont(Label::Body_14);
+    m_cb_idel_heating_protection->BindLabel(m_text_idel_heating_protection);
     line_sizer->AddSpacer(FromDIP(5));
     line_sizer->Add(m_cb_idel_heating_protection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(m_text_idel_heating_protection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
