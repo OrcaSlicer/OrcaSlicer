@@ -24,19 +24,20 @@ namespace GUI
 ObjectLayers::ObjectLayers(wxWindow* parent) :
     OG_Settings(parent, true)
 {
-    m_grid_sizer = new wxFlexGridSizer(5, 0, wxGetApp().em_unit()); // Title, Min Z, "to", Max Z, unit & buttons sizer
+    m_grid_sizer = new wxFlexGridSizer(5, parent ? parent->FromDIP(2) : 2, wxGetApp().em_unit()); // Title, Min Z, "to", Max Z, buttons sizer
     m_grid_sizer->SetFlexibleDirection(wxHORIZONTAL);
     m_grid_sizer->AddGrowableCol(1);
     m_grid_sizer->AddGrowableCol(3);
 
     m_og->activate();
     m_og->sizer->Clear(true);
-    m_og->sizer->Add(m_grid_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+    m_og->sizer->Add(m_grid_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, parent ? parent->FromDIP(2) : 2);
     if (auto stb = dynamic_cast<LabeledStaticBox*>(m_og->stb))
         stb->SetCornerRadius(0);
 
     m_bmp_delete    = ScalableBitmap(parent, "delete");
     m_bmp_add       = ScalableBitmap(parent, "add");
+    m_bmp_layer     = ScalableBitmap(parent, "height_range_layer");
 }
 
 void ObjectLayers::select_editor(LayerRangeEditor* editor, const bool is_last_edited_range)
@@ -78,10 +79,14 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     };
 
     // Add text
-    auto head_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("Height Range"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    auto title_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto head_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("Range"));
     head_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     head_text->SetFont(wxGetApp().normal_font());
-    m_grid_sizer->Add(head_text, 0, wxALIGN_CENTER_VERTICAL);
+    auto icon = new wxStaticBitmap(m_og->ctrl_parent(), wxID_ANY, m_bmp_layer.bmp());
+    title_sizer->Add(icon, 0, wxALIGN_CENTER_VERTICAL);
+    title_sizer->Add(head_text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, m_og->ctrl_parent()->FromDIP(5));
+    m_grid_sizer->Add(title_sizer, 0, wxALIGN_CENTER_VERTICAL);
 
     // Add control for the "Min Z"
 
@@ -109,7 +114,7 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
 
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
-    auto middle_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("to"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    auto middle_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, "-");
     middle_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     middle_text->SetFont(wxGetApp().normal_font());
     m_grid_sizer->Add(middle_text, 0, wxALIGN_CENTER_VERTICAL);
@@ -139,11 +144,6 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
     auto sizer2 = new wxBoxSizer(wxHORIZONTAL);
-    auto unit_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("mm"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    unit_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
-    unit_text->SetFont(wxGetApp().normal_font());
-    sizer2->Add(unit_text, 0, wxALIGN_CENTER_VERTICAL);
-
     m_grid_sizer->Add(sizer2, 0, wxALIGN_CENTER_VERTICAL);
 
     // BBS
@@ -188,8 +188,9 @@ void ObjectLayers::create_layers_list()
 
         auto sizer = create_layer(range, del_btn, add_btn);
         auto b_sizer = new wxBoxSizer(wxHORIZONTAL);
-        b_sizer->Add(del_btn, 0, wxRIGHT | wxLEFT, em_unit(m_parent));
-        b_sizer->Add(add_btn);
+        b_sizer->Add(del_btn, 0, wxLEFT, m_og->ctrl_parent()->FromDIP(5));
+        b_sizer->AddSpacer(m_og->ctrl_parent()->FromDIP(15));
+        b_sizer->Add(add_btn, 0, wxRIGHT, m_og->ctrl_parent()->FromDIP(5));
         sizer->Add(b_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, m_parent->FromDIP(1)); // aligns +/- buttons vertically since we got 1px gap on bottom of icons
 
         del_btn->Bind(wxEVT_BUTTON, [del_btn](wxEvent &) {
@@ -260,6 +261,7 @@ void ObjectLayers::msw_rescale()
 {
     m_bmp_delete.msw_rescale();
     m_bmp_add.msw_rescale();
+    m_bmp_layer.msw_rescale();
 
     m_grid_sizer->SetHGap(wxGetApp().em_unit());
 
@@ -350,20 +352,17 @@ LayerRangeEditor::LayerRangeEditor( ObjectLayers* parent,
     m_valid_value(value),
     m_type(type),
     m_set_focus_data(set_focus_data_fn),
-    wxTextCtrl(parent->m_og->ctrl_parent(), wxID_ANY, value, wxDefaultPosition, 
-               wxSize(em_unit(parent->m_parent), wxDefaultCoord), wxTE_PROCESS_ENTER
-#ifdef _WIN32
-        | wxBORDER_SIMPLE
-#endif
-    )
+    TextInput(parent->m_og->ctrl_parent(), value, _L("mm"), "", wxDefaultPosition, wxSize(em_unit(parent->m_parent), wxDefaultCoord), wxTE_PROCESS_ENTER)
 {
     this->SetFont(wxGetApp().normal_font());
     wxGetApp().UpdateDarkUI(this);
 
+    wxTextCtrl* ctrl = GetTextCtrl();
+
     // Reset m_enter_pressed flag to _false_, when value is editing
-    this->Bind(wxEVT_TEXT, [this](wxEvent&) { m_enter_pressed = false; }, this->GetId());
+    ctrl->Bind(wxEVT_TEXT, [this](wxEvent&) { m_enter_pressed = false; }, ctrl->GetId());
     
-    this->Bind(wxEVT_TEXT_ENTER, [this, edit_fn](wxEvent&)
+    ctrl->Bind(wxEVT_TEXT_ENTER, [this, edit_fn](wxCommandEvent& e)
     {
         m_enter_pressed     = true;
         // If LayersList wasn't updated/recreated, we can call wxEVT_KILL_FOCUS.Skip()
@@ -378,9 +377,9 @@ LayerRangeEditor::LayerRangeEditor( ObjectLayers* parent,
             SetValue(m_valid_value);
             m_call_kill_focus = true;
         }
-    }, this->GetId());
+    }, ctrl->GetId());
 
-    this->Bind(wxEVT_KILL_FOCUS, [this, edit_fn](wxFocusEvent& e)
+    ctrl->Bind(wxEVT_KILL_FOCUS, [this, edit_fn](wxFocusEvent& e)
     {
         if (!m_enter_pressed) {
 #ifndef __WXGTK__
@@ -409,14 +408,14 @@ LayerRangeEditor::LayerRangeEditor( ObjectLayers* parent,
             m_call_kill_focus = false;
             e.Skip();
         }
-    }, this->GetId());
+    }, ctrl->GetId());
 
-    this->Bind(wxEVT_SET_FOCUS, [this, parent](wxFocusEvent& e)
+    ctrl->Bind(wxEVT_SET_FOCUS, [this, parent](wxFocusEvent& e)
     {
         set_focus_data();
         parent->update_scene_from_editor_selection();
         e.Skip();
-    }, this->GetId());
+    }, ctrl->GetId());
 
 #ifdef __WXGTK__ // Workaround! To take information about selectable range
     this->Bind(wxEVT_LEFT_DOWN, [this](wxEvent& e)
@@ -430,7 +429,7 @@ LayerRangeEditor::LayerRangeEditor( ObjectLayers* parent,
     {
         // select all text using Ctrl+A
         if (wxGetKeyState(wxKeyCode('A')) && wxGetKeyState(WXK_CONTROL))
-            this->SetSelection(-1, -1); //select all
+            GetTextCtrl()->SetSelection(-1, -1); //select all
         event.Skip();
     }));
 }
@@ -460,7 +459,7 @@ coordf_t LayerRangeEditor::get_value()
 
 void LayerRangeEditor::msw_rescale()
 {
-    SetMinSize(wxSize(wxGetApp().em_unit(), wxDefaultCoord));
+    Rescale();
 }
 
 } //namespace GUI
