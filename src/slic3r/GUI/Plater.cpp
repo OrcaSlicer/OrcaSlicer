@@ -21116,6 +21116,11 @@ PrinterTechnology Plater::printer_technology() const
 
 const DynamicPrintConfig * Plater::config() const { return p->config; }
 
+std::vector<std::vector<DynamicPrintConfig>> Plater::extruder_filament_info_for_slicing()
+{
+    return p->get_extruder_filament_info();
+}
+
 bool Plater::set_printer_technology(PrinterTechnology printer_technology)
 {
     p->printer_technology = printer_technology;

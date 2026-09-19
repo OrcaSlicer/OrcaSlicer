@@ -693,6 +693,9 @@ public:
 
     PrinterTechnology   printer_technology() const;
     const DynamicPrintConfig * config() const;
+    // Owned copy of the same connected-device filament inputs applied to the
+    // live FFF Print. Used only while capturing an isolated slicing snapshot.
+    std::vector<std::vector<DynamicPrintConfig>> extruder_filament_info_for_slicing();
     bool                set_printer_technology(PrinterTechnology printer_technology);
 
     //BBS
