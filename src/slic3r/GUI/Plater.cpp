@@ -1198,7 +1198,7 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
-static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, wipe_tower_filament)
+static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, brim_filament, wipe_tower_filament)
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -2441,6 +2441,7 @@ Sidebar::Sidebar(Plater *parent)
     Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("brim_filament", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -7362,7 +7363,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "extruder_clearance_radius",
         "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
 		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
-        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
+        "brim_width", "brim_object_gap", "brim_filament", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
         "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
         "prime_tower_infill_gap", "prime_volume",
         "extruder_colour", "filament_colour", "filament_type", "filament_is_support", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
@@ -20010,8 +20011,8 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     // update_objects_list_filament_column() that clips extruders above total count.
     sidebar().obj_list()->update_objects_list_filament_column_when_delete_filament(filament_id, num_filaments, replace_filament_id);
 
-    // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    // update global support and brim filament
+    static const char *keys[] = {"support_filament", "support_interface_filament", "brim_filament"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -20197,7 +20198,8 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
-                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
+                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "brim_filament") {
             update_scheduled = true;
         }
     }

@@ -562,6 +562,9 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {
     std::vector<unsigned int> extruders = this->object_extruders();
     append(extruders, this->support_material_extruders());
+    for (const PrintObject *object : m_objects)
+        if (unsigned int brim_filament = object->brim_filament(); brim_filament > 0)
+            extruders.emplace_back(brim_filament - 1);
 
     if (conside_custom_gcode) {
         //BBS
@@ -1620,6 +1623,8 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
             }
+            if (unsigned int brim_filament = print_object->brim_filament(); brim_filament > 0)
+                obj_used_extruder_ids.insert(int(brim_filament) - 1);
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
@@ -1892,6 +1897,15 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (const std::vector<coordf_t> &layers = layer_height_profile(print_object_idx); ! layers.empty())
                 if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
                     return {_u8L("Variable layer height is not supported with Organic supports.") };
+        }
+
+    // Like the wipe tower filament, the brim filament is scheduled as a physical tool on the first layer,
+    // after mixed slots have been resolved. The GUI hides mixed slots; this guards loaded projects and the CLI.
+    for (const PrintObject *object : m_objects)
+        if (unsigned int brim_filament = object->brim_filament(); brim_filament > 0) {
+            const auto &is_mixed = m_config.filament_is_mixed.values;
+            if (brim_filament - 1 < is_mixed.size() && is_mixed[brim_filament - 1])
+                return { L("The brim filament cannot be a mixed filament."), object, "brim_filament" };
         }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
@@ -2671,6 +2685,8 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
         else {
             objectExtruderMap.insert(std::make_pair(object->id(), object->object_first_layer_wall_extruders.front()));
         }
+        if (unsigned int brim_filament = object->brim_filament(); brim_filament > 0)
+            objectExtruderMap[object->id()] = brim_filament;
     }
     return objectExtruderMap;
 }

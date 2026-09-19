@@ -7729,6 +7729,15 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(true));
 
 
+    def = this->add("brim_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label = L("Brim");
+    def->category = L("Extruders");
+    def->tooltip = L("Filament to print the brim.\n\"Default\" prints the brim with the first filament used on the object's first layer.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("wipe_tower_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Wipe tower");

@@ -1106,6 +1106,7 @@ protected: \
 PRINT_CONFIG_CLASS_DEFINE(
     PrintObjectConfig,
 
+    ((ConfigOptionInt,                 brim_filament))
     ((ConfigOptionFloat,               brim_object_gap))
     ((ConfigOptionFloat,               brim_flow_ratio))
     ((ConfigOptionBool,                brim_use_efc_outline))

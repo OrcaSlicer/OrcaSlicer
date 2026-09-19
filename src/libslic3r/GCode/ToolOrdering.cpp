@@ -923,6 +923,10 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     sort_remove_duplicates(firstLayerExtruders);
     const_cast<PrintObject&>(object).object_first_layer_wall_extruders = firstLayerExtruders;
 
+    // A brim with its own filament needs that filament on the object's first layer, even when nothing else uses it.
+    if (unsigned int brim_filament = object.brim_filament(); brim_filament > 0 && !object.layers().empty())
+        this->tools_for_layer(object.layers().front()->print_z).extruders.emplace_back(brim_filament);
+
     // Collect the support extruders.
     for (auto support_layer : object.support_layers()) {
         LayerTools   &layer_tools   = this->tools_for_layer(support_layer->print_z);
