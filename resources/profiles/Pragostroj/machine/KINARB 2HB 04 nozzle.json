@@ -1,0 +1,29 @@
+{
+    "type": "machine",
+    "name": "KINARB 2HB 0.4 nozzle",
+    "setting_id": "KINARB 2HB 0.4 nozzle",
+    "instantiation": "true",
+    "printer_model": "KINARB 2HB",
+    "inherits": "kinarb_2hb_machine_common",
+    "from": "system",
+    "extruders_count": "2",
+    "nozzle_count": "2",
+    "printer_variant": "0.4",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
+    "default_print_profile": "0.2mm Draft @Pragostroj 0.4",
+    "default_filament_profile": [
+        "Fillamentum PLA Concret Grey @Pragostroj 330 AWD 0.4 nozzle",
+        "Pragostroj hips @Pragostroj"
+    ],
+    "is_custom_defined": "1",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.1"
+    ],
+    "version": "2.2.0.4"
+}

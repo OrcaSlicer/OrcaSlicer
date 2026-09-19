@@ -1,0 +1,194 @@
+{
+  "name": "Pragostroj",
+  "version": "01.00.01.00",
+  "force_update": "0",
+  "description": "Pragostroj printers config",
+  "machine_model_list": [
+    {
+      "name": "KINARB 1HB",
+      "sub_path": "machine/KINARB1HB.json"
+    },
+    {
+      "name": "KINARB 2HB",
+      "sub_path": "machine/KINARB2HB.json"
+    }
+  ],
+  "machine_list": [
+    {
+      "name": "fdm_machine_common",
+      "sub_path": "machine/fdm_machine_common.json"
+    },
+    {
+      "name": "kinarb_machine_common",
+      "sub_path": "machine/kinarb_machine_common.json"
+    },
+    {
+      "name": "kinarb_2hb_machine_common",
+      "sub_path": "machine/kinarb_2hb_machine_common.json"
+    },
+    {
+      "name": "KINARB 1HB 0.4 nozzle",
+      "sub_path": "machine/KINARB 1HB 04 nozzle.json"
+    },
+    {
+      "name": "KINARB 1HB 0.5 nozzle",
+      "sub_path": "machine/KINARB 1HB 05 nozzle.json"
+    },
+    {
+      "name": "KINARB 1HB 0.6 nozzle",
+      "sub_path": "machine/KINARB 1HB 06 nozzle.json"
+    },
+    {
+      "name": "KINARB 1HB 0.8 nozzle",
+      "sub_path": "machine/KINARB 1HB 08 nozzle.json"
+    },
+    {
+      "name": "KINARB 1HB 1.0 nozzle",
+      "sub_path": "machine/KINARB 1HB 10 nozzle.json"
+    },
+    {
+      "name": "KINARB 1HB 1.2 nozzle",
+      "sub_path": "machine/KINARB 1HB 12 nozzle.json"
+    },
+    {
+      "name": "KINARB 1HB 1.6 nozzle",
+      "sub_path": "machine/KINARB 1HB 16 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 0.4 nozzle",
+      "sub_path": "machine/KINARB 2HB 04 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 0.5 nozzle",
+      "sub_path": "machine/KINARB 2HB 05 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 0.6 nozzle",
+      "sub_path": "machine/KINARB 2HB 06 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 0.8 nozzle",
+      "sub_path": "machine/KINARB 2HB 08 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 1.0 nozzle",
+      "sub_path": "machine/KINARB 2HB 10 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 1.2 nozzle",
+      "sub_path": "machine/KINARB 2HB 12 nozzle.json"
+    },
+    {
+      "name": "KINARB 2HB 1.6 nozzle",
+      "sub_path": "machine/KINARB 2HB 16 nozzle.json"
+    }
+  ],
+  "process_list": [
+    {
+      "name": "fdm_process_common",
+      "sub_path": "process/fdm_process_common.json"
+    },
+    {
+      "name": "process_common_kinarb",
+      "sub_path": "process/process_common_kinarb.json"
+    },
+    {
+      "name": "0.2mm Draft @Pragostroj 0.4",
+      "sub_path": "process/0.2mm Draft @Pragostroj 0.4.json"
+    },
+    {
+      "name": "0.25mm Draft @Pragostroj 0.5",
+      "sub_path": "process/0.25mm Draft @Pragostroj 0.5.json"
+    },
+    {
+      "name": "0.3mm Draft @Pragostroj 0.6",
+      "sub_path": "process/0.3mm Draft @Pragostroj 0.6.json"
+    },
+    {
+      "name": "0.4mm Draft @Pragostroj 0.8",
+      "sub_path": "process/0.4mm Draft @Pragostroj 0.8.json"
+    },
+    {
+      "name": "0.5mm Draft @Pragostroj 1.0",
+      "sub_path": "process/0.5mm Draft @Pragostroj 1.0.json"
+    },
+    {
+      "name": "0.6mm Draft @Pragostroj 1.2",
+      "sub_path": "process/0.6mm Draft @Pragostroj 1.2.json"
+    },
+    {
+      "name": "0.8mm Draft @Pragostroj 1.6",
+      "sub_path": "process/0.8mm Draft @Pragostroj 1.6.json"
+    },
+    {
+      "name": "0.25mm quality @Pragostroj 0.5",
+      "sub_path": "process/0.25mm quality @Pragostroj 0.5.json"
+    },
+    {
+      "name": "0.40mm quality @Pragostroj 0.8",
+      "sub_path": "process/0.40mm quality @Pragostroj 0.8.json"
+    },
+    {
+      "name": "0.25mm quality @Pragostroj 0.5 - 100mms",
+      "sub_path": "process/0.25mm quality @Pragostroj 0.5 - 100mms.json"
+    },
+    {
+      "name": "0.15mm PETG fine @Pragostroj 0.5",
+      "sub_path": "process/0.15mm PETG fine @Pragostroj 0.5.json"
+    },
+    {
+      "name": "0.25mm PP Draft @Pragostroj 0.5",
+      "sub_path": "process/0.25mm PP Draft @Pragostroj 0.5.json"
+    },
+    {
+      "name": "0.4mm PP Draft @Pragostroj 0.8",
+      "sub_path": "process/0.4mm PP Draft @Pragostroj 0.8.json"
+    }
+  ],
+  "filament_list": [
+    {
+      "name": "fdm_filament_common",
+      "sub_path": "filament/fdm_filament_common.json"
+    },
+    {
+      "name": "fdm_filament_pla",
+      "sub_path": "filament/fdm_filament_pla.json"
+    },
+    {
+      "name": "fdm_filament_hips",
+      "sub_path": "filament/fdm_filament_hips.json"
+    },
+    {
+      "name": "Fillamentum PLA Concret Grey @Pragostroj 330 AWD 0.4 nozzle",
+      "sub_path": "filament/Fillamentum PLA Concret Grey @Pragostroj 330 AWD 0.4 nozzle.json"
+    },
+    {
+      "name": "Pragostroj hips @Pragostroj",
+      "sub_path": "filament/Pragostroj hips @Pragostroj.json"
+    },
+    {
+      "name": "Pragostroj PLAP @Pragostroj",
+      "sub_path": "filament/Pragostroj PLAP @Pragostroj.json"
+    },
+    {
+      "name": "fdm_filament_petg",
+      "sub_path": "filament/fdm_filament_petg.json"
+    },
+    {
+      "name": "fdm_filament_pp",
+      "sub_path": "filament/fdm_filament_pp.json"
+    },
+    {
+      "name": "Pragostroj PETG @Pragostroj 0.5 nozzle",
+      "sub_path": "filament/Pragostroj PETG @Pragostroj 0.5 nozzle.json"
+    },
+    {
+      "name": "Pragostroj PP @Pragostroj 0.5 nozzle",
+      "sub_path": "filament/Pragostroj PP @Pragostroj 0.5 nozzle.json"
+    },
+    {
+      "name": "Pragostroj PP @Pragostroj 0.8 nozzle",
+      "sub_path": "filament/Pragostroj PP @Pragostroj 0.8 nozzle.json"
+    }
+  ]
+}
