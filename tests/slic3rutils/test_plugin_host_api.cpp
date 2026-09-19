@@ -38,6 +38,7 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     REQUIRE(has_attr(host, "Model"));
     REQUIRE(has_attr(host, "ModelObject"));
     REQUIRE(has_attr(host, "Plater"));
+    CHECK(has_attr(host.attr("Plater"), "export_gcode_to_temp"));
 
     py::object preset_bundle_type = host.attr("PresetBundle");
     CHECK(has_attr(preset_bundle_type, "prints"));
