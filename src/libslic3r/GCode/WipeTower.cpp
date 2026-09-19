@@ -33,6 +33,12 @@ bool wipe_tower_sparse_layers_skipped(const PrintConfig &config)
 
 bool wipe_tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &layer_tool_changes)
 {
+    if (layer_tool_changes.empty())
+        return false;
+    // Independent towers only store the layers a filament actually prints, including a dummy
+    // first-layer finish (old==new). Those still have to be emitted.
+    if (layer_tool_changes.front().has_tower_pos)
+        return false;
     return layer_tool_changes.size() == 1 && layer_tool_changes.front().initial_tool == layer_tool_changes.front().new_tool;
 }
 

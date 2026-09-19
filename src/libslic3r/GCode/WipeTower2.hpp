@@ -75,6 +75,10 @@ public:
 	// Iterates through prepared m_plan, generates ToolChangeResults and appends them to "result"
 	void generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
 
+    // Independent towers only plan the layers a filament actually prints, so each tower is
+    // compacted even when the global no-sparse option is off (otherwise later towers print in air).
+    void set_sparse_layers_skipped(bool v) { m_sparse_layers_skipped = v; }
+
     float get_depth() const { return m_wipe_tower_depth; }
 	std::vector<std::pair<float, float>> get_z_and_depth_pairs() const;
     float get_brim_width() const { return m_wipe_tower_brim_width_real; }
