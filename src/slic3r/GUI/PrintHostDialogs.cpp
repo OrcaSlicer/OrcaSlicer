@@ -36,6 +36,7 @@
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
 #include "../Utils/CrealityPrint.hpp"
+#include "../Utils/Moonraker.hpp"
 #include "BitmapComboBox.hpp"
 #include "wxExtensions.hpp"
 
@@ -2103,6 +2104,255 @@ std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() c
         }
     }
 
+    return info;
+}
+
+SnapmakerPrintHostSendDialog::SnapmakerPrintHostSendDialog(const boost::filesystem::path& path,
+                                                         PrintHostPostUploadActions     post_actions,
+                                                         const wxArrayString&           groups,
+                                                         const wxArrayString&           storage_paths,
+                                                         const wxArrayString&           storage_names,
+                                                         bool                           switch_to_device_tab,
+                                                         PrintHost*                     printhost)
+    : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
+    , m_autoBedLeveling(false)
+    , m_flowCalibrate(false)
+    , m_printhost(printhost)
+{}
+
+void SnapmakerPrintHostSendDialog::init()
+{
+    PrintHostSendDialog::init();
+
+    auto* moonraker_host = static_cast<Moonraker*>(m_printhost);
+    std::string api_key = moonraker_host->get_apikey();
+    std::string host = moonraker_host->get_host();
+
+    std::string url = host;
+    if (url.find("http://") != 0 && url.find("https://") != 0) {
+        url = "http://" + url;
+    }
+    if (url.back() == '/') {
+        url += "printer/objects/query?print_task_config";
+    } else {
+        url += "/printer/objects/query?print_task_config";
+    }
+
+    {
+        wxBusyCursor wait;
+        std::string response_body;
+        bool success = false;
+        auto http = Http::get(url);
+        if (!api_key.empty()) {
+            http.header("X-Api-Key", api_key);
+        }
+        if (!moonraker_host->get_cafile().empty()) {
+            http.ca_file(moonraker_host->get_cafile());
+        }
+        http.timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string body, unsigned status) {
+                if (status == 200) {
+                    response_body = body;
+                    success = true;
+                }
+            })
+            .perform_sync();
+
+        if (success && !response_body.empty()) {
+            try {
+                auto resp = nlohmann::json::parse(response_body);
+                if (resp.contains("result") && resp["result"].contains("status") && resp["result"]["status"].contains("print_task_config")) {
+                    auto& ptc = resp["result"]["status"]["print_task_config"];
+                    auto filament_exist = ptc.value("filament_exist", std::vector<bool>{});
+                    auto filament_type = ptc.value("filament_type", std::vector<std::string>{});
+                    auto filament_sub_type = ptc.value("filament_sub_type", std::vector<std::string>{});
+                    auto filament_color = ptc.value("filament_color_rgba", std::vector<std::string>{});
+                    auto filament_vendor = ptc.value("filament_vendor", std::vector<std::string>{});
+
+                    for (size_t i = 0; i < filament_exist.size(); ++i) {
+                        if (!filament_exist[i]) continue;
+                        
+                        std::string type = (i < filament_type.size()) ? filament_type[i] : "";
+                        std::string sub_type = (i < filament_sub_type.size()) ? filament_sub_type[i] : "";
+                        std::string color = (i < filament_color.size()) ? filament_color[i] : "FFFFFFFF";
+                        std::string vendor = (i < filament_vendor.size()) ? filament_vendor[i] : "";
+
+                        // Normalize color from RRGGBBAA to #RRGGBB
+                        if (color.size() == 8) {
+                            color = "#" + color.substr(0, 6);
+                        } else if (color.size() == 9 && color[0] == '#') {
+                            color = color.substr(0, 7);
+                        } else if (color.size() == 7 && color[0] == '#') {
+                            // already ok
+                        } else {
+                            color = "#FFFFFF";
+                        }
+
+                        // Combine type and sub_type
+                        std::string combined_type = type;
+                        if (!sub_type.empty() && sub_type != "NONE") {
+                            combined_type += " " + sub_type;
+                        }
+
+                        std::string tool_id = "T" + std::to_string(i);
+                        m_printer_slots.push_back({ tool_id, combined_type, color, (int)i });
+                    }
+                }
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "SnapmakerPrint dialog: Failed to parse print_task_config";
+            }
+        }
+    }
+
+    auto* group_box = new wxStaticBox(this, wxID_ANY, _L("Printer: Snapmaker"));
+    auto* group_sizer = new wxStaticBoxSizer(group_box, wxVERTICAL);
+    content_sizer->Add(group_sizer, 0, wxEXPAND);
+
+    const AppConfig* app_config = wxGetApp().app_config;
+    std::string saved_leveling = app_config->get("recent", CONFIG_KEY_AUTOLEVELING);
+    if (!saved_leveling.empty()) {
+        try { m_autoBedLeveling = std::stoi(saved_leveling) != 0; } catch (...) {}
+    }
+    std::string saved_flow = app_config->get("recent", CONFIG_KEY_FLOWCALIB);
+    if (!saved_flow.empty()) {
+        try { m_flowCalibrate = std::stoi(saved_flow) != 0; } catch (...) {}
+    }
+
+    // Checkbox for Auto Bed Leveling
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this);
+        checkbox->SetValue(m_autoBedLeveling);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent& e) {
+            m_autoBedLeveling = checkbox->GetValue();
+            AppConfig* ac = wxGetApp().app_config;
+            ac->set("recent", CONFIG_KEY_AUTOLEVELING, m_autoBedLeveling ? "1" : "0");
+            e.Skip();
+        });
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Calibrate bed before printing"), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        group_sizer->Add(checkbox_sizer);
+        group_sizer->AddSpacer(VERT_SPACING);
+    }
+    // Checkbox for Flow Calibration
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this);
+        checkbox->SetValue(m_flowCalibrate);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent& e) {
+            m_flowCalibrate = checkbox->GetValue();
+            AppConfig* ac = wxGetApp().app_config;
+            ac->set("recent", CONFIG_KEY_FLOWCALIB, m_flowCalibrate ? "1" : "0");
+            e.Skip();
+        });
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Calibrate filament flow before printing"), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        group_sizer->Add(checkbox_sizer);
+        group_sizer->AddSpacer(VERT_SPACING);
+    }
+
+    auto  preset_bundle    = wxGetApp().preset_bundle;
+    auto  full_config      = preset_bundle->full_config();
+    auto* filament_colors  = full_config.option<ConfigOptionStrings>("filament_colour");
+    auto* filament_types   = full_config.option<ConfigOptionStrings>("filament_type");
+    int   gcode_filament_count = filament_colors ? (int)filament_colors->values.size() : 0;
+
+    if (gcode_filament_count > 0 && !m_printer_slots.empty()) {
+        auto* label = new wxStaticText(this, wxID_ANY, _L("Filament Mapping:"));
+        label->SetFont(::Label::Body_13);
+        label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        group_sizer->Add(label);
+        group_sizer->AddSpacer(4);
+
+        for (int i = 0; i < gcode_filament_count; i++) {
+            auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+            // Left side: G-code filament color swatch + type
+            std::string gc_color = (filament_colors && i < (int)filament_colors->values.size())
+                                   ? filament_colors->values[i] : "#FFFFFF";
+            std::string gc_type  = (filament_types && i < (int)filament_types->values.size())
+                                   ? filament_types->values[i] : "?";
+
+            auto* color_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
+            color_panel->SetBackgroundColour(wxColour(gc_color));
+            color_panel->SetMinSize(wxSize(FromDIP(16), FromDIP(16)));
+            row_sizer->Add(color_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+
+            auto* type_label = new wxStaticText(this, wxID_ANY,
+                wxString::Format("%d (%s)", i + 1, gc_type.c_str()));
+            type_label->SetFont(::Label::Body_13);
+            type_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+            type_label->SetMinSize(wxSize(FromDIP(80), -1));
+            row_sizer->Add(type_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+
+            // Arrow
+            auto* arrow_label = new wxStaticText(this, wxID_ANY, wxString::FromUTF8("\xe2\x86\x92"));
+            arrow_label->SetFont(::Label::Body_13);
+            row_sizer->Add(arrow_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+
+            // Right side: dropdown with color icons per slot
+            int icon_sz = FromDIP(16);
+            auto* combo = new BitmapComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
+            for (auto& slot : m_printer_slots) {
+                wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
+                wxString label_str = wxString::Format("%s - %s", slot.tool_id.c_str(), slot.type.c_str());
+                combo->Append(label_str, bmp ? *bmp : wxNullBitmap);
+            }
+
+            int default_sel = (i < (int)m_printer_slots.size()) ? i : 0;
+            // Match logic (type & color)
+            bool matched = false;
+            for (int pass = 0; pass < 2 && !matched; pass++) {
+                for (int s = 0; s < (int)m_printer_slots.size(); s++) {
+                    bool type_match = (m_printer_slots[s].type == gc_type);
+                    bool color_match = (wxColour(m_printer_slots[s].color) == wxColour(gc_color));
+                    bool hit = false;
+                    switch (pass) {
+                    case 0: hit = type_match && color_match; break;
+                    case 1: hit = type_match; break;
+                    }
+                    if (hit) {
+                        default_sel = s;
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+            combo->SetSelection(default_sel);
+            row_sizer->Add(combo, 0, wxALIGN_CENTER_VERTICAL);
+
+            group_sizer->Add(row_sizer);
+            group_sizer->AddSpacer(4);
+            m_slot_combos.push_back(combo);
+        }
+    }
+
+    this->Layout();
+    this->Fit();
+}
+
+std::map<std::string, std::string> SnapmakerPrintHostSendDialog::extendedInfo() const
+{
+    std::map<std::string, std::string> info;
+    info["is_snapmaker"] = "1";
+    info["auto_bed_leveling"] = m_autoBedLeveling ? "1" : "0";
+    info["flow_calibrate"] = m_flowCalibrate ? "1" : "0";
+
+    for (int i = 0; i < (int)m_slot_combos.size(); i++) {
+        int sel = m_slot_combos[i]->GetSelection();
+        if (sel >= 0 && sel < (int)m_printer_slots.size()) {
+            info["colorMatch_" + std::to_string(i)] = std::to_string(m_printer_slots[sel].slot_id);
+        } else {
+            info["colorMatch_" + std::to_string(i)] = "-1";
+        }
+    }
     return info;
 }
 
