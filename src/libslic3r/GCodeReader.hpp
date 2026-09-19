@@ -30,7 +30,8 @@ public:
         std::string_view axis_pos(char axis) const;
         void  clear() { m_raw.clear(); }
         bool  has(Axis axis) const { return (m_mask & (1 << int(axis))) != 0; }
-        float value(Axis axis) const { return m_axis[axis]; }
+        float value(Axis axis) const { return float(m_axis[axis]); }
+        double precise_value(Axis axis) const { return m_axis[axis]; }
         bool  has(char axis) const;
         bool  has_value(char axis, float &value) const;
         // Parse value of an axis from raw string starting at axis_pos.
@@ -67,15 +68,15 @@ public:
         bool  has_p() const { return this->has(P); }
 
         bool  has_unknown_axis() const { return this->has(UNKNOWN_AXIS); }
-        float x() const { return m_axis[X]; }
-        float y() const { return m_axis[Y]; }
-        float z() const { return m_axis[Z]; }
-        float e() const { return m_axis[E]; }
-        float f() const { return m_axis[F]; }
+        float x() const { return float(m_axis[X]); }
+        float y() const { return float(m_axis[Y]); }
+        float z() const { return float(m_axis[Z]); }
+        float e() const { return float(m_axis[E]); }
+        float f() const { return float(m_axis[F]); }
         // BBS: add I J P axis
-        float i() const { return m_axis[I]; }
-        float j() const { return m_axis[J]; }
-        float p() const { return m_axis[P]; }
+        float i() const { return float(m_axis[I]); }
+        float j() const { return float(m_axis[J]); }
+        float p() const { return float(m_axis[P]); }
 
         static bool cmd_is(const std::string &gcode_line, const char *cmd_test) {
             const char *cmd = GCodeReader::skip_whitespaces(gcode_line.c_str());
@@ -95,7 +96,7 @@ public:
         }
     private:
         std::string      m_raw;
-        float            m_axis[NUM_AXES];
+        double           m_axis[NUM_AXES];
         uint32_t         m_mask;
         friend class GCodeReader;
     };

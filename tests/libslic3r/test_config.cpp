@@ -1271,3 +1271,25 @@ TEST_CASE("Static print configs compare, order and hash by their option values",
         REQUIRE(c.optptr("gcode_flavor") == &c.gcode_flavor);
     }
 }
+
+TEST_CASE("A minimum cruise ratio of 1 is rejected only where Klipper would refuse it", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict("gcode_flavor", "klipper");
+    config.set("minimum_cruise_ratio_enable", true);
+    config.set("minimum_cruise_ratio", 1.0);
+    REQUIRE(config.validate().count("minimum_cruise_ratio") == 1);
+
+    SECTION("a value just below 1 is accepted") {
+        config.set("minimum_cruise_ratio", 0.995);
+        REQUIRE(config.validate().count("minimum_cruise_ratio") == 0);
+    }
+    SECTION("the value is not checked while the option is disabled") {
+        config.set("minimum_cruise_ratio_enable", false);
+        REQUIRE(config.validate().count("minimum_cruise_ratio") == 0);
+    }
+    SECTION("the value is not checked on another flavor") {
+        config.set_deserialize_strict("gcode_flavor", "marlin2");
+        REQUIRE(config.validate().count("minimum_cruise_ratio") == 0);
+    }
+}

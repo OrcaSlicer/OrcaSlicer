@@ -1282,6 +1282,8 @@ static std::vector<std::string> s_Preset_print_options{
     "wipe_speed",
     "accel_to_decel_enable",
     "accel_to_decel_factor",
+    "minimum_cruise_ratio_enable",
+    "minimum_cruise_ratio",
     "wipe_on_loops",
     "wipe_inward",
     "wipe_inward_distance",
