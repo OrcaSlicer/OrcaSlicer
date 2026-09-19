@@ -123,6 +123,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginPickerDialog.hpp
     GUI/PluginsDialog.cpp
     GUI/PluginsDialog.hpp
+    GUI/Shortcuts.cpp
+    GUI/Shortcuts.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
     GUI/ActionRegistry.cpp
@@ -335,6 +337,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/KeyChord.cpp
+    GUI/KeyChord.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/LinuxDisplayBackend.cpp

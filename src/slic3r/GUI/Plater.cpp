@@ -82,6 +82,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
@@ -7594,7 +7595,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         view3D_canvas->Bind(EVT_GLCANVAS_PRINTABLE, [this](SimpleEvent& evt) { this->sidebar->obj_list()->toggle_printable_state(); });
 
         view3D_canvas->Bind(EVT_GLCANVAS_SELECT_ALL, [this](SimpleEvent&) { this->q->select_all(); });
-        view3D_canvas->Bind(EVT_GLCANVAS_QUESTION_MARK, [](SimpleEvent&) { wxGetApp().keyboard_shortcuts(); });
+        view3D_canvas->Bind(EVT_GLCANVAS_QUESTION_MARK, [this](SimpleEvent&) {
+            wxGetApp().keyboard_shortcuts(view3D->get_canvas3d()->get_gizmos_manager().is_paint_gizmo() ? ShortcutContext::Painting : ShortcutContext::Plater);
+        });
         view3D_canvas->Bind(EVT_GLCANVAS_INCREASE_INSTANCES, [this](Event<int>& evt)
             { if (evt.data == 1) this->q->increase_instances(); else if (this->can_decrease_instances()) this->q->decrease_instances(); });
         view3D_canvas->Bind(EVT_GLCANVAS_INSTANCE_MOVED, [this](SimpleEvent&) { update(); });
@@ -7671,7 +7674,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     view3D_canvas->Bind(EVT_GLCANVAS_UPDATE_BED_SHAPE, [q](SimpleEvent&) { q->set_bed_shape(); });
 
     // Preview events:
-    preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_QUESTION_MARK, [](SimpleEvent&) { wxGetApp().keyboard_shortcuts(); });
+    preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_QUESTION_MARK, [](SimpleEvent&) { wxGetApp().keyboard_shortcuts(ShortcutContext::Preview); });
     preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_UPDATE_BED_SHAPE, [q](SimpleEvent&) { q->set_bed_shape(); });
     preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_UPDATE, [this](SimpleEvent &) {
             preview->get_canvas3d()->set_as_dirty();
@@ -8132,10 +8135,7 @@ void Plater::priv::collapse_sidebar(bool collapse)
     sidebar_layout.is_collapsed = collapse;
 
     // Now update the tooltip in the toolbar.
-    std::string new_tooltip = collapse
-                              ? _u8L("Expand sidebar")
-                              : _u8L("Collapse sidebar");
-    new_tooltip += " [" + _u8L("Shift+") + _u8L("Tab") + "]";
+    const std::string new_tooltip = wxGetApp().shortcuts().with_key(collapse ? _u8L("Expand sidebar") : _u8L("Collapse sidebar"), Shortcut::CollapseSidebar);
     int id = collapse_toolbar.get_item_id("collapse_sidebar");
     collapse_toolbar.set_tooltip(id, new_tooltip);
 

@@ -18,6 +18,7 @@
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
+#include "Shortcuts.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "NetworkPluginDialog.hpp"
@@ -285,6 +286,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
     combobox->SetToolTip(tip);
+    combobox->SetName(param);   // select_tab() finds the row by this name
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) {
@@ -1522,6 +1524,18 @@ PreferencesDialog::~PreferencesDialog()
 {
 }
 
+void PreferencesDialog::select_tab(PreferencesTab tab, const std::string& option)
+{
+    m_pref_tabs->SelectItem(m_tab_index.at(tab));
+    wxWindow* control = option.empty() ? nullptr : m_parent->FindWindow(wxString(option));
+    if (control == nullptr)
+        return;
+    int unit = 1;
+    m_parent->GetScrollPixelsPerUnit(nullptr, &unit);
+    m_parent->Scroll(wxDefaultCoord, (m_parent->CalcUnscrolledPosition(control->GetPosition()).y - FromDIP(10)) / unit);
+    control->SetFocus();   // the focused tint marks the row
+}
+
 void PreferencesDialog::on_dpi_changed(const wxRect &suggested_rect) {
     m_pref_tabs->Rescale();
 
@@ -1599,7 +1613,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// GENERAL TAB 
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("General"));
+    m_tab_index[PreferencesTab::General] = m_pref_tabs->AppendItem(_L("General"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1789,7 +1803,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// CONTROL TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Control"));
+    m_tab_index[PreferencesTab::Control] = m_pref_tabs->AppendItem(_L("Control"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1859,6 +1873,14 @@ void PreferencesDialog::create_items()
     auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_right_mouse_drag);
 
+    //// CONTROL > Keyboard
+    g_sizer->Add(create_item_title(_L("Keyboard")), 1, wxEXPAND);
+
+    auto item_shortcuts = create_item_button(_L("Keyboard shortcuts"), _L("Edit") + dots, "", _L("Choose the key for each action."), [this]() {
+        wxGetApp().keyboard_shortcuts(ShortcutContext::Global, this);
+    });
+    g_sizer->Add(item_shortcuts);
+
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
 
@@ -1883,7 +1905,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// GRAPHICS TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Graphics"));
+    m_tab_index[PreferencesTab::Graphics] = m_pref_tabs->AppendItem(_L("Graphics"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -2031,7 +2053,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// ONLINE TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Online"));
+    m_tab_index[PreferencesTab::Online] = m_pref_tabs->AppendItem(_L("Online"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);

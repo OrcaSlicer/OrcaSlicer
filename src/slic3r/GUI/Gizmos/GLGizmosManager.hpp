@@ -263,7 +263,10 @@ public:
     EType get_gizmo_from_name(const std::string& gizmo_name) const;
 
     bool is_running() const;
-    bool handle_shortcut(int key);
+    // Opens the gizmo bound to a Plater-context shortcut; false when no gizmo has it or it cannot open now.
+    bool open_gizmo_by_shortcut(Shortcut shortcut);
+    // Lets the current gizmo consume the delete key; false when it did not.
+    bool on_delete_key();
 
     bool is_dragging() const;
 

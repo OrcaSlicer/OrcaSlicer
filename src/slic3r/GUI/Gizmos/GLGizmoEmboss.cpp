@@ -1,6 +1,7 @@
 #include "GLGizmoEmboss.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
@@ -727,7 +728,7 @@ bool GLGizmoEmboss::on_init()
     m_rotate_gizmo.set_highlight_color(gray_color);
 
     // NOTE: It has special handling in GLGizmosManager::handle_shortcut
-    m_shortcut_key = WXK_CONTROL_T;
+    m_shortcut = Shortcut::GizmoEmboss;
 
     m_shortcuts = {
         {_L("Drag"),        _L("Position on surface")}

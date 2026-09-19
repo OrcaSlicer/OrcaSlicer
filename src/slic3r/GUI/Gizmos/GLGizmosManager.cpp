@@ -4,6 +4,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -486,15 +487,13 @@ bool GLGizmosManager::is_running() const
     return m_current != Undefined;
 }
 
-bool GLGizmosManager::handle_shortcut(int key)
+bool GLGizmosManager::open_gizmo_by_shortcut(Shortcut shortcut)
 {
     if (!m_enabled)
         return false;
 
-    auto is_key = [pressed_key = key](int gizmo_key) { return (gizmo_key == pressed_key - 64) || (gizmo_key == pressed_key - 96); };
-    // allowe open shortcut even when selection is empty    
-    if (GLGizmoBase* gizmo_emboss = m_gizmos[Emboss].get();
-        is_key(gizmo_emboss->get_shortcut_key())) {
+    // The text tool opens without a selection because it creates its own object.
+    if (GLGizmoBase* gizmo_emboss = m_gizmos[Emboss].get(); gizmo_emboss->shortcut() == shortcut) {
         dynamic_cast<GLGizmoEmboss *>(gizmo_emboss)->on_shortcut_key();
         return true;
     }
@@ -502,16 +501,21 @@ bool GLGizmosManager::handle_shortcut(int key)
     if (m_parent.get_selection().is_empty())
         return false;
 
-    auto is_gizmo = [is_key](const std::unique_ptr<GLGizmoBase> &gizmo) {
-        return gizmo->is_activable() && is_key(gizmo->get_shortcut_key());
-    };
-    auto it = std::find_if(m_gizmos.begin(), m_gizmos.end(), is_gizmo);
-
+    auto it = std::find_if(m_gizmos.begin(), m_gizmos.end(), [shortcut](const std::unique_ptr<GLGizmoBase> &gizmo) {
+        return gizmo->is_activable() && gizmo->shortcut() == shortcut;
+    });
     if (it == m_gizmos.end())
         return false;
 
-    EType gizmo_type = EType(it - m_gizmos.begin());
-    return open_gizmo(gizmo_type);
+    return open_gizmo(EType(it - m_gizmos.begin()));
+}
+
+bool GLGizmosManager::on_delete_key()
+{
+    const bool processed = (m_current == Cut || m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Delete);
+    if (processed)
+        m_parent.set_as_dirty();
+    return processed;
 }
 
 bool GLGizmosManager::is_dragging() const
@@ -856,15 +860,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             }
             break;
         }
-        //skip some keys when gizmo
-        case 'A':
-        case 'a':
-        {
-            if (is_running()) {
-                processed = true;
-            }
-            break;
-        }
         //case WXK_RETURN:
         //{
         //    if ((m_current == SlaSupports) && gizmo_event(SLAGizmoEventType::ApplyChanges))
@@ -883,12 +878,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
         //}
 
 
-        case WXK_BACK:
-        case WXK_DELETE: {
-            if ((m_current == Cut || m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Delete))
-                processed = true;
-            break;
-        }
         //case 'A':
         //case 'a':
         //{
@@ -930,11 +919,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             break;
         }
         }
-    }
-
-    if (!processed && !evt.HasModifiers()) {
-        if (handle_shortcut(keyCode))
-            processed = true;
     }
 
     if (processed)
@@ -1077,39 +1061,23 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                         processed = select(digit);
                     }
                 }
-                else if (keyCode == 'F' || keyCode == 'T' || keyCode == 'S' || keyCode == 'C' || keyCode == 'H' || keyCode == 'G') {
-                    processed = mmu_seg->on_key_down_select_tool_type(keyCode);
-                    if (processed) {
-                        // force extra frame to automatically update window size
-                        wxGetApp().imgui()->set_requires_extra_frame();
-                    }
-                }
             }
         }
-        else if (m_current == FdmSupports) {
-            GLGizmoFdmSupports* fdm_support = dynamic_cast<GLGizmoFdmSupports*>(get_current());
-            if (fdm_support != nullptr && (keyCode == 'F' || keyCode == 'S' || keyCode == 'C' || keyCode == 'G')) {
-                processed = fdm_support->on_key_down_select_tool_type(keyCode);
-            }
-            if (processed) {
-                // force extra frame to automatically update window size
-                wxGetApp().imgui()->set_requires_extra_frame();
-            }
-        }
-        else if (m_current == Seam) {
-            GLGizmoSeam* seam = dynamic_cast<GLGizmoSeam*>(get_current());
-            if (seam != nullptr && (keyCode == 'S' || keyCode == 'C')) {
-                processed = seam->on_key_down_select_tool_type(keyCode);
-            }
-            if (processed) {
-                // force extra frame to automatically update window size
-                wxGetApp().imgui()->set_requires_extra_frame();
-            }
-        } else if (m_current == Measure || m_current == Assembly) {
+        else if (m_current == Measure || m_current == Assembly) {
             if (keyCode == WXK_CONTROL)
                 gizmo_event(SLAGizmoEventType::CtrlDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
             else if (keyCode == WXK_SHIFT)
                 gizmo_event(SLAGizmoEventType::ShiftDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
+        }
+
+        if (!processed) {
+            if (auto painter = dynamic_cast<GLGizmoPainterBase*>(get_current()); painter != nullptr) {
+                const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Painting, KeyChord::from_event(evt));
+                processed = shortcut.has_value() && painter->on_tool_shortcut(*shortcut);
+                if (processed)
+                    // force extra frame to automatically update window size
+                    wxGetApp().imgui()->set_requires_extra_frame();
+            }
         }
     }
 

@@ -29,6 +29,9 @@ namespace Slic3r { namespace GUI {
 #define DESIGN_INPUT_SIZE wxSize(FromDIP(120), -1)
 #define DESIGN_LEFT_MARGIN 25
 
+// The tabs other dialogs open Preferences on.
+enum class PreferencesTab { General, Control, Graphics, Online };
+
 class PreferencesDialog : public DPIDialog
 {
 private:
@@ -38,6 +41,7 @@ protected:
     wxBoxSizer *  m_sizer_body;
     wxScrolledWindow* m_parent;
     TabCtrl* m_pref_tabs;
+    std::map<PreferencesTab, int> m_tab_index;   // position of each tab in m_pref_tabs
 
     // bool								m_settings_layout_changed {false};
     bool m_seq_top_layer_only_changed{false};
@@ -59,6 +63,8 @@ public:
                       long            style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX);
 
     ~PreferencesDialog();
+
+    void select_tab(PreferencesTab tab, const std::string& option = {});   // and scrolls a combobox option's row into view, focused
 
     wxString m_backup_interval_time;
     wxTimer m_filament_height_timer;
