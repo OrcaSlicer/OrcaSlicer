@@ -2645,7 +2645,7 @@ const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProces
     //{ EProducer::KissSlicer,  "KISSlicer" }
 };
 
-unsigned int GCodeProcessor::s_result_id = 0;
+std::atomic<unsigned int> GCodeProcessor::s_result_id{0};
 
 bool GCodeProcessor::contains_reserved_tag(const std::string& gcode, std::string& found_tag)
 {
@@ -3626,7 +3626,7 @@ void GCodeProcessor::reset()
     m_used_filaments.reset();
 
     m_result.reset();
-    m_result.id = ++s_result_id;
+    m_result.id = s_result_id.fetch_add(1, std::memory_order_relaxed) + 1;
 
     m_last_default_color_id = 0;
 
@@ -3720,7 +3720,7 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
 
     // process gcode
     m_result.filename = filename;
-    m_result.id = ++s_result_id;
+    m_result.id = s_result_id.fetch_add(1, std::memory_order_relaxed) + 1;
     initialize_result_moves();
     size_t parse_line_callback_cntr = 10000;
     m_parser.parse_file(filename, [this, cancel_callback, &parse_line_callback_cntr](GCodeReader& reader, const GCodeReader::GCodeLine& line) {
@@ -3743,7 +3743,7 @@ void GCodeProcessor::initialize(const std::string& filename)
 
     // process gcode
     m_result.filename = filename;
-    m_result.id = ++s_result_id;
+    m_result.id = s_result_id.fetch_add(1, std::memory_order_relaxed) + 1;
 }
 
 void GCodeProcessor::process_buffer(const std::string &buffer)

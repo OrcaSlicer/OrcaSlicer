@@ -8,6 +8,7 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 
+#include <atomic>
 #include <cstdint>
 #include <array>
 #include <vector>
@@ -1207,7 +1208,7 @@ class Print;
         Print* m_print{ nullptr };
 
         GCodeProcessorResult m_result;
-        static unsigned int s_result_id;
+        static std::atomic<unsigned int> s_result_id;
 
     public:
         GCodeProcessor();
