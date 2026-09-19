@@ -13,41 +13,51 @@
 #include "wx/bitmap.h"
 #include "wx/uri.h"
 #include "wx/mediactrl.h"
+#include "IMediaController.hpp"
 
 wxDECLARE_EVENT(EVT_MEDIA_CTRL_STAT, wxCommandEvent);
 
 void wxMediaCtrl_OnSize(wxWindow * ctrl, wxSize const & videoSize, int width, int height);
 
 #define BAMBU_DYNAMIC
+#include <atomic>
 #include <condition_variable>
 #include <thread>
-#ifndef _WIN32
 #include <wx/image.h>
-#endif
 #include "Printer/BambuTunnel.h"
 
 class AVVideoDecoder;
 
-class wxMediaCtrl3 : public wxWindow, BambuLib
+class wxMediaCtrl3 : public wxWindow, public Slic3r::GUI::IMediaController, BambuLib
 {
 public:
     wxMediaCtrl3(wxWindow *parent);
 
-    ~wxMediaCtrl3();
+    ~wxMediaCtrl3() override;
 
-    void Load(wxURI url);
+    void Load(wxURI url) override;
 
-    void Play();
+    void Play() override;
 
-    void Stop();
+    void Stop() override;
+
+    // Render frames supplied by a controller which owns its own transport.
+    // The frame is copied while m_mutex is held; callers may release it after
+    // this method returns.
+    void SetExternalFrame(const wxImage& frame, wxSize videoSize);
+#ifdef _WIN32
+    void SetExternalFrame(const wxBitmap& frame, wxSize videoSize);
+#endif
+    void BeginExternalStream();
+    void EndExternalStream();
 
     void SetIdleImage(wxString const & image);
 
-    wxMediaState GetState();
+    wxMediaState GetState() override;
 
-    int GetLastError();
+    int GetLastError() const override;
 
-    wxSize GetVideoSize();
+    wxSize GetVideoSize() const override;
 
 protected:
     DECLARE_EVENT_TABLE()
@@ -59,8 +69,10 @@ protected:
     void DoSetSize(int x, int y, int width, int height, int sizeFlags) override;
 
     static void bambu_log(void *ctx, int level, tchar const *msg);
+    static int ffmpeg_interrupt_callback(void *opaque);
 
     void PlayThread();
+    int PlayFfmpeg(std::shared_ptr<wxURI> const &url, std::unique_lock<std::mutex> &lock);
 
     void NotifyStopped();
 
@@ -77,12 +89,15 @@ private:
 #endif
 
     std::shared_ptr<wxURI> m_url;
+    std::shared_ptr<wxURI> m_active_url;
+    bool m_external = false;
     std::uint64_t m_last_PTS{0};
     std::chrono::system_clock::time_point m_last_PTS_expected;
     std::chrono::system_clock::time_point m_last_PTS_practical;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     std::condition_variable m_cond;
     std::thread m_thread;
+    std::atomic_bool m_refresh_pending{false};
 };
 
 #endif /* wxMediaCtrl3_h */

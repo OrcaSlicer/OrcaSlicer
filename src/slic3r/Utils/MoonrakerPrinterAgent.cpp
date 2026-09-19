@@ -191,14 +191,6 @@ int MoonrakerPrinterAgent::disconnect_printer()
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int MoonrakerPrinterAgent::check_cert() { return BAMBU_NETWORK_SUCCESS; }
-
-void MoonrakerPrinterAgent::install_device_cert(std::string dev_id, bool lan_only)
-{
-    (void) dev_id;
-    (void) lan_only;
-}
-
 bool MoonrakerPrinterAgent::start_discovery(bool start, bool sending)
 {
     (void) sending;
@@ -206,12 +198,6 @@ bool MoonrakerPrinterAgent::start_discovery(bool start, bool sending)
         announce_printhost_device();
     }
     return true;
-}
-
-int MoonrakerPrinterAgent::ping_bind(std::string ping_code)
-{
-    (void) ping_code;
-    return BAMBU_NETWORK_SUCCESS;
 }
 
 int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect)
@@ -228,41 +214,6 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
     detect.bind_state   = "free";
 
     return BAMBU_NETWORK_SUCCESS;
-}
-
-int MoonrakerPrinterAgent::bind(
-    std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
-{
-    (void) dev_ip;
-    (void) dev_id;
-    (void) dev_model;
-    (void) sec_link;
-    (void) timezone;
-    (void) improved;
-    (void) update_fn;
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int MoonrakerPrinterAgent::unbind(std::string dev_id)
-{
-    (void) dev_id;
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int MoonrakerPrinterAgent::request_bind_ticket(std::string* ticket)
-{
-    if (ticket)
-        *ticket = "";
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int MoonrakerPrinterAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
-{
-    // No BBL cloud snapshot source; report failure so the caller falls back.
-    (void) dev_id;
-    (void) file_name;
-    (void) callback;
-    return -1;
 }
 
 int MoonrakerPrinterAgent::set_server_callback(OnServerErrFn fn)
@@ -578,7 +529,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 }
 
-bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
+bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;

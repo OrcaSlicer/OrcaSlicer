@@ -244,7 +244,7 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
                 DEPENDEES download # do after download
                 COMMENT "Freeing Space: Removing source archive"
                 WORKING_DIRECTORY ${DEP_DOWNLOAD_DIR}
-                COMMAND ${CMAKE_COMMAND} -E rm -r ${projectname}
+                COMMAND ${CMAKE_COMMAND} -E rm -rf ${projectname}
         )
         ExternalProject_Add_Step(dep_${projectname} free_build_space
                 DEPENDEES install # do after install
@@ -386,10 +386,6 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
-include(FFMPEG/FFMPEG.cmake)
-include(Assimp/Assimp.cmake)
-
-
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
 # a grep across the repo shows it is used for other things
@@ -399,6 +395,12 @@ if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
     set(OPENSSL_PKG dep_OpenSSL)
 endif()
+
+include(FFMPEG/FFMPEG.cmake)
+include(Assimp/Assimp.cmake)
+
+include(DataChannel/DataChannel.cmake)
+set(DATACHANNEL_PKG dep_DataChannel)
 
 # we don't want to load a "wrong" openssl when loading curl
 # so, just don't even bother
@@ -473,6 +475,7 @@ set(_dep_list
     dep_wxInspector
     dep_FFMPEG
     dep_Assimp
+    ${DATACHANNEL_PKG}
     )
 
 if (MSVC)

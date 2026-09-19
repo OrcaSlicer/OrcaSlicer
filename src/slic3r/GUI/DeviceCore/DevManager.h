@@ -74,10 +74,9 @@ public:
     void erase_user_machine(std::string dev_id) { userMachineList.erase(dev_id); }
     void clean_user_info(bool keep_local_selection = false);
 
-    // target_agent_id: id of the agent being swapped to (empty = no agent-mismatch check,
-    // just the original "drop Other Devices" behavior). Pass the incoming agent's id, not the
-    // live one - this runs before the live agent is repointed.
-    void clear_other_devices(const std::string& target_agent_id = "");
+    // Retain agent-owned LAN discoveries across a switch; the active-agent list filter keeps
+    // entries from other agents hidden while allowing them to reappear when switched back.
+    void clear_other_devices();
 
     void load_last_machine();
     void update_user_machine_list_info(const std::string& provider);

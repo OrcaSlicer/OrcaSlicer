@@ -23,9 +23,6 @@
 #include <wx/snglinst.h>
 #include <wx/msgdlg.h>
 
-#include <mutex>
-#include <stack>
-
 //#define BBL_HAS_FIRST_PAGE          1
 #define STUDIO_INACTIVE_TIMEOUT     15*60*1000
 #define LOG_FILES_MAX_NUM           30
@@ -374,7 +371,7 @@ public:
     // Reconcile the live printer agent with the stored preset selection.
     void switch_printer_agent();
 
-    std::string resolve_printer_agent_id(const std::string& stored_id);
+    std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
     // then, all resolve and canonical would just be ORCA<->""
     std::string canonical_printer_agent_id(const std::string& picked_id);
@@ -500,7 +497,7 @@ public:
     bool            check_login(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            get_login_info(const std::string& provider = ORCA_CLOUD_PROVIDER);
     bool            is_user_login(const std::string& provider = ORCA_CLOUD_PROVIDER);
-    const std::string& get_printer_cloud_provider() const;
+    std::string      get_printer_cloud_provider() const;
 
     void            request_user_login(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            request_user_handle(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);

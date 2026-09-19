@@ -5,7 +5,10 @@
 #include "../../PyPluginTrampoline.hpp"
 
 #include "IPrinterAgent.hpp"
+#include "pybind11/pybind11.h"
+#include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <string>
 
 namespace Slic3r {
 class PyPrinterAgentPluginCapabilityTrampoline : public PyPluginCommonTrampoline<PrinterAgentPluginCapability>
@@ -92,46 +95,59 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, FilamentSyncMode, PrinterAgentPluginCapability,
+            [] {}, PYBIND11_OVERRIDE, FilamentSyncMode, PrinterAgentPluginCapability,
             get_filament_sync_mode);
     }
 
-    bool fetch_filament_info(std::string dev_id) override
+    CameraStreamMode get_camera_stream_mode() const override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, bool, PrinterAgentPluginCapability, fetch_filament_info, dev_id);
+            [] {}, PYBIND11_OVERRIDE, CameraStreamMode, PrinterAgentPluginCapability,
+            get_camera_stream_mode);
+    }
+
+    std::string get_camera_url() const override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, std::string, PrinterAgentPluginCapability, get_camera_url);
+    }
+
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, bool, PrinterAgentPluginCapability, fetch_filament_info, dev_id, sync_mode);
     }
 
     int check_cert() override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, check_cert);
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, check_cert);
     }
 
     void install_device_cert(std::string dev_id, bool lan_only) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, void, PrinterAgentPluginCapability, install_device_cert, dev_id,
+            [] {}, PYBIND11_OVERRIDE, void, PrinterAgentPluginCapability, install_device_cert, dev_id,
             lan_only);
     }
 
     int ping_bind(std::string ping_code) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, ping_bind, ping_code);
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, ping_bind, ping_code);
     }
 
     int bind(std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, bind, dev_ip, dev_id,
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, bind, dev_ip, dev_id,
             dev_model, sec_link, timezone, improved, update_fn);
     }
 
     int unbind(std::string dev_id) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, unbind, dev_id);
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, unbind, dev_id);
     }
 
     int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override
@@ -158,7 +174,7 @@ public:
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, get_hms_snapshot, dev_id,
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, get_hms_snapshot, dev_id,
             file_name, callback);
     }
 
@@ -221,6 +237,8 @@ public:
     // request_bind_ticket returns its ticket through a std::string* out-param, which pybind11
     // cannot marshal back through a plain override. We dispatch manually: the Python plugin
     // returns a (result, ticket) tuple, which we unpack into the int result and the out-param.
+    // Not required to be implemented, so a missing override falls back to the base default
+    // instead of failing, mirroring what PYBIND11_OVERRIDE does for the other optional methods.
     int request_bind_ticket(std::string* ticket) override
     {
         ORCA_PY_AUDIT_SCOPE();
@@ -231,7 +249,7 @@ public:
         pybind11::function override =
             pybind11::get_override(static_cast<const PrinterAgentPluginCapability*>(this), "request_bind_ticket");
         if (!override)
-            pybind11::pybind11_fail("Tried to call pure virtual function \"PrinterAgentPluginCapability::request_bind_ticket\"");
+            return PrinterAgentPluginCapability::request_bind_ticket(ticket);
         try {
             pybind11::tuple result = override().cast<pybind11::tuple>();
             if (ticket)

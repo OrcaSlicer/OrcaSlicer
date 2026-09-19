@@ -28,7 +28,6 @@ wxEND_EVENT_TABLE()
 
 wxDEFINE_EVENT(EVT_VCAMERA_SWITCH, wxMouseEvent);
 wxDEFINE_EVENT(EVT_SDCARD_ABSENT_HINT, wxCommandEvent);
-wxDEFINE_EVENT(EVT_CAM_SOURCE_CHANGE, wxCommandEvent);
 
 #define CAMERAPOPUP_CLICK_INTERVAL 20
 
@@ -102,34 +101,6 @@ CameraPopup::CameraPopup(wxWindow *parent)
         top_sizer->Add(0, 0, wxALL, 0);
     }
 
-    // Orca: custom IP camera source — lets the user point Live Video at any camera URL (Orca feature; not in the reference)
-    m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
-    m_custom_camera_input_confirm->SetBackgroundColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetBorderColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
-    m_custom_camera_input_confirm->SetFont(Label::Body_14);
-    m_custom_camera_input_confirm->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
-    m_custom_camera_input_confirm->SetPosition(wxDefaultPosition);
-    m_custom_camera_input_confirm->SetCornerRadius(FromDIP(12));
-    m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
-    m_custom_camera_input->GetTextCtrl()->SetHint(_L("Hostname or IP"));
-    m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
-    m_custom_camera_hint = new wxStaticText(m_panel, wxID_ANY, _L("Custom camera source"));
-    m_custom_camera_hint->Wrap(-1);
-    m_custom_camera_hint->SetFont(Label::Head_14);
-    m_custom_camera_hint->SetForegroundColour(TEXT_COL);
-
-    m_custom_camera_input_confirm->Bind(wxEVT_BUTTON, &CameraPopup::on_camera_source_changed, this);
-
-    if (!wxGetApp().app_config->get("camera", "custom_source").empty()) {
-        m_custom_camera_input->GetTextCtrl()->SetValue(wxGetApp().app_config->get("camera", "custom_source"));
-        set_custom_cam_button_state(wxGetApp().app_config->get("camera", "enable_custom_source") == "true");
-    }
-
-    top_sizer->Add(m_custom_camera_hint, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
-    top_sizer->Add(0, 0, wxALL, 0);
-    top_sizer->Add(m_custom_camera_input, 2, wxALIGN_CENTER_VERTICAL | wxEXPAND | wxALL, FromDIP(5));
-    top_sizer->Add(m_custom_camera_input_confirm, 1, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
     main_sizer->Add(top_sizer, 0, wxALL, FromDIP(10));
 
     auto url = wxString(L"https://www.orcaslicer.com/wiki/"); // Orca: neutral wiki link (vendor URL removed)
@@ -182,37 +153,6 @@ void CameraPopup::sdcard_absent_hint()
     wxCommandEvent evt(EVT_SDCARD_ABSENT_HINT);
     evt.SetEventObject(this);
     GetEventHandler()->ProcessEvent(evt);
-}
-
-void CameraPopup::on_camera_source_changed(wxCommandEvent &event)
-{
-    if (m_obj && !m_custom_camera_input->GetTextCtrl()->IsEmpty()) {
-        handle_camera_source_change();
-    }
-}
-
-void CameraPopup::handle_camera_source_change()
-{
-    m_custom_camera_enabled = !m_custom_camera_enabled;
-
-    set_custom_cam_button_state(m_custom_camera_enabled);
-
-    wxGetApp().app_config->set("camera", "custom_source", m_custom_camera_input->GetTextCtrl()->GetValue().ToStdString());
-    wxGetApp().app_config->set("camera", "enable_custom_source", m_custom_camera_enabled);
-
-    wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
-    evt.SetEventObject(this);
-    GetEventHandler()->ProcessEvent(evt);
-}
-
-void CameraPopup::set_custom_cam_button_state(bool state)
-{
-    m_custom_camera_enabled = state;
-    auto stateColour = state ? wxColour(170, 0, 0) : wxColour(38, 166, 154);
-    auto stateText = state ? "Disable" : "Enable";
-    m_custom_camera_input_confirm->SetBackgroundColor(stateColour);
-    m_custom_camera_input_confirm->SetBorderColor(stateColour);
-    m_custom_camera_input_confirm->SetLabel(_L(stateText));
 }
 
 void CameraPopup::on_switch_recording(wxCommandEvent& event)

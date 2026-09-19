@@ -5,12 +5,15 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_dev_mapping.cpp
     test_filament_bitmap_utils.cpp
+    test_device_progress.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp
     test_plugin_capability_config.cpp
     test_plugin_config.cpp
     test_plugin_capabilities_in_use.cpp
+    test_plugin_status.cpp
+    test_printer_agent.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
     test_slicing_pipeline_bindings.cpp
@@ -28,7 +31,7 @@ endif ()
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r_gui libslic3r pybind11::embed Catch2::Catch2WithMain)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-orcaslicer_copy_test_dlls()
+orcaslicer_copy_test_dlls(${_TEST_NAME}_tests)
 
 if (WIN32)
     add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD

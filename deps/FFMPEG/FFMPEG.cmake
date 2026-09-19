@@ -1,5 +1,16 @@
 set(_conf_cmd ./configure)
 
+set(_ffmpeg_depends)
+set(_ffmpeg_configure_command ${_conf_cmd})
+if (TARGET dep_OpenSSL)
+    set(_ffmpeg_depends DEPENDS dep_OpenSSL)
+    set(_ffmpeg_configure_command
+        ${CMAKE_COMMAND} -E env
+        "PKG_CONFIG_PATH=${DESTDIR}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}"
+        ${_conf_cmd}
+    )
+endif()
+
 if (MSVC)
     set(_source_dir "${CMAKE_BINARY_DIR}/dep_FFMPEG-prefix/src/dep_FFMPEG")
 
@@ -9,6 +20,7 @@ if (MSVC)
     set(PREBUILD_HASH_x64 "e65916020ddb9ef84b2666dfbcbfc9b1d67f69d15b4a66db53754637bf2d498c")
 
     ExternalProject_Add(dep_FFMPEG
+        ${_ffmpeg_depends}
         URL ${PREBUILD_URL_${DEPS_ARCH}}
         URL_HASH SHA256=${PREBUILD_HASH_${DEPS_ARCH}}
         DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/FFMPEG
@@ -21,6 +33,8 @@ if (MSVC)
     )
 
 else ()
+    set(_openssl_cmd --enable-openssl)
+
     if (APPLE)
         set(_minos_cmd
             "--extra-cflags=-mmacosx-version-min=${DEP_OSX_TARGET}"
@@ -52,10 +66,11 @@ else ()
     endif()
 
     ExternalProject_Add(dep_FFMPEG
+        ${_ffmpeg_depends}
         URL https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.0.3.tar.gz
         URL_HASH SHA256=DEEDCABE339165214A3637DF4C86A507AEF0D793CF8774FF68735F4737E8DDBC
         DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/FFMPEG
-        CONFIGURE_COMMAND ${_conf_cmd}
+        CONFIGURE_COMMAND ${_ffmpeg_configure_command}
             ${_cross_cmd}
             ${_pic_cmd}
             ${_arch_cmd}
@@ -63,20 +78,21 @@ else ()
             "--prefix=${DESTDIR}"
             ${_link_cmd}
             ${_minos_cmd}
+            ${_openssl_cmd}
             --disable-doc
             --enable-small
             --disable-outdevs
             --disable-filters
             --enable-filter=*null*,afade,*fifo,*format,*resample,aeval,allrgb,allyuv,atempo,pan,*bars,color,*key,crop,draw*,eq*,framerate,*_qsv,*_vaapi,*v4l2*,hw*,scale,volume,test*
             --disable-protocols
-            --enable-protocol=file,fd,pipe,rtp,udp
+            --enable-protocol=file,fd,pipe,http,https,rtp,tcp,udp
             --disable-muxers
             --enable-muxer=rtp
             --disable-encoders
             --disable-decoders
             --enable-decoder=*aac*,h264*,mp3*,mjpeg,rv*
             --disable-demuxers
-            --enable-demuxer=h264,mp3,mov
+            --enable-demuxer=h264,mp3,mov,mpjpeg,rtsp,sdp
             --disable-zlib
             --disable-avdevice
         BUILD_IN_SOURCE ON

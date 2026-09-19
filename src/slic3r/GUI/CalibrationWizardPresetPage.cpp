@@ -8,6 +8,7 @@
 #include "libslic3r/Print.hpp"
 
 #include "DeviceCore/DevConfig.h"
+#include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
@@ -1647,18 +1648,8 @@ bool CalibrationPresetPage::is_blocking_printing()
     if (obj_ == nullptr) return true;
 
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-    auto target_model = obj_->printer_type;
-
-    if (source_model != target_model) {
-        std::vector<std::string> compatible_machine = obj_->get_compatible_machine();
-        vector<std::string>::iterator it = find(compatible_machine.begin(), compatible_machine.end(), source_model);
-        if (it == compatible_machine.end()) {
-            return true;
-        }
-    }
-
-    return false;
+    const auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
 }
 
 bool CalibrationPresetPage::is_nozzle_info_synced() const

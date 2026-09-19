@@ -28,6 +28,7 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
+    std::string default_lan_username() const override { return "bblp"; }
     int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;

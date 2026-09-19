@@ -35,7 +35,9 @@ ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, cons
     sizer_connect = new wxBoxSizer(wxHORIZONTAL);
 
     m_textCtrl_code = new TextInput(this, wxEmptyString);
-    m_textCtrl_code->GetTextCtrl()->SetMaxLength(10);
+    // OrcaSonar uses a 12-character base32 access code. Keep this field long
+    // enough for it while retaining the existing validation for LAN codes.
+    m_textCtrl_code->GetTextCtrl()->SetMaxLength(12);
     m_textCtrl_code->SetFont(Label::Body_14);
     m_textCtrl_code->SetCornerRadius(FromDIP(5));
     m_textCtrl_code->SetSize(wxSize(FromDIP(330), FromDIP(40)));
