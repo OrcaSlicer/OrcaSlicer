@@ -79,7 +79,7 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
 {
     { L("Quality"), {{"layer_height", "",1},
                     //{"initial_layer_print_height", "",2},
-                    {"seam_position", "",2},
+                    {"seam_position", "",2}, {"seam_angle_threshold", "",2},
                     {"slice_closing_radius", "",3}, {"resolution", "",4},
                     {"xy_hole_compensation", "",5}, {"xy_contour_compensation", "",6}, {"elefant_foot_compensation", "",7},
                     {"make_overhang_printable_angle","", 8},{"make_overhang_printable_hole_size","",9}, {"wall_sequence","",10},
@@ -200,7 +200,7 @@ std::vector<SimpleSettingData> SettingsFactory::get_visible_options(const std::s
 
     t_config_option_keys object_options = {
         //Quality
-        "layer_height", "initial_layer_print_height", "adaptive_layer_height", "seam_position", "xy_hole_compensation", "xy_contour_compensation", "elefant_foot_compensation", "support_line_width",
+        "layer_height", "initial_layer_print_height", "adaptive_layer_height", "seam_position", "seam_angle_threshold", "xy_hole_compensation", "xy_contour_compensation", "elefant_foot_compensation", "support_line_width",
         //Support
         "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap", "support_on_build_plate_only", "support_critical_regions_only", "enforce_support_layers",
         //tree support
