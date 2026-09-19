@@ -13,6 +13,9 @@
 
 namespace Slic3r {
 
+// Initialize UTF-8 filesystem paths even if the environment locale is unavailable.
+void init_utf8_filesystem();
+
 // RAII wrapper that sets LC_NUMERIC to "C" on construction
 // and restores the old value on destruction.
 class CNumericLocalesSetter {
