@@ -68,6 +68,27 @@ static std::map<double, double> interface_fill_angle_by_layer(const std::string 
     return out;
 }
 
+// Length-weighted axial anisotropy of the whole support interface, in [0, 1]. Lines that all run
+// the same way reinforce and score near 1; a pattern spending its length equally on two
+// perpendicular directions cancels out and scores near 0.
+static double interface_fill_anisotropy(const std::string &gcode)
+{
+    double x = 0, y = 0, total = 0;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&x, &y, &total](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.extruding(self)) return;
+        if (line.comment().find("support material interface") == std::string_view::npos) return;
+        const double dx = line.dist_X(self), dy = line.dist_Y(self);
+        const double len = std::hypot(dx, dy);
+        if (len < 1e-6) return;
+        const double a2 = 2.0 * std::atan2(dy, dx);
+        x     += len * std::cos(a2);
+        y     += len * std::sin(a2);
+        total += len;
+    });
+    return total > 0 ? std::hypot(x, y) / total : 0.;
+}
+
 // Acute angle (degrees) between two axial fill directions in [0, pi).
 static double axial_angle_diff_deg(double a, double b)
 {
@@ -397,6 +418,39 @@ TEST_CASE("Interlaced support interface alternates fill angle while rectilinear 
 
     for (size_t i = 1; i < interlaced.size(); ++i)
         REQUIRE(axial_angle_diff_deg(interlaced[i], interlaced[i - 1]) > 60.0);
+}
+
+// The Hilbert curve is the one interface pattern that is not built from parallel lines: it exists to
+// scatter the witness marks a straight-line interface leaves on the model. Normal support, the classic
+// tree and the organic tree each build their own interface filler, so check all three.
+TEST_CASE("Hilbert curve support interface turns instead of running parallel lines", "[SupportMaterial]")
+{
+    auto [type, style] = GENERATE(table<const char *, const char *>({
+        { "normal(auto)", "default" },
+        { "tree(auto)",   "tree_slim" },
+        { "tree(auto)",   "organic" } }));
+    INFO("type=" << type << " style=" << style);
+
+    auto interface_gcode = [type = type, style = style](const char *pattern) {
+        return slice({ TestMesh::overhang }, {
+            { "enable_support",               1 },
+            { "layer_height",                 0.2 },
+            { "support_on_build_plate_only",  1 },
+            { "support_type",                 type },
+            { "support_style",                style },
+            { "support_interface_top_layers", 3 },
+            { "support_interface_pattern",    pattern } });
+    };
+    const std::string rectilinear = interface_gcode("rectilinear");
+    const std::string hilbert     = interface_gcode("hilbertcurve");
+
+    REQUIRE(support_interface_layer_count(rectilinear) > 0);
+    REQUIRE(support_interface_layer_count(hilbert)     > 0);
+    // The rectilinear control is not held to a tighter bound because a tree roof is small enough that
+    // its perimeter loops make up a fair share of the interface length, and those pull any pattern's
+    // resultant down: it measures 0.96 under normal support but only 0.62 under a slim tree.
+    CHECK(interface_fill_anisotropy(rectilinear) > 0.5);
+    CHECK(interface_fill_anisotropy(hilbert)     < 0.3);
 }
 
 // Normal and non-organic tree support share the same interface angle logic: with a rectilinear interface
