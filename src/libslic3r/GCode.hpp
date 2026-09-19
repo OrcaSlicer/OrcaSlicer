@@ -106,8 +106,11 @@ public:
         m_enable_wrapping_detection(print_config.enable_wrapping_detection && (print_config.wrapping_exclude_area.values.size() > 2) && (slice_used_filaments.size() <= 1)),
         m_is_first_print(true),
         m_print_config(&print_config),
+        m_plate_idx(plate_idx),
         m_last_wipe_tower_print_z(print_config.z_offset.value),
-        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config))
+        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config)),
+        m_independent_towers(print_config.prime_tower_independent && !print_config.prime_tower_multimaterial),
+        m_independent_last_z(print_config.filament_colour.values.size(), print_config.z_offset.value)
     {
         // Precomputed rather than accumulated while emitting, so that the clearance validator and
         // the emitter cannot disagree about where the compacted tower sits on any given layer.
@@ -140,8 +143,22 @@ private:
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
-    std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
-    Vec2f transform_wt2_pt(const Vec2f &pt) const;
+    std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos, const Vec2f &tower_pos) const;
+    Vec2f transform_wt2_pt(const Vec2f &pt) const { return transform_wt2_pt(pt, m_wipe_tower_pos); }
+    Vec2f transform_wt2_pt(const Vec2f &pt, const Vec2f &tower_pos) const;
+    Vec2f tcr_tower_pos(const WipeTower::ToolChangeResult &tcr) const
+    {
+        if (tcr.has_tower_pos) {
+            Vec2f stored;
+            if (tcr.tower_filament >= 0 &&
+                independent_wipe_tower_stored_pos(m_print_config->independent_wipe_tower_x.values,
+                                                  m_print_config->independent_wipe_tower_y.values,
+                                                  independent_wipe_tower_pos_index(m_plate_idx, tcr.tower_filament), stored))
+                return stored;
+            return tcr.tower_pos;
+        }
+        return m_wipe_tower_pos;
+    }
     Polygons shared_printable_area(GCode &gcodegen) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
@@ -169,6 +186,7 @@ private:
     bool                                                         m_enable_wrapping_detection;
     bool                                                         m_is_first_print;
     const PrintConfig *                                          m_print_config;
+    const int                                                    m_plate_idx;
     float                                                        m_wipe_tower_depth;
     BoundingBoxf                                                 m_wipe_tower_bbx;
     Vec2f                                                        m_rib_offset{Vec2f(0, 0)};
@@ -177,6 +195,8 @@ private:
     const bool                                                   m_sparse_layers_skipped;
     // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
     std::vector<float>                                           m_compacted_tower_z;
+    const bool                                                   m_independent_towers;
+    std::vector<double>                                          m_independent_last_z;
 };
 
 class ColorPrintColors

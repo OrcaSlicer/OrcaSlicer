@@ -7585,6 +7585,18 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("prime_tower_independent", coBool);
+    def->label = L("Independent towers");
+    def->tooltip = L("Alpha version.\n\n"
+                     "Print a separate prime tower for each filament used on the plate. The towers share "
+                     "the prime tower settings (wall type, brim, prime volume) and can be placed "
+                     "independently so the toolhead does not hit an older, taller tower while printing "
+                     "the first layers of a new one.\n\n"
+                     "Cannot be combined with the multimaterial tower. Requires a printer that does not "
+                     "ram the old filament into the tower.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("flush_volumes_vector", coFloats);
     // BBS: remove _L()
     def->label = ("Purging volumes - load/unload volumes");
@@ -7659,6 +7671,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     // BBS: change data type to floats to add partplate logic
     def->set_default_value(new ConfigOptionFloats{ 220. });
+
+    def = this->add("independent_wipe_tower_x", coFloats);
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{});
+
+    def = this->add("independent_wipe_tower_y", coFloats);
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats{});
 
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");

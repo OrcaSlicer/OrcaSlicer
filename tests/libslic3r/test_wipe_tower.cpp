@@ -205,6 +205,9 @@ TEST_CASE("The tower keep-out zone grows by the spiral z-hop envelope", "[WipeTo
 
     // The rod sweeps the whole X axis, so its band is the tower's y span plus half the rod offset.
     CHECK_THAT(unscaled(lifted.bbox_rod.max.y()), WithinAbs(10.51 + 10., 0.02));
+
+    // Independent towers skip the envelope so each ring hugs its own footprint.
+    CHECK_THAT(unscaled(compacted_wipe_tower_zone(cfg, footprint, false).hull.bounding_box().max.x()), WithinAbs(10., 1e-6));
 }
 
 TEST_CASE("An object beside a compacted tower is limited by the nearest part of the toolhead", "[WipeTower][NoSparseLayers]") {

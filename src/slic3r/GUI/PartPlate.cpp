@@ -5317,15 +5317,16 @@ int PartPlateList::notify_instance_update(int obj_id, int instance_id, bool is_n
 	{
 		object = m_model->objects[obj_id];
 	}
-	else if (obj_id >= 1000 && obj_id < 1000 + m_plate_count) {
-		//wipe tower updates
-		PartPlate* plate = m_plate_list[obj_id - 1000];
+	else if (is_wipe_tower_object_idx(obj_id)) {
+		const int plate_idx = wipe_tower_object_plate_idx(obj_id);
+		if (plate_idx < 0 || plate_idx >= m_plate_count)
+			return -1;
+		PartPlate* plate = m_plate_list[plate_idx];
 		plate->update_slice_result_valid_state( false );
 		plate->thumbnail_data.reset();
         plate->no_light_thumbnail_data.reset();
 		plate->top_thumbnail_data.reset();
 		plate->pick_thumbnail_data.reset();
-
 		return 0;
 	}
     else

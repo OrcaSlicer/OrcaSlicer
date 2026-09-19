@@ -1862,9 +1862,12 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,               enable_prime_tower))
     ((ConfigOptionBool,               prime_tower_enable_framework))
     ((ConfigOptionBool,               prime_tower_multimaterial))
+    ((ConfigOptionBool,               prime_tower_independent))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic
     ((ConfigOptionFloats,             wipe_tower_x))
     ((ConfigOptionFloats,             wipe_tower_y))
+    ((ConfigOptionFloats,             independent_wipe_tower_x))
+    ((ConfigOptionFloats,             independent_wipe_tower_y))
     ((ConfigOptionFloat,              prime_tower_width))
     ((ConfigOptionFloat,              wipe_tower_per_color_wipe))
     ((ConfigOptionFloat,              wipe_tower_rotation_angle))

@@ -18453,6 +18453,10 @@ msgid "Multimaterial tower"
 msgstr "Мультиматериальная башня"
 
 # AI Translated
+msgid "Independent towers"
+msgstr "Независимые башни"
+
+# AI Translated
 msgid "Give each filament its own region of the prime tower, so that a filament is never printed on top of a different one. One filament purges into the outer shell of the tower (and prints its brim), the other purges into the inner core. This helps when the filaments do not bond to each other, such as PLA and PETG.\n\nThe tower is sized so that every region can absorb at least its required purge volume, so the tower may use more material than the purge alone would need. On a layer with no tool change only one filament is available, and that layer is printed as a normal single-material tower layer.\n\nRequires exactly two filaments, a rectangular tower wall and a printer that does not ram the old filament into the tower."
 msgstr ""
 "Выделяет каждому материалу собственную область черновой башни, чтобы материал никогда не печатался поверх другого. Один материал смывается во внешнюю оболочку башни (и печатает её кайму), второй — во внутреннее заполнение. Это помогает, когда материалы плохо сцепляются друг с другом, например PLA и PETG.\n"
@@ -18460,6 +18464,17 @@ msgstr ""
 "Размер башни подбирается так, чтобы каждая область вмещала как минимум необходимый ей объём слива, поэтому башня может израсходовать больше материала, чем требует один слив. На слое без смены материала доступен только один материал, и такой слой печатается как обычный одноматериальный слой башни.\n"
 "\n"
 "Требуется ровно два материала, прямоугольная стенка башни и принтер, который не выдавливает старый материал в башню."
+
+# AI Translated
+msgid "Alpha version.\n\nPrint a separate prime tower for each filament used on the plate. The towers share the prime tower settings (wall type, brim, prime volume) and can be placed independently so the toolhead does not hit an older, taller tower while printing the first layers of a new one.\n\nCannot be combined with the multimaterial tower. Requires a printer that does not ram the old filament into the tower."
+msgstr ""
+"Альфа-версия.\n\n"
+"Печатать отдельную черновую башню для каждого материала, используемого на столике. Башни "
+"делят настройки из раздела мультицвета (стенка, брим, объём отходов) и их можно расставить "
+"по отдельности, чтобы при печати первых слоёв новой башни голова не врезалась в более "
+"старую и высокую.\n\n"
+"Нельзя сочетать с мультиматериальной башней. Принтер не должен проталкивать старый "
+"материал в башню (ramming)."
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
 msgstr ""
@@ -27187,3 +27202,12 @@ msgstr ""
 
 #~ msgid "Right click to reset value to system default."
 #~ msgstr "Правая кнопка мыши - сброс значения до системного по умолчанию."
+
+# AI Translated
+msgid "Independent prime towers cannot be combined with the multimaterial prime tower."
+msgstr "Независимые черновые башни нельзя сочетать с мультиматериальной башней."
+
+# AI Translated
+msgid "Independent prime towers cannot be used when the old filament is rammed into the tower (%1%). Turn off filament ramming, or turn off independent towers."
+msgstr "Независимые черновые башни нельзя использовать, если старый материал проталкивается в башню (%1%). Отключите ramming или независимые башни."
+

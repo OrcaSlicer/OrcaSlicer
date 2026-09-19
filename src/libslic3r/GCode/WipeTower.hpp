@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <string>
+#include <vector>
 #include <sstream>
 #include <utility>
 #include <algorithm>
@@ -167,6 +168,12 @@ public:
 		// Orca: set by WipeTower2 (non-BBL tower) to force a travel to the tower even when the
 		// previous position is unknown; read by WipeTowerIntegration::append_tcr2 (GCode.cpp).
 		bool force_travel = false;
+
+        // Independent Type2 towers: each filament has its own tower. G-code looks the TCR up by
+        // tower_filament and translates with tower_pos instead of the plate's wipe_tower_x/y.
+        bool  has_tower_pos   = false;
+        Vec2f tower_pos       = Vec2f::Zero();
+        int   tower_filament  = -1;
 	};
 
     struct box_coordinates
@@ -700,6 +707,91 @@ bool wipe_tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &
 // the z the tower starts from, which Orca offsets by z_offset.
 std::vector<float> compute_compacted_wipe_tower_z(const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes,
                                                   float base_z = 0.f);
+
+// Independent Type2 prime towers: one per used filament, placed separately so a short tower's
+// first layers do not run the toolhead through a taller neighbour.
+static constexpr int INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS = 16;
+static constexpr int INDEPENDENT_WIPE_TOWER_OBJECT_BASE   = 2000;
+static constexpr int WIPE_TOWER_OBJECT_BASE               = 1000;
+
+inline bool is_independent_wipe_tower_object(int object_idx)
+{
+    return object_idx >= INDEPENDENT_WIPE_TOWER_OBJECT_BASE;
+}
+
+inline bool is_wipe_tower_object_idx(int object_idx)
+{
+    return object_idx >= WIPE_TOWER_OBJECT_BASE;
+}
+
+inline int independent_wipe_tower_object_idx(int plate_idx, int filament_id)
+{
+    return INDEPENDENT_WIPE_TOWER_OBJECT_BASE + plate_idx * INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS + filament_id;
+}
+
+inline int independent_wipe_tower_filament_id(int object_idx)
+{
+    return (object_idx - INDEPENDENT_WIPE_TOWER_OBJECT_BASE) % INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+}
+
+inline int independent_wipe_tower_pos_index(int plate_idx, int filament_id)
+{
+    return plate_idx * INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS + filament_id;
+}
+
+inline int wipe_tower_object_plate_idx(int object_idx)
+{
+    if (is_independent_wipe_tower_object(object_idx))
+        return (object_idx - INDEPENDENT_WIPE_TOWER_OBJECT_BASE) / INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+    return object_idx - WIPE_TOWER_OBJECT_BASE;
+}
+
+inline float independent_wipe_tower_spacing(float width, float brim_width)
+{
+    return width + 2.f * std::max(brim_width, 0.f) + 8.f;
+}
+
+inline Vec2f independent_wipe_tower_auto_position(const Vec2f &base, size_t used_order, float spacing)
+{
+    return base + Vec2f(float(used_order) * spacing, 0.f);
+}
+
+// Place towers in a grid that stays on the plate: a single row along +X from `base`, wrapping
+// toward the side with more room when the next cell would leave the printable rectangle.
+inline Vec2f independent_wipe_tower_layout_pos(const Vec2f &base, size_t used_order, float spacing,
+                                               float plate_width, float plate_depth,
+                                               float tower_w, float tower_d, float brim = 0.f)
+{
+    if (plate_width <= 0.f || plate_depth <= 0.f || spacing <= 0.f)
+        return independent_wipe_tower_auto_position(base, used_order, spacing);
+
+    const float margin = 1.f + std::max(brim, 0.f);
+    const float min_x  = margin;
+    const float min_y  = margin;
+    const float max_x  = std::max(min_x, plate_width - std::max(tower_w, 0.f) - margin);
+    const float max_y  = std::max(min_y, plate_depth - std::max(tower_d, 0.f) - margin);
+    const float start_x = std::clamp(base.x(), min_x, max_x);
+    const float start_y = std::clamp(base.y(), min_y, max_y);
+    const int   cols    = std::max(1, int(std::floor(std::max(0.f, max_x - start_x) / spacing + 1e-3f)) + 1);
+    const int   col     = int(used_order % size_t(cols));
+    const int   row     = int(used_order / size_t(cols));
+    const bool  go_down = (start_y - min_y) >= (max_y - start_y);
+    Vec2f pos(start_x + float(col) * spacing,
+              go_down ? start_y - float(row) * spacing : start_y + float(row) * spacing);
+    pos.x() = std::clamp(pos.x(), min_x, max_x);
+    pos.y() = std::clamp(pos.y(), min_y, max_y);
+    return pos;
+}
+
+inline bool independent_wipe_tower_stored_pos(const std::vector<double> &xs, const std::vector<double> &ys, int index, Vec2f &out)
+{
+    if (index < 0 || size_t(index) >= xs.size() || size_t(index) >= ys.size())
+        return false;
+    if (!std::isfinite(xs[size_t(index)]) || !std::isfinite(ys[size_t(index)]))
+        return false;
+    out = Vec2f(float(xs[size_t(index)]), float(ys[size_t(index)]));
+    return true;
+}
 
 
 } // namespace Slic3r
