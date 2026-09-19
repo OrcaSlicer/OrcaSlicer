@@ -717,10 +717,6 @@ public:
     // (then the key is further prefixed with the "filament_" prefix).
     const std::vector<std::string>& extruder_retract_keys() const { return m_extruder_retract_keys; }
 
-    // BBS
-    const std::vector<std::string>& filament_option_keys() const { return m_filament_option_keys; }
-    const std::vector<std::string>& filament_retract_keys() const { return m_filament_retract_keys; }
-
 private:
     void init_common_params();
     void init_fff_params();
@@ -729,12 +725,6 @@ private:
 
     std::vector<std::string>    m_extruder_option_keys;
     std::vector<std::string>    m_extruder_retract_keys;
-
-    // BBS
-    void init_filament_option_keys();
-
-    std::vector<std::string>    m_filament_option_keys;
-    std::vector<std::string>    m_filament_retract_keys;
 };
 
 // The one and only global definition of SLic3r configuration options.
@@ -791,11 +781,16 @@ public:
     //return the changed param set
     t_config_option_keys normalize_fdm_2(int num_objects, int used_filaments = 0);
 
+    // Orca: resize every per-N vector option to exactly the length its cardinality implies.
+    // Called at the slicer boundary (after variant expansion) so all counts are final.
+    void                enforce_cardinality();
+
+    // Orca: load-time subset of enforce_cardinality - sizes only the plain per-filament options (their count is
+    // known before variant expansion). Called from Preset::normalize at preset load.
+    void                enforce_per_filament_cardinality();
+
     size_t              get_parameter_size(const std::string& param_name, size_t extruder_nums);
     void                set_num_extruders(unsigned int num_extruders);
-
-    // BBS
-    void                set_num_filaments(unsigned int num_filaments);
 
     //BBS
     // Validate the PrintConfig. Returns an empty string on success, otherwise an error message is returned.
