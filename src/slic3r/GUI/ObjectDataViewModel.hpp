@@ -86,6 +86,7 @@ class ObjectDataViewModelNode
     t_layer_height_range            m_layer_range = { 0.0f, 0.0f };
 
     wxString				        m_name;
+    wxString                        m_seq_prefix;  // Sequential print order prefix, e.g. "[1] "
     wxBitmap&                       m_bmp = m_empty_bmp;
     ItemType				        m_type;
     int                             m_idx = -1;
@@ -235,6 +236,8 @@ public:
         return m_children.GetCount();
     }
     void            SetName(const wxString &);
+    void            SetSeqPrefix(const wxString& prefix) { m_seq_prefix = prefix; }
+    const wxString& GetSeqPrefix() const { return m_seq_prefix; }
     bool            SetValue(const wxVariant &variant, unsigned int col);
     void            SetVolumeType(ModelVolumeType type) { m_volume_type = type; }
     void            SetBitmap(const wxBitmap &icon) { m_bmp = icon; }
@@ -531,6 +534,7 @@ public:
 
     // BBS
     void        UpdateItemNames();
+    void        UpdateSequentialPrintOrder();
 
     void        assembly_name(ObjectDataViewModelNode* item, wxString name);
     void        assembly_name();
