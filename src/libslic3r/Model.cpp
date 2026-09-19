@@ -3113,45 +3113,45 @@ void ModelInstance::transform_polygon(Polygon* polygon) const
 
 //BBS
 // BBS set print speed table and find maximum speed
-void Model::setPrintSpeedTable(const DynamicPrintConfig& config, const PrintConfig& print_config) {
+static void set_print_speed_table(GlobalSpeedMap& print_speed_map, const DynamicPrintConfig& config, const PrintConfig& print_config) {
     //Slic3r::DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
-    printSpeedMap.maxSpeed = 0;
+    print_speed_map.maxSpeed = 0;
     if (config.has("inner_wall_speed")) {
-        printSpeedMap.perimeterSpeed = config.opt_float_nullable("inner_wall_speed", 0);
-        if (printSpeedMap.perimeterSpeed > printSpeedMap.maxSpeed)
-            printSpeedMap.maxSpeed = printSpeedMap.perimeterSpeed;
+        print_speed_map.perimeterSpeed = config.opt_float_nullable("inner_wall_speed", 0);
+        if (print_speed_map.perimeterSpeed > print_speed_map.maxSpeed)
+            print_speed_map.maxSpeed = print_speed_map.perimeterSpeed;
     }
     if (config.has("outer_wall_speed")) {
-        printSpeedMap.externalPerimeterSpeed = config.opt_float_nullable("outer_wall_speed", 0);
-        printSpeedMap.maxSpeed = std::max(printSpeedMap.maxSpeed, printSpeedMap.externalPerimeterSpeed);
+        print_speed_map.externalPerimeterSpeed = config.opt_float_nullable("outer_wall_speed", 0);
+        print_speed_map.maxSpeed = std::max(print_speed_map.maxSpeed, print_speed_map.externalPerimeterSpeed);
     }
     if (config.has("sparse_infill_speed")) {
-        printSpeedMap.infillSpeed = config.opt_float_nullable("sparse_infill_speed", 0);
-        if (printSpeedMap.infillSpeed > printSpeedMap.maxSpeed)
-            printSpeedMap.maxSpeed = printSpeedMap.infillSpeed;
+        print_speed_map.infillSpeed = config.opt_float_nullable("sparse_infill_speed", 0);
+        if (print_speed_map.infillSpeed > print_speed_map.maxSpeed)
+            print_speed_map.maxSpeed = print_speed_map.infillSpeed;
     }
     if (config.has("internal_solid_infill_speed")) {
-        printSpeedMap.solidInfillSpeed = config.opt_float_nullable("internal_solid_infill_speed", 0);
-        if (printSpeedMap.solidInfillSpeed > printSpeedMap.maxSpeed)
-            printSpeedMap.maxSpeed = printSpeedMap.solidInfillSpeed;
+        print_speed_map.solidInfillSpeed = config.opt_float_nullable("internal_solid_infill_speed", 0);
+        if (print_speed_map.solidInfillSpeed > print_speed_map.maxSpeed)
+            print_speed_map.maxSpeed = print_speed_map.solidInfillSpeed;
     }
     if (config.has("top_surface_speed")) {
-        printSpeedMap.topSolidInfillSpeed = config.opt_float_nullable("top_surface_speed", 0);
-        if (printSpeedMap.topSolidInfillSpeed > printSpeedMap.maxSpeed)
-            printSpeedMap.maxSpeed = printSpeedMap.topSolidInfillSpeed;
+        print_speed_map.topSolidInfillSpeed = config.opt_float_nullable("top_surface_speed", 0);
+        if (print_speed_map.topSolidInfillSpeed > print_speed_map.maxSpeed)
+            print_speed_map.maxSpeed = print_speed_map.topSolidInfillSpeed;
     }
     if (config.has("support_speed")) {
-        printSpeedMap.supportSpeed = config.opt_float_nullable("support_speed", 0);
+        print_speed_map.supportSpeed = config.opt_float_nullable("support_speed", 0);
 
-        if (printSpeedMap.supportSpeed > printSpeedMap.maxSpeed)
-            printSpeedMap.maxSpeed = printSpeedMap.supportSpeed;
+        if (print_speed_map.supportSpeed > print_speed_map.maxSpeed)
+            print_speed_map.maxSpeed = print_speed_map.supportSpeed;
     }
 
 
     //auto& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
     //auto print_config = print.config();
     //printSpeedMap.bed_poly.points = get_bed_shape(*(wxGetApp().plater()->config()));
-    printSpeedMap.bed_poly.points = get_bed_shape(config);
+    print_speed_map.bed_poly.points = get_bed_shape(config);
     Pointfs excluse_area_points = print_config.bed_exclude_area.values;
     Polygons exclude_polys;
     Polygon exclude_poly;
@@ -3163,12 +3163,16 @@ void Model::setPrintSpeedTable(const DynamicPrintConfig& config, const PrintConf
             exclude_poly.points.clear();
         }
     }
-    printSpeedMap.bed_poly = diff({ printSpeedMap.bed_poly }, exclude_polys)[0];
+    print_speed_map.bed_poly = diff({ print_speed_map.bed_poly }, exclude_polys)[0];
+}
+
+void Model::setPrintSpeedTable(const DynamicPrintConfig& config, const PrintConfig& print_config) {
+    set_print_speed_table(printSpeedMap, config, print_config);
 }
 
 // find temperature of heatend and bed and matierial of an given extruder
-void Model::setExtruderParams(const DynamicPrintConfig& config, int extruders_count) {
-    extruderParamsMap.clear();
+static void set_extruder_params(std::map<size_t, ExtruderParams>& extruder_params, const DynamicPrintConfig& config, int extruders_count) {
+    extruder_params.clear();
     //Slic3r::DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
     // BBS
     //int numExtruders = wxGetApp().preset_bundle->filament_presets.size();
@@ -3192,9 +3196,21 @@ void Model::setExtruderParams(const DynamicPrintConfig& config, int extruders_co
             bedTemp = config.opt_int(get_bed_temp_key(curr_bed_type), i);
         }
 #endif
-        if (i == 0) extruderParamsMap.insert({ i,{matName, bedTemp, endTemp} });
-        extruderParamsMap.insert({ i + 1,{matName, bedTemp, endTemp} });
+        if (i == 0) extruder_params.insert({ i,{matName, bedTemp, endTemp} });
+        extruder_params.insert({ i + 1,{matName, bedTemp, endTemp} });
     }
+}
+
+void Model::setExtruderParams(const DynamicPrintConfig& config, int extruders_count) {
+    set_extruder_params(extruderParamsMap, config, extruders_count);
+}
+
+AutoBrimData Model::make_auto_brim_data(const DynamicPrintConfig& config, const PrintConfig& print_config, int extruders_count)
+{
+    AutoBrimData data;
+    set_print_speed_table(data.print_speed, config, print_config);
+    set_extruder_params(data.extruder_params, config, extruders_count);
+    return data;
 }
 
 static void get_real_filament_id(const unsigned char &id, std::string &result) {
@@ -3358,24 +3374,23 @@ bool Model::obj_import_face_color_deal(const std::vector<unsigned char> &face_fi
     return false;
 }
 
-// update the maxSpeed of an object if it is different from the global configuration
-double Model::findMaxSpeed(const ModelObject* object) {
+static double find_max_speed(const ModelObject* object, const GlobalSpeedMap& print_speed_map) {
     auto objectKeys = object->config.keys();
     double objMaxSpeed = -1.;
     if (objectKeys.empty())
-        return Model::printSpeedMap.maxSpeed;
-    double perimeterSpeedObj = Model::printSpeedMap.perimeterSpeed;
-    double externalPerimeterSpeedObj = Model::printSpeedMap.externalPerimeterSpeed;
-    double infillSpeedObj = Model::printSpeedMap.infillSpeed;
-    double solidInfillSpeedObj = Model::printSpeedMap.solidInfillSpeed;
-    double topSolidInfillSpeedObj = Model::printSpeedMap.topSolidInfillSpeed;
-    double supportSpeedObj = Model::printSpeedMap.supportSpeed;
-    double smallPerimeterSpeedObj = Model::printSpeedMap.smallPerimeterSpeed;
-    double smallSupportPerimeterSpeedObj = Model::printSpeedMap.smallSupportPerimeterSpeed;
+        return print_speed_map.maxSpeed;
+    double perimeterSpeedObj = print_speed_map.perimeterSpeed;
+    double externalPerimeterSpeedObj = print_speed_map.externalPerimeterSpeed;
+    double infillSpeedObj = print_speed_map.infillSpeed;
+    double solidInfillSpeedObj = print_speed_map.solidInfillSpeed;
+    double topSolidInfillSpeedObj = print_speed_map.topSolidInfillSpeed;
+    double supportSpeedObj = print_speed_map.supportSpeed;
+    double smallPerimeterSpeedObj = print_speed_map.smallPerimeterSpeed;
+    double smallSupportPerimeterSpeedObj = print_speed_map.smallSupportPerimeterSpeed;
     for (std::string objectKey : objectKeys) {
         if (objectKey == "inner_wall_speed"){
             perimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
-            externalPerimeterSpeedObj = Model::printSpeedMap.externalPerimeterSpeed / Model::printSpeedMap.perimeterSpeed * perimeterSpeedObj;
+            externalPerimeterSpeedObj = print_speed_map.externalPerimeterSpeed / print_speed_map.perimeterSpeed * perimeterSpeedObj;
         }
         if (objectKey == "sparse_infill_speed")
             infillSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
@@ -3397,13 +3412,23 @@ double Model::findMaxSpeed(const ModelObject* object) {
     return objMaxSpeed;
 }
 
+double AutoBrimData::find_max_speed(const ModelObject* object) const
+{
+    return Slic3r::find_max_speed(object, print_speed);
+}
+
+// update the maxSpeed of an object if it is different from the global configuration
+double Model::findMaxSpeed(const ModelObject* object) {
+    return Slic3r::find_max_speed(object, printSpeedMap);
+}
+
 // BBS: thermal length is calculated according to the material of a volume
-double Model::getThermalLength(const ModelVolume* modelVolumePtr) {
+static double get_thermal_length(const ModelVolume* modelVolumePtr, const std::map<size_t, ExtruderParams>& extruder_params) {
     double thermalLength = 200.;
     auto aa = modelVolumePtr->extruder_id();
-    if (Model::extruderParamsMap.find(aa) != Model::extruderParamsMap.end()) {
+    if (extruder_params.find(aa) != extruder_params.end()) {
         double thermal_length = 200.0;
-    if (MaterialType::get_thermal_length(Model::extruderParamsMap.at(aa).materialName, thermal_length)) {
+    if (MaterialType::get_thermal_length(extruder_params.at(aa).materialName, thermal_length)) {
             return thermal_length;
         }
     }
@@ -3411,17 +3436,42 @@ double Model::getThermalLength(const ModelVolume* modelVolumePtr) {
 }
 
 // BBS: thermal length calculation for a group of volumes
-double Model::getThermalLength(const std::vector<ModelVolume*> modelVolumePtrs)
+static double get_thermal_length(const std::vector<ModelVolume*> modelVolumePtrs, const std::map<size_t, ExtruderParams>& extruder_params)
 {
     double thermalLength = 1250.;
 
     for (const auto& modelVolumePtr : modelVolumePtrs) {
         if (modelVolumePtr != nullptr) {
             // the thermal length of a group is decided by the volume with shortest thermal length
-            thermalLength = std::min(thermalLength, getThermalLength(modelVolumePtr));
+            thermalLength = std::min(thermalLength, get_thermal_length(modelVolumePtr, extruder_params));
         }
     }
     return thermalLength;
+}
+
+const ExtruderParams* AutoBrimData::find_extruder_params(size_t extruder_id) const
+{
+    auto it = extruder_params.find(extruder_id);
+    return it == extruder_params.end() ? nullptr : &it->second;
+}
+
+double AutoBrimData::get_thermal_length(const ModelVolume* volume) const
+{
+    return Slic3r::get_thermal_length(volume, extruder_params);
+}
+
+double AutoBrimData::get_thermal_length(const std::vector<ModelVolume*>& volumes) const
+{
+    return Slic3r::get_thermal_length(volumes, extruder_params);
+}
+
+double Model::getThermalLength(const ModelVolume* modelVolumePtr) {
+    return Slic3r::get_thermal_length(modelVolumePtr, extruderParamsMap);
+}
+
+double Model::getThermalLength(const std::vector<ModelVolume*> modelVolumePtrs)
+{
+    return Slic3r::get_thermal_length(modelVolumePtrs, extruderParamsMap);
 }
 // max printing speed, difference in bed temperature and envirument temperature and bed adhesion coefficients are considered
 double ModelInstance::get_auto_brim_width(double deltaT, double adhesion) const

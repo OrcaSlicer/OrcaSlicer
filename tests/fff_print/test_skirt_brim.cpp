@@ -57,6 +57,88 @@ static bool brim_enters_first_layer_hole(Print &print)
     return false;
 }
 
+static DynamicPrintConfig auto_brim_config(const char *filament_type, double speed)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_type", new ConfigOptionStrings({ filament_type }));
+    config.set_deserialize_strict({
+        { "brim_type",                    "auto_brim" },
+        { "inner_wall_speed",             speed },
+        { "outer_wall_speed",             speed },
+        { "sparse_infill_speed",          speed },
+        { "internal_solid_infill_speed",  speed },
+        { "top_surface_speed",            speed },
+        { "support_speed",                speed },
+        { "skirt_loops",                  0 },
+    });
+    return config;
+}
+
+TEST_CASE("Automatic brim inputs stay isolated between independent prints", "[SkirtBrim][AutoBrim]")
+{
+    Print print_a;
+    Model model_a;
+    init_print({ cube(20) }, print_a, model_a, auto_brim_config("PLA", 40.));
+
+    Print print_b;
+    Model model_b;
+    init_print({ cube(20) }, print_b, model_b, auto_brim_config("ABS", 160.));
+
+    const AutoBrimData &data_a = print_a.auto_brim_data();
+    const AutoBrimData &data_b = print_b.auto_brim_data();
+    const ExtruderParams *params_a = data_a.find_extruder_params(1);
+    const ExtruderParams *params_b = data_b.find_extruder_params(1);
+
+    REQUIRE(params_a != nullptr);
+    REQUIRE(params_b != nullptr);
+    CHECK(params_a->materialName == "PLA");
+    CHECK(params_b->materialName == "ABS");
+    CHECK_THAT(data_a.find_max_speed(model_a.objects.front()), Catch::Matchers::WithinAbs(40., 1e-6));
+    CHECK_THAT(data_b.find_max_speed(model_b.objects.front()), Catch::Matchers::WithinAbs(160., 1e-6));
+
+    print_b.process();
+    print_a.process();
+
+    CHECK(params_a->materialName == "PLA");
+    CHECK_THAT(data_a.find_max_speed(model_a.objects.front()), Catch::Matchers::WithinAbs(40., 1e-6));
+}
+
+TEST_CASE("Per-print automatic brim inputs match legacy default tables", "[SkirtBrim][AutoBrim]")
+{
+    struct LegacyTableGuard {
+        std::map<size_t, ExtruderParams> extruder_params = Model::extruderParamsMap;
+        GlobalSpeedMap                   print_speed     = Model::printSpeedMap;
+
+        ~LegacyTableGuard()
+        {
+            Model::extruderParamsMap = extruder_params;
+            Model::printSpeedMap      = print_speed;
+        }
+    } guard;
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+
+    Model::setExtruderParams(config, int(print.config().filament_diameter.size()));
+    Model::setPrintSpeedTable(config, print.config());
+
+    const AutoBrimData &data = print.auto_brim_data();
+    const ExtruderParams *params = data.find_extruder_params(1);
+    REQUIRE(params != nullptr);
+    REQUIRE(Model::extruderParamsMap.count(1) == 1);
+    CHECK(params->materialName == Model::extruderParamsMap.at(1).materialName);
+    CHECK(params->bedTemp == Model::extruderParamsMap.at(1).bedTemp);
+    CHECK(params->heatEndTemp == Model::extruderParamsMap.at(1).heatEndTemp);
+    CHECK_THAT(data.find_max_speed(model.objects.front()),
+               Catch::Matchers::WithinAbs(Model::findMaxSpeed(model.objects.front()), 1e-6));
+    CHECK(data.get_bed_polygon().points == Model::getBedPolygon().points);
+
+    print.process();
+    CHECK(brim_loop_count(print) == 0);
+}
+
 // The span is skirt_height layers, or every layer when a draft shield is on (forced even at
 // height 0); per-object skirts are rejected in By object printing (no room between objects).
 TEST_CASE("Skirt is emitted once per layer it spans", "[SkirtBrim]")

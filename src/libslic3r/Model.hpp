@@ -1511,6 +1511,18 @@ struct GlobalSpeedMap
     Polygon bed_poly;
 };
 
+struct AutoBrimData
+{
+    std::map<size_t, ExtruderParams> extruder_params;
+    GlobalSpeedMap                   print_speed{};
+
+    const ExtruderParams* find_extruder_params(size_t extruder_id) const;
+    double                find_max_speed(const ModelObject* object) const;
+    double                get_thermal_length(const ModelVolume* volume) const;
+    double                get_thermal_length(const std::vector<ModelVolume*>& volumes) const;
+    const Polygon&        get_bed_polygon() const { return print_speed.bed_poly; }
+};
+
 /* Profile data */
 class ModelProfileInfo
 {
@@ -1663,6 +1675,7 @@ public:
     //BBS static functions that update extruder params and speed table
     static void setPrintSpeedTable(const DynamicPrintConfig& config, const PrintConfig& print_config);
     static void setExtruderParams(const DynamicPrintConfig& config, int extruders_count);
+    static AutoBrimData make_auto_brim_data(const DynamicPrintConfig& config, const PrintConfig& print_config, int extruders_count);
 
     // BBS: backup
     static Model read_from_archive(
