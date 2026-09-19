@@ -147,6 +147,80 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
     }
 }
 
+SCENARIO("Mirrored instance transforms survive 3mf round trips", "[3mf][Regression]") {
+    const bool bbs_format = GENERATE(false, true);
+
+    GIVEN("an instance with a valid mirrored transform") {
+        Model model;
+        const std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        Transform3d mirrored = Transform3d::Identity();
+        mirrored.linear() <<
+             4.4408921e-16,  0.819152044,  0.573576436,
+             1.0,           -4.4408921e-16, -1.11022302e-16,
+            -5.55111512e-17, -0.573576436,  0.819152044;
+        mirrored.translation() = Vec3d(700.41477, -169.930939, 63.392571);
+        REQUIRE_THAT(mirrored.linear().determinant(), Catch::Matchers::WithinAbs(-1.0, 1e-8));
+        model.objects.front()->instances.front()->set_transformation(Geometry::Transformation(mirrored));
+        const TriangleMesh expected_mesh = model.mesh();
+
+        WHEN("the model is stored and loaded") {
+            ScopedTemporaryDir backup_dir("orca_mirrored_transform");
+            model.set_backup_path(backup_dir.string());
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            if (bbs_format) {
+                StoreParams store_params;
+                store_params.path     = test_file.c_str();
+                store_params.model    = &model;
+                store_params.config   = &config;
+                store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+                REQUIRE(store_bbs_3mf(store_params));
+            } else {
+                REQUIRE(store_3mf(test_file.c_str(), &model, &config, false));
+            }
+
+            Model dst_model;
+            ScopedTemporaryDir loaded_backup_dir("orca_mirrored_transform_loaded");
+            dst_model.set_backup_path(loaded_backup_dir.string());
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs dst_plates;
+            std::vector<Preset*> project_presets;
+            ScopeGuard cleanup([&dst_plates, &project_presets]() {
+                release_PlateData_list(dst_plates);
+                for (Preset *preset : project_presets)
+                    delete preset;
+            });
+            if (bbs_format) {
+                bool is_bbl_3mf = false, is_orca_3mf = false;
+                Semver file_version;
+                REQUIRE(load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                     &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                     LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+            } else {
+                REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
+            }
+
+            THEN("the mirrored transform and world geometry are preserved") {
+                REQUIRE(dst_model.objects.size() == 1);
+                REQUIRE(dst_model.objects.front()->instances.size() == 1);
+                const Transform3d &loaded = dst_model.objects.front()->instances.front()->get_matrix();
+                REQUIRE(loaded.linear().determinant() < 0.0);
+
+                const TriangleMesh loaded_mesh = dst_model.mesh();
+                REQUIRE(loaded_mesh.its.vertices.size() == expected_mesh.its.vertices.size());
+                for (size_t i = 0; i < loaded_mesh.its.vertices.size(); ++i)
+                    REQUIRE(loaded_mesh.its.vertices[i].isApprox(expected_mesh.its.vertices[i], 1e-5f));
+            }
+        }
+    }
+}
+
 // The recipe is an opaque binary blob (CadDocument::serialize_recipe()), so the 3mf backend has
 // to carry it byte-for-byte — no XML/text mangling, embedded NULs intact.
 static std::string make_cad_recipe()
