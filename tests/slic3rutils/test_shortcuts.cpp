@@ -217,11 +217,18 @@ TEST_CASE("Stepping shortcuts match with Shift or Ctrl added to their binding", 
     CHECK_FALSE(registry.match(ShortcutContext::Plater, { 'Q', wxMOD_CONTROL }).has_value());              // Orient has no variants
     CHECK_FALSE(registry.match(ShortcutContext::Preview, { WXK_UP, wxMOD_ALT }).has_value());               // Alt is not a step modifier
 
-    // The step modifiers are the ones beyond the binding's own.
+    CHECK_FALSE(registry.match(ShortcutContext::Preview, { WXK_HOME, wxMOD_SHIFT }).has_value());            // Home has no variants
+
+    // A binding with Shift or Ctrl of its own has no steps.
     registry.bind(Shortcut::LayerSliderUp, { WXK_UP, wxMOD_CONTROL });
     CHECK(same(registry.match(ShortcutContext::Preview, { WXK_UP, wxMOD_CONTROL }), Shortcut::LayerSliderUp, 0));
-    CHECK(same(registry.match(ShortcutContext::Preview, { WXK_UP, wxMOD_CONTROL | wxMOD_SHIFT }), Shortcut::LayerSliderUp, wxMOD_SHIFT));
+    CHECK_FALSE(registry.match(ShortcutContext::Preview, { WXK_UP, wxMOD_CONTROL | wxMOD_SHIFT }).has_value());
     CHECK_FALSE(registry.match(ShortcutContext::Preview, { WXK_UP, wxMOD_SHIFT }).has_value());
+
+    // An exact binding on the combined step wins over it.
+    registry.bind(Shortcut::Arrange, { WXK_LEFT, wxMOD_CONTROL | wxMOD_SHIFT });
+    CHECK(same(registry.match(ShortcutContext::Plater, { WXK_LEFT, wxMOD_CONTROL | wxMOD_SHIFT }), Shortcut::Arrange, 0));
+    CHECK(same(registry.match(ShortcutContext::Plater, { WXK_LEFT, wxMOD_SHIFT }), Shortcut::MoveSelectionLeft, wxMOD_SHIFT));
 }
 
 TEST_CASE("Conflicts cover shared contexts and every Global shortcut", "[Shortcuts]")
@@ -233,11 +240,21 @@ TEST_CASE("Conflicts cover shared contexts and every Global shortcut", "[Shortcu
     CHECK(registry.conflicts(Shortcut::ZoomIn, { 'C' }) == std::vector<Shortcut>{ Shortcut::GizmoCut, Shortcut::ToggleGcodeWindow });
     CHECK(registry.conflicts(Shortcut::Arrange, { 'A' }).empty());   // a shortcut never conflicts with itself
 
-    // Shift/Ctrl with a stepping shortcut's key are its own variants, so they collide both ways.
-    CHECK(registry.conflicts(Shortcut::GoToLayer, { WXK_UP, wxMOD_SHIFT }) == std::vector<Shortcut>{ Shortcut::LayerSliderUp });
-    CHECK(registry.conflicts(Shortcut::ZoomIn, { WXK_UP, wxMOD_CONTROL | wxMOD_SHIFT }) == std::vector<Shortcut>{ Shortcut::MoveSelectionUp, Shortcut::LayerSliderUp });
-    CHECK(registry.conflicts(Shortcut::LayerSliderUp, { 'G' }) == std::vector<Shortcut>{ Shortcut::ExportSlicedFile, Shortcut::PrintPlate, Shortcut::GoToLayer });
-    CHECK(registry.conflicts(Shortcut::OrientPlate, { 'Q', wxMOD_SHIFT }).empty());   // Orient has no variants
+    // Only the exact chord conflicts; the steps of a stepping shortcut are reserved instead.
+    CHECK(registry.conflicts(Shortcut::GoToLayer, { WXK_UP, wxMOD_SHIFT }).empty());
+    CHECK(registry.conflicts(Shortcut::LayerSliderUp, { 'G', wxMOD_SHIFT }) == std::vector<Shortcut>{ Shortcut::GoToLayer });
+}
+
+TEST_CASE("Shift and Ctrl with a stepping shortcut's key are reserved for its steps", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+    CHECK(registry.step_owner(Shortcut::GoToLayer, { WXK_UP, wxMOD_SHIFT }) == Shortcut::LayerSliderUp);
+    CHECK(registry.step_owner(Shortcut::NewProject, { WXK_LEFT, wxMOD_CONTROL }) == Shortcut::MoveSelectionLeft);   // Global shares every context
+    CHECK_FALSE(registry.step_owner(Shortcut::GoToLayer, { WXK_UP, wxMOD_CONTROL | wxMOD_SHIFT }).has_value());     // the combined step is free
+    CHECK_FALSE(registry.step_owner(Shortcut::MoveSelectionLeft, { WXK_LEFT, wxMOD_SHIFT }).has_value());          // its own step
+    CHECK_FALSE(registry.step_owner(Shortcut::PaintToolCircle, { WXK_UP, wxMOD_SHIFT }).has_value());              // Painting shares no context
+    registry.bind(Shortcut::LayerSliderUp, { WXK_UP, wxMOD_CONTROL });
+    CHECK_FALSE(registry.step_owner(Shortcut::GoToLayer, { WXK_UP, wxMOD_CONTROL | wxMOD_SHIFT }).has_value());    // a modified binding has no steps
 }
 
 TEST_CASE("Custom bindings replace the default and survive a config round trip", "[Shortcuts]")

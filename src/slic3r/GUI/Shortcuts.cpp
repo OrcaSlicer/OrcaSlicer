@@ -112,8 +112,8 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     STEPPING(LayerSliderDown,     "layer_slider_down",     L("Vertical slider - Move active thumb Down"),        PREVIEW, { WXK_DOWN }),
     STEPPING(MovesSliderLeft,     "moves_slider_left",     L("Horizontal slider - Move active thumb Left"),      PREVIEW, { WXK_LEFT }),
     STEPPING(MovesSliderRight,    "moves_slider_right",    L("Horizontal slider - Move active thumb Right"),     PREVIEW, { WXK_RIGHT }),
-    STEPPING(MovesSliderStart,    "moves_slider_start",    L("Horizontal slider - Move to start position"),      PREVIEW, { WXK_HOME }),
-    STEPPING(MovesSliderEnd,      "moves_slider_end",      L("Horizontal slider - Move to last position"),       PREVIEW, { WXK_END }),
+    REPEATING(MovesSliderStart,   "moves_slider_start",    L("Horizontal slider - Move to start position"),      PREVIEW, { WXK_HOME }),
+    REPEATING(MovesSliderEnd,     "moves_slider_end",      L("Horizontal slider - Move to last position"),       PREVIEW, { WXK_END }),
 
     // Painting tools
     SHORTCUT(PaintToolCircle,      "paint_tool_circle",       L("Circle"),                                       PAINTING, { 'C' }),
@@ -207,12 +207,14 @@ bool share_context(uint8_t a, uint8_t b) { return (a & b) != 0 || (a & GLOBAL) !
 // The modifiers a modifier_variants shortcut accepts on top of its binding.
 constexpr int STEP_MODIFIERS = wxMOD_SHIFT | wxMOD_CONTROL;
 
-// True when chord is binding with one or both step modifiers added.
-bool is_step_variant(const KeyChord& chord, const KeyChord& binding)
+// The step modifiers chord adds to binding, 0 when chord is not a step of it; a binding with
+// Shift or Ctrl of its own has no steps, so no two bindings share one.
+int step_modifiers(const KeyChord& chord, const KeyChord& binding)
 {
-    return binding.valid() && chord.key == binding.key && chord.modifiers != binding.modifiers &&
-           (chord.modifiers & ~STEP_MODIFIERS) == (binding.modifiers & ~STEP_MODIFIERS) &&
-           (chord.modifiers & binding.modifiers) == binding.modifiers;
+    if (!binding.valid() || (binding.modifiers & STEP_MODIFIERS) != 0 || chord.key != binding.key ||
+        (chord.modifiers & ~STEP_MODIFIERS) != binding.modifiers)
+        return 0;
+    return chord.modifiers & STEP_MODIFIERS;
 }
 
 } // namespace
@@ -284,8 +286,8 @@ std::optional<ShortcutRegistry::Match> ShortcutRegistry::match(ShortcutContext c
         return std::nullopt;
     for (const ShortcutInfo& info : shortcut_table)
         if (info.modifier_variants && (info.contexts & context_bit(context)))
-            if (const KeyChord bound = binding(info.id); is_step_variant(chord, bound))
-                return Match{ info.id, chord.modifiers & ~bound.modifiers };
+            if (const int step = step_modifiers(chord, binding(info.id)); step != 0)
+                return Match{ info.id, step };
     return std::nullopt;
 }
 
@@ -294,15 +296,21 @@ std::vector<Shortcut> ShortcutRegistry::conflicts(Shortcut shortcut, const KeyCh
     std::vector<Shortcut> out;
     if (!chord.valid())
         return out;
-    const ShortcutInfo& info = shortcut_info(shortcut);
-    for (const ShortcutInfo& other : shortcut_table) {
-        if (other.id == shortcut || !share_context(info.contexts, other.contexts))
-            continue;
-        const KeyChord bound = binding(other.id);
-        if (bound == chord || (other.modifier_variants && is_step_variant(chord, bound)) || (info.modifier_variants && is_step_variant(bound, chord)))
+    const uint8_t contexts = shortcut_info(shortcut).contexts;
+    for (const ShortcutInfo& other : shortcut_table)
+        if (other.id != shortcut && share_context(contexts, other.contexts) && binding(other.id) == chord)
             out.push_back(other.id);
-    }
     return out;
+}
+
+std::optional<Shortcut> ShortcutRegistry::step_owner(Shortcut shortcut, const KeyChord& chord) const
+{
+    const uint8_t contexts = shortcut_info(shortcut).contexts;
+    for (const ShortcutInfo& other : shortcut_table)
+        if (other.modifier_variants && other.id != shortcut && share_context(contexts, other.contexts))
+            if (const int step = step_modifiers(chord, binding(other.id)); step == wxMOD_SHIFT || step == wxMOD_CONTROL)   // the combined step stays assignable
+                return other.id;
+    return std::nullopt;
 }
 
 void ShortcutRegistry::bind(Shortcut shortcut, const KeyChord& chord)

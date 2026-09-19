@@ -101,9 +101,13 @@ public:
     };
     std::optional<Match> match(ShortcutContext context, const KeyChord& chord) const;
 
-    // Shortcuts that chord would trigger besides shortcut, counting the step variants both ways.
-    // A collision needs a shared context, and Global shortcuts share every context.
+    // Shortcuts other than shortcut bound to chord in a context it shares; Global shortcuts
+    // share every context.
     std::vector<Shortcut> conflicts(Shortcut shortcut, const KeyChord& chord) const;
+
+    // The modifier_variants shortcut in a shared context whose Shift or Ctrl step is chord;
+    // such a chord is reserved for that step.
+    std::optional<Shortcut> step_owner(Shortcut shortcut, const KeyChord& chord) const;
 
     void bind(Shortcut shortcut, const KeyChord& chord);  // an invalid chord unbinds
     void reset(Shortcut shortcut);

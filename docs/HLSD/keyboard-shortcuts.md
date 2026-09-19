@@ -76,12 +76,16 @@ released while no canvas had the focus is dropped on the next press.
 
 A few shortcuts have `modifier_variants`: Shift or Ctrl added to their binding selects a
 step of the same action (1 mm and camera-space moves of the selection, five-step slider
-moves). `ShortcutRegistry::match()` looks the exact chord up first and only then, when
+moves). Only a binding without Shift or Ctrl of its own has steps, so no two bindings
+share one. `ShortcutRegistry::match()` looks the exact chord up first and only then, when
 nothing is bound to it, looks for such a shortcut whose binding is the chord minus those
-modifiers, reporting which were added. `conflicts()` applies the same rule in both
-directions. A move or rotation of the selection started from the keyboard runs until the
-key that started it is released, or the canvas loses focus, so a held key is one undo
-step.
+modifiers, reporting which were added; a binding on Ctrl+Shift+key therefore wins over
+the combined step. The Shift and Ctrl steps themselves are reserved. `step_owner()` names
+the shortcut they belong to, the capture dialog refuses to assign them, and
+`conflicts()` reports exact chords only. A binding made before its key became a stepping
+key keeps its chord and shadows that one step. A move or rotation of the selection
+started from the keyboard runs until the key that started it is released, or the
+canvas loses focus, so a held key is one undo step.
 
 ## Labels
 

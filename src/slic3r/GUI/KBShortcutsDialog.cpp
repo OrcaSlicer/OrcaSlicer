@@ -521,12 +521,17 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
     m_chord_label->SetLabel(join_keys(to_wx(chord.display_parts())));
     m_chord_label->GetParent()->Layout();
 
-    const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
-    if (global && !chord.is_menu_accelerator()) {
+    auto reject = [this](const wxString& reason) {
         m_status->SetForegroundColour(ERROR_COLOUR);
-        m_status->SetLabel(m_rejection);
+        m_status->SetLabel(reason);
         m_conflicts.clear();
         m_ok->Enable(false);
+    };
+    const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
+    if (global && !chord.is_menu_accelerator()) {
+        reject(m_rejection);
+    } else if (const std::optional<Shortcut> owner = wxGetApp().shortcuts().step_owner(m_shortcut, chord); owner.has_value()) {
+        reject(wxString::Format(_L("Already used as a step of %s."), _(shortcut_info(*owner).name)));
     } else {
         m_conflicts = wxGetApp().shortcuts().conflicts(m_shortcut, chord);
         m_status->SetForegroundColour(m_status_colour);
