@@ -456,7 +456,7 @@ public:
     MultiMachinePage*     m_multi_machine{ nullptr };
     LazyPage<ProjectPanel>* m_project_page{ nullptr };
 
-    CalibrationPanel*     m_calibration{ nullptr };
+    LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
     PluginPages           m_plugin_pages;

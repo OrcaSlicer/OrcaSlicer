@@ -3,6 +3,7 @@
 
 #include "CalibrationWizard.hpp"
 #include "Tabbook.hpp"
+#include "Lazy.hpp"
 //#include "Widgets/SideTools.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -88,7 +89,7 @@ private:
 };
 
 
-class CalibrationPanel : public wxPanel
+class CalibrationPanel : public wxPanel, public LazyInstance<CalibrationPanel>
 {
 public:
     CalibrationPanel(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL);

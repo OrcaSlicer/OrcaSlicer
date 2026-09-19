@@ -1440,9 +1440,11 @@ void MainFrame::init_tabpanel() {
     m_lazy_pages.push_back(m_project_page);
     m_tabpanel->AddPage(TAB_ID_PROJECT, m_project_page, _L("Project"), "tab_auxiliary_active");
 
-    m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_calibration->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_CALIBRATION, m_calibration, _L("Calibration"), "tab_calibration_active");
+    // show_device() removes this tab for printers without the Bambu device tab, and the page
+    // then never builds its panel.
+    m_calibration_page = new LazyPage<CalibrationPanel>(m_tabpanel, TAB_ID_CALIBRATION, 30);
+    m_lazy_pages.push_back(m_calibration_page);
+    m_tabpanel->AddPage(TAB_ID_CALIBRATION, m_calibration_page, _L("Calibration"), "tab_calibration_active");
 
     // Plugin pages are appended after the built-in tabs; their ids are namespaced
     // (plugin.<plugin_key>.<name>) so they can't collide with the built-in TAB_ID_* constants.
@@ -1517,13 +1519,9 @@ void MainFrame::show_device(bool should_use_native) {
                                        TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
             }
         }
-        if (!m_calibration) {
-            m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_calibration->SetBackgroundColour(*wxWHITE);
-        }
-        if (m_tabpanel->FindPage(m_calibration) == wxNOT_FOUND) {
-            m_calibration->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration,
+        if (!m_calibration_page->in_book()) {
+            m_calibration_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                    _L("Calibration"), "tab_calibration_active");
         }
 
@@ -1575,14 +1573,10 @@ void MainFrame::show_device(bool should_use_native) {
             m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine,
                                    _L("Multi-device"), "tab_multi_active");
         }
-        if (!m_calibration) {
-            m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_calibration->SetBackgroundColour(*wxWHITE);
-        }
-        m_calibration->Show(false);
+        m_calibration_page->Show(false);
         // Last of the built-in tabs, but plugin tabs already sit past it — anchor rather than
         // append, so its position doesn't depend on the relayout() below running afterwards.
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration,
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                _L("Calibration"), "tab_calibration_active");
 
 #ifdef _MSW_DARK_MODE
@@ -1594,8 +1588,8 @@ void MainFrame::show_device(bool should_use_native) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
-        if ((idx = m_tabpanel->FindPage(m_calibration)) != wxNOT_FOUND) {
-            m_calibration->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_calibration_page)) != wxNOT_FOUND) {
+            m_calibration_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
         if ((idx = m_tabpanel->FindPage(m_multi_machine)) != wxNOT_FOUND) {
@@ -2673,8 +2667,7 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
     if(m_multi_machine)
         m_multi_machine->msw_rescale();
-    if(m_calibration)
-        m_calibration->msw_rescale();
+    CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.msw_rescale(); });
 
     // BBS
 #if 0
@@ -2737,8 +2730,7 @@ void MainFrame::on_sys_color_changed()
     // update Plater
     wxGetApp().plater()->sys_color_changed();
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.on_sys_color_changed(); });
-    if(m_calibration)
-        m_calibration->on_sys_color_changed();
+    CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.on_sys_color_changed(); });
     // update Tabs
     for (auto tab : wxGetApp().tabs_list)
         tab->sys_color_changed();
@@ -4107,8 +4099,8 @@ void MainFrame::request_select_tab(const wxString& id)
 }
 
 int MainFrame::get_calibration_curr_tab() {
-    if (m_calibration)
-        return m_calibration->get_tabpanel()->GetSelection();
+    if (CalibrationPanel* calibration = CalibrationPanel::if_built())
+        return calibration->get_tabpanel()->GetSelection();
     return -1;
 }
 
