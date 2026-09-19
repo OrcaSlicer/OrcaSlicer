@@ -327,7 +327,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
         bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     }
-    main_sizer->Add(bottom_panel, 0, wxEXPAND);
+    main_sizer->Add(bottom_panel, 0, wxEXPAND | wxTOP, FromDIP(15));
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
     m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancel, this);

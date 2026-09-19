@@ -27,6 +27,10 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
 
+#ifdef __WXGTK__
+#include "wx/gauge.h"
+#endif 
+
 
 class wxCheckBox;
 class wxTopLevelWindow;
@@ -485,6 +489,7 @@ void set_window_corner_radius(wxWindow* win, int radius);
 #ifdef __WXGTK__
 void RemoveButtonBorder(wxWindow* win);   // for wxButton/wxBitmapToggleButton based controls (SwitchButton, CheckBox)
 void RemoveInputBorder(wxWindow* win);    // for TextCtrl based controls (TextInput, ComboBox, SpinInput..)
+void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor);
 #endif
 
 #if defined(__WXOSX__) || defined(__linux__)
