@@ -4015,6 +4015,8 @@ bool MainFrame::Show(bool show)
 void MainFrame::prebuild_pages_when_idle()
 {
     m_idle.clear();
+    if (m_param_panel)
+        m_idle.add(m_param_panel->settings_page_prebuild());
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);

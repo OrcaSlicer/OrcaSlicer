@@ -550,16 +550,34 @@ void ParamsPanel::clear_page()
 void ParamsPanel::OnActivate()
 {
     if (m_current_tab == NULL)
-    {
-        //the first time
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
-        // BBS: open/close tab
-        //m_current_tab = m_tab_print;
-        set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
-    }
+        select_default_tab();
     Tab* cur_tab = dynamic_cast<Tab *> (m_current_tab);
     if (cur_tab)
         cur_tab->OnActivate();
+}
+
+void ParamsPanel::select_default_tab()
+{
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
+    // BBS: open/close tab
+    //m_current_tab = m_tab_print;
+    set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
+}
+
+bool ParamsPanel::SettingsPagePrebuild::built() const
+{
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && !tab->page_build_pending();
+}
+
+bool ParamsPanel::SettingsPagePrebuild::build_step()
+{
+    if (m_panel.m_current_tab == nullptr) {
+        m_panel.select_default_tab();
+        return !built();
+    }
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && tab->page_build_step();
 }
 
 void ParamsPanel::OnToggled(wxCommandEvent& event)
