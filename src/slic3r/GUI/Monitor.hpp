@@ -79,10 +79,10 @@ private:
     Tabbook*		m_tabpanel{ nullptr };
     wxSizer*        m_main_sizer{ nullptr };
 
-    StatusPanel*        m_status_info_panel;
-    MediaFilePanel*     m_media_file_panel;
-    UpgradePanel*       m_upgrade_panel;
-    HMSPanel*           m_hms_panel;
+    StatusPanel*        m_status_info_panel{ nullptr };
+    MediaFilePanel*     m_media_file_panel{ nullptr };
+    UpgradePanel*       m_upgrade_panel{ nullptr };
+    HMSPanel*           m_hms_panel{ nullptr };
 
 	/* side tools */
     SideTools*      m_side_tools{nullptr};
@@ -97,7 +97,6 @@ private:
     wxBitmap m_arrow_img;
 
     int last_status;
-    bool m_initialized { false };
     bool update_flag{false};
     wxTimer* m_refresh_timer = nullptr;
 
