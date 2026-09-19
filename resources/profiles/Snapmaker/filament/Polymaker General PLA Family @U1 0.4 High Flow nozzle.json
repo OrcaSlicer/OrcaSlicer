@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Polymaker General PLA Family @U1 0.4 High Flow nozzle",
+	"inherits": "Polymaker General PLA Family @U1",
+	"from": "system",
+	"setting_id": "lTLCaycZyEv7ATPu",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 15 mm^3/s, from Snorca standard preset Polymaker General PLA Family @U1 (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
+}

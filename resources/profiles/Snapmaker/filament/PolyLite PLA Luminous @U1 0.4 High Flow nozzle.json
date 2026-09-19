@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA Luminous @U1 0.4 High Flow nozzle",
+	"inherits": "PolyLite PLA Luminous @Snapmaker U1",
+	"from": "system",
+	"setting_id": "Mv5E1GpGrdHVF2Vs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 15 mm^3/s, from local standard fallback preset PolyLite PLA Luminous @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
+}

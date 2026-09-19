@@ -1,0 +1,23 @@
+{
+	"type": "process",
+	"name": "0.14 Standard @Snapmaker U1 (0.2 High Flow nozzle)",
+	"inherits": "0.14 Standard @Snapmaker U1 (0.2 nozzle)",
+	"from": "system",
+	"setting_id": "NPQCD2bScfCwZAGP",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.2 High Flow nozzle)"
+	],
+	"inner_wall_speed": [
+		"600"
+	],
+	"outer_wall_speed": [
+		"500"
+	],
+	"internal_solid_infill_speed": [
+		"600"
+	],
+	"sparse_infill_speed": [
+		"600"
+	]
+}

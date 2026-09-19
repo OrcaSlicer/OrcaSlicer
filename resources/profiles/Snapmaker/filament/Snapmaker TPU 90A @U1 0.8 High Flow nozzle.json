@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Snapmaker TPU 90A @U1 0.8 High Flow nozzle",
+	"inherits": "Snapmaker TPU 90A @U1 0.8 nozzle",
+	"from": "system",
+	"setting_id": "nECpLUQc8O9JE4em",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.8 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"3.5"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 3.5 mm^3/s, from Snorca standard preset Snapmaker TPU 90A @U1 0.8 nozzle (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
+}

@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Panchroma PLA @U1 0.4 High Flow nozzle",
+	"inherits": "Panchroma PLA @Snapmaker U1",
+	"from": "system",
+	"setting_id": "U5ss8ZIjm3fIz1Nq",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 15 mm^3/s, from local standard fallback preset Panchroma PLA @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
+}
