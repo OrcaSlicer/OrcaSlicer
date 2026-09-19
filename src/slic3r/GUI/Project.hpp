@@ -60,7 +60,7 @@ struct project_file{
     std::string size;
 };
 
-class ProjectPanel : public wxPanel, public LazyInstance<ProjectPanel>
+class ProjectPanel : public wxPanel, public StagedBuild, public LazyInstance<ProjectPanel>
 {
 private:
     std::atomic<bool> m_web_init_completed{false};
