@@ -844,6 +844,8 @@ public:
     // Return true if the dirty flag changed.
     bool            update_dirty();
 
+    int             error_count() const { return m_errors; }
+
     // Select a profile by its name. Return true if the selection changed.
     // Without force, the selection is only updated if the index changes.
     // With force, the changes are reverted if the new index is the same as the old index.
