@@ -90,6 +90,8 @@ std::pair<bool, std::string> GLShadersManager::init()
         , { "ENABLE_ENVIRONMENT_MAP"sv }
 #endif // ENABLE_ENVIRONMENT_MAP
         );
+    // used to render objects as translucent, edge weighted surfaces in the X-Ray view
+    valid &= append_shader("xray", { prefix + "xray.vs", prefix + "xray.fs" });
     // used to render variable layers heights in 3d editor
     valid &= append_shader("variable_layer_height", { prefix + "variable_layer_height.vs", prefix + "variable_layer_height.fs" });
     // used to render highlight contour around selected triangles inside the multi-material gizmo

@@ -1333,6 +1333,8 @@ private:
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
     void _render_wireframe_overlay();
+    bool _is_xray_view_active() const;
+    void _render_xray_volumes();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
     void _render_gcode_overlay(int canvas_width, int canvas_height);

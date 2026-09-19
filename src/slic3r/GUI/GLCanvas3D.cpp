@@ -8758,6 +8758,15 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     else
         m_volumes.set_show_sinking_contours(!m_gizmos.is_hiding_instances());
 
+    // Orca: X-Ray replaces both shaded passes with a single one, driven from the opaque call, and
+    // reuses the volume state (print volume, z range, clipping plane) set up above.
+    if (_is_xray_view_active()) {
+        if (type == GLVolumeCollection::ERenderType::Opaque)
+            _render_xray_volumes();
+        m_camera_clipping_plane = ClippingPlane::ClipsNothing();
+        return;
+    }
+
     const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
     const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
     const std::string shader_name = (realistic_mode && realistic_phong) ? "phong" : "gouraud";
@@ -8892,6 +8901,51 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     }
 
     m_camera_clipping_plane = ClippingPlane::ClipsNothing();
+}
+
+bool GLCanvas3D::_is_xray_view_active() const
+{
+    if (m_canvas_type == ECanvasType::CanvasPreview || !wxGetApp().plater()->is_show_xray())
+        return false;
+
+    // A painting gizmo and the layer height editor draw the object through their own shaders, and
+    // would lose what they draw if X-Ray took the pass over.
+    if (dynamic_cast<const GLGizmoPainterBase*>(m_gizmos.get_current()) != nullptr)
+        return false;
+    return !(m_picking_enabled && m_layers_editing.is_enabled() && m_layers_editing.last_object_id != -1 &&
+             m_layers_editing.object_max_z() > 0.0f);
+}
+
+void GLCanvas3D::_render_xray_volumes()
+{
+    if (m_volumes.empty())
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("xray");
+    if (shader == nullptr)
+        return;
+
+    const Camera&     camera      = wxGetApp().plater()->get_camera();
+    const ECanvasType canvas_type = m_canvas_type;
+
+    // Depth writes off so every surface along a view ray composites, not just the nearest one, and
+    // back faces kept for the far wall of a hollow part. The low, near-uniform coverage the shader
+    // emits saturates towards the volume color whatever the order, so the volumes are not sorted.
+    glsafe(::glDepthMask(GL_FALSE));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+    shader->start_using();
+    m_volumes.render(GLVolumeCollection::ERenderType::All, true, camera.get_view_matrix(), camera.get_projection_matrix(),
+        get_canvas_size(), [this, canvas_type](const GLVolume& volume) {
+            if (canvas_type == ECanvasType::CanvasAssembleView)
+                return !volume.is_modifier && !volume.is_wipe_tower;
+            return m_render_sla_auxiliaries || volume.composite_id.volume_id >= 0;
+        });
+    shader->stop_using();
+
+    glsafe(::glDisable(GL_BLEND));
+    glsafe(::glDepthMask(GL_TRUE));
 }
 
 void GLCanvas3D::_render_wireframe_overlay()
@@ -10018,6 +10072,12 @@ void GLCanvas3D::_render_canvas_toolbar()
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             p->is_show_wireframe(),
             [this, p]{p->toggle_show_wireframe(); m_dirty = true;}
+        );
+
+        create_menu_item( _utf8(L("X-Ray")),
+            m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
+            p->is_show_xray(),
+            [this, p]{p->toggle_show_xray(); m_dirty = true;}
         );
 
         create_menu_item( _utf8(L("Realistic View")),
