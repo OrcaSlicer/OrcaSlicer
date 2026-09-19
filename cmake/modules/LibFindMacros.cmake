@@ -1,4 +1,4 @@
-# Version 2.2
+# Version 2.4
 # Public Domain, originally written by Lasse Kärkkäinen <tronic>
 # Maintained at https://github.com/Tronic/cmake-modules
 # Please send your improvements as pull requests on Github.
@@ -51,6 +51,10 @@ function (libfind_pkg_detect PREFIX)
   endif()
   if (libraryargs)
     find_library(${PREFIX}_LIBRARY NAMES ${libraryargs} HINTS ${${PREFIX}_PKGCONF_LIBRARY_DIRS})
+  endif()
+  # Read pkg-config version
+  if (${PREFIX}_PKGCONF_VERSION)
+    set(${PREFIX}_VERSION ${${PREFIX}_PKGCONF_VERSION} PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -123,34 +127,49 @@ function (libfind_process PREFIX)
   set(includeopts ${${PREFIX}_PROCESS_INCLUDES})
   set(libraryopts ${${PREFIX}_PROCESS_LIBS})
 
-  # Process deps to add to 
+  # Process deps to add to
   foreach (i ${PREFIX} ${${PREFIX}_DEPENDENCIES})
-    if (DEFINED ${i}_INCLUDE_OPTS OR DEFINED ${i}_LIBRARY_OPTS)
+    if (DEFINED ${i}_INCLUDE_OPTS)
       # The package seems to export option lists that we can use, woohoo!
       list(APPEND includeopts ${${i}_INCLUDE_OPTS})
-      list(APPEND libraryopts ${${i}_LIBRARY_OPTS})
     else()
-      # If plural forms don't exist or they equal singular forms
-      if ((NOT DEFINED ${i}_INCLUDE_DIRS AND NOT DEFINED ${i}_LIBRARIES) OR
-          ({i}_INCLUDE_DIR STREQUAL ${i}_INCLUDE_DIRS AND ${i}_LIBRARY STREQUAL ${i}_LIBRARIES))
+      if (DEFINED ${i}_INCLUDE_DIR)
         # Singular forms can be used
-        if (DEFINED ${i}_INCLUDE_DIR)
-          list(APPEND includeopts ${i}_INCLUDE_DIR)
-        endif()
-        if (DEFINED ${i}_LIBRARY)
-          list(APPEND libraryopts ${i}_LIBRARY)
-        endif()
+        list(APPEND includeopts ${i}_INCLUDE_DIR)
       else()
-        # Oh no, we don't know the option names
-        message(FATAL_ERROR "We couldn't determine config variable names for ${i} includes and libs. Aieeh!")
+        if (DEFINED ${i}_INCLUDE_DIRS)
+          # Plural forms can be used
+          list(APPEND includeopts ${i}_INCLUDE_DIRS)
+        else()
+          # Oh no, we don't know the option names
+          message(FATAL_ERROR "We couldn't determine config variable names for ${i} includes. Aieeh!")
+        endif()
+      endif()
+    endif()
+
+    if (DEFINED ${i}_LIBRARY_OPTS)
+      # The package seems to export option lists that we can use, woohoo!
+      list(APPEND includeopts ${${i}_LIBRARY_OPTS})
+    else()
+      if (DEFINED ${i}_LIBRARY)
+        # Singular forms can be used
+        list(APPEND includeopts ${i}_LIBRARY)
+      else()
+        if (DEFINED ${i}_LIBRARIES)
+          # Plural forms can be used
+          list(APPEND includeopts ${i}_LIBRARIES)
+        else()
+          # Oh no, we don't know the option names
+          message(FATAL_ERROR "We couldn't determine config variable names for ${i} libraries. Aieeh!")
+        endif()
       endif()
     endif()
   endforeach()
-  
+
   if (includeopts)
     list(REMOVE_DUPLICATES includeopts)
   endif()
-  
+
   if (libraryopts)
     list(REMOVE_DUPLICATES libraryopts)
   endif()
@@ -209,13 +228,13 @@ function (libfind_process PREFIX)
         message(STATUS "  ${PREFIX}_LIBRARY_OPTS=${libraryopts}")
         message(STATUS "  ${PREFIX}_LIBRARIES=${libs}")
       endif()
-      set (${PREFIX}_INCLUDE_OPTS ${includeopts} PARENT_SCOPE)
-      set (${PREFIX}_LIBRARY_OPTS ${libraryopts} PARENT_SCOPE)
-      set (${PREFIX}_INCLUDE_DIRS ${includes} PARENT_SCOPE)
-      set (${PREFIX}_LIBRARIES ${libs} PARENT_SCOPE)
-      set (${PREFIX}_FOUND TRUE PARENT_SCOPE)
     endif()
-    return()    
+    set (${PREFIX}_INCLUDE_OPTS ${includeopts} PARENT_SCOPE)
+    set (${PREFIX}_LIBRARY_OPTS ${libraryopts} PARENT_SCOPE)
+    set (${PREFIX}_INCLUDE_DIRS ${includes} PARENT_SCOPE)
+    set (${PREFIX}_LIBRARIES ${libs} PARENT_SCOPE)
+    set (${PREFIX}_FOUND TRUE PARENT_SCOPE)
+    return()
   endif()
 
   # Format messages for debug info and the type of error
