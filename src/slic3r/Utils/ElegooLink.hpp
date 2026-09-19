@@ -15,6 +15,19 @@ namespace Slic3r {
 class DynamicPrintConfig;
 class Http;
 
+struct ElegooCanvasSlot
+{
+    int         tray_id{-1};
+    int         canvas_id{0};
+    bool        has_filament{false};
+    std::string filament_type;   // e.g. PLA, PETG
+    std::string filament_name;
+    std::string filament_color;  // "#RRGGBB"
+    std::string brand;
+    int         min_nozzle_temp{0};
+    int         max_nozzle_temp{0};
+};
+
 class ElegooLink : public OctoPrint
 {
 public:
@@ -30,6 +43,8 @@ public:
     bool has_auto_discovery() const override { return false; }
     bool can_test() const override { return true; }
     PrintHostPostUploadActions get_post_upload_actions() const override;
+    // CANVAS/MMS: query loaded filament trays via WebSocket Cmd 324
+    bool fetch_canvas_slots(std::vector<ElegooCanvasSlot>& slots, wxString& msg) const;
 protected:
 #ifdef WIN32
     virtual bool upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const override;
@@ -94,6 +109,9 @@ private:
 #endif
 
     std::string m_printerModel;
+
+    // CC2 CANVAS support
+    static constexpr int ELEGOO_GET_CANVAS = 324;
 };
 }
 
