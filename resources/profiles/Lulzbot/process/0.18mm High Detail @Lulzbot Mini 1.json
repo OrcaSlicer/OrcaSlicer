@@ -1,0 +1,12 @@
+{
+	"type": "process",
+	"name": "0.18mm High Detail @Lulzbot Mini 1",
+	"inherits": "0.25mm Standard @Lulzbot Mini 1",
+	"from": "system",
+	"setting_id": "2FKMCpTJ1Ptv1wLD",
+	"instantiation": "true",
+	"layer_height": "0.18",
+	"compatible_printers": [
+		"Lulzbot Mini 1 0.5 nozzle"
+	]
+}
