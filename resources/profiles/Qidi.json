@@ -33,6 +33,10 @@
 			"sub_path": "machine/Qidi X-Max 4.json"
 		},
 		{
+			"name": "Qidi X-Smart 3",
+			"sub_path": "machine/Qidi X-Smart 3.json"
+		},
+		{
 			"name": "Qidi X-Plus",
 			"sub_path": "machine/Qidi X-Plus.json"
 		},
