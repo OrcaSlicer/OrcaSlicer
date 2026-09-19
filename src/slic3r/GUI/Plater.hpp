@@ -475,6 +475,17 @@ public:
 
     void reset_window_layout();
 
+    // Plugin panes dock alongside the sidebar; `window` must be a child of the Plater. `dock` is
+    // "left", "right", "bottom" or "float", and `size` is in DIPs. A pane closed from its own close
+    // button is destroyed after on_close runs; remove_plugin_pane() destroys it without calling on_close.
+    void add_plugin_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
+                         const wxSize& size, std::function<void()> on_close);
+    void remove_plugin_pane(wxWindow* window);
+    void show_plugin_pane(wxWindow* window, bool show);
+    // Removes every plugin pane without calling on_close, for MainFrame::shutdown() (app exit and a
+    // language switch), while the Plater and any floating frames still exist.
+    void remove_plugin_panes();
+
     // Called after the Preferences dialog is closed and the program settings are saved.
     // Update the UI based on the current preferences.
     void update_ui_from_settings();

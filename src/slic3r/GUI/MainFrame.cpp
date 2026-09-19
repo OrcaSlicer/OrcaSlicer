@@ -1126,6 +1126,8 @@ void MainFrame::shutdown()
     if (m_project != nullptr)
         m_project->shutdown();
     m_plugin_pages.shutdown();
+    if (m_plater != nullptr)
+        m_plater->remove_plugin_panes();
 #ifdef __WXGTK__
     // Edge panels are child windows — wxWidgets destroys them automatically.
     m_edge_bottom = nullptr;

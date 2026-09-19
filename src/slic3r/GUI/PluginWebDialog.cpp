@@ -1,70 +1,13 @@
 #include "PluginWebDialog.hpp"
 
-#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-
-#include <libslic3r/Utils.hpp>
-
-#include <boost/filesystem.hpp>
+#include "slic3r/GUI/Widgets/PluginWebContent.hpp"
 
 #include <wx/event.h>
-#include <wx/uri.h>
 
 #include <utility>
 
 namespace Slic3r { namespace GUI {
-
-namespace {
-
-// Injected into the top-level page at document start (before the plugin's own
-// scripts). Defines window.orca as the only host surface the page may use. It
-// references window.wx lazily (at call time) so it never races the backend's
-// deferred registration of the "wx" message handler. Guarded against
-// double-injection so it is harmless if also prepended.
-constexpr char ORCA_BRIDGE_JS[] = R"JS(
-(function () {
-  if (window.top !== window.self) return;
-  if (window.orca) return;
-  var handlers = [];
-  function send(kind, data) {
-    try {
-      window.wx.postMessage(JSON.stringify({
-        channel: 'orca', kind: kind, data: (data === undefined ? null : data)
-      }));
-    } catch (e) { /* bridge not ready yet */ }
-  }
-  window.orca = {
-    postMessage: function (d) { send('message', d); },
-    submit:      function (d) { send('submit', d); },
-    close:       function ()  { send('close'); },
-    onMessage:   function (cb) { if (typeof cb === 'function') handlers.push(cb); }
-  };
-  window.__orcaDispatch = function (payload) {
-    var data = payload ? payload.data : null;
-    for (var i = 0; i < handlers.length; i++) {
-      try { handlers[i](data); } catch (e) {}
-    }
-  };
-})();
-)JS";
-
-// file:// base URL for plugin HTML loaded via SetPage, so self-referencing
-// relative URLs resolve against the bundled web resources directory.
-wxString web_base_url()
-{
-    const std::string dir = (boost::filesystem::path(resources_dir()) / "web").make_preferred().string();
-    return wxString("file://") + from_u8(dir) + "/";
-}
-
-// Whether a loaded document is the plugin HTML's own base URL. The web view reports the URL it
-// parsed, so any fragment the page navigated to is ignored and the escaping it applies to what the
-// resources path holds (a space, a non-ASCII character) is undone first.
-bool is_content_url(const wxString& url)
-{
-    return wxURI::Unescape(url.BeforeFirst('#')) == web_base_url();
-}
-
-} // namespace
 
 PluginWebDialog::PluginWebDialog(wxWindow*          parent,
                                  const wxString&    title,
@@ -84,7 +27,7 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
 {
     // A tiny bundled bootstrap page brings the webview up; the real plugin HTML
     // is swapped in via SetPage once the bootstrap finishes loading.
-    create_webview("web/dialog/PluginWebDialog/blank.html", title, size, wxSize(320, 240));
+    create_webview(plugin_web::BOOTSTRAP_PAGE, title, size, wxSize(320, 240));
 
     // Paint the window/webview in the themed background so there is no white
     // flash before the (transparent) bootstrap page and plugin HTML render.
@@ -107,7 +50,7 @@ void PluginWebDialog::add_user_scripts()
 {
     if (wxWebView* wv = browser()) {
         wv->AddUserScript(wxString::FromUTF8(WebViewHostDialog::plugin_defaults_user_script()));
-        wv->AddUserScript(ORCA_BRIDGE_JS);
+        wv->AddUserScript(wxString::FromUTF8(plugin_web::orca_bridge_script()));
     }
 }
 
@@ -160,7 +103,7 @@ void PluginWebDialog::on_bootstrap_event(wxWebViewEvent& event)
     // so the reload also has to have committed; nothing commits for a failure. The Edge backend
     // ignores the base URL, so nothing matches there, and WebView2 reloads SetPage content from its
     // own history entry anyway.
-    else if (is_content_url(event.GetURL())) {
+    else if (plugin_web::is_content_url(event.GetURL())) {
         if (m_own_page_load)
             m_own_page_load = false;
         else if (loaded && m_content_navigated)
@@ -173,7 +116,7 @@ void PluginWebDialog::on_bootstrap_event(wxWebViewEvent& event)
 
 void PluginWebDialog::on_navigated(wxWebViewEvent& event)
 {
-    m_content_navigated = is_content_url(event.GetURL());
+    m_content_navigated = plugin_web::is_content_url(event.GetURL());
     event.Skip();
 }
 
@@ -182,7 +125,7 @@ void PluginWebDialog::load_plugin_content()
     m_content_loaded = true;
     if (wxWebView* wv = browser()) {
         m_own_page_load = true;
-        wv->SetPage(wxString::FromUTF8(m_html), web_base_url());
+        wv->SetPage(wxString::FromUTF8(m_html), plugin_web::content_base_url());
     }
 }
 
