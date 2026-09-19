@@ -89,7 +89,7 @@ private:
 };
 
 
-class CalibrationPanel : public wxPanel, public LazyInstance<CalibrationPanel>
+class CalibrationPanel : public wxPanel, public StagedBuild, public LazyInstance<CalibrationPanel>
 {
 public:
     CalibrationPanel(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
@@ -110,7 +110,6 @@ protected:
 
 
     int                     last_status;
-    bool                    m_initialized { false };
     std::string             last_conn_type = "undedefined";
     MachineObject*          obj{ nullptr };
     MachineObject*          last_obj { nullptr };

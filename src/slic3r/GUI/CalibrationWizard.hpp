@@ -9,6 +9,7 @@
 #include "CalibrationWizardPresetPage.hpp"
 #include "CalibrationWizardCaliPage.hpp"
 #include "CalibrationWizardSavePage.hpp"
+#include "StagedBuild.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -36,7 +37,7 @@ struct ConfigIndexValue
     int   index{0};
 };
 
-class CalibrationWizard : public wxPanel {
+class CalibrationWizard : public wxPanel, public StagedBuild {
 public:
     CalibrationWizard(wxWindow* parent, CalibMode mode,
         wxWindowID id = wxID_ANY,
@@ -78,6 +79,9 @@ public:
 
 protected:
     void on_cali_go_home();
+
+    // Queues a page as a build step, created hidden and added to the pages sizer.
+    void add_page_step(CalibrationWizardPageStep*& step, std::function<CalibrationWizardPage*()> make);
 
 protected:
     /* wx widgets*/
