@@ -357,6 +357,11 @@ public:
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);
+    // Orca: remember the user's preferred print/export action across sessions (see "remember_print_action" preference)
+    void        remember_print_select(PrintSelectType select_type);
+    bool        get_remembered_print_select(PrintSelectType& out) const;
+    // Orca: whether a print/export action is currently exposed in the print options dropdown
+    bool        is_print_action_available(PrintSelectType type) const;
 
     bool can_save() const;
     bool can_save_as() const;

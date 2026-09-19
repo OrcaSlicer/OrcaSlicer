@@ -1,5 +1,7 @@
 #include "MainFrame.hpp"
 
+#include <charconv>
+#include <cstdlib>
 #include <wx/panel.h>
 #include <wx/textentry.h>
 #include <wx/notebook.h>
@@ -2020,6 +2022,61 @@ bool MainFrame::can_reslice() const
     return (m_plater != nullptr) && !m_plater->model().objects.empty();
 }
 
+namespace {
+// Orca: label text must match the SideButton labels created in MainFrame::create_side_tools()/set_print_button_to_default()
+wxString print_select_type_label(MainFrame::PrintSelectType type)
+{
+    switch (type) {
+    case MainFrame::PrintSelectType::ePrintAll:            return _L("Print all");
+    case MainFrame::PrintSelectType::ePrintPlate:          return _L("Print plate");
+    case MainFrame::PrintSelectType::eExportSlicedFile:    return _L("Export plate sliced file");
+    case MainFrame::PrintSelectType::eExportAllSlicedFile: return _L("Export all sliced file");
+    case MainFrame::PrintSelectType::eExportGcode:         return _L("Export G-code file");
+    case MainFrame::PrintSelectType::eSendGcode:           return _L_CONTEXT("Print", "Verb");
+    case MainFrame::PrintSelectType::eSendToPrinter:       return _L("Send");
+    case MainFrame::PrintSelectType::eSendToPrinterAll:    return _L("Send all");
+    case MainFrame::PrintSelectType::ePrintMultiMachine:   return _L("Send to Multi-device");
+    default:                                               return _L("Print plate");
+    }
+}
+} // namespace
+
+void MainFrame::remember_print_select(PrintSelectType select_type)
+{
+    if (!wxGetApp().app_config->get_bool("remember_print_action"))
+        return;
+    wxGetApp().app_config->set("last_print_action", std::to_string(static_cast<int>(select_type)));
+    wxGetApp().app_config->save();
+}
+
+bool MainFrame::is_print_action_available(PrintSelectType type) const
+{
+    // Orca: "Send to Multi-device" only shows up in the dropdown when multi-device is enabled
+    if (type == PrintSelectType::ePrintMultiMachine)
+        return wxGetApp().app_config->get_bool("enable_multi_machine");
+    return true;
+}
+
+bool MainFrame::get_remembered_print_select(PrintSelectType& out) const
+{
+    if (!wxGetApp().app_config->get_bool("remember_print_action"))
+        return false;
+    const std::string saved = wxGetApp().app_config->get("last_print_action");
+    if (saved.empty())
+        return false;
+    int value = 0;
+    auto result = std::from_chars(saved.data(), saved.data() + saved.size(), value);
+    if (result.ec != std::errc())
+        return false;
+    if (value < static_cast<int>(PrintSelectType::ePrintAll) || value > static_cast<int>(PrintSelectType::ePrintMultiMachine))
+        return false;
+    PrintSelectType type = static_cast<PrintSelectType>(value);
+    if (!is_print_action_available(type))
+        return false;
+    out = type;
+    return true;
+}
+
 wxBoxSizer* MainFrame::create_side_tools()
 {
     enable_multi_machine = wxGetApp().is_enable_multi_machine();
@@ -2038,6 +2095,13 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_slice_option_btn = new SideButton(slice_panel, "", "sidebutton_dropdown", 0, 14);
     m_print_btn = new SideButton(print_panel, _L("Print plate"), "");
     m_print_option_btn = new SideButton(print_panel, "", "sidebutton_dropdown", 0, 14);
+
+    // Orca: restore the last used print/export action if the user opted to remember it
+    PrintSelectType remembered_print_select;
+    if (get_remembered_print_select(remembered_print_select)) {
+        m_print_select = remembered_print_select;
+        m_print_btn->SetLabel(print_select_type_label(remembered_print_select));
+    }
 
     auto slice_sizer = new wxBoxSizer(wxHORIZONTAL);
     slice_sizer->Add(m_slice_option_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(1));
@@ -2211,6 +2275,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Export G-code file"));
                     m_print_select = eExportGcode;
+                    remember_print_select(eExportGcode);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2224,6 +2289,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 send_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
                     m_print_select = eSendGcode;
+                    remember_print_select(eSendGcode);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2243,6 +2309,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                     export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                         m_print_btn->SetLabel(_L("Export plate sliced file"));
                         m_print_select = eExportSlicedFile;
+                        remember_print_select(eExportSlicedFile);
                         m_print_enable = get_enable_print_status();
                         m_print_btn->Enable(m_print_enable);
                         this->Layout();
@@ -2271,6 +2338,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 print_plate_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Print plate"));
                     m_print_select = ePrintPlate;
+                    remember_print_select(ePrintPlate);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2283,6 +2351,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 print_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Print all"));
                     m_print_select = ePrintAll;
+                    remember_print_select(ePrintAll);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2293,6 +2362,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 send_to_printer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Send"));
                     m_print_select = eSendToPrinter;
+                    remember_print_select(eSendToPrinter);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2305,6 +2375,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 send_to_printer_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Send all"));
                     m_print_select = eSendToPrinterAll;
+                    remember_print_select(eSendToPrinterAll);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2315,6 +2386,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Export plate sliced file"));
                     m_print_select = eExportSlicedFile;
+                    remember_print_select(eExportSlicedFile);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2325,6 +2397,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 export_all_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Export all sliced file"));
                     m_print_select = eExportAllSlicedFile;
+                    remember_print_select(eExportAllSlicedFile);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -2364,6 +2437,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                     print_multi_machine_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                         m_print_btn->SetLabel(_L("Send to Multi-device"));
                         m_print_select = ePrintMultiMachine;
+                        remember_print_select(ePrintMultiMachine);
                         m_print_enable = get_enable_print_status();
                         m_print_btn->Enable(m_print_enable);
                         this->Layout();
@@ -2379,6 +2453,7 @@ wxBoxSizer* MainFrame::create_side_tools()
                 export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
                     m_print_btn->SetLabel(_L("Export G-code file"));
                     m_print_select = eExportGcode;
+                    remember_print_select(eExportGcode);
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
                     this->Layout();
@@ -4136,36 +4211,39 @@ void MainFrame::on_config_changed(DynamicPrintConfig* config) const
 
 void MainFrame::set_print_button_to_default(PrintSelectType select_type)
 {
-    if (select_type == PrintSelectType::ePrintPlate) {
-        m_print_btn->SetLabel(_L("Print plate"));
-        m_print_select = ePrintPlate;
+    // Orca: keep the user's remembered print/export action instead of resetting it to the computed
+    // default, as long as it is compatible with the current printer vendor.
+    PrintSelectType remembered;
+    if (get_remembered_print_select(remembered)) {
+        bool is_bbl_vendor = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
+        bool compatible    = is_bbl_vendor ? (remembered != PrintSelectType::eSendGcode)
+                                            : (remembered == PrintSelectType::eExportGcode ||
+                                               remembered == PrintSelectType::eSendGcode ||
+                                               remembered == PrintSelectType::eExportSlicedFile);
+        if (compatible)
+            select_type = remembered;
+    }
+
+    bool needs_send_gcode_check = (select_type == PrintSelectType::eSendGcode || select_type == PrintSelectType::eExportGcode);
+    switch (select_type) {
+    case PrintSelectType::ePrintPlate:
+    case PrintSelectType::ePrintAll:
+    case PrintSelectType::ePrintMultiMachine:
+    case PrintSelectType::eSendToPrinter:
+    case PrintSelectType::eSendToPrinterAll:
+    case PrintSelectType::eExportSlicedFile:
+    case PrintSelectType::eExportAllSlicedFile:
+    case PrintSelectType::eSendGcode:
+    case PrintSelectType::eExportGcode:
+        m_print_btn->SetLabel(print_select_type_label(select_type));
+        m_print_select = select_type;
         if (m_print_enable)
-            m_print_enable = get_enable_print_status();
+            m_print_enable = get_enable_print_status() && (!needs_send_gcode_check || can_send_gcode());
         m_print_btn->Enable(m_print_enable);
         this->Layout();
-    } else if (select_type == PrintSelectType::eSendGcode) {
-        m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
-        m_print_select = eSendGcode;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eExportGcode) {
-        m_print_btn->SetLabel(_L("Export G-code file"));
-        m_print_select = eExportGcode;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eExportSlicedFile) {
-        m_print_btn->SetLabel(_L("Export plate sliced file"));
-        m_print_select = eExportSlicedFile;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else {
-        // unsupport
+        break;
+    default:
+        // unsupported
         return;
     }
 }
