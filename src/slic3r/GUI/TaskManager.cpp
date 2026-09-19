@@ -1,6 +1,7 @@
 #include "TaskManager.hpp"
 
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "nlohmann/json.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
@@ -210,6 +211,13 @@ int TaskManager::schedule(TaskStateInfo* task)
     assert(task->state() == TaskState::TS_PENDING);
     task->set_state(TaskState::TS_SENDING);
 
+    LifecycleEventContext start_ctx;
+    start_ctx.name = task->params().project_name;
+    start_ctx.device_id = task->params().dev_id;
+    start_ctx.job_id = std::to_string(task->task_info_id);
+    start_ctx.source = "task_manager";
+    fire_lifecycle_event(LifecycleEvent::PrintJobStarted, start_ctx);
+
     BOOST_LOG_TRIVIAL(trace) << "task_manager: schedule a task to dev_id = " << task->params().dev_id;
     boost::thread* new_sending_thread = new boost::thread();
     *new_sending_thread = Slic3r::create_thread(
@@ -237,6 +245,16 @@ int TaskManager::schedule(TaskStateInfo* task)
                     task->set_state(TaskState::TS_SEND_CANCELED);
                 }
             }
+
+            LifecycleEventContext finish_ctx;
+            finish_ctx.name = task->params().project_name;
+            finish_ctx.device_id = task->params().dev_id;
+            finish_ctx.job_id = std::to_string(task->task_info_id);
+            finish_ctx.source = "task_manager";
+            finish_ctx.code = result == 0 ? LifecycleEvtCode::Ok :
+                (task->is_canceled() ? LifecycleEvtCode::Warn : LifecycleEvtCode::Error);
+            finish_ctx.msg = result == 0 ? "" : (task->is_canceled() ? "cancelled" : "failed");
+            fire_lifecycle_event(LifecycleEvent::PrintJobFinished, finish_ctx);
      
             /* remove from sending task list */
             m_scedule_mutex.lock();

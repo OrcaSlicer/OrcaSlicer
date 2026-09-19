@@ -5,6 +5,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 
@@ -254,6 +255,12 @@ void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
         mesh.apply();
     }
 
+    if (!m_selected.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "auto_oriented";
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+    }
 
     m_plater->update();
 

@@ -14,21 +14,42 @@ public:
     void reset_after_save();
     void reset_initial_presets();
 
-    void set_plater_dirty(bool is_dirty) { m_plater_dirty = is_dirty; }
+    void set_plater_dirty(bool is_dirty);
     bool is_dirty() const { return m_plater_dirty || m_project_config_dirty || m_presets_dirty; }
     bool is_presets_dirty() const { return m_presets_dirty; }
+
+    // RAII guard coalescing dirty-state updates: while any guard is alive, ProjectDirtyChanged
+    // notifications are held back; when the outermost guard is destroyed, at most one
+    // notification fires, reflecting only the net change across the whole guarded scope.
+    class NotificationSuppressor
+    {
+    public:
+        explicit NotificationSuppressor(ProjectDirtyStateManager &owner) : m_owner(owner) { m_owner.begin_suppress_notifications(); }
+        ~NotificationSuppressor() { m_owner.end_suppress_notifications(); }
+        NotificationSuppressor(const NotificationSuppressor &) = delete;
+        NotificationSuppressor &operator=(const NotificationSuppressor &) = delete;
+    private:
+        ProjectDirtyStateManager &m_owner;
+    };
 
 #if ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW
     void render_debug_window() const;
 #endif // ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW
 
 private:
+    void notify_dirty_change(bool was_dirty, const char *source);
+    void begin_suppress_notifications();
+    void end_suppress_notifications();
+
     // Does the Undo / Redo stack indicate the project is dirty?
     bool                                        m_plater_dirty { false };
     // Do the presets indicate the project is dirty?
     bool                                        m_presets_dirty { false };
     // Is the project config dirty?
     bool                                        m_project_config_dirty { false };
+    // NotificationSuppressor nesting depth and the dirty state observed when the outermost guard began.
+    int                                          m_suppress_depth { 0 };
+    bool                                         m_suppress_entry_dirty { false };
     // Keeps track of preset names selected at the time of last project save.
     std::array<std::string, Preset::TYPE_COUNT> m_initial_presets;
     DynamicPrintConfig                          m_initial_project_config;

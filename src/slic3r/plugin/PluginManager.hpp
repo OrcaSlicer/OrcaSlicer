@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <functional>
 #include <libslic3r/Config.hpp>
+#include <libslic3r/LifecycleEvents.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -20,7 +21,6 @@
 #include <pybind11/embed.h>
 
 #include "CloudPluginService.hpp"
-#include "PluginFsUtils.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
@@ -209,6 +209,8 @@ public:
     bool delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
+
+    void dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx);
 
 private:
     PluginManager()                                = default;

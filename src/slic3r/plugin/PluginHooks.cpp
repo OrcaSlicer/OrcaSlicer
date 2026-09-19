@@ -7,6 +7,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r_version.h"
 
@@ -43,6 +44,16 @@ void install_capability_resolver()
         // first field, with an empty UUID), so emit the plugin_key to keep them resolvable.
         const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
         return identity + ';' + descriptor.cloud_uuid() + ';' + cap_name;
+    });
+}
+
+// Global libslic3r-side seam (Slic3r::fire_lifecycle_event, in libslic3r/LifecycleEvents.hpp):
+// broadcasts to every loaded, enabled capability regardless of type, unlike the SlicingPipeline
+// hook below which only targets picker-selected SlicingPipeline capabilities.
+void install_lifecycle_event_hook()
+{
+    set_lifecycle_hook_fn([](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        PluginManager::instance().dispatch_lifecycle_event(event, ctx);
     });
 }
 
@@ -122,12 +133,14 @@ void install()
 {
     install_capability_resolver();
     install_slicing_pipeline_hook();
+    install_lifecycle_event_hook();
 }
 
 void uninstall()
 {
     ConfigBase::set_resolve_capability_fn(nullptr);
     Print::set_slicing_pipeline_hook_fn(nullptr);
+    set_lifecycle_hook_fn(nullptr);
 }
 
 } // namespace Slic3r::plugin_hooks

@@ -29,6 +29,7 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 
 #include "I18N.hpp"
 #include "GUI_App.hpp"
@@ -2626,11 +2627,20 @@ void PartPlate::set_plate_name(const std::string& name)
     if (boost::equals(m_name, name))
         return;
 
+	const std::string previous_name = m_name;
 	m_name = name;
     if (m_print != nullptr)
         m_print->set_plate_name(name);
 
 	invalidate_plate_name_texture();
+
+    if (m_plater != nullptr && !m_plater->is_loading_project()) {
+        LifecycleEventContext ctx;
+        ctx.name = name;
+        ctx.previous_name = previous_name;
+        ctx.index = m_plate_index;
+        fire_lifecycle_event(LifecycleEvent::PlateRenamed, ctx);
+    }
 }
 
 //get the print's object, result and index
@@ -4741,8 +4751,15 @@ int PartPlateList::create_plate(bool adjust_position)
 
 	if (m_plater) {
 		// In GUI mode
-		wxGetApp().obj_list()->on_plate_added(plate);
+        wxGetApp().obj_list()->on_plate_added(plate);
 	}
+
+    if (m_plater != nullptr && m_intialized && !m_plater->is_loading_project()) {
+        LifecycleEventContext ctx;
+        ctx.name = plate->get_plate_name();
+        ctx.index = new_index;
+        fire_lifecycle_event(LifecycleEvent::PlateCreated, ctx);
+    }
 
 	BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":created a new plate %1%") % new_index;
 	return new_index;
@@ -4842,6 +4859,7 @@ int PartPlateList::delete_plate(int index)
 		BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":plate %1%, has an invalid index %2%") % index % plate->get_index();
 		return -1;
 	}
+	const std::string plate_name = plate->get_plate_name();
 
 	if (m_plater) {
 		// In GUI mode
@@ -4923,6 +4941,13 @@ int PartPlateList::delete_plate(int index)
 	destroy_print(print_index);
 
 	delete plate;
+
+    if (m_plater != nullptr && m_intialized && !m_plater->is_loading_project()) {
+        LifecycleEventContext ctx;
+        ctx.name = plate_name;
+        ctx.index = index;
+        fire_lifecycle_event(LifecycleEvent::PlateDeleted, ctx);
+    }
 
     // FIX: context of BackgroundSliceProcess and gcode preview need to be updated before ObjectList::reload_all_plates().
 #if 0
@@ -5032,6 +5057,7 @@ int PartPlateList::select_plate(int index)
 	if (m_plate_list.empty() || index >= m_plate_list.size()) {
 		return -1;
 	}
+	const int previous_index = m_current_plate;
 
 	// BBS: erase unnecessary snapshot
 	if (get_curr_plate_index() != index && m_intialized) {
@@ -5057,6 +5083,13 @@ int PartPlateList::select_plate(int index)
         m_plater->set_bed_position(pos);
 		//wxQueueEvent(m_plater, new SimpleEvent(EVT_GLCANVAS_PLATE_SELECT));
 	}
+
+    if (previous_index != index && m_intialized && m_plater != nullptr && !m_plater->is_loading_project()) {
+        LifecycleEventContext ctx;
+        ctx.name = m_plate_list[index]->get_plate_name();
+        ctx.index = index;
+        fire_lifecycle_event(LifecycleEvent::PlateSelected, ctx);
+    }
 
 	return 0;
 }
