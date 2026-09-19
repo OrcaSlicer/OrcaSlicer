@@ -5,12 +5,11 @@
 	"instantiation": "false",
 	"printer_structure": "corexy",
 	"gcode_flavor": "klipper",
-	"machine_start_gcode": "M104 S0 ; Stops OrcaSlicer from sending temp waits separately\nM140 S0\nPRINT_START EXTRUDER=[first_layer_temperature] BED=[first_layer_bed_temperature]\n; Start of actual GCode for the print",
+	"machine_start_gcode": "M104 S0 ; Stops OrcaSlicer from sending temp waits separately\nM140 S0\nPRINT_START EXTRUDER=[first_layer_temperature] BED=[first_layer_bed_temperature] CHAMBER=[chamber_temperature] PROFILE=[notes]\n; Start of actual GCode for the print",
 	"machine_end_gcode": "PRINT_END",
 	"extruder_colour": "#02aba2",
 	"extruder_offset": "0x0",
 	"emit_machine_limits_to_gcode": "0",
-	"default_filament_profile": "Generic PLA @E3NG v1.2S",
 	"machine_min_extruding_rate": [
 		"0",
 		"0"
@@ -47,7 +46,7 @@
 		"320x240/PNG",
 		"640x480/PNG"
 	],
-	"change_filament_gcode": "PAUSE\nG1 E1.0 F300 ; prime after color change",
+	"change_filament_gcode": "G1 E1.0 F300 ; prime after color change",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE",
 	"machine_pause_gcode": "PAUSE\n",
