@@ -20069,3 +20069,45 @@ msgstr "กรอกชื่อผู้ใช้และรหัสผ่า
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "กรอก URL เซิร์ฟเวอร์ที่ถูกต้องในการตั้งค่า"
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"มีการร้องขอการพิมพ์ต่อเนื่อง (ไม่มีการเดินหัวเปล่า) แต่ไม่ได้นำไปใช้ "
+"เนื่องจากต้องใช้วัตถุเพียงชิ้นเดียว วัสดุเพียงชนิดเดียว "
+"และไม่มีทาวเวอร์ไล่เส้น สไลซ์ด้วยการเดินหัวเปล่าปกติ"
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"มีการร้องขอการพิมพ์ต่อเนื่อง (ไม่มีการเดินหัวเปล่า) แต่ไม่ได้นำไปใช้: %1% "
+"สไลซ์ด้วยการเดินหัวเปล่าปกติ"
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"มีการร้องขอการพิมพ์ต่อเนื่อง (ไม่มีการเดินหัวเปล่า) "
+"แต่ไม่มีเลเยอร์ใดพิมพ์เป็นเส้นทางเดียวได้ ทุกเลเยอร์ใช้การเดินหัวเปล่าปกติ "
+"ใช้ไส้ในแบบต่อเนื่อง (โมโนโทนิค / จัดแนวเป็นเส้นตรง) "
+"และตรวจสอบจุดเชื่อมต่อระหว่างผนังกับไส้ใน"
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"การพิมพ์ต่อเนื่อง (ไม่มีการเดินหัวเปล่า) ถูกใช้กับ %1% จาก %2% เลเยอร์ "
+"เลเยอร์ที่เหลือพิมพ์เป็นเส้นทางเดียวไม่ได้และใช้การเดินหัวเปล่าปกติ"
+
+msgid "exactly one object instance is required"
+msgstr "ต้องมีวัตถุเพียงชิ้นเดียวเท่านั้น"
+
+msgid "print sequence must be By layer"
+msgstr "ลำดับการพิมพ์ต้องเป็น ตามชั้น"
+
+msgid "the prime tower must be disabled"
+msgstr "ต้องปิดใช้งานทาวเวอร์ไล่เส้น"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "ต้องใช้วัสดุที่ใช้เพียงหนึ่งชนิด (พบ %1%)"

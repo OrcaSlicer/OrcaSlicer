@@ -25125,3 +25125,46 @@ msgstr "Inserisci il nome utente e la password del cloud nelle Preferenze."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Inserisci un URL del server valido nelle Preferenze."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"La stampa continua (senza spostamenti) è stata richiesta ma non applicata: "
+"richiede una singola istanza di oggetto, un solo materiale e nessuna torre di "
+"spurgo. Elaborato con spostamenti normali."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"La stampa continua (senza spostamenti) è stata richiesta ma non applicata: "
+"%1%. Elaborato con spostamenti normali."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"La stampa continua (senza spostamenti) è stata richiesta ma nessuno strato può "
+"essere stampato come un'unica traccia; tutti gli strati usano spostamenti "
+"normali. Usa riempimento continuo (monotonico / rettilineo allineato) e "
+"controlla i collegamenti tra parete e riempimento."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"La stampa continua (senza spostamenti) è stata applicata a %1% di %2% strati; "
+"gli strati rimanenti non possono essere stampati come un'unica traccia e usano "
+"spostamenti normali."
+
+msgid "exactly one object instance is required"
+msgstr "è richiesta esattamente un'istanza di oggetto"
+
+msgid "print sequence must be By layer"
+msgstr "la sequenza di stampa deve essere Per strato"
+
+msgid "the prime tower must be disabled"
+msgstr "la torre di spurgo deve essere disabilitata"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "è richiesto esattamente un materiale usato (trovati %1%)"

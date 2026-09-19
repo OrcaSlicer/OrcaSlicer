@@ -26725,3 +26725,46 @@ msgstr ""
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Introduce una URL de servidor válida en Preferencias."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Se solicitó la impresión continua (sin desplazamientos), pero no se aplicó: "
+"requiere una sola instancia de objeto, un solo material y ninguna torre de "
+"purga. Laminado con desplazamientos normales."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Se solicitó la impresión continua (sin desplazamientos), pero no se aplicó: "
+"%1%. Laminado con desplazamientos normales."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Se solicitó la impresión continua (sin desplazamientos), pero ninguna capa "
+"pudo imprimirse como un único trazado; todas las capas usan desplazamientos "
+"normales. Usa relleno continuo (monotónico / rectilíneo alineado) y comprueba "
+"las conexiones entre perímetro y relleno."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"La impresión continua (sin desplazamientos) se aplicó a %1% de %2% capas; las "
+"capas restantes no pueden imprimirse como un único trazado y usan "
+"desplazamientos normales."
+
+msgid "exactly one object instance is required"
+msgstr "se requiere exactamente una instancia de objeto"
+
+msgid "print sequence must be By layer"
+msgstr "la secuencia de impresión debe ser Por capa"
+
+msgid "the prime tower must be disabled"
+msgstr "la torre de purga debe estar desactivada"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "se requiere exactamente un material usado (encontrados %1%)"

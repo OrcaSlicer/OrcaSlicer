@@ -26030,3 +26030,46 @@ msgstr ""
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Saisissez une URL de serveur valide dans les Préférences."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"L'impression continue (sans déplacement) a été demandée mais n'a pas été "
+"appliquée : elle nécessite une seule instance d'objet, une seule matière et "
+"aucune tour d'amorçage. Découpé avec des déplacements normaux."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"L'impression continue (sans déplacement) a été demandée mais n'a pas été "
+"appliquée : %1%. Découpé avec des déplacements normaux."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"L'impression continue (sans déplacement) a été demandée mais aucune couche n'a "
+"pu être imprimée comme une seule trace ; toutes les couches utilisent des "
+"déplacements normaux. Utilisez un remplissage continu (monotone / rectiligne "
+"aligné) et vérifiez les liaisons entre paroi et remplissage."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"L'impression continue (sans déplacement) a été appliquée à %1% des %2% couches "
+"; les couches restantes ne peuvent pas être imprimées comme une seule trace et "
+"utilisent des déplacements normaux."
+
+msgid "exactly one object instance is required"
+msgstr "une seule instance d'objet est requise"
+
+msgid "print sequence must be By layer"
+msgstr "la séquence d'impression doit être Par couche"
+
+msgid "the prime tower must be disabled"
+msgstr "la tour d'amorçage doit être désactivée"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "une seule matière utilisée est requise (%1% trouvé)"

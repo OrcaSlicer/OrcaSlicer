@@ -23914,3 +23914,46 @@ msgstr "Parinktyse įveskite debesijos vartotojo vardą ir slaptažodį."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Parinktyse įveskite galiojantį serverio URL."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Buvo paprašyta nepertraukiamo spausdinimo (be judėjimo), bet jis nebuvo "
+"pritaikytas: reikia vieno objekto egzemplioriaus, vienos medžiagos ir jokio "
+"valymo bokšto. Sluoksniuota su įprastais judėjimais."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Buvo paprašyta nepertraukiamo spausdinimo (be judėjimo), bet jis nebuvo "
+"pritaikytas: %1%. Sluoksniuota su įprastais judėjimais."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Buvo paprašyta nepertraukiamo spausdinimo (be judėjimo), bet nė vieno "
+"sluoksnio nepavyko atspausdinti kaip vieno tako; visi sluoksniai naudoja "
+"įprastus judėjimus. Naudokite nepertraukiamą užpildymą (monotoniškas / tiesiai "
+"sulygiuota) ir patikrinkite sienos bei užpildo sujungimus."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Nepertraukiamas spausdinimas (be judėjimo) pritaikytas %1% iš %2% sluoksnių; "
+"likę sluoksniai negali būti atspausdinti kaip vienas takas ir naudoja įprastus "
+"judėjimus."
+
+msgid "exactly one object instance is required"
+msgstr "reikia tiksliai vieno objekto egzemplioriaus"
+
+msgid "print sequence must be By layer"
+msgstr "spausdinimo seka turi būti Pagal sluoksnį"
+
+msgid "the prime tower must be disabled"
+msgstr "valymo bokštas turi būti išjungtas"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "reikia tiksliai vienos naudojamos medžiagos (rasta %1%)"

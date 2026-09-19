@@ -21933,3 +21933,44 @@ msgstr "設定でクラウドのユーザー名とパスワードを入力して
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "設定で有効なサーバー URL を入力してください。"
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"連続印刷（移動なし）が要求されましたが、適用されませんでした。単一のオブジェク"
+"トインスタンス、単一の材料、プライムタワーなしである必要があります。通常の移動"
+"でスライスしました。"
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"連続印刷（移動なし）が要求されましたが、適用されませんでした：%1%。通常の移動"
+"でスライスしました。"
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"連続印刷（移動なし）が要求されましたが、どのレイヤーも 1 本の経路として印刷で"
+"きませんでした。すべてのレイヤーで通常の移動が使われます。連続インフィル（単調"
+"／整列直線）を使用し、壁とインフィルの接続を確認してください。"
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"連続印刷（移動なし）は %2% 層中 %1% に適用されました。残りのレイヤーは 1 "
+"本の経路として印刷できず、通常の移動を使用します。"
+
+msgid "exactly one object instance is required"
+msgstr "オブジェクトインスタンスがちょうど 1 つ必要です"
+
+msgid "print sequence must be By layer"
+msgstr "印刷順序がレイヤー別である必要があります"
+
+msgid "the prime tower must be disabled"
+msgstr "プライムタワーが無効になっている必要があります"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "使用する材料がちょうど 1 つ必要です（%1% 見つかりました）"

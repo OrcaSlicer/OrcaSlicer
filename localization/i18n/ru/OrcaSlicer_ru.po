@@ -24730,3 +24730,46 @@ msgstr "Введите имя пользователя и пароль обла�
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Введите допустимый URL-адрес сервера в Параметрах."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Была запрошена непрерывная печать (без перемещений), но она не применена: "
+"требуется один экземпляр модели, один материал и отсутствие черновой башни. "
+"Нарезано с обычными перемещениями."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Была запрошена непрерывная печать (без перемещений), но она не применена: %1%. "
+"Нарезано с обычными перемещениями."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Была запрошена непрерывная печать (без перемещений), но ни один слой не "
+"удалось напечатать как одну траекторию; все слои используют обычные "
+"перемещения. Используйте непрерывное заполнение (аккуратный зигзаг / ровный "
+"зигзаг) и проверьте соединения периметра с заполнением."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Непрерывная печать (без перемещений) применена к %1% из %2% слоёв; остальные "
+"слои нельзя напечатать как одну траекторию, и они используют обычные "
+"перемещения."
+
+msgid "exactly one object instance is required"
+msgstr "требуется ровно один экземпляр модели"
+
+msgid "print sequence must be By layer"
+msgstr "последовательность печати должна быть Послойно"
+
+msgid "the prime tower must be disabled"
+msgstr "черновая башня должна быть отключена"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "требуется ровно один используемый материал (найдено %1%)"

@@ -22864,3 +22864,45 @@ msgstr "Nhập tên người dùng và mật khẩu cloud của bạn trong Tùy
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Nhập URL máy chủ hợp lệ trong Tùy chọn."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"In liên tục (không di chuyển) đã được yêu cầu nhưng không được áp dụng: chế độ "
+"này yêu cầu chỉ một vật thể, một loại vật liệu và không có prime tower. Đã "
+"slice với di chuyển bình thường."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"In liên tục (không di chuyển) đã được yêu cầu nhưng không được áp dụng: %1%. "
+"Đã slice với di chuyển bình thường."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"In liên tục (không di chuyển) đã được yêu cầu nhưng không có lớp nào in được "
+"thành một đường duy nhất; tất cả các lớp dùng di chuyển bình thường. Dùng "
+"infill liên tục (đơn điệu / thẳng hàng căn chỉnh) và kiểm tra các kết nối giữa "
+"wall và infill."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"In liên tục (không di chuyển) đã được áp dụng cho %1% trong %2% lớp; các lớp "
+"còn lại không thể in thành một đường duy nhất và dùng di chuyển bình thường."
+
+msgid "exactly one object instance is required"
+msgstr "cần chính xác một vật thể"
+
+msgid "print sequence must be By layer"
+msgstr "trình tự in phải là Theo lớp"
+
+msgid "the prime tower must be disabled"
+msgstr "prime tower phải được tắt"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "cần chính xác một vật liệu được sử dụng (tìm thấy %1%)"

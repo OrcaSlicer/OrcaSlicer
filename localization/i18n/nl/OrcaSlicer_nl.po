@@ -23788,3 +23788,46 @@ msgstr "Voer je cloudgebruikersnaam en wachtwoord in bij Voorkeuren."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Voer een geldige server-URL in bij Voorkeuren."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Continu printen (zonder verplaatsing) is aangevraagd maar niet toegepast: het "
+"vereist één objectinstantie, één materiaal en geen prime toren. Gesliced met "
+"normale verplaatsingen."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Continu printen (zonder verplaatsing) is aangevraagd maar niet toegepast: %1%. "
+"Gesliced met normale verplaatsingen."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Continu printen (zonder verplaatsing) is aangevraagd, maar geen enkele laag "
+"kon als één baan worden geprint; alle lagen gebruiken normale verplaatsingen. "
+"Gebruik continue vulling (monotoon / uitgelijnd rechtlijnig) en controleer de "
+"verbindingen tussen wand en vulling."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Continu printen (zonder verplaatsing) is toegepast op %1% van %2% lagen; de "
+"overige lagen kunnen niet als één baan worden geprint en gebruiken normale "
+"verplaatsingen."
+
+msgid "exactly one object instance is required"
+msgstr "er is precies één objectinstantie vereist"
+
+msgid "print sequence must be By layer"
+msgstr "de printvolgorde moet Op laag zijn"
+
+msgid "the prime tower must be disabled"
+msgstr "de prime toren moet uitgeschakeld zijn"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "er is precies één gebruikt materiaal vereist (%1% gevonden)"

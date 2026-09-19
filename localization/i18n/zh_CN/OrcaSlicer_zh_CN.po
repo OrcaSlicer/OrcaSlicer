@@ -21045,3 +21045,40 @@ msgstr "请在偏好设置中输入您的云服务器用户名和密码。"
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "请在偏好设置中输入有效的服务器 URL。"
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"已请求连续打印（零空驶），但未生效：该模式要求只有一个对象实例、一种耗材，且不"
+"使用擦拭塔。已改用普通空驶切片。"
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr "已请求连续打印（零空驶），但未生效：%1%。已改用普通空驶切片。"
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"已请求连续打印（零空驶），但没有任何层能作为一条连续路径打印；所有层都使用普通"
+"空驶。请使用连续填充（单调／直线排列），并检查墙层与填充之间的连接。"
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"连续打印（零空驶）已应用于 %2% 层中的 %1% 层；其余层无法作为一条连续路径打印，"
+"将使用普通空驶。"
+
+msgid "exactly one object instance is required"
+msgstr "需要恰好一个对象实例"
+
+msgid "print sequence must be By layer"
+msgstr "打印顺序必须为逐层"
+
+msgid "the prime tower must be disabled"
+msgstr "必须禁用擦拭塔"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "需要恰好一种已使用的耗材（找到 %1%）"

@@ -23864,3 +23864,43 @@ msgstr "기본 설정에서 클라우드 사용자 이름과 비밀번호를 입
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "기본 설정에서 올바른 서버 URL을 입력하세요."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"연속 인쇄(이동 없음)가 요청되었지만 적용되지 않았습니다. 단일 객체 인스턴스, "
+"단일 재료, 프라임 타워 없음이 필요합니다. 일반 이동으로 슬라이스되었습니다."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"연속 인쇄(이동 없음)가 요청되었지만 적용되지 않았습니다: %1%. 일반 이동으로 "
+"슬라이스되었습니다."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"연속 인쇄(이동 없음)가 요청되었지만 어떤 레이어도 하나의 경로로 인쇄할 수 "
+"없었습니다. 모든 레이어에서 일반 이동이 사용됩니다. 연속 채우기(단조 / 정렬된 "
+"직선)를 사용하고 벽과 채우기 연결을 확인하세요."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"연속 인쇄(이동 없음)가 %2%개 레이어 중 %1%에 적용되었습니다. 나머지 레이어는 "
+"하나의 경로로 인쇄할 수 없어 일반 이동을 사용합니다."
+
+msgid "exactly one object instance is required"
+msgstr "정확히 하나의 객체 인스턴스가 필요합니다"
+
+msgid "print sequence must be By layer"
+msgstr "인쇄 순서가 레이어별이어야 합니다"
+
+msgid "the prime tower must be disabled"
+msgstr "프라임 타워가 비활성화되어 있어야 합니다"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "정확히 하나의 사용 재료가 필요합니다(%1% 발견됨)"

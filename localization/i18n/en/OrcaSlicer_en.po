@@ -20591,3 +20591,44 @@ msgstr "Please enter your cloud username and password in Preferences."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Please enter a valid server URL in Preferences."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Continuous print (zero travel) was requested but not applied: it requires a "
+"single object instance, a single material, and no prime tower. Sliced with "
+"normal travels."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced with "
+"normal travels."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Continuous print (zero travel) was requested but no layer could be printed as "
+"a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the remaining "
+"layers cannot be printed as a single trace and use normal travels."
+
+msgid "exactly one object instance is required"
+msgstr "exactly one object instance is required"
+
+msgid "print sequence must be By layer"
+msgstr "print sequence must be By layer"
+
+msgid "the prime tower must be disabled"
+msgstr "the prime tower must be disabled"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "exactly one used material is required (found %1%)"

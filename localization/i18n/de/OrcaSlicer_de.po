@@ -26152,3 +26152,46 @@ msgstr ""
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Gib eine gültige Server-URL in den Einstellungen ein."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Kontinuierlicher Druck (ohne Eilgang) wurde angefordert, aber nicht "
+"angewendet: Dieser erfordert eine einzelne Objektinstanz, ein einziges "
+"Material und keinen Reinigungsturm. Mit normalen Eilgängen geslict."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Kontinuierlicher Druck (ohne Eilgang) wurde angefordert, aber nicht "
+"angewendet: %1%. Mit normalen Eilgängen geslict."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Kontinuierlicher Druck (ohne Eilgang) wurde angefordert, aber keine Schicht "
+"konnte als eine einzige Bahn gedruckt werden; alle Schichten verwenden normale "
+"Eilgänge. Verwende kontinuierliche Füllung (monotonisch / geradlinig "
+"ausgerichtet) und prüfe die Verbindungen zwischen Wand und Füllung."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Kontinuierlicher Druck (ohne Eilgang) wurde auf %1% von %2% Schichten "
+"angewendet; die übrigen Schichten können nicht als eine einzige Bahn gedruckt "
+"werden und verwenden normale Eilgänge."
+
+msgid "exactly one object instance is required"
+msgstr "genau eine Objektinstanz ist erforderlich"
+
+msgid "print sequence must be By layer"
+msgstr "die Druckreihenfolge muss Nach Schicht sein"
+
+msgid "the prime tower must be disabled"
+msgstr "der Reinigungsturm muss deaktiviert sein"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "genau ein verwendetes Material ist erforderlich (%1% gefunden)"

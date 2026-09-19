@@ -1,0 +1,42 @@
+# Continuous-print messages extracted from src/libslic3r/GCode.cpp.
+# Merge these entries into the language catalog; this is not loaded separately.
+msgid ""
+msgstr ""
+"Project-Id-Version: OrcaSlicer\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. TRN %1% is an already translated reason why continuous printing was rejected.
+#, boost-format
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+
+#. TRN %1% is the number of continuous layers; %2% is the total number of evaluated layers.
+#, boost-format
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+
+msgid "exactly one object instance is required"
+msgstr ""
+
+msgid "print sequence must be By layer"
+msgstr ""
+
+msgid "the prime tower must be disabled"
+msgstr ""
+
+#. TRN %1% is the number of materials assigned to the print, including support and tool changes.
+#, boost-format
+msgid "exactly one used material is required (found %1%)"
+msgstr ""

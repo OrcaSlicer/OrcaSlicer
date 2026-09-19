@@ -22440,3 +22440,45 @@ msgstr "Tercihler'de bulut kullanıcı adınızı ve şifrenizi girin."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Tercihler'de geçerli bir sunucu URL'si girin."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Sürekli baskı (seyahat yok) istendi ancak uygulanmadı: tek bir nesne örneği, "
+"tek bir malzeme ve prime kulesi olmaması gerekir. Normal seyahatlerle "
+"dilimlendi."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Sürekli baskı (seyahat yok) istendi ancak uygulanmadı: %1%. Normal "
+"seyahatlerle dilimlendi."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Sürekli baskı (seyahat yok) istendi ancak hiçbir katman tek bir iz olarak "
+"basılamadı; tüm katmanlar normal seyahatleri kullanır. Sürekli dolgu "
+"(monotonik / hizalanmış doğrusal) kullanın ve duvar-dolgu bağlantılarını "
+"kontrol edin."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Sürekli baskı (seyahat yok) %2% katmanın %1% kadarına uygulandı; kalan "
+"katmanlar tek bir iz olarak basılamaz ve normal seyahatleri kullanır."
+
+msgid "exactly one object instance is required"
+msgstr "tam olarak bir nesne örneği gerekir"
+
+msgid "print sequence must be By layer"
+msgstr "baskı sırası Katmana göre olmalıdır"
+
+msgid "the prime tower must be disabled"
+msgstr "prime kulesi devre dışı olmalıdır"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "tam olarak bir kullanılan malzeme gerekir (%1% bulundu)"

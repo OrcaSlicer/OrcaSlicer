@@ -23636,3 +23636,46 @@ msgstr "Ange ditt molnanvändarnamn och lösenord i Inställningar."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Ange en giltig server-URL i Inställningar."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Kontinuerlig utskrift (utan flytt) begärdes men tillämpades inte: det kräver "
+"en enda objektinstans, ett enda material och ingen prime torn. Berett med "
+"normala flyttar."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Kontinuerlig utskrift (utan flytt) begärdes men tillämpades inte: %1%. Berett "
+"med normala flyttar."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Kontinuerlig utskrift (utan flytt) begärdes men inget lager kunde skrivas ut "
+"som ett enda spår; alla lager använder normala flyttar. Använd kontinuerlig "
+"ifyllnad (monoton / justerad rätlinjig) och kontrollera förbindelserna mellan "
+"vägg och ifyllnad."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Kontinuerlig utskrift (utan flytt) tillämpades på %1% av %2% lager; de "
+"återstående lagren kan inte skrivas ut som ett enda spår och använder normala "
+"flyttar."
+
+msgid "exactly one object instance is required"
+msgstr "exakt en objektinstans krävs"
+
+msgid "print sequence must be By layer"
+msgstr "utskriftssekvensen måste vara Per lager"
+
+msgid "the prime tower must be disabled"
+msgstr "prime tornet måste vara inaktiverat"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "exakt ett använt material krävs (%1% hittades)"

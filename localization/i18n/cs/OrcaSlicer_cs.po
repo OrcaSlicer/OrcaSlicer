@@ -21816,3 +21816,45 @@ msgstr "Zadejte své uživatelské jméno a heslo ke cloudu v Předvolbách."
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Zadejte platnou adresu URL serveru v Předvolbách."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Byl vyžádán nepřerušovaný tisk (bez přejezdů), ale nebyl použit: vyžaduje "
+"jednu instanci objektu, jediný materiál a žádnou základní věž. Slicováno s "
+"běžnými přejezdy."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Byl vyžádán nepřerušovaný tisk (bez přejezdů), ale nebyl použit: %1%. "
+"Slicováno s běžnými přejezdy."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Byl vyžádán nepřerušovaný tisk (bez přejezdů), ale žádnou vrstvu nebylo možné "
+"vytisknout jako jednu dráhu; všechny vrstvy používají běžné přejezdy. Použijte "
+"souvislou výplň (monotonní / zarovnaná pravoúhlá) a zkontrolujte spojení stěny "
+"a výplně."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Nepřerušovaný tisk (bez přejezdů) byl použit na %1% z %2% vrstev; zbývající "
+"vrstvy nelze vytisknout jako jednu dráhu a používají běžné přejezdy."
+
+msgid "exactly one object instance is required"
+msgstr "vyžaduje se právě jedna instance objektu"
+
+msgid "print sequence must be By layer"
+msgstr "sekvence tisku musí být Podle vrstvy"
+
+msgid "the prime tower must be disabled"
+msgstr "základní věž musí být zakázána"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "vyžaduje se právě jeden použitý materiál (nalezeno %1%)"

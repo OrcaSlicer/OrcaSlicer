@@ -22845,3 +22845,46 @@ msgstr "Add meg a felhő felhasználónevét és jelszavát a Beállításokban.
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Adj meg érvényes szerver URL-t a Beállításokban."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"A folyamatos nyomtatást (nulla mozgás) kérted, de nem lett alkalmazva: "
+"egyetlen objektumpéldányt, egyetlen anyagot és törlőtorony nélküli beállítást "
+"igényel. Szeletelve normál mozgásokkal."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"A folyamatos nyomtatást (nulla mozgás) kérted, de nem lett alkalmazva: %1%. "
+"Szeletelve normál mozgásokkal."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"A folyamatos nyomtatást (nulla mozgás) kérted, de egyetlen réteget sem "
+"sikerült egyetlen nyomvonalként nyomtatni; minden réteg normál mozgásokat "
+"használ. Használj folyamatos kitöltést (monotonikus / igazított vonal), és "
+"ellenőrizd a fal és a kitöltés közötti kapcsolatokat."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"A folyamatos nyomtatás (nulla mozgás) %2% réteg közül %1% esetében lett "
+"alkalmazva; a fennmaradó rétegek nem nyomtathatók egyetlen nyomvonalként, és "
+"normál mozgásokat használnak."
+
+msgid "exactly one object instance is required"
+msgstr "pontosan egy objektumpéldány szükséges"
+
+msgid "print sequence must be By layer"
+msgstr "a nyomtatási sorrend Rétegenként kell legyen"
+
+msgid "the prime tower must be disabled"
+msgstr "a törlőtornyot le kell tiltani"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "pontosan egy használt anyag szükséges (%1% található)"

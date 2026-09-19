@@ -22903,3 +22903,46 @@ msgstr "Введіть ім'я користувача та пароль хмар
 
 msgid "Please enter a valid server URL in Preferences."
 msgstr "Введіть припустиму URL-адресу сервера в Налаштуваннях."
+
+msgid "Continuous print (zero travel) was requested but not applied: it requires a single object instance, a single material, and no prime tower. Sliced with normal travels."
+msgstr ""
+"Було запитано безперервний друк (без переміщень), але його не застосовано: "
+"потрібен один екземпляр об'єкта, один матеріал і відсутність підготовчої вежі. "
+"Нарізано зі звичайними переміщеннями."
+
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+"Було запитано безперервний друк (без переміщень), але його не застосовано: "
+"%1%. Нарізано зі звичайними переміщеннями."
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+"Було запитано безперервний друк (без переміщень), але жоден шар не вдалося "
+"надрукувати як одну траєкторію; усі шари використовують звичайні переміщення. "
+"Використовуйте безперервне заповнення (монотонний / вирівняний прямолінійний) "
+"і перевірте з'єднання стінки із заповненням."
+
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+"Безперервний друк (без переміщень) застосовано до %1% з %2% шарів; решту шарів "
+"неможливо надрукувати як одну траєкторію, і вони використовують звичайні "
+"переміщення."
+
+msgid "exactly one object instance is required"
+msgstr "потрібен рівно один екземпляр об'єкта"
+
+msgid "print sequence must be By layer"
+msgstr "послідовність друку має бути Пошарово"
+
+msgid "the prime tower must be disabled"
+msgstr "підготовча вежа має бути вимкнена"
+
+msgid "exactly one used material is required (found %1%)"
+msgstr "потрібен рівно один використаний матеріал (знайдено %1%)"

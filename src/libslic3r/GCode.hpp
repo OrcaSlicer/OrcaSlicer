@@ -399,11 +399,10 @@ private:
     // The plan's entities are linearized clones; `order` gives emission order and reversals.
     std::string emit_continuous_print_layer(ContinuousLayerPlan &plan);
 
-    // Whole-print structural gate for the zero-travel continuous print mode (M3): a single object
-    // instance with a single material and no support / prime tower. Skirt/brim layers are handled
-    // per layer. Per-layer chainability is checked separately; layers that cannot be chained are
-    // printed normally.
-    bool continuous_print_compatible(const Print &print) const;
+    // Empty on compatibility, otherwise a user-facing structural rejection reason.
+    // Count assigned materials, not installed nozzles. Support and chainability are checked
+    // separately per layer; layers that cannot be chained are printed normally.
+    std::string continuous_print_incompatibility(const Print &print) const;
 
     void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
     void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
@@ -630,7 +629,7 @@ private:
     // Diagnostics of the zero-travel continuous print mode, surfaced to the user after slicing.
     size_t                              m_continuous_layer_total = 0;
     size_t                              m_continuous_layer_applied = 0;
-    bool                                m_continuous_gate_failed = false;
+    std::string                         m_continuous_gate_failure;
     std::string                         m_continuous_print_report;
 
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
