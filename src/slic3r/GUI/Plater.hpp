@@ -419,6 +419,10 @@ public:
     //BBS
     void object_list_changed();
 
+    // Skips the next EVT_GLTOOLBAR_SLICE_PLATE's usual switch to the Preview 3D view. Used by
+    // MainFrame::slice_current_plate(false) to slice without visibly changing what's on screen.
+    void set_suppress_next_slice_preview_switch(bool suppress);
+
     // Get the worker handling the UI jobs (arrange, fill bed, etc...)
     // Here is an example of starting up an ad-hoc job:
     //    queue_job(
@@ -537,10 +541,13 @@ public:
     //BBS
     void publish_project();
 
-    void reload_from_disk();
+    // interactive=false skips every dialog reload_from_disk() can show (locate-missing-file,
+    // replace-confirmation, .obj color import) and leaves the corresponding volumes untouched
+    // instead; returns false if anything was skipped, cancelled, or failed to load.
+    bool reload_from_disk(bool interactive = true);
     void replace_with_stl();
     void replace_all_with_stl();
-    void reload_all_from_disk();
+    bool reload_all_from_disk(bool interactive = true);
     bool has_toolpaths_to_export() const;
     void export_toolpaths_to_obj() const;
     void reslice();

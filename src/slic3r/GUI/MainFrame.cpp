@@ -746,7 +746,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             this->CallAfter([] { wxGetApp().open_speed_dial(); });
             return;
         }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'R') { if (m_slice_enable) { wxGetApp().plater()->update(true, true); wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE)); this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); } return; }
+        if (evt.CmdDown() && evt.GetKeyCode() == 'R') { this->slice_current_plate(); return; }
         if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'G') {
             m_plater->apply_background_progress();
             m_print_enable = get_enable_print_status();
@@ -4069,6 +4069,21 @@ void MainFrame::request_select_tab(const wxString& id)
     wxCommandEvent* evt = new wxCommandEvent(EVT_SELECT_TAB);
     evt->SetString(id);
     wxQueueEvent(this, evt);
+}
+
+void MainFrame::slice_current_plate(bool switch_to_preview)
+{
+    wxGetApp().plater()->update(true, true);
+    m_slice_enable = get_enable_slice_status();
+    if (m_slice_enable) {
+        // on_action_slice_plate() (the EVT_GLTOOLBAR_SLICE_PLATE handler below) otherwise always
+        // switches the 3D view to Preview itself, independent of this method's own tab-bar
+        // selection just below -- without this they'd disagree when switch_to_preview is false.
+        wxGetApp().plater()->set_suppress_next_slice_preview_switch(!switch_to_preview);
+        wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+        if (switch_to_preview)
+            this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
+    }
 }
 
 int MainFrame::get_calibration_curr_tab() {
