@@ -44,8 +44,12 @@ int GUI_Run(GUI_InitParams &params)
         GUI::GUI_App* gui = new GUI::GUI_App();
         //if (gui->get_app_mode() != GUI::GUI_App::EAppMode::GCodeViewer) {
             // G-code viewer is currently not performing instance check, a new G-code viewer is started every time.
-            bool gui_single_instance_setting = gui->app_config->get("app", "single_instance") == "true";
-            if (Slic3r::instance_check(params.argc, params.argv, gui_single_instance_setting)) {
+            bool single_instance_enabled = gui->app_config->get("app", "single_instance") == "true";
+            bool open_files_in_existing_instance_enabled =
+                gui->app_config->get("app", "open_files_in_existing_instance") == "true";
+            bool should_forward = single_instance_enabled ||
+                (open_files_in_existing_instance_enabled && !params.input_files.empty());
+            if (Slic3r::instance_check(params.argc, params.argv, should_forward)) {
                 //TODO: do we have delete gui and other stuff?
                 return -1;
             }
