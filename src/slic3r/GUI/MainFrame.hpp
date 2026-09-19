@@ -454,7 +454,7 @@ public:
 
     //AuxiliaryPanel*       m_auxiliary{ nullptr };
     MultiMachinePage*     m_multi_machine{ nullptr };
-    ProjectPanel*         m_project{ nullptr };
+    LazyPage<ProjectPanel>* m_project_page{ nullptr };
 
     CalibrationPanel*     m_calibration{ nullptr };
     WebViewPanel*         m_webview { nullptr };

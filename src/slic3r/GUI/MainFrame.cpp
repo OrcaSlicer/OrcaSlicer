@@ -1188,8 +1188,8 @@ void MainFrame::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "MainFrame::shutdown enter";
     m_idle.stop();
-    if (m_project != nullptr)
-        m_project->shutdown();
+    if (ProjectPanel* project = ProjectPanel::if_built())
+        project->shutdown();
     m_plugin_pages.shutdown();
 #ifdef __WXGTK__
     // Edge panels are child windows — wxWidgets destroys them automatically.
@@ -1436,9 +1436,9 @@ void MainFrame::init_tabpanel() {
         m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
     }
 
-    m_project = new ProjectPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_project->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_PROJECT, m_project, _L("Project"), "tab_auxiliary_active");
+    m_project_page = new LazyPage<ProjectPanel>(m_tabpanel, TAB_ID_PROJECT, 60);
+    m_lazy_pages.push_back(m_project_page);
+    m_tabpanel->AddPage(TAB_ID_PROJECT, m_project_page, _L("Project"), "tab_auxiliary_active");
 
     m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_calibration->SetBackgroundColour(*wxWHITE);
@@ -2668,7 +2668,8 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     //BBS GUI refactor: remove unused layout new/dlg
     //if (m_layout != ESettingsLayout::Dlg) // Do not update tabs if the Settings are in the separated dialog
     m_param_panel->msw_rescale();
-    m_project->msw_rescale();
+    // A panel mid-build gets the pass once it is complete.
+    ProjectPanel::when_built([](ProjectPanel& project) { project.msw_rescale(); });
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
     if(m_multi_machine)
         m_multi_machine->msw_rescale();
