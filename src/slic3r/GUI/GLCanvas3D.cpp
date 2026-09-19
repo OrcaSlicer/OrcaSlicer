@@ -3587,12 +3587,10 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         auto obj_list = wxGetApp().obj_list();
         switch (keyCode)
         {
-        //case WXK_BACK:
+        // Backspace deletes on every platform: the context menu advertises it off Windows, and
+        // GLGizmosManager::on_char already treats it as Delete everywhere.
+        case WXK_BACK:
         case WXK_DELETE: { post_event(SimpleEvent(EVT_GLTOOLBAR_DELETE)); break; }
-        // BBS
-#ifdef __APPLE__
-        case WXK_BACK: { post_event(SimpleEvent(EVT_GLTOOLBAR_DELETE)); break; }
-#endif
         case WXK_ESCAPE: { deselect_all(); break; }
         case WXK_F5: {
             if (wxGetApp().mainframe->is_printer_view())
@@ -4542,8 +4540,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_mouse.set_move_start_threshold_position_2D_as_invalid();
     }
 
-    if (evt.ButtonDown() && wxWindow::FindFocus() != m_canvas)
-        // Grab keyboard focus on any mouse click event.
+    // Grab keyboard focus on any mouse click event. Never guard this on wxWindow::FindFocus(): wxGTK
+    // caches the requested focus optimistically, so it can name this canvas while the real GTK focus
+    // sits elsewhere, and the grab that would fix it would then never run (#10268).
+    if (evt.ButtonDown())
         m_canvas->SetFocus();
 
     if (evt.Entering()) {
@@ -4592,6 +4592,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             post_event(SimpleEvent(EVT_GLCANVAS_SWITCH_TO_GLOBAL));
     }
     else if (evt.LeftDown() || evt.RightDown() || evt.MiddleDown()) {
+        m_mouse.drag.camera_start_position_2D = pos;
         //BBS: add orient deactivate logic
         if (!m_gizmos.on_mouse(evt)) {
             if (_deactivate_arrange_menu() || _deactivate_orient_menu())
@@ -4861,7 +4862,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
                 camera.auto_type(Camera::EType::Perspective);
                 m_dirty = true;
-                m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
+                // Only a real drag cancels the right click context menu, not a few pixels of jitter (#10268).
+                if (m_mouse.is_camera_drag_threshold_met(pos))
+                    m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
             }
 
             m_camera_movement = true;
@@ -4891,7 +4894,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
                 camera.set_target(camera.get_target() + orig - cur_pos);
                 m_dirty = true;
-                m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
+                // Only a real drag cancels the right click context menu, not a few pixels of jitter (#10268).
+                if (m_mouse.is_camera_drag_threshold_met(pos))
+                    m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
             }
 
             m_camera_movement = true;
@@ -4974,7 +4979,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             }
 
             //BBS change plate selection
-            if (!m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
+            // Same threshold as the context menu above: jitter must not leave the old selection in
+            // place, or "Add Primitive" silently refuses to add anything (ObjectList::load_shape_object).
+            if (!m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.is_camera_drag_threshold_met(pos)) {
                 int hover_idx = m_hover_plate_idxs.front();
                 wxGetApp().plater()->select_plate_by_hover_id(hover_idx, true);
                 if (m_hover_volume_idxs.empty())
@@ -4983,7 +4990,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             }
 
             //ORCA allow right click on empty space while an object selected
-            if (m_hover_plate_idxs.empty() && m_hover_volume_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
+            if (m_hover_plate_idxs.empty() && m_hover_volume_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.is_camera_drag_threshold_met(pos)) {
                 deselect_all();
                 render();
             }
@@ -5806,6 +5813,7 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.drag.move_volume_idx = -1;
     m_mouse.set_start_position_3D_as_invalid();
     m_mouse.set_start_position_2D_as_invalid();
+    m_mouse.set_camera_start_position_2D_as_invalid();
     m_mouse.dragging = false;
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;

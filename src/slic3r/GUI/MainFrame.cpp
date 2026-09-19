@@ -14,6 +14,7 @@
 #include <wx/filename.h>
 #include <wx/debug.h>
 #include <wx/utils.h>
+#include <wx/textentry.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
@@ -792,6 +793,42 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             if (can_export_model()) publish_project();
             return;
         }
+#ifndef __APPLE__
+        // Orca: off macOS the Edit menu lives in the topbar dropdown, which registers no accelerator,
+        // so delete/cut/copy/paste only fire while the 3D canvas holds keyboard focus - and GTK drops
+        // that focus silently (#10268). Dispatch them here instead, through the canvas handler so its
+        // ImGui, gizmo and painting mode guards keep applying.
+        if (m_plater && is_prepare_or_preview_tab()) {
+            int       canvas_key = 0;
+            bool      with_ctrl  = false;
+            const int key        = evt.GetKeyCode();
+            if ((key == WXK_DELETE || key == WXK_BACK) && !evt.HasAnyModifiers())
+                canvas_key = key;
+            else if (evt.CmdDown() && !evt.ShiftDown() && !evt.AltDown()) {
+                if      (key == 'C') canvas_key = WXK_CONTROL_C;
+                else if (key == 'V') canvas_key = WXK_CONTROL_V;
+                else if (key == 'X') canvas_key = WXK_CONTROL_X;
+                with_ctrl = canvas_key != 0;
+            }
+            if (canvas_key != 0) {
+                // Text fields and the sidebar (object list included) bind these keys to their own
+                // meaning; leave them be.
+                wxWindow*   focused        = wxWindow::FindFocus();
+                bool        focus_owns_key = dynamic_cast<wxTextEntry*>(focused) != nullptr;
+                wxWindow*   sidebar        = static_cast<wxWindow*>(&m_plater->sidebar());
+                for (wxWindow* w = focused; w != nullptr && !focus_owns_key; w = w->GetParent())
+                    focus_owns_key = w == sidebar;
+                GLCanvas3D* canvas = m_plater->get_current_canvas3D();
+                if (!focus_owns_key && canvas != nullptr) {
+                    wxKeyEvent e(wxEVT_CHAR);
+                    e.m_keyCode = canvas_key;
+                    e.SetControlDown(with_ctrl);
+                    canvas->on_char(e);
+                    return;
+                }
+            }
+        }
+#endif // __APPLE__
         evt.Skip();
     });
 
