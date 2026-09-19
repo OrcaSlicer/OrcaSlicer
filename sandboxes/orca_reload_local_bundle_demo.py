@@ -210,7 +210,13 @@ def _state_payload(bundle, state, message="", error=""):
                 "loaded": _collection(bundle, item).find_preset(_target_name(item)) is not None,
             }
         )
-    return {"command": "state", "items": items, "message": message, "error": error}
+    return {
+        "command": "state",
+        "items": items,
+        "bundles": orca.host.list_bundle_ids(),
+        "message": message,
+        "error": error,
+    }
 
 
 PAGE = r"""<!doctype html>
@@ -242,19 +248,26 @@ button.secondary { background: rgba(127, 127, 127, .25); color: CanvasText; }
 .help { margin: 0 0 12px; color: GrayText; font-size: 12px; line-height: 1.4; }
 .help summary { color: CanvasText; cursor: pointer; font-weight: 650; }
 .help p { margin: 7px 0 0; }
+h2 { margin: 16px 0 8px; font-size: 13px; }
+.bundles { display: grid; gap: 6px; }
+.bundle { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bundle code { overflow-wrap: anywhere; }
 </style></head><body>
-<details class="help"><summary>How it works</summary><p>Each row controls one profile in this local bundle. A switch adds or removes its source file; Delete removes the demo record and Restore returns it disabled. Every action reloads this bundle across filament, process, and machine.</p></details>
+<details class="help"><summary>How it works</summary><p>Each row controls one profile in this local bundle. A switch adds or removes its source file; Delete removes the demo record and Restore returns it disabled. Every action reloads this bundle across filament, process, and machine. Local bundles lists every bundle id that orca.host.list_bundle_ids() reports; Reload calls orca.host.reload_local_bundle() for that id.</p></details>
 <div class="profiles" id="profiles"></div>
+<h2>Local bundles</h2>
+<div class="bundles" id="bundles"></div>
 <div class="actions"><button class="secondary" id="close">Close</button></div>
 <div class="message" id="message"></div>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
 let items = [];
+let bundles = [];
 let busy = false;
 function esc(value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function status(item) {
   if (item.deleted) return ['deleted', 'Deleted'];
@@ -278,6 +291,9 @@ function render(message, error) {
       esc(item.id) + '"' + (item.enabled ? ' checked' : '') + deleted + '><span class="switch"></span>Available in Orca</label>' +
       action + '</div></section>';
   }).join('');
+  $('bundles').innerHTML = bundles.length ? bundles.map(id =>
+    '<div class="bundle"><code>' + esc(id) + '</code><button class="secondary" data-action="reload_bundle" data-bundle="' +
+    esc(id) + '">Reload</button></div>').join('') : '<div class="kind">No local bundles found.</div>';
   $('message').textContent = error || message || '';
   $('message').className = error ? 'message error' : 'message';
   if (busy) setBusy(true);
@@ -301,9 +317,14 @@ $('profiles').addEventListener('click', event => {
   if (button.dataset.action === 'delete' && !confirm('Delete this demo profile from the local bundle?')) return;
   post({command: button.dataset.action, id: button.dataset.id});
 });
+$('bundles').addEventListener('click', event => {
+  const button = event.target.closest('[data-action="reload_bundle"]');
+  if (button && !busy) post({command: 'reload_bundle', bundle_id: button.dataset.bundle});
+});
 orca.onMessage(message => {
   if (!message || message.command !== 'state') return;
   items = message.items || [];
+  bundles = message.bundles || [];
   busy = false;
   render(message.message, message.error);
 });
@@ -351,6 +372,13 @@ class ReloadLocalBundleDemo(orca.script.ScriptPluginCapabilityBase):
             state = _read_state(bundle)
             if message.get("command") == "state":
                 self._post_state()
+                return
+            if message.get("command") == "reload_bundle":
+                bundle_id = message.get("bundle_id")
+                if not isinstance(bundle_id, str) or not bundle_id:
+                    raise RuntimeError("A bundle id is required")
+                orca.host.reload_local_bundle(bundle_id)
+                self._post_state(message="Reloaded local bundle %s." % bundle_id)
                 return
             item = next((item for item in DEMO_PRESETS if item["id"] == message.get("id")), None)
             if item is None:

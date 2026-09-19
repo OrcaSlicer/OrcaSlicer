@@ -1345,6 +1345,74 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
     return PresetsConfigSubstitutions();
 }
 
+static bool is_single_path_component(const std::string& value)
+{
+    const fs::path path(value);
+    return !value.empty() && value != "." && value != ".." && value.find_first_of("/\\") == std::string::npos &&
+           !path.has_root_name() && !path.has_root_directory();
+}
+
+static bool check_local_bundle(PresetBundleMetadata& bundles, const fs::path& user_dir, const std::string& bundle_id,
+                               BundleMetadata& metadata, std::string& error)
+{
+    if (!is_single_path_component(bundle_id)) {
+        error = "Local bundle id must be a single path component";
+        return false;
+    }
+    const fs::path bundle_dir = user_dir / PRESET_LOCAL_DIR / bundle_id;
+    if (!fs::is_directory(bundle_dir)) {
+        error = "Local bundle directory does not exist";
+        return false;
+    }
+    if (fs::exists(user_dir / PRESET_SUBSCRIBED_DIR / bundle_id)) {
+        error = "A subscribed bundle already uses this id";
+        return false;
+    }
+    {
+        std::shared_lock<std::shared_mutex> lock(bundles.RWMtx);
+        const auto it = bundles.m_bundles.find(bundle_id);
+        if (it != bundles.m_bundles.end() && it->second.bundle_type == BundleType::Subscribed) {
+            error = "A subscribed bundle already uses this id";
+            return false;
+        }
+    }
+    if (!metadata.load_from_json((bundle_dir / PRESET_BUNDLE_METADATA).string()) || metadata.id != bundle_id) {
+        error = "Local bundle metadata is missing, malformed, or has a different id";
+        return false;
+    }
+    return true;
+}
+
+std::vector<std::string> PresetBundle::list_local_bundle_ids(const std::string& preset_folder)
+{
+    std::vector<std::string> ids;
+    const std::string        user = preset_folder.empty() ? DEFAULT_USER_FOLDER_NAME : preset_folder;
+    if (!is_single_path_component(user))
+        return ids;
+
+    const fs::path user_dir  = fs::path(data_dir()) / PRESET_USER_DIR / user;
+    const fs::path local_dir = user_dir / PRESET_LOCAL_DIR;
+    try {
+        if (!fs::is_directory(local_dir))
+            return ids;
+        for (const auto& entry : fs::directory_iterator(local_dir)) {
+            const std::string bundle_id = entry.path().filename().string();
+            try {
+                BundleMetadata metadata;
+                std::string    error;
+                if (check_local_bundle(bundles, user_dir, bundle_id, metadata, error))
+                    ids.push_back(bundle_id);
+            } catch (const std::exception& exception) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": skipping " << bundle_id << ": " << exception.what();
+            }
+        }
+    } catch (const std::exception& exception) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << exception.what();
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
 bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const std::string& bundle_id, std::string* error)
 {
     auto fail = [error](const std::string& message) {
@@ -1352,37 +1420,22 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
             *error = message;
         return false;
     };
-    auto is_component = [](const std::string& value) {
-        const fs::path path(value);
-        return !value.empty() && value != "." && value != ".." && value.find_first_of("/\\") == std::string::npos &&
-               !path.has_root_name() && !path.has_root_directory();
-    };
-    if (!is_component(bundle_id))
+    if (!is_single_path_component(bundle_id))
         return fail("Local bundle id must be a single path component");
 
     const std::string user = preset_folder.empty() ? DEFAULT_USER_FOLDER_NAME : preset_folder;
-    if (!is_component(user))
+    if (!is_single_path_component(user))
         return fail("Preset folder must be a single path component");
 
     try {
         const fs::path user_dir      = fs::path(data_dir()) / PRESET_USER_DIR / user;
         const fs::path bundle_dir    = user_dir / PRESET_LOCAL_DIR / bundle_id;
         const fs::path metadata_file = bundle_dir / PRESET_BUNDLE_METADATA;
-        if (!fs::is_directory(bundle_dir))
-            return fail("Local bundle directory does not exist");
-        if (fs::exists(user_dir / PRESET_SUBSCRIBED_DIR / bundle_id))
-            return fail("A subscribed bundle already uses this id");
-
-        {
-            std::shared_lock<std::shared_mutex> lock(bundles.RWMtx);
-            const auto it = bundles.m_bundles.find(bundle_id);
-            if (it != bundles.m_bundles.end() && it->second.bundle_type == BundleType::Subscribed)
-                return fail("A subscribed bundle already uses this id");
-        }
 
         BundleMetadata metadata;
-        if (!metadata.load_from_json(metadata_file.string()) || metadata.id != bundle_id)
-            return fail("Local bundle metadata is missing, malformed, or has a different id");
+        std::string    check_error;
+        if (!check_local_bundle(bundles, user_dir, bundle_id, metadata, check_error))
+            return fail(check_error);
 
         const std::string target_prefix = std::string(PRESET_LOCAL_DIR) + "/" + bundle_id + "/";
         const auto is_target = [&](const Preset& preset) {
