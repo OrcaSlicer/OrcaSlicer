@@ -73,7 +73,7 @@ public:
 	void msw_rescale();
 };
 
-class MonitorPanel : public wxPanel, public LazyInstance<MonitorPanel>
+class MonitorPanel : public wxPanel, public StagedBuild, public LazyInstance<MonitorPanel>
 {
 private:
     Tabbook*		m_tabpanel{ nullptr };

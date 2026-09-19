@@ -187,27 +187,31 @@ void MonitorPanel::init_tabpanel()
         update_all();
         }, m_tabpanel->GetId());
 
-    //m_status_add_machine_panel = new AddMachinePanel(m_tabpanel);
-    m_status_info_panel        = new StatusPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_status_info_panel, _L("Status"), true);
+    add_build_step([this] {
+        m_status_info_panel = new StatusPanel(m_tabpanel);
+        m_tabpanel->AddPage(m_status_info_panel, _L("Status"), true);
+    });
+    add_build_step([this] {
+        m_media_file_panel = new MediaFilePanel(m_tabpanel);
+        m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
+    });
+    add_build_step([this] {
+        m_upgrade_panel = new UpgradePanel(m_tabpanel);
+        m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), false);
+    });
+    add_build_step([this] {
+        m_hms_panel = new HMSPanel(m_tabpanel);
+        m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"), false);
 
-    m_media_file_panel = new MediaFilePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
-    //m_tabpanel->AddPage(m_media_file_panel, _L("Internal Storage"), false);
+        std::string network_ver = Slic3r::NetworkAgent::get_version();
+        if (!network_ver.empty()) {
+            m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
+        }
 
-    m_upgrade_panel = new UpgradePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), false);
-
-    m_hms_panel = new HMSPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    false);
-
-    std::string network_ver = Slic3r::NetworkAgent::get_version();
-    if (!network_ver.empty()) {
-        m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
-    }
-
-    m_initialized = true;
-    show_status((int)MonitorStatus::MONITOR_NO_PRINTER);
+        // update_all() uses every page, so m_initialized waits for the last one.
+        m_initialized = true;
+        show_status((int)MonitorStatus::MONITOR_NO_PRINTER);
+    });
 }
 
 void MonitorPanel::set_default()
