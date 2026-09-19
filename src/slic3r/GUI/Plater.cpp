@@ -17327,11 +17327,10 @@ void Plater::load_gcode(const wxString& filename)
     wxBusyCursor wait;
 
     // process gcode
-    GCodeProcessor processor;
+    GCodeProcessor processor(wxGetApp().preset_bundle->is_bbl_vendor());
     processor.init_filament_maps_and_nozzle_type_when_import_only_gcode();
     try
     {
-        GCodeProcessor::s_IsBBLPrinter = wxGetApp().preset_bundle->is_bbl_vendor();
         processor.process_file(filename.ToUTF8().data());
     }
     catch (const std::exception& ex)

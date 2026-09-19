@@ -137,8 +137,6 @@ const std::string GCodeProcessor::Toolchange_Wipe_Tag          = " CP_TOOLCHANGE
 const float GCodeProcessor::Wipe_Width = 0.05f;
 const float GCodeProcessor::Wipe_Height = 0.05f;
 
-bool GCodeProcessor::s_IsBBLPrinter = true;
-
 static void set_option_value(ConfigOptionFloats& option, size_t id, float value)
 {
     if (id < option.values.size())
@@ -1157,7 +1155,7 @@ void GCodeProcessor::run_post_process()
                     PrintEstimatedStatistics::ETimeMode mode    = static_cast<PrintEstimatedStatistics::ETimeMode>(i);
                     if (mode == PrintEstimatedStatistics::ETimeMode::Normal || machine.enabled) {
                         char buf[128];
-                        if (!s_IsBBLPrinter)
+                        if (!m_is_bbl_printer)
                             // Orca: compatibility with klipper_estimator
                             sprintf(buf, "; estimated printing time (%s mode) = %s\n",
                                     (mode == PrintEstimatedStatistics::ETimeMode::Normal) ? "normal" : "silent",
@@ -2647,12 +2645,12 @@ const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProces
 
 std::atomic<unsigned int> GCodeProcessor::s_result_id{0};
 
-bool GCodeProcessor::contains_reserved_tag(const std::string& gcode, std::string& found_tag)
+bool GCodeProcessor::contains_reserved_tag(const std::string& gcode, std::string& found_tag, bool is_bbl_printer)
 {
     bool ret = false;
 
     GCodeReader parser;
-    auto& _tags = s_IsBBLPrinter ? Reserved_Tags : Reserved_Tags_compatible;
+    const auto& _tags = is_bbl_printer ? Reserved_Tags : Reserved_Tags_compatible;
     parser.parse_buffer(gcode, [&ret, &found_tag, _tags](GCodeReader& parser, const GCodeReader::GCodeLine& line) {
         std::string comment = line.raw();
         if (comment.length() > 2 && comment.front() == ';') {
@@ -2680,7 +2678,7 @@ bool GCodeProcessor::contains_reserved_tags(const std::string& gcode, unsigned i
     CNumericLocalesSetter locales_setter;
 
     GCodeReader parser;
-    auto& _tags = is_bbl_printer ? Reserved_Tags : Reserved_Tags_compatible;
+    const auto& _tags = is_bbl_printer ? Reserved_Tags : Reserved_Tags_compatible;
     parser.parse_buffer(gcode, [&ret, &found_tag, max_count, _tags](GCodeReader& parser, const GCodeReader::GCodeLine& line) {
         std::string comment = line.raw();
         if (comment.length() > 2 && comment.front() == ';') {
@@ -2701,8 +2699,9 @@ bool GCodeProcessor::contains_reserved_tags(const std::string& gcode, unsigned i
     return ret;
 }
 
-GCodeProcessor::GCodeProcessor()
+GCodeProcessor::GCodeProcessor(bool is_bbl_printer)
 : m_options_z_corrector(m_result)
+, m_is_bbl_printer(is_bbl_printer)
 {
     reset();
     m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].line_m73_main_mask = "M73 P%s R%s\n";
@@ -3701,7 +3700,7 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
             auto printer_model_opt = config.opt<ConfigOptionString>("printer_model");
             if (printer_model_opt && !printer_model_opt->value.empty()) {
                 // TODO: Orca hack, proper vendor check?
-                GCodeProcessor::s_IsBBLPrinter = boost::starts_with(printer_model_opt->value, "Bambu Lab");
+                m_is_bbl_printer = boost::starts_with(printer_model_opt->value, "Bambu Lab");
             }
 
             ConfigOptionStrings *filament_color = config.opt<ConfigOptionStrings>("filament_colour");
@@ -6006,7 +6005,7 @@ void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
     //BBS: hardcode 260 seconds for G29
     //Todo: use a machine related setting when we have second kind of BBL printer
     const float value_s = 260.0;
-    if (s_IsBBLPrinter){
+    if (m_is_bbl_printer){
         if(m_measure_g29_time)
             simulate_st_synchronize(value_s);
     }

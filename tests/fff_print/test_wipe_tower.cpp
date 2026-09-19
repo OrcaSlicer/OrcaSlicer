@@ -14,6 +14,16 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
+namespace {
+
+const std::string& reserved_tag(GCodeProcessor::ETags tag)
+{
+    static const GCodeProcessor processor(false);
+    return processor.reserved_tag(tag);
+}
+
+} // namespace
+
 // Taken from the config enum map rather than hand-listed, so a flavor added to GCodeFlavor later
 // is covered here without editing this file.
 static std::vector<GCodeFlavor> non_klipper_flavors()
@@ -122,8 +132,8 @@ TEST_CASE("The wipe tower placement clamp follows a non-rectangular bed outline"
 // outside the tower (e.g. GCodeProcessor's pre-heat injector) cannot create a false match.
 static std::string wipe_tower_regions(const std::string &gcode)
 {
-    const std::string &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start);
-    const std::string &end_tag   = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
+    const std::string &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start, false);
+    const std::string &end_tag   = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End, false);
     std::string regions;
     size_t pos = 0;
     while (true) {
@@ -163,13 +173,31 @@ static DynamicPrintConfig wipe_tower_toolchange_config(const std::string &gcode_
 // counts one filament in use, and DynamicPrintConfig::normalize_fdm_2's single-filament rule then
 // clears `enable_prime_tower`. A second apply, once init_print's regions have settled, sees both
 // filaments and the tower survives.
-static std::string slice_with_prime_tower(const DynamicPrintConfig &config)
+static std::string slice_with_prime_tower(const DynamicPrintConfig &config, bool is_bbl_printer = false)
 {
     Print print;
+    print.is_BBL_printer() = is_bbl_printer;
     Model model;
     init_print({ cube(10) }, print, model, config);
     print.apply(model, config);
     return gcode(print);
+}
+
+TEST_CASE("Wipe tower output keeps its vendor tag dialect", "[WipeTower][VendorDialect]")
+{
+    const DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+
+    const std::string compatible_gcode = slice_with_prime_tower(config, false);
+    CHECK_THAT(compatible_gcode, Catch::Matchers::ContainsSubstring(";HEIGHT:"));
+    CHECK_THAT(compatible_gcode, Catch::Matchers::ContainsSubstring(";TYPE:"));
+    CHECK_THAT(compatible_gcode, !Catch::Matchers::ContainsSubstring("; LAYER_HEIGHT: "));
+    CHECK_THAT(compatible_gcode, !Catch::Matchers::ContainsSubstring("; FEATURE: "));
+
+    const std::string bbl_gcode = slice_with_prime_tower(config, true);
+    CHECK_THAT(bbl_gcode, Catch::Matchers::ContainsSubstring("; LAYER_HEIGHT: "));
+    CHECK_THAT(bbl_gcode, Catch::Matchers::ContainsSubstring("; FEATURE: "));
+    CHECK_THAT(bbl_gcode, !Catch::Matchers::ContainsSubstring(";HEIGHT:"));
+    CHECK_THAT(bbl_gcode, !Catch::Matchers::ContainsSubstring(";TYPE:"));
 }
 
 TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", "[WipeTower]")
@@ -366,7 +394,7 @@ static SparseRunResult slice_sparse_run(const DynamicPrintConfig &config)
 // global the exporter sets from the printer, so this is only correct after a slice - the point below.
 static size_t count_height_tags(const std::string &gcode, const char *height)
 {
-    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) + height + "\n";
+    const std::string tag = ";" + reserved_tag(GCodeProcessor::ETags::Height) + height + "\n";
     size_t n = 0;
     for (size_t p = gcode.find(tag); p != std::string::npos; p = gcode.find(tag, p + 1))
         ++n;

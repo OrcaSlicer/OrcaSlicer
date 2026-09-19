@@ -521,9 +521,10 @@ class Print;
             Used_Filament_Length_Placeholder,
         };
 
-        static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
+        static const std::string& reserved_tag(ETags tag, bool is_bbl_printer) { return is_bbl_printer ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
+        const std::string& reserved_tag(ETags tag) const { return reserved_tag(tag, m_is_bbl_printer); }
         // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
-        static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
+        static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag, bool is_bbl_printer);
         // checks the given gcode for reserved tags and returns true when finding any
         // (the first max_count found tags are returned into found_tag)
         static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag, bool is_bbl_printer);
@@ -534,8 +535,6 @@ class Print;
 
         static const float Wipe_Width;
         static const float Wipe_Height;
-
-        static bool s_IsBBLPrinter;
 
     private:
         using AxisCoords = std::array<double, 4>;
@@ -1184,6 +1183,7 @@ class Print;
         int m_preheat_steps;
         bool m_disable_m73;
         std::string m_printer_model;
+        bool m_is_bbl_printer;
 
         enum class EProducer
         {
@@ -1211,7 +1211,9 @@ class Print;
         static std::atomic<unsigned int> s_result_id;
 
     public:
-        GCodeProcessor();
+        explicit GCodeProcessor(bool is_bbl_printer = true);
+        void set_is_bbl_printer(bool is_bbl_printer) { m_is_bbl_printer = is_bbl_printer; }
+        bool is_bbl_printer() const { return m_is_bbl_printer; }
         void init_filament_maps_and_nozzle_type_when_import_only_gcode();
         // Reprocessing an already-generated g-code (from-previous / imported g-code) does not rebuild
         // the per-filament nozzle grouping the multi-nozzle device GUI needs. Surface it onto the

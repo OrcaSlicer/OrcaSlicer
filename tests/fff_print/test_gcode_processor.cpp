@@ -9,6 +9,27 @@
 
 using namespace Slic3r;
 
+TEST_CASE("G-code processor tag dialect is instance-local", "[GCodeProcessor][VendorDialect]")
+{
+    GCodeProcessor bbl_processor(true);
+    GCodeProcessor compatible_processor(false);
+
+    CHECK(bbl_processor.reserved_tag(GCodeProcessor::ETags::Role) == " FEATURE: ");
+    CHECK(bbl_processor.reserved_tag(GCodeProcessor::ETags::Height) == " LAYER_HEIGHT: ");
+    CHECK(bbl_processor.reserved_tag(GCodeProcessor::ETags::Width) == " LINE_WIDTH: ");
+    CHECK(compatible_processor.reserved_tag(GCodeProcessor::ETags::Role) == "TYPE:");
+    CHECK(compatible_processor.reserved_tag(GCodeProcessor::ETags::Height) == "HEIGHT:");
+    CHECK(compatible_processor.reserved_tag(GCodeProcessor::ETags::Width) == "WIDTH:");
+
+    compatible_processor.set_is_bbl_printer(true);
+    CHECK(compatible_processor.reserved_tag(GCodeProcessor::ETags::Role) == " FEATURE: ");
+    CHECK(bbl_processor.reserved_tag(GCodeProcessor::ETags::Role) == " FEATURE: ");
+
+    compatible_processor.set_is_bbl_printer(false);
+    CHECK(compatible_processor.reserved_tag(GCodeProcessor::ETags::Role) == "TYPE:");
+    CHECK(bbl_processor.reserved_tag(GCodeProcessor::ETags::Role) == " FEATURE: ");
+}
+
 TEST_CASE("G-code processor result ids remain monotonic across concurrent resets", "[GCodeProcessor][Concurrency]")
 {
     constexpr size_t thread_count = 8;

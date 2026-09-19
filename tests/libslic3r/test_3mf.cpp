@@ -11,6 +11,7 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/miniz_extension.hpp"
 
 #include "test_utils.hpp"
 
@@ -76,6 +77,67 @@ namespace Catch {
 #include <catch2/catch_all.hpp>
 
 using namespace Slic3r;
+
+static std::string read_zip_entry(const std::string &archive_path, const std::string &entry_path)
+{
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+    REQUIRE(open_zip_reader(&archive, archive_path));
+
+    const int index = mz_zip_reader_locate_file(&archive, entry_path.c_str(), nullptr, 0);
+    REQUIRE(index >= 0);
+    mz_zip_archive_file_stat stat;
+    REQUIRE(mz_zip_reader_file_stat(&archive, index, &stat));
+
+    std::string content(size_t(stat.m_uncomp_size), '\0');
+    REQUIRE(mz_zip_reader_extract_to_mem(&archive, index, content.data(), content.size(), 0));
+    REQUIRE(close_zip_reader(&archive));
+    return content;
+}
+
+TEST_CASE("3MF slice-info object names keep the configured vendor dialect", "[3mf][VendorDialect]")
+{
+    Model model;
+    const std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+    REQUIRE(load_stl(src_file.c_str(), &model));
+    model.add_default_instances();
+    REQUIRE(model.objects.size() == 1);
+    model.objects.front()->name = "VendorObject";
+
+    ScopedTemporaryDir backup_dir("orca_vendor_dialect");
+    model.set_backup_path(backup_dir.string());
+
+    auto save_slice_info = [&model](const char *printer_model) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({ { "gcode_flavor", "klipper" } });
+        config.set_key_value("printer_model", new ConfigOptionString(printer_model));
+
+        PlateData plate;
+        plate.plate_index = 0;
+        plate.is_sliced_valid = true;
+        plate.objects_and_instances.emplace_back(0, 0);
+
+        ScopedTemporaryFile temp(".3mf");
+        StoreParams store_params;
+        store_params.path = temp.string().c_str();
+        store_params.model = &model;
+        store_params.config = &config;
+        store_params.plate_data_list.push_back(&plate);
+        store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+        REQUIRE(store_bbs_3mf(store_params));
+        return read_zip_entry(temp.string(), "Metadata/slice_info.config");
+    };
+
+    const std::string compatible_slice_info = save_slice_info("Generic Printer");
+    CHECK_THAT(compatible_slice_info, Catch::Matchers::ContainsSubstring("name=\"VendorObject_id_0_copy_0\""));
+
+    const std::string bbl_slice_info = save_slice_info("Bambu Lab X1 Carbon");
+    CHECK_THAT(bbl_slice_info, Catch::Matchers::ContainsSubstring("name=\"VendorObject\""));
+    CHECK_THAT(bbl_slice_info, !Catch::Matchers::ContainsSubstring("name=\"VendorObject_id_0_copy_0\""));
+
+    const std::string second_compatible_slice_info = save_slice_info("Generic Printer");
+    CHECK_THAT(second_compatible_slice_info, Catch::Matchers::ContainsSubstring("name=\"VendorObject_id_0_copy_0\""));
+}
 
 
 SCENARIO("Reading 3mf file", "[3mf]") {
