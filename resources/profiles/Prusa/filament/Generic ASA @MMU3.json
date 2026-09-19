@@ -1,0 +1,132 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @MMU3",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"setting_id": "cRr9zr7Ny4HsRBrL",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"activate_chamber_temp_control": [
+		"1"
+	],
+	"chamber_temperature": [
+		"40"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"filament_cooling_final_speed": [
+		"2.5"
+	],
+	"filament_cooling_initial_speed": [
+		"5"
+	],
+	"filament_cooling_moves": [
+		"3"
+	],
+	"filament_density": [
+		"1.07"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_loading_speed": [
+		"10"
+	],
+	"filament_loading_speed_start": [
+		"50"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_ramming_parameters": [
+		"250 100 42.4194 42.4194 42.4194 42.4194 42.4194| 0.05 42.4387 0.45 42.4387 0.95 42.4387 1.45 42.4387 1.95 42.4387 2.45 42.4387 2.95 42.4387 3.45 42.4387 3.95 42.4387 4.45 42.4387 4.95 42.4387"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"26.5"
+	],
+	"filament_start_gcode": [
+		"M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.02{elsif nozzle_diameter[filament_extruder_id]==0.5}0.018{elsif nozzle_diameter[filament_extruder_id]==0.6}0.012{elsif nozzle_diameter[filament_extruder_id]==0.8}0.01{elsif nozzle_diameter[filament_extruder_id]==0.25}0.09{elsif nozzle_diameter[filament_extruder_id]==0.3}0.065{else}0{endif} ; Filament gcode\n\nM142 S40 ; set heatbreak target temp"
+	],
+	"filament_tower_interface_pre_extrusion_dist": [
+		"10"
+	],
+	"filament_tower_interface_print_temp": [
+		"-1"
+	],
+	"filament_tower_interface_purge_volume": [
+		"20"
+	],
+	"filament_type": [
+		"ASA"
+	],
+	"filament_unloading_speed": [
+		"60"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"idle_temperature": [
+		"130"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"slow_down_for_layer_cooling": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"temperature_vitrification": [
+		"95"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"filament_unloading_speed_start": [
+		"60"
+	]
+}
