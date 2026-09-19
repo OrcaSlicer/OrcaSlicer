@@ -174,7 +174,7 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
 bool Moonraker::start_print(wxString &error_msg, const std::string &filename) const
 {
     //ORCA: POST /printer/print/start with JSON body { "filename": "<name>.gcode" }.
-    //      `filename` is what /server/files/upload returned as result.item.path (the storage-relative
+    //      `filename` is what /server/files/upload returned as item.path (the storage-relative
     //      path inside `root`, no leading slash, with extension). Build the body via property_tree
     //      so that special characters in the filename (server-side collision-suffix could produce
     //      paths with quotes / backslashes on exotic file systems) are properly escaped.
@@ -268,18 +268,18 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
                 pt::ptree ptree;
                 pt::read_json(ss, ptree);
 
-                //ORCA: Moonraker confirms the storage-relative path in result.item.path. We pass exactly
+                //ORCA: Moonraker confirms the storage-relative path in item.path. We pass exactly
                 //      that string to /printer/print/start so any server-side renaming (collision suffix,
                 //      etc.) is respected.
                 const auto stored_path = ptree.get_optional<std::string>("item.path");
                 if (stored_path) {
                     uploaded_path = *stored_path;
                 } else {
-                    //ORCA: fallback if the server response omits result.item.path (older Moonraker, or
+                    //ORCA: fallback if the server response omits item.path (older Moonraker, or
                     //      a buddy-fork that returns a slimmer envelope). Use the original filename.
                     uploaded_path = upload_filename.string();
                     BOOST_LOG_TRIVIAL(warning) << boost::format(
-                        "%1%: upload response missing result.item.path, falling back to original filename `%2%`")
+                        "%1%: upload response missing item.path, falling back to original filename `%2%`")
                         % name % uploaded_path;
                 }
             } catch (const std::exception &ex) {
