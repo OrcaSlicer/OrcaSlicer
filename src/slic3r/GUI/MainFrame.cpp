@@ -2794,7 +2794,7 @@ wxString MainFrame::shortcut_label(const wxString& label, Shortcut shortcut, boo
             return label + "	" + from_u8(accel);
     }
     const std::string text = shortcuts.display(shortcut);
-    return text.empty() ? label : label + " - " + from_u8(text);
+    return text.empty() ? label : label + sep + from_u8(text);
 }
 
 void MainFrame::update_shortcut_labels()

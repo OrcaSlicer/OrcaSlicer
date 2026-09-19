@@ -203,7 +203,7 @@ class MainFrame : public DPIFrame
         wxMenuItem* item;
         Shortcut    shortcut;
         wxString    label;
-        bool        accelerator;   // false keeps the binding display-only, as a plain suffix
+        bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
     };
     std::vector<ShortcutMenuItem> m_shortcut_menu_items;
 
