@@ -104,6 +104,31 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
     return "";
 }
 
+// ORCA: Stable, locale independent names used to persist a view type in the application config.
+// Keep these in sync with the entries of libvgcode::EViewType exposed in the preview combo box.
+static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_type_config_map()
+{
+    static const std::vector<std::pair<std::string, libvgcode::EViewType>> map = {
+        { "summary",                      libvgcode::EViewType::Summary },
+        { "feature_type",                 libvgcode::EViewType::FeatureType },
+        { "color_print",                  libvgcode::EViewType::ColorPrint },
+        { "speed",                        libvgcode::EViewType::Speed },
+        { "actual_speed",                 libvgcode::EViewType::ActualSpeed },
+        { "acceleration",                 libvgcode::EViewType::Acceleration },
+        { "jerk",                         libvgcode::EViewType::Jerk },
+        { "height",                       libvgcode::EViewType::Height },
+        { "width",                        libvgcode::EViewType::Width },
+        { "volumetric_flow_rate",         libvgcode::EViewType::VolumetricFlowRate },
+        { "actual_volumetric_flow_rate",  libvgcode::EViewType::ActualVolumetricFlowRate },
+        { "layer_time_linear",            libvgcode::EViewType::LayerTimeLinear },
+        { "layer_time_logarithmic",       libvgcode::EViewType::LayerTimeLogarithmic },
+        { "fan_speed",                    libvgcode::EViewType::FanSpeed },
+        { "temperature",                  libvgcode::EViewType::Temperature },
+        { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
+    };
+    return map;
+}
+
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
 // Returns -1 if there is no such member.
 static int find_close_layer_idx(const std::vector<double> &zs, double &z, double eps)
@@ -1091,9 +1116,7 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
     // Default view type at first slice.
     // May be overridden in load() once we know how many tools are actually used in the G-code.
     m_nozzle_nums = preset_bundle ? preset_bundle->get_printer_extruder_count() : 1;
-    auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-    m_view_type_sel = (it != view_type_items.end()) ? std::distance(view_type_items.begin(), it) : 0;
-    set_view_type(libvgcode::EViewType::FeatureType);
+    apply_default_view_type();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished");
 }
@@ -1112,6 +1135,73 @@ void GCodeViewer::set_scale(float scale)
         m_sequential_view.marker.m_scale = scale;
         m_sequential_view.gcode_window.m_scale = scale; // ORCA
     }
+}
+
+// ORCA: Preview default view type preference, see "preview_default_view_type" in the application config.
+std::string GCodeViewer::view_type_to_config_name(libvgcode::EViewType type)
+{
+    for (const auto& [name, value] : view_type_config_map()) {
+        if (value == type)
+            return name;
+    }
+    return std::string();
+}
+
+bool GCodeViewer::view_type_from_config_name(const std::string& name, libvgcode::EViewType& type)
+{
+    for (const auto& [config_name, value] : view_type_config_map()) {
+        if (config_name == name) {
+            type = value;
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::pair<std::string, std::string>> GCodeViewer::default_view_type_choices()
+{
+    std::vector<std::pair<std::string, std::string>> choices = {
+        { "auto", _u8L("Automatic") },
+        { "last", _u8L("Last used") },
+    };
+    for (const auto& [name, type] : view_type_config_map())
+        choices.push_back({ name, get_view_type_string(type) });
+    return choices;
+}
+
+void GCodeViewer::select_view_type(libvgcode::EViewType type)
+{
+    auto it = std::find(view_type_items.begin(), view_type_items.end(), type);
+    m_view_type_sel = (it != view_type_items.end()) ? static_cast<int>(std::distance(view_type_items.begin(), it)) : 0;
+    set_view_type(type);
+}
+
+// ORCA: Pick the view type the preview opens with, following the "preview_default_view_type" preference:
+// a fixed view type, the one the user picked last ("last"), or the automatic choice ("auto", the default)
+// which shows Filament for multi material prints and Line Type for single material ones.
+// The default is only (re)applied when it actually changes, so a view type picked by hand survives a reslice.
+void GCodeViewer::apply_default_view_type()
+{
+    const std::string preference = wxGetApp().app_config->get("preview_default_view_type");
+
+    std::string key = preference;
+    libvgcode::EViewType type = libvgcode::EViewType::FeatureType;
+    if (preference == "last") {
+        if (!view_type_from_config_name(wxGetApp().app_config->get("preview_last_view_type"), type))
+            type = libvgcode::EViewType::FeatureType;
+    }
+    else if (!view_type_from_config_name(preference, type)) {
+        // "auto", or an unknown value written by a newer version
+        const bool multi_material = m_viewer.get_used_extruders_count() > 1;
+        type = multi_material ? libvgcode::EViewType::ColorPrint : libvgcode::EViewType::FeatureType;
+        key = multi_material ? "auto_multi_material" : "auto_single_material";
+    }
+
+    if (m_applied_default_view_type_key == key)
+        return;
+
+    m_applied_default_view_type_key = key;
+    select_view_type(type);
 }
 
 void GCodeViewer::update_by_mode(ConfigOptionMode mode)
@@ -1395,27 +1485,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
-    // ORCA: Apply smart default view type when extruder count changes.
-    // Multi-color: ColorPrint (Filament), Single-color: FeatureType (Line Type).
-    // User selections persist within same extruder count, defaults reapply on count change.
-    int current_count = m_viewer.get_used_extruders_count();
-    if (current_count > 1) {
-        if (m_last_extruder_count_default_applied != 2) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::ColorPrint);
-            m_last_extruder_count_default_applied = 2;
-        }
-    } else {
-        if (m_last_extruder_count_default_applied != 1) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::FeatureType);
-            m_last_extruder_count_default_applied = 1;
-        }
-    }
+    // ORCA: Apply the default view type now that we know how many tools the G-code actually uses.
+    apply_default_view_type();
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
@@ -3558,6 +3629,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 m_view_type_sel = i;
                 set_view_type(view_type_items[m_view_type_sel]);
                 reset_visible(view_type_items[m_view_type_sel]);
+                // ORCA: remember the pick so the "Last used" preview default can restore it
+                const std::string view_type_name = view_type_to_config_name(view_type_items[m_view_type_sel]);
+                if (!view_type_name.empty())
+                    wxGetApp().app_config->set("preview_last_view_type", view_type_name);
                 update_moves_slider();
             #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
                 imgui.set_requires_extra_frame();

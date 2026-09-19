@@ -228,7 +228,8 @@ private:
     std::vector<libvgcode::EViewType> view_type_items;
     std::vector<std::string> view_type_items_str;
     int       m_view_type_sel = 0;
-    int       m_last_extruder_count_default_applied{0};  // 0=unset, 1=single, 2+=multi
+    // ORCA: which default view type was last applied, see apply_default_view_type(). Empty until the first one is applied.
+    std::string m_applied_default_view_type_key;
     std::vector<EMoveType> options_items;
 
     bool m_legend_visible{ true };
@@ -324,6 +325,16 @@ public:
     void set_view_type(libvgcode::EViewType type) {
         m_viewer.set_view_type(type);
     }
+    // ORCA: select a view type in the preview combo box and apply it
+    void select_view_type(libvgcode::EViewType type);
+    // ORCA: apply the "preview_default_view_type" preference, see the definition for the supported values
+    void apply_default_view_type();
+
+    // ORCA: stable, locale independent name of a view type, as stored in the application config
+    static std::string view_type_to_config_name(libvgcode::EViewType type);
+    static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
+    // ORCA: (config value, translated label) pairs for the "preview_default_view_type" preference combo box
+    static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
     void reset_visible(libvgcode::EViewType type) {
         if (type == libvgcode::EViewType::FeatureType) {
             auto roles = m_viewer.get_extrusion_roles();
