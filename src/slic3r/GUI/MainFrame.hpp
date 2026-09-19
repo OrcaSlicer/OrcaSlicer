@@ -142,6 +142,9 @@ class MainFrame : public DPIFrame
     bool                  m_prebuild_started{ false };
     // Every LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
     std::vector<LazyBase*> m_lazy_pages;
+    // The latest EVT_LOAD_PRINTER_URL, applied when the web Device view is built.
+    wxString              m_printer_url;
+    wxString              m_printer_api_key;
 
     wxString    m_qs_last_input_file = wxEmptyString;
     wxString    m_qs_last_output_file = wxEmptyString;
@@ -458,7 +461,7 @@ public:
 
     LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
     WebViewPanel*         m_webview { nullptr };
-    PrinterWebView*       m_printer_view{nullptr};
+    LazyPage<PrinterWebView>* m_printer_view_page{nullptr};
     PluginPages           m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS

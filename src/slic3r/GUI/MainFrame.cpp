@@ -1420,14 +1420,20 @@ void MainFrame::init_tabpanel() {
     m_lazy_pages.push_back(m_monitor_page);
     m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor_page, _L("Device"), "tab_monitor_active");
 
-    m_printer_view = new PrinterWebView(m_tabpanel);
-    Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
-        wxString url = evt.GetString();
-        wxString key = evt.GetAPIkey();
-        //select_tab(MainFrame::tpMonitor);
-        m_printer_view->load_url(url, key);
+    m_printer_view_page = new LazyPage<PrinterWebView>(m_tabpanel, TAB_ID_MONITOR_WEB, 50, [this](wxWindow* parent) {
+        auto* view = new PrinterWebView(parent);
+        if (!m_printer_url.empty())
+            view->load_url(m_printer_url, m_printer_api_key);
+        return view;
     });
-    m_printer_view->Hide();
+    m_lazy_pages.push_back(m_printer_view_page);
+    Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
+        //select_tab(MainFrame::tpMonitor);
+        m_printer_url     = evt.GetString();
+        m_printer_api_key = evt.GetAPIkey();
+        if (PrinterWebView* view = PrinterWebView::if_built())
+            view->load_url(m_printer_url, m_printer_api_key);
+    });
 
     m_multi_machine_page = new LazyPage<MultiMachinePage>(m_tabpanel, TAB_ID_MULTI_DEVICE, 40);
     m_lazy_pages.push_back(m_multi_machine_page);
@@ -1479,30 +1485,20 @@ void MainFrame::show_device(bool should_use_native) {
     // Remove the extra page before switching to any layout that shouldn't have it.
     if (!want_web_device_tab) {
         if ((idx = m_tabpanel->FindPageByName(TAB_ID_MONITOR_WEB)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+            m_printer_view_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
     }
 
     if (use_printer_agents) {
         if (!m_monitor_page->in_book()) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-                m_printer_view->Show(false);
+            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
                 m_tabpanel->RemovePage(idx);
             }
             m_monitor_page->Show(false);
             m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                    _L("Device"), "tab_monitor_active");
-        }
-
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
         }
 
         if (wxGetApp().is_enable_multi_machine()) {
@@ -1522,11 +1518,11 @@ void MainFrame::show_device(bool should_use_native) {
         }
 
         if (want_web_device_tab) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view)) == wxNOT_FOUND) {
-                m_printer_view->Show(false);
+            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) == wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
                 // Immediately right of the native Device tab, not at the end of the tab bar.
                 m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MONITOR_WEB,
-                                       m_printer_view, _L("Device (Web)"), "tab_monitor_active");
+                                       m_printer_view_page, _L("Device (Web)"), "tab_monitor_active");
             } else {
                 m_tabpanel->SetPageText(idx, _L("Device (Web)"));
             }
@@ -1549,8 +1545,8 @@ void MainFrame::show_device(bool should_use_native) {
             return;
         }
         // Remove printer view
-        if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+            m_printer_view_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
 
@@ -1576,7 +1572,7 @@ void MainFrame::show_device(bool should_use_native) {
 #endif // _MSW_DARK_MODE
 
     } else {
-        if (m_tabpanel->FindPage(m_printer_view) != wxNOT_FOUND) {
+        if (m_printer_view_page->in_book()) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
@@ -1592,17 +1588,8 @@ void MainFrame::show_device(bool should_use_native) {
             m_monitor_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
-        }
-        m_printer_view->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view,
+        m_printer_view_page->Show(false);
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view_page,
                                _L("Device"), "tab_monitor_active");
     }
     fit_tab_labels(); // ORCA on printer change
