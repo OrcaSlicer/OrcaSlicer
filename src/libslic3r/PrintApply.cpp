@@ -1195,6 +1195,22 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
+// True when the object leaves a support filament on "Auto". Such a pick depends on filament-scope inputs
+// (type, soluble / support flags, colour) and on the object's own filaments, none of which appear in the object
+// diff that normally gates re-deriving the object config - so those objects are re-derived on every apply,
+// otherwise clearing a soluble flag would leave the support sitting on that filament forever. An unchanged
+// pick produces an empty diff and invalidates nothing.
+static bool uses_auto_support_filament(const PrintObjectConfig &default_object_config, const ModelObject &model_object)
+{
+    for (const char *key : {"support_filament", "support_interface_filament", "support_ironing_filament"}) {
+        const ConfigOption *object_opt = model_object.config.option(key);
+        const ConfigOption *opt        = object_opt != nullptr ? object_opt : default_object_config.option(key);
+        if (opt != nullptr && opt->getInt() == SUPPORT_FILAMENT_AUTO)
+            return true;
+    }
+    return false;
+}
+
 Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
@@ -1694,8 +1710,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             bool object_config_changed = ! model_object.config.timestamp_matches(model_object_new.config);
 			if (object_config_changed)
 				model_object.config.assign_config(model_object_new.config);
-            if (! object_diff.empty() || object_config_changed || num_extruders_changed ) {
-                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, print_variant_index);
+            if (! object_diff.empty() || object_config_changed || num_extruders_changed || uses_auto_support_filament(m_default_object_config, model_object)) {
+                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, print_variant_index, &this->config());
                 for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
                     t_config_option_keys diff = print_object_status.print_object->config().diff(new_config);
                     if (! diff.empty()) {
@@ -1764,7 +1780,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders, &print_variant_index](PrintObject *print_object) {
                 print_object->config_apply(print_object_last ?
                     print_object_last->config() :
-                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, print_variant_index));
+                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, print_variant_index, &this->config()));
                 print_object_last = print_object;
             };
             if (old.empty()) {
