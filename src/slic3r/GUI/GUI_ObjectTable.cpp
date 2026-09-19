@@ -348,7 +348,8 @@ void GridCellFilamentsRenderer::Draw(wxGrid &grid, wxGridCellAttr &attr, wxDC &d
         if ((grid_row->model_volume_type != ModelVolumeType::NEGATIVE_VOLUME) && \
             (grid_row->model_volume_type != ModelVolumeType::SUPPORT_BLOCKER) && \
             (grid_row->model_volume_type != ModelVolumeType::SUPPORT_ENFORCER) && \
-            (grid_row->model_volume_type != ModelVolumeType::PARAMETER_MODIFIER)) {
+            (grid_row->model_volume_type != ModelVolumeType::PARAMETER_MODIFIER) && \
+            !is_precise_seam(grid_row->model_volume_type)) { // Precise Seam is non-printing helper geometry
             dc.DrawBitmap(*bitmap, wxPoint(rect.x + offset_x, rect.y + offset_y));
         }
         else if (grid_row->model_volume_type == ModelVolumeType::PARAMETER_MODIFIER){
@@ -3011,7 +3012,8 @@ void ObjectTablePanel::load_data()
                         if (col == ObjectGridTable::col_filaments) {
                             if ((grid_row->model_volume_type != ModelVolumeType::NEGATIVE_VOLUME) && \
                                 (grid_row->model_volume_type != ModelVolumeType::SUPPORT_BLOCKER) && \
-                                (grid_row->model_volume_type != ModelVolumeType::SUPPORT_ENFORCER)) {
+                                (grid_row->model_volume_type != ModelVolumeType::SUPPORT_ENFORCER) && \
+                                !is_precise_seam(grid_row->model_volume_type)) { // Precise Seam is non-printing helper geometry
                                 GridCellFilamentsEditor* filament_editor = new GridCellFilamentsEditor(grid_col->choices, false, &m_color_bitmaps);
                                 m_object_grid->SetCellEditor(row, col, filament_editor);
                                 m_object_grid->SetCellRenderer(row, col, new GridCellFilamentsRenderer());
