@@ -2459,10 +2459,9 @@ void GLCanvas3D::ensure_on_bed(unsigned int object_idx, bool allow_negative_z)
     InstancesToZMap instances_min_z;
 
     for (GLVolume* volume : m_volumes.volumes) {
-        ModelObject*   mo = m_model->objects[volume->object_idx()];
-        ModelInstance* mi = mo->instances[volume->instance_idx()];
+        ModelObject* mo = m_model->objects[volume->object_idx()];
 
-        if (!mi->auto_drop) {
+        if (!mo->auto_drop) {
             continue;
         }
 
@@ -5261,9 +5260,8 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
         ModelObject* mo = m_model->objects[i.first];
-        ModelInstance* mi  = mo->instances[i.second];
             
-        if (!mi->auto_drop) {
+        if (!mo->auto_drop) {
             continue;
         }
 
@@ -5380,9 +5378,8 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
         // Fixes sinking/flying instances (snaps object to buildplate)
         for (const std::pair<int, int> &i : done) {
             ModelObject *mo = m_model->objects[i.first];
-            ModelInstance* mi = mo->instances[i.second];
 
-            if (!mi->auto_drop) {
+            if (!mo->auto_drop) {
                 continue;
             }
 
@@ -5472,9 +5469,8 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
     // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
         ModelObject* mo = m_model->objects[i.first];
-        ModelInstance* mi = mo->instances[i.second];
 
-        if (!mi->auto_drop) {
+        if (!mo->auto_drop) {
             continue;
         }
 
@@ -5582,9 +5578,8 @@ void GLCanvas3D::do_mirror(const std::string& snapshot_type)
     // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
         ModelObject* mo = m_model->objects[i.first];
-        ModelInstance* mi = mo->instances[i.second];
 
-        if (!mi->auto_drop) {
+        if (!mo->auto_drop) {
             continue;
         }
 
