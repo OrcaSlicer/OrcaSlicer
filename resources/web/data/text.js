@@ -83,6 +83,8 @@ var LangText = {
     t88: "Remove",
     t89: "Open Containing Folder",
     t90: "3D Model",
+    orca_online_models: "Online Models",
+    orca_search_printable_models: "Search for printable models",
     t91: "Download 3D models",
     t92: "Create by",
     t93: "Remixed by",
