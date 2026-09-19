@@ -352,6 +352,10 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
+    // Slice the current plate, same as Cmd+R. Switches to Preview unless switch_to_preview is
+    // false (used by the auto-reload watcher's optional auto-slice, which stays on whatever tab
+    // is currently active rather than jumping the user to Preview for a background action).
+    void        slice_current_plate(bool switch_to_preview = true);
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
