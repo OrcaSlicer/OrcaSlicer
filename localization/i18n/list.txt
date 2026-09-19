@@ -125,6 +125,7 @@ src/slic3r/GUI/ThermalPreconditioningDialog.hpp
 src/slic3r/GUI/Jobs/SLAImportJob.cpp
 src/slic3r/GUI/Jobs/UpgradeNetworkJob.cpp
 src/slic3r/GUI/AboutDialog.cpp
+src/slic3r/GUI/ActionRegistry.cpp
 src/slic3r/GUI/AMSMaterialsSetting.cpp
 src/slic3r/GUI/ExtrusionCalibration.cpp
 src/slic3r/GUI/AmsMappingPopup.cpp
@@ -159,6 +160,7 @@ src/slic3r/GUI/SelectMachinePop.cpp
 src/slic3r/GUI/StatusPanel.cpp
 src/slic3r/GUI/Monitor.cpp
 src/slic3r/GUI/MsgDialog.cpp
+src/slic3r/GUI/NativeCommands.cpp
 src/slic3r/GUI/NotificationManager.hpp
 src/slic3r/GUI/NotificationManager.cpp
 src/slic3r/GUI/ObjectDataViewModel.cpp
@@ -179,6 +181,8 @@ src/slic3r/GUI/PublishDialog.cpp
 src/slic3r/GUI/PublishSettingsDialog.cpp
 src/slic3r/GUI/SavePresetDialog.cpp
 src/slic3r/GUI/Search.cpp
+src/slic3r/GUI/SettingsIndex.cpp
+src/slic3r/GUI/SpeedDialDialog.cpp
 src/slic3r/GUI/Selection.cpp
 src/slic3r/GUI/SelectMachine.cpp
 src/slic3r/GUI/PrePrintChecker.cpp
@@ -291,3 +295,7 @@ src/slic3r/GUI/PrinterWebViewHandler.cpp
 src/slic3r/GUI/AMSDryControl.cpp
 src/slic3r/GUI/AMSDryControl.hpp
 src/libslic3r/PresetBundle.cpp
+src/slic3r/GUI/CAD/DesignPanel.cpp
+src/slic3r/GUI/CAD/SketchInlineEditor.cpp
+src/slic3r/GUI/Gizmos/GLGizmoPrimitive.cpp
+src/slic3r/GUI/Gizmos/GLGizmoSketch.cpp

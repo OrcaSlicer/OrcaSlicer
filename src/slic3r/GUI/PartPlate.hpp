@@ -197,7 +197,7 @@ private:
     // void render_left_arrow(const ColorRGBA render_color, bool use_lighting) const;
     // void render_right_arrow(const ColorRGBA render_color, bool use_lighting) const;
     void render_icon_texture(GLModel &buffer, GLTexture &texture);
-    void show_tooltip(const std::string tooltip);
+    void set_hover_tooltip(const std::string& tooltip);
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
@@ -428,7 +428,7 @@ public:
     bool contains(const BoundingBoxf3& bb) const;
     bool intersects(const BoundingBoxf3& bb) const;
 
-    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1, bool render_cali = false, bool show_grid = true, bool hide_chrome = false);
 
     void set_selected();
     void set_unselected();
@@ -640,6 +640,8 @@ class PartPlateList : public ObjectBase
     bool render_bedtype_logo = true;
     bool render_plate_settings = true;
     bool render_cali_logo = true;
+    // Tooltip of the plate icon the last scene pass drew hovered; the canvas overlay shows it.
+    std::string m_hover_tooltip;
 
     bool m_is_dark = false;
 
@@ -857,9 +859,11 @@ public:
 
     /*rendering related functions*/
     void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
-    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current = false, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current = false, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true, bool hide_chrome = false);
     void set_render_option(bool bedtype_texture, bool plate_settings);
     void set_render_cali(bool value = true) { render_cali_logo = value; }
+    void render_hover_tooltip() const;
+    void clear_hover_tooltip() { m_hover_tooltip.clear(); }
     void register_raycasters_for_picking(GLCanvas3D& canvas)
     {
         for (auto plate : m_plate_list)

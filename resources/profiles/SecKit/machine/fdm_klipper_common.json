@@ -117,7 +117,6 @@
 		"120"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "M601",

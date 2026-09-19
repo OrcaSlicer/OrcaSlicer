@@ -12,6 +12,13 @@ name: PR Merge Bot
 # PR targets main or release/*, and CI is green on the head commit. Otherwise it
 # comments naming the files that fell outside the grant.
 #
+# When a PR touching resources/profiles/** is opened, two labels are applied
+# independently of the merge command:
+#   profile                every changed path is inside resources/profiles/
+#   orca profile partner   the PR author holds a grant covering every changed
+#                          path, plus a one-time comment explaining /bot merge
+# Neither label changes what the merge command checks.
+#
 # Grants come from the FOLDER_MERGERS variable in the `merge-delegation`
 # environment: one per line, `account: path`, `#` comments and blank lines
 # allowed. Paths may contain spaces. A vendor takes two grants, the folder and
@@ -32,10 +39,18 @@ on:
   issue_comment:
     types:
       - created
+  # Labels profile PRs on open, without waiting for a /bot merge command.
+  pull_request_target:
+    types:
+      - opened
+    paths:
+      - 'resources/profiles/**'
 
 # One merge attempt per PR at a time, so two quick comments cannot race.
+# Labels run under their own group, so a queued label run is not replaced by
+# a merge run for the same PR.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.issue.number || github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
@@ -43,6 +58,7 @@ jobs:
     # Skips the job unless a PR comment mentions the command.
     if: >-
       github.repository == 'OrcaSlicer/OrcaSlicer'
+      && github.event_name == 'issue_comment'
       && github.event.issue.pull_request != null
       && contains(github.event.comment.body, '/bot merge')
     permissions:
@@ -53,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Supplies FOLDER_MERGERS. Must carry no protection rules, or every
-    # delegated merge would wait for a human reviewer.
+    # delegated merge and partner label run would wait for a human reviewer.
     environment: merge-delegation
     steps:
       - name: Merge PR on behalf of a folder delegate
@@ -76,7 +92,6 @@ jobs:
             const ALLOWED_BASE_BRANCH = /^(?:main|release\/.+)$/;
             const MERGE_METHOD = 'squash';
             const REQUIRED_CHECK = 'Check profiles';   // job name in check_profiles.yml
-            const MAX_CHANGED_FILES = 500;             // policy cap, well under listFiles' 3000
             const LISTFILES_CAP = 3000;
             const MAX_REPORTED_FILES = 12;
             const MERGEABLE_ATTEMPTS = 5;
@@ -304,9 +319,6 @@ jobs:
                 'so the file list is truncated and I cannot verify the folder scope. A maintainer must merge this one.'
               );
             }
-            if (pr.changed_files > MAX_CHANGED_FILES) {
-              return refuse(`it changes ${pr.changed_files} files; delegated merges are capped at ${MAX_CHANGED_FILES}.`);
-            }
 
             const deniedFiles = [];
             const outsideFiles = [];
@@ -508,3 +520,392 @@ jobs:
             } catch (error) {
               core.warning(`Merged successfully, but dispatching build_all.yml failed: ${error.message}`);
             }
+
+  label-profile:
+    # Independent of the merge rules: any PR that changes only files inside
+    # resources/profiles/ is labeled `profile`.
+    if: >-
+      github.repository == 'OrcaSlicer/OrcaSlicer'
+      && github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Label profile-only PRs
+        uses: actions/github-script@v9
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            const PROFILE_ROOT = 'resources/profiles/';
+            const LABEL = 'profile';
+            const LISTFILES_CAP = 3000;
+            const ATTEMPTS = 3;
+
+            function profileOnlyProblem(pr, files) {
+              if (!files.length) {
+                return 'PR changes no files; not labeling.';
+              }
+              // A truncated list, or a count that disagrees with the PR, cannot
+              // prove "only profile files".
+              if (files.length >= LISTFILES_CAP || files.length !== pr.changed_files) {
+                return `PR reports ${pr.changed_files} changed files but the API listed ${files.length}; not labeling.`;
+              }
+
+              // Both endpoints of a rename count, so a move out of the profile
+              // root is not mistaken for a profile-only change.
+              const paths = files.flatMap((file) => [file.filename, file.previous_filename].filter(Boolean));
+              const outside = paths.filter((path) => !path.startsWith(PROFILE_ROOT));
+
+              if (outside.length) {
+                return `${outside.length} changed path(s) fall outside ${PROFILE_ROOT}; not labeling.`;
+              }
+
+              return null;
+            }
+
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+
+            // The event payload is frozen at `opened`; listFiles is not. Read
+            // fresh PR metadata and retry if either side of the diff changes.
+            for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
+              const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+
+              if (pr.state !== 'open') {
+                core.info(`PR is ${pr.state}; not labeling.`);
+                return;
+              }
+
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number: pr.number,
+                per_page: 100
+              });
+              const problem = profileOnlyProblem(pr, files);
+
+              const { data: after } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+              if (
+                after.state !== 'open' ||
+                after.head.sha !== pr.head.sha ||
+                after.base.ref !== pr.base.ref ||
+                after.base.sha !== pr.base.sha
+              ) {
+                core.info('PR changed while listing files; retrying.');
+                continue;
+              }
+
+              if (problem) {
+                core.info(problem);
+                return;
+              }
+
+              try {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: pr.number,
+                  labels: [LABEL]
+                });
+                core.info(`Applied the "${LABEL}" label.`);
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning(`Cannot add the "${LABEL}" label because the token cannot write.`);
+                  return;
+                }
+
+                throw error;
+              }
+
+              return;
+            }
+
+            core.warning('PR kept changing during verification; not labeling.');
+
+  label-profile-partner:
+    # Labels a profile PR whose author holds a grant covering every changed
+    # path, and explains the /bot merge command to them once.
+    if: >-
+      github.repository == 'OrcaSlicer/OrcaSlicer'
+      && github.event_name == 'pull_request_target'
+    permissions:
+      contents: read        # delegatable subtree, for file modes
+      pull-requests: read
+      issues: write         # label + comment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Supplies FOLDER_MERGERS. Must carry no protection rules, or every
+    # qualifying PR open would wait for a human reviewer.
+    environment: merge-delegation
+    steps:
+      - name: Label profile PRs from delegated maintainers
+        uses: actions/github-script@v9
+        env:
+          # Read as an env var, never interpolated into the script body.
+          FOLDER_MERGERS: ${{ vars.FOLDER_MERGERS }}
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            // Never prints the grant list: this job posts public comments and
+            // its logs are public too.
+            async function bestEffort(call, warning) {
+              try {
+                await call();
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning(warning);
+                  return;
+                }
+
+                throw error;
+              }
+            }
+
+            const MARKER = '<!-- profile-partner-bot -->';
+            const LABEL = 'orca profile partner';
+            const ATTEMPTS = 3;
+
+            // ---- scope rules, mirrored from the merge job above ----
+            // Change both together: these decide whether a delegate could merge.
+            const DELEGATABLE_ROOT = 'resources/profiles/';
+            const ALLOWED_BASE_BRANCH = /^(?:main|release\/.+)$/;
+            const LISTFILES_CAP = 3000;
+            const REGULAR_FILE_MODES = new Set(['100644', '100755']);
+
+            const DENIED_PATTERNS = [
+              /^\.github\//,
+              /(^|\/)\.git(attributes|modules|ignore|config)$/,
+              /^(?:src|deps|deps_src|tests|tools|cmake|sandboxes|scripts|docs?|localization|bbl)\//,
+              /(^|\/)cmakelists\.txt$/,
+              /\.cmake$/,
+              /^build_[^/]*\.(?:sh|bat)$/,
+              /^version\.inc$/,
+              // Executables, including those inside the delegatable root.
+              /\.(?:sh|bash|bat|cmd|ps1|py|js|mjs|cjs|ts|rb|pl|php)$/
+            ];
+
+            function parseGrants(raw) {
+              // GitHub login: 1-39 chars, alphanumerics with single interior hyphens.
+              const loginPattern = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
+              const grantsByLogin = new Map();
+              const problems = [];
+
+              (raw || '').split(/\r?\n/).forEach((rawLine, index) => {
+                const line = rawLine.trim();
+                if (!line || line.startsWith('#')) {
+                  return;
+                }
+
+                // Splits on the first colon only, so paths may contain ':' and spaces.
+                const separator = line.indexOf(':');
+                if (separator === -1) {
+                  problems.push(`line ${index + 1}: expected \`account: path\``);
+                  return;
+                }
+
+                const login = line.slice(0, separator).trim().replace(/^@/, '');
+                const path = line.slice(separator + 1).trim().replace(/\/+$/, '');
+
+                if (!loginPattern.test(login)) {
+                  problems.push(`line ${index + 1}: \`${login}\` is not a valid GitHub account name`);
+                  return;
+                }
+                if (/[\\*?\u0000-\u001f\u007f]/.test(path) || path.split('/').includes('..') || path.includes('//')) {
+                  problems.push(`line ${index + 1}: invalid path (no globs, \`..\`, \`//\`, backslashes or control characters)`);
+                  return;
+                }
+                // Rejects anything outside the root, and the bare root itself.
+                if (!path.startsWith(DELEGATABLE_ROOT) || path.length <= DELEGATABLE_ROOT.length) {
+                  problems.push(`line ${index + 1}: \`${path}\` is not inside \`${DELEGATABLE_ROOT}\``);
+                  return;
+                }
+
+                const key = login.toLowerCase();
+                grantsByLogin.set(key, (grantsByLogin.get(key) || []).concat(path));
+              });
+
+              return { grantsByLogin, problems };
+            }
+
+            function isDenied(path) {
+              if (/[\\\u0000-\u001f\u007f]/.test(path) || path.startsWith('/') || path.split('/').includes('..')) {
+                return true;
+              }
+
+              const normalized = path.normalize('NFKC').toLowerCase();
+              return DENIED_PATTERNS.some((pattern) => pattern.test(normalized));
+            }
+
+            // Byte-exact match on directory boundaries, so a grant of
+            // `.../Acme` covers neither `.../Acme Labs/x.json` nor `.../Acme.json`.
+            function isGranted(path, grants) {
+              return grants.some((grant) => path === grant || path.startsWith(`${grant}/`));
+            }
+
+            // Both endpoints of a rename; both must satisfy the grant.
+            function pathsFor(file) {
+              return [file.filename, file.previous_filename].filter(Boolean);
+            }
+            // ---- end mirrored rules ----
+
+            function scopeProblem(pr, files, grants) {
+              if (!files.length) {
+                return 'PR changes no files; not labeling.';
+              }
+              if (files.length >= LISTFILES_CAP || files.length !== pr.changed_files) {
+                return `PR reports ${pr.changed_files} changed files but the API listed ${files.length}; not labeling.`;
+              }
+
+              let outsideCount = 0;
+              for (const file of files) {
+                for (const path of pathsFor(file)) {
+                  if (isDenied(path) || !isGranted(path, grants)) {
+                    outsideCount += 1;
+                  }
+                }
+              }
+
+              if (outsideCount) {
+                return `PR has ${outsideCount} path(s) outside @${author}'s grants; not labeling.`;
+              }
+
+              return null;
+            }
+
+            // ---- file modes: rejects symlinks and submodules ----
+            function modeProblem(files, tree) {
+              if (tree.truncated) {
+                return 'The profile tree is too large to verify file modes; not labeling.';
+              }
+
+              const modesByPath = new Map(tree.tree.map((entry) => [`${DELEGATABLE_ROOT}${entry.path}`, entry.mode]));
+              const hasIrregularFile = files.some((file) =>
+                file.status !== 'removed' && !REGULAR_FILE_MODES.has(modesByPath.get(file.filename)));
+
+              if (hasIrregularFile) {
+                return 'PR adds symlinks, submodules or files whose modes cannot be verified; not labeling.';
+              }
+
+              return null;
+            }
+
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+            const author = context.payload.pull_request.user.login;
+
+            const { grantsByLogin, problems } = parseGrants(process.env.FOLDER_MERGERS);
+
+            // Only the count: the malformed lines may name grant holders.
+            if (problems.length) {
+              core.warning(`FOLDER_MERGERS has ${problems.length} malformed line(s); not labeling.`);
+              return;
+            }
+
+            const grants = grantsByLogin.get(author.toLowerCase()) || [];
+            // Says nothing to accounts with no grant, so it cannot be used to spam.
+            if (!grants.length) {
+              core.info(`Ignoring PR from @${author}: not listed in FOLDER_MERGERS.`);
+              return;
+            }
+
+            // Read current PR metadata for the file list and head tree. Retry
+            // if either side of the diff changes during verification.
+            for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
+              const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+
+              if (pr.state !== 'open') {
+                core.info(`PR is ${pr.state}; not labeling.`);
+                return;
+              }
+              if (!ALLOWED_BASE_BRANCH.test(pr.base.ref)) {
+                core.info(`PR targets "${pr.base.ref}", not main or release/*; not labeling.`);
+                return;
+              }
+              // Checked before listing files, so a PR too large to list is
+              // rejected in one call.
+              if (pr.changed_files >= LISTFILES_CAP) {
+                core.info(`PR changes ${pr.changed_files} files, more than the API can list; not labeling.`);
+                return;
+              }
+
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number: pr.number,
+                per_page: 100
+              });
+              const scopeIssue = scopeProblem(pr, files, grants);
+
+              let modeIssue = null;
+              if (!scopeIssue) {
+                const { data: tree } = await github.rest.git.getTree({
+                  owner,
+                  repo,
+                  tree_sha: `${pr.head.sha}:${DELEGATABLE_ROOT.replace(/\/$/, '')}`,
+                  recursive: 'true'
+                });
+                modeIssue = modeProblem(files, tree);
+              }
+
+              const { data: after } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+              if (
+                after.state !== 'open' ||
+                after.head.sha !== pr.head.sha ||
+                after.base.ref !== pr.base.ref ||
+                after.base.sha !== pr.base.sha
+              ) {
+                core.info('PR changed while verifying; retrying.');
+                continue;
+              }
+
+              const problem = scopeIssue || modeIssue;
+              if (problem) {
+                core.info(problem);
+                return;
+              }
+
+              // ---- label + one-time comment ----
+              await bestEffort(
+                () => github.rest.issues.addLabels({ owner, repo, issue_number: pr.number, labels: [LABEL] }),
+                `Cannot add the "${LABEL}" label because the token cannot write.`);
+
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: pr.number,
+                per_page: 100
+              });
+              if (comments.some((comment) => (comment.body || '').includes(MARKER))) {
+                core.info('Partner notice already present; skipping comment.');
+                return;
+              }
+
+              await bestEffort(
+                () => github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: pr.number,
+                  body:
+                    `${MARKER}\n` +
+                    `Hi @${author}, this profile PR is covered by your delegated merge grant.\n\n` +
+                    `Once it is ready for review and CI is green, you can merge it yourself:\n\n` +
+                    `- \`/bot merge\` - squash-merge into \`main\` or \`release/*\`\n` +
+                    `- \`/bot merge --dry-run\` - report the verdict without merging\n\n` +
+                    `The bot re-checks the scope, the file modes and the \`Check profiles\` check at merge time.`
+                }),
+                'Cannot post the partner notice because the token cannot write comments.');
+
+              core.info(`Applied the "${LABEL}" label and posted the /bot merge notice.`);
+              return;
+            }
+
+            core.warning('PR kept changing during verification; not labeling.');

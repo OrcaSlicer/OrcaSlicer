@@ -223,6 +223,12 @@ modules:
         sha256: 51afe0db79af8386e2027d56d685177135581e0ee82ade9d7f2caff8deab5ec5
         dest: external-packages/OpenCSG
 
+      # SolveSpace libslvs (2D sketch constraint solver, Design tab)
+      - type: file
+        url: https://github.com/JacobStoren/SolveSpaceLib/archive/4d8704523e4bf212fadf5189f92484244f670fea.zip
+        sha256: 1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30
+        dest: external-packages/SLVS
+
       # Blosc 1.17.0 (tamasmeszaros fork)
       - type: file
         url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
@@ -378,7 +384,7 @@ modules:
       - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
-    # Built (not run) here via the action's run-tests, then shipped to a separate
+    # Built (not run) here when CI injects run-tests, then shipped to a separate
     # test job. Only the test sources compile; nothing installs to /app.
     test-commands:
       - cmake . -B build_flatpak -DBUILD_TESTS=ON
