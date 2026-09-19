@@ -5,7 +5,17 @@
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "libslic3r/PerimeterGenerator.hpp"
 
+#include <memory>
+
+// Forward declared rather than including libnoise here: this header is pulled in
+// widely, and only callers of get_noise_module() need the complete type.
+namespace noise { namespace module { class Module; } }
+
 namespace Slic3r::Feature::FuzzySkin {
+
+// Shared noise field. Sampling the same module for top surfaces as for the walls is
+// what makes the texture continuous where the two meet.
+std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinConfig& cfg);
 
 void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg);
 
