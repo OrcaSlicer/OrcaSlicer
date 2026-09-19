@@ -3992,6 +3992,13 @@ void MainFrame::select_tab(wxPanel* panel)
     select_tab(page_name);
 }
 
+// Selects the Prepare page without the page-changed event, so the GL canvas is on screen
+// and nothing else is built for the pass.
+void MainFrame::select_prepare_for_gl_init()
+{
+    m_tabpanel->ChangeSelection(m_tabpanel->FindPageByName(TAB_ID_PREPARE));
+}
+
 // The book shows its first page as it is inserted, while the frame is hidden and nothing
 // may build; the first show completes that page.
 bool MainFrame::Show(bool show)

@@ -803,6 +803,10 @@ void Tab::OnActivate()
     }
 #endif
 
+    // The OnActivate() that shows the tab builds the page.
+    if (wxGetApp().mainframe != nullptr && !wxGetApp().mainframe->is_active_and_shown_tab(m_parent))
+        return;
+
     // BBS: select on first active
     if (!m_active_page)
         restore_last_select_item();

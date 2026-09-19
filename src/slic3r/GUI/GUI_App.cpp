@@ -863,7 +863,7 @@ void GUI_App::post_init()
         mainframe->Freeze();
 #endif
         plater_->canvas3D()->enable_render(false);
-        mainframe->select_tab(TAB_ID_PREPARE);
+        mainframe->select_prepare_for_gl_init();
         plater_->select_view_3D("3D");
         //BBS init the opengl resource here
         if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
