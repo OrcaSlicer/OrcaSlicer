@@ -288,6 +288,7 @@ static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRU
     { 176,  48,  41 }, // InternalInfill
     { 150,  84, 204 }, // SolidInfill
     { 240,  64,  64 }, // TopSolidInfill
+    { 204,  64, 150 }, // SubTopSolidInfill
     { 255, 140, 105 }, // Ironing
     {  77, 128, 186 }, // BridgeInfill
     { 255, 255, 255 }, // GapFill

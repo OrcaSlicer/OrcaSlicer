@@ -1079,6 +1079,7 @@ static std::vector<std::string> s_Preset_print_options{
     "lightning_prune_angle",
     "lightning_straightening_angle",
     "top_surface_pattern",
+    "sub_top_surface_pattern",
     "top_surface_expansion",
     "top_surface_expansion_margin",
     "top_surface_expansion_direction",

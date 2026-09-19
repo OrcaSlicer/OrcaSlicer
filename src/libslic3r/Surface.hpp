@@ -19,6 +19,8 @@ enum SurfaceType {
     stInternal,
     // Full infill, supporting the top surfaces and/or defining the verticall wall thickness.
     stInternalSolid,
+    // Internal solid immediately below a visible top fill island (sub-top).
+    stSubTop,
     // 1st layer of dense infill over sparse infill, printed with a bridging extrusion flow.
     stInternalBridge,
     // 2nd layer of dense infill over sparse infill, printed with a bridging extrusion flow.
@@ -109,8 +111,9 @@ public:
     bool   is_internal_bridge() const { return this->surface_type == stInternalBridge; }
 	bool   is_external() const { return this->is_top() || this->is_bottom(); }
 	bool   is_internal() const { return ! this->is_external(); }
-	bool   is_solid()    const { return this->is_external() || this->surface_type == stInternalSolid || this->surface_type == stInternalBridge; }
-	bool   is_solid_infill() const { return this->surface_type == stInternalSolid; }
+    bool   is_sub_top()  const { return this->surface_type == stSubTop; }
+	bool   is_solid()    const { return this->is_external() || this->surface_type == stInternalSolid || this->surface_type == stSubTop || this->surface_type == stInternalBridge; }
+	bool   is_solid_infill() const { return this->surface_type == stInternalSolid || this->surface_type == stSubTop; } // check is_sub_top() first
 };
 
 typedef std::vector<Surface> Surfaces;
