@@ -208,7 +208,7 @@ const char* isolated_slicing_state_name(IsolatedSlicingState state) noexcept
     return "unknown";
 }
 
-std::unique_ptr<IsolatedSlicingJob> IsolatedSlicingJob::capture_live()
+std::shared_ptr<IsolatedSlicingJob> IsolatedSlicingJob::capture_live()
 {
     if (wxTheApp == nullptr)
         throw std::runtime_error("OrcaSlicer application is not initialized");
@@ -255,16 +255,21 @@ std::unique_ptr<IsolatedSlicingJob> IsolatedSlicingJob::capture_live()
     baseline.extruder_filament_info = plater->extruder_filament_info_for_slicing();
 
     // No GUI object, preset, config option or Python wrapper is retained past this point.
-    return create_owned(std::move(baseline), storage_root);
+    return create_owned(std::move(baseline), storage_root, plugin_key);
 }
 
-std::unique_ptr<IsolatedSlicingJob> IsolatedSlicingJob::create_owned(
-    IsolatedSlicingBaseline baseline, std::string plugin_storage_root)
+std::shared_ptr<IsolatedSlicingJob> IsolatedSlicingJob::create_owned(
+    IsolatedSlicingBaseline baseline, std::string plugin_storage_root,
+    std::string plugin_key)
 {
     validate_baseline(baseline);
     const fs::path root = normalized_storage_root(plugin_storage_root);
-    return std::unique_ptr<IsolatedSlicingJob>(
+    std::shared_ptr<IsolatedSlicingJob> job(
         new IsolatedSlicingJob(std::move(baseline), root.string()));
+    if (!plugin_key.empty() &&
+        !PluginManager::instance().register_isolated_slicing_job(plugin_key, job))
+        throw std::runtime_error("Plugin is unloading; new isolated slicing jobs are rejected");
+    return job;
 }
 
 IsolatedSlicingJob::IsolatedSlicingJob(
@@ -530,6 +535,7 @@ void IsolatedSlicingJob::cleanup_owned_output() noexcept
 
 void IsolatedSlicingJob::close() noexcept
 {
+    std::lock_guard<std::mutex> close_lock(m_close_mutex);
     cancel();
     join_worker();
     cleanup_owned_output();

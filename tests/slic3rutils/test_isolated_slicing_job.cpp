@@ -2,9 +2,12 @@
 
 #include "libslic3r/SlicingAdmission.hpp"
 #include "slic3r/plugin/PluginAuditManager.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
 #include "slic3r/plugin/host/IsolatedSlicingJob.hpp"
 
 #include "../fff_print/test_helpers.hpp"
+#include "plugin_test_utils.hpp"
 #include "python_test_support.hpp"
 #include "test_utils.hpp"
 
@@ -12,6 +15,8 @@
 #include <pybind11/embed.h>
 #include <pybind11/eval.h>
 
+#include <chrono>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
@@ -62,13 +67,13 @@ Slic3r::IsolatedSlicingBaseline owned_baseline(
     return baseline;
 }
 
-std::unique_ptr<Slic3r::IsolatedSlicingJob> make_job(
-    const boost::filesystem::path& storage_root)
+std::shared_ptr<Slic3r::IsolatedSlicingJob> make_job(
+    const boost::filesystem::path& storage_root, const std::string& plugin_key = {})
 {
     const Slic3r::DynamicPrintConfig config = small_fff_config();
     const Slic3r::Model model = small_fff_model(config);
     return Slic3r::IsolatedSlicingJob::create_owned(
-        owned_baseline(model, config), storage_root.string());
+        owned_baseline(model, config), storage_root.string(), plugin_key);
 }
 
 bool tree_has_regular_file(const boost::filesystem::path& root)
@@ -92,6 +97,52 @@ void set_printer_technology(
         generic->value = technology;
     else
         FAIL("printer_technology has an unexpected option type");
+}
+
+struct ScopedIsolatedPluginManager
+{
+    bool initialized = Slic3r::PluginManager::instance().initialize();
+
+    ~ScopedIsolatedPluginManager()
+    {
+        Slic3r::PluginManager::instance().shutdown();
+        Slic3r::PythonInterpreter::instance().shutdown();
+    }
+};
+
+const char* const ISOLATED_LIFECYCLE_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Isolated Lifecycle Plugin"
+# description = "Isolated job lifecycle fixture"
+# author = "OrcaSlicer"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+class LifecycleCapability(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "LifecycleCapability"
+
+    def execute(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class LifecyclePackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(LifecycleCapability)
+)PY";
+
+void write_isolated_lifecycle_plugin(const Slic3r::ScopedDataDir& data_dir)
+{
+    const boost::filesystem::path plugin_dir =
+        data_dir.plugins_dir() / "Isolated_Lifecycle_Plugin";
+    boost::filesystem::create_directories(plugin_dir);
+    std::ofstream out(
+        (plugin_dir / "Isolated_Lifecycle_Plugin.py").string(), std::ios::binary);
+    out << ISOLATED_LIFECYCLE_PLUGIN_SOURCE;
 }
 
 } // namespace
@@ -295,7 +346,7 @@ TEST_CASE("isolated slicing Python surface is opaque and wait releases the GIL",
     auto job = make_job(storage.path());
     py::dict globals;
     globals["__builtins__"] = py::module_::import("builtins");
-    globals["job"] = py::cast(job.release(), py::return_value_policy::take_ownership);
+    globals["job"] = py::cast(job);
 
     py::exec(R"PY(
 import sys
@@ -351,4 +402,83 @@ TEST_CASE("live isolated job capture fails closed without an initialized Orca GU
         CHECK(error.matches(PyExc_RuntimeError));
         CHECK(std::string(error.what()).find("application is not initialized") != std::string::npos);
     }
+}
+
+TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs",
+          "[PluginHost][IsolatedJobLifecycle]")
+{
+    Slic3r::ScopedDataDir plugin_data("isolated-job-lifecycle");
+    write_isolated_lifecycle_plugin(plugin_data);
+    ScopedIsolatedPluginManager plugin_system;
+    REQUIRE(plugin_system.initialized);
+
+    Slic3r::PluginManager& manager = Slic3r::PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    manager.load_plugin("Isolated_Lifecycle_Plugin", /*skip_deps=*/true);
+    std::string load_error;
+    REQUIRE(manager.wait_for_plugin_load(
+        "Isolated_Lifecycle_Plugin", std::chrono::seconds(120), load_error));
+    INFO(load_error);
+    REQUIRE(manager.is_plugin_loaded("Isolated_Lifecycle_Plugin"));
+
+    ScopedTemporaryDir storage_a("orca-isolated-lifecycle-a");
+    ScopedTemporaryDir storage_b("orca-isolated-lifecycle-b");
+    ScopedTemporaryDir storage_c("orca-isolated-lifecycle-c");
+    ScopedTemporaryDir storage_d("orca-isolated-lifecycle-d");
+
+    auto plugin_a_job = make_job(storage_a.path(), "Isolated_Lifecycle_Plugin");
+    auto plugin_b_job = make_job(storage_b.path(), "isolated-plugin-b");
+
+    bool teardown_observed_after_drain = false;
+    bool registration_rejected_during_teardown = false;
+    manager.subscribe_on_unload_callback(
+        [&](const std::string& plugin_key) {
+            if (plugin_key == "Isolated_Lifecycle_Plugin") {
+                teardown_observed_after_drain =
+                    plugin_a_job->state() == Slic3r::IsolatedSlicingState::Closed &&
+                    !tree_has_regular_file(storage_a.path() / "isolated_slicing");
+                try {
+                    (void) make_job(storage_a.path(), "Isolated_Lifecycle_Plugin");
+                } catch (const std::runtime_error& error) {
+                    registration_rejected_during_teardown =
+                        std::string(error.what()).find("Plugin is unloading") != std::string::npos;
+                }
+            }
+        });
+
+    plugin_a_job->run();
+    REQUIRE(manager.unload_plugin("Isolated_Lifecycle_Plugin"));
+    CHECK(plugin_a_job->state() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(plugin_a_job->wait() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(teardown_observed_after_drain);
+    CHECK(registration_rejected_during_teardown);
+    CHECK_FALSE(tree_has_regular_file(storage_a.path() / "isolated_slicing"));
+
+    // The per-plugin gate remains closed through teardown, is idempotent, and does not affect B.
+    CHECK_THROWS_WITH(make_job(storage_a.path(), "Isolated_Lifecycle_Plugin"),
+                      Catch::Matchers::ContainsSubstring("Plugin is unloading"));
+    CHECK(manager.unload_plugin("Isolated_Lifecycle_Plugin"));
+    CHECK(plugin_b_job->state() == Slic3r::IsolatedSlicingState::Ready);
+    plugin_b_job->run();
+    REQUIRE(plugin_b_job->wait() == Slic3r::IsolatedSlicingState::Succeeded);
+    REQUIRE(tree_has_regular_file(storage_b.path() / "isolated_slicing"));
+
+    auto plugin_c_job = make_job(storage_c.path(), "isolated-plugin-c");
+    auto plugin_d_job = make_job(storage_d.path(), "isolated-plugin-d");
+    plugin_c_job->run();
+
+    // Global shutdown drains running, completed and not-yet-run jobs before normal plugin teardown.
+    manager.shutdown();
+    CHECK(plugin_b_job->state() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(plugin_c_job->state() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(plugin_c_job->wait() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(plugin_d_job->state() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK_FALSE(tree_has_regular_file(storage_b.path() / "isolated_slicing"));
+    CHECK_FALSE(tree_has_regular_file(storage_c.path() / "isolated_slicing"));
+    CHECK_FALSE(tree_has_regular_file(storage_d.path() / "isolated_slicing"));
+    CHECK_THROWS_WITH(make_job(storage_d.path(), "isolated-plugin-new"),
+                      Catch::Matchers::ContainsSubstring("Plugin is unloading"));
+
+    // Repeated shutdown has no workers to drain and remains safe.
+    manager.shutdown();
 }

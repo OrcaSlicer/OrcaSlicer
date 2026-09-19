@@ -96,12 +96,13 @@ class IsolatedSlicingJob
 public:
     // Plugin-facing entry point. Capture is synchronous and rejects calls that
     // are not made by a registered plugin on Orca's UI thread.
-    static std::unique_ptr<IsolatedSlicingJob> capture_live();
+    static std::shared_ptr<IsolatedSlicingJob> capture_live();
 
     // Internal construction seam used by focused host tests. The resulting job
     // has exactly the same ownership, validation and worker behavior as a live capture.
-    static std::unique_ptr<IsolatedSlicingJob> create_owned(
-        IsolatedSlicingBaseline baseline, std::string plugin_storage_root);
+    static std::shared_ptr<IsolatedSlicingJob> create_owned(
+        IsolatedSlicingBaseline baseline, std::string plugin_storage_root,
+        std::string plugin_key = {});
 
     ~IsolatedSlicingJob();
 
@@ -132,6 +133,7 @@ private:
 
     mutable std::mutex m_mutex;
     std::mutex         m_join_mutex;
+    std::mutex         m_close_mutex;
     std::thread        m_worker;
     std::shared_ptr<Print> m_active_print;
     std::atomic<bool>  m_cancel_requested { false };

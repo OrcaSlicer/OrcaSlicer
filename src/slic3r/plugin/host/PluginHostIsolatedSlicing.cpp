@@ -65,7 +65,8 @@ void register_isolated_slicing(py::module_& host)
         .def_readonly("gcode_path", &IsolatedSlicingResult::gcode_path)
         .def_readonly("gcode_size", &IsolatedSlicingResult::gcode_size);
 
-    py::class_<IsolatedSlicingJob>(host, "IsolatedFFFSlicingJob")
+    py::class_<IsolatedSlicingJob, std::shared_ptr<IsolatedSlicingJob>>(
+        host, "IsolatedFFFSlicingJob")
         .def("snapshot", &IsolatedSlicingJob::snapshot,
              "Return copied metadata describing the immutable owned baseline.")
         .def("apply_candidate", &IsolatedSlicingJob::apply_candidate, py::arg("patch"),

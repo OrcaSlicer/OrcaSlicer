@@ -9,6 +9,7 @@
 #include "PluginHooks.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
+#include "host/IsolatedSlicingJob.hpp"
 
 #include "OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Semver.hpp"
@@ -68,6 +69,11 @@ bool PluginManager::initialize()
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_initialized)
             return true;
+
+        // A previous shutdown leaves the isolated-job gate closed. Re-initialization is supported
+        // in tests and reload flows, so finish stale native ownership before reopening it. close()
+        // is native-only and cannot re-enter this manager or Python while m_mutex is held.
+        reset_isolated_slicing_job_registry();
         m_shutting_down.store(false, std::memory_order_release);
     }
 
@@ -120,10 +126,99 @@ bool PluginManager::initialize()
     return true;
 }
 
-void PluginManager::set_shutting_down() { m_shutting_down.store(true, std::memory_order_release); }
+bool PluginManager::register_isolated_slicing_job(
+    const std::string& plugin_key, const std::shared_ptr<IsolatedSlicingJob>& job)
+{
+    if (plugin_key.empty() || !job)
+        return false;
+
+    std::lock_guard<std::mutex> lock(m_isolated_jobs_mutex);
+    if (m_isolated_jobs_global_blocked ||
+        m_isolated_jobs_blocked_plugins.count(plugin_key) != 0)
+        return false;
+
+    auto& jobs = m_isolated_jobs[plugin_key];
+    jobs.erase(std::remove_if(jobs.begin(), jobs.end(),
+                              [](const std::weak_ptr<IsolatedSlicingJob>& entry) {
+                                  return entry.expired();
+                              }),
+               jobs.end());
+    jobs.emplace_back(job);
+    return true;
+}
+
+void PluginManager::allow_isolated_slicing_jobs_for_plugin(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> lock(m_isolated_jobs_mutex);
+    if (!m_isolated_jobs_global_blocked)
+        m_isolated_jobs_blocked_plugins.erase(plugin_key);
+}
+
+std::vector<std::shared_ptr<IsolatedSlicingJob>>
+PluginManager::block_isolated_slicing_jobs_for_plugin(const std::string& plugin_key)
+{
+    std::vector<std::shared_ptr<IsolatedSlicingJob>> jobs;
+    std::lock_guard<std::mutex> lock(m_isolated_jobs_mutex);
+    m_isolated_jobs_blocked_plugins.insert(plugin_key);
+
+    const auto found = m_isolated_jobs.find(plugin_key);
+    if (found == m_isolated_jobs.end())
+        return jobs;
+    for (const std::weak_ptr<IsolatedSlicingJob>& entry : found->second)
+        if (std::shared_ptr<IsolatedSlicingJob> job = entry.lock())
+            jobs.emplace_back(std::move(job));
+    m_isolated_jobs.erase(found);
+    return jobs;
+}
+
+void PluginManager::drain_isolated_slicing_jobs(
+    const std::vector<std::shared_ptr<IsolatedSlicingJob>>& jobs) noexcept
+{
+    // IsolatedSlicingJob::close() is native-only: cancellation, join and owned-path cleanup.
+    // It never enters Python and deliberately has no forced-unload timeout.
+    for (const std::shared_ptr<IsolatedSlicingJob>& job : jobs)
+        if (job)
+            job->close();
+}
+
+void PluginManager::drain_all_isolated_slicing_jobs() noexcept
+{
+    std::vector<std::shared_ptr<IsolatedSlicingJob>> jobs;
+    {
+        std::lock_guard<std::mutex> lock(m_isolated_jobs_mutex);
+        m_isolated_jobs_global_blocked = true;
+        for (const auto& [plugin_key, entries] : m_isolated_jobs) {
+            (void) plugin_key;
+            for (const std::weak_ptr<IsolatedSlicingJob>& entry : entries)
+                if (std::shared_ptr<IsolatedSlicingJob> job = entry.lock())
+                    jobs.emplace_back(std::move(job));
+        }
+        m_isolated_jobs.clear();
+    }
+    drain_isolated_slicing_jobs(jobs);
+}
+
+void PluginManager::reset_isolated_slicing_job_registry() noexcept
+{
+    // Keep registration blocked while stale weak entries are promoted and synchronously closed.
+    drain_all_isolated_slicing_jobs();
+    std::lock_guard<std::mutex> lock(m_isolated_jobs_mutex);
+    m_isolated_jobs_blocked_plugins.clear();
+    m_isolated_jobs_global_blocked = false;
+}
+
+void PluginManager::set_shutting_down()
+{
+    m_shutting_down.store(true, std::memory_order_release);
+    drain_all_isolated_slicing_jobs();
+}
 
 void PluginManager::shutdown()
 {
+    // Close the native gate and synchronously drain workers before hooks, modules or the Python
+    // interpreter begin teardown. Repeated calls are intentionally harmless.
+    set_shutting_down();
+
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         const bool idle_and_empty = m_load_in_progress.empty() && std::none_of(m_plugins.begin(), m_plugins.end(),
@@ -138,9 +233,6 @@ void PluginManager::shutdown()
     // unload. The lifecycle-event hook also drains callbacks already in progress before returning;
     // the remaining hook seams retain their existing shutdown requirements.
     plugin_hooks::uninstall();
-
-    // Reject new plugin loads before we drain.
-    set_shutting_down();
 
     std::string wait_error;
     if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error) && !wait_error.empty())
@@ -810,6 +902,9 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
         load_in_progress = m_load_in_progress.count(plugin_id) > 0;
         shutting_down   = m_shutting_down.load(std::memory_order_acquire);
         if (exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
+            // This manager lock orders a genuine reload after the unload operation that blocked
+            // the key. A load already in progress is cancelled by unload and cannot reopen it.
+            allow_isolated_slicing_jobs_for_plugin(plugin_id);
             m_load_in_progress.insert(plugin_id);
             m_load_errors.erase(plugin_id);
             load_slot_claimed = true;
@@ -998,9 +1093,14 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
     Plugin removed;
     bool cancelled = false;
     bool found     = false;
+    std::vector<std::shared_ptr<IsolatedSlicingJob>> isolated_jobs;
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+
+        // Block registration while ordered with plugin load admission, then retain strong native
+        // references for the drain performed outside m_mutex.
+        isolated_jobs = block_isolated_slicing_jobs_for_plugin(plugin_key);
 
         // Cancel any in-progress load for this plugin so its worker discards the result.
         cancelled = cancel_plugin_load_locked(plugin_key);
@@ -1018,6 +1118,9 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
             plugin->descriptor               = std::move(kept_descriptor);
         }
     }
+
+    // Must precede every unload callback, capability teardown, module DECREF and Python hook.
+    drain_isolated_slicing_jobs(isolated_jobs);
 
     if (!found) {
         notify_plugin_load_state_changed(cancelled);
