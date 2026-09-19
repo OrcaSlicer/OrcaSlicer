@@ -1429,11 +1429,11 @@ void MainFrame::init_tabpanel() {
     });
     m_printer_view->Hide();
 
+    m_multi_machine_page = new LazyPage<MultiMachinePage>(m_tabpanel, TAB_ID_MULTI_DEVICE, 40);
+    m_lazy_pages.push_back(m_multi_machine_page);
     if (wxGetApp().is_enable_multi_machine()) {
-        m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-        m_multi_machine->SetBackgroundColour(*wxWHITE);
         // TODO: change the bitmap
-        m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
+        m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
     }
 
     m_project_page = new LazyPage<ProjectPanel>(m_tabpanel, TAB_ID_PROJECT, 60);
@@ -1506,17 +1506,13 @@ void MainFrame::show_device(bool should_use_native) {
         }
 
         if (wxGetApp().is_enable_multi_machine()) {
-            if (!m_multi_machine) {
-                m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-                m_multi_machine->SetBackgroundColour(*wxWHITE);
-            }
             // TODO: change the bitmap
-            if (m_tabpanel->FindPage(m_multi_machine) == wxNOT_FOUND) {
-                m_multi_machine->Show(false);
+            if (!m_multi_machine_page->in_book()) {
+                m_multi_machine_page->Show(false);
                 // Past the web Device tab when it is already there, so enabling multi-machine
                 // later can't wedge this page between the two Device tabs.
                 m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR_WEB, TAB_ID_MONITOR}),
-                                       TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
+                                       TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
             }
         }
         if (!m_calibration_page->in_book()) {
@@ -1564,13 +1560,9 @@ void MainFrame::show_device(bool should_use_native) {
                                _L("Device"), "tab_monitor_active");
 
         if (wxGetApp().is_enable_multi_machine()) {
-            if (!m_multi_machine) {
-                m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-                m_multi_machine->SetBackgroundColour(*wxWHITE);
-            }
             // TODO: change the bitmap
-            m_multi_machine->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine,
+            m_multi_machine_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine_page,
                                    _L("Multi-device"), "tab_multi_active");
         }
         m_calibration_page->Show(false);
@@ -1592,8 +1584,8 @@ void MainFrame::show_device(bool should_use_native) {
             m_calibration_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if ((idx = m_tabpanel->FindPage(m_multi_machine)) != wxNOT_FOUND) {
-            m_multi_machine->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_multi_machine_page)) != wxNOT_FOUND) {
+            m_multi_machine_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
         if ((idx = m_tabpanel->FindPage(m_monitor_page)) != wxNOT_FOUND) {
@@ -2665,8 +2657,7 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     // A panel mid-build gets the pass once it is complete.
     ProjectPanel::when_built([](ProjectPanel& project) { project.msw_rescale(); });
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
-    if(m_multi_machine)
-        m_multi_machine->msw_rescale();
+    MultiMachinePage::when_built([](MultiMachinePage& multi_machine) { multi_machine.msw_rescale(); });
     CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.msw_rescale(); });
 
     // BBS
@@ -4047,10 +4038,10 @@ void MainFrame::jump_to_monitor(std::string dev_id)
 
 void MainFrame::jump_to_multipage()
 {
-    if(!m_multi_machine)
+    if (!m_multi_machine_page->in_book())
         return;
     m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE);
-    ((MultiMachinePage*)m_multi_machine)->jump_to_send_page();
+    m_multi_machine_page->ensure().jump_to_send_page();
 }
 
 
@@ -4518,7 +4509,8 @@ void MainFrame::update_side_preset_ui()
 
 
     //take off multi machine
-    if(m_multi_machine){m_multi_machine->clear_page();}
+    if (MultiMachinePage* multi_machine = MultiMachinePage::if_built())
+        multi_machine->clear_page();
 }
 
 void MainFrame::on_select_default_preset(SimpleEvent& evt)

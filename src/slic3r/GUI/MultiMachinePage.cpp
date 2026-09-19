@@ -11,6 +11,7 @@ namespace GUI {
 MultiMachinePage::MultiMachinePage(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
     : wxPanel(parent, id, pos, size, style)
 {
+    SetBackgroundColour(*wxWHITE);
     init_tabpanel();
     m_main_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxLEFT, 0);

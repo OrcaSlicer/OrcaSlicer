@@ -453,7 +453,7 @@ public:
     LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
     //AuxiliaryPanel*       m_auxiliary{ nullptr };
-    MultiMachinePage*     m_multi_machine{ nullptr };
+    LazyPage<MultiMachinePage>* m_multi_machine_page{ nullptr };
     LazyPage<ProjectPanel>* m_project_page{ nullptr };
 
     LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
