@@ -61,10 +61,19 @@ bool LabeledStaticBox::Create(
     m_label_height = tH - externalLeading;
     m_label_width  = tW;
 
+#ifdef __WXGTK__
+    // Native wxStaticBox on GTK paints itself via the "draw" signal
+    // and bypassing wx's own EVT_PAINT pipeline entirely.
+    // Hook it directly and suppress the native theme render.
+    GtkWidget* handle = GetHandle();
+    gtk_widget_set_app_paintable(handle, TRUE);
+    g_signal_connect(handle, "draw", G_CALLBACK(&LabeledStaticBox::GtkDrawCallback), this);
+#else
     Bind(wxEVT_PAINT,([this](wxPaintEvent e) {
         wxPaintDC dc(this);
         PickDC(dc);
     }));
+#endif
 
     state_handler.attach({&text_color, &background_color, &border_color});
     state_handler.update_binds();
@@ -181,9 +190,40 @@ void LabeledStaticBox::DrawBorderAndLabel(wxDC& dc)
     }
 }
 
+#ifdef __WXGTK__
+gboolean LabeledStaticBox::GtkDrawCallback(GtkWidget* widget, cairo_t* cr, gpointer data)
+{
+    LabeledStaticBox*  self = static_cast<LabeledStaticBox*>(data);
+    wxGraphicsContext* gc   = wxGraphicsRenderer::GetCairoRenderer()->CreateContextFromNativeContext(cr);
+
+    if (gc) {
+        wxGCDC dc(gc); // wxGCDC takes ownership of gc
+        self->DrawBorderAndLabel(dc);
+    }
+
+    // Manually propagate the draw to children, since we're suppressinh the default class handler 
+    // which is what would normally do this for a GtkContainer like GtkFrame).
+    if (GTK_IS_CONTAINER(widget)) {
+        auto child = GTK_WIDGET(gtk_bin_get_child(GTK_BIN(widget)));
+        if(child){
+            gtk_container_propagate_draw(
+                GTK_CONTAINER(widget),
+                GTK_WIDGET(gtk_bin_get_child(GTK_BIN(widget))), // if single-child container
+                cr
+            );
+        }
+    }
+
+    return TRUE; // stop the native GtkFrame theme render from running
+}
+#endif
+
 void LabeledStaticBox::GetBordersForSizer(int* borderTop, int* borderOther) const {
     wxStaticBox::GetBordersForSizer(borderTop, borderOther);
 #ifdef __WXOSX__
     *borderOther = 5; // Make sure macOS uses the same border padding as other platforms
+#endif
+#ifdef __WXGTK__
+    *borderOther = m_border_width + (int)(5 * m_scale);
 #endif
 }
