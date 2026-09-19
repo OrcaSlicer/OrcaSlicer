@@ -900,10 +900,10 @@ void GUI_App::post_init()
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished rendering a first frame for test";
             }
         }
-        if (is_editor())
-            mainframe->select_tab(TAB_ID_HOME);
-        if (app_config->get("default_page") == "1")
+        if (starts_on_prepare())
             mainframe->select_tab(TAB_ID_PREPARE);
+        else if (is_editor())
+            mainframe->select_tab(TAB_ID_HOME);
 #ifndef __linux__
         mainframe->Thaw();
 #endif
@@ -3412,9 +3412,12 @@ bool GUI_App::on_init_inner()
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
-    // hide settings tabs after first Layout
     if (is_editor()) {
-        mainframe->select_tab(TAB_ID_HOME);
+        if (starts_on_prepare()) {
+            mainframe->select_tab(TAB_ID_PREPARE);
+        } else {
+            mainframe->select_tab(TAB_ID_HOME);
+        }
     }
 
     sidebar().obj_list()->init();
@@ -5009,7 +5012,8 @@ void GUI_App::get_login_info(const std::string& provider/* = ORCA_CLOUD_PROVIDER
             wxString    strJS      = wxString::Format("window.postMessage(%s)", from_u8(logout_cmd));
             GUI::wxGetApp().run_script(strJS);
         }
-        mainframe->m_webview->SetLoginPanelVisibility(true);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SetLoginPanelVisibility(true);
     }
 }
 
@@ -5141,9 +5145,9 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 "homepage_bambu_login_or_register",
             };
             if (app_config->get_stealth_mode() && stealth_blocked_info_commands.count(command_str)) {
-                CallAfter([this] {
-                    if (mainframe && mainframe->m_webview)
-                        mainframe->m_webview->SendCloudProvidersInfo();
+                CallAfter([] {
+                    if (WebViewPanel* home = WebViewPanel::if_built())
+                        home->SendCloudProvidersInfo();
                 });
                 return "";
             }
@@ -5157,8 +5161,8 @@ std::string GUI_App::handle_web_request(std::string cmd)
                     if (dlg.ShowModal() == wxID_OK) {
                         app_config->set_bool("stealth_mode", false);
                         app_config->save();
-                        if (mainframe && mainframe->m_webview)
-                            mainframe->m_webview->SendCloudProvidersInfo();
+                        if (WebViewPanel* home = WebViewPanel::if_built())
+                            home->SendCloudProvidersInfo();
                         // Continue with login
                         if (command_str == "homepage_login_or_register")
                             this->request_login(true);
@@ -5239,8 +5243,8 @@ std::string GUI_App::handle_web_request(std::string cmd)
             }
             else if (command_str.compare("get_recent_projects") == 0) {
                 if (mainframe) {
-                    if (mainframe->m_webview) {
-                        mainframe->m_webview->SendRecentList(INT_MAX);
+                    if (WebViewPanel* home = WebViewPanel::if_built()) {
+                        home->SendRecentList(INT_MAX);
                     }
                 }
             }
@@ -7773,8 +7777,8 @@ void GUI_App::on_stealth_mode_enter()
     BOOST_LOG_TRIVIAL(info) << "logout: on_stealth_mode_enter";
     request_user_logout(ORCA_CLOUD_PROVIDER);
     request_user_logout(BBL_CLOUD_PROVIDER);
-    if (mainframe && mainframe->m_webview) {
-        mainframe->m_webview->SendCloudProvidersInfo();
+    if (WebViewPanel* home = WebViewPanel::if_built()) {
+        home->SendCloudProvidersInfo();
     }
 }
 
@@ -8184,6 +8188,11 @@ ConfigOptionMode GUI_App::get_saved_mode()
     return saved_mode_from_string(app_config->get("user_mode"));
 }
 
+bool GUI_App::starts_on_prepare() const
+{
+    return app_config->get("default_page") == "1";
+}
+
 int GUI_App::input_idle_ms() const
 {
     return int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_input).count());
@@ -8250,7 +8259,8 @@ void GUI_App::update_mode()
         mainframe->m_param_dialog->panel()->update_mode();
     if (PrinterWebView* view = PrinterWebView::if_built())
         view->update_mode();
-    mainframe->m_webview->update_mode();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->update_mode();
 
 #ifdef _MSW_DARK_MODE
     if (!wxGetApp().tabs_as_menu())
@@ -8268,7 +8278,8 @@ void GUI_App::update_mode()
 }
 
 void GUI_App::update_internal_development() {
-    mainframe->m_webview->update_mode();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->update_mode();
     if (PrinterWebView* view = PrinterWebView::if_built())
         view->update_mode();
 }

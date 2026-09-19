@@ -1385,13 +1385,14 @@ void MainFrame::init_tabpanel() {
     });
 
     if (wxGetApp().is_editor()) {
-        m_webview         = new WebViewPanel(m_tabpanel);
+        m_home_page = new LazyPage<WebViewPanel>(m_tabpanel, TAB_ID_HOME, 10);
+        m_lazy_pages.push_back(m_home_page);
         Bind(EVT_LOAD_URL, [this](wxCommandEvent &evt) {
             wxString url = evt.GetString();
             select_tab(TAB_ID_HOME);
-            m_webview->load_url(url);
+            WebViewPanel::ensure()->load_url(url);
         });
-        m_tabpanel->AddPage(TAB_ID_HOME, m_webview, "", "tab_home_active");
+        m_tabpanel->AddPage(TAB_ID_HOME, m_home_page, "", "tab_home_active");
         m_param_panel = new ParamsPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL);
     }
 
@@ -3646,7 +3647,8 @@ void MainFrame::set_max_recent_count(int max)
         }
         wxGetApp().app_config->set_recent_projects(recent_projects);
         wxGetApp().app_config->save();
-        m_webview->SendRecentList(-1);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendRecentList(-1);
     }
 }
 
@@ -4187,7 +4189,8 @@ void MainFrame::add_to_recent_projects(const wxString& filename)
             recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
         }
         wxGetApp().app_config->set_recent_projects(recent_projects);
-        m_webview->SendRecentList(0);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendRecentList(0);
     }
 }
 
@@ -4303,7 +4306,8 @@ void MainFrame::open_recent_project(size_t file_id, wxString const & filename)
                 recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
             }
             wxGetApp().app_config->set_recent_projects(recent_projects);
-            m_webview->SendRecentList(-1);
+            if (WebViewPanel* home = WebViewPanel::if_built())
+                home->SendRecentList(-1);
         }
     }
 }
@@ -4326,7 +4330,8 @@ void MainFrame::remove_recent_project(size_t file_id, wxString const &filename)
         recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
     }
     wxGetApp().app_config->set_recent_projects(recent_projects);
-    m_webview->SendRecentList(-1);
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->SendRecentList(-1);
 }
 
 void MainFrame::load_url(wxString url)
@@ -4380,14 +4385,14 @@ bool MainFrame::is_printer_view() const { return m_tabpanel->GetSelectedPageName
 
 void MainFrame::refresh_plugin_tips()
 {
-    if (m_webview != nullptr)
-        m_webview->ShowNetpluginTip();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->ShowNetpluginTip();
 }
 
 void MainFrame::RunScript(wxString js)
 {
-    if (m_webview != nullptr)
-        m_webview->RunScript(js);
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->RunScript(js);
 }
 
 void MainFrame::technology_changed()

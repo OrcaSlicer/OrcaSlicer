@@ -460,7 +460,7 @@ public:
     LazyPage<ProjectPanel>* m_project_page{ nullptr };
 
     LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
-    WebViewPanel*         m_webview { nullptr };
+    LazyPage<WebViewPanel>* m_home_page { nullptr };
     LazyPage<PrinterWebView>* m_printer_view_page{nullptr};
     PluginPages           m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };

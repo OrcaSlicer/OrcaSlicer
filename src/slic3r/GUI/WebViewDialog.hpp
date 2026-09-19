@@ -24,6 +24,7 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 #include <wx/timer.h>
+#include "Lazy.hpp"
 
 
 namespace Slic3r {
@@ -33,7 +34,7 @@ class NetworkAgent;
 namespace GUI {
 
 
-class WebViewPanel : public wxPanel
+class WebViewPanel : public wxPanel, public LazyInstance<WebViewPanel>
 {
 public:
     WebViewPanel(wxWindow *parent);

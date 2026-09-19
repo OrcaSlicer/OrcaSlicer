@@ -392,6 +392,8 @@ public:
     // Milliseconds since the last mouse or keyboard event the app processed.
     int  input_idle_ms() const;
     int  FilterEvent(wxEvent& event) override;
+    // The Preferences "Default page" choice, stored as its index: 0 Home, 1 Prepare.
+    bool starts_on_prepare() const;
     std::string logo_name() const { return is_editor() ? "OrcaSlicer" : "OrcaSlicer-gcodeviewer"; }
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
