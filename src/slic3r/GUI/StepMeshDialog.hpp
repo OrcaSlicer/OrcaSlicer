@@ -6,6 +6,8 @@
 #include "GUI_Utils.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
+
 class Button;
 
 class StepMeshDialog : public Slic3r::GUI::DPIDialog
@@ -35,9 +37,9 @@ public:
     }
 private:
     Slic3r::Step& m_file;
-    wxCheckBox* m_checkbox = nullptr;
-    wxCheckBox* m_split_compound_checkbox = nullptr;
-    wxCheckBox* m_save_default_checkbox = nullptr;
+    LabeledCheckBox* m_checkbox = nullptr;
+    LabeledCheckBox* m_split_compound_checkbox = nullptr;
+    LabeledCheckBox* m_save_default_checkbox = nullptr;
     wxString m_linear_last;
     wxString m_angle_last;
     wxStaticText* mesh_face_number_text;

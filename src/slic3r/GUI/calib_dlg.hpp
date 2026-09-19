@@ -10,6 +10,7 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/LabeledStaticBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "GUI_App.hpp"
 #include "wx/hyperlink.h"
@@ -65,7 +66,7 @@ protected:
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
-    CheckBox*  m_cbResize;
+    LabeledCheckBox*  m_cbResize;
     Plater* m_plater;
 };
 
@@ -100,8 +101,8 @@ protected:
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
-    CheckBox*  m_cbAutoAdjust;
-    CheckBox*  m_cbResize;
+    LabeledCheckBox*  m_cbAutoAdjust;
+    LabeledCheckBox*  m_cbResize;
     Plater* m_plater;
 };
 

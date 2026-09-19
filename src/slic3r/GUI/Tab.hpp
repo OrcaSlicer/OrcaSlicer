@@ -39,6 +39,7 @@
 #include "ParamsPanel.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
+#include "Widgets/LabeledCheckBox.hpp" // ORCA
 
 class TabCtrl;
 class ModeSwitchButton;
@@ -166,8 +167,7 @@ protected:
 
    	struct PresetDependencies {
 		Preset::Type type	  = Preset::TYPE_INVALID;
-		::CheckBox*   checkbox = nullptr;
-		wxStaticText* checkbox_title = nullptr;
+		LabeledCheckBox*   checkbox = nullptr;
 		Button 	*btn  = nullptr;
 		std::string  key_list; // "compatible_printers"
 		std::string  key_condition;
