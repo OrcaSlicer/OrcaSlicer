@@ -1740,8 +1740,8 @@ void PreferencesDialog::create_items()
     auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
     g_sizer->Add(item_multi_machine);
 
-    auto item_speed_dial = create_item_checkbox(_L("Open the Speed Dial with the Space key"),
-        _L("When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."),
+    auto item_speed_dial = create_item_checkbox(_L("Open the Speed Dial from the keyboard"),
+        _L("When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."),
         "enable_speed_dial");
     g_sizer->Add(item_speed_dial);
 

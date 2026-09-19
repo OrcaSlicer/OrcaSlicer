@@ -3425,8 +3425,8 @@ void MainFrame::init_menubar_as_editor()
         },
         "", nullptr, []() { return true; }, this, 1);
     parent_menu->AppendSeparator();
-    append_menu_item(
-        parent_menu, wxID_ANY, _L("Open speed dial...") + sep + "Space", "",
+    append_shortcut_item(
+        parent_menu, Shortcut::SpeedDial, false, _L("Open speed dial..."), "",
         [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     //parent_menu->Insert(1, preference_item);
@@ -3453,8 +3453,8 @@ void MainFrame::init_menubar_as_editor()
     auto top_menu = m_topbar->GetTopMenu();
     top_menu->AppendSeparator();
 
-    append_menu_item(
-        top_menu, wxID_ANY, _L("Open speed dial...") + "\t" + "Space", "",
+    append_shortcut_item(
+        top_menu, Shortcut::SpeedDial, false, _L("Open speed dial..."), "",
         [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     top_menu->AppendSeparator();
@@ -3560,8 +3560,8 @@ void MainFrame::init_menubar_as_editor()
 #else
     // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
     fileMenu->AppendSeparator();
-    append_menu_item(
-        fileMenu, wxID_ANY, _L("Open speed dial...") + sep + "Space", "",
+    append_shortcut_item(
+        fileMenu, Shortcut::SpeedDial, false, _L("Open speed dial..."), "",
         [](wxCommandEvent&) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     append_menu_item(
