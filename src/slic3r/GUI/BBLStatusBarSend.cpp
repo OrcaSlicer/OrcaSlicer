@@ -29,7 +29,7 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     wxBoxSizer *m_sizer_bottom = new wxBoxSizer(wxHORIZONTAL);
 
     m_status_text = new wxStaticText(m_self, wxID_ANY, wxEmptyString);
-    m_status_text->SetForegroundColour(wxColour(107, 107, 107));
+    m_status_text->SetForegroundColour(wxColour("#363636"));
     m_status_text->SetFont(::Label::Body_13);
     m_status_text->SetMaxSize(wxSize(m_self->FromDIP(360), m_self->FromDIP(40)));
 
