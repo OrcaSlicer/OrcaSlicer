@@ -1,0 +1,29 @@
+{
+  "build": "PASS",
+  "cylinder": {
+    "zero_travel_layers": 129,
+    "total": 129
+  },
+  "second_material": {
+    "zero_travel_layers": 129,
+    "total": 129
+  },
+  "cube_original": {
+    "zero_travel_layers": 311,
+    "total": 312,
+    "fallback": "top layer monotonicline"
+  },
+  "cube_monotonic_copy": {
+    "zero_travel_layers": 312,
+    "total": 312
+  },
+  "rejection_tests_passed": [
+    "multiple materials",
+    "by object",
+    "multiple instances"
+  ],
+  "prime_tower_test": "Not covered: CLI normalizes enable_prime_tower to 0",
+  "disabled_mode": "Identical except timestamp and object-label IDs",
+  "python_auditor_tests": 5,
+  "cpp_tests": "Not run: disabled in current build configuration"
+}

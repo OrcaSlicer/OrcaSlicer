@@ -1,0 +1,2761 @@
+[
+  {
+    "number": 1,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface",
+      "Gap infill",
+      "Bottom surface"
+    ],
+    "arcs": 0,
+    "zmin": 0.2,
+    "zmax": 0.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.9483199999999985,
+      "Inner wall": 6.018039999999992,
+      "Bottom surface": 34.234200000000016,
+      "Gap infill": 0.01218
+    },
+    "first_line": 75
+  },
+  {
+    "number": 2,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Inner wall",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 0.4,
+    "zmax": 0.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Inner wall": 5.511909999999995,
+      "Internal solid infill": 36.12780999999994,
+      "Gap infill": 0.07249,
+      "Outer wall": 2.4823099999999987
+    },
+    "first_line": 887
+  },
+  {
+    "number": 3,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill"
+    ],
+    "arcs": 0,
+    "zmin": 0.6,
+    "zmax": 0.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.468989999999999,
+      "Inner wall": 5.718449999999995,
+      "Internal solid infill": 35.96714999999995,
+      "Gap infill": 0.07299
+    },
+    "first_line": 1823
+  },
+  {
+    "number": 4,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 0.8,
+    "zmax": 0.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.31331,
+      "Inner wall": 5.081459999999998,
+      "Outer wall": 2.48242
+    },
+    "first_line": 2807
+  },
+  {
+    "number": 5,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 1.0,
+    "zmax": 1.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4693699999999996,
+      "Inner wall": 5.095759999999994,
+      "Sparse infill": 6.27257
+    },
+    "first_line": 3228
+  },
+  {
+    "number": 6,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 1.2,
+    "zmax": 1.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272030000000001,
+      "Inner wall": 5.081460000000004,
+      "Outer wall": 2.4823800000000005
+    },
+    "first_line": 3646
+  },
+  {
+    "number": 7,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 1.4,
+    "zmax": 1.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689199999999993,
+      "Inner wall": 5.0958399999999955,
+      "Sparse infill": 6.27202
+    },
+    "first_line": 4067
+  },
+  {
+    "number": 8,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 1.6,
+    "zmax": 1.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272449999999999,
+      "Inner wall": 5.081519999999998,
+      "Outer wall": 2.4822500000000005
+    },
+    "first_line": 4482
+  },
+  {
+    "number": 9,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 1.8,
+    "zmax": 1.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689499999999995,
+      "Inner wall": 5.095879999999997,
+      "Sparse infill": 6.272139999999999
+    },
+    "first_line": 4900
+  },
+  {
+    "number": 10,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 2.0,
+    "zmax": 2.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27234,
+      "Inner wall": 5.081309999999997,
+      "Outer wall": 2.48229
+    },
+    "first_line": 5313
+  },
+  {
+    "number": 11,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 2.2,
+    "zmax": 2.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4688699999999995,
+      "Inner wall": 5.095839999999995,
+      "Sparse infill": 6.271719999999998
+    },
+    "first_line": 5733
+  },
+  {
+    "number": 12,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 2.4,
+    "zmax": 2.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272379999999998,
+      "Inner wall": 5.081590000000003,
+      "Outer wall": 2.482329999999999
+    },
+    "first_line": 6147
+  },
+  {
+    "number": 13,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 2.6,
+    "zmax": 2.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4696,
+      "Inner wall": 5.0958999999999985,
+      "Sparse infill": 6.271890000000001
+    },
+    "first_line": 6565
+  },
+  {
+    "number": 14,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 2.8,
+    "zmax": 2.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272279999999999,
+      "Inner wall": 5.081489999999998,
+      "Outer wall": 2.4822499999999996
+    },
+    "first_line": 6981
+  },
+  {
+    "number": 15,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 3.0,
+    "zmax": 3.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4694099999999986,
+      "Inner wall": 5.095799999999997,
+      "Sparse infill": 6.272259999999999
+    },
+    "first_line": 7398
+  },
+  {
+    "number": 16,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 3.2,
+    "zmax": 3.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272420000000001,
+      "Inner wall": 5.081499999999998,
+      "Outer wall": 2.482299999999998
+    },
+    "first_line": 7812
+  },
+  {
+    "number": 17,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 3.4,
+    "zmax": 3.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46943,
+      "Inner wall": 5.095680000000002,
+      "Sparse infill": 6.27203
+    },
+    "first_line": 8230
+  },
+  {
+    "number": 18,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 3.6,
+    "zmax": 3.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27221,
+      "Inner wall": 5.081409999999997,
+      "Outer wall": 2.4821100000000005
+    },
+    "first_line": 8647
+  },
+  {
+    "number": 19,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 3.8,
+    "zmax": 3.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46906,
+      "Inner wall": 5.096099999999993,
+      "Sparse infill": 6.271860000000001
+    },
+    "first_line": 9063
+  },
+  {
+    "number": 20,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 4.0,
+    "zmax": 4.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272269999999998,
+      "Inner wall": 5.081459999999999,
+      "Outer wall": 2.4823199999999996
+    },
+    "first_line": 9479
+  },
+  {
+    "number": 21,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 4.2,
+    "zmax": 4.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46902,
+      "Inner wall": 5.095799999999999,
+      "Sparse infill": 6.27189
+    },
+    "first_line": 9896
+  },
+  {
+    "number": 22,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 4.4,
+    "zmax": 4.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.271999999999999,
+      "Inner wall": 5.081399999999998,
+      "Outer wall": 2.482429999999999
+    },
+    "first_line": 10311
+  },
+  {
+    "number": 23,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 4.6,
+    "zmax": 4.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469539999999999,
+      "Inner wall": 5.095899999999995,
+      "Sparse infill": 6.272259999999999
+    },
+    "first_line": 10729
+  },
+  {
+    "number": 24,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 4.8,
+    "zmax": 4.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272629999999999,
+      "Inner wall": 5.081380000000002,
+      "Outer wall": 2.4823799999999987
+    },
+    "first_line": 11146
+  },
+  {
+    "number": 25,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 5.0,
+    "zmax": 5.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689499999999995,
+      "Inner wall": 5.095879999999995,
+      "Sparse infill": 6.27264
+    },
+    "first_line": 11564
+  },
+  {
+    "number": 26,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 5.2,
+    "zmax": 5.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2728399999999995,
+      "Inner wall": 5.081509999999998,
+      "Outer wall": 2.4822600000000006
+    },
+    "first_line": 11978
+  },
+  {
+    "number": 27,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 5.4,
+    "zmax": 5.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4691599999999996,
+      "Inner wall": 5.0958099999999975,
+      "Sparse infill": 6.27293
+    },
+    "first_line": 12390
+  },
+  {
+    "number": 28,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 5.6,
+    "zmax": 5.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2726799999999985,
+      "Inner wall": 5.081529999999998,
+      "Outer wall": 2.4822299999999995
+    },
+    "first_line": 12805
+  },
+  {
+    "number": 29,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 5.8,
+    "zmax": 5.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690999999999996,
+      "Inner wall": 5.095789999999996,
+      "Sparse infill": 6.27259
+    },
+    "first_line": 13222
+  },
+  {
+    "number": 30,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 6.0,
+    "zmax": 6.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272779999999997,
+      "Inner wall": 5.081469999999997,
+      "Outer wall": 2.4822700000000006
+    },
+    "first_line": 13638
+  },
+  {
+    "number": 31,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 6.2,
+    "zmax": 6.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469250000000001,
+      "Inner wall": 5.095729999999996,
+      "Sparse infill": 6.2731
+    },
+    "first_line": 14045
+  },
+  {
+    "number": 32,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 6.4,
+    "zmax": 6.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.273049999999999,
+      "Inner wall": 5.08127,
+      "Outer wall": 2.4824099999999993
+    },
+    "first_line": 14457
+  },
+  {
+    "number": 33,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 6.6,
+    "zmax": 6.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4688800000000004,
+      "Inner wall": 5.095799999999995,
+      "Sparse infill": 6.272819999999999
+    },
+    "first_line": 14873
+  },
+  {
+    "number": 34,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 6.8,
+    "zmax": 6.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272799999999999,
+      "Inner wall": 5.081469999999997,
+      "Outer wall": 2.4823
+    },
+    "first_line": 15278
+  },
+  {
+    "number": 35,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 7.0,
+    "zmax": 7.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4695500000000017,
+      "Inner wall": 5.095689999999996,
+      "Sparse infill": 6.273000000000001
+    },
+    "first_line": 15693
+  },
+  {
+    "number": 36,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 7.2,
+    "zmax": 7.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.273119999999999,
+      "Inner wall": 5.081259999999997,
+      "Outer wall": 2.4823400000000015
+    },
+    "first_line": 16091
+  },
+  {
+    "number": 37,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 7.4,
+    "zmax": 7.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690499999999997,
+      "Inner wall": 5.095729999999996,
+      "Sparse infill": 6.27288
+    },
+    "first_line": 16498
+  },
+  {
+    "number": 38,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 7.6,
+    "zmax": 7.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.273129999999997,
+      "Inner wall": 5.081449999999998,
+      "Outer wall": 2.4822999999999995
+    },
+    "first_line": 16905
+  },
+  {
+    "number": 39,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 7.8,
+    "zmax": 7.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4692200000000017,
+      "Inner wall": 5.0958199999999945,
+      "Sparse infill": 6.272179999999999
+    },
+    "first_line": 17319
+  },
+  {
+    "number": 40,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 8.0,
+    "zmax": 8.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272919999999999,
+      "Inner wall": 5.081289999999997,
+      "Outer wall": 2.4824100000000007
+    },
+    "first_line": 17719
+  },
+  {
+    "number": 41,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 8.2,
+    "zmax": 8.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46915,
+      "Inner wall": 5.095879999999995,
+      "Sparse infill": 6.272519999999998
+    },
+    "first_line": 18132
+  },
+  {
+    "number": 42,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 8.4,
+    "zmax": 8.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2725800000000005,
+      "Inner wall": 5.081289999999998,
+      "Outer wall": 2.482359999999999
+    },
+    "first_line": 18548
+  },
+  {
+    "number": 43,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 8.6,
+    "zmax": 8.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4693099999999997,
+      "Inner wall": 5.095599999999997,
+      "Sparse infill": 6.272899999999999
+    },
+    "first_line": 18961
+  },
+  {
+    "number": 44,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 8.8,
+    "zmax": 8.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27307,
+      "Inner wall": 5.081219999999998,
+      "Outer wall": 2.482270000000001
+    },
+    "first_line": 19363
+  },
+  {
+    "number": 45,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 9.0,
+    "zmax": 9.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689300000000016,
+      "Inner wall": 5.095829999999995,
+      "Sparse infill": 6.272910000000001
+    },
+    "first_line": 19763
+  },
+  {
+    "number": 46,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 9.2,
+    "zmax": 9.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2727,
+      "Inner wall": 5.081139999999997,
+      "Outer wall": 2.4823600000000017
+    },
+    "first_line": 20162
+  },
+  {
+    "number": 47,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 9.4,
+    "zmax": 9.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46961,
+      "Inner wall": 5.095669999999996,
+      "Sparse infill": 6.272489999999999
+    },
+    "first_line": 20563
+  },
+  {
+    "number": 48,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 9.6,
+    "zmax": 9.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.273079999999999,
+      "Inner wall": 5.081419999999999,
+      "Outer wall": 2.48237
+    },
+    "first_line": 20975
+  },
+  {
+    "number": 49,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 9.8,
+    "zmax": 9.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689700000000014,
+      "Inner wall": 5.095729999999996,
+      "Sparse infill": 6.272569999999998
+    },
+    "first_line": 21390
+  },
+  {
+    "number": 50,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 10.0,
+    "zmax": 10.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.273059999999998,
+      "Inner wall": 5.081339999999997,
+      "Outer wall": 2.4822999999999995
+    },
+    "first_line": 21789
+  },
+  {
+    "number": 51,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 10.2,
+    "zmax": 10.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46996,
+      "Inner wall": 5.095909999999996,
+      "Sparse infill": 6.2727200000000005
+    },
+    "first_line": 22203
+  },
+  {
+    "number": 52,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 10.4,
+    "zmax": 10.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2726,
+      "Inner wall": 5.081319999999998,
+      "Outer wall": 2.48241
+    },
+    "first_line": 22616
+  },
+  {
+    "number": 53,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 10.6,
+    "zmax": 10.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46896,
+      "Inner wall": 5.095849999999997,
+      "Sparse infill": 6.2725300000000015
+    },
+    "first_line": 23030
+  },
+  {
+    "number": 54,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 10.8,
+    "zmax": 10.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2725100000000005,
+      "Inner wall": 5.0814099999999955,
+      "Outer wall": 2.4822999999999995
+    },
+    "first_line": 23445
+  },
+  {
+    "number": 55,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 11.0,
+    "zmax": 11.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4694500000000006,
+      "Inner wall": 5.095879999999996,
+      "Sparse infill": 6.27258
+    },
+    "first_line": 23860
+  },
+  {
+    "number": 56,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 11.2,
+    "zmax": 11.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272559999999999,
+      "Inner wall": 5.081329999999997,
+      "Outer wall": 2.48241
+    },
+    "first_line": 24273
+  },
+  {
+    "number": 57,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 11.4,
+    "zmax": 11.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46894,
+      "Inner wall": 5.095889999999995,
+      "Sparse infill": 6.27258
+    },
+    "first_line": 24687
+  },
+  {
+    "number": 58,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 11.6,
+    "zmax": 11.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27297,
+      "Inner wall": 5.081279999999998,
+      "Outer wall": 2.4822599999999997
+    },
+    "first_line": 25093
+  },
+  {
+    "number": 59,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 11.8,
+    "zmax": 11.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46955,
+      "Inner wall": 5.095759999999999,
+      "Sparse infill": 6.27257
+    },
+    "first_line": 25506
+  },
+  {
+    "number": 60,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 12.0,
+    "zmax": 12.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2722999999999995,
+      "Inner wall": 5.08121,
+      "Outer wall": 2.48228
+    },
+    "first_line": 25907
+  },
+  {
+    "number": 61,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 12.2,
+    "zmax": 12.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4688999999999997,
+      "Inner wall": 5.095699999999997,
+      "Sparse infill": 6.27274
+    },
+    "first_line": 26321
+  },
+  {
+    "number": 62,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 12.4,
+    "zmax": 12.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272629999999999,
+      "Inner wall": 5.081269999999999,
+      "Outer wall": 2.4823799999999996
+    },
+    "first_line": 26730
+  },
+  {
+    "number": 63,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 12.6,
+    "zmax": 12.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4693000000000005,
+      "Inner wall": 5.095909999999998,
+      "Sparse infill": 6.272589999999999
+    },
+    "first_line": 27132
+  },
+  {
+    "number": 64,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 12.8,
+    "zmax": 12.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272360000000001,
+      "Inner wall": 5.081289999999998,
+      "Outer wall": 2.482119999999999
+    },
+    "first_line": 27546
+  },
+  {
+    "number": 65,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 13.0,
+    "zmax": 13.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46906,
+      "Inner wall": 5.095749999999995,
+      "Sparse infill": 6.272759999999999
+    },
+    "first_line": 27949
+  },
+  {
+    "number": 66,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 13.2,
+    "zmax": 13.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2716400000000005,
+      "Inner wall": 5.081229999999999,
+      "Outer wall": 2.4823299999999997
+    },
+    "first_line": 28365
+  },
+  {
+    "number": 67,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 13.4,
+    "zmax": 13.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46946,
+      "Inner wall": 5.0957199999999965,
+      "Sparse infill": 6.27165
+    },
+    "first_line": 28771
+  },
+  {
+    "number": 68,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 13.6,
+    "zmax": 13.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.271959999999999,
+      "Inner wall": 5.081289999999998,
+      "Outer wall": 2.4823299999999993
+    },
+    "first_line": 29180
+  },
+  {
+    "number": 69,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 13.8,
+    "zmax": 13.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46895,
+      "Inner wall": 5.095779999999996,
+      "Sparse infill": 6.27199
+    },
+    "first_line": 29584
+  },
+  {
+    "number": 70,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 14.0,
+    "zmax": 14.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27228,
+      "Inner wall": 5.081319999999997,
+      "Outer wall": 2.48226
+    },
+    "first_line": 29994
+  },
+  {
+    "number": 71,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 14.2,
+    "zmax": 14.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690999999999987,
+      "Inner wall": 5.095789999999997,
+      "Sparse infill": 6.271639999999999
+    },
+    "first_line": 30392
+  },
+  {
+    "number": 72,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 14.4,
+    "zmax": 14.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27225,
+      "Inner wall": 5.081489999999998,
+      "Outer wall": 2.4823599999999995
+    },
+    "first_line": 30803
+  },
+  {
+    "number": 73,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 14.6,
+    "zmax": 14.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469100000000001,
+      "Inner wall": 5.095639999999995,
+      "Sparse infill": 6.272349999999999
+    },
+    "first_line": 31222
+  },
+  {
+    "number": 74,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 14.8,
+    "zmax": 14.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2725,
+      "Inner wall": 5.081239999999996,
+      "Outer wall": 2.4822399999999996
+    },
+    "first_line": 31616
+  },
+  {
+    "number": 75,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 15.0,
+    "zmax": 15.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4692700000000003,
+      "Inner wall": 5.095789999999995,
+      "Sparse infill": 6.272270000000001
+    },
+    "first_line": 32030
+  },
+  {
+    "number": 76,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 15.2,
+    "zmax": 15.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272599999999999,
+      "Inner wall": 5.081209999999997,
+      "Outer wall": 2.482400000000001
+    },
+    "first_line": 32442
+  },
+  {
+    "number": 77,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 15.4,
+    "zmax": 15.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46905,
+      "Inner wall": 5.095839999999998,
+      "Sparse infill": 6.272509999999999
+    },
+    "first_line": 32857
+  },
+  {
+    "number": 78,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 15.6,
+    "zmax": 15.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272310000000002,
+      "Inner wall": 5.081389999999997,
+      "Outer wall": 2.4821700000000004
+    },
+    "first_line": 33268
+  },
+  {
+    "number": 79,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 15.8,
+    "zmax": 15.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4694899999999995,
+      "Inner wall": 5.095819999999997,
+      "Sparse infill": 6.27245
+    },
+    "first_line": 33681
+  },
+  {
+    "number": 80,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 16.0,
+    "zmax": 16.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272270000000001,
+      "Inner wall": 5.0812899999999965,
+      "Outer wall": 2.48241
+    },
+    "first_line": 34095
+  },
+  {
+    "number": 81,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 16.2,
+    "zmax": 16.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4688,
+      "Inner wall": 5.0958399999999955,
+      "Sparse infill": 6.272329999999999
+    },
+    "first_line": 34510
+  },
+  {
+    "number": 82,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 16.4,
+    "zmax": 16.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27223,
+      "Inner wall": 5.081449999999997,
+      "Outer wall": 2.482229999999999
+    },
+    "first_line": 34907
+  },
+  {
+    "number": 83,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 16.6,
+    "zmax": 16.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4688600000000003,
+      "Inner wall": 5.095879999999996,
+      "Sparse infill": 6.27248
+    },
+    "first_line": 35321
+  },
+  {
+    "number": 84,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 16.8,
+    "zmax": 16.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272309999999999,
+      "Inner wall": 5.081449999999998,
+      "Outer wall": 2.48229
+    },
+    "first_line": 35721
+  },
+  {
+    "number": 85,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 17.0,
+    "zmax": 17.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4692,
+      "Inner wall": 5.095639999999996,
+      "Sparse infill": 6.272279999999999
+    },
+    "first_line": 36135
+  },
+  {
+    "number": 86,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 17.2,
+    "zmax": 17.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272929999999999,
+      "Inner wall": 5.081419999999999,
+      "Outer wall": 2.4823399999999993
+    },
+    "first_line": 36545
+  },
+  {
+    "number": 87,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 17.4,
+    "zmax": 17.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469089999999999,
+      "Inner wall": 5.095799999999999,
+      "Sparse infill": 6.272259999999999
+    },
+    "first_line": 36957
+  },
+  {
+    "number": 88,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 17.6,
+    "zmax": 17.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2724199999999986,
+      "Inner wall": 5.081319999999999,
+      "Outer wall": 2.4823399999999984
+    },
+    "first_line": 37355
+  },
+  {
+    "number": 89,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 17.8,
+    "zmax": 17.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.468979999999999,
+      "Inner wall": 5.095799999999998,
+      "Sparse infill": 6.27208
+    },
+    "first_line": 37766
+  },
+  {
+    "number": 90,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 18.0,
+    "zmax": 18.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272370000000001,
+      "Inner wall": 5.081279999999998,
+      "Outer wall": 2.48237
+    },
+    "first_line": 38164
+  },
+  {
+    "number": 91,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 18.2,
+    "zmax": 18.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690499999999993,
+      "Inner wall": 5.0957199999999965,
+      "Sparse infill": 6.2724
+    },
+    "first_line": 38578
+  },
+  {
+    "number": 92,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 18.4,
+    "zmax": 18.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2724400000000005,
+      "Inner wall": 5.081329999999997,
+      "Outer wall": 2.4822399999999996
+    },
+    "first_line": 38979
+  },
+  {
+    "number": 93,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 18.6,
+    "zmax": 18.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469079999999999,
+      "Inner wall": 5.095769999999998,
+      "Sparse infill": 6.272259999999998
+    },
+    "first_line": 39380
+  },
+  {
+    "number": 94,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 18.8,
+    "zmax": 18.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2718500000000015,
+      "Inner wall": 5.0812899999999965,
+      "Outer wall": 2.4822699999999993
+    },
+    "first_line": 39784
+  },
+  {
+    "number": 95,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 19.0,
+    "zmax": 19.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469230000000001,
+      "Inner wall": 5.095809999999998,
+      "Sparse infill": 6.2721800000000005
+    },
+    "first_line": 40184
+  },
+  {
+    "number": 96,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 19.2,
+    "zmax": 19.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272650000000001,
+      "Inner wall": 5.081469999999997,
+      "Outer wall": 2.482119999999999
+    },
+    "first_line": 40582
+  },
+  {
+    "number": 97,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 19.4,
+    "zmax": 19.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4693599999999996,
+      "Inner wall": 5.095600000000001,
+      "Sparse infill": 6.27245
+    },
+    "first_line": 40983
+  },
+  {
+    "number": 98,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 19.6,
+    "zmax": 19.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272550000000001,
+      "Inner wall": 5.081459999999996,
+      "Outer wall": 2.4821899999999992
+    },
+    "first_line": 41380
+  },
+  {
+    "number": 99,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 19.8,
+    "zmax": 19.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689000000000005,
+      "Inner wall": 5.09589,
+      "Sparse infill": 6.2724
+    },
+    "first_line": 41790
+  },
+  {
+    "number": 100,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 20.0,
+    "zmax": 20.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272240000000001,
+      "Inner wall": 5.081479999999999,
+      "Outer wall": 2.4823200000000005
+    },
+    "first_line": 42166
+  },
+  {
+    "number": 101,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 20.2,
+    "zmax": 20.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469040000000001,
+      "Inner wall": 5.09578,
+      "Sparse infill": 6.27245
+    },
+    "first_line": 42580
+  },
+  {
+    "number": 102,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 20.4,
+    "zmax": 20.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272640000000002,
+      "Inner wall": 5.081389999999997,
+      "Outer wall": 2.482159999999999
+    },
+    "first_line": 42956
+  },
+  {
+    "number": 103,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 20.6,
+    "zmax": 20.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.468980000000001,
+      "Inner wall": 5.095959999999995,
+      "Sparse infill": 6.272319999999999
+    },
+    "first_line": 43357
+  },
+  {
+    "number": 104,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 20.8,
+    "zmax": 20.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27277,
+      "Inner wall": 5.081319999999996,
+      "Outer wall": 2.482169999999999
+    },
+    "first_line": 43752
+  },
+  {
+    "number": 105,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 21.0,
+    "zmax": 21.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46934,
+      "Inner wall": 5.095869999999995,
+      "Sparse infill": 6.272429999999999
+    },
+    "first_line": 44133
+  },
+  {
+    "number": 106,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 21.2,
+    "zmax": 21.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27253,
+      "Inner wall": 5.081429999999998,
+      "Outer wall": 2.482199999999999
+    },
+    "first_line": 44547
+  },
+  {
+    "number": 107,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 21.4,
+    "zmax": 21.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690299999999996,
+      "Inner wall": 5.095899999999993,
+      "Sparse infill": 6.272340000000001
+    },
+    "first_line": 44955
+  },
+  {
+    "number": 108,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 21.6,
+    "zmax": 21.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272960000000002,
+      "Inner wall": 5.081440000000003,
+      "Outer wall": 2.48233
+    },
+    "first_line": 45366
+  },
+  {
+    "number": 109,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 21.8,
+    "zmax": 21.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4692200000000004,
+      "Inner wall": 5.095700000000002,
+      "Sparse infill": 6.272590000000001
+    },
+    "first_line": 45781
+  },
+  {
+    "number": 110,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 22.0,
+    "zmax": 22.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27289,
+      "Inner wall": 5.081489999999999,
+      "Outer wall": 2.4823299999999997
+    },
+    "first_line": 46194
+  },
+  {
+    "number": 111,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 22.2,
+    "zmax": 22.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.469420000000001,
+      "Inner wall": 5.095729999999999,
+      "Sparse infill": 6.272200000000001
+    },
+    "first_line": 46610
+  },
+  {
+    "number": 112,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 22.4,
+    "zmax": 22.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.2727699999999995,
+      "Inner wall": 5.08145,
+      "Outer wall": 2.4823799999999996
+    },
+    "first_line": 47025
+  },
+  {
+    "number": 113,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 22.6,
+    "zmax": 22.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4688600000000003,
+      "Inner wall": 5.095819999999999,
+      "Sparse infill": 6.272459999999999
+    },
+    "first_line": 47444
+  },
+  {
+    "number": 114,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 22.8,
+    "zmax": 22.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272530000000001,
+      "Inner wall": 5.081270000000004,
+      "Outer wall": 2.482299999999999
+    },
+    "first_line": 47858
+  },
+  {
+    "number": 115,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 23.0,
+    "zmax": 23.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4694099999999994,
+      "Inner wall": 5.095909999999994,
+      "Sparse infill": 6.272740000000001
+    },
+    "first_line": 48276
+  },
+  {
+    "number": 116,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 23.2,
+    "zmax": 23.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272279999999999,
+      "Inner wall": 5.08133,
+      "Outer wall": 2.482369999999999
+    },
+    "first_line": 48692
+  },
+  {
+    "number": 117,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 23.4,
+    "zmax": 23.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690499999999993,
+      "Inner wall": 5.0958799999999975,
+      "Sparse infill": 6.271999999999999
+    },
+    "first_line": 49108
+  },
+  {
+    "number": 118,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 23.6,
+    "zmax": 23.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27216,
+      "Inner wall": 5.081470000000002,
+      "Outer wall": 2.4823199999999996
+    },
+    "first_line": 49524
+  },
+  {
+    "number": 119,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 23.8,
+    "zmax": 23.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4690500000000006,
+      "Inner wall": 5.095729999999994,
+      "Sparse infill": 6.2722299999999995
+    },
+    "first_line": 49941
+  },
+  {
+    "number": 120,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 24.0,
+    "zmax": 24.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.273009999999999,
+      "Inner wall": 5.081390000000001,
+      "Outer wall": 2.48226
+    },
+    "first_line": 50355
+  },
+  {
+    "number": 121,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 24.2,
+    "zmax": 24.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4694299999999996,
+      "Inner wall": 5.095849999999995,
+      "Sparse infill": 6.272900000000001
+    },
+    "first_line": 50774
+  },
+  {
+    "number": 122,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 24.4,
+    "zmax": 24.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.272589999999998,
+      "Inner wall": 5.081500000000001,
+      "Outer wall": 2.482319999999999
+    },
+    "first_line": 51189
+  },
+  {
+    "number": 123,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill"
+    ],
+    "arcs": 0,
+    "zmin": 24.6,
+    "zmax": 24.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.46941,
+      "Inner wall": 5.095990000000001,
+      "Sparse infill": 6.27207
+    },
+    "first_line": 51606
+  },
+  {
+    "number": 124,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Sparse infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 24.8,
+    "zmax": 24.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Sparse infill": 6.27328,
+      "Inner wall": 5.081420000000002,
+      "Outer wall": 2.482309999999999
+    },
+    "first_line": 52021
+  },
+  {
+    "number": 125,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Sparse infill",
+      "Internal solid infill"
+    ],
+    "arcs": 0,
+    "zmin": 25.0,
+    "zmax": 25.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.5031,
+      "Inner wall": 5.108329999999996,
+      "Sparse infill": 5.96427,
+      "Internal solid infill": 2.02425
+    },
+    "first_line": 52439
+  },
+  {
+    "number": 126,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Inner wall",
+      "Internal Bridge",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 25.2,
+    "zmax": 25.2,
+    "z_backwards": [],
+    "extrusion": {
+      "Inner wall": 5.4487,
+      "Internal Bridge": 48.325890000000015,
+      "Outer wall": 2.4823099999999996
+    },
+    "first_line": 52948
+  },
+  {
+    "number": 127,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill"
+    ],
+    "arcs": 0,
+    "zmin": 25.4,
+    "zmax": 25.4,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4691199999999998,
+      "Inner wall": 5.71435,
+      "Internal solid infill": 35.96421999999992,
+      "Gap infill": 0.00564
+    },
+    "first_line": 53662
+  },
+  {
+    "number": 128,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Inner wall",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Inner wall",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 25.6,
+    "zmax": 25.6,
+    "z_backwards": [],
+    "extrusion": {
+      "Inner wall": 5.704239999999997,
+      "Internal solid infill": 35.824629999999985,
+      "Gap infill": 0.07021000000000001,
+      "Outer wall": 2.4825299999999997
+    },
+    "first_line": 54551
+  },
+  {
+    "number": 129,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Inner wall",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill",
+      "Gap infill",
+      "Internal solid infill"
+    ],
+    "arcs": 0,
+    "zmin": 25.8,
+    "zmax": 25.8,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.4689799999999997,
+      "Inner wall": 5.721829999999992,
+      "Internal solid infill": 35.90054999999997,
+      "Gap infill": 0.07644
+    },
+    "first_line": 55443
+  },
+  {
+    "number": 130,
+    "travel": [],
+    "boundary_travel": [],
+    "roles": [
+      "Outer wall",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Gap infill",
+      "Top surface",
+      "Outer wall"
+    ],
+    "arcs": 0,
+    "zmin": 26.0,
+    "zmax": 26.0,
+    "z_backwards": [],
+    "extrusion": {
+      "Outer wall": 2.924549999999999,
+      "Top surface": 41.365969999999976,
+      "Gap infill": 0.021419999999999998
+    },
+    "first_line": 56355
+  }
+]

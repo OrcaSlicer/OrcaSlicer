@@ -1,0 +1,90 @@
+[
+  {
+    "layer": 1,
+    "first_role": "Outer wall",
+    "first_length": 0.8791188770581689,
+    "arc_segments": 18,
+    "arc_radius": [
+      11.176573222593788,
+      11.183277024200022
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 2,
+    "first_role": "Inner wall",
+    "first_length": 0.02801785145223556,
+    "arc_segments": 22,
+    "arc_radius": [
+      11.54323810722104,
+      11.54484044930893
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 3,
+    "first_role": "Outer wall",
+    "first_length": 0.3430174922653344,
+    "arc_segments": 29,
+    "arc_radius": [
+      11.536006241329812,
+      11.53847446589021
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 126,
+    "first_role": "Inner wall",
+    "first_length": 0.057245087125453314,
+    "arc_segments": 18,
+    "arc_radius": [
+      11.539981152497628,
+      11.541000693180838
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 127,
+    "first_role": "Outer wall",
+    "first_length": 0.006708203932493268,
+    "arc_segments": 30,
+    "arc_radius": [
+      11.537591169737315,
+      11.541128237741775
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 128,
+    "first_role": "Outer wall",
+    "first_length": 0.9403531251609829,
+    "arc_segments": 29,
+    "arc_radius": [
+      11.53813212786196,
+      11.541044363488064
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 129,
+    "first_role": "Outer wall",
+    "first_length": 0.9524709969337546,
+    "arc_segments": 30,
+    "arc_radius": [
+      11.532969955739926,
+      11.54103656523101
+    ],
+    "min_infill_distance_to_arc": 0.0
+  },
+  {
+    "layer": 130,
+    "first_role": "Outer wall",
+    "first_length": 0.569471684985301,
+    "arc_segments": 21,
+    "arc_radius": [
+      12.406123205901197,
+      12.418087010485971
+    ],
+    "min_infill_distance_to_arc": 0.0
+  }
+]

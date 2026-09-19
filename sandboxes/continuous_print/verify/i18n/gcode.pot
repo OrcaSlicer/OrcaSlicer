@@ -1,0 +1,135 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-19 16:39+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid ""
+"One object has an empty first layer and can't be printed. Please Cut the "
+"bottom or enable supports."
+msgstr ""
+
+#, possible-boost-format
+msgid "Object can't be printed for empty layer between %1% and %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Object: %1%"
+msgstr ""
+
+msgid ""
+"Maybe parts of the object at these height are too thin, or the object has "
+"faulty mesh"
+msgstr ""
+
+msgid "Machine start G-code"
+msgstr ""
+
+msgid "Machine end G-code"
+msgstr ""
+
+msgid "Before layer change G-code"
+msgstr ""
+
+msgid "Layer change G-code"
+msgstr ""
+
+msgid "Timelapse G-code"
+msgstr ""
+
+msgid "Change filament G-code"
+msgstr ""
+
+msgid "Printing by object G-code"
+msgstr ""
+
+msgid "Change extrusion role G-code"
+msgstr ""
+
+msgid "Process change extrusion role G-code"
+msgstr ""
+
+msgid "Pause G-code"
+msgstr ""
+
+msgid "Template Custom G-code"
+msgstr ""
+
+msgid "Filament start G-code"
+msgstr ""
+
+msgid "Filament end G-code"
+msgstr ""
+
+msgid "Filament change extrusion role G-code"
+msgstr ""
+
+#. TRN %1% is an already translated reason why continuous printing was rejected.
+#, possible-boost-format
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr ""
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr ""
+
+#. TRN %1% is the number of continuous layers; %2% is the total number of evaluated layers.
+#, possible-boost-format
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr ""
+
+msgid "No object can be printed. Maybe too small"
+msgstr ""
+
+msgid ""
+"Your print is very close to the priming regions. Make sure there is no "
+"collision."
+msgstr ""
+
+msgid ""
+"Failed to generate G-code for invalid custom G-code.\n"
+"\n"
+msgstr ""
+
+msgid "Please check the custom G-code or use the default custom G-code."
+msgstr ""
+
+#, possible-boost-format
+msgid "Generating G-code: layer %1%"
+msgstr ""
+
+msgid "exactly one object instance is required"
+msgstr ""
+
+msgid "print sequence must be By layer"
+msgstr ""
+
+msgid "the prime tower must be disabled"
+msgstr ""
+
+#. TRN %1% is the number of materials assigned to the print, including support and tool changes.
+#, possible-boost-format
+msgid "exactly one used material is required (found %1%)"
+msgstr ""
+
+msgid "Flush volumes matrix do not match to the correct size!"
+msgstr ""

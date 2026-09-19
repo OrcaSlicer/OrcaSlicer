@@ -1,0 +1,90 @@
+[
+  {
+    "layer": 1,
+    "first_role": "Outer wall",
+    "first_length": 0.8791188770581689,
+    "arc_segments": 18,
+    "arc_radius": [
+      11.176573222593788,
+      11.183277024200022
+    ],
+    "min_infill_distance_to_arc": 0.5010908101332535
+  },
+  {
+    "layer": 2,
+    "first_role": "Inner wall",
+    "first_length": 0.02801785145223556,
+    "arc_segments": 22,
+    "arc_radius": [
+      11.54323810722104,
+      11.54484044930893
+    ],
+    "min_infill_distance_to_arc": 0.44120853607756416
+  },
+  {
+    "layer": 3,
+    "first_role": "Outer wall",
+    "first_length": 0.3430174922653344,
+    "arc_segments": 30,
+    "arc_radius": [
+      11.535279147034107,
+      11.53847446589021
+    ],
+    "min_infill_distance_to_arc": 0.4412085360775461
+  },
+  {
+    "layer": 126,
+    "first_role": "Outer wall",
+    "first_length": 0.4973258489159838,
+    "arc_segments": 18,
+    "arc_radius": [
+      11.539981152497628,
+      11.541000693180838
+    ],
+    "min_infill_distance_to_arc": 0.4188842322169654
+  },
+  {
+    "layer": 127,
+    "first_role": "Inner wall",
+    "first_length": 0.3045734722525964,
+    "arc_segments": 30,
+    "arc_radius": [
+      11.537591169737315,
+      11.541128237741775
+    ],
+    "min_infill_distance_to_arc": 0.4408109334006168
+  },
+  {
+    "layer": 128,
+    "first_role": "Outer wall",
+    "first_length": 0.00583095189484146,
+    "arc_segments": 29,
+    "arc_radius": [
+      11.53813212786196,
+      11.541044363488064
+    ],
+    "min_infill_distance_to_arc": 0.4416888044766316
+  },
+  {
+    "layer": 129,
+    "first_role": "Inner wall",
+    "first_length": 0.3024119706625713,
+    "arc_segments": 30,
+    "arc_radius": [
+      11.532969955739926,
+      11.54103656523101
+    ],
+    "min_infill_distance_to_arc": 0.440873693564964
+  },
+  {
+    "layer": 130,
+    "first_role": "Outer wall",
+    "first_length": 0.004472135955008222,
+    "arc_segments": 21,
+    "arc_radius": [
+      12.406123205901197,
+      12.418087010485971
+    ],
+    "min_infill_distance_to_arc": 0.41988897149858373
+  }
+]

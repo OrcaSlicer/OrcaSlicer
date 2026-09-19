@@ -1,0 +1,13 @@
+import numpy as np
+
+DTYPE_i8: np.dtype[np.int64]
+
+np.mintypecode(DTYPE_i8)  # type: ignore[arg-type]
+np.iscomplexobj(DTYPE_i8)  # type: ignore[arg-type]
+np.isrealobj(DTYPE_i8)  # type: ignore[arg-type]
+
+np.typename(DTYPE_i8)  # type: ignore[call-overload]
+np.typename("invalid")  # type: ignore[call-overload]
+
+_td64: np.timedelta64
+np.common_type(_td64)  # type: ignore[arg-type]

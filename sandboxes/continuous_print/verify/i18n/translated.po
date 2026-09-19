@@ -1,0 +1,42 @@
+# Continuous-print messages extracted from src/libslic3r/GCode.cpp.
+# Merge these entries into the language catalog; this is not loaded separately.
+msgid ""
+msgstr ""
+"Project-Id-Version: OrcaSlicer\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. TRN %1% is an already translated reason why continuous printing was rejected.
+#, boost-format
+msgid ""
+"Continuous print (zero travel) was requested but not applied: %1%. Sliced "
+"with normal travels."
+msgstr "请求了连续打印（零空驶），但未能启用：%1%。已按普通模式切片，包含空驶。"
+
+msgid ""
+"Continuous print (zero travel) was requested but no layer could be printed "
+"as a single trace; all layers use normal travels. Use continuous infill "
+"(monotonic / alignedrectilinear) and check the wall-to-infill connections."
+msgstr "请求了连续打印（零空驶），但没有任何层能够一笔打印完成；所有层均使用普通空驶。请使用连续填充图案（monotonic / alignedrectilinear），并检查墙与填充之间的连接。"
+
+#. TRN %1% is the number of continuous layers; %2% is the total number of evaluated layers.
+#, boost-format
+msgid ""
+"Continuous print (zero travel) was applied to %1% of %2% layers; the "
+"remaining layers cannot be printed as a single trace and use normal travels."
+msgstr "共 %2% 层，其中 %1% 层已应用连续打印（零空驶）；其余层无法一笔打印完成，使用普通空驶。"
+
+msgid "exactly one object instance is required"
+msgstr "必须且只能有一个对象实例"
+
+msgid "print sequence must be By layer"
+msgstr "打印顺序必须为逐层打印"
+
+msgid "the prime tower must be disabled"
+msgstr "必须关闭擦料塔"
+
+#. TRN %1% is the number of materials assigned to the print, including support and tool changes.
+#, boost-format
+msgid "exactly one used material is required (found %1%)"
+msgstr "必须且只能使用一种材料（检测到 %1% 种）"

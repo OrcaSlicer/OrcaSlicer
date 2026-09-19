@@ -1,0 +1,13 @@
+圆柱体_PLA_20m27s.gcode
+zero travel: 122 / 130
+travel layers: [(1, 20), (2, 15), (3, 16), (125, 13), (127, 16), (128, 15), (129, 16), (130, 18)]
+z backwards: []
+arcs: 884
+layer 1 travel 20 Z 0.2 0.2 roles ['Inner wall', 'Outer wall', 'Bottom surface', 'Gap infill'] gap E 0.02436
+layer 2 travel 15 Z 0.4 0.4 roles ['Inner wall', 'Outer wall', 'Internal solid infill', 'Gap infill'] gap E 0.07333
+layer 3 travel 16 Z 0.6 0.6 roles ['Inner wall', 'Outer wall', 'Internal solid infill', 'Gap infill'] gap E 0.07476
+layer 126 travel 0 Z 25.001 25.2 roles ['Internal Bridge', 'Inner wall', 'Outer wall'] gap E 0
+layer 127 travel 16 Z 25.4 25.4 roles ['Inner wall', 'Outer wall', 'Internal solid infill', 'Gap infill'] gap E 0.07751
+layer 128 travel 15 Z 25.6 25.6 roles ['Inner wall', 'Outer wall', 'Internal solid infill', 'Gap infill'] gap E 0.07021
+layer 129 travel 16 Z 25.8 25.8 roles ['Inner wall', 'Outer wall', 'Internal solid infill', 'Gap infill'] gap E 0.07711
+layer 130 travel 18 Z 26.0 26.0 roles ['Outer wall', 'Top surface', 'Gap infill'] gap E 0.0288

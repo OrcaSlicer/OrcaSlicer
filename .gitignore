@@ -41,7 +41,6 @@ resources/profiles/user/default
 *.code-workspace
 deps_src/build/
 test.js
-/.cache/
 .clangd
 internal_docs/
 *.flatpak
@@ -49,4 +48,5 @@ internal_docs/
 # Python bytecode
 __pycache__/
 *.pyc
-build
+/deps/build/*
+/deps/build-dbginfo/*

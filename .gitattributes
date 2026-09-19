@@ -1,3 +1,6 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
 * text=auto
 /doc/print_settings/strength/infill-analysis/infill-analysis.7z filter=lfs diff=lfs merge=lfs -text
+/sandboxes/continuous_print/verify/contour_before/OrcaSlicer.dll filter=lfs diff=lfs merge=lfs -text
+/sandboxes/continuous_print/verify/dual_gate/OrcaSlicer.before.dll filter=lfs diff=lfs merge=lfs -text
+/sandboxes/continuous_print/verify/handoff_before/OrcaSlicer.dll filter=lfs diff=lfs merge=lfs -text
