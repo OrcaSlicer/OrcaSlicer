@@ -907,9 +907,9 @@ void GLVolumeCollection::load_object_auxiliary(
 
 int GLVolumeCollection::load_wipe_tower_preview(
     int obj_idx, float pos_x, float pos_y, float width, float depth, float height,
-    float rotation_angle, bool size_unknown, float brim_width)
+    float rotation_angle, bool size_unknown, float brim_width, int filament_id_1based)
 {
-    int plate_idx = obj_idx - 1000;
+    int plate_idx = wipe_tower_object_plate_idx(obj_idx);
 
     if (depth < 0.01f)
         return int(this->volumes.size() - 1);
@@ -920,6 +920,8 @@ int GLVolumeCollection::load_wipe_tower_preview(
     std::vector<ColorRGBA> colors;
     GUI::PartPlateList& ppl = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int> plate_extruders = ppl.get_plate(plate_idx)->get_extruders(true);
+    if (filament_id_1based > 0)
+        plate_extruders = { filament_id_1based };
     TriangleMesh wipe_tower_shell = make_cube(width, depth, height);
     // The brim is part of the printed footprint: draw it and fold it into the shell so the
     // outside-bed shader and the drag clamp react to the true first-layer extent.
@@ -966,21 +968,23 @@ int GLVolumeCollection::load_wipe_tower_preview(
     v.set_volume_rotation(Vec3d(0., 0., (M_PI / 180.) * rotation_angle));
     v.composite_id = GLVolume::CompositeID(obj_idx, 0, 0);
     v.geometry_id.first = 0;
-    v.geometry_id.second = wipe_tower_instance_id().id + (obj_idx - 1000);
+    v.geometry_id.second = wipe_tower_instance_id().id + size_t(obj_idx);
     v.is_wipe_tower = true;
     v.shader_outside_printer_detection_enabled = !size_unknown;
     return int(volumes.size() - 1);
 }
 
 int GLVolumeCollection::load_real_wipe_tower_preview(
-    int obj_idx, float pos_x, float pos_y, const TriangleMesh& wt_mesh,const TriangleMesh &brim_mesh,bool render_brim, float rotation_angle, bool size_unknown,  bool opengl_initialized)
+    int obj_idx, float pos_x, float pos_y, const TriangleMesh& wt_mesh,const TriangleMesh &brim_mesh,bool render_brim, float rotation_angle, bool size_unknown,  bool opengl_initialized, int filament_id_1based)
 {
-    int plate_idx = obj_idx - 1000;
+    int plate_idx = wipe_tower_object_plate_idx(obj_idx);
     if (wt_mesh.its.vertices.empty()) return int(this->volumes.size() - 1);
 
     std::vector<Slic3r::ColorRGBA> extruder_colors = GUI::wxGetApp().plater()->get_extruders_colors();
     GUI::PartPlateList               &ppl              = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int>                  plate_extruders  = ppl.get_plate(plate_idx)->get_extruders(true);
+    if (filament_id_1based > 0)
+        plate_extruders = { filament_id_1based };
     std::vector<Slic3r::ColorRGBA>    colors;
     if (!plate_extruders.empty()) {
         if (plate_extruders.front() <= extruder_colors.size())
@@ -1007,7 +1011,7 @@ int GLVolumeCollection::load_real_wipe_tower_preview(
     v.set_volume_rotation(Vec3d(0., 0., (M_PI / 180.) * rotation_angle));
     v.composite_id                             = GLVolume::CompositeID(obj_idx, 0, 0);
     v.geometry_id.first                        = 0;
-    v.geometry_id.second                       = wipe_tower_instance_id().id + (obj_idx - 1000);
+    v.geometry_id.second                       = wipe_tower_instance_id().id + size_t(obj_idx);
     v.is_wipe_tower                            = true;
     v.shader_outside_printer_detection_enabled = !size_unknown;
     return int(volumes.size() - 1);
@@ -1290,34 +1294,32 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
 bool GLVolumeCollection::check_wipe_tower_outside_state(const Slic3r::BuildVolume &build_volume, int plate_id) const
 {
-    for (GLVolume *volume : this->volumes) {
-        if (volume->is_wipe_tower) {
-            int wipe_tower_plate_id = volume->composite_id.object_id - 1000;
-            if (wipe_tower_plate_id != plate_id)
-                continue;
-            const std::vector<Vec2d>& printable_area = build_volume.printable_area();
-            Polygon printable_poly = Polygon::new_scale(printable_area);
+    const std::vector<Vec2d>& printable_area = build_volume.printable_area();
+    Polygon printable_poly = Polygon::new_scale(printable_area);
 
-            // multi-extruder
-            Polygons extruder_polys;
-            const std::vector<std::vector<Vec2d>> & extruder_areas = build_volume.extruder_areas();
-            if (!extruder_areas.empty()) {
-                for (size_t i = 0; i < extruder_areas.size(); ++i) {
-                    extruder_polys.emplace_back(Polygon::new_scale(extruder_areas[i]));
-                }
-                extruder_polys = union_(extruder_polys);
-                if (extruder_polys.empty())
-                    return false;
-
-                printable_poly = extruder_polys[0];
-            }
-
-            const BoundingBoxf3 &bbox = volume->transformed_convex_hull_bounding_box();
-            Polygon wipe_tower_polygon = bbox.polygon(true);
-
-            Polygons diff_res = diff(wipe_tower_polygon, printable_poly);
-            return diff_res.empty();
+    // multi-extruder
+    Polygons extruder_polys;
+    const std::vector<std::vector<Vec2d>> & extruder_areas = build_volume.extruder_areas();
+    if (!extruder_areas.empty()) {
+        for (size_t i = 0; i < extruder_areas.size(); ++i) {
+            extruder_polys.emplace_back(Polygon::new_scale(extruder_areas[i]));
         }
+        extruder_polys = union_(extruder_polys);
+        if (extruder_polys.empty())
+            return false;
+
+        printable_poly = extruder_polys[0];
+    }
+
+    for (GLVolume *volume : this->volumes) {
+        if (!volume->is_wipe_tower)
+            continue;
+        if (wipe_tower_object_plate_idx(volume->composite_id.object_id) != plate_id)
+            continue;
+        const BoundingBoxf3 &bbox = volume->transformed_convex_hull_bounding_box();
+        Polygon wipe_tower_polygon = bbox.polygon(true);
+        if (!diff(wipe_tower_polygon, printable_poly).empty())
+            return false;
     }
     return true;
 }

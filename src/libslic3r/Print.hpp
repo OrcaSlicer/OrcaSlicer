@@ -791,6 +791,22 @@ struct WipeTowerData
     BoundingBoxf                                          bbx;//including brim
     Vec2f                                                 rib_offset;
     std::optional<WipeTowerMeshData>                      wipe_tower_mesh_data;//added rib_offset
+    // Independent Type2 towers: one preview/mesh/position per used filament. Empty when the
+    // option is off, so the rest of the pipeline keeps using the single-tower fields above.
+    struct IndependentTower
+    {
+        unsigned int                     filament_id = 0; // 0-based
+        Vec2f                            pos         = Vec2f::Zero();
+        float                            depth       = 0.f;
+        float                            width       = 0.f;
+        float                            brim_width  = 0.f;
+        float                            height      = 0.f;
+        BoundingBoxf                     bbx;
+        Vec2f                            rib_offset  = Vec2f::Zero();
+        std::vector<std::pair<float, float>> z_and_depth_pairs;
+        std::optional<WipeTowerMeshData> wipe_tower_mesh_data;
+    };
+    std::vector<IndependentTower>                         independent_towers;
     void clear() {
         priming.reset(nullptr);
         tool_changes.clear();
@@ -803,6 +819,7 @@ struct WipeTowerData
         height = 0.f;
         rib_offset = Vec2f::Zero();
         wipe_tower_mesh_data  = std::nullopt;
+        independent_towers.clear();
     }
     void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall, float cone_angle = 0.f);
 
@@ -1440,7 +1457,10 @@ struct CompactedTowerZone
 double compacted_tower_footprint_padding(const PrintConfig &config, double brim_width);
 
 // Grow a bare tower footprint (bed frame, scaled) into its keep-out zone.
-CompactedTowerZone compacted_wipe_tower_zone(const PrintConfig &config, const Polygon &tower_footprint);
+// grow_spiral adds the spiral Z-hop envelope around that one footprint. Independent
+// towers pass false: each tower is its own zone, and the extra envelope would only
+// inflate the rings that already sit around every tower separately.
+CompactedTowerZone compacted_wipe_tower_zone(const PrintConfig &config, const Polygon &tower_footprint, bool grow_spiral = true);
 
 // How far an object may rise above the compacted tower base before the toolhead hits it.
 struct CompactedTowerClearance

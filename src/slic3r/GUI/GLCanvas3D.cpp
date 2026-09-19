@@ -9,6 +9,7 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Geometry/ConvexHull.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -77,6 +78,7 @@
 #include <float.h>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -1548,7 +1550,7 @@ void GLCanvas3D::toggle_selected_volume_visibility(bool selected_visible)
         const Selection::IndicesList &idxs = m_selection.get_volume_idxs();
         if (idxs.size() > 0) {
             for (GLVolume *vol : m_volumes.volumes) {
-                if (vol->composite_id.object_id >= 1000 && vol->composite_id.object_id < 1000 + wxGetApp().plater()->get_partplate_list().get_plate_count())
+                if (vol->is_wipe_tower)
                     continue; // the wipe tower
                 if (vol->composite_id.volume_id >= 0) {
                     vol->is_active = false;
@@ -1561,7 +1563,7 @@ void GLCanvas3D::toggle_selected_volume_visibility(bool selected_visible)
         }
     } else { // show all
         for (GLVolume *vol : m_volumes.volumes) {
-            if (vol->composite_id.object_id >= 1000 && vol->composite_id.object_id < 1000 + wxGetApp().plater()->get_partplate_list().get_plate_count())
+            if (vol->is_wipe_tower)
                 continue; // the wipe tower
             if (vol->composite_id.volume_id >= 0) {
                 vol->is_active = true;
@@ -1580,8 +1582,7 @@ void GLCanvas3D::toggle_sla_auxiliaries_visibility(bool visible, const ModelObje
     std::vector<std::shared_ptr<SceneRaycasterItem>>* raycasters = get_raycasters_for_picking(SceneRaycaster::EType::Volume);
 
     for (GLVolume* vol : m_volumes.volumes) {
-        if (vol->composite_id.object_id >= 1000 &&
-            vol->composite_id.object_id < 1000 + wxGetApp().plater()->get_partplate_list().get_plate_count())
+        if (vol->is_wipe_tower)
             continue; // the wipe tower
       if ((mo == nullptr || m_model->objects[vol->composite_id.object_id] == mo)
             && (instance_idx == -1 || vol->composite_id.instance_id == instance_idx)
@@ -1599,8 +1600,7 @@ void GLCanvas3D::toggle_model_objects_visibility(bool visible, const ModelObject
     std::vector<std::shared_ptr<SceneRaycasterItem>>* raycasters = get_raycasters_for_picking(SceneRaycaster::EType::Volume);
     for (GLVolume* vol : m_volumes.volumes) {
         // BBS: add partplate logic
-        if (vol->composite_id.object_id >= 1000 &&
-            vol->composite_id.object_id < 1000 + wxGetApp().plater()->get_partplate_list().get_plate_count()) { // wipe tower
+        if (vol->is_wipe_tower) { // wipe tower
             vol->is_active = (visible && mo == nullptr);
         }
         else {
@@ -2599,7 +2599,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
     // BBS: support wipe tower for multi-plates
     PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
     int n_plates = ppl.get_plate_count();
-    std::vector<int> volume_idxs_wipe_tower_old(n_plates, -1);
+    std::map<int, int> volume_idxs_wipe_tower_old;
 
     // Release invalidated volumes to conserve GPU memory in case of delayed refresh (see m_reload_delayed).
     // First initialize model_volumes_new_sorted & model_instances_new_sorted.
@@ -2694,11 +2694,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
         if (mvs == nullptr || force_full_scene_refresh) {
             // This GLVolume will be released.
             if (volume->is_wipe_tower) {
-                // There is only one wipe tower.
-                //assert(volume_idx_wipe_tower_old == -1);
-                int plate_id = volume->composite_id.object_id - 1000;
-                if (plate_id < n_plates)
-                    volume_idxs_wipe_tower_old[plate_id] = (int)volume_id;
+                volume_idxs_wipe_tower_old[volume->composite_id.object_id] = (int)volume_id;
             }
             if (!m_reload_delayed) {
                 deleted_volumes.emplace_back(volume, volume_id);
@@ -2982,21 +2978,78 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     }
                 }
 
-                if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
+                auto map_old = [&](int obj_idx, int volume_idx_new) {
+                    auto it = volume_idxs_wipe_tower_old.find(obj_idx);
+                    if (it != volume_idxs_wipe_tower_old.end())
+                        map_glvolume_old_to_new[it->second] = volume_idx_new;
+                };
+
+                const bool independent = dconfig.option("prime_tower_independent") &&
+                                         dconfig.opt_bool("prime_tower_independent") &&
+                                         !(dconfig.option("prime_tower_multimaterial") && dconfig.opt_bool("prime_tower_multimaterial"));
+                std::vector<int> plate_extruders = part_plate->get_extruders(true); // 1-based
+                if (independent && plate_extruders.size() > 1) {
+                    const float spacing = independent_wipe_tower_spacing(float(wipe_tower_size(0)), brim_width);
+                    const Vec2f base(x, y);
+                    const auto *ix = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_x");
+                    const auto *iy = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_y");
+                    const auto &generated = current_print->wipe_tower_data().independent_towers;
+                    const Vec2d plate_size = part_plate->get_size();
+                    for (size_t i = 0; i < plate_extruders.size(); ++i) {
+                        const int filament_1based = plate_extruders[i];
+                        const int filament_0      = filament_1based - 1;
+                        const int obj_idx         = independent_wipe_tower_object_idx(plate_id, filament_0);
+                        bool  have_generated = false;
+                        const WipeTowerData::IndependentTower *gt = nullptr;
+                        for (const auto &t : generated)
+                            if (int(t.filament_id) == filament_0) {
+                                gt = &t;
+                                have_generated = current_print->is_step_done(psWipeTower) && t.wipe_tower_mesh_data.has_value();
+                                break;
+                            }
+                        Vec2f pos;
+                        if (!independent_wipe_tower_stored_pos(ix ? ix->values : std::vector<double>{},
+                                                               iy ? iy->values : std::vector<double>{},
+                                                               independent_wipe_tower_pos_index(plate_id, filament_0), pos)) {
+                            // No drag has been stored yet: keep the last generated placement, or
+                            // the auto grid before the first slice.
+                            if (gt)
+                                pos = gt->pos;
+                            else
+                                pos = independent_wipe_tower_layout_pos(base, i, spacing,
+                                                                        float(plate_size.x()), float(plate_size.y()),
+                                                                        float(wipe_tower_size(0)), float(wipe_tower_size(1)), brim_width);
+                        }
+
+                        int volume_idx_new;
+                        if (have_generated && gt && gt->wipe_tower_mesh_data) {
+                            volume_idx_new = m_volumes.load_real_wipe_tower_preview(obj_idx, pos.x() + plate_origin(0), pos.y() + plate_origin(1),
+                                                                                   gt->wipe_tower_mesh_data->real_wipe_tower_mesh,
+                                                                                   gt->wipe_tower_mesh_data->real_brim_mesh,
+                                                                                   true, a, true, m_initialized, filament_1based);
+                        } else {
+                            const float w = gt ? gt->width : float(wipe_tower_size(0));
+                            const float d = gt ? gt->depth : float(wipe_tower_size(1));
+                            const float h = gt && gt->height > 0.f ? gt->height : float(wipe_tower_size(2));
+                            const float b = gt ? gt->brim_width : brim_width;
+                            volume_idx_new = m_volumes.load_wipe_tower_preview(obj_idx, pos.x() + plate_origin(0), pos.y() + plate_origin(1),
+                                                                              w, d, h, a, true, b, filament_1based);
+                        }
+                        map_old(obj_idx, volume_idx_new);
+                    }
+                } else if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                     // update for wipe tower position
                     int volume_idx_wipe_tower_new = m_volumes.load_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
                                                                                       (float) wipe_tower_size(0), (float) wipe_tower_size(1), (float) wipe_tower_size(2),
                                                                                       a,
                                                                                       /*!print->is_step_done(psWipeTower)*/ true, brim_width);
-                    int volume_idx_wipe_tower_old = volume_idxs_wipe_tower_old[plate_id];
-                    if (volume_idx_wipe_tower_old != -1) map_glvolume_old_to_new[volume_idx_wipe_tower_old] = volume_idx_wipe_tower_new;
+                    map_old(1000 + plate_id, volume_idx_wipe_tower_new);
                 } else {
                     int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
                                                                                            current_print->wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
                                                                                            current_print->wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh,
                                                                                         true,a,/*!print->is_step_done(psWipeTower)*/ true, m_initialized);
-                    int volume_idx_wipe_tower_old = volume_idxs_wipe_tower_old[plate_id];
-                    if (volume_idx_wipe_tower_old != -1) map_glvolume_old_to_new[volume_idx_wipe_tower_old] = volume_idx_wipe_tower_new;
+                    map_old(1000 + plate_id, volume_idx_wipe_tower_new);
                 }
             }
         }
@@ -5192,6 +5245,7 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     // BBS: support wipe-tower for multi-plates
     int n_plates = wxGetApp().plater()->get_partplate_list().get_plate_count();
     std::vector<Vec3d> wipe_tower_origins(n_plates, Vec3d::Zero());
+    std::map<int, Vec3d> independent_wipe_tower_origins;
 
     Selection::EMode selection_mode = m_selection.get_mode();
 
@@ -5234,6 +5288,9 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
             object_moved = true;
             model_object->invalidate_bounding_box();
             
+        }
+        else if (is_independent_wipe_tower_object(object_idx)) {
+            independent_wipe_tower_origins[object_idx] = v->get_volume_offset();
         }
         else if (object_idx >= 1000 && object_idx < 1000 + n_plates) {
             // Move a wipe tower proxy.
@@ -5301,6 +5358,25 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
         ConfigOptionFloats* wipe_tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y", true);
         wipe_tower_x_opt->set_at(&wipe_tower_x, plate_id, 0);
         wipe_tower_y_opt->set_at(&wipe_tower_y, plate_id, 0);
+    }
+
+    if (!independent_wipe_tower_origins.empty()) {
+        PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
+        DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+        ConfigOptionFloats* ix = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_x", true);
+        ConfigOptionFloats* iy = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_y", true);
+        for (const auto &entry : independent_wipe_tower_origins) {
+            const int plate_id = wipe_tower_object_plate_idx(entry.first);
+            const int filament = independent_wipe_tower_filament_id(entry.first);
+            const int idx      = independent_wipe_tower_pos_index(plate_id, filament);
+            Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
+            if (ix->values.size() <= size_t(idx)) {
+                ix->values.resize(idx + 1, std::numeric_limits<double>::quiet_NaN());
+                iy->values.resize(idx + 1, std::numeric_limits<double>::quiet_NaN());
+            }
+            ix->values[idx] = entry.second(0) - plate_origin(0);
+            iy->values[idx] = entry.second(1) - plate_origin(1);
+        }
     }
 
     reset_sequential_print_clearance();
@@ -5671,7 +5747,7 @@ GLCanvas3D::WipeTowerInfo GLCanvas3D::get_wipe_tower_info(int plate_idx) const
     WipeTowerInfo wti;
 
     for (const GLVolume* vol : m_volumes.volumes) {
-        if (vol->is_wipe_tower && vol->object_idx() - 1000 == plate_idx) {
+        if (vol->is_wipe_tower && wipe_tower_object_plate_idx(vol->object_idx()) == plate_idx) {
             DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
             wti.m_pos = Vec2d(proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x")->get_at(plate_idx),
                               proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y")->get_at(plate_idx));
@@ -5859,21 +5935,30 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     const double padding              = compacted_tower_footprint_padding(config, brim);
 
     // Tower footprint straight from the volume the user sees, so that dragging either the tower or an
-    // object updates the zone on the very next frame.
-    Polygon tower_footprint;
+    // object updates the zone on the very next frame. Independent towers each keep their own hull:
+    // unioning them filled the space between towers with one keep-out contour.
+    const bool independent = config.prime_tower_independent && !config.prime_tower_multimaterial;
+    std::map<int, Points> pts_by_tower;
     for (const GLVolume *v : m_volumes.volumes) {
-        if (! v->is_wipe_tower || v->object_idx() - 1000 != plate_id)
+        if (! v->is_wipe_tower || wipe_tower_object_plate_idx(v->object_idx()) != plate_id)
             continue;
         const BoundingBoxf3 bbox = v->transformed_convex_hull_bounding_box();
-        tower_footprint = Polygon({ Point(scale_(bbox.min.x() - padding), scale_(bbox.min.y() - padding)),
-                                    Point(scale_(bbox.max.x() + padding), scale_(bbox.min.y() - padding)),
-                                    Point(scale_(bbox.max.x() + padding), scale_(bbox.max.y() + padding)),
-                                    Point(scale_(bbox.min.x() - padding), scale_(bbox.max.y() + padding)) });
-        break;
+        Points &tower_pts = pts_by_tower[independent ? v->object_idx() : 0];
+        tower_pts.emplace_back(scale_(bbox.min.x() - padding), scale_(bbox.min.y() - padding));
+        tower_pts.emplace_back(scale_(bbox.max.x() + padding), scale_(bbox.min.y() - padding));
+        tower_pts.emplace_back(scale_(bbox.max.x() + padding), scale_(bbox.max.y() + padding));
+        tower_pts.emplace_back(scale_(bbox.min.x() - padding), scale_(bbox.max.y() + padding));
     }
-
-    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, tower_footprint);
-    if (zone.empty()) {
+    std::vector<CompactedTowerZone> zones;
+    zones.reserve(pts_by_tower.size());
+    for (const auto &kv : pts_by_tower) {
+        if (kv.second.empty())
+            continue;
+        CompactedTowerZone zone = compacted_wipe_tower_zone(config, Geometry::convex_hull(kv.second), !independent);
+        if (!zone.empty())
+            zones.emplace_back(std::move(zone));
+    }
+    if (zones.empty()) {
         reset_sequential_print_clearance();
         return;
     }
@@ -5887,7 +5972,7 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     // allowed_rise also get a height limit plane.
     Polygons                               outlines;
     std::vector<std::pair<Polygon, float>> height_polygons;
-    bool                                   body_tier_used = false;
+    std::vector<char>                      rings_body(zones.size(), 0);
     const BoundingBox                      plate_bb       = plate->get_bounding_box_crd();
     for (const ModelObject *model_object : m_model->objects) {
         for (size_t i = 0; i < model_object->instances.size(); ++i) {
@@ -5901,19 +5986,29 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
             // Same tiers and the same rise measured from the plate as
             // Print::compacted_wipe_tower_clearance_valid(), so that the preview and the validation
             // that follows it never contradict each other.
-            const double                  object_top = model_object->get_instance_max_z(i);
-            const CompactedTowerClearance clearance  = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
-            body_tier_used                           = body_tier_used || compacted_tower_body_tier(clearance);
+            const double object_top = model_object->get_instance_max_z(i);
+            CompactedTowerClearance worst;
+            worst.allowed_rise   = std::numeric_limits<double>::infinity();
+            worst.body_clearance = 0.;
+            for (size_t zi = 0; zi < zones.size(); ++zi) {
+                const CompactedTowerClearance clearance = compacted_wipe_tower_clearance(config, zones[zi], inst_hull, object_top);
+                if (compacted_tower_body_tier(clearance))
+                    rings_body[zi] = 1;
+                if (clearance.allowed_rise < worst.allowed_rise)
+                    worst = clearance;
+            }
 
-            const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
+            const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, worst.body_clearance);
             outlines.emplace_back(outline);
-            if (object_top <= clearance.allowed_rise + EPSILON)
+            if (object_top <= worst.allowed_rise + EPSILON)
                 continue;
-            height_polygons.emplace_back(outline, float(clearance.allowed_rise));
+            height_polygons.emplace_back(outline, float(worst.allowed_rise));
         }
     }
 
-    Polygons polygons = compacted_wipe_tower_rings(zone, body_tier_used);
+    Polygons polygons;
+    for (size_t zi = 0; zi < zones.size(); ++zi)
+        append(polygons, compacted_wipe_tower_rings(zones[zi], rings_body[zi] != 0));
     append(polygons, outlines);
 
     set_sequential_print_clearance_visible(true);
