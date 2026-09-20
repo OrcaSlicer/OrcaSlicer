@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic PETG-CF @Arena X1C",
+	"inherits": "Generic PETG-CF @OrcaArena base",
+	"renamed_from": "OrcaArena Generic PETG-CF @Arena X1C;OrcaArena Generic PETG-CF Arena X1C",
+	"from": "system",
+	"setting_id": "MeIL8qLFZytjvYrF",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}

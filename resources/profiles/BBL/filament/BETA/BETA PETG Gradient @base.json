@@ -3,7 +3,7 @@
 	"name": "BETA PETG Gradient @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "BPGB05",
+	"filament_id": "OFNk8AvA",
 	"instantiation": "false",
 	"description": "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG.",
 	"cool_plate_temp": [

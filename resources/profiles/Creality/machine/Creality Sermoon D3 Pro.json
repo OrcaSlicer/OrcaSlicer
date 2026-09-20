@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_Sermoon_D3_Pro",
-	"default_materials": "Hyper PLA-CF;CR-PETG;Hyper PLA;CR-ABS"
+	"default_materials": "Hyper PLA-CF @Sermoon D3 Pro-all;CR-PETG @Sermoon D3 Pro-all;Hyper PLA @Sermoon D3 Pro-all;CR-ABS @Sermoon D3 Pro-all"
 }

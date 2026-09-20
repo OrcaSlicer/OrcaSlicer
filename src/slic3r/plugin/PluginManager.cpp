@@ -2042,6 +2042,8 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
         return false;
     }
 
+    unload_plugin(plugin_key);
+
     if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
         set_plugin_error(plugin_key, error);
         return false;

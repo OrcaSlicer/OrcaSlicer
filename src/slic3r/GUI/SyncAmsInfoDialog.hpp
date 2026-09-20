@@ -21,15 +21,11 @@ class SyncAmsInfoDialog : public DPIDialog
     bool              m_only_exist_ext_spool_flag{false};
     int               m_current_filament_id{0};
     int               m_print_plate_idx{0};
-    int               m_print_plate_total{0};
     int               m_timeout_count{0};
     int               m_print_error_code{0};
     bool              m_is_in_sending_mode{false};
     bool              m_ams_mapping_res{false};
     bool              m_ams_mapping_valid{false};
-    bool              m_export_3mf_cancel{false};
-    bool              m_is_canceled{false};
-    bool              m_is_rename_mode{false};
     bool              m_check_flag{false};
     PrintPageMode     m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string       m_print_error_msg;

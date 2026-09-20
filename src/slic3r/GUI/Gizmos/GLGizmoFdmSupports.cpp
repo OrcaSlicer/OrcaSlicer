@@ -122,7 +122,7 @@ bool GLGizmoFdmSupports::on_init()
         {ctrl + _L("Mouse wheel"), _L("Gap area")}
     };
 
-    memset(&m_print_instance, 0, sizeof(m_print_instance));
+    m_print_instance = PrintInstance();
     return true;
 }
 

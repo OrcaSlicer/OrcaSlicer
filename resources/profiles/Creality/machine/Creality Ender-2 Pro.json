@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_Ender_2_Pro",
-	"default_materials": "Generic TPU;CR-PETG;CR-ABS;CR-PLA"
+	"default_materials": "Generic TPU @Ender-2 Pro-all;CR-PETG @Ender-2 Pro-all;CR-ABS @Ender-2 Pro-all;CR-PLA @Ender-2 Pro-all"
 }

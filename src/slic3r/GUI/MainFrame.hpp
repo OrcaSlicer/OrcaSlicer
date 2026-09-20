@@ -40,6 +40,9 @@
 // Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
 // names rather than positional indices so optional pages cannot shift them.
 #define TAB_ID_HOME          "home"
+#ifdef SLIC3R_CAD
+#define TAB_ID_DESIGN        "design"
+#endif
 #define TAB_ID_PREPARE       "prepare"
 #define TAB_ID_PREVIEW       "preview"
 #define TAB_ID_MONITOR       "monitor"
@@ -65,7 +68,11 @@ namespace GUI
 class Tab;
 class PrintHostQueueDialog;
 class Plater;
+#ifdef SLIC3R_CAD
+class DesignPanel;
+#endif
 class MainFrame;
+class WebViewPanel;
 class ParamsDialog;
 #ifdef __WXGTK__
 class ResizeEdgePanel;
@@ -94,7 +101,6 @@ class SettingsDialog : public DPIDialog//DPIDialog
 {
     //wxNotebook* m_tabpanel { nullptr };
     Notebook* m_tabpanel{ nullptr };
-    MainFrame*      m_main_frame { nullptr };
     wxMenuBar*      m_menubar{ nullptr };
 public:
     SettingsDialog(MainFrame* mainframe);
@@ -105,6 +111,20 @@ public:
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
+};
+
+// Calibration wizard identity, shared by MainFrame::run_calibration and the Speed Dial command runners.
+enum class CalibKind : int
+{ 
+    Temperature, 
+    MaxVolumetric, 
+    PressureAdvance, 
+    FlowRatio, 
+    Retraction,
+    Cornering, 
+    InputShapingFreq, 
+    InputShapingDamp,
+    VFA
 };
 
 class MainFrame : public DPIFrame
@@ -179,6 +199,7 @@ class MainFrame : public DPIFrame
     {
         FileHistory(int max) : wxFileHistory(max) {}
         std::wstring GetThumbnailUrl(int index) const;
+        bool        GetPublished(int index) const;
 
         virtual void AddFileToHistory(const wxString &file);
         virtual void RemoveFileFromHistory(size_t i);
@@ -189,6 +210,7 @@ class MainFrame : public DPIFrame
         void SetMaxFiles(int max);
     private:
         std::deque<std::string> m_thumbnails;
+        std::deque<bool>        m_published_files; // parallel to m_thumbnails: is it a published 3mf?
         bool m_load_called = false;
     };
 
@@ -342,6 +364,8 @@ public:
     bool can_upload() const;
     void save_project();
     bool save_project_as(const wxString& filename = wxString());
+    // Open the Publish dialog and export the selected settings as a published 3MF.
+    void publish_project();
 
     void        add_to_recent_projects(const wxString& filename);
     void        get_recent_projects(boost::property_tree::wptree &tree, int images);
@@ -350,6 +374,11 @@ public:
 
     void        technology_changed();
 
+    // Opens the calibration wizard for `kind`. Single source of truth for the wizard lifecycle:
+    // the Calibration menu handlers and the Speed Dial native commands both call this. Most wizards
+    // are cached members; cornering/input-shaping are transient. Call while the Prepare (3D) panel
+    // is shown (menu items are gated on is_view3D_shown; the speed dial ensures it first).
+    void        run_calibration(CalibKind calib_kind);
 
     //BBS
     void        load_url(wxString url);
@@ -380,6 +409,17 @@ public:
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+#ifdef SLIC3R_CAD
+    // The tab page is the placeholder; m_design_panel stays null until the tab is first
+    // selected, so everything the Design panel builds stays off the startup path.
+    wxPanel*              m_design_page { nullptr };
+    DesignPanel*          m_design_panel { nullptr };
+    // Builds the Design panel if it does not exist yet and returns it (null only before the
+    // placeholder page itself exists). Main thread only -- it creates wx controls. Both the
+    // tab activation and the MCP socket go through this: the socket is driven headlessly,
+    // with nobody to click the tab, and without this every verb would answer "not ready".
+    DesignPanel*          ensure_design_panel();
+#endif
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };
 

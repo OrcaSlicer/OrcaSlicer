@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_Sermoon_D3",
-	"default_materials": "CR-Silk;CR-PLA;CR-TPU;CR-PETG;Hyper PLA;Generic ABS"
+	"default_materials": "CR-Silk @Sermoon D3-all;CR-PLA @Sermoon D3-all;CR-TPU @Sermoon D3-all;CR-PETG @Sermoon D3-all;Hyper PLA @Sermoon D3-all;Generic ABS @Sermoon D3-all"
 }

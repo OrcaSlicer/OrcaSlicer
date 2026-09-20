@@ -4,7 +4,11 @@
 	"inherits": "Generic PPA-GF @System",
 	"from": "system",
 	"setting_id": "DhC7iFgNKCAq4Zkt",
+	"filament_id": "OFLC1oRH",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",
 		"Flashforge Creator 5 0.6 nozzle",

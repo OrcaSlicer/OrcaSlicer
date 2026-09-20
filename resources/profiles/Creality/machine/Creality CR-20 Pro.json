@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_CR_20_Pro",
-	"default_materials": "Generic PETG;Generic PLA;Generic ABS"
+	"default_materials": "Generic PETG @CR-20 Pro-all;Generic PLA @CR-20 Pro-all;Generic ABS @CR-20 Pro-all"
 }

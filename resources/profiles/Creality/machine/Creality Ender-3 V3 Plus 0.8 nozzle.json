@@ -1,11 +1,11 @@
 {
 	"type": "machine",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_creality_common",
-	"printer_model": "Creality Ender-3 V3 Plus",
 	"name": "Creality Ender-3 V3 Plus 0.8 nozzle",
+	"inherits": "fdm_creality_common",
+	"from": "system",
 	"setting_id": "POEqDPvODxBUiA6S",
+	"instantiation": "true",
+	"printer_model": "Creality Ender-3 V3 Plus",
 	"printer_structure": "i3",
 	"auxiliary_fan": "1",
 	"bed_exclude_area": "0x0",
@@ -69,7 +69,6 @@
 	"printhost_ssl_ignore_revoke": "0",
 	"purge_in_prime_tower": "1",
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "1",
@@ -81,7 +80,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Creality Generic PLA @Ender-3V3-all"
+		"Generic PLA @Creality Ender-3V3-all"
 	],
 	"deretraction_speed": "30",
 	"extruder_colour": "#018001",
@@ -106,4 +105,4 @@
 	"wipe_distance": "2",
 	"z_hop": "0.4",
 	"z_hop_types": "Auto Lift"
-	}
+}

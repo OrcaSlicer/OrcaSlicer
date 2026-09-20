@@ -9,5 +9,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Creality_Ender_3_Max_Neo",
-	"default_materials": "Generic PLA;Generic PETG;Generic ABS"
+	"default_materials": "Generic PLA @Ender-3 Max Neo-all;Generic PETG @Ender-3 Max Neo-all;Generic ABS @Ender-3 Max Neo-all"
 }

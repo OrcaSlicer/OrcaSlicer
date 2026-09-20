@@ -1,8 +1,10 @@
 {
 	"type": "machine",
-	"from": "system",
-	"instantiation": "true",
+	"name": "Creality Sermoon M300 0.4 nozzle",
 	"inherits": "fdm_creality_common",
+	"from": "system",
+	"setting_id": "HOFVUEhkatFtDeUd",
+	"instantiation": "true",
 	"printer_model": "Creality Sermoon M300",
 	"auxiliary_fan": "0",
 	"bbl_use_printhost": "0",
@@ -70,7 +72,6 @@
 	"printhost_ssl_ignore_revoke": "0",
 	"purge_in_prime_tower": "0",
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",
@@ -108,7 +109,5 @@
 	"wipe": "1",
 	"wipe_distance": "2",
 	"z_hop": "0.4",
-	"z_hop_types": "Auto Lift",
-	"name": "Creality Sermoon M300 0.4 nozzle",
-	"setting_id": "HOFVUEhkatFtDeUd"
+	"z_hop_types": "Auto Lift"
 }
