@@ -244,6 +244,77 @@ TEST_CASE("isolated slicing never mutates its source model or config",
     job->close();
 }
 
+TEST_CASE("isolated slicing baseline forks are independent single-use jobs",
+          "[PluginHost][IsolatedSlicing]")
+{
+    ScopedTemporaryDir storage("orca-isolated-fork");
+    Slic3r::DynamicPrintConfig live_config = small_fff_config();
+    Slic3r::Model live_model = small_fff_model(live_config);
+    constexpr const char* plugin_key = "isolated-fork-plugin";
+
+    auto source = Slic3r::IsolatedSlicingJob::create_owned(
+        owned_baseline(live_model, live_config), storage.string(), plugin_key);
+    std::shared_ptr<Slic3r::IsolatedSlicingJob> baseline_job;
+    std::shared_ptr<Slic3r::IsolatedSlicingJob> candidate_job;
+    {
+        Slic3r::ScopedPluginAuditContext audit_context("different-isolated-fork-plugin");
+        CHECK_THROWS_WITH(source->fork_from_baseline(),
+                          Catch::Matchers::ContainsSubstring("different plugin"));
+    }
+    {
+        Slic3r::ScopedPluginAuditContext audit_context(plugin_key);
+        baseline_job = source->fork_from_baseline();
+        candidate_job = source->fork_from_baseline();
+    }
+
+    REQUIRE(source->snapshot().object_count == 1);
+    CHECK(baseline_job->snapshot().object_count == source->snapshot().object_count);
+    CHECK(candidate_job->snapshot().filament_maps == source->snapshot().filament_maps);
+
+    // Neither fork re-reads the source model or config after the first capture.
+    live_model.clear_objects();
+    live_config.set_deserialize_strict("layer_height", "0.10");
+    CHECK(baseline_job->snapshot().object_count == 1);
+    CHECK(candidate_job->snapshot().object_count == 1);
+
+    const auto candidate = candidate_job->apply_candidate({ { "layer_height", "0.25" } });
+    CHECK(baseline_job->candidate().empty());
+    CHECK(candidate_job->candidate() == candidate);
+
+    // Closing the source releases only its own state; the shared immutable baseline remains owned
+    // by each derived job.
+    source->close();
+    CHECK(source->state() == Slic3r::IsolatedSlicingState::Closed);
+    {
+        Slic3r::ScopedPluginAuditContext audit_context(plugin_key);
+        auto after_source_close = source->fork_from_baseline();
+        CHECK(after_source_close->snapshot().object_count == 1);
+        after_source_close->close();
+    }
+
+    baseline_job->run();
+    CHECK_THROWS_WITH(candidate_job->run(), Catch::Matchers::ContainsSubstring("Slicing is busy"));
+    REQUIRE(baseline_job->wait() == Slic3r::IsolatedSlicingState::Succeeded);
+    REQUIRE(candidate_job->state() == Slic3r::IsolatedSlicingState::Ready);
+
+    candidate_job->run();
+    REQUIRE(candidate_job->wait() == Slic3r::IsolatedSlicingState::Succeeded);
+    const Slic3r::IsolatedSlicingResult baseline_result = baseline_job->result();
+    const Slic3r::IsolatedSlicingResult candidate_result = candidate_job->result();
+    CHECK(baseline_result.candidate.empty());
+    CHECK(candidate_result.candidate == candidate);
+    CHECK(baseline_result.gcode_path != candidate_result.gcode_path);
+    REQUIRE(boost::filesystem::is_regular_file(baseline_result.gcode_path));
+    REQUIRE(boost::filesystem::is_regular_file(candidate_result.gcode_path));
+
+    const boost::filesystem::path candidate_path(candidate_result.gcode_path);
+    baseline_job->close();
+    CHECK_FALSE(boost::filesystem::exists(baseline_result.gcode_path));
+    CHECK(boost::filesystem::is_regular_file(candidate_path));
+    candidate_job->close();
+    CHECK_FALSE(boost::filesystem::exists(candidate_path));
+}
+
 TEST_CASE("isolated slicing admission rejects live and second isolated jobs immediately",
           "[PluginHost][IsolatedSlicing]")
 {
@@ -349,12 +420,14 @@ TEST_CASE("isolated slicing Python surface is opaque and wait releases the GIL",
     REQUIRE(py::hasattr(host, "create_isolated_fff_slicing_job"));
     REQUIRE(py::hasattr(host, "IsolatedFFFSlicingJob"));
 
-    auto job = make_job(storage.path());
+    auto job = make_job(storage.path(), "isolated-python-plugin");
     py::dict globals;
     globals["__builtins__"] = py::module_::import("builtins");
     globals["job"] = py::cast(job);
 
-    py::exec(R"PY(
+    {
+        Slic3r::ScopedPluginAuditContext audit_context("isolated-python-plugin");
+        py::exec(R"PY(
 import sys
 import threading
 
@@ -364,6 +437,12 @@ assert not hasattr(job, "preset")
 assert not hasattr(job, "upload")
 assert not hasattr(job, "print")
 assert not hasattr(job, "post_process")
+assert hasattr(job, "fork_from_baseline")
+
+forked = job.fork_from_baseline()
+assert not hasattr(forked, "model")
+assert forked.snapshot().object_count == job.snapshot().object_count
+forked.close()
 
 snapshot = job.snapshot()
 try:
@@ -393,6 +472,7 @@ finally:
 gil_progressed = progressed.is_set()
 job.close()
 )PY", globals);
+    }
 
     CHECK(globals["gil_progressed"].cast<bool>());
 }
@@ -433,6 +513,11 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
     ScopedTemporaryDir storage_d("orca-isolated-lifecycle-d");
 
     auto plugin_a_job = make_job(storage_a.path(), "Isolated_Lifecycle_Plugin");
+    std::shared_ptr<Slic3r::IsolatedSlicingJob> plugin_a_derived;
+    {
+        Slic3r::ScopedPluginAuditContext audit_context("Isolated_Lifecycle_Plugin");
+        plugin_a_derived = plugin_a_job->fork_from_baseline();
+    }
     auto plugin_b_job = make_job(storage_b.path(), "isolated-plugin-b");
 
     bool teardown_observed_after_drain = false;
@@ -442,6 +527,7 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
             if (plugin_key == "Isolated_Lifecycle_Plugin") {
                 teardown_observed_after_drain =
                     plugin_a_job->state() == Slic3r::IsolatedSlicingState::Closed &&
+                    plugin_a_derived->state() == Slic3r::IsolatedSlicingState::Closed &&
                     !tree_has_regular_file(storage_a.path() / "isolated_slicing");
                 try {
                     (void) make_job(storage_a.path(), "Isolated_Lifecycle_Plugin");
@@ -456,6 +542,8 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
     REQUIRE(manager.unload_plugin("Isolated_Lifecycle_Plugin"));
     CHECK(plugin_a_job->state() == Slic3r::IsolatedSlicingState::Closed);
     CHECK(plugin_a_job->wait() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(plugin_a_derived->state() == Slic3r::IsolatedSlicingState::Closed);
+    CHECK(plugin_a_derived->wait() == Slic3r::IsolatedSlicingState::Closed);
     CHECK(teardown_observed_after_drain);
     CHECK(registration_rejected_during_teardown);
     CHECK_FALSE(tree_has_regular_file(storage_a.path() / "isolated_slicing"));

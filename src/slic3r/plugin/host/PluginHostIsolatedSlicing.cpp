@@ -73,6 +73,8 @@ void register_isolated_slicing(py::module_& host)
              "Atomically replace the staged candidate with a strict patch over the baseline.")
         .def_property_readonly("candidate", &IsolatedSlicingJob::candidate,
              "Canonical values for the current staged patch.")
+        .def("fork_from_baseline", &IsolatedSlicingJob::fork_from_baseline,
+             "Create an independent single-use job over this job's immutable owned baseline.")
         .def("run", &IsolatedSlicingJob::run,
              "Start the dedicated isolated slicing worker without waiting.")
         .def("cancel", &IsolatedSlicingJob::cancel,

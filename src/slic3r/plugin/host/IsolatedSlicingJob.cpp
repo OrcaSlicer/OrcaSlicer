@@ -188,11 +188,14 @@ IsolatedGCodeStatistics copy_gcode_statistics(const GCodeProcessorResult& source
 } // namespace
 
 struct IsolatedSlicingJob::Baseline {
-    Baseline(IsolatedSlicingBaseline snapshot_, std::string storage_root_)
-        : snapshot(std::move(snapshot_)), storage_root(std::move(storage_root_)) {}
+    Baseline(IsolatedSlicingBaseline snapshot_, std::string storage_root_, std::string owner_plugin_key_)
+        : snapshot(std::move(snapshot_))
+        , storage_root(std::move(storage_root_))
+        , owner_plugin_key(std::move(owner_plugin_key_)) {}
 
-    IsolatedSlicingBaseline snapshot;
-    std::string             storage_root;
+    const IsolatedSlicingBaseline snapshot;
+    const std::string       storage_root;
+    const std::string       owner_plugin_key;
 };
 
 const char* isolated_slicing_state_name(IsolatedSlicingState state) noexcept
@@ -264,18 +267,26 @@ std::shared_ptr<IsolatedSlicingJob> IsolatedSlicingJob::create_owned(
 {
     validate_baseline(baseline);
     const fs::path root = normalized_storage_root(plugin_storage_root);
-    std::shared_ptr<IsolatedSlicingJob> job(
-        new IsolatedSlicingJob(std::move(baseline), root.string()));
+    auto immutable_baseline = std::make_shared<const Baseline>(
+        std::move(baseline), root.string(), plugin_key);
+    return create_from_shared_baseline(std::move(immutable_baseline), plugin_key);
+}
+
+std::shared_ptr<IsolatedSlicingJob> IsolatedSlicingJob::create_from_shared_baseline(
+    std::shared_ptr<const Baseline> baseline, const std::string& plugin_key)
+{
+    if (!baseline)
+        throw std::runtime_error("Isolated slicing baseline is unavailable");
+
+    std::shared_ptr<IsolatedSlicingJob> job(new IsolatedSlicingJob(std::move(baseline)));
     if (!plugin_key.empty() &&
         !PluginManager::instance().register_isolated_slicing_job(plugin_key, job))
         throw std::runtime_error("Plugin is unloading; new isolated slicing jobs are rejected");
     return job;
 }
 
-IsolatedSlicingJob::IsolatedSlicingJob(
-    IsolatedSlicingBaseline baseline, std::string plugin_storage_root)
-    : m_baseline(std::make_shared<const Baseline>(
-          std::move(baseline), std::move(plugin_storage_root)))
+IsolatedSlicingJob::IsolatedSlicingJob(std::shared_ptr<const Baseline> baseline)
+    : m_baseline(std::move(baseline))
     , m_candidate(m_baseline->snapshot.config)
 {}
 
@@ -324,6 +335,17 @@ std::map<std::string, std::string> IsolatedSlicingJob::candidate() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_canonical_candidate;
+}
+
+std::shared_ptr<IsolatedSlicingJob> IsolatedSlicingJob::fork_from_baseline() const
+{
+    const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+    if (plugin_key.empty())
+        throw std::runtime_error("Isolated slicing baseline forks must be created from a plugin callback");
+    if (m_baseline->owner_plugin_key.empty() || plugin_key != m_baseline->owner_plugin_key)
+        throw std::runtime_error("Isolated slicing baseline belongs to a different plugin");
+
+    return create_from_shared_baseline(m_baseline, plugin_key);
 }
 
 void IsolatedSlicingJob::run()

@@ -112,6 +112,9 @@ public:
     std::map<std::string, std::string> apply_candidate(
         const std::map<std::string, std::string>& patch);
     std::map<std::string, std::string> candidate() const;
+    // Creates a new single-use job over this job's immutable owned baseline.
+    // The audited owner plugin is resolved natively; Python supplies no identity.
+    std::shared_ptr<IsolatedSlicingJob> fork_from_baseline() const;
     void                 run();
     void                 cancel() noexcept;
     IsolatedSlicingState wait();
@@ -121,14 +124,18 @@ public:
     void close() noexcept;
 
 private:
-    IsolatedSlicingJob(IsolatedSlicingBaseline baseline, std::string plugin_storage_root);
+    struct Baseline;
+
+    explicit IsolatedSlicingJob(std::shared_ptr<const Baseline> baseline);
+
+    static std::shared_ptr<IsolatedSlicingJob> create_from_shared_baseline(
+        std::shared_ptr<const Baseline> baseline, const std::string& plugin_key);
 
     void worker_main(DynamicPrintConfig candidate,
                      std::map<std::string, std::string> canonical_candidate);
     void join_worker() noexcept;
     void cleanup_owned_output() noexcept;
 
-    struct Baseline;
     const std::shared_ptr<const Baseline> m_baseline;
 
     mutable std::mutex m_mutex;
