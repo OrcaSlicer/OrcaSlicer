@@ -1043,6 +1043,12 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
+        else if (param == "auto_reload_on_source_change") {
+            // Apply immediately: start/stop watching the currently loaded objects' source
+            // files rather than waiting for the next unrelated object-list change.
+            if (Plater* plater = wxGetApp().plater())
+                plater->object_list_changed();
+        }
         else if (param == "hide_login_side_panel") {
             if (wxGetApp().mainframe && wxGetApp().mainframe->m_webview) {
                 wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
@@ -1831,6 +1837,19 @@ void PreferencesDialog::create_items()
 
     auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
     g_sizer->Add(item_mix_print_high_low_temperature);
+
+    auto item_auto_reload_source = create_item_checkbox(
+        _L("Reload objects when their source file changes"),
+        _L("If enabled, OrcaSlicer will automatically reload objects from disk when the file they were imported from changes on disk, e.g. after re-exporting from CAD software. Combine with \"Also slice after auto-reloading a model\", just below, to also reslice automatically -- \"Auto slice after changes\" does not cover this, it only reacts to print/printer setting changes."),
+        "auto_reload_on_source_change");
+    g_sizer->Add(item_auto_reload_source);
+
+    auto item_auto_slice_after_reload = create_item_checkbox(
+        _L("Also slice after auto-reloading a model"),
+        _L("If enabled, OrcaSlicer will also slice the plate(s) containing the reloaded objects after an automatic reload triggered by the option above, and switch to Preview, "
+           "as clicking \"Slice\" would."),
+        "auto_slice_after_reload");
+    g_sizer->Add(item_auto_slice_after_reload);
  
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);

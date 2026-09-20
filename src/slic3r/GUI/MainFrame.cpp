@@ -750,11 +750,7 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
 
     switch (*shortcut) {
     case Shortcut::SlicePlate:
-        if (m_slice_enable) {
-            wxGetApp().plater()->update(true, true);
-            wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
-            m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
-        }
+        slice_current_plate();
         break;
     case Shortcut::PrintPlate:
         m_plater->apply_background_progress();
@@ -4102,6 +4098,17 @@ void MainFrame::request_select_tab(const wxString& id)
     wxCommandEvent* evt = new wxCommandEvent(EVT_SELECT_TAB);
     evt->SetString(id);
     wxQueueEvent(this, evt);
+}
+
+bool MainFrame::slice_current_plate()
+{
+    wxGetApp().plater()->update(true, true);
+    m_slice_enable = get_enable_slice_status();
+    if (m_slice_enable) {
+        wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+        this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
+    }
+    return m_slice_enable;
 }
 
 int MainFrame::get_calibration_curr_tab() {
