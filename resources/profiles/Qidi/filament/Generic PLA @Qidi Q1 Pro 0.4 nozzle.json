@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "Generic PLA @Qidi",
+	"renamed_from": "Qidi Generic PLA @Qidi Q1 Pro 0.4 nozzle;Qidi Generic PLA Qidi Q1 Pro 0.4 nozzle",
+	"from": "system",
+	"setting_id": "PNCPMC8uMY9h5SZr",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"14"
+	],
+	"filament_settings_id": [
+		"Generic PLA @Qidi Q1 Pro 0.4 nozzle"
+	],
+	"full_fan_speed_layer": [
+		"3"
+	],
+	"nozzle_temperature": [
+		"210"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"pressure_advance": [
+		"0.042"
+	],
+	"compatible_printers": [
+		"Qidi Q1 Pro 0.4 nozzle"
+	]
+}

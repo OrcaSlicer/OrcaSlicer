@@ -17,6 +17,7 @@
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
@@ -420,7 +421,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         if (properties_shown) {
             float label_w = 0.0f;
             float value_w = 0.0f;
-            properties_rows.reserve(13);
+            properties_rows.reserve(14);
             auto add_row = [&properties_rows, &label_w, &value_w](std::string label, std::string value) {
                  label_w = std::max(label_w, ImGui::CalcTextSize(label.c_str()).x);
                  value_w = std::max(value_w, ImGui::CalcTextSize(value.c_str()).x);
@@ -433,6 +434,27 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Width"), buff);
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Height"), buff);
+            // ORCA: Length of the move ending at the current vertex. Arc moves (G2/G3) are discretized
+            // into several vertices sharing the same gcode line id, so accumulate the whole run to report
+            // the arc length instead of the length of a single chord.
+            if (vertex_id > 0 && (is_extrusion || vertex.is_travel() || vertex.is_wipe())) {
+                const size_t vertices_count = viewer->get_vertices_count();
+                size_t first_id = vertex_id;
+                while (first_id > 0 && viewer->get_vertex_at(first_id - 1).gcode_id == vertex.gcode_id)
+                    --first_id;
+                size_t last_id = vertex_id;
+                while (last_id + 1 < vertices_count && viewer->get_vertex_at(last_id + 1).gcode_id == vertex.gcode_id)
+                    ++last_id;
+                float length = 0.0f;
+                for (size_t i = std::max<size_t>(first_id, 1); i <= last_id; ++i) {
+                    length += (libvgcode::convert(viewer->get_vertex_at(i).position) -
+                               libvgcode::convert(viewer->get_vertex_at(i - 1).position)).norm();
+                }
+                sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), length);
+            }
+            else
+                strcpy(buff, NA_CSTR);
+            add_row(_u8L("Length"), buff);
             sprintf(buff, "%d", vertex.layer_id + 1);
             add_row(_u8L("Layer"), buff);
             sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.feedrate);
@@ -764,6 +786,19 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
     }
 }
 
+// Byte offset just past the first count characters of str, or its length if it is shorter.
+static size_t utf8_offset(const std::string& str, size_t count)
+{
+    const char* const begin = str.c_str();
+    const char* const end   = begin + str.size();
+    const char*       pos   = begin;
+    for (size_t i = 0; i < count && pos < end; ++i) {
+        unsigned int codepoint = 0;
+        pos += ImTextCharFromUtf8(&codepoint, pos, end);
+    }
+    return pos - begin;
+}
+
 //BBS: GUI refactor: move to right
 void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id) const
 {
@@ -775,23 +810,27 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
             // read line from file
             const size_t start        = id == 1 ? 0 : m_lines_ends[id - 2];
             const size_t original_len = m_lines_ends[id - 1] - start;
-            const size_t len          = std::min(original_len, (size_t) 55);
+            // A character is four bytes at most, so 55 of them always fit in 220.
+            const size_t len          = std::min(original_len, (size_t) 55 * 4);
             std::string  gline(m_file.data() + start, len);
 
-            // If original line is longer than 55 characters, truncate and append "..."
-            if (original_len > 55)
-                gline = gline.substr(0, 52) + "...";
+            // If original line is longer than 55 characters, truncate and append "...".
+            // The cut must land on a character boundary or it leaves half a character behind.
+            if (len < original_len || utf8_offset(gline, 55) < gline.size())
+                gline = gline.substr(0, utf8_offset(gline, 52)) + "...";
 
             std::string command, parameters, comment;
-            // extract comment
-            std::vector<std::string> tokens;
-            boost::split(tokens, gline, boost::is_any_of(";"), boost::token_compress_on);
-            command = tokens.front();
-            if (tokens.size() > 1)
-                comment = ";" + tokens.back();
+            const size_t comment_start = gline.find(';');
+            if (comment_start == std::string::npos)
+                command = gline;
+            else {
+                command = gline.substr(0, comment_start);
+                comment = gline.substr(comment_start);
+            }
 
             // extract gcode command and parameters
             if (!command.empty()) {
+                std::vector<std::string> tokens;
                 boost::split(tokens, command, boost::is_any_of(" "), boost::token_compress_on);
                 command = tokens.front();
                 if (tokens.size() > 1) {
@@ -958,13 +997,17 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
     }
 }
-void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
-    if (has_render_path && m_show_marker) {
+    if (has_render_path && m_show_marker)
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
+}
+
+void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+{
+    if (has_render_path && m_show_marker)
         marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
-    }
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
     // BBS
@@ -1579,7 +1622,7 @@ void GCodeViewer::reset()
 }
 
 //BBS: GUI refactor: add canvas width and height
-void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_shells(canvas_width, canvas_height);
@@ -1589,6 +1632,20 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
     render_toolpaths();
 
+    auto current = m_viewer.get_view_visible_range();
+    auto endpoints = m_viewer.get_view_full_range();
+    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
+    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
+}
+
+void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
+{
+    if (m_viewer.get_extrusion_roles().empty())
+        return;
+
     float legend_height = 0.0f;
     render_legend(legend_height, canvas_width, canvas_height, right_margin);
 
@@ -1597,16 +1654,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
         m_user_mode = wxGetApp().get_mode();
     }
 
-    //BBS fixed bottom_margin for space to render horiz slider
-    int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
-    auto current = m_viewer.get_view_visible_range();
-    auto endpoints = m_viewer.get_view_full_range();
-    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
-    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
-    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
-    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
-    // BBS fixed buttom margin. m_moves_slider.pos_y
-    m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
+    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
@@ -1645,6 +1693,14 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
     //BBS render slider
     render_slider(canvas_width, canvas_height);
+}
+
+int GCodeViewer::sequential_view_height(int canvas_height) const
+{
+    //BBS fixed bottom_margin for space to render horiz slider
+    const int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
+    // BBS fixed buttom margin. m_moves_slider.pos_y
+    return canvas_height - bottom_margin * m_scale;
 }
 
 #define ENABLE_CALIBRATION_THUMBNAIL_OUTPUT 0
@@ -2592,7 +2648,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
 
         return ret;
     };
-    auto append_item = [icon_size, &imgui, imperial_units, &window_padding, &draw_list, this](const ColorRGBA& color, const std::vector<std::pair<std::string, float>>& columns_offsets)
+    auto append_item = [icon_size, &imgui, &window_padding, &draw_list, this](const ColorRGBA& color, const std::vector<std::pair<std::string, float>>& columns_offsets)
     {
         // render icon
         ImVec2 pos = ImVec2(ImGui::GetCursorScreenPos().x + window_padding * 3, ImGui::GetCursorScreenPos().y);
@@ -2627,7 +2683,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ImGui::Separator();
     };
-    auto get_used_filament_from_volume = [this, imperial_units, &filament_diameters, &filament_densities](double volume, int extruder_id) {
+    auto get_used_filament_from_volume = [imperial_units, &filament_diameters, &filament_densities](double volume, int extruder_id) {
         double koef = imperial_units ? 1.0 / GizmoObjectManipulation::in_to_mm : 0.001;
         std::pair<double, double> ret = { koef * volume / (PI * sqr(0.5 * filament_diameters[extruder_id])),
                                             volume * filament_densities[extruder_id] * 0.001 };
@@ -3212,7 +3268,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     //ImVec2(pos_rect.x + ImGui::GetWindowWidth() + ImGui::GetFrameHeight(),pos_rect.y + ImGui::GetFrameHeight() + window_padding * 2.5),
     //ImGui::GetColorU32(ImVec4(0,0,0,0.3)));
 
-    auto append_item = [icon_size, &imgui, imperial_units, &window_padding, &draw_list, this](
+    auto append_item = [icon_size, &imgui, &window_padding, &draw_list, this](
         EItemType type,
         const ColorRGBA& color,
         const std::vector<std::pair<std::string, float>>& columns_offsets,
@@ -3347,7 +3403,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
-    auto calculate_offsets = [&imgui, max_width, window_padding, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
             const ImGuiStyle& style = ImGui::GetStyle();
             std::vector<float> offsets;
             // ORCA increase spacing for more readable format. Using direct number requires much less code change in here. GetTextLineHeight for additional spacing for icon_size
@@ -3398,16 +3454,18 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
+    // Whole sentences: the bare "up to"/"above"/"from"/"to" these used to be glued from gave a
+    // translator no context, and left the unit and the numbers stuck in English word order.
     auto upto_label = [](double z) {
         char buf[64];
         ::sprintf(buf, "%.2f", z);
-        return _u8L("up to") + " " + std::string(buf) + " " + _u8L("mm");
+        return format(_u8L("up to %1% mm"), buf);
     };
 
     auto above_label = [](double z) {
         char buf[64];
         ::sprintf(buf, "%.2f", z);
-        return _u8L("above") + " " + std::string(buf) + " " + _u8L("mm");
+        return format(_u8L("above %1% mm"), buf);
     };
 
     auto fromto_label = [](double z1, double z2) {
@@ -3415,7 +3473,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf1, "%.2f", z1);
         char buf2[64];
         ::sprintf(buf2, "%.2f", z2);
-        return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + _u8L("mm");
+        return format(_u8L("from %1% to %2% mm"), buf1, buf2);
     };
 
     auto role_time_and_percent = [this, total_estimated_time](libvgcode::EGCodeExtrusionRole role) {
@@ -3835,7 +3893,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ distance_text, offsets[3] });
             if (full_layout && !count_text.empty())
                 columns_offsets.push_back({ count_text, distance_text.empty() ? offsets[3] : offsets[4] });
-            append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
+            append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
                 });
@@ -3892,7 +3950,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             columns_offsets.push_back({used_filaments_length[i], offsets[3]});
             columns_offsets.push_back({used_filaments_weight[i], offsets[4]});
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_extrusion_role_color(role)), columns_offsets,
-                true, offsets.back(), visible, [this, role, visible]() {
+                true, offsets.back(), visible, [this, role]() {
                     m_viewer.toggle_extrusion_role_visibility(role);
                     update_moves_slider();
                 });
@@ -3911,7 +3969,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ travel_percent, offsets[2] });
                 columns_offsets.push_back({ travel_distance, offsets[3] }); // Usage column
                 columns_offsets.push_back({ travel_moves, offsets[4] });    // Usage column
-                append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item, visible]() {
+                append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item]() {
                         m_viewer.toggle_option_visibility(item);
                         update_moves_slider();
                     });
@@ -3930,7 +3988,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
@@ -3947,7 +4005,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
@@ -3964,7 +4022,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
             });
@@ -3980,7 +4038,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
             });
@@ -4100,7 +4158,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 }
 
                 float checkbox_pos = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, [this, extruder_idx]() {});
+                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, []() {});
             }
             i++;
         }

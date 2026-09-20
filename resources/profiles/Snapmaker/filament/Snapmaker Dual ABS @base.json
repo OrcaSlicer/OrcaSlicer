@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "168223792",
+	"filament_id": "OFJhT2fd",
 	"instantiation": "false",
 	"hot_plate_temp": [
 		"110"
@@ -31,12 +31,6 @@
 	],
 	"filament_unloading_speed": [
 		"35"
-	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
 	],
 	"filament_cooling_moves": [
 		"2"

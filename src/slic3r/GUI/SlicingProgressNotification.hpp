@@ -53,10 +53,10 @@ protected:
     void        init() override;
     void        render(GLCanvas3D& canvas, float initial_y, bool move_from_overlay, float overlay_width, float right_margin) override;
     /* PARAMS: pos is relative to screen */
-    void	    render_text(const ImVec2& pos);
+    void	    render_progress_text(const ImVec2& pos);
     void		render_bar(const ImVec2& pos, const ImVec2& size);
     void		render_cancel_button(const ImVec2& pos, const ImVec2& size);
-    void		render_close_button(const ImVec2& pos, const ImVec2& size);
+    void		render_progress_close_button(const ImVec2& pos, const ImVec2& size);
     void        render_dailytips_panel(const ImVec2& pos, const ImVec2& size);
     void        render_show_dailytips(const ImVec2& pos);
 

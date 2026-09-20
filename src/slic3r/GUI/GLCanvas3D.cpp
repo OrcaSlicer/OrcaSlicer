@@ -1,5 +1,8 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"   // Design tab: interactive 2D sketch tool
+#endif
 
 #include <igl/unproject.h>
 
@@ -66,6 +69,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
 
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -153,6 +157,11 @@ std::string& get_nozzle_filament_incompatible_text() {
 std::string& get_filament_mixture_warning_text(){
     static std::string filament_mixture_warning_text;
     return filament_mixture_warning_text;
+}
+
+std::string& get_single_extruder_mixed_filament_warning_text(){
+    static std::string single_extruder_mixed_filament_warning_text;
+    return single_extruder_mixed_filament_warning_text;
 }
 
 
@@ -362,7 +371,6 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
 
 void GLCanvas3D::LayersEditing::render_overlay(GLCanvas3D& canvas)
 {
-    render_variable_layer_height_dialog(canvas);
     render_active_object_annotations(canvas);
     render_profile(canvas);
 }
@@ -1034,7 +1042,6 @@ wxDEFINE_EVENT(EVT_GLCANVAS_ORIENT_PARTPLATE, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_SELECT_ALL, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_QUESTION_MARK, SimpleEvent);
-wxDEFINE_EVENT(EVT_GLCANVAS_OPEN_SPEED_DIAL, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_INCREASE_INSTANCES, Event<int>);
 wxDEFINE_EVENT(EVT_GLCANVAS_INSTANCE_MOVED, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_INSTANCE_ROTATED, SimpleEvent);
@@ -1073,56 +1080,36 @@ const double GLCanvas3D::DefaultCameraZoomToPlateMarginFactor = 1.25;
 
 void GLCanvas3D::load_arrange_settings()
 {
-    std::string dist_fff_str =
-        wxGetApp().app_config->get("arrange", "min_object_distance_fff");
+    // Each key must match what _render_arrange_menu writes, which appends a per-mode
+    // postfix to the base name.
+    auto load_float = [](const char *key, float &out) {
+        // The menu writes these with float_to_string_decimal_point, so parse them back
+        // the same way rather than with anything locale-dependent.
+        std::string value = wxGetApp().app_config->get("arrange", key);
+        size_t      parsed = 0;
+        double      number = string_to_double_decimal_point(value, &parsed);
+        if (parsed > 0)
+            out = float(number);
+    };
+    auto load_bool = [](const char *key, bool &out) {
+        std::string value = wxGetApp().app_config->get("arrange", key);
+        if (!value.empty())
+            out = (value == "1" || value == "true");
+    };
 
-    std::string dist_fff_seq_print_str =
-        wxGetApp().app_config->get("arrange", "min_object_distance_seq_print_fff");
+    load_float("min_object_distance_fff",           m_arrange_settings_fff.distance);
+    load_float("min_object_distance_fff_seq_print", m_arrange_settings_fff_seq_print.distance);
+    load_float("min_object_distance_sla",           m_arrange_settings_sla.distance);
 
-    std::string dist_sla_str =
-        wxGetApp().app_config->get("arrange", "min_object_distance_sla");
+    load_bool("enable_rotation_fff",           m_arrange_settings_fff.enable_rotation);
+    load_bool("enable_rotation_fff_seq_print", m_arrange_settings_fff_seq_print.enable_rotation);
+    load_bool("enable_rotation_sla",           m_arrange_settings_sla.enable_rotation);
 
-    std::string en_rot_fff_str =
-        wxGetApp().app_config->get("arrange", "enable_rotation_fff");
-
-    std::string en_rot_fff_seqp_str =
-        wxGetApp().app_config->get("arrange", "enable_rotation_seq_print");
-
-    std::string en_rot_sla_str =
-        wxGetApp().app_config->get("arrange", "enable_rotation_sla");
-
-    std::string en_allow_multiple_materials_str =
-        wxGetApp().app_config->get("arrange", "allow_multi_materials_on_same_plate");
-
-    std::string en_avoid_region_str =
-        wxGetApp().app_config->get("arrange", "avoid_extrusion_cali_region");
-
-
-
-    if (!dist_fff_str.empty())
-        m_arrange_settings_fff.distance = std::stof(dist_fff_str);
-
-    if (!dist_fff_seq_print_str.empty())
-        m_arrange_settings_fff_seq_print.distance = std::stof(dist_fff_seq_print_str);
-
-    if (!dist_sla_str.empty())
-        m_arrange_settings_sla.distance = std::stof(dist_sla_str);
-
-    if (!en_rot_fff_str.empty())
-        m_arrange_settings_fff.enable_rotation = (en_rot_fff_str == "1" || en_rot_fff_str == "true");
-
-    if (!en_allow_multiple_materials_str.empty())
-        m_arrange_settings_fff.allow_multi_materials_on_same_plate = (en_allow_multiple_materials_str == "1" || en_allow_multiple_materials_str == "true");
-
-
-    if (!en_rot_fff_seqp_str.empty())
-        m_arrange_settings_fff_seq_print.enable_rotation = (en_rot_fff_seqp_str == "1" || en_rot_fff_seqp_str == "true");
-
-    if(!en_avoid_region_str.empty())
-        m_arrange_settings_fff.avoid_extrusion_cali_region = (en_avoid_region_str == "1" || en_avoid_region_str == "true");
-
-    if (!en_rot_sla_str.empty())
-        m_arrange_settings_sla.enable_rotation = (en_rot_sla_str == "1" || en_rot_sla_str == "true");
+    // These two keys carry no postfix, so the one stored value covers both FFF modes.
+    load_bool("allow_multi_materials_on_same_plate", m_arrange_settings_fff.allow_multi_materials_on_same_plate);
+    load_bool("allow_multi_materials_on_same_plate", m_arrange_settings_fff_seq_print.allow_multi_materials_on_same_plate);
+    load_bool("avoid_extrusion_cali_region",         m_arrange_settings_fff.avoid_extrusion_cali_region);
+    load_bool("avoid_extrusion_cali_region",         m_arrange_settings_fff_seq_print.avoid_extrusion_cali_region);
 
     //BBS: add specific arrange settings
     m_arrange_settings_fff_seq_print.is_seq_print = true;
@@ -1204,6 +1191,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 #endif // ENABLE_RETINA_GL
     }
     m_timer_set_color.Bind(wxEVT_TIMER, &GLCanvas3D::on_set_color_timer, this);
+    m_fps_overlay_timer.Bind(wxEVT_TIMER, &GLCanvas3D::on_fps_overlay_timer, this);
     load_arrange_settings();
 
     m_selection.set_volumes(&m_volumes.volumes);
@@ -1220,6 +1208,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 GLCanvas3D::~GLCanvas3D()
 {
     if (_set_current()) {
+        m_scene_cache.reset();
         if (m_fxaa_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
             m_fxaa_texture_id = 0;
@@ -1367,6 +1356,7 @@ void GLCanvas3D::on_change_color_mode(bool is_dark, bool reinit) {
             m_gizmos.set_icon_dirty();
         }
     }
+    m_dirty = true;
 }
 
 const float GLCanvas3D::get_scale() const
@@ -1842,6 +1832,16 @@ void GLCanvas3D::enable_separator_toolbar(bool enable)
     m_separator_toolbar.set_enabled(enable);
 }
 
+void GLCanvas3D::enable_collapse_toolbar(bool enable)
+{
+    m_collapse_toolbar_enabled = enable;
+}
+
+void GLCanvas3D::enable_plate_chrome(bool enable)
+{
+    m_plate_chrome_enabled = enable;
+}
+
 bool GLCanvas3D::has_mouse_capture() const {
     return m_canvas != nullptr && m_canvas->HasCapture();
 }
@@ -1941,7 +1941,14 @@ bool GLCanvas3D::make_current_for_postinit() {
     return _set_current();
 }
 
+// Redraws the scene and presents it.
 void GLCanvas3D::render(bool only_init)
+{
+    m_presented_signature.reset();
+    _render_frame(true, only_init);
+}
+
+void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 {
     if (m_in_render) {
         // if called recursively, return
@@ -2044,110 +2051,33 @@ void GLCanvas3D::render(bool only_init)
         }
     }
 
-    // draw scene
-    glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
-    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
-    m_shadow_map_valid = false;
-    _render_background();
+    const bool overlay_tick = m_fps_overlay_tick;
+    m_fps_overlay_tick = false;
 
-    //BBS add partplater rendering logic
-    bool only_current = false, only_body = false, no_partplate = false;
-    bool show_grid = true;
-    GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
-    if (!m_main_toolbar.is_enabled()) {
-        //only_body = true;
-        only_current = true;
+    // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
+    // below once it is known whether the frame differs from the one on screen.
+    const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
+    if (!reuse_scene) {
+        _render_scene(camera, cnv_size);
+        if (!overlay_tick)
+            m_render_stats.increment_scene_fps_counter();
     }
-    else if ((gizmo_type == GLGizmosManager::FdmSupports) || (gizmo_type == GLGizmosManager::Seam) || (gizmo_type == GLGizmosManager::MmSegmentation) || (gizmo_type == GLGizmosManager::FuzzySkin))
-        no_partplate = true;
-    else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
-        show_grid = false;
 
-    /* view3D render*/
-    int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
-    if (m_canvas_type == ECanvasType::CanvasView3D) {
-        if (!no_partplate)
-            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        if (!no_partplate) //BBS: add outline logic
-            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
-        
-        //BBS: add outline logic
-        // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
-        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_sla_slices();
-        _render_selection();
-        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
-        _render_wireframe_overlay();
-    }
-    /* preview render */
-    else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_sla_slices();
-        _render_selection();
-        _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)
         // BBS: GUI refactor: add canvas size as parameters
-        _render_gcode(cnv_size.get_width(), cnv_size.get_height());
-    }
-    /* assemble render*/
-    else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
-        //BBS: add outline logic
-        //if (m_show_world_axes) {
-        //    m_axes.render();
-        //}
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_selection();
-        //_render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), show_axes);
-        _render_plane();
-        //BBS: add outline logic insteadof selection under assemble view
-        //_render_selection();
-        // BBS: add outline logic
-        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
-        _render_wireframe_overlay();
-    }
-
-    _render_sequential_clearance();
-#if ENABLE_RENDER_SELECTION_CENTER
-    _render_selection_center();
-#endif // ENABLE_RENDER_SELECTION_CENTER
-
-    // we need to set the mouse's scene position here because the depth buffer
-    // could be invalidated by the following gizmo render methods
-    // this position is used later into on_mouse() to drag the objects
-    if (m_picking_enabled)
-        m_mouse.scene_position = _mouse_to_3d(m_mouse.position.cast<coord_t>());
-
-    // sidebar hints need to be rendered before the gizmos because the depth buffer
-    // could be invalidated by the following gizmo render methods
-    _render_selection_sidebar_hints();
-    _render_current_gizmo();
-
-#if ENABLE_RAYCAST_PICKING_DEBUG
-    if (m_picking_enabled && !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging())
-        m_scene_raycaster.render_hit(camera);
-#endif // ENABLE_RAYCAST_PICKING_DEBUG
-
-#if ENABLE_SHOW_CAMERA_TARGET
-    _render_camera_target();
-#endif // ENABLE_SHOW_CAMERA_TARGET
-
-    if (m_picking_enabled && m_rectangle_selection.is_dragging())
-        m_rectangle_selection.render(*this);
-
-    if (_is_ssao_enabled())
-        _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
-
-    if (_is_fxaa_enabled())
-        _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+        _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
 
     // draw overlays
     _render_overlays();
 
     const int current_fps = m_render_stats.get_fps_and_reset_if_needed();
-    if (_is_fps_overlay_enabled())
+    if (_is_fps_overlay_enabled()) {
         _render_fps_overlay(current_fps);
+        // The timer requests an overlay-only frame a second from now. A frame it requested
+        // re-arms it only while a count is above zero.
+        if (!overlay_tick || current_fps > 0 || m_render_stats.get_scene_fps() > 0)
+            m_fps_overlay_timer.StartOnce(1000);
+    }
 
     if (wxGetApp().plater()->is_render_statistic_dialog_visible()) {
         ImGui::ShowMetricsWindow();
@@ -2186,7 +2116,7 @@ void GLCanvas3D::render(bool only_init)
 
 	// Negative coordinate means out of the window, likely because the window was deactivated.
 	// In that case the tooltip should be hidden.
-    if (m_mouse.position.x() >= 0. && m_mouse.position.y() >= 0. || has_mouse_capture()) { // ORCA continue to capture mouse pos mid drag
+    if ((m_mouse.position.x() >= 0. && m_mouse.position.y() >= 0.) || has_mouse_capture()) { // ORCA continue to capture mouse pos mid drag
         if (tooltip.empty())
             tooltip = m_layers_editing.get_tooltip(*this);
 
@@ -2233,14 +2163,149 @@ void GLCanvas3D::render(bool only_init)
         wxGetApp().plater()->get_dailytips()->render();
     }
 
-    wxGetApp().imgui()->render();
+    ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
+
+    std::optional<size_t> signature;
+    if (_is_frame_skipping_enabled())
+        signature = _overlay_signature(draw_data);
+
+    if (reuse_scene) {
+        // A reused scene under an unchanged overlay is the frame already on screen.
+        if (signature.has_value() && signature == m_presented_signature)
+            return;
+        m_scene_cache.render(m_background);
+    }
+
+    _render_overlay_toolbars();
+
+    wxGetApp().imgui()->render(draw_data);
 
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
-        m_render_stats.increment_fps_counter();
+        if (!overlay_tick)
+            m_render_stats.increment_fps_counter();
+        m_presented_signature = signature;
     }
+    else
+        m_presented_signature.reset();
+}
+
+// Everything drawn into the 3D scene, from the clear to the post processing passes, ending in the
+// capture an overlay-only frame reuses.
+void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
+{
+    // Recorded by PartPlate::render_icons() below, when it runs.
+    wxGetApp().plater()->get_partplate_list().clear_hover_tooltip();
+    glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
+    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
+    m_shadow_map_valid = false;
+    _render_background();
+
+    //BBS add partplater rendering logic
+    bool only_current = false, only_body = false, no_partplate = false;
+    bool show_grid = true;
+    GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
+    if (!m_main_toolbar.is_enabled()) {
+        //only_body = true;
+        only_current = true;
+    }
+    else if ((gizmo_type == GLGizmosManager::FdmSupports) || (gizmo_type == GLGizmosManager::Seam) || (gizmo_type == GLGizmosManager::MmSegmentation) || (gizmo_type == GLGizmosManager::FuzzySkin))
+        no_partplate = true;
+    else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
+        show_grid = false;
+    if (m_axes_at_bed_center)
+        // Design tab: the plate grid is generated from the plate's front-left corner, so it
+        // floats mid-cell under the modeling-origin triad. Suppress it here; a CAD grid centred
+        // on the origin is rendered in its place (see _render_cad_grid).
+        show_grid = false;
+
+    /* view3D render*/
+    int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
+    if (m_canvas_type == ECanvasType::CanvasView3D) {
+        // m_show_bed gates the plate list too: hiding the bed but leaving its grid and outline
+        // floating would read as a rendering fault rather than a deliberate view option.
+        if (!no_partplate && m_show_bed)
+            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        if (!no_partplate && m_show_bed) //BBS: add outline logic
+            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
+        if (m_axes_at_bed_center && m_show_bed && !no_partplate)
+            // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
+            _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
+        
+        //BBS: add outline logic
+        // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
+        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_sla_slices();
+        _render_selection();
+        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
+        _render_wireframe_overlay();
+    }
+    /* preview render */
+    else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_sla_slices();
+        _render_selection();
+        _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        // BBS: GUI refactor: add canvas size as parameters
+        _render_gcode(cnv_size.get_width(), cnv_size.get_height());
+    }
+    /* assemble render*/
+    else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
+        //BBS: add outline logic
+        //if (m_show_world_axes) {
+        //    m_axes.render();
+        //}
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_selection();
+        //_render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), show_axes);
+        _render_plane();
+        //BBS: add outline logic insteadof selection under assemble view
+        //_render_selection();
+        // BBS: add outline logic
+        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
+        _render_wireframe_overlay();
+    }
+
+    _render_sequential_clearance();
+#if ENABLE_RENDER_SELECTION_CENTER
+    _render_selection_center();
+#endif // ENABLE_RENDER_SELECTION_CENTER
+    // sidebar hints need to be rendered before the gizmos because the depth buffer
+    // could be invalidated by the following gizmo render methods
+    _render_selection_sidebar_hints();
+    _render_current_gizmo();
+
+#if ENABLE_RAYCAST_PICKING_DEBUG
+    if (m_picking_enabled && !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging())
+        m_scene_raycaster.render_hit(camera);
+#endif // ENABLE_RAYCAST_PICKING_DEBUG
+
+#if ENABLE_SHOW_CAMERA_TARGET
+    _render_camera_target();
+#endif // ENABLE_SHOW_CAMERA_TARGET
+
+    if (m_picking_enabled && m_rectangle_selection.is_dragging())
+        m_rectangle_selection.render(*this);
+
+    if (_is_ssao_enabled())
+        _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
+    if (_is_fxaa_enabled())
+        _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
+    // Design tab: interactive 2D sketch overlay, drawn over the scene but
+    // beneath the UI overlays (toolbars, labels).
+#ifdef SLIC3R_CAD
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display())
+        m_design_sketch_tool->render(*this);
+#endif
+
+    _capture_scene_cache(camera);
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
@@ -2886,23 +2951,37 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
-                float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
-                float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
-                // BBS
-                float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
+                float a = dynamic_cast<const ConfigOptionFloat*>(m_config->option("wipe_tower_rotation_angle"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
 
-                const Print* print = m_process->fff_print();
                 const Print* current_print = part_plate->fff_print();
-                if (!need_wipe_tower && part_plate->get_extruders(true).size() < 2) continue;
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
-                float brim_width = print->wipe_tower_data(filaments_count).brim_width;
-                int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-                Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
+                // Body and brim from this plate's own estimate: m_process->fff_print() is the
+                // selected plate's, so an auto brim drew every tower with that plate's brim.
+                const WipeTowerFootprint footprint = part_plate->estimate_wipe_tower_footprint(full_config);
+                // The estimate is also the answer to whether this plate prints a tower;
+                // deciding it here as well only gave the two room to drift.
+                if (footprint.depth <= 0.) continue;
+                float brim_width = float(footprint.brim_width);
+                Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
-                // The stored position is already clamped onto the bed, by
-                // set_default_wipe_tower_pos_for_plate and again on every drag.
+                // set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
+                // filament count, so redo its clamp here on every reload — unconditionally: a
+                // paint-triggered reload can arrive before the background process invalidates
+                // psWipeTower, so gating on it would skip the clamp exactly when it is needed.
+                {
+                    Vec3d clamped_pos, clamped_size;
+                    part_plate->estimate_wipe_tower_polygon(full_config, plate_id, clamped_pos, clamped_size);
+                    if (std::abs(x - (float) clamped_pos(0)) > EPSILON || std::abs(y - (float) clamped_pos(1)) > EPSILON) {
+                        x = (float) clamped_pos(0);
+                        y = (float) clamped_pos(1);
+                        ConfigOptionFloat wt_x_opt(x), wt_y_opt(y);
+                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_id, 0);
+                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_id, 0);
+                    }
+                }
+
                 if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                     // update for wipe tower position
                     int volume_idx_wipe_tower_new = m_volumes.load_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
@@ -2984,6 +3063,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             bool mix_pla_and_petg = cur_plate->check_mixture_of_pla_and_petg(full_config_temp);
             _set_warning_notification(EWarning::MixUsePLAAndPETG, !mix_pla_and_petg);
 
+            bool single_extruder_mixed_risk = cur_plate->check_single_extruder_mixed_filament_risk(full_config_temp, get_single_extruder_mixed_filament_warning_text());
+            _set_warning_notification(EWarning::SingleExtruderMixedFilament, single_extruder_mixed_risk);
+
             bool filament_nozzle_compatible = cur_plate->check_compatible_of_nozzle_and_filament(full_config_temp, wxGetApp().preset_bundle->filament_presets, get_nozzle_filament_incompatible_text());
             _set_warning_notification(EWarning::NozzleFilamentIncompatible, !filament_nozzle_compatible);
 
@@ -3010,6 +3092,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
            _set_warning_notification(EWarning::TPUPrintableError, false);
            _set_warning_notification(EWarning::FilamentPrintableError, false);
            _set_warning_notification(EWarning::MixUsePLAAndPETG, false);
+           _set_warning_notification(EWarning::SingleExtruderMixedFilament, false);
            _set_warning_notification(EWarning::PrimeTowerOutside, false);
            _set_warning_notification(EWarning::MultiExtruderPrintableError,false);
            _set_warning_notification(EWarning::MultiExtruderHeightOutside,false);
@@ -3200,25 +3283,30 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     if (!m_initialized)
         return;
 
-    m_dirty |= m_main_toolbar.update_items_state();
+    // Toolbar states, notifications and ImGui's own layout settling only touch the overlay.
+    m_overlay_dirty |= m_main_toolbar.update_items_state();
     //BBS: GUI refactor: GLToolbar
-    m_dirty |= m_assemble_view_toolbar.update_items_state();
+    m_overlay_dirty |= m_assemble_view_toolbar.update_items_state();
     // BBS
     //m_dirty |= wxGetApp().plater()->get_view_toolbar().update_items_state();
-    m_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
-    bool mouse3d_controller_applied = wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
+    m_overlay_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
+    // apply() DRAINS the 3D-mouse queue, so only the canvas actually on screen may call it: a
+    // hidden canvas renders nothing, so the motion it swallowed moves the shared camera without
+    // ever being drawn and the next visible frame jumps several states at once.
+    bool mouse3d_controller_applied = _is_shown_on_screen()
+        && wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
     m_dirty |= mouse3d_controller_applied;
-    m_dirty |= wxGetApp().plater()->get_notification_manager()->update_notifications(*this);
+    m_overlay_dirty |= wxGetApp().plater()->get_notification_manager()->update_notifications(*this);
     auto gizmo = wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().get_current();
     if (gizmo != nullptr) m_dirty |= gizmo->update_items_state();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     // ImGuiWrapper::m_requires_extra_frame may have been set by a render made outside of the OnIdle mechanism
     bool imgui_requires_extra_frame = wxGetApp().imgui()->requires_extra_frame();
-    m_dirty |= imgui_requires_extra_frame;
+    m_overlay_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
 
-    if (!m_dirty)
+    if (!m_dirty && !m_overlay_dirty)
         return;
 
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
@@ -3243,19 +3331,24 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_last_frame_start_time = now;
     }
 
-    _refresh_if_shown_on_screen();
+    // Read and cleared before the render; a request made during it is left for the next frame.
+    const bool scene_dirty = m_dirty;
+    m_dirty = false;
+    m_overlay_dirty = false;
+    _refresh_if_shown_on_screen(scene_dirty);
 
-#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-    if (m_extra_frame_requested || mouse3d_controller_applied || imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
-#else
     if (m_extra_frame_requested || mouse3d_controller_applied) {
         m_dirty = true;
-#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
         m_extra_frame_requested = false;
         evt.RequestMore();
     }
-    else
-        m_dirty = false;
+#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+    else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
+        // ImGui settling a window or fading a tooltip.
+        m_overlay_dirty = true;
+        evt.RequestMore();
+    }
+#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 }
 
 void GLCanvas3D::on_char(wxKeyEvent& evt)
@@ -3273,6 +3366,64 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         render();
         return;
     }
+
+    // Design tab: Delete/Backspace removes the selected sketch entities while a
+    // sketch tool is active and the canvas has focus (dialog text fields are separate
+    // wx controls, so this never eats their editing keys).
+#ifdef SLIC3R_CAD
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
+        && (keyCode == WXK_DELETE || keyCode == WXK_BACK)
+        && !m_design_sketch_tool->selection().empty()) {
+        m_design_sketch_tool->delete_selected();
+        m_dirty = true;
+        render();
+        return;
+    }
+#endif
+
+    // Esc exits the active sketch tool (Onshape-like, layered: abort in-progress entity ->
+    // drop to Select -> exit the session back to Feature mode).
+#ifdef SLIC3R_CAD
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
+        && keyCode == WXK_ESCAPE) {
+        m_design_sketch_tool->request_exit();
+        m_dirty = true;
+        render();
+        return;
+    }
+#endif
+
+    // Design tab: Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) undo/redo the Design feature
+    // history. Scoped by m_design_sketch_tool — only the Design canvas owns one — so the
+    // main 3D editor's undo/redo (the CanvasView3D-gated cases further below) is untouched.
+    // Handled here, before the generic Ctrl block, so it takes precedence and early-returns.
+#ifdef SLIC3R_CAD
+    if (m_design_sketch_tool != nullptr && (evt.GetModifiers() & ctrlMask) != 0) {
+        const bool is_z = (keyCode == 'z' || keyCode == 'Z' || keyCode == WXK_CONTROL_Z);
+        const bool is_y = (keyCode == 'y' || keyCode == 'Y' || keyCode == WXK_CONTROL_Y);
+        if (is_z || is_y) {
+            const bool redo = is_y || ((evt.GetModifiers() & shiftMask) != 0);
+            m_design_sketch_tool->request_undo_redo(redo);
+            m_dirty = true;
+            render();
+            return;
+        }
+    }
+#endif
+
+    // Design tab: F = Place on Face (Prepare's lay-flat), when the Design viewport is up
+    // and a body face is selected. The tool forwards to DesignPanel::place_on_face; it returns
+    // false (no face picked) so F falls through to the default handler below.
+#ifdef SLIC3R_CAD
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display()
+        && (keyCode == 'f' || keyCode == 'F') && (evt.GetModifiers() & ctrlMask) == 0) {
+        if (m_design_sketch_tool->request_place_on_face()) {
+            m_dirty = true;
+            render();
+            return;
+        }
+    }
+#endif
 
     bool is_in_painting_mode = false;
     GLGizmoPainterBase *current_gizmo_painter = dynamic_cast<GLGizmoPainterBase *>(get_gizmos_manager().get_current());
@@ -3493,11 +3644,6 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
             break;
         }
         case '?': { post_event(SimpleEvent(EVT_GLCANVAS_QUESTION_MARK)); break; }
-        case ' ': {
-            if (m_canvas_type == ECanvasType::CanvasView3D)
-                post_event(SimpleEvent(EVT_GLCANVAS_OPEN_SPEED_DIAL));
-            break;
-        }
         case 'A':
         case 'a':
             {
@@ -3651,6 +3797,20 @@ public:
 
 void GLCanvas3D::on_key(wxKeyEvent& evt)
 {
+    // Design tab: Delete/Backspace removes selected sketch entities. GTK delivers
+    // these as KEY_DOWN rather than CHAR, so handle it here too.
+#ifdef SLIC3R_CAD
+    if (evt.GetEventType() == wxEVT_KEY_DOWN
+        && m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
+        && (evt.GetKeyCode() == WXK_DELETE || evt.GetKeyCode() == WXK_BACK)
+        && !m_design_sketch_tool->selection().empty()) {
+        m_design_sketch_tool->delete_selected();
+        m_dirty = true;
+        render();
+        return;
+    }
+#endif
+
     static GLCanvas3D const * thiz = nullptr;
     static TranslationProcessor translationProcessor(nullptr, nullptr);
     if (thiz != this) {
@@ -4027,6 +4187,12 @@ void GLCanvas3D::on_set_color_timer(wxTimerEvent& evt)
     m_timer_set_color.Stop();
 }
 
+void GLCanvas3D::on_fps_overlay_timer(wxTimerEvent& evt)
+{
+    m_fps_overlay_tick = true;
+    _set_overlay_as_dirty();
+    wxWakeUpIdle();
+}
 
 void GLCanvas3D::schedule_extra_frame(int milliseconds)
 {
@@ -4159,7 +4325,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // https://github.com/OrcaSlicer/OrcaSlicer/pull/14999#issuecomment-5151344759
     // We solve this by correcting the state of the event from the actual mouse state querying with `wxGetMouseState()`
     // so it works like on other platforms.
-    {
+    // Only fill in state the event does not carry, to preserve wx's synthetic right button for Ctrl+left.
+    if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY)) {
         const auto state = wxGetMouseState();
         evt.SetLeftDown(state.LeftIsDown());
         evt.SetMiddleDown(state.MiddleIsDown());
@@ -4203,16 +4370,40 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
             mouse_up_cleanup();
 
-        render();
+        // Hovering an ImGui window only changes the overlay.
+        const bool overlay_only = evt.Moving() && !m_mouse.dragging;
+        // ImGui takes a press or a release only inside a frame. Motion is rendered from on_idle().
+        if (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick())
+            _render_frame(true);
 #ifdef SLIC3R_DEBUG_MOUSE_EVENTS
         printf((format_mouse_event_debug_message(evt) + " - Consumed by ImGUI\n").c_str());
 #endif /* SLIC3R_DEBUG_MOUSE_EVENTS */
-        m_dirty = true;
+        if (overlay_only)
+            _set_overlay_as_dirty();
+        else
+            m_dirty = true;
         // do not return if dragging or tooltip not empty to allow for tooltip update
         // also, do not return if the mouse is moving and also is inside MM gizmo to allow update seed fill selection
         if (!m_mouse.dragging && m_tooltip.is_empty() && (m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation || !evt.Moving()))
             return;
     }
+
+    // Design tab: the interactive sketch tool owns the mouse whenever it has
+    // something on screen — an active session OR committed sketch overlays that the user
+    // can click to select. It runs after ImGui (so dialogs still work) but before
+    // camera/toolbar/gizmo handling; on_mouse returns false for events it doesn't consume
+    // (drag/orbit/wheel) so the camera keeps working over the display-only plate.
+#ifdef SLIC3R_CAD
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display()) {
+        if (evt.LeftDown() && m_canvas != nullptr)
+            m_canvas->SetFocus();   // grab keyboard focus so Delete/keys reach this canvas
+        if (m_design_sketch_tool->on_mouse(evt, *this)) {
+            m_dirty = true;
+            render();   // force an immediate redraw so the sketch overlay updates live
+            return;
+        }
+    }
+#endif
 
 #ifdef __WXMSW__
 	bool on_enter_workaround = false;
@@ -4318,6 +4509,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 if (can_sequential_clearance_show_in_gizmo())
                     update_sequential_clearance();
             } else {
+                // Orca: by-layer counterpart, for a prime tower compacted by "No sparse layers".
+                if (current_printer_technology() == ptFFF && can_sequential_clearance_show_in_gizmo())
+                    update_compacted_wipe_tower_clearance();
                 if (c == GLGizmosManager::EType::Move ||
                     c == GLGizmosManager::EType::Scale ||
                     c == GLGizmosManager::EType::Rotate)
@@ -4330,6 +4524,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             wxGetApp().obj_list()->selection_changed();
         }
 
+        // A gizmo that acts on a click or a drag may not request a frame itself.
+        if (!evt.Moving())
+            m_dirty = true;
         return;
     }
 
@@ -4487,12 +4684,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                         BoundingBoxf3 volume_bbox = m_volumes.volumes[volume_idx]->transformed_bounding_box();
                         volume_bbox.offset(1.0);
                         const bool is_cut_connector_selected = m_selection.is_any_connector();
-                        if ((!any_gizmo_active || !evt.CmdDown()) && volume_bbox.contains(m_mouse.scene_position) && !is_cut_connector_selected) {
+                        const Vec3d scene_position = _mouse_to_3d(pos);
+                        if ((!any_gizmo_active || !evt.CmdDown()) && volume_bbox.contains(scene_position) && !is_cut_connector_selected) {
                             m_volumes.volumes[volume_idx]->hover = GLVolume::HS_None;
                             // The dragging operation is initiated.
                             m_mouse.drag.move_volume_idx = volume_idx;
                             m_selection.setup_cache();
-                            m_mouse.drag.start_position_3D = m_mouse.scene_position;
+                            m_mouse.drag.start_position_3D = scene_position;
                             m_sequential_print_clearance_first_displacement = true;
                             m_moving = true;
 
@@ -4550,8 +4748,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 TransformationType trafo_type;
                 trafo_type.set_relative();
                 m_selection.translate(cur_pos - m_mouse.drag.start_position_3D, trafo_type);
-                if (current_printer_technology() == ptFFF && (fff_print()->config().print_sequence == PrintSequence::ByObject))
-                    update_sequential_clearance();
+                if (current_printer_technology() == ptFFF) {
+                    if (fff_print()->config().print_sequence == PrintSequence::ByObject)
+                        update_sequential_clearance();
+                    else
+                        update_compacted_wipe_tower_clearance();
+                }
                 // BBS
                 //wxGetApp().obj_manipul()->set_dirty();
                 m_dirty = true;
@@ -4816,7 +5018,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (m_selection.is_empty())
             m_gizmos.reset_all_states();
 
-        m_dirty = true;
+        _set_overlay_as_dirty();
     }
     else
         evt.Skip();
@@ -4866,6 +5068,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
 void GLCanvas3D::on_paint(wxPaintEvent& evt)
 {
+    m_presented_signature.reset();
     if (m_initialized) {
 #ifdef __WXMSW__
         // Idle events are not dispatched during the Windows resize modal loop,
@@ -4917,6 +5120,8 @@ bool GLCanvas3D::is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseB
 {
     if (m_is_touchpad_navigation) {
         return evt.Moving() && evt.AltDown() && !evt.ShiftDown();
+    } else if (m_cad_navigation) {
+        return evt.Dragging() && evt.MiddleIsDown();   // left-drag is the selection rubber band
     } else {
         return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Rotation, mappings);
     }
@@ -4926,6 +5131,8 @@ bool GLCanvas3D::is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButt
 {
     if (m_is_touchpad_navigation) {
         return evt.Moving() && evt.ShiftDown() && !evt.AltDown();
+    } else if (m_cad_navigation) {
+        return evt.Dragging() && evt.RightIsDown();    // middle now orbits, so pan is right only
     } else {
         return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Pan, mappings);
         ;
@@ -5035,7 +5242,21 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     }
 
     //BBS: notify instance updates to part plater list
-    m_selection.notify_instance_update(-1, 0);
+    // Only what moved: the selected instances, or every instance of an object one of whose
+    // parts moved. Notifying a plate about an instance that stayed put invalidates its slice
+    // result, and notifying instance 0 alone left a moved copy unregistered on its new plate.
+    {
+        std::set<std::pair<int, int>> notified;
+        for (unsigned int i : m_selection.get_volume_idxs()) {
+            const GLVolume* v          = m_volumes.volumes[i];
+            const int       object_idx = v->object_idx();
+            if (object_idx < 0 || object_idx >= static_cast<int>(m_model->objects.size()))
+                continue;
+            const std::pair<int, int> key(object_idx, selection_mode == Selection::Volume ? -1 : v->instance_idx());
+            if (notified.insert(key).second)
+                m_selection.notify_instance_update(key.first, key.second);
+        }
+    }
 
     // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
@@ -5401,7 +5622,11 @@ void GLCanvas3D::update_gizmos_on_off_state()
 
 void GLCanvas3D::handle_sidebar_focus_event(const std::string& opt_key, bool focus_on)
 {
-    m_sidebar_field = focus_on ? opt_key : "";
+    const std::string field = focus_on ? opt_key : "";
+    // The gizmo panels report this on every build.
+    if (m_sidebar_field == field)
+        return;
+    m_sidebar_field = field;
 
     //BBS: this event was sent from gizmo now, no need to clear gizmo
     //if (!m_sidebar_field.empty())
@@ -5599,6 +5824,101 @@ bool GLCanvas3D::can_sequential_clearance_show_in_gizmo() {
     }
     }
     return false;
+}
+
+// Live preview of the compacted prime tower clearance, the by-layer counterpart of
+// update_sequential_clearance(). Called while the user drags a volume / gizmo; idle visibility
+// matches sequential print (hidden when valid, filled when Print::validate reports a collision).
+// Print::compacted_wipe_tower_clearance_valid() answers the same question authoritatively, but it
+// reads the tower position from the config, which only catches up once do_move() writes it back on
+// mouse release. Recomputing from the volumes here is what makes the keep-out zone follow the tower
+// while it is still under the cursor.
+void GLCanvas3D::update_compacted_wipe_tower_clearance()
+{
+    if (current_printer_technology() != ptFFF)
+        return;
+    const Print *print = fff_print();
+    if (print == nullptr)
+        return;
+    const PrintConfig &config = print->config();
+    if (config.print_sequence != PrintSequence::ByLayer || ! wipe_tower_sparse_layers_skipped(config) || ! print->has_wipe_tower())
+        return;
+
+    PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+    PartPlate     *plate      = plate_list.get_curr_plate();
+    if (plate == nullptr)
+        return;
+    const int plate_id = plate_list.get_curr_plate_index();
+
+    // Once the tower has been generated the scene shows its real mesh with the brim merged in,
+    // otherwise it is a bare estimated cube with no brim at all. Only the latter needs the brim added
+    // here, and the width comes from WipeTowerData, the same source the preview box is sized from, so
+    // the zone cannot be padded against a brim the preview was not built with.
+    const bool   preview_carries_brim = print->is_step_done(psWipeTower) && print->wipe_tower_data().wipe_tower_mesh_data.has_value();
+    const double brim                 = preview_carries_brim ? 0. : double(print->wipe_tower_data(print->extruders().size()).brim_width);
+    const double padding              = compacted_tower_footprint_padding(config, brim);
+
+    // Tower footprint straight from the volume the user sees, so that dragging either the tower or an
+    // object updates the zone on the very next frame.
+    Polygon tower_footprint;
+    for (const GLVolume *v : m_volumes.volumes) {
+        if (! v->is_wipe_tower || v->object_idx() - 1000 != plate_id)
+            continue;
+        const BoundingBoxf3 bbox = v->transformed_convex_hull_bounding_box();
+        tower_footprint = Polygon({ Point(scale_(bbox.min.x() - padding), scale_(bbox.min.y() - padding)),
+                                    Point(scale_(bbox.max.x() + padding), scale_(bbox.min.y() - padding)),
+                                    Point(scale_(bbox.max.x() + padding), scale_(bbox.max.y() + padding)),
+                                    Point(scale_(bbox.min.x() - padding), scale_(bbox.max.y() + padding)) });
+        break;
+    }
+
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, tower_footprint);
+    if (zone.empty()) {
+        reset_sequential_print_clearance();
+        return;
+    }
+
+    // While dragging, outline every on-plate instance next to the tower ring, the way sequential print
+    // outlines every object. Both carry half of the clearance, so the two outlines meeting is precisely
+    // the moment that object goes over its limit - which is what makes the pair worth drawing at all.
+    // The tier is per object, so a short object gets the narrow nozzle outline rather than the wide
+    // body one it is not subject to; without that, a 3 mm object parked beside the tower would be drawn
+    // deep inside the keep-out ring while passing the check. Only the instances that already exceed
+    // allowed_rise also get a height limit plane.
+    Polygons                               outlines;
+    std::vector<std::pair<Polygon, float>> height_polygons;
+    bool                                   body_tier_used = false;
+    const BoundingBox                      plate_bb       = plate->get_bounding_box_crd();
+    for (const ModelObject *model_object : m_model->objects) {
+        for (size_t i = 0; i < model_object->instances.size(); ++i) {
+            Geometry::Transformation trafo(model_object->instances[i]->get_transformation());
+            const Vec3d              offset = trafo.get_offset();
+            trafo.set_offset(Vec3d(offset.x(), offset.y(), 0.0));
+            const Polygon inst_hull = model_object->convex_hull_2d(trafo.get_matrix());
+            if (inst_hull.points.empty() || ! plate_bb.overlap(inst_hull.bounding_box()))
+                continue;
+
+            // Same tiers and the same rise measured from the plate as
+            // Print::compacted_wipe_tower_clearance_valid(), so that the preview and the validation
+            // that follows it never contradict each other.
+            const double                  object_top = model_object->get_instance_max_z(i);
+            const CompactedTowerClearance clearance  = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
+            body_tier_used                           = body_tier_used || compacted_tower_body_tier(clearance);
+
+            const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
+            outlines.emplace_back(outline);
+            if (object_top <= clearance.allowed_rise + EPSILON)
+                continue;
+            height_polygons.emplace_back(outline, float(clearance.allowed_rise));
+        }
+    }
+
+    Polygons polygons = compacted_wipe_tower_rings(zone, body_tier_used);
+    append(polygons, outlines);
+
+    set_sequential_print_clearance_visible(true);
+    set_sequential_print_clearance_render_fill(false);
+    set_sequential_print_clearance_polygons(polygons, height_polygons);
 }
 
 void GLCanvas3D::update_sequential_clearance()
@@ -5921,7 +6241,7 @@ bool GLCanvas3D::_render_orient_menu(float left, float right, float bottom, floa
 }
 
 //BBS: GUI refactor: adjust main toolbar position
-bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, float top)
+void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, float top)
 {
     ImGuiWrapper *imgui = wxGetApp().imgui();
 
@@ -5946,7 +6266,6 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
 
     imgui->begin(_L("Arrange options"), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-    ArrangeSettings settings = get_arrange_settings();
     ArrangeSettings &settings_out = get_arrange_settings();
     const float slider_icon_width = imgui->get_slider_icon_size().x;
     const float cursor_slider_left = imgui->calc_text_size(_L("Spacing")).x + imgui->scaled(1.5f);
@@ -5955,13 +6274,9 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     auto &appcfg = wxGetApp().app_config;
     PrinterTechnology ptech = current_printer_technology();
 
-    bool settings_changed = false;
-    float dist_min = 0.f;  // 0 means auto
     std::string dist_key = "min_object_distance", rot_key = "enable_rotation";
-    std::string bed_shrink_x_key = "bed_shrink_x", bed_shrink_y_key = "bed_shrink_y";
     std::string multi_material_key = "allow_multi_materials_on_same_plate";
     std::string avoid_extrusion_key = "avoid_extrusion_cali_region";
-    std::string align_to_y_axis_key = "align_to_y_axis";
     std::string postfix;
     //BBS:
     bool seq_print = false;
@@ -5969,59 +6284,41 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     if (ptech == ptSLA) {
         postfix      = "_sla";
     } else if (ptech == ptFFF) {
-        seq_print = &settings == &m_arrange_settings_fff_seq_print;
-        if (seq_print) {
-            postfix      = "_fff_seq_print";
-        } else {
-            postfix     = "_fff";
-        }
+        seq_print    = wxGetApp().global_print_sequence() == PrintSequence::ByObject;
+        postfix      = seq_print ? "_fff_seq_print" : "_fff";
     }
 
     dist_key += postfix;
     rot_key  += postfix;
-    bed_shrink_x_key += postfix;
-    bed_shrink_y_key += postfix;
 
     ImGui::AlignTextToFramePadding();
     imgui->text(_L("Spacing"));
     ImGui::SameLine(1.2 * cursor_slider_left);
     ImGui::PushItemWidth(window_width - slider_icon_width);
-    bool b_Spacing = imgui->bbl_slider_float_style("##Spacing", &settings.distance, dist_min, 100.0f, "%5.2f") || dist_min > settings.distance;
+    bool b_Spacing = imgui->bbl_slider_float_style("##Spacing", &settings_out.distance, 0.f, 100.0f, "%5.2f", 1.0f, /*clamp=*/false);
     ImGui::SameLine(window_width - slider_icon_width + 1.3 * cursor_slider_left);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_spacing_input = ImGui::BBLDragFloat("##spacing_input", &settings.distance, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (b_Spacing || b_spacing_input)
-    {
-        settings.distance = std::max(dist_min, settings.distance);
-        settings_out.distance = settings.distance;
+    bool b_spacing_input = ImGui::BBLDragFloat("##spacing_input", &settings_out.distance, 0.05f, 0.0f, 0.0f, "%.2f");
+    if (b_Spacing || b_spacing_input) {
+        settings_out.distance = std::max(0.f, settings_out.distance);
         appcfg->set("arrange", dist_key.c_str(), float_to_string_decimal_point(settings_out.distance));
-        settings_changed = true;
     }
     imgui->text(_L("0 means auto spacing."));
 
     ImGui::Separator();
-    if (imgui->bbl_checkbox(_L("Auto rotate for arrangement"), settings.enable_rotation)) {
-        settings_out.enable_rotation = settings.enable_rotation;
+    if (imgui->bbl_checkbox(_L("Auto rotate for arrangement"), settings_out.enable_rotation))
         appcfg->set("arrange", rot_key.c_str(), settings_out.enable_rotation);
-        settings_changed = true;
-    }
 
-    if (imgui->bbl_checkbox(_L("Allow multiple materials on same plate"), settings.allow_multi_materials_on_same_plate)) {
-        settings_out.allow_multi_materials_on_same_plate = settings.allow_multi_materials_on_same_plate;
-        appcfg->set("arrange", multi_material_key.c_str(), settings_out.allow_multi_materials_on_same_plate );
-        settings_changed = true;
-    }
+    if (imgui->bbl_checkbox(_L("Allow multiple materials on same plate"), settings_out.allow_multi_materials_on_same_plate))
+        appcfg->set("arrange", multi_material_key.c_str(), settings_out.allow_multi_materials_on_same_plate);
 
     // only show this option if the printer has micro Lidar and can do first layer scan
     DynamicPrintConfig &current_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
     const bool has_lidar = wxGetApp().preset_bundle->is_bbl_vendor();
     auto                op             = current_config.option("scan_first_layer");
     if (has_lidar && op && op->getBool()) {
-        if (imgui->bbl_checkbox(_L("Avoid extrusion calibration region"), settings.avoid_extrusion_cali_region)) {
-            settings_out.avoid_extrusion_cali_region = settings.avoid_extrusion_cali_region;
-            appcfg->set("arrange", avoid_extrusion_key.c_str(), settings_out.avoid_extrusion_cali_region ? "1" : "0");
-            settings_changed = true;
-        }
+        if (imgui->bbl_checkbox(_L("Avoid extrusion calibration region"), settings_out.avoid_extrusion_cali_region))
+            appcfg->set("arrange", avoid_extrusion_key.c_str(), settings_out.avoid_extrusion_cali_region);
     } else {
         settings_out.avoid_extrusion_cali_region = false;
     }
@@ -6033,11 +6330,7 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
             settings_out.align_to_y_axis = false;
         }
 
-        if (imgui->bbl_checkbox(_L("Align to Y axis"), settings.align_to_y_axis)) {
-            settings_out.align_to_y_axis = settings.align_to_y_axis;
-            appcfg->set("arrange", align_to_y_axis_key, settings_out.align_to_y_axis ? "1" : "0");
-            settings_changed = true;
-        }
+        imgui->bbl_checkbox(_L("Align to Y axis"), settings_out.align_to_y_axis);
 
         if (settings_out.enable_rotation == true) { imgui->disabled_end(); }
     }
@@ -6053,7 +6346,6 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
 
     if (imgui->button(_L("Reset"))) {
         settings_out = ArrangeSettings{};
-        settings_out.distance = std::max(dist_min, settings_out.distance);
         //BBS: add specific arrange settings
         if (seq_print) settings_out.is_seq_print = true;
 
@@ -6063,18 +6355,16 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
         else
             settings_out.align_to_y_axis = false;
 
-        appcfg->set("arrange", dist_key, float_to_string_decimal_point(settings_out.distance));
-        appcfg->set("arrange", rot_key, settings_out.enable_rotation ? "1" : "0");
-        appcfg->set("arrange", align_to_y_axis_key, settings_out.align_to_y_axis ? "1" : "0");
-        settings_changed = true;
+        appcfg->erase("arrange", dist_key);
+        appcfg->erase("arrange", rot_key);
+        appcfg->erase("arrange", multi_material_key);
+        appcfg->erase("arrange", avoid_extrusion_key);
     }
     ImGui::PopStyleVar(1);
     imgui->end();
 
     //BBS
     ImGuiWrapper::pop_toolbar_style();
-
-    return settings_changed;
 }
 
 static const float cameraProjection[16] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
@@ -6434,6 +6724,9 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
     //if (thumbnail_params.transparent_background)
     //    glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
     BOOST_LOG_TRIVIAL(info) << boost::format("render_thumbnail: finished");
+
+    // Puts the canvas viewport back in place of the thumbnail one set above.
+    wxGetApp().plater()->get_camera().apply_viewport();
 }
 
 void GLCanvas3D::render_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
@@ -6684,9 +6977,6 @@ void GLCanvas3D::render_thumbnail_legacy(ThumbnailData& thumbnail_data, unsigned
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT
     debug_output_thumbnail(thumbnail_data);
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT
-
-    // restore the default framebuffer size to avoid flickering on the 3D scene
-    //wxGetApp().plater()->get_camera().apply_viewport();
 }
 
 //BBS: GUI refractor
@@ -7235,15 +7525,15 @@ void GLCanvas3D::_update_camera_zoom(double zoom)
     m_dirty = true;
 }
 
-void GLCanvas3D::_refresh_if_shown_on_screen()
+void GLCanvas3D::_refresh_if_shown_on_screen(bool scene_dirty)
 {
     if (_is_shown_on_screen()) {
         const Size& cnv_size = get_canvas_size();
         _resize((unsigned int)cnv_size.get_width(), (unsigned int)cnv_size.get_height());
 
         // Because of performance problems on macOS, where PaintEvents are not delivered
-        // frequently enough, we call render() here directly when we can.
-        render();
+        // frequently enough, we render here directly when we can.
+        _render_frame(scene_dirty);
     }
 }
 
@@ -7635,6 +7925,36 @@ bool GLCanvas3D::_is_fps_overlay_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
 }
 
+bool GLCanvas3D::_is_scene_cache_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SCENE_CACHE);
+}
+
+bool GLCanvas3D::_is_scene_cacheable() const
+{
+    if (!_is_scene_cache_enabled())
+        return false;
+
+#ifdef SLIC3R_CAD
+    // The Design tab draws its sketch overlay, ImGui included, inside the scene.
+    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display())
+        return false;
+#endif
+
+    // The scene follows the cursor during a drag, under a gizmo that draws at the cursor, and while
+    // the cursor is on the layer height bar, where the object shader draws a band at its height.
+    const GLGizmoBase* gizmo = m_gizmos.get_current();
+    const bool cursor_on_layers_bar = is_layers_editing_enabled() &&
+        m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y());
+    return !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging() &&
+           (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
+}
+
+bool GLCanvas3D::_is_frame_skipping_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES);
+}
+
 void GLCanvas3D::_render_fps_overlay(int fps) const
 {
     if (fps < 0)
@@ -7655,6 +7975,8 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoInputs);
     imgui.text(std::string("FPS: ") + std::to_string(fps));
+    // The subset of those frames that redrew the scene rather than reusing the cached one.
+    imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
     imgui.end();
 }
 
@@ -7667,23 +7989,7 @@ void GLCanvas3D::_render_fxaa_pass(unsigned int width, unsigned int height)
     if (shader == nullptr)
         return;
 
-    if (m_fxaa_texture_id == 0) {
-        glsafe(::glGenTextures(1, &m_fxaa_texture_id));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
-    }
-
-    glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
-    if (m_fxaa_texture_size[0] != width || m_fxaa_texture_size[1] != height) {
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
-        m_fxaa_texture_size = { width, height };
-    }
-
-    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    GLTexture::copy_from_framebuffer(m_fxaa_texture_id, m_fxaa_texture_size, width, height, GL_LINEAR);
 
     glsafe(::glDisable(GL_DEPTH_TEST));
     glsafe(::glDisable(GL_BLEND));
@@ -7859,6 +8165,51 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
+SceneCache::Key GLCanvas3D::_scene_cache_key(const Camera& camera) const
+{
+    SceneCache::Key key;
+    const std::array<int, 4>& viewport = camera.get_viewport();
+    key.size = { { (unsigned int)viewport[2], (unsigned int)viewport[3] } };
+    key.view_matrix = camera.get_view_matrix();
+    key.projection_matrix = camera.get_projection_matrix();
+    // Hover reaches the scene only through the sinking contour a hovered volume draws over
+    // itself (GLVolumeCollection::render()), the plate icons (PartPlate::render_icons()) and the
+    // open gizmo's grabbers.
+    for (size_t i = 0; i < m_volumes.volumes.size(); ++i) {
+        const GLVolume& volume = *m_volumes.volumes[i];
+        if (volume.hover != GLVolume::HS_None && volume.is_sinking() && !volume.is_below_printbed())
+            key.sinking_hover_volume_idxs.emplace_back((int)i);
+    }
+    for (int id : m_hover_plate_idxs) {
+        if (id % PartPlate::GRABBER_COUNT != 0)
+            key.hover_plate_icon_idxs.emplace_back(id);
+    }
+    const GLGizmoBase* gizmo = m_gizmos.get_current();
+    key.gizmo_hover_id = gizmo != nullptr ? gizmo->get_hover_id() : -1;
+    key.render_preview = m_render_preview;
+    return key;
+}
+
+bool GLCanvas3D::_can_reuse_cached_scene(const Camera& camera) const
+{
+    return _is_scene_cacheable() && m_scene_cache.matches(_scene_cache_key(camera));
+}
+
+void GLCanvas3D::_capture_scene_cache(const Camera& camera)
+{
+    if (!_is_scene_cache_enabled()) {
+        m_scene_cache.reset();
+        return;
+    }
+
+    if (!_is_scene_cacheable()) {
+        m_scene_cache.invalidate();
+        return;
+    }
+
+    m_scene_cache.capture(_scene_cache_key(camera));
+}
+
 void GLCanvas3D::_render_background()
 {
     bool use_error_color = false;
@@ -7940,13 +8291,113 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
     */
     //bool show_texture = true;
     //BBS set axes mode
-    m_bed.set_axes_mode(m_main_toolbar.is_enabled());
+    if (m_axes_at_bed_center) {
+        // Design tab: triad at the bed centre = modeling origin (set every frame because
+        // set_shape/set_axes_mode otherwise reset it to the bed corner).
+        const Vec2d bc = m_bed.build_volume().bed_center();
+        m_bed.set_axes_origin(Vec3d(bc.x(), bc.y(), 0.0));
+    } else {
+        m_bed.set_axes_mode(m_main_toolbar.is_enabled());
+    }
     m_bed.render(*this, view_matrix, projection_matrix, bottom, scale_factor, show_axes);
 }
 
 void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
 {
-    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid);
+    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid, !m_plate_chrome_enabled);
+}
+
+// Design tab: CAD grid on the bed plane, drawn in place of the plate's corner-origin grid.
+// Generated from the bed centre (= modeling origin) so a grid line passes exactly through the
+// triad in both axes. Minor lines every 10 mm, major every 50 mm; the two GLModels are built
+// once and rebuilt only when the bed shape changes, not per frame.
+void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    const BuildVolume& build_volume = m_bed.build_volume();
+    if (!build_volume.valid())
+        return;
+
+    const Vec2d        center = build_volume.bed_center();
+    const BoundingBoxf bb     = build_volume.bounding_volume2d();
+    if (!m_cad_grid_valid || m_cad_grid_center != center || m_cad_grid_bb != bb) {
+        m_cad_grid_center = center;
+        m_cad_grid_bb     = bb;
+        m_cad_grid_valid  = true;
+
+        // Same z as PartPlate::GROUND_Z_GRIDLINE (-0.26f): just below the bed fill (GROUND_Z =
+        // -0.03f, which is drawn with the depth mask disabled) and above the physical bed model
+        // (offset z = -0.41), so the grid never z-fights the bed quad. Chosen by construction,
+        // not by magic number: it is the exact z the plate grid already uses on the shared bed.
+        const float z = -0.26f;
+
+        auto build_grid = [&z, &center, &bb](double step, GLModel& model) {
+            std::vector<std::pair<Vec2d, Vec2d>> segs;
+            // Constant-x (vertical on screen) lines, both directions from the centre so the
+            // centre column itself is always present. Clipped to the bed bounding box so nothing
+            // spills past the bed quad.
+            for (double x = center.x(); x >= bb.min.x(); x -= step)
+                segs.emplace_back(Vec2d(x, bb.min.y()), Vec2d(x, bb.max.y()));
+            for (double x = center.x() + step; x <= bb.max.x(); x += step)
+                segs.emplace_back(Vec2d(x, bb.min.y()), Vec2d(x, bb.max.y()));
+            // Constant-y (horizontal on screen) lines, same centre-first convention.
+            for (double y = center.y(); y >= bb.min.y(); y -= step)
+                segs.emplace_back(Vec2d(bb.min.x(), y), Vec2d(bb.max.x(), y));
+            for (double y = center.y() + step; y <= bb.max.y(); y += step)
+                segs.emplace_back(Vec2d(bb.min.x(), y), Vec2d(bb.max.x(), y));
+
+            GLModel::Geometry data;
+            data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P3 };
+            data.reserve_vertices(2 * segs.size());
+            data.reserve_indices(2 * segs.size());
+            for (const auto& s : segs) {
+                data.add_vertex(Vec3f(float(s.first.x()), float(s.first.y()), z));
+                data.add_vertex(Vec3f(float(s.second.x()), float(s.second.y()), z));
+                const unsigned int vc = static_cast<unsigned int>(data.vertices_count());
+                data.add_line(vc - 2, vc - 1);
+            }
+            model.init_from(std::move(data));
+        };
+
+        m_cad_grid_minor.reset();
+        m_cad_grid_major.reset();
+        build_grid(10.0, m_cad_grid_minor);
+        build_grid(50.0, m_cad_grid_major);
+    }
+
+    if (!m_cad_grid_minor.is_initialized() || !m_cad_grid_major.is_initialized())
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    shader->start_using();
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+    // White every 5 cm, grey every 1 cm — the SAME in both themes, deliberately. There is no
+    // "white bed" to vanish against: the plate is dark grey either way, DEFAULT_MODEL_COLOR
+    // {0.326,0.337,0.337} on light and DEFAULT_MODEL_COLOR_DARK {0.255,0.255,0.283} on dark
+    // (3DBed.cpp:185-186), a difference of 0.07. A per-theme palette here would be a branch
+    // that buys nothing and one more thing to keep in step.
+    //
+    // For contrast with what this replaces: the plate's own grid uses LINE_TOP_DARK_COLOR, a
+    // 0.43 grey, for BOTH its thin and its bold family — which is most of why the stock grid
+    // reads as a flat mesh with no scale to it.
+    const ColorRGBA minor_color(0.40f, 0.40f, 0.42f, 1.0f);
+    const ColorRGBA major_color(0.90f, 0.90f, 0.90f, 1.0f);
+
+    glsafe(::glLineWidth(1.0f));
+    m_cad_grid_minor.set_color(minor_color);
+    m_cad_grid_minor.render();
+
+    glsafe(::glLineWidth(2.0f));
+    m_cad_grid_major.set_color(major_color);
+    m_cad_grid_major.render();
+
+    glsafe(::glDisable(GL_BLEND));
 }
 
 void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix)
@@ -8486,7 +8937,12 @@ void GLCanvas3D::_render_wireframe_overlay()
 //BBS: GUI refactor: add canvas size as parameters
 void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
 {
-    m_gcode_viewer.render(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
+    m_gcode_viewer.render_scene(canvas_width, canvas_height);
+}
+
+void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
+{
+    m_gcode_viewer.render_overlay(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
 
@@ -8618,20 +9074,14 @@ void GLCanvas3D::_check_and_update_toolbar_icon_scale()
         wxGetApp().set_auto_toolbar_icon_scale(new_scale);
 }
 
+// The ImGui half of the overlay, drawn by ImGui at the end of the frame.
 void GLCanvas3D::_render_overlays()
 {
-    glsafe(::glDisable(GL_DEPTH_TEST));
-
     _check_and_update_toolbar_icon_scale();
 
     _render_assemble_control();
     _render_assemble_info();
 
-    _render_separator_toolbar_right();
-    _render_separator_toolbar_left();
-    _render_main_toolbar();
-    _render_collapse_toolbar();
-    _render_assemble_view_toolbar();
     //BBS: GUI refactor: GLToolbar
     _render_imgui_select_plate_toolbar();
     _render_return_toolbar();
@@ -8639,12 +9089,13 @@ void GLCanvas3D::_render_overlays()
     //_render_view_toolbar();
     _render_paint_toolbar();
 
-    //BBS: GUI refactor: GLToolbar
-    //move gizmos behind of main
-    _render_gizmos_overlay();
+    // The options window of a pressed toolbar item (arrange).
+    m_main_toolbar.render_item_windows(*this);
+
+    m_gizmos.render_overlay_input_window();
 
     if (m_layers_editing.last_object_id >= 0 && m_layers_editing.object_max_z() > 0.0f)
-        m_layers_editing.render_overlay(*this);
+        m_layers_editing.render_variable_layer_height_dialog(*this);
 
 	auto curr_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     auto curr_print_seq = curr_plate->get_real_print_seq();
@@ -8671,6 +9122,40 @@ void GLCanvas3D::_render_overlays()
     _render_3d_navigator();
 
     _render_canvas_toolbar();
+
+    // Recorded by the scene pass, which a reused frame skips.
+    wxGetApp().plater()->get_partplate_list().render_hover_tooltip();
+}
+
+// The GL half of the overlay.
+void GLCanvas3D::_render_overlay_toolbars()
+{
+    glsafe(::glDisable(GL_DEPTH_TEST));
+
+    _render_separator_toolbar_right();
+    _render_separator_toolbar_left();
+    _render_main_toolbar();
+    _render_collapse_toolbar();
+    _render_assemble_view_toolbar();
+    //BBS: GUI refactor: GLToolbar
+    //move gizmos behind of main
+    _render_gizmos_overlay();
+
+    if (m_layers_editing.last_object_id >= 0 && m_layers_editing.object_max_z() > 0.0f)
+        m_layers_editing.render_overlay(*this);
+}
+
+size_t GLCanvas3D::_overlay_signature(const ImDrawData* draw_data) const
+{
+    // The recorded ImGui geometry plus the state of the toolbars and the gizmo bar, which draw
+    // outside ImGui.
+    size_t hash = ImGuiWrapper::draw_data_signature(draw_data);
+    for (size_t state_hash : { m_main_toolbar.get_state_hash(), m_separator_toolbar.get_state_hash(),
+                               m_assemble_view_toolbar.get_state_hash(),
+                               wxGetApp().plater()->get_collapse_toolbar().get_state_hash(),
+                               m_gizmos.get_overlay_state_hash() })
+        boost::hash_combine(hash, state_hash);
+    return hash;
 }
 
 void GLCanvas3D::_render_style_editor()
@@ -8902,7 +9387,10 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                     m_sel_plate_toolbar.m_items[i]->slice_state = IMToolbarItem::SliceState::SLICE_FAILED;
             }
             else {
-                if ((!is_empty && !can_slice) || (plate_list.get_plate(i)->has_printable_instances() && !plate_list.get_plate(i)->can_slice()))
+                // A plate using a mixed filament whose components are broken cannot be sliced,
+                // so surface that on the plate toolbar the same way an unsliceable plate is.
+                if ((!is_empty && !can_slice) || (plate_list.get_plate(i)->has_printable_instances() && !plate_list.get_plate(i)->can_slice())
+                    || wxGetApp().plater()->sidebar().has_broken_mixed_filament(plate_list.get_plate(i)))
                     m_sel_plate_toolbar.m_items[i]->slice_state = IMToolbarItem::SliceState::SLICE_FAILED;
                 else {
                     if (plate_list.get_plate(i)->get_slicing_percent() < 0.0f)
@@ -9196,7 +9684,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                                     view3d_canvas->get_gizmos_manager().reset_all_states(); // close all gizmos
                                     view3d_canvas->reload_scene(true);
                                 }
-                                app.mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+                                app.mainframe->select_tab(TAB_ID_PREPARE);
                             }
                         }
                     });
@@ -9224,7 +9712,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
         ImVec2 size      = ImVec2(button_width, button_height);
         ImVec2 end_pos   = ImVec2(start_pos.x + size.x, start_pos.y + size.y);
         // ORCA show additional information depends on state
-        auto draw_info_btn = [end_pos, f_scale, margin, window_bg](std::string str, ImVec4 bg_color, ImVec4 fg_color){
+        auto draw_info_btn = [end_pos, f_scale, margin](std::string str, ImVec4 bg_color, ImVec4 fg_color){
             GImGui->FontSize = 15.0f * f_scale;
             ImVec2 txt_slice_sz  = ImGui::CalcTextSize(str.c_str());
             ImVec2 btn_pad       = ImVec2(8.f, 1.f) * f_scale;
@@ -9480,7 +9968,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         Plater*    p   = wxGetApp().plater();
         AppConfig* cfg = wxGetApp().app_config;
 
-        auto create_menu_item = [this, sc](
+        auto create_menu_item = [sc](
             const std::string& name,
             bool enable,
             bool condition,
@@ -9497,7 +9985,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_3d_navigator(),
-            [this]{
+            []{
                 wxGetApp().toggle_show_3d_navigator();
                 ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
             }
@@ -9506,7 +9994,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Zoom button")),
             true, // work on all
             wxGetApp().show_canvas_zoom_button(),
-            [this]{
+            []{
                 wxGetApp().toggle_canvas_zoom_button();
                 ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
             }
@@ -9517,13 +10005,13 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
-            [this, p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
+            [p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
         );
 
         create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
-            [this]{wxGetApp().toggle_show_outline();}
+            []{wxGetApp().toggle_show_outline();}
         );
 
         create_menu_item( _utf8(L("Wireframe")),
@@ -9535,7 +10023,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Realistic View")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
-            [this, &cfg]{
+            [&cfg]{
                 cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
                 cfg->save();
             }
@@ -9546,7 +10034,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Perspective")),
             true, // work on all
             cfg->get_bool("use_perspective_camera"),
-            [this, &cfg]{
+            [&cfg]{
                 cfg->set_bool("use_perspective_camera", !(cfg->get_bool("use_perspective_camera")));
                 wxGetApp().update_ui_from_settings();
             }
@@ -9563,7 +10051,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Gridlines")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_plate_gridlines(),
-            [this]{wxGetApp().toggle_show_plate_gridlines();}
+            []{wxGetApp().toggle_show_plate_gridlines();}
         );
 
         ImGui::Separator();
@@ -9571,7 +10059,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
-            [this, p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
+            [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
         );
 
         ImGui::PopItemFlag();
@@ -9616,6 +10104,9 @@ void GLCanvas3D::_render_separator_toolbar_left() const
 
 void GLCanvas3D::_render_collapse_toolbar() const
 {
+    if (!m_collapse_toolbar_enabled)
+        return;
+
     auto&      plater              = *wxGetApp().plater();
     const auto sidebar_docking_dir = plater.get_sidebar_docking_state();
     if (sidebar_docking_dir == Sidebar::None) {
@@ -9669,6 +10160,13 @@ void GLCanvas3D::_render_paint_toolbar() const
             }
         }
     }
+    // ORCA: the loop above only labels a slot whose preset was found in the preset collection,
+    // while the render loop below iterates extruder_num. Pad the label arrays so a slot without a
+    // matching preset cannot index past them; a garbage std::string crashes ImGui::CalcTextSize.
+    while (int(filament_text_first_line.size()) < extruder_num) {
+        filament_text_first_line.emplace_back();
+        filament_text_second_line.emplace_back();
+    }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float canvas_w = float(get_canvas_size().get_width());
@@ -9698,6 +10196,10 @@ void GLCanvas3D::_render_paint_toolbar() const
     bool disabled = !wxGetApp().plater()->can_fillcolor();
     ColorRGBA rgba;
 
+    // Gradient mixed filaments fade over Z, so their swatch is drawn as that fade rather than
+    // the single blended colour in `colors`. Every other slot's ramp is empty.
+    const auto& gradient_ramps = wxGetApp().plater()->get_filament_gradient_ramps();
+
     for (int i = 0; i < extruder_num; i++) {
         if (i > 0)
             ImGui::SameLine();
@@ -9711,6 +10213,8 @@ void GLCanvas3D::_render_paint_toolbar() const
             if (!ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max) && !ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max))
                 wxPostEvent(m_canvas, IntEvent(EVT_GLTOOLBAR_FILLCOLOR, i + 1));
         }
+        if (i < (int) gradient_ramps.size() && !gradient_ramps[i].empty())
+            ImGuiWrapper::draw_gradient_ramp(draw_list, ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), gradient_ramps[i]);
         if (ImGui::IsItemHovered() && i < 9) {
             if (!ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max) && !ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max)) {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 20.0f * f_scale, 10.0f * f_scale });
@@ -9726,7 +10230,13 @@ void GLCanvas3D::_render_paint_toolbar() const
 
     const float text_offset_y = 4.0f * em_unit * f_scale;
     for (int i = 0; i < extruder_num; i++) {
-        decode_color(colors[i], rgba);
+        // A gradient slot's swatch shows its fade instead of the blended colour in `colors`, so the
+        // labels take their contrast from the colour printed at the middle of the fade they sit on.
+        if (i < (int) gradient_ramps.size() && !gradient_ramps[i].empty()) {
+            const wxColour& c = gradient_ramps[i][gradient_ramps[i].size() / 2];
+            rgba = ColorRGBA(c.Red(), c.Green(), c.Blue(), c.Alpha());
+        } else
+            decode_color(colors[i], rgba);
         float  gray       = 0.299 * rgba.r_uchar() + 0.587 * rgba.g_uchar() + 0.114 * rgba.b_uchar();
         ImVec4 text_color = gray < 80 ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0, 0, 0, 1.0f);
 
@@ -9734,18 +10244,18 @@ void GLCanvas3D::_render_paint_toolbar() const
         ImVec2 number_label_size = ImGui::CalcTextSize(std::to_string(i + 1).c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - number_label_size.x) / 2);
-        ImGui::TextColored(text_color, std::to_string(i + 1).c_str());
+        ImGui::TextColored(text_color, "%s", std::to_string(i + 1).c_str());
         imgui.pop_bold_font();
 
         ImVec2 filament_first_line_label_size = ImGui::CalcTextSize(filament_text_first_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_first_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_first_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_first_line[i].c_str());
 
         ImVec2 filament_second_line_label_size = ImGui::CalcTextSize(filament_text_second_line[i].c_str());
         ImGui::SetCursorPosY(cursor_y + text_offset_y + number_label_size.y + filament_first_line_label_size.y);
         ImGui::SetCursorPosX(spacing + i * (spacing + button_size.x) + (button_size.x - filament_second_line_label_size.x) / 2);
-        ImGui::TextColored(text_color, filament_text_second_line[i].c_str());
+        ImGui::TextColored(text_color, "%s", filament_text_second_line[i].c_str());
     }
 
     if (ImGui::GetWindowWidth() == constraint_window_width) {
@@ -9972,9 +10482,9 @@ void GLCanvas3D::_render_assemble_info() const
     double size1 = m_selection.get_bounding_box().size()(1);
     double size2 = m_selection.get_bounding_box().size()(2);
     if (!m_selection.is_empty()) {
-        ImGui::Text(_L("Volume:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Volume:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f", size0 * size1 * size2);
-        ImGui::Text(_L("Size:").ToUTF8()); ImGui::SameLine(caption_max);
+        ImGui::Text("%s", _L("Size:").ToUTF8().data()); ImGui::SameLine(caption_max);
         ImGui::Text("%.2f x %.2f x %.2f", size0, size1, size2);
     }
     imgui->end();
@@ -10570,6 +11080,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     case EWarning::MixUsePLAAndPETG:
         text = _u8L("PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality.");
         break;
+    case EWarning::SingleExtruderMixedFilament:
+        text = get_single_extruder_mixed_filament_warning_text();
+        break;
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
         break;
@@ -10617,6 +11130,14 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             else{
                 notification_manager.close_slicing_customize_error_notification(NotificationType::BBLNozzleFilamentIncompatible, NotificationLevel::WarningNotificationLevel);
             }
+        }
+        else if (warning == EWarning::SingleExtruderMixedFilament) {
+            // Close by type: check_single_extruder_mixed_filament_risk() clears the shared text
+            // buffer on every call, so a close-by-text would miss once the risk is gone.
+            if (state)
+                notification_manager.push_slicing_customize_error_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk, NotificationLevel::WarningNotificationLevel, text);
+            else
+                notification_manager.close_slicing_customize_error_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk, NotificationLevel::WarningNotificationLevel);
         }
         else {
             if (state)

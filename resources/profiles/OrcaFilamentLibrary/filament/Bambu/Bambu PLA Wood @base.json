@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Wood @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA16",
+	"filament_id": "OFMjtqTC",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

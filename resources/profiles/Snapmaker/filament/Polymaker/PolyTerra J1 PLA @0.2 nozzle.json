@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "PolyTerra J1 PLA @0.2 nozzle",
 	"inherits": "PolyTerra PLA @0.2 nozzle",
+	"filament_id": "OF43Raws",
 	"from": "system",
 	"setting_id": "mxKHxGmBZzPLS82O",
 	"instantiation": "true",

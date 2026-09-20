@@ -113,7 +113,7 @@ enum InfillPattern : int {
     ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic, ipLightning,
     ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb, ipLateralLattice,
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
-    ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
+    ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
     ipCount,
 };
@@ -141,6 +141,29 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     case ipArchimedeanChords:
     case ipOctagramSpiral:
         return true;
+    default:
+        return false;
+    }
+}
+
+// Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
+// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
+// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+{
+    switch (pattern) {
+    case ipHilbertCurve:
+    case ipOctagramSpiral:
+    case ipLightning:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
+    case ipConcentric:
+    case ipCrossHatch:
+        return true;
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+        return multiline > 1;
     default:
         return false;
     }
@@ -248,7 +271,7 @@ enum LongRectrationLevel
 };
 
 enum SupportMaterialInterfacePattern {
-    smipAuto, smipRectilinear, smipConcentric, smipRectilinearInterlaced, smipGrid
+    smipAuto, smipRectilinear, smipConcentric, smipSpiralInset, smipRectilinearInterlaced, smipGrid
 };
 
 // BBS
@@ -988,41 +1011,46 @@ public: \
         { PrintConfigDef::handle_legacy(opt_key, value); }
 
 #define PRINT_CONFIG_CLASS_ELEMENT_DEFINITION(r, data, elem) BOOST_PP_TUPLE_ELEM(0, elem) BOOST_PP_TUPLE_ELEM(1, elem);
-#define PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION2(KEY) cache.opt_add(BOOST_PP_STRINGIZE(KEY), base_ptr, this->KEY);
-#define PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION(r, data, elem) PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION2(BOOST_PP_TUPLE_ELEM(1, elem))
-#define PRINT_CONFIG_CLASS_ELEMENT_HASH(r, data, elem) boost::hash_combine(seed, BOOST_PP_TUPLE_ELEM(1, elem).hash());
-#define PRINT_CONFIG_CLASS_ELEMENT_EQUAL(r, data, elem) if (! (BOOST_PP_TUPLE_ELEM(1, elem) == rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return false;
-#define PRINT_CONFIG_CLASS_ELEMENT_LOWER(r, data, elem) \
-        if (BOOST_PP_TUPLE_ELEM(1, elem) < rhs.BOOST_PP_TUPLE_ELEM(1, elem)) return true; \
-        if (! (BOOST_PP_TUPLE_ELEM(1, elem) == rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return false;
+#define PRINT_CONFIG_CLASS_ELEMENT_VISIT(r, data, elem) if (! f(BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(1, elem)), this->BOOST_PP_TUPLE_ELEM(1, elem), rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return;
+// Each option list is expanded into the members and again into for_each_option_pair(), which calls
+// f(key, this->option, rhs.option) in declaration order and stops when f returns false. hash(),
+// operator==, operator< and initialize() iterate the options through that visitor.
+#define PRINT_CONFIG_CLASS_COMMON_BODY(CLASS_NAME) \
+    size_t hash() const throw() \
+    { \
+        size_t seed = 0; \
+        this->for_each_option_pair(*this, [&seed](const char*, const auto &a, const auto&) { boost::hash_combine(seed, a.hash()); return true; }); \
+        return seed; \
+    } \
+    bool operator==(const CLASS_NAME &rhs) const throw() \
+    { \
+        bool eq = true; \
+        this->for_each_option_pair(rhs, [&eq](const char*, const auto &a, const auto &b) { eq = (a == b); return eq; }); \
+        return eq; \
+    } \
+    bool operator!=(const CLASS_NAME &rhs) const throw() { return ! (*this == rhs); } \
+    bool operator<(const CLASS_NAME &rhs) const throw() \
+    { \
+        int c = 0; \
+        this->for_each_option_pair(rhs, [&c](const char*, const auto &a, const auto &b) { if (a < b) c = -1; else if (! (a == b)) c = 1; return c == 0; }); \
+        return c < 0; \
+    } \
+protected: \
+    void initialize(StaticCacheBase &cache, const char *base_ptr) \
+    { \
+        this->for_each_option_pair(*this, [&cache, base_ptr](const char *key, const auto &a, const auto&) { cache.opt_add(key, base_ptr, a); return true; }); \
+    }
 
 #define PRINT_CONFIG_CLASS_DEFINE(CLASS_NAME, PARAMETER_DEFINITION_SEQ) \
 class CLASS_NAME : public StaticPrintConfig { \
     STATIC_PRINT_CONFIG_CACHE(CLASS_NAME) \
 public: \
     BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ) \
-    size_t hash() const throw() \
+    template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const \
     { \
-        size_t seed = 0; \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_HASH, _, PARAMETER_DEFINITION_SEQ) \
-        return seed; \
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_VISIT, _, PARAMETER_DEFINITION_SEQ) \
     } \
-    bool operator==(const CLASS_NAME &rhs) const throw() \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_EQUAL, _, PARAMETER_DEFINITION_SEQ) \
-        return true; \
-    } \
-    bool operator!=(const CLASS_NAME &rhs) const throw() { return ! (*this == rhs); } \
-    bool operator<(const CLASS_NAME &rhs) const throw() \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_LOWER, _, PARAMETER_DEFINITION_SEQ) \
-        return false; \
-    } \
-protected: \
-    void initialize(StaticCacheBase &cache, const char *base_ptr) \
-    { \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION, _, PARAMETER_DEFINITION_SEQ) \
-    } \
+    PRINT_CONFIG_CLASS_COMMON_BODY(CLASS_NAME) \
 };
 
 #define PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST_ITEM(r, data, i, elem) BOOST_PP_COMMA_IF(i) public elem
@@ -1036,43 +1064,43 @@ protected: \
     if (! (*static_cast<const elem*>(this) == static_cast<const elem&>(rhs))) return false;
 
 // Generic version, with or without new parameters. Don't use this directly.
-#define PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION, PARAMETER_REGISTRATION, PARAMETER_HASHES, PARAMETER_EQUALS) \
+#define PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION, PARAMETER_VISIT) \
 class CLASS_NAME : PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST(CLASSES_PARENTS_TUPLE) { \
     STATIC_PRINT_CONFIG_CACHE_DERIVED(CLASS_NAME) \
     CLASS_NAME() : PRINT_CONFIG_CLASS_DERIVED_INITIALIZER(CLASSES_PARENTS_TUPLE, 0) { assert(s_cache_##CLASS_NAME.initialized()); *this = s_cache_##CLASS_NAME.defaults(); } \
 public: \
     PARAMETER_DEFINITION \
+    template<typename F> void for_each_option_pair(const CLASS_NAME &rhs, F &&f) const { PARAMETER_VISIT } \
     size_t hash() const throw() \
     { \
         size_t seed = 0; \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_DERIVED_HASH, _, BOOST_PP_TUPLE_TO_SEQ(CLASSES_PARENTS_TUPLE)) \
-        PARAMETER_HASHES \
+        this->for_each_option_pair(*this, [&seed](const char*, const auto &a, const auto&) { boost::hash_combine(seed, a.hash()); return true; }); \
         return seed; \
     } \
     bool operator==(const CLASS_NAME &rhs) const throw() \
     { \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_DERIVED_EQUAL, _, BOOST_PP_TUPLE_TO_SEQ(CLASSES_PARENTS_TUPLE)) \
-        PARAMETER_EQUALS \
-        return true; \
+        bool eq = true; \
+        this->for_each_option_pair(rhs, [&eq](const char*, const auto &a, const auto &b) { eq = (a == b); return eq; }); \
+        return eq; \
     } \
     bool operator!=(const CLASS_NAME &rhs) const throw() { return ! (*this == rhs); } \
 protected: \
     CLASS_NAME(int) : PRINT_CONFIG_CLASS_DERIVED_INITIALIZER(CLASSES_PARENTS_TUPLE, 1) {} \
     void initialize(StaticCacheBase &cache, const char* base_ptr) { \
         PRINT_CONFIG_CLASS_DERIVED_INITCACHE(CLASSES_PARENTS_TUPLE) \
-        PARAMETER_REGISTRATION \
+        this->for_each_option_pair(*this, [&cache, base_ptr](const char *key, const auto &a, const auto&) { cache.opt_add(key, base_ptr, a); return true; }); \
     } \
 };
 // Variant without adding new parameters.
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE0(CLASS_NAME, CLASSES_PARENTS_TUPLE) \
-    PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, BOOST_PP_EMPTY(), BOOST_PP_EMPTY(), BOOST_PP_EMPTY(), BOOST_PP_EMPTY())
+    PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, BOOST_PP_EMPTY(), BOOST_PP_EMPTY())
 // Variant with adding new parameters.
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION_SEQ) \
     PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ), \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION, _, PARAMETER_DEFINITION_SEQ), \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_HASH, _, PARAMETER_DEFINITION_SEQ), \
-        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_EQUAL, _, PARAMETER_DEFINITION_SEQ))
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_VISIT, _, PARAMETER_DEFINITION_SEQ))
 
 // This object is mapped to Perl as Slic3r::Config::PrintObject.
 PRINT_CONFIG_CLASS_DEFINE(
@@ -1325,6 +1353,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
+    ((ConfigOptionBool, unsupported_wall_last))
     ((ConfigOptionInt, outer_wall_filament_id))
     ((ConfigOptionInt, inner_wall_filament_id))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
@@ -1363,6 +1392,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 role_based_wipe_speed))
     ((ConfigOptionFloatOrPercent,       wipe_speed))
     ((ConfigOptionBool,                 wipe_on_loops))
+    ((ConfigOptionBool,                 wipe_inward))
+    ((ConfigOptionFloatOrPercent,        wipe_inward_distance))
     ((ConfigOptionBool,                 wipe_before_external_loop))
     ((ConfigOptionEnum<WallInfillOrder>, wall_infill_order))
     ((ConfigOptionBool,                 precise_outer_wall))
@@ -1515,6 +1546,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_colour))
     ((ConfigOptionStrings,             filament_vendor))
     ((ConfigOptionBools,               filament_is_support))
+    // Mixed-color filament: a virtual slot realized from 2-3 physical filaments.
+    ((ConfigOptionBools,               filament_is_mixed))
+    ((ConfigOptionStrings,             filament_mixed_components))
+    ((ConfigOptionStrings,             filament_mixed_sublayer_ratios))
+    ((ConfigOptionBools,               filament_mixed_gradient))
+    ((ConfigOptionStrings,             filament_mixed_gradient_range))
+    ((ConfigOptionStrings,             filament_mixed_gradient_curve))
+    ((ConfigOptionBools,               filament_mixed_gradient_per_part))
     ((ConfigOptionInts,                filament_printable))
     ((ConfigOptionInts,                filament_extruder_compatibility))
     ((ConfigOptionFloats,              filament_change_length))
@@ -1589,6 +1628,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                manual_filament_change))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
+    ((ConfigOptionString,              toolchange_cyclic_order))
+    ((ConfigOptionBool,                toolchange_cyclic_first_layer))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
     ((ConfigOptionString,              change_filament_gcode))
     ((ConfigOptionString,              change_extrusion_role_gcode))
@@ -1750,6 +1791,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBools,              slow_down_for_layer_cooling))
     ((ConfigOptionInts,               close_fan_the_first_x_layers))
     ((ConfigOptionEnum<DraftShield>,  draft_shield))
+    ((ConfigOptionFloat,              extruder_clearance_dist_to_rod))//BBS
     ((ConfigOptionFloat,              extruder_clearance_height_to_rod))//BBs
     ((ConfigOptionFloat,              extruder_clearance_height_to_lid))//BBS
     ((ConfigOptionFloat,              extruder_clearance_radius))
@@ -1815,6 +1857,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               nozzle_temperature_range_low))
     ((ConfigOptionInts,               nozzle_temperature_range_high))
     ((ConfigOptionFloats,             wipe_distance))
+    ((ConfigOptionBool,               enable_mixed_color_sublayer))
     ((ConfigOptionBool,               enable_prime_tower))
     ((ConfigOptionBool,               prime_tower_enable_framework))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic
@@ -2116,11 +2159,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
 #undef STATIC_PRINT_CONFIG_CACHE_BASE
 #undef STATIC_PRINT_CONFIG_CACHE_DERIVED
 #undef PRINT_CONFIG_CLASS_ELEMENT_DEFINITION
-#undef PRINT_CONFIG_CLASS_ELEMENT_EQUAL
-#undef PRINT_CONFIG_CLASS_ELEMENT_LOWER
-#undef PRINT_CONFIG_CLASS_ELEMENT_HASH
-#undef PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION
-#undef PRINT_CONFIG_CLASS_ELEMENT_INITIALIZATION2
+#undef PRINT_CONFIG_CLASS_ELEMENT_VISIT
+#undef PRINT_CONFIG_CLASS_COMMON_BODY
 #undef PRINT_CONFIG_CLASS_DEFINE
 #undef PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST
 #undef PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST_ITEM
@@ -2465,7 +2505,8 @@ namespace cereal {
             archive(serialization_key_ordinal);
             assert(serialization_key_ordinal > 0);
             auto it = Slic3r::print_config_def.by_serialization_key_ordinal.find(serialization_key_ordinal);
-            assert(it != Slic3r::print_config_def.by_serialization_key_ordinal.end());
+            if (it == Slic3r::print_config_def.by_serialization_key_ordinal.end())
+                throw std::runtime_error("VendorCache: unknown serialization_key_ordinal " + std::to_string(serialization_key_ordinal) + " - cache is stale");
             config.set_key_value(it->second->opt_key, it->second->load_option_from_archive(archive));
         }
     }

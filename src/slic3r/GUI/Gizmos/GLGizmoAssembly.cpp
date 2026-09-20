@@ -69,6 +69,7 @@ bool GLGizmoAssembly::on_is_activable() const
 
 void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limit)
 {
+    render_dimensioning_if_scene_reused();
     static std::optional<Measure::SurfaceFeature> last_feature;
     static EMode last_mode = EMode::FeatureSelection;
     static SelectedFeatures last_selected_features;

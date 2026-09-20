@@ -3,6 +3,7 @@
 
 #include <iomanip>
 #include <locale>
+#include <set>
 #include <utility>
 #include <functional>
 #include <type_traits>
@@ -18,6 +19,7 @@
 #include <openssl/md5.h>
 
 #include "libslic3r.h"
+#include "Semver.hpp"
 
 //define CLI errors
 
@@ -68,6 +70,7 @@
 #define CLI_FILAMENT_CAN_NOT_MAP      -66
 #define CLI_ONLY_ONE_TPU_SUPPORTED      -67
 #define CLI_FILAMENTS_NOT_SUPPORTED_BY_EXTRUDER  -68
+#define CLI_MIXED_FILAMENT_INVALID      -69
 
 #define CLI_SLICING_ERROR                  -100
 #define CLI_GCODE_PATH_CONFLICTS           -101
@@ -253,6 +256,10 @@ extern bool is_gallery_file(const std::string& path, char const* type);
 extern bool is_shapes_dir(const std::string& dir);
 //BBS: add json support
 extern bool is_json_file(const std::string& path);
+// True if rel_path is relative, has no ".." component and, joined to root, still resolves inside it.
+// Both '/' and '\\' are treated as separators on every platform, so an archive rejected on one OS
+// is rejected on all of them.
+extern bool is_path_within_root(const std::string &rel_path, const boost::filesystem::path &root);
 
 // Orca: custom protocal support utils
 inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "orcaslicer://open"); }
@@ -307,6 +314,9 @@ extern unsigned get_current_pid();
 std::string per_user_temp_id();
 // Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
 std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
+// Completes a relative command line input path against the current working directory. Absolute
+// paths and custom open protocol URLs are returned unchanged.
+std::string resolve_cli_input_path(const std::string &path);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 
@@ -722,11 +732,42 @@ void copy_directory_recursively(const boost::filesystem::path& source,
                                 std::function<bool(const std::string)> filter = nullptr,
                                 bool merge_mode                               = false);
 
-// Install vendor bundles from resources directory to data directory
-// bundle_names: vector of vendor bundle names (without .json extension)
-// resource_subdir: subdirectory under resources_dir() (default: "profiles")
-// data_subdir: subdirectory under data_dir() (default: "system")
-// Returns: true if all bundles installed successfully, false otherwise
+// ---- Vendor installation on disk ------------------------------------------
+// How a vendor bundle is installed from resources into data_dir()/system: as
+// its profile and preset JSONs or, in a build that ships preset caches, as its
+// .opc preset cache alone. Loading what is installed is PresetBundle's business;
+// the cache file format itself is VendorCacheFile's (PresetCacheFormat.hpp).
+
+// True if `vendor` is installed in data_dir()/system. A build that ships preset
+// caches installs the cache alone, so it — not the profile — marks a vendor
+// installed; a cache this build cannot read marks nothing.
+bool is_vendor_installed(const std::string& vendor);
+
+// The version the installed vendor would be loaded at: its cache's stamp while
+// that covers the profile beside it, the profile's own version once it does not.
+// Invalid Semver if neither form is installed.
+Semver installed_vendor_version(const std::string& vendor);
+
+// Remove every form `vendor` can be installed as from data_dir()/system: its
+// profile, its preset cache, and its preset directory.
+void remove_installed_vendor(const std::string& vendor);
+
+// The vendors `dir` holds, sorted: one is named by its profile or, in a build that
+// ships preset caches instead of the raw profile JSONs, by its cache alone.
+std::set<std::string> vendor_names_in(const boost::filesystem::path& dir);
+
+// The version a build ships `vendor` at: whichever of its preset cache and its
+// profile is newer, that being the one installing lays down. Invalid Semver if the
+// build ships neither.
+Semver resource_vendor_version(const std::string& vendor);
+
+// Install vendors from the resources directory into the data directory, each as
+// its preset cache or as its profile and preset JSONs — whichever of the two the
+// build ships at the newer version. Anything the previous install of that vendor
+// left behind goes, so only the form just installed is there to be loaded.
+// bundle_names: vendor names, without extension.
+// Every bundle that can be installed is, whatever the others do. Returns false
+// if any named bundle could not be installed.
 bool install_vendor_bundles_from_resources(const std::vector<std::string>& bundle_names,
                                            const std::string& resource_subdir = "profiles",
                                            const std::string& data_subdir     = "system");

@@ -174,6 +174,7 @@ void KBShortcutsDialog::fill_shortcuts()
             { ctrl + "O", L("Open Project") },
             { ctrl + "S", L("Save Project") },
             { ctrl + shift + "S", L("Save Project as")},
+            { ctrl + shift + "E", L("Publish 3MF") },
             // File>Import
             { ctrl + "I", L("Import geometry data from STL/STEP/3MF/OBJ/AMF files") },
             // File>Export
@@ -197,6 +198,9 @@ void KBShortcutsDialog::fill_shortcuts()
 
             // Switch table page
             { ctrl + L("Tab"), L("Switch table page")},
+            // Open speed dial
+            { L_CONTEXT("Space", "Keyboard Shortcut"), L("Open speed dial") },
+            { alt + "1..9,0", L("Run a Speed Dial favourite (while the Speed Dial is open)") },
             //DEL
             #ifdef __APPLE__
                 {"fn+⌫", L("Delete Selected")},
@@ -267,8 +271,6 @@ void KBShortcutsDialog::fill_shortcuts()
             { "O", L("Zoom out") },
             { "V", L("Toggle printable for object/part") },
             { L_CONTEXT("Tab", "Keyboard Shortcut"), L("Switch between Prepare/Preview") },
-            { L_CONTEXT("Space", "Keyboard Shortcut"), L("Open actions speed dial") },
-
         };
         m_full_shortcuts.push_back({ { _L("Plater"), "" }, plater_shortcuts });
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-09-18 15:50+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -2456,15 +2456,6 @@ msgstr "มีอัปเดตพร้อมใช้งาน เปิด�
 msgid "%s has been removed."
 msgstr "ลบ %s แล้ว"
 
-msgid "Switching application language"
-msgstr "การเปลี่ยนภาษาของแอปพลิเคชัน"
-
-msgid "Select the language"
-msgstr "เลือกภาษา"
-
-msgid "Language"
-msgstr "ภาษา"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2501,6 +2492,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "ไม่สามารถเปิดกล่องโต้ตอบปลั๊กอินได้ (ข้อผิดพลาดที่ไม่รู้จัก)"
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -2942,6 +2946,10 @@ msgstr "แก้ไข"
 msgid "Merge with"
 msgstr "รวมกับ"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "แยกสี"
+
 msgid "Delete this filament"
 msgstr "ลบเส้นพลาสติกนี้"
 
@@ -3236,6 +3244,10 @@ msgstr "การประกอบ"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "รวมชิ้นส่วนเป็นวัตถุเดียว"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "การใช้ความสูงเลเยอร์แบบแปรผันร่วมกับซับเลเยอร์สีผสมอาจทำให้คุณภาพการผสมสีไม่ดี"
 
 # AI Translated
 msgid "Add layers"
@@ -3690,11 +3702,15 @@ msgstr "ดึงเส้นพลาสติกปัจจุบันกล
 msgid "Switch track at Filament Track Switch"
 msgstr "สลับแทร็กที่ Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "อุณหภูมิสูงสุดต้องไม่เกิน "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "อุณหภูมิสูงสุดต้องไม่เกิน %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "อุณหภูมิต่ำสุดไม่ควรต่ำกว่า"
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "อุณหภูมิต่ำสุดไม่ควรต่ำกว่า %d"
 
 msgid "Type to filter..."
 msgstr "พิมพ์เพื่อกรอง..."
@@ -4138,6 +4154,21 @@ msgstr "OrcaSlicer เริ่มต้นด้วยจิตวิญญา�
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "ปัจจุบัน OrcaSlicer เป็นตัวแบ่งส่วนข้อมูลแบบโอเพ่นซอร์สที่ใช้กันอย่างแพร่หลายและได้รับการพัฒนาอย่างแข็งขันที่สุดในชุมชนการพิมพ์ 3 มิติ นวัตกรรมหลายอย่างของบริษัทได้ถูกนำไปใช้โดยตัวแบ่งส่วนข้อมูลอื่นๆ ทำให้สิ่งนี้เป็นแรงผลักดันสำหรับอุตสาหกรรมทั้งหมด"
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "เครื่องพิมพ์"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "การตั้งค่าวัสดุ AMS"
 
@@ -4576,6 +4607,15 @@ msgstr ""
 "การคัดลอก G-code ชั่วคราวไปยังเอาต์พุต G-code ล้มเหลว บางทีการ์ด SD อาจถูกล็อคการเขียน?\n"
 "ข้อความแสดงข้อผิดพลาด: %1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"การคัดลอก G-code ชั่วคราวไปยัง G-code ผลลัพธ์ล้มเหลว\n"
+"ข้อความแสดงข้อผิดพลาด: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "การคัดลอก G-code ชั่วคราวไปยังเอาต์พุต G-code ล้มเหลว อาจมีปัญหากับอุปกรณ์เป้าหมาย โปรดลองส่งออกอีกครั้งหรือใช้อุปกรณ์อื่น G-code เอาต์พุตที่เสียหายอยู่ที่ %1%.tmp"
@@ -4720,6 +4760,23 @@ msgstr "อุณหภูมิห้องพิมพ์ปัจจุบั
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "อุณหภูมิห้องพิมพ์ต่ำสุด (%d℃) สูงกว่าอุณหภูมิห้องพิมพ์เป้าหมาย (%d℃) ค่าต่ำสุดคือเกณฑ์ที่การพิมพ์จะเริ่มต้นในขณะที่ห้องพิมพ์ยังคงร้อนขึ้นไปสู่เป้าหมาย จึงไม่ควรเกินค่าเป้าหมาย ระบบจะจำกัดค่าให้เท่ากับเป้าหมาย"
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "ความสูงเลเยอร์น้อยเกินไป จะถูกตั้งค่าเป็นค่าต่ำสุด (%g mm)"
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "ความสูงเลเยอร์อยู่นอกขีดจำกัดที่ตั้งไว้ใน การตั้งค่าเครื่องพิมพ์ -> ชุดดันเส้น -> การจำกัดความสูงของเลเยอร์ ซึ่งอาจทำให้เกิดปัญหาคุณภาพการพิมพ์"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "ปรับเป็นค่าขีดจำกัด (%g mm) โดยอัตโนมัติหรือไม่?"
+
+msgid "Adjust"
+msgstr "ปรับ"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4768,7 +4825,7 @@ msgstr ""
 "\n"
 "ค่าจะถูกรีเซ็ตเป็น 0"
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "ผนังเสริมสำรองทำงานได้ไม่ดีเมื่อตั้งค่าความหนาของเปลือกแนวตั้งเป็นทั้งหมด"
 
 msgid ""
@@ -4814,7 +4871,7 @@ msgstr ""
 "ไม่ - รักษาความสูงของชั้นรองรับที่เป็นอิสระ"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height ต้องเล็กกว่า layer_height\n"
@@ -4822,7 +4879,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "ความลึกของล็อคควรน้อยกว่าความลึกของผิวหนัง\n"
@@ -4840,6 +4897,13 @@ msgstr ""
 "ใช่ - เปิดใช้งาน Arachne Wall Generator\n"
 "ไม่ - ปิดการใช้งาน Arachne Wall Generator และตั้งค่าโหมด [Displacement] ของ Fuzzy Skin"
 
+# AI Translated
+msgid "Brim ear radius"
+msgstr "รัศมีของหูขอบยึดชิ้นงาน"
+
+msgid "Brim width"
+msgstr "ความกว้าง ขอบยึดชิ้นงาน"
+
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "โหมดเกลียวจะทำงานเฉพาะเมื่อลูปติดผนังเป็น 1, ปิดใช้งานส่วนรองรับ, การตรวจจับการจับตัวเป็นก้อนโดยการตรวจวัดถูกปิดใช้งาน, ชั้นเปลือกด้านบนเป็น 0, ความหนาแน่นของไส้ในแบบกระจายเป็น 0 และประเภทไทม์แลปส์เป็นแบบดั้งเดิม"
 
@@ -4854,6 +4918,9 @@ msgstr ""
 "เปลี่ยนการตั้งค่าเหล่านี้โดยอัตโนมัติหรือไม่\n"
 "ใช่ - เปลี่ยนการตั้งค่าเหล่านี้และเปิดใช้งานโหมดเกลียวโดยอัตโนมัติ\n"
 "ไม่ - เลิกใช้โหมดเกลียวในครั้งนี้"
+
+msgid "N/A"
+msgstr "ไม่มี"
 
 msgid "Printing"
 msgstr "กำลังพิมพ์"
@@ -5095,6 +5162,14 @@ msgid "Calibration error"
 msgstr "ข้อผิดพลาดในการสอบเทียบ"
 
 # AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "เครื่องพิมพ์นี้ไม่ได้ตั้งค่าฮาร์ดแวร์ที่ตัวควบคุมนี้ต้องการ"
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "ตัวควบคุมนี้ไม่รองรับบนเครื่องพิมพ์นี้"
+
+# AI Translated
 msgid "Network unavailable"
 msgstr "เครือข่ายไม่พร้อมใช้งาน"
 
@@ -5277,14 +5352,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "ค่า %s อยู่นอกช่วง ช่วงที่ถูกต้องคือตั้งแต่ %d ถึง %d"
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
-msgstr ""
-"มันคือ %s%% หรือ %s %s?\n"
-"ใช่สำหรับ %s%% \n"
-"ไม่ สำหรับ %s %s"
+msgid "Is it %s%% or %s %s?"
+msgstr "มันคือ %s%% หรือ %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5306,28 +5378,21 @@ msgstr "รูปแบบไม่ถูกต้อง ใช้ N, N#K หร
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "รูปแบบไม่ถูกต้อง รูปแบบเวกเตอร์ที่ต้องการ: \"%1%\""
 
-msgid "N/A"
-msgstr "ไม่มี"
-
 # AI Translated
 msgid "System agents"
 msgstr "เอเจนต์ระบบ"
-
-# AI Translated
-msgid "No plugin selected"
-msgstr "ไม่ได้เลือกปลั๊กอิน"
 
 # AI Translated
 msgid "Add plugin"
 msgstr "เพิ่มปลั๊กอิน"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "เลือกปลั๊กอิน"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "ลบปลั๊กอิน"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "ไม่ได้เลือกปลั๊กอิน"
 
 # AI Translated
 msgid "Configure"
@@ -5584,14 +5649,20 @@ msgstr "ตั้งค่าให้เหมาะสมที่สุด"
 msgid "Regroup filament"
 msgstr "จัดกลุ่มเส้นพลาสติกใหม่"
 
-msgid "up to"
-msgstr "สูงสุด"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "สูงสุด %1% มม."
 
-msgid "above"
-msgstr "ข้างบน"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "สูงกว่า %1% มม."
 
-msgid "from"
-msgstr "จาก"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "จาก %1% ถึง %2% มม."
 
 msgid "Usage"
 msgstr "การใช้งาน"
@@ -5650,9 +5721,6 @@ msgstr "เปลี่ยนสี"
 msgctxt "Noun"
 msgid "Print"
 msgstr "พิมพ์"
-
-msgid "Printer"
-msgstr "เครื่องพิมพ์"
 
 msgid "Time Estimation"
 msgstr "การประมาณเวลา"
@@ -5952,7 +6020,7 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
@@ -6118,6 +6186,9 @@ msgstr "การปิดแอปพลิเคชันในขณะที
 msgid "Logging"
 msgstr "การบันทึก"
 
+msgid "Design"
+msgstr ""
+
 msgid "Prepare"
 msgstr "เตรียมพิมพ์"
 
@@ -6132,6 +6203,10 @@ msgstr "หลายอุปกรณ์"
 
 msgid "Project"
 msgstr "โปรเจกต์"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "อุปกรณ์ (เว็บ)"
 
 msgid "Yes"
 msgstr "ใช่"
@@ -6260,16 +6335,24 @@ msgstr "บันทึกโปรเจกต์เป็น"
 msgid "Save current project as"
 msgstr "บันทึกโครงการปัจจุบันเป็น"
 
+# AI Translated
+msgid "Publish 3MF"
+msgstr "เผยแพร่ 3MF"
+
+# AI Translated
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr "ส่งออกไฟล์ 3MF ที่ฝังการตั้งค่าที่เลือกไว้"
+
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
 
 msgid "Load a model"
 msgstr "โหลดโมเดล"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "นำเข้าไฟล์ Zip"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "โหลดโมเดลที่มีอยู่ในไฟล์ zip"
 
 msgid "Import Configs"
@@ -6433,6 +6516,9 @@ msgstr "แสดงเค้าร่างรอบๆ วัตถุที�
 
 msgid "Preferences"
 msgstr "การตั้งค่า"
+
+msgid "Open speed dial..."
+msgstr ""
 
 # AI Translated
 msgctxt "Menu"
@@ -7361,6 +7447,233 @@ msgstr "อย่าแสดงกล่องโต้ตอบนี้อี
 msgid "Please refer to Wiki before use->"
 msgstr "โปรดดู Wiki ก่อนใช้งาน ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "ส่งออก STL"
+
+msgid "Export 3MF"
+msgstr "ส่งออก 3MF"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "ปรับเทียบความเร็วปริมาตรสูงสุด"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr "การปรับเทียบอัตราส่วนการไหล"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "ลบวัตถุทั้งหมด"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "แยกเป็นวัตถุ"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "เมาส์ 3D ถูกตัดการเชื่อมต่อ"
 
@@ -7513,6 +7826,14 @@ msgstr "บน"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "ล่าง"
+
+# AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "การตั้งค่านี้ไม่ได้ระบุชนิดความสามารถของปลั๊กอิน"
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "การตั้งค่านี้ระบุชนิดความสามารถของปลั๊กอินที่ไม่รู้จัก: "
 
 # AI Translated
 msgid "Plugin Selection"
@@ -7771,6 +8092,10 @@ msgstr "ปรับแต่งแผ่นปัจจุบัน"
 msgid "The %s nozzle can not print %s."
 msgstr "หัวฉีด %s ไม่สามารถพิมพ์ %s ได้"
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "การพิมพ์เส้นพลาสติกสีผสมบนเครื่องพิมพ์ที่มีชุดดันเส้นเดียวต้องเปลี่ยนเส้นพลาสติกและไล่เส้นบ่อยครั้ง ซึ่งอาจเพิ่มเศษวัสดุและความเสี่ยงที่หัวฉีดหรือช่องทิ้งเศษวัสดุจะอุดตันอย่างมาก"
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "ไม่แนะนำให้ผสม %1% กับ %2% ในการพิมพ์\n"
@@ -7896,11 +8221,43 @@ msgstr "ประสานรายการเส้นพลาสติกจ
 msgid "Set filaments to use"
 msgstr "ตั้งค่าเส้นพลาสติกที่จะใช้"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "เพิ่มเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "เส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "ลบเส้นพลาสติกผสมล่าสุด"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "เพิ่มเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "เส้นพลาสติกผสมมีส่วนประกอบที่ไม่ถูกต้องหรือไม่ตรงกัน กรุณาแก้ไขรายการที่ได้รับผลกระทบอีกครั้ง"
+
 msgid "Search plate, object and part."
 msgstr "ค้นหาจาน วัตถุ และชิ้นส่วน"
 
 msgid "Pellets"
 msgstr "เม็ด"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "เส้นพลาสติกผสมมีการอ้างอิงส่วนประกอบที่เสียหาย"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "แก้ไข / ลบ / รวม"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "เส้นพลาสติกผสมปลายทางใช้เส้นพลาสติกจริงนี้เป็นส่วนประกอบ การรวมจะลบเส้นพลาสติกจริงนี้และอาจทำให้เส้นพลาสติกผสมใช้ไม่ได้ ดำเนินการต่อหรือไม่?"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8038,8 +8395,16 @@ msgstr "โปรดยืนยันว่ารหัส G ภายในค
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
+# AI Translated
+msgid "Some published settings could not be applied:"
+msgstr "ไม่สามารถใช้การตั้งค่าที่เผยแพร่บางรายการได้:"
+
+# AI Translated
+msgid "Some filament slots were changed:"
+msgstr "ช่องเส้นพลาสติกบางช่องถูกเปลี่ยนแปลง:"
+
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "ชื่ออาจแสดงตัวอักษรขยะ!"
@@ -8060,7 +8425,7 @@ msgstr "ปริมาตรของวัตถุเป็นศูนย์
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "วัตถุจากไฟล์ %s มีขนาดเล็กเกินไป และอาจมีหน่วยเป็นเมตรหรือนิ้ว\n"
 " คุณต้องการขยายขนาดเป็นมิลลิเมตรหรือไม่?"
@@ -8079,6 +8444,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "ตรวจพบวัตถุที่มีหลายส่วน"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "กำลังจับคู่พื้นผิวกับเส้นพลาสติก"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "คำเตือนการนำเข้าพื้นผิว"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "โหลดไฟล์เหล่านี้เป็นออบเจ็กต์เดียวที่มีหลายส่วนใช่ไหม\n"
@@ -8148,19 +8521,11 @@ msgid "Delete Object"
 msgstr "ลบวัตถุ"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "ลบวัตถุทั้งหมด"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "รีเซ็ตโปรเจกต์"
 
 msgid "The selected object couldn't be split."
 msgstr "ไม่สามารถแยกวัตถุที่เลือกได้"
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "แยกเป็นวัตถุ"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "ปิดการใช้งานการวางอัตโนมัติเพื่อรักษาตำแหน่ง z หรือไม่\n"
@@ -8199,19 +8564,19 @@ msgstr "ไม่ได้เลือกไดเรกทอรีสำหร
 msgid "Replaced with 3D files from directory:\n"
 msgstr "แทนที่ด้วยไฟล์ 3D จากไดเรกทอรี:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ ข้าม %s: ไฟล์เดียวกัน\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ ข้าม %s: ไม่มีไฟล์อยู่\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ ข้าม %s: ไม่สามารถแทนที่ได้\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔แทนที่ %s\n"
 
@@ -8289,6 +8654,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "ซิงค์เลย"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "การนำเข้าพื้นผิวล้มเหลว โมเดลดูเหมือนจะมีข้อมูลพื้นผิว แต่ไม่สามารถดำเนินการนำเข้าพื้นผิวจนเสร็จสิ้นได้ โมเดลจะถูกนำเข้าเป็นเรขาคณิตเท่านั้น"
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "กำลังใช้สีพื้นผิว..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "กำลังอัปเดตมุมมอง 3D..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "ใช้สีพื้นผิวแล้ว"
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "คุณสามารถเก็บค่าที่ตั้งไว้ล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่หรือทิ้งก็ได้"
@@ -8420,6 +8801,21 @@ msgstr "บันทึกไฟล์ที่สไลซ์เป็น:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "ไฟล์ %s ถูกส่งไปยังพื้นที่เก็บข้อมูลของเครื่องพิมพ์แล้ว และสามารถดูได้บนเครื่องพิมพ์"
+
+# AI Translated
+msgid "Publish 3MF file as:"
+msgstr "เผยแพร่ไฟล์ 3MF เป็น:"
+
+# AI Translated
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+"ส่งออกไฟล์ 3MF ที่เผยแพร่ล้มเหลว\n"
+"โปรดตรวจสอบว่าโฟลเดอร์นั้นมีอยู่บนออนไลน์หรือมีโปรแกรมอื่นเปิดไฟล์นี้ค้างไว้หรือไม่"
+
+msgid "Publish"
+msgstr "เผยแพร่"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "ไม่ได้ตั้งค่าประเภทหัวฉีด โปรดตั้งหัวฉีดแล้วลองอีกครั้ง"
@@ -8631,9 +9027,6 @@ msgstr "ต้องการดำเนินการต่อหรือไ
 msgid "Language selection"
 msgstr "การเลือกภาษา"
 
-msgid "Switching application language while some presets are modified."
-msgstr "การสลับภาษาของแอปพลิเคชันในขณะที่มีการแก้ไขค่าที่ตั้งไว้บางส่วน"
-
 msgid "Asia-Pacific"
 msgstr "เอเชียแปซิฟิก"
 
@@ -8737,6 +9130,9 @@ msgstr "เส้นทางอินสแตนซ์ปัจจุบัน
 
 msgid "General"
 msgstr "ทั่วไป"
+
+msgid "Language"
+msgstr "ภาษา"
 
 msgid "Metric"
 msgstr "เมตริก"
@@ -8942,8 +9338,47 @@ msgstr "การจัดการอุปกรณ์หลายเครื
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "เมื่อเปิดใช้งานตัวเลือกนี้ คุณสามารถส่งงานไปยังอุปกรณ์หลายเครื่องพร้อมกันและจัดการอุปกรณ์หลายเครื่องได้"
 
+msgid "Open the Speed Dial with the Space key"
+msgstr ""
+
+msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
+
+msgid "CAD feature (experimental)"
+msgstr ""
+
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr ""
+
+msgid "Auto-close sketch loops"
+msgstr ""
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+msgstr ""
+
 msgid "Pop up to select filament grouping mode"
 msgstr "ปรากฏขึ้นเพื่อเลือกโหมดการจัดกลุ่มเส้นพลาสติก"
+
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "หน้าปลั๊กอินที่แสดง"
+
+# AI Translated
+msgid "pages"
+msgstr "หน้า"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "จำนวนหน้าปลั๊กอินที่แสดงเป็นแท็บถาวร ก่อนที่หน้าที่เหลือจะถูกยุบรวมเป็นเมนูแบบเลื่อนลงในแท็บสุดท้าย"
 
 msgid "Behaviour"
 msgstr "พฤติกรรม"
@@ -9010,6 +9445,12 @@ msgstr "ย้อนกลับการซูมเมาส์"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "หากเปิดใช้งาน จะกลับทิศทางการซูมด้วยล้อเลื่อนของเมาส์"
+
+msgid "Draw mate connectors as a face"
+msgstr ""
+
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+msgstr ""
 
 msgid "Pan"
 msgstr "แพน"
@@ -9164,9 +9605,6 @@ msgstr "เมื่อเลื่อนแถบเลเยอร์ในต
 msgid "Dimmed layer brightness"
 msgstr "ความสว่างของเลเยอร์ที่หรี่"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -9298,6 +9736,18 @@ msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้
 
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
+
+# AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(ทดลอง) ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"ส่งงานพิมพ์ของเครื่องพิมพ์ที่ไม่ใช่ Bambu ผ่านเอเจนต์ปลั๊กอินของเครื่องพิมพ์ แทนการอัพโหลดไปยังโฮสต์การพิมพ์แบบเดิม\n"
+"เมื่อปิดใช้ OrcaSlicer จะใช้พฤติกรรมโฮสต์การพิมพ์แบบเดิม"
 
 # AI Translated
 msgid "Experimental Features"
@@ -9508,6 +9958,10 @@ msgstr "แจกันเกลียว"
 msgid "First layer filament sequence"
 msgstr "ลำดับเส้นพลาสติกชั้นแรก"
 
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "รายการเส้นพลาสติกมีเส้นพลาสติกผสมอยู่ ลำดับเส้นพลาสติกที่กำหนดเองจะไม่มีผล"
+
 msgid "By Layer"
 msgstr "โดยเลเยอร์"
 
@@ -9535,9 +9989,6 @@ msgstr "ข้ามไปที่โมเดลเผยแพร่หน้
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "หมายเหตุ: การเตรียมการอาจใช้เวลาหลายนาที กรุณาอดทน."
 
-msgid "Publish"
-msgstr "เผยแพร่"
-
 msgid "Publish was canceled"
 msgstr "การเผยแพร่ถูกยกเลิก"
 
@@ -9553,6 +10004,81 @@ msgstr "กำลังอัพโหลดข้อมูล"
 msgid "Jump to webpage"
 msgstr "ข้ามไปที่หน้าเว็บ"
 
+# AI Translated
+msgid "Material"
+msgstr "วัสดุ"
+
+# AI Translated
+msgid "Mixed filament"
+msgstr "เส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr "เส้นพลาสติกผสมบางรายการต้องอาศัยเส้นพลาสติกที่จะไม่ถูกเผยแพร่:"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr "เส้นพลาสติก %d (ผสม)"
+
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% ต้องใช้ %2% แต่ยังไม่ได้เปิดใช้"
+
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% ต้องใช้ %2% แต่วัสดุของมันจะไม่ถูกเผยแพร่"
+
+# AI Translated
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr "หากต้องการเผยแพร่เส้นพลาสติกผสม ให้เปิดใช้เส้นพลาสติกทุกเส้นที่ใช้ แล้วเลือกการเผยแพร่แบบเต็ม หรือทำตามข้อกำหนดชนิดของมัน"
+
+# AI Translated
+msgid "Publish anyway"
+msgstr "เผยแพร่ต่อไป"
+
+# AI Translated
+msgid "Publish 3MF..."
+msgstr "เผยแพร่ 3MF..."
+
+# AI Translated
+msgid "Select which settings to be published in the 3MF file"
+msgstr "เลือกว่าจะเผยแพร่การตั้งค่าใดในไฟล์ 3MF"
+
+# AI Translated
+msgid "Publish 3MF Wiki"
+msgstr "วิกิการเผยแพร่ 3MF"
+
+# AI Translated
+msgid "Publish 3MF Video Guide"
+msgstr "คู่มือวีดีโอการเผยแพร่ 3MF"
+
+# AI Translated
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr "เส้นพลาสติกผสม - เผยแพร่ทั้งชุดเมื่อเลือก \"เปิดใช้\" ด้านบน"
+
+# AI Translated
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr "เผยแพร่เส้นพลาสติกผสมนี้ และเปิดใช้ + เผยแพร่แบบเต็มสำหรับเส้นพลาสติกที่เป็นส่วนประกอบ"
+
+# AI Translated
+msgid "Publish this filament slot in the 3MF file"
+msgstr "เผยแพร่ช่องเส้นพลาสติกนี้ในไฟล์ 3MF"
+
+# AI Translated
+msgid "Full Publish"
+msgstr "การเผยแพร่แบบเต็ม"
+
+# AI Translated
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr "ฝังเส้นพลาสติกทั้งหมดของช่องนี้ลงในไฟล์ 3MF"
+
+# AI Translated
+msgid "Filter non-selected"
+msgstr "กรองรายการที่ไม่ได้เลือก"
+
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "บันทึก %s เป็น"
@@ -9563,8 +10089,28 @@ msgstr "พรีเซ็ตผู้ใช้"
 msgid "Preset Inside Project"
 msgstr "พรีเซ็ตภายในโปรเจ็กต์"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "คัดลอกค่าที่สืบทอดมาจากพรีเซ็ตแม่ทั้งหมดมาไว้ในพรีเซ็ตนี้ และตัดความสัมพันธ์กับพรีเซ็ตแม่ พรีเซ็ตที่เข้ากันได้กับพรีเซ็ตแม่เท่านั้นอาจไม่ได้รับการรองรับอีกต่อไป"
+
 msgid "Detach from parent"
 msgstr "แยกออกจากพรีเซ็ตแม่"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "บันทึกโดยไม่มีพรีเซ็ตแม่"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "พรีเซ็ตอิสระ"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "พรีเซ็ตแม่"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "พรีเซ็ตนี้ไม่ได้สืบทอดมาจากพรีเซ็ตอื่น"
 
 msgid "Name is unavailable."
 msgstr "ชื่อไม่พร้อมใช้งาน"
@@ -9612,6 +10158,126 @@ msgstr "สำหรับ \"%1%\" ให้เพิ่ม \"%2%\" เป็น
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "เพียงเปลี่ยนเป็น \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "อื่นๆ"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "ยกเลิกงานแล้ว"
@@ -10258,8 +10924,16 @@ msgstr "จำเป็นต้องใช้ Prime Tower ในการต�
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและ Prime Tower อาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน คุณยังต้องการเปิดใช้งานความสูง Z ที่แม่นยำหรือไม่"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "ไทม์แลปส์แบบราบรื่นต้องมี Prime Tower ในทุกเลเยอร์ ซึ่งใช้ร่วมกับ \"ไม่มีชั้นกระจัดกระจาย\" ไม่ได้ จึงปิด \"ไม่มีชั้นกระจัดกระจาย\" แล้ว"
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "จำเป็นต้องใช้ Prime Tower สำหรับโหมดไทม์แลปส์แบบราบรื่น หากไม่มี Prime Tower อาจเกิดตำหนิบนโมเดลได้ ต้องการเปิดใช้ Prime Tower หรือไม่?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "\"ไม่มีชั้นกระจัดกระจาย\" ใช้ร่วมกับไทม์แลปส์แบบราบรื่นไม่ได้ เพราะไทม์แลปส์แบบราบรื่นต้องมี Prime Tower ในทุกเลเยอร์ ไทม์แลปส์จึงถูกสลับเป็นโหมดแบบดั้งเดิม"
 
 msgid "Still print by object?"
 msgstr "ยังคงพิมพ์ตามวัตถุใช่ไหม"
@@ -10304,22 +10978,6 @@ msgstr "คุณแน่ใจหรือไม่ว่าต้องกา
 
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "โดยทั่วไปรูปแบบไส้ในได้รับการออกแบบให้รองรับการหมุนโดยอัตโนมัติเพื่อให้แน่ใจว่าการพิมพ์ถูกต้องและบรรลุผลตามที่ต้องการ (เช่น Gyroid, ลูกบาศก์) การหมุนรูปแบบ ไส้ใน แบบกระจัดกระจายในปัจจุบันอาจทำให้ส่วนรองรับไม่เพียงพอ โปรดดำเนินการด้วยความระมัดระวังและตรวจสอบปัญหาการพิมพ์ที่อาจเกิดขึ้นอย่างละเอียด คุณแน่ใจหรือไม่ว่าต้องการเปิดใช้งานตัวเลือกนี้"
-
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"ความสูงของเลเยอร์น้อยเกินไป\n"
-"มันจะตั้งค่าเป็น min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "ความสูงของเลเยอร์เกินขีดจำกัดในการตั้งค่าเครื่องพิมพ์ -> ชุดดันเส้น -> ขีดจำกัดความสูงของเลเยอร์ ซึ่งอาจทำให้เกิดปัญหาคุณภาพการพิมพ์"
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "ปรับเป็นช่วงที่ตั้งไว้อัตโนมัติ?\n"
-
-msgid "Adjust"
-msgstr "ปรับ"
 
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "คุณลักษณะการทดลอง: การดึงกลับและตัดเส้นพลาสติกออกในระยะห่างที่มากขึ้นระหว่างการเปลี่ยนเส้นพลาสติกเพื่อลดการไล่เส้น แม้ว่าจะสามารถลดการไล่เส้นได้อย่างเห็นได้ชัด แต่ก็อาจเพิ่มความเสี่ยงของการอุดตันของหัวฉีดหรือภาวะแทรกซ้อนในการพิมพ์อื่นๆ อีกด้วย"
@@ -10513,6 +11171,9 @@ msgstr "พบคีย์เวิร์ดที่สงวนไว้"
 msgid "Setting Overrides"
 msgstr "การตั้งค่าการแทนที่"
 
+msgid "Retraction when switching material"
+msgstr "การร่นกลับเมื่อเปลี่ยนวัสดุ"
+
 msgid "Basic information"
 msgstr "ข้อมูลพื้นฐาน"
 
@@ -10642,6 +11303,9 @@ msgstr "โปรไฟล์กระบวนการที่เข้าก
 msgid "Printable space"
 msgstr "พื้นที่ที่สามารถพิมพ์ได้"
 
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์ ตัวแทนที่มีอยู่จะได้รับการลงทะเบียนเมื่อเริ่มต้น"
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10767,9 +11431,6 @@ msgstr "การจำกัดความสูงของเลเยอร
 msgid "Z-Hop"
 msgstr "ยกแกน Z"
 
-msgid "Retraction when switching material"
-msgstr "การร่นกลับเมื่อเปลี่ยนวัสดุ"
-
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
 "\n"
@@ -10882,12 +11543,12 @@ msgid "No modifications need to be copied."
 msgstr "ไม่มีการแก้ไขที่ต้องคัดลอก"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "คัดลอกพารามิเตอร์"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "แก้ไขพารามิเตอร์ของ %s"
 
 # AI Translated
@@ -11041,14 +11702,6 @@ msgstr "จำนวนชุดดันเส้น"
 
 msgid "Capabilities"
 msgstr "ความสามารถ"
-
-# AI Translated
-msgid "Left: "
-msgstr "ซ้าย: "
-
-# AI Translated
-msgid "Right: "
-msgstr "ขวา: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "แสดงค่าที่ตั้งล่วงหน้าทั้งหมด (รวมทั้งเข้ากันไม่ได้)"
@@ -11403,27 +12056,6 @@ msgstr "ปริมาณการไล่เส้นชิ่งสำหร
 msgid "Please choose the filament colour"
 msgstr "กรุณาเลือกสีเส้นพลาสติก"
 
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
-
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "ตัวแทนระบบคลาวด์ไม่พร้อมใช้งาน โปรดรีสตาร์ท OrcaSlicer แล้วลองอีกครั้ง"
 
@@ -11472,6 +12104,17 @@ msgstr "แสดง/ซ่อนกล่องโต้ตอบการต�
 
 msgid "Switch table page"
 msgstr "สลับหน้าตาราง"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
+
+msgid "Open speed dial"
+msgstr ""
+
+msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
+msgstr ""
 
 msgid "Show keyboard shortcuts list"
 msgstr "แสดงรายการแป้นพิมพ์ลัด"
@@ -11632,15 +12275,6 @@ msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "สลับระหว่างการเตรียม/ดูตัวอย่าง"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "เปิดสปีดไดอัลการดำเนินการ"
 
 msgid "Plater"
 msgstr "เพลเตอร์"
@@ -11909,14 +12543,21 @@ msgstr "ยกเลิกการซ่อมแล้ว"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "การคัดลอกไฟล์ %1% ถึง %2% ล้มเหลว: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "กำลังดาวน์โหลดโปรไฟล์ผู้ขายใหม่: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "แพคเกจการกำหนดค่า: %1% อัปเดตเป็น %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "ดาวน์โหลดโปรไฟล์ผู้ขายล้มเหลว: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "โปรดตรวจสอบการเปลี่ยนแปลงที่ยังไม่ได้บันทึกก่อนอัปเดตการกำหนดค่า"
-
-msgid "Configuration package: "
-msgstr "แพคเกจการกำหนดค่า:"
-
-msgid " updated to "
-msgstr "อัปเดตเป็น"
 
 msgid "Open G-code file:"
 msgstr "เปิดไฟล์ G-code:"
@@ -11975,11 +12616,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "รูปร่างอินพุตรองรับเฉพาะ Klipper, RepRapFirmware และ Marlin 2 เท่านั้น"
 
-msgid "Grouping error: "
-msgstr "ข้อผิดพลาดในการจัดกลุ่ม:"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "ข้อผิดพลาดในการจัดกลุ่ม: %1% ไม่สามารถวางในหัวฉีดซ้ายได้"
 
-msgid " can not be placed in the "
-msgstr "ไม่สามารถวางใน"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "ข้อผิดพลาดในการจัดกลุ่ม: %1% ไม่สามารถวางในหัวฉีดขวาได้"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12093,6 +12738,10 @@ msgstr "%1% อยู่ใกล้ผู้อื่นมากเกิน�
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% สูงเกินไป และจะเกิดการชนกัน"
 
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "ตำแหน่งสัมพัทธ์ของโมเดลกับ Prime Tower ไม่เป็นไปตามข้อกำหนดของฟังก์ชัน \"ไม่มีชั้นกระจัดกระจาย\" โปรดปรับตำแหน่งสัมพัทธ์ของทั้งสอง ลดความสูงของโมเดล หรือปิด \"ไม่มีชั้นกระจัดกระจาย\""
+
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr "อยู่ใกล้พื้นที่แยกมากเกินไป อาจเกิดการชนกันเมื่อพิมพ์"
 
@@ -12111,6 +12760,10 @@ msgstr "อยู่ใกล้เขตหวงห้ามมากเกิ
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr "อยู่ใกล้พื้นที่การตรวจจับการจับตัวกันมากเกินไป และจะเกิดการชนกัน\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr "อยู่นอกพื้นที่การพิมพ์บางส่วน จึงไม่สามารถพิมพ์ได้\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "อุณหภูมิหัวฉีดที่เลือกเข้ากันไม่ได้ อุณหภูมิหัวฉีดของเส้นพลาสติกแต่ละเส้นต้องอยู่ในช่วงอุณหภูมิหัวฉีดที่แนะนำของเส้นพลาสติกอื่นๆ มิฉะนั้นอาจเกิดการอุดตันของหัวฉีดหรือเครื่องพิมพ์เสียหายได้"
 
@@ -12122,6 +12775,10 @@ msgstr "หากคุณยังต้องการพิมพ์ คุ�
 
 msgid "No extrusions under current settings."
 msgstr "ไม่มีการอัดขึ้นรูปภายใต้การตั้งค่าปัจจุบัน"
+
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "มีการใช้เส้นพลาสติกผสมแบบเกรเดียนต์ แต่ 'ซับเลเยอร์สีผสม' ถูกปิดใช้งาน เกรเดียนต์จะไม่ถูกพิมพ์"
 
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "ไม่รองรับโหมดไทม์แลปส์แบบราบรื่นเมื่อเปิดใช้งานลำดับ \"ตามวัตถุ\""
@@ -12158,6 +12815,10 @@ msgstr "คุณอาจต้องการลดขนาดแบบจำ
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "ไม่รองรับความสูงของเลเยอร์ที่แปรผันได้ด้วยการรองรับแบบออร์แกนิก"
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "เส้นพลาสติกของ Wipe Tower ไม่สามารถเป็นเส้นพลาสติกผสมได้"
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "เส้นผ่านศูนย์กลางของหัวฉีดที่แตกต่างกันและเส้นผ่านศูนย์กลางของเส้นพลาสติกที่แตกต่างกันอาจทำงานได้ไม่ดีนักเมื่อเปิดใช้งาน Prime Tower ยังเป็นการทดลองอยู่มาก ดังนั้นโปรดดำเนินการด้วยความระมัดระวัง"
@@ -12511,7 +13172,7 @@ msgstr "มม. หรือ %"
 msgid "Other layers"
 msgstr "ชั้นอื่นๆ"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate SuperTack"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -13103,9 +13764,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "ความเร็วของสะพานภายใน หากค่าแสดงเป็นเปอร์เซ็นต์ ค่าดังกล่าวจะถูกคำนวณตาม bridge_speed ค่าเริ่มต้นคือ 150%"
 
-msgid "Brim width"
-msgstr "ความกว้าง ขอบยึดชิ้นงาน"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "ระยะห่างจากแบบจำลองถึงเส้นขอบยึดชิ้นงานด้านนอกสุด"
 
@@ -13184,6 +13842,14 @@ msgid ""
 msgstr ""
 "รูปทรงจะถูกทำลายก่อนที่จะตรวจจับมุมแหลม พารามิเตอร์นี้ระบุความยาวขั้นต่ำของการเบี่ยงเบนสำหรับการทำลาย\n"
 "0 เพื่อปิดการใช้งาน"
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "หูขอบยึดชิ้นงานเฉพาะด้านนอก"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "สร้างหูหนูเฉพาะบนคอนทัวร์ด้านนอกของโมเดล โดยไม่รวมรูและส่วนที่ปิดล้อม"
 
 msgid "upward compatible machine"
 msgstr "เครื่องที่รองรับขึ้นไป"
@@ -13469,6 +14135,10 @@ msgstr "จัดแนวเป็นเส้นตรง"
 msgid "Concentric"
 msgstr "ศูนย์กลาง"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "เกลียวเข้าใน"
+
 msgid "Hilbert Curve"
 msgstr "ฮิลเบิร์ต เคิร์ฟ"
 
@@ -13560,13 +14230,13 @@ msgstr "ลำดับการเติมพื้นผิวด้านบ
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
-"ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
-"ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
+"ทิศทางการเติมผิวด้านบนเมื่อใช้รูปแบบที่เริ่มจากศูนย์กลาง (ศูนย์กลาง, เกลียวเข้าใน, คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
+"ออกด้านนอกจะเริ่มที่กึ่งกลางของผิว วัสดุส่วนเกินจึงถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในจะเริ่มที่ขอบและจบด้วยเส้นโค้งแคบตรงกึ่งกลาง\n"
+"ค่าเริ่มต้นใช้การเรียงตามเส้นทางที่สั้นที่สุด ซึ่งอาจเดินไปทางใดก็ได้"
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -13574,13 +14244,13 @@ msgstr "ลำดับการเติมพื้นผิวด้านล
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
-"เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
-"ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
+"ทิศทางการเติมผิวด้านล่างเมื่อใช้รูปแบบที่เริ่มจากศูนย์กลาง (ศูนย์กลาง, เกลียวเข้าใน, คอร์ดอาร์คิมีดีน, เกลียวแปดเหลี่ยม)\n"
+"เข้าด้านในจะเริ่มแต่ละผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยให้ชั้นแรกยึดเกาะดีขึ้นบนฐานพิมพ์ที่เส้นโค้งแคบตรงกึ่งกลางอาจไม่ติด ออกด้านนอกจะเริ่มที่กึ่งกลางและดันวัสดุส่วนเกินไปทางขอบ\n"
+"ค่าเริ่มต้นใช้การเรียงตามเส้นทางที่สั้นที่สุด ซึ่งอาจเดินไปทางใดก็ได้"
 
 msgid "Internal solid infill pattern"
 msgstr "รูปแบบไส้ในของแข็งภายใน"
@@ -13682,6 +14352,14 @@ msgstr "ทวนเข็มนาฬิกา"
 
 msgid "Clockwise"
 msgstr "ตามเข็มนาฬิกา"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "ระยะถึงแกน"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "ระยะในแนวนอนจากปลายหัวฉีดถึงขอบด้านไกลของแกน ใช้สำหรับหลีกเลี่ยงการชนในการพิมพ์ตามวัตถุ"
 
 msgid "Height to rod"
 msgstr "ความสูงถึงก้าน"
@@ -13869,6 +14547,8 @@ msgstr "เวลาเลเยอร์"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "พัดลมระบายความร้อนบางส่วนจะถูกเปิดใช้งานสำหรับเลเยอร์ที่เวลาโดยประมาณสั้นกว่าค่านี้ ความเร็วพัดลมจะถูกประมาณค่าระหว่างความเร็วพัดลมขั้นต่ำและสูงสุดตามเวลาการพิมพ์เลเยอร์"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "วินาที"
 
@@ -14176,6 +14856,62 @@ msgstr "วัสดุส่วนรองรับ"
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "วัสดุรองรับมักใช้ในการพิมพ์ส่วนรองรับและอินเทอร์เฟซรองรับ"
 
+# AI Translated
+msgid "Is mixed filament"
+msgstr "เป็นเส้นพลาสติกผสมหรือไม่"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "กำหนดว่าช่องเส้นพลาสติกนี้เป็นเส้นพลาสติกผสมที่ประกอบด้วยเส้นพลาสติกจริงหลายเส้นหรือไม่"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "ส่วนประกอบของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "ลำดับของเส้นพลาสติกส่วนประกอบโดยเริ่มจาก 1 คั่นด้วยเครื่องหมายจุลภาค เช่น \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "สัดส่วนซับเลเยอร์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "ค่าสัดส่วนที่คั่นด้วยเครื่องหมายจุลภาคและรวมกันได้ 1.0 เช่น \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "เกรเดียนต์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "เปิดใช้โหมดเกรเดียนต์ในแนวแกน Z สำหรับซับเลเยอร์ของเส้นพลาสติกผสม เมื่อเปิดใช้ สัดส่วนของซับเลเยอร์จะเปลี่ยนแปลงเชิงเส้นตามเลเยอร์"
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "ช่วงเกรเดียนต์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "สัดส่วนเริ่มต้นและสิ้นสุดของส่วนประกอบแรกในโหมดเกรเดียนต์ เป็นคู่ค่าที่คั่นด้วยเครื่องหมายจุลภาค เช่น \"0.10,0.90\" หมายถึง 10% ถึง 90%"
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "เส้นโค้งเกรเดียนต์ของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "เส้นโค้งกำหนดเองสไตล์ Photoshop (ไม่บังคับ) ที่แมปความคืบหน้าในแกน Z กับสัดส่วนของส่วนประกอบแรก เข้ารหัสเป็นจุดควบคุมที่คั่นด้วยเครื่องหมายขีดตั้ง ในรูปแบบ \"x,y\" (รูปแบบเดิม) หรือ \"x,y,m_in,m_out\" เมื่อจำเป็นต้องกำหนดค่าแทนเจนต์เอง (ค่าว่างหรือ \"nan\" หมายถึงใช้ค่าเริ่มต้นของ PCHIP) x อยู่ในช่วง [0,1] ส่วน y จะถูกจำกัดให้อยู่ในช่วงสัดส่วนที่ตั้งค่าไว้ เช่น \"0,0.15|0.5,0.50|1,0.85\" หากเว้นว่างไว้ จะใช้ gradient_range แบบเชิงเส้นแทน"
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "เกรเดียนต์แยกตามชิ้นส่วนของเส้นพลาสติกผสม"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "เมื่อเปิดใช้โหมดเกรเดียนต์ จะใช้เกรเดียนต์กับแต่ละชิ้นส่วนของการประกอบแยกกัน แทนที่จะถือว่าการประกอบทั้งหมดเป็นช่วง Z เดียว"
+
 msgid "Filament printable"
 msgstr "พิมพ์เส้นพลาสติกได้"
 
@@ -14350,6 +15086,14 @@ msgstr "TPMS-FK"
 
 msgid "Gyroid"
 msgstr "ไจรอยด์"
+
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "ค่าความเรียบของไส้ในแบบโปร่ง"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "ควบคุมระดับความมนของมุมไส้ในแบบโปร่ง ค่า 0% จะคงเส้นทางเดิมที่เป็นมุมแหลม ส่วน 100% จะสร้างส่วนโค้งที่ใหญ่ที่สุดเท่าที่เป็นไปได้ระหว่างเส้นไส้ในที่อยู่ติดกัน"
 
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "ความเร่งของไส้ในพื้นผิวด้านบน การใช้ค่าที่ต่ำกว่าอาจปรับปรุงคุณภาพพื้นผิวด้านบนได้"
@@ -14893,6 +15637,14 @@ msgstr "เครื่องพิมพ์ G-code ชนิดใดที่�
 msgid "Klipper"
 msgstr "คลิปเปอร์"
 
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "ข้ามบล็อกการตั้งค่าใน G-code"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "ไม่เขียน CONFIG_BLOCK (คู่คีย์/ค่าของการตั้งค่าโปรแกรมสไลซ์) ลงในไฟล์ G-code ซึ่งอาจช่วยได้กับเครื่องพิมพ์ที่เฟิร์มแวร์ขัดข้องเมื่ออ่านบรรทัดคอมเมนต์เหล่านี้ (เช่น Anycubic go-klipper) หมายเหตุ: ไฟล์ G-code จะไม่มีการตั้งค่าโปรแกรมสไลซ์อีกต่อไป ดังนั้นการนำเข้ากลับมาใน OrcaSlicer จะไม่คืนค่าการตั้งค่า"
+
 msgid "Pellet Modded Printer"
 msgstr "เครื่องพิมพ์ Modded เม็ด"
 
@@ -15414,8 +16166,9 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "แรงขับออกสูงสุดที่อนุญาตของแกน Y"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr "นิวตัน"
 
 # AI Translated
 msgid "Bed mass of the Y axis"
@@ -15426,8 +16179,9 @@ msgid "The machine bed mass load of Y axis"
 msgstr "ภาระมวลฐานของเครื่องบนแกน Y"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
-msgstr "g"
+msgstr "กรัม"
 
 # AI Translated
 msgid "The allowed max printed mass"
@@ -15739,8 +16493,8 @@ msgstr "จุดเริ่มต้นและจุดสิ้นสุด
 msgid "Reduce infill retraction"
 msgstr "ลดการดึงกลับในไส้ใน"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า Z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "ตัวเลือกนี้จะทำให้อุณหภูมิของชุดดันเส้นที่ไม่ใช้งานลดลงเพื่อป้องกันการไหลซึม"
@@ -15775,6 +16529,20 @@ msgstr "ตรวจจับผนังส่วนยื่น"
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "ตรวจจับเปอร์เซ็นต์ระยะยื่นที่สัมพันธ์กับความกว้างของเส้น และใช้ความเร็วที่แตกต่างกันในการพิมพ์ สำหรับระยะยื่น 100%% จะใช้ความเร็วบริดจ์"
+
+# AI Translated
+msgid "Print unsupported walls last"
+msgstr "พิมพ์ผนังที่ไม่มีส่วนรองรับเป็นลำดับสุดท้าย"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"รอบผนังที่ลอยอยู่กลางอากาศทั้งวงจะถูกพิมพ์ก็ต่อเมื่อมีสิ่งที่รองรับมันได้แล้ว:\n"
+"โดยจะถูกอัดขึ้นรูปหลังผนังอื่น ๆ ของเกาะเดียวกัน เริ่มจากวงในสุด ไม่ว่าลำดับผนังจะเป็นแบบใด\n"
+"รอบที่มีเพียงสะพานของเลเยอร์นี้เท่านั้นที่ยึดไว้ได้จะรอจนกว่าสะพานเหล่านั้นจะถูกพิมพ์ ส่วนรอบที่วิ่งขนานไปกับผนังที่มีส่วนรองรับจะยังคงอยู่ก่อนไส้ใน ซึ่งต้องใช้มันเป็นจุดยึด"
 
 msgid "Outer walls"
 msgstr "ผนังชั้นนอก"
@@ -15909,7 +16677,7 @@ msgstr "ปริมาณการดึงกลับหลังเช็ด
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "ความยาวของการดึงกลับอย่างเร็วหลังเช็ดหัว สัมพันธ์กับความยาวการดึงกลับ\n"
@@ -15945,10 +16713,18 @@ msgstr "การถอยกลับนานเมื่อเปลี่ย
 msgid "Retraction distance when extruder change"
 msgstr "ระยะการดึงกลับเมื่อชุดดันเส้นเปลี่ยน"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "ความยาวการดึงกลับ (การเปลี่ยนเครื่องมือ)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "เมื่อการดึงกลับทำงานก่อนการเปลี่ยนเครื่องมือ เส้นพลาสติกจะถูกดึงกลับตามระยะที่กำหนด (วัดความยาวบนเส้นพลาสติกดิบ ก่อนเข้าสู่ชุดดันเส้น)"
+
 msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "เมื่อใดก็ตามที่การดึงกลับเสร็จสิ้น หัวฉีดจะถูกยกขึ้นเล็กน้อยเพื่อสร้างระยะห่างระหว่างหัวฉีดและงานพิมพ์ ป้องกันไม่ให้หัวฉีดชนกับงานพิมพ์ขณะเคลื่อนตัว การใช้เส้นเกลียวเพื่อยก Z สามารถป้องกันการร้อยสายได้"
 
 msgid "Z-hop lower boundary"
@@ -16038,6 +16814,10 @@ msgstr "ความยาวพิเศษเมื่อรีสตาร์
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "เมื่อชดเชยการดึงกลับหลังการเคลื่อนที่เดินทาง ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มเติมในปริมาณนี้ การตั้งค่านี้ไม่ค่อยจำเป็น"
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "ความยาวพิเศษเมื่อรีสตาร์ท (การเปลี่ยนเครื่องมือ)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "เมื่อชดเชยการดึงกลับหลังเปลี่ยนเครื่องมือ ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มเติมในปริมาณนี้"
@@ -16200,6 +16980,39 @@ msgstr "เช็ดบนลูป"
 
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "เพื่อลดการมองเห็นรอยต่อในการอัดรีดแบบวงปิด จะมีการเคลื่อนตัวเข้าด้านในเล็กน้อยก่อนที่ชุดดันเส้นจะออกจากวง"
+
+# AI Translated
+msgid "Wipe inward"
+msgstr "เช็ดเข้าด้านใน"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"ใช้กับผนังด้านนอกเท่านั้น รวมถึงขอบรู โดยจะขยับหัวฉีดที่ร้อนเข้าหาผนังด้านในที่พิมพ์ไปแล้วระหว่างการเช็ด เพื่อลดการให้ความร้อนซ้ำแก่พลาสติกที่เพิ่งพิมพ์และลดรอยตะเข็บ\n"
+"\n"
+"มีประโยชน์เป็นพิเศษที่ความสูงเลเยอร์ต่ำกว่า 0.1 มม. ซึ่งรอยเช็ดจะเห็นได้ชัดกว่า\n"
+"\n"
+"จะใช้การเช็ดแบบปกติหากยังไม่มีผนังด้านในที่อยู่ติดกันถูกพิมพ์ (พื้นที่ผนังเดี่ยว หรือลำดับผนังแบบด้านนอก/ด้านใน) หรือหากหาเส้นทางเข้าด้านในที่มีส่วนรองรับไม่ได้ เช่น ที่มุมแคบหรือช่องว่างของรอยตะเข็บ"
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "ระยะเช็ดเข้าด้านใน"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"ระยะที่เส้นทางการเช็ดถูกเลื่อนออกจากเส้นรอบรูปด้านนอก ระบุเป็นมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของความกว้างการอัดขึ้นรูปจริงของผนังด้านนอก\n"
+"\n"
+"ตัวอย่างเช่น 50% จะเลื่อนเส้นทางไปครึ่งหนึ่งของความกว้างผนังด้านนอก ระยะเลื่อนที่มีผลจริงถูกจำกัดทั้งโดยความกว้างจริงของผนังด้านนอกและโดยช่องว่างที่มีถึงผนังที่อยู่ติดกัน ดังนั้นค่าที่เกิน 100% หรือระยะสัมบูรณ์ที่เทียบเท่าจะไม่ให้ผลเพิ่มเติม ตั้งเป็น 0 เพื่อปิดการเลื่อน"
 
 msgid "Wipe before external loop"
 msgstr "เช็ดก่อนวนรอบภายนอก"
@@ -16451,11 +17264,20 @@ msgstr "การเปลี่ยนเครื่องมือบน Wipe 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่ Wipe Tower ก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx) เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินทางบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือ Wipe Tower แทนเสมอ"
 
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "รอให้ถึงอุณหภูมิที่ Wipe Tower"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "รับเครื่องมือใหม่โดยไม่รอให้ถึงอุณหภูมิการพิมพ์ แล้วเคลื่อนที่ไปยัง Wipe Tower และรออุณหภูมิที่นั่นก่อนไล่เส้นทันที เส้นพลาสติกที่ซึมออกมาระหว่างการอุ่นจะตกลงบน Wipe Tower แทนที่จะตกบนโมเดล และการเคลื่อนที่จะเกิดขึ้นพร้อมกับการอุ่น ใช้ได้เฉพาะกับเครื่องพิมพ์แบบหลายชุดดันเส้น (หลายหัวพิมพ์) ที่ใช้ Wipe Tower ชนิดที่ 2 เฟิร์มแวร์หรือแมโครการเปลี่ยนเครื่องมือต้องไม่รออุณหภูมิเอง เมื่อปิดใช้ คำสั่งรออุณหภูมิจะถูกส่งทันทีหลังคำสั่งเปลี่ยนเครื่องมือ"
+
 msgid "No sparse layers (beta)"
 msgstr "ไม่มีชั้นกระจัดกระจาย (เบต้า)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "หากเปิดใช้งาน Wipe Tower จะไม่ถูกพิมพ์บนเลเยอร์โดยไม่มีการเปลี่ยนแปลงเครื่องมือ บนเลเยอร์ที่มีการเปลี่ยนเครื่องมือ ชุดดันเส้นจะเคลื่อนลงด้านล่างเพื่อพิมพ์ Wipe Tower ผู้ใช้มีหน้าที่รับผิดชอบในการตรวจสอบให้แน่ใจว่าไม่มีการชนกันกับงานพิมพ์"
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "หากเปิดใช้ Wipe Tower จะไม่ถูกพิมพ์ในเลเยอร์ที่ไม่มีการเปลี่ยนเครื่องมือ ในเลเยอร์ที่มีการเปลี่ยนเครื่องมือ ชุดดันเส้นจะเคลื่อนลงไปพิมพ์ Wipe Tower ทำให้หอคอยอยู่ต่ำกว่าโมเดลและหัวพิมพ์ต้องยื่นลงไปหามัน การจัดวางที่จะทำให้ชนกับวัตถุที่พิมพ์ไปแล้วจะถูกปฏิเสธ ไม่มีผลเมื่อใช้ไทม์แลปส์แบบราบรื่นหรือการตรวจจับการจับตัวเป็นก้อนที่หัวฉีด ซึ่งต้องมีหอคอยในทุกเลเยอร์"
 
 msgid "Prime all printing extruders"
 msgstr "ใช้ชุดดันเส้นการพิมพ์ทั้งหมด"
@@ -16481,6 +17303,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Cyclic"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "ลำดับแบบวนรอบ"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"ลำดับเส้นพลาสติกที่กำหนดเอง ซึ่งใช้โดยการจัดลำดับการเปลี่ยนเครื่องมือแบบวนรอบ ระบุเป็นหมายเลขเส้นพลาสติกคั่นด้วยเครื่องหมายจุลภาค (เช่น \"3,2,1,4\")\n"
+"แต่ละเลเยอร์จะพิมพ์เส้นพลาสติกของตนตามลำดับนี้ ส่วนเส้นพลาสติกที่ไม่ได้ระบุไว้จะถูกพิมพ์เป็นลำดับสุดท้ายโดยเรียงจากน้อยไปมาก\n"
+"เว้นว่างไว้เพื่อวนใช้เส้นพลาสติกโดยเรียงจากน้อยไปมาก"
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "ใช้ลำดับแบบวนรอบกับชั้นแรก"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"ใช้ลำดับการเปลี่ยนเครื่องมือแบบวนรอบกับชั้นแรกด้วย\n"
+"โดยค่าเริ่มต้นจะปิดอยู่ เพราะชั้นแรกจะถูกจัดลำดับเพื่อการยึดเกาะฐานพิมพ์ที่ดีที่สุดแทน กล่าวคือ เส้นพลาสติกที่พิมพ์รายละเอียดเล็กและเปราะบางของชั้นแรกจะถูกพิมพ์เป็นลำดับสุดท้าย การเปลี่ยนเครื่องมือและการเดินหัวเปล่าที่ตามมาจึงมีโอกาสน้อยลงที่จะกระแทกชิ้นส่วนที่ยึดเกาะไม่แน่นเหล่านั้นให้หลุด ลำดับของชั้นแรกนี้ยังเคารพลำดับเส้นพลาสติกของชั้นแรกที่กำหนดเองด้วย หากมีการตั้งค่าไว้ ข้อดีของลำดับแบบวนรอบ (การเปลี่ยนเครื่องมือที่เพิ่มขึ้นทำให้แต่ละเลเยอร์มีเวลาเย็นตัวมากขึ้น) ไม่ใช้กับชั้นแรก ซึ่งพิมพ์อย่างช้าและร้อนเพื่อการยึดเกาะ\n"
+"เปิดใช้สิ่งนี้เฉพาะเมื่อคุณต้องการลำดับเครื่องมือที่เหมือนกันทุกประการในทุกเลเยอร์รวมถึงชั้นแรก โดยยอมแลกกับการปรับแต่งการยึดเกาะดังกล่าว"
+
 msgid "Slice gap closing radius"
 msgstr "รัศมีการปิดช่องว่างของ Slice"
 
@@ -16489,9 +17339,6 @@ msgstr "รอยแตกร้าวที่มีขนาดเล็กก
 
 msgid "Slicing Mode"
 msgstr "โหมดการแบ่งส่วน"
-
-msgid "Other"
-msgstr "อื่นๆ"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "ใช้ \"เลขคู่\" สำหรับโมเดลเครื่องบิน 3DLabPrint ใช้ \"ปิดรู\" เพื่อปิดรูทั้งหมดในโมเดล"
@@ -16980,6 +17827,14 @@ msgstr ""
 "\n"
 "การตั้งค่าในจำนวนการถอนก่อนการล้างการตั้งค่าด้านล่างจะทำการถอนส่วนที่เกินก่อนการล้าง มิฉะนั้นจะดำเนินการหลังจากนั้น"
 
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "ซับเลเยอร์สีผสม"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "เปิดใช้การแบ่งซับเลเยอร์สีผสม เมื่อเปิดใช้ เลเยอร์ที่มีเส้นพลาสติกสีผสมจะถูกแบ่งเป็นซับเลเยอร์เพื่อให้เกิดเอฟเฟกต์การผสมสี"
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Wipe Tower สามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
 
@@ -17414,9 +18269,6 @@ msgstr "ความกว้างของเส้นใหญ่เกิน
 msgid " not in range "
 msgstr "ไม่อยู่ในช่วง"
 
-msgid "Export 3MF"
-msgstr "ส่งออก 3MF"
-
 msgid "This exports the project as a 3MF file."
 msgstr "ส่งออกโครงการเป็น 3MF"
 
@@ -17431,9 +18283,6 @@ msgstr "โหลดข้อมูลการแบ่งส่วน"
 
 msgid "Load cached slicing data from directory."
 msgstr "โหลดข้อมูลการแบ่งส่วนแคชจากไดเรกทอรี"
-
-msgid "Export STL"
-msgstr "ส่งออก STL"
 
 msgid "Export the objects as single STL."
 msgstr "ส่งออกวัตถุเป็น STL เดี่ยว"
@@ -17486,6 +18335,14 @@ msgstr "ไม่มีเช็ค"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "อย่าทำการตรวจสอบความถูกต้องใดๆ เช่น การตรวจสอบข้อขัดแย้งของเส้นทาง G-code"
 
+# AI Translated
+msgid "Strict mode"
+msgstr "โหมดเข้มงวด"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "ออกจากโปรแกรมด้วยค่าที่ไม่ใช่ศูนย์เมื่อการสไลซ์เกิดคำเตือนที่ไม่ร้ายแรง ซึ่งปกติจะถูกบันทึกลงล็อกเท่านั้น เช่น โมเดลที่ต้องการส่วนรองรับขณะที่ปิดส่วนรองรับไว้ ใช้สิ่งนี้ใน CI หรือไปป์ไลน์ที่ทำงานด้วยสคริปต์ซึ่งต้องไม่ส่งมอบผลการสไลซ์ที่เสียหายแบบสังเกตยาก คำเตือนแต่ละรายการดังกล่าวยังถูกแสดงพร้อมคลาสที่คงที่ในอาร์เรย์ `warnings` ของ result.json ซึ่งเขียนเฉพาะบน Linux เท่านั้น ใช้ร่วมกับ --no-check ไม่ได้ เพราะตัวเลือกนั้นข้ามการตรวจสอบส่วนรองรับ"
+
 msgid "Normative check"
 msgstr "การตรวจสอบเชิงบรรทัดฐาน"
 
@@ -17498,11 +18355,28 @@ msgstr "ข้อมูลรุ่นเอาท์พุต"
 msgid "This outputs the model’s information."
 msgstr "ส่งออกข้อมูลของโมเดล"
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "ตรวจสอบเมช (JSON ไปยัง stdout)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "พิมพ์สรุป JSON ของแต่ละวัตถุที่โหลดไว้ไปยัง stdout แล้วออกจากโปรแกรม: กล่องขอบเขตของวัตถุและหน้าของเปลือกนูนที่วัตถุสามารถวางลงได้ พร้อมเวกเตอร์ตั้งฉาก พื้นที่ และจุดศูนย์กลางของหน้าเหล่านั้น หน้าเหล่านี้คือหน้าที่ตัวเลือก --ground-* เลือกใช้ เป็นทางเลือกที่เครื่องอ่านได้แทน --info"
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "ตรวจสอบการระบาย (JSON ไปยัง stdout)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "พิมพ์สรุป JSON แบบมีโครงสร้างของทุกเลเยอร์ที่ระบายไว้ (ส่วนรองรับ, รอยตะเข็บ, สี MMU, ผิวฟัซซี) ซึ่งถูกเก็บไว้ในโมเดลที่โหลดแล้ว — จำนวนหน้า พื้นที่ผิว และกล่องขอบเขตในพิกัดของเมชในแต่ละสถานะ — แล้วออกจากโปรแกรม เป็นทางเลือกที่เครื่องอ่านได้แทนการเปิดเครื่องมือระบายในหน้าจอ"
+
 msgid "Export Settings"
 msgstr "ส่งออกการตั้งค่า"
 
-msgid "This exports settings to a file."
-msgstr "ส่งออกการตั้งค่าไปยังไฟล์"
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "คำสั่งนี้ส่งออกการตั้งค่าไปยังไฟล์ ใช้ - เพื่อเขียนไปยัง stdout"
 
 msgid "Send progress to pipe"
 msgstr "ส่งความคืบหน้าไปป์"
@@ -17557,6 +18431,30 @@ msgstr "หมุนรอบ Y"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "มุมการหมุนรอบแกน Y มีหน่วยเป็นองศา"
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "วางบนหน้าที่ใหญ่ที่สุด"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "วางแต่ละวัตถุลงบนหน้าที่ใหญ่ที่สุดของเปลือกนูน แล้วปล่อยลงบนฐานพิมพ์ ในบรรดาหน้าที่ใหญ่เท่ากัน จะคงหน้าที่หันลงอยู่แล้วไว้ วัตถุที่ไม่มีหน้าใหญ่พอให้วางได้จะถูกปล่อยไว้ตามเดิม การแปลงรูปทำงานตามลำดับในบรรทัดคำสั่ง การหมุนที่ระบุไว้ก่อนตัวเลือกนี้จึงถูกนำมาใช้ด้วย --orient 1 ทำงานหลังการแปลงรูปทั้งหมดและจะแทนที่การจัดวางแนว"
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "วางบนหน้าตามเวกเตอร์ตั้งฉาก"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "วางแต่ละวัตถุลงบนหน้าของเปลือกนูนที่มีเวกเตอร์ตั้งฉากด้านนอกใกล้เคียงทิศทาง NX,NY,NZ มากที่สุด แล้วปล่อยลงบนฐานพิมพ์ ทิศทางนี้อยู่ในพิกัดของวัตถุ ซึ่งรวมการหมุนที่ระบุไว้ก่อนตัวเลือกนี้ และตรงกับแกนของฐานพิมพ์ เว้นแต่ไฟล์นำเข้าจะหมุนวัตถุไว้ ตัวอย่างเช่น 1,0,0 จะตั้งวัตถุขึ้นบนด้าน +X --orient 1 ทำงานหลังการแปลงรูปทั้งหมดและจะแทนที่การจัดวางแนว"
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "วางบนหน้าที่จุดที่ระบุ"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "วางแต่ละวัตถุลงบนหน้าของเปลือกนูนที่มีจุด X,Y,Z อยู่ แล้วปล่อยลงบนฐานพิมพ์ จุดนี้อยู่ในพิกัดของวัตถุ ซึ่งรวมการหมุนที่ระบุไว้ก่อนตัวเลือกนี้ โดย --inspect-mesh รายงานจุดศูนย์กลางของหน้าในพิกัดเดียวกันนี้ วัตถุที่ไม่มีหน้าดังกล่าวจะถูกปล่อยไว้ตามเดิม และการทำงานจะล้มเหลวหากไม่มีวัตถุใดมีหน้าเช่นนั้นเลย --orient 1 ทำงานหลังการแปลงรูปทั้งหมดและจะแทนที่การจัดวางแนว"
 
 msgid "Scale the model by a float factor."
 msgstr "ปรับขนาดโมเดลตามปัจจัยโฟลต"
@@ -18063,6 +18961,10 @@ msgstr "การประสานไฟล์โมเดลล้มเหล
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "ไม่สามารถอ่านไฟล์ที่ให้มาได้เนื่องจากไฟล์ว่างเปล่า"
 
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "รูปแบบไฟล์ไม่รองรับ จึงไม่สามารถอ่านข้อมูลได้"
+
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .stl, .obj, .amf(.xml)"
 
@@ -18086,9 +18988,6 @@ msgstr "ไฟล์นี้มีดัชนีจุดยอดที่ไ
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "ไฟล์ OBJ นี้ไม่สามารถอ่านได้เนื่องจากไฟล์ว่างเปล่า"
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "ปรับเทียบความเร็วปริมาตรสูงสุด"
 
 msgid "Manage Result"
 msgstr "จัดการผลลัพธ์"
@@ -18937,9 +19836,6 @@ msgstr ""
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "หมายเหตุ: ค่าที่สูงอาจทำให้เกิดการเลื่อนเลเยอร์ (>%s)"
 
-msgid "Flow Ratio Calibration"
-msgstr "การปรับเทียบอัตราส่วนการไหล"
-
 msgid "Calibration Test Type"
 msgstr "ประเภทการทดสอบการสอบเทียบ"
 
@@ -19524,19 +20420,19 @@ msgstr "แสดงเฉพาะชื่อเครื่องพิมพ
 msgid "Only display the filament names with changes to filament presets."
 msgstr "แสดงเฉพาะชื่อเส้นพลาสติกที่มีการเปลี่ยนแปลงการตั้งค่าล่วงหน้าของเส้นพลาสติก"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าเครื่องพิมพ์ล่วงหน้าของผู้ใช้เท่านั้นที่จะแสดง และการตั้งค่าล่วงหน้าแต่ละรายการที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "เฉพาะชื่อเส้นพลาสติกที่มีการตั้งค่าล่วงหน้าของเส้นพลาสติกผู้ใช้เท่านั้นที่จะถูกแสดง \n"
 "และค่าฟิลาเมนต์ของผู้ใช้ทั้งหมดที่กำหนดไว้ล่วงหน้าในแต่ละชื่อฟิลาเมนต์ที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าล่วงหน้าของกระบวนการที่เปลี่ยนแปลงเท่านั้นที่จะปรากฏขึ้น \n"
 "และกระบวนการของผู้ใช้ที่ตั้งไว้ล่วงหน้าในชื่อเครื่องพิมพ์แต่ละเครื่องที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
@@ -19681,9 +20577,6 @@ msgstr "เครื่องพิมพ์ทางกายภาพ"
 msgid "Print Host upload"
 msgstr "อัพโหลดโฮสต์การพิมพ์"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์ ตัวแทนที่มีอยู่จะได้รับการลงทะเบียนเมื่อเริ่มต้น"
-
 msgid "Select a Flashforge printer"
 msgstr "เลือกเครื่องพิมพ์ Flashforge"
 
@@ -19780,7 +20673,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "เราต้องการข้อมูลเพื่อวินิจฉัยแหล่งที่มาของปัญหา ตรวจสอบหน้า wiki สำหรับคำแนะนำโดยละเอียด"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "ปุ่ม Pack จะรวบรวมไฟล์โปรเจกต์และบันทึกของเซสชันปัจจุบันลงในไฟล์ zip"
 
 # AI Translated
@@ -19836,7 +20729,7 @@ msgid "Stored logs"
 msgstr "บันทึกที่จัดเก็บ"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "รวมบันทึกที่จัดเก็บทั้งหมดลงในไฟล์ zip"
 
 # AI Translated
@@ -19916,7 +20809,7 @@ msgstr "ไม่พบประเภทเครื่องพิมพ์ �
 msgid "Authorizing..."
 msgstr "กำลังอนุญาต..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "ข้อผิดพลาด ไม่สามารถรับโทเคน API สำหรับการอนุญาตได้"
 
 msgid "Could not parse server response."
@@ -20368,8 +21261,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "เปิดใช้การกำหนดเส้นพลาสติกอัจฉริยะ: กำหนดเส้นพลาสติกหนึ่งชนิดให้กับหัวฉีดหลายตัวเพื่อประหยัดสูงสุด"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "การประหยัดเส้นพลาสติก"
+msgid "File Saving"
+msgstr "การบันทึกไฟล์"
 
 msgid "Don't remind me again"
 msgstr "ไม่ต้องเตือนฉันอีก"
@@ -20575,9 +21468,6 @@ msgstr "เกิดสิ่งที่ไม่คาดคิดขณะพ
 msgid "User canceled."
 msgstr "ผู้ใช้ยกเลิก"
 
-msgid "Head diameter"
-msgstr "เส้นผ่านศูนย์กลางหัว"
-
 msgid "Max angle"
 msgstr "มุมสูงสุด"
 
@@ -20658,6 +21548,18 @@ msgstr "การทำงานนี้ไม่สามารถย้อน
 msgid "Skipping objects."
 msgstr "ข้ามวัตถุ"
 
+# AI Translated
+msgid "Material Ratio"
+msgstr "สัดส่วนวัสดุ"
+
+# AI Translated
+msgid "Model Height"
+msgstr "ความสูงโมเดล"
+
+# AI Translated
+msgid "Ratio"
+msgstr "สัดส่วน"
+
 msgid "Select Filament"
 msgstr "เลือกเส้นพลาสติก"
 
@@ -20736,6 +21638,9 @@ msgstr "เริ่มใหม่ตอนนี้"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ไม่มีการกระแทกเลย"
+
+msgid "s"
+msgstr "วินาที"
 
 msgid "Volumetric speed"
 msgstr "ความเร็วปริมาตร"
@@ -20911,12 +21816,14 @@ msgid "Drying-Dehumidifying"
 msgstr "อบแห้ง-ลดความชื้น"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " อุณหภูมิอบแห้งสูงสุดคือ "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "อุณหภูมิอบแห้งสูงสุดของ %s คือ %d°C"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " อุณหภูมิอบแห้งต่ำสุดคือ "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "อุณหภูมิอบแห้งต่ำสุดของ %s คือ %d°C"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21060,6 +21967,2278 @@ msgstr "เส้นพลาสติกอาจไม่เข้ากัน
 
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "ไม่ทราบแบบจำลองเส้นพลาสติก ระบบจะใช้การตั้งค่าฟิลาเมนต์แบบสุ่ม"
+
+msgid "Construction"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  ·  on %s"
+msgstr ""
+
+msgid "Line — click start, then end"
+msgstr ""
+
+msgid "Rectangle — click two opposite corners"
+msgstr ""
+
+msgid "Circle — click center, then radius"
+msgstr ""
+
+msgid "Arc — click start, end, then a point"
+msgstr ""
+
+msgid "Slot — two centerline ends, then end radius"
+msgstr ""
+
+msgid "Ellipse — center, major end, minor point"
+msgstr ""
+
+msgid "Spline — click control points"
+msgstr ""
+
+msgid "Point — click to place"
+msgstr ""
+
+msgid "Dimension — click 2 points or an entity"
+msgstr ""
+
+msgid "Trim — click a segment to trim it"
+msgstr ""
+
+msgid "Extend — click a line/arc to extend it"
+msgstr ""
+
+msgid "Offset — pick an entity, drag the distance"
+msgstr ""
+
+msgid "Mirror — pick axis, then entities"
+msgstr ""
+
+msgid "Fillet — pick two lines, set the radius"
+msgstr ""
+
+msgid "Chamfer — pick two lines, set the distance"
+msgstr ""
+
+msgid "Polygon — click center, then a vertex"
+msgstr ""
+
+msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
+msgstr ""
+
+msgid "Normal to the sketch plane"
+msgstr ""
+
+msgid "Converted the selection between construction and real geometry"
+msgstr ""
+
+msgid "Origin planes shown"
+msgstr ""
+
+msgid "Origin planes hidden"
+msgstr ""
+
+msgid "World axes shown"
+msgstr ""
+
+msgid "World axes hidden"
+msgstr ""
+
+msgid "Isometric view, fitted"
+msgstr ""
+
+msgid "Bed shown"
+msgstr ""
+
+msgid "Bed hidden"
+msgstr ""
+
+msgid "FEATURES"
+msgstr ""
+
+msgid "Sketch"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketching on %s — pick a tool"
+msgstr ""
+
+msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Drawing on %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
+msgid "Click a face or a reference plane, then a sketch tool."
+msgstr ""
+
+msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
+msgstr ""
+
+msgid "Extrude a sketch profile, or push/pull a picked face"
+msgstr ""
+
+msgid "Create a sketch, or pick a solid face, first"
+msgstr ""
+
+msgid "Revolve"
+msgstr ""
+
+msgid "Revolve a profile about an axis"
+msgstr ""
+
+msgid "Create a sketch profile to revolve first"
+msgstr ""
+
+msgid "Sweep"
+msgstr ""
+
+msgid "Sweep a profile along a path"
+msgstr ""
+
+msgid "Create a profile sketch to sweep first"
+msgstr ""
+
+msgid "Loft"
+msgstr ""
+
+msgid "Loft (skin) between two or more profiles"
+msgstr ""
+
+msgid "Create at least two profile sketches to loft"
+msgstr ""
+
+msgid "Thicken"
+msgstr ""
+
+msgid "Offset a solid face into a thin plate (new body)"
+msgstr ""
+
+msgid "Thicken needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format
+msgid "Body %zu"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch line, fused to a body"
+msgstr ""
+
+msgid "Rib needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Create a sketch with an open line first"
+msgstr ""
+
+msgid "Create a solid body to pattern first"
+msgstr ""
+
+msgid "Pattern — needs a solid body to replicate"
+msgstr ""
+
+msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
+msgstr ""
+
+msgid "Surface Extrude"
+msgstr ""
+
+msgid "Extrude a sketch into a sheet body (no end caps)"
+msgstr ""
+
+msgid "Create a sketch first"
+msgstr ""
+
+msgid "Surface Revolve"
+msgstr ""
+
+msgid "Revolve a sketch profile into a sheet body"
+msgstr ""
+
+msgid "Surface Loft"
+msgstr ""
+
+msgid "Loft (skin) between 2+ profiles, open (no end caps)"
+msgstr ""
+
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Fill a sketch boundary with a smooth face"
+msgstr ""
+
+msgid "Create a sketch profile to fill first"
+msgstr ""
+
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Offset a sheet body's shell by a signed distance"
+msgstr ""
+
+msgid "No sheet body to offset — create a surface feature first"
+msgstr ""
+
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Thicken a sheet body into a solid"
+msgstr ""
+
+msgid "No sheet body to thicken — create a surface feature first"
+msgstr ""
+
+msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
+msgstr ""
+
+msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
+msgstr ""
+
+msgid "Coord Sys"
+msgstr ""
+
+msgid "Datum coordinate system (world point, or face + direction edge)"
+msgstr ""
+
+msgid "Helix"
+msgstr ""
+
+msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
+msgstr ""
+
+msgid "Project body edges onto a plane as sketch entities"
+msgstr ""
+
+msgid "Project needs a body — add or import one first"
+msgstr ""
+
+msgid "(all edges)"
+msgstr ""
+
+msgid "Placement (transform / mirror / mate)"
+msgstr ""
+
+msgid "Transform"
+msgstr ""
+
+msgid "Move and/or rotate an existing body"
+msgstr ""
+
+msgid "Transform needs a body — add or import one first"
+msgstr ""
+
+msgid "Reflect a body about a plane"
+msgstr ""
+
+msgid "Mirror needs a body — add or import one first"
+msgstr ""
+
+msgid "Mate"
+msgstr ""
+
+msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
+
+msgid "Boolean (combine bodies)"
+msgstr ""
+
+msgid "Boolean — needs two solid bodies to combine"
+msgstr ""
+
+msgid "Cut (split a body with a plane)"
+msgstr ""
+
+msgid "Create a solid body to cut first"
+msgstr ""
+
+msgid "Cut — needs a solid body to slice"
+msgstr ""
+
+msgid "Color — set the selected body's display colour"
+msgstr ""
+
+msgid "Select a feature, or a body, first — then rename it"
+msgstr ""
+
+msgid "Fillet / chamfer / draft / shell / delete face"
+msgstr ""
+
+msgid "Fillet / Chamfer"
+msgstr ""
+
+msgid "Round or bevel a picked edge"
+msgstr ""
+
+msgid "Draft (taper a face)"
+msgstr ""
+
+msgid "Tilt a picked face by a draft angle"
+msgstr ""
+
+msgid "Hollow the body to a wall thickness, opening a picked face"
+msgstr ""
+
+msgid "Delete Face"
+msgstr ""
+
+msgid "Remove faces from a body and heal the solid"
+msgstr ""
+
+msgid "Delete Face needs a body — add or import one first"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Hole / thread"
+msgstr ""
+
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr ""
+
+msgid "Thread"
+msgstr ""
+
+msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
+msgstr ""
+
+msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
+msgstr ""
+
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
+msgid "Constrain selected sketch"
+msgstr ""
+
+msgid "SKETCH"
+msgstr ""
+
+msgid "Click to select; Shift to add; double-click for a whole loop"
+msgstr ""
+
+msgid "Dimension"
+msgstr ""
+
+msgid "Click 2 points or a line / circle / arc to place a dimension"
+msgstr ""
+
+msgid "Line / polyline"
+msgstr ""
+
+msgid "Click start, then end — then set the exact length"
+msgstr ""
+
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click first / right-click to close the loop"
+msgstr ""
+
+msgid "Corner rectangle"
+msgstr ""
+
+msgid "Click two opposite corners"
+msgstr ""
+
+msgid "Center rectangle"
+msgstr ""
+
+msgid "Click center, then a corner"
+msgstr ""
+
+msgid "Oblique rectangle"
+msgstr ""
+
+msgid "Click two corners of one edge, then a point for the width"
+msgstr ""
+
+msgid "Rounded rectangle"
+msgstr ""
+
+msgid "Click two opposite corners, then a point for the corner radius"
+msgstr ""
+
+msgid "Center circle"
+msgstr ""
+
+msgid "Click center, then radius"
+msgstr ""
+
+msgid "2-point circle"
+msgstr ""
+
+msgid "Click two ends of the diameter"
+msgstr ""
+
+msgid "3-point circle"
+msgstr ""
+
+msgid "Click three points on the circle"
+msgstr ""
+
+msgid "Arc"
+msgstr ""
+
+msgid "3-point arc"
+msgstr ""
+
+msgid "Click start, end, then a point on the arc"
+msgstr ""
+
+msgid "Tangent arc"
+msgstr ""
+
+msgid "Click start (on the last entity) then end"
+msgstr ""
+
+msgid "Center-point arc"
+msgstr ""
+
+msgid "Click center, then start, then a point for the end angle"
+msgstr ""
+
+msgid "Slot"
+msgstr ""
+
+msgid "Click two centerline ends, then a point for the end radius"
+msgstr ""
+
+msgid "Arc slot"
+msgstr ""
+
+msgid "Click center, start, end, then a point for the width"
+msgstr ""
+
+msgid "Ellipse"
+msgstr ""
+
+msgid "Click center, a major-axis end, then a point for the minor axis"
+msgstr ""
+
+msgid "Elliptical arc"
+msgstr ""
+
+msgid "Click center, major-axis end, minor point, then arc start and end"
+msgstr ""
+
+msgid "Spline"
+msgstr ""
+
+msgid "Click control points; double-click or right-click to finish"
+msgstr ""
+
+msgid "Click to place a point"
+msgstr ""
+
+msgid "Select — click to select; Shift to add"
+msgstr ""
+
+msgid "Text — emboss text as a profile"
+msgstr ""
+
+msgid "SVG — import an outline as a profile"
+msgstr ""
+
+msgid "Fillet / chamfer"
+msgstr ""
+
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the radius to set it"
+msgstr ""
+
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the distance to set it"
+msgstr ""
+
+msgid "Offset"
+msgstr ""
+
+msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
+msgstr ""
+
+msgid "Trim"
+msgstr ""
+
+msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+msgstr ""
+
+msgid "Extend"
+msgstr ""
+
+msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+msgstr ""
+
+msgid "Constrain — add geometric/dimensional relations"
+msgstr ""
+
+msgid "Move / rotate / scale"
+msgstr ""
+
+msgid "Move (translate)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Rotate (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+msgstr ""
+
+msgid "Scale (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
+msgstr ""
+
+msgid "Linear / polar array"
+msgstr ""
+
+msgid "Linear array"
+msgstr ""
+
+msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
+msgstr ""
+
+msgid "Polar array (about centroid)"
+msgstr ""
+
+msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Click center then a vertex — %d sides, %s"
+msgstr ""
+
+msgid "circumscribed"
+msgstr ""
+
+msgid "inscribed"
+msgstr ""
+
+msgid "Polygon"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Converted %d entit%s between construction and real geometry"
+msgstr ""
+
+msgid "CONSTRAIN"
+msgstr ""
+
+msgid "Perpendicular"
+msgstr ""
+
+msgid "Coincident"
+msgstr ""
+
+msgid "Equal length"
+msgstr ""
+
+msgid "Equal radius"
+msgstr ""
+
+msgid "Collinear"
+msgstr ""
+
+msgid "Tangent"
+msgstr ""
+
+msgid "Midpoint"
+msgstr ""
+
+msgid "Symmetric"
+msgstr ""
+
+msgid "Symmetric about the vertical axis"
+msgstr ""
+
+msgid "Symmetric about the horizontal axis"
+msgstr ""
+
+msgid "Fix point (anchor in place)"
+msgstr ""
+
+msgid "Horizontal distance"
+msgstr ""
+
+msgid "Vertical distance"
+msgstr ""
+
+msgid "✓ Confirm"
+msgstr ""
+
+msgid "✗ Cancel"
+msgstr ""
+
+msgid "Undo (Ctrl+Z)"
+msgstr ""
+
+msgid "Redo (Ctrl+Shift+Z)"
+msgstr ""
+
+msgid "New Design — clear the feature tree"
+msgstr ""
+
+msgid "Export STEP…"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Place on Face (F) — lay the picked face on the bed"
+msgstr ""
+
+msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
+msgstr ""
+
+msgid "Flip Section — show the opposite half"
+msgstr ""
+
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr ""
+
+msgid "Width / X"
+msgstr ""
+
+msgid "Height / Y"
+msgstr ""
+
+msgid "Distance X"
+msgstr ""
+
+msgid "Distance Y"
+msgstr ""
+
+msgid "Distance Z"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Rotation axis"
+msgstr ""
+
+msgid "Angle °"
+msgstr ""
+
+msgid "Move / Rotate"
+msgstr ""
+
+msgid "Sketch: —"
+msgstr ""
+
+msgid "Extrude dist"
+msgstr ""
+
+msgid "End"
+msgstr "จบ"
+
+msgid "2nd dist"
+msgstr ""
+
+msgid "Taper °"
+msgstr ""
+
+msgid "New body"
+msgstr ""
+
+msgid "Intersect"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Flip direction"
+msgstr ""
+
+msgid "(no edge picked — group below)"
+msgstr ""
+
+msgid "Bottom"
+msgstr "ล่าง"
+
+msgid "Lateral"
+msgstr ""
+
+msgid "Edges"
+msgstr ""
+
+msgid "Size (r/dist)"
+msgstr ""
+
+msgid "XY"
+msgstr ""
+
+msgid "XZ"
+msgstr ""
+
+msgid "YZ"
+msgstr ""
+
+msgid "Hole plane"
+msgstr ""
+
+msgid "Depth (blind)"
+msgstr ""
+
+msgid "Pos X"
+msgstr ""
+
+msgid "Pos Y"
+msgstr ""
+
+msgid "Through"
+msgstr ""
+
+msgid "(none — uses Hole plane)"
+msgstr ""
+
+msgid "On face"
+msgstr ""
+
+msgid "Thread plane"
+msgstr ""
+
+msgid "Pitch"
+msgstr ""
+
+msgid "Thread depth"
+msgstr ""
+
+msgid "(none — uses Thread plane)"
+msgstr ""
+
+msgid "Plane X"
+msgstr ""
+
+msgid "Plane Y"
+msgstr ""
+
+msgid "Profile: —"
+msgstr ""
+
+msgid "Path"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Total angle°"
+msgstr ""
+
+msgid "Boolean"
+msgstr ""
+
+msgid "Union (join)"
+msgstr ""
+
+msgid "Subtract (cut)"
+msgstr ""
+
+msgid "Target (kept)"
+msgstr ""
+
+msgid "Keep tool body"
+msgstr ""
+
+msgid "Body"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid ""
+"Drag a corner to size, the centre to move.\n"
+"Confirm or Cancel in the toolbar above."
+msgstr ""
+
+msgid "Midplane"
+msgstr ""
+
+msgid "Two edges"
+msgstr ""
+
+msgid "Plane type"
+msgstr ""
+
+msgid "Base"
+msgstr ""
+
+msgid "Angle°"
+msgstr ""
+
+msgid "Base X"
+msgstr ""
+
+msgid "Base Y"
+msgstr ""
+
+msgid "Tilt axis"
+msgstr ""
+
+msgid "Pick Face A"
+msgstr ""
+
+msgid "Pick Face B"
+msgstr ""
+
+msgid "Pick Edge A"
+msgstr ""
+
+msgid "Pick Edge B"
+msgstr ""
+
+msgid "Size U"
+msgstr ""
+
+msgid "Size V"
+msgstr ""
+
+msgid "Profiles (check 2+, in order):"
+msgstr ""
+
+msgid "Ruled (straight) sections"
+msgstr ""
+
+msgid "Fills the sketch's closed boundary with a smooth face."
+msgstr ""
+
+msgid "Sheet body"
+msgstr ""
+
+msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
+msgstr ""
+
+msgid "Thickens a sheet body into a solid. Flip reverses the direction."
+msgstr ""
+
+msgid "(all faces — closed hollow)"
+msgstr ""
+
+msgid "Open face"
+msgstr ""
+
+msgid "Pick a solid face to open it, then set the wall thickness."
+msgstr ""
+
+msgid "Angle (°)"
+msgstr ""
+
+msgid "(pick a side face)"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
+msgstr ""
+
+msgid "Translate X"
+msgstr ""
+
+msgid "Translate Y"
+msgstr ""
+
+msgid "Translate Z"
+msgstr ""
+
+msgid "Rotate axis"
+msgstr ""
+
+msgid "Pivot X"
+msgstr ""
+
+msgid "Pivot Y"
+msgstr ""
+
+msgid "Pivot Z"
+msgstr ""
+
+msgid "Keep original (make a copy)"
+msgstr ""
+
+msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
+msgstr ""
+
+msgid "Mirror plane"
+msgstr ""
+
+msgid "Keep original"
+msgstr ""
+
+msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
+msgstr ""
+
+msgid "(pick a solid face)"
+msgstr ""
+
+msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
+msgstr ""
+
+msgid "Target body"
+msgstr ""
+
+msgid "Entity index"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
+msgstr ""
+
+msgid "Source body"
+msgstr ""
+
+msgid "Target plane"
+msgstr ""
+
+msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
+msgstr ""
+
+msgid "Add picked face"
+msgstr ""
+
+msgid "Click a face on the body first, then Add picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d is already in the list"
+msgstr ""
+
+msgid "Faces to delete"
+msgstr ""
+
+msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
+msgstr ""
+
+msgid "Left-handed"
+msgstr ""
+
+msgid "Taper (°)"
+msgstr ""
+
+msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
+msgstr ""
+
+msgid "Two points"
+msgstr ""
+
+msgid "Face normal"
+msgstr ""
+
+msgid "Cylinder centerline"
+msgstr ""
+
+msgid "Plane intersection"
+msgstr ""
+
+msgid "Along edge"
+msgstr ""
+
+msgid "Axis type"
+msgstr ""
+
+msgid "Pick Face"
+msgstr ""
+
+msgid "Pick Edge"
+msgstr ""
+
+msgid "Plane A"
+msgstr ""
+
+msgid "Plane B"
+msgstr ""
+
+msgid "Point 1 X"
+msgstr ""
+
+msgid "Point 1 Y"
+msgstr ""
+
+msgid "Point 1 Z"
+msgstr ""
+
+msgid "Point 2 X"
+msgstr ""
+
+msgid "Point 2 Y"
+msgstr ""
+
+msgid "Point 2 Z"
+msgstr ""
+
+msgid "Point (world)"
+msgstr ""
+
+msgid "Face + direction"
+msgstr ""
+
+msgid "(all)"
+msgstr ""
+
+msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
+msgstr ""
+
+msgid "Edge (sets in-plane direction)"
+msgstr ""
+
+msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
+msgstr ""
+
+msgid "X hint X"
+msgstr ""
+
+msgid "X hint Y"
+msgstr ""
+
+msgid "X hint Z"
+msgstr ""
+
+msgid "Fastened — 6 DOF locked, B driven onto A exactly"
+msgstr ""
+
+msgid "Planar — z aligned, offset distance; free in-plane slide"
+msgstr ""
+
+msgid "Revolute — axes collinear; free rotation about z"
+msgstr ""
+
+msgid "Slider — orientation locked; free axial slide"
+msgstr ""
+
+msgid "Cylindrical — axes collinear; free spin + axial slide"
+msgstr ""
+
+msgid "Kind"
+msgstr ""
+
+msgid "CS A (fixed)"
+msgstr ""
+
+msgid "CS B (moves)"
+msgstr ""
+
+msgid "Flip (oppose z axes)"
+msgstr ""
+
+msgid "Plane distance"
+msgstr ""
+
+msgid "Axial position"
+msgstr ""
+
+msgid "Expression"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Expr"
+msgstr ""
+
+msgid "(no bindings)"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Constraints"
+msgstr ""
+
+msgid "Feature tree"
+msgstr ""
+
+msgid " — the eye suppresses this mate"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s selected — F2 or right-click renames it, double-click edits it"
+msgstr ""
+
+msgid "Rename\tF2"
+msgstr ""
+
+msgid "Scale artwork"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Show / hide"
+msgstr ""
+
+msgid "Check interference — find overlapping bodies"
+msgstr ""
+
+msgid "Bodies"
+msgstr ""
+
+msgid "Move body"
+msgstr ""
+
+msgid "Select a body row first, then move it"
+msgstr ""
+
+msgid "Boolean — join, subtract or intersect with another body"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d selected — right-click for what applies to it"
+msgstr ""
+
+msgid "Variables"
+msgstr ""
+
+msgid "+"
+msgstr ""
+
+msgid "Del"
+msgstr "เดล"
+
+msgid "Sketch created — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Sketch empty — nothing committed"
+msgstr ""
+
+msgid "Sketch updated"
+msgstr ""
+
+#, c-format
+msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Could not resolve the sketch to extrude"
+msgstr ""
+
+msgid "Face selected — set the depth and Confirm"
+msgstr ""
+
+msgid "Region selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+msgid "Sketch selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d "
+msgstr ""
+
+msgid "vertex selected — click again for the whole body"
+msgstr ""
+
+msgid "selected (whole body) — right-click for what applies to it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click for the drawing tools"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr ""
+
+msgid "Tool exited"
+msgstr ""
+
+msgid "Sketch kept — Finish to commit it, Cancel to discard"
+msgstr ""
+
+msgid "✗ Conflicting constraints"
+msgstr ""
+
+msgid "✓ Fully constrained"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d degrees of freedom"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+msgstr ""
+
+#, c-format
+msgid "OK — %zu triangles"
+msgstr ""
+
+msgid "Text to insert:"
+msgstr ""
+
+msgid "Import SVG"
+msgstr ""
+
+msgid "Import STEP"
+msgstr ""
+
+msgid "Reading STEP…"
+msgstr ""
+
+msgid "No solids found in STEP"
+msgstr ""
+
+msgid "STEP import failed: "
+msgstr ""
+
+msgid "Rebuilding model…"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+msgid "Import mesh"
+msgstr ""
+
+msgid "Could not read the STL file"
+msgstr ""
+
+msgid "Could not read the OBJ file: "
+msgstr ""
+
+msgid "Unsupported mesh format (STL and OBJ are supported)"
+msgstr ""
+
+msgid "The mesh contains no triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
+"\n"
+"Import anyway?"
+msgstr ""
+
+msgid "Large mesh"
+msgstr ""
+
+msgid "Mesh conversion failed: "
+msgstr ""
+
+msgid "Mesh conversion produced no geometry"
+msgstr ""
+
+msgid "Mesh import failed: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr ""
+
+msgid "No importable geometry found"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s added to the sketch — Confirm to commit it"
+msgstr ""
+
+msgid " — drag to place/size, then Confirm"
+msgstr ""
+
+msgid "Insert cancelled"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch added on %s — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Recompute error: "
+msgstr ""
+
+msgid "Add a solid (sketch + extrude) first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Thread standard: %s  (pitch %.3g mm)"
+msgstr ""
+
+msgid "Thread needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to revolve first"
+msgstr ""
+
+msgid "Revolve needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a profile sketch to sweep first"
+msgstr ""
+
+msgid "Pick a path sketch for the sweep"
+msgstr ""
+
+msgid "Sweep needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Check at least two profile sketches to loft"
+msgstr ""
+
+msgid "Loft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to extrude first"
+msgstr ""
+
+msgid "Pick a sketch to fill first"
+msgstr ""
+
+msgid "Select a sheet body first"
+msgstr ""
+
+msgid "Pick a solid face to thicken first"
+msgstr ""
+
+msgid "Pick a sketch with an open line first"
+msgstr ""
+
+msgid "Add at least one face to delete first"
+msgstr ""
+
+msgid "Mate needs two CoordSys features — create them first"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different CoordSys features"
+msgstr ""
+
+msgid "Mate rejected"
+msgstr ""
+
+msgid "No interference — need at least two solid bodies to check"
+msgstr ""
+
+msgid "No interference found"
+msgstr ""
+
+#, c-format
+msgid "%zu interference pairs, worst %.2f mm³"
+msgstr ""
+
+msgid ""
+"Interference pairs:\n"
+"\n"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d"
+msgstr ""
+
+msgid "Interference"
+msgstr ""
+
+msgid "Select a solid body first — its mass properties are what is reported"
+msgstr ""
+
+msgid "Mass properties could not be computed for this body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body — %.2f cm² of surface, no volume"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Sheet body (open shell)\n"
+"Surface area: %.2f cm²\n"
+"\n"
+"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgstr ""
+
+msgid "Mass properties"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: %.3f cm³, %.2f cm²"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Volume: %.3f cm³\n"
+"Surface area: %.2f cm²"
+msgstr ""
+
+msgid "Pattern needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Boolean needs two solid bodies — add or import a second one"
+msgstr ""
+
+msgid "Cut needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "the picked face of Body %d"
+msgstr ""
+
+msgid "the picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "  ·  %d picked"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr ""
+
+msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
+msgstr ""
+
+msgid "Constrain — click one or two entities, then choose a constraint"
+msgstr ""
+
+msgid "Dimension — click an entity, or the first of two points"
+msgstr ""
+
+msgid "Dimension — click the second point"
+msgstr ""
+
+msgid "Line — click the start point"
+msgstr ""
+
+msgid "Line — click the end point, or type the length"
+msgstr ""
+
+msgid "Polyline — click the first point"
+msgstr ""
+
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+msgstr ""
+
+msgid "Rectangle — click one corner"
+msgstr ""
+
+msgid "Rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Centre rectangle — click the centre"
+msgstr ""
+
+msgid "Centre rectangle — click a corner"
+msgstr ""
+
+msgid "Oblique rectangle — click the start of the base edge"
+msgstr ""
+
+msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
+msgstr ""
+
+msgid "Oblique rectangle — click to set the width"
+msgstr ""
+
+msgid "Rounded rectangle — click one corner"
+msgstr ""
+
+msgid "Rounded rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Rounded rectangle — click to set the corner radius"
+msgstr ""
+
+msgid "Circle — click the centre"
+msgstr ""
+
+msgid "Circle — click to set the radius, or type it"
+msgstr ""
+
+msgid "Circle (2 points) — click one end of the diameter"
+msgstr ""
+
+msgid "Circle (2 points) — click the other end of the diameter"
+msgstr ""
+
+msgid "Circle (3 points) — click the first point on the circle"
+msgstr ""
+
+msgid "Circle (3 points) — click the second point"
+msgstr ""
+
+msgid "Circle (3 points) — click the third point"
+msgstr ""
+
+msgid "Arc — click the start point"
+msgstr ""
+
+msgid "Arc — click the end point"
+msgstr ""
+
+msgid "Arc — click a point the arc passes through"
+msgstr ""
+
+msgid "Tangent arc — click the endpoint it leaves from"
+msgstr ""
+
+msgid "Tangent arc — click its far end"
+msgstr ""
+
+msgid "Centre arc — click the centre"
+msgstr ""
+
+msgid "Centre arc — click the start point (this sets the radius)"
+msgstr ""
+
+msgid "Centre arc — click the end point"
+msgstr ""
+
+msgid "Slot — click one end of the centreline"
+msgstr ""
+
+msgid "Slot — click the other end of the centreline"
+msgstr ""
+
+msgid "Slot — click to set the width"
+msgstr ""
+
+msgid "Arc slot — click the centre the slot curves about"
+msgstr ""
+
+msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgstr ""
+
+msgid "Arc slot — click the end of the centreline"
+msgstr ""
+
+msgid "Arc slot — click to set the width"
+msgstr ""
+
+msgid "Polygon — click the centre"
+msgstr ""
+
+msgid "Polygon — click a vertex (this sets size and orientation)"
+msgstr ""
+
+msgid "Ellipse — click the centre"
+msgstr ""
+
+msgid "Ellipse — click the end of the major axis"
+msgstr ""
+
+msgid "Ellipse — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click the centre"
+msgstr ""
+
+msgid "Elliptical arc — click the end of the major axis"
+msgstr ""
+
+msgid "Elliptical arc — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc starts"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc ends"
+msgstr ""
+
+msgid "Spline — click the first control point"
+msgstr ""
+
+msgid "Spline — click the next control point  ·  right-click to finish the curve"
+msgstr ""
+
+msgid "Point — click to place one; the tool stays armed for more"
+msgstr ""
+
+msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Fillet — click the first of two lines that meet"
+msgstr ""
+
+msgid "Fillet — click the second line"
+msgstr ""
+
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Chamfer — click the first of two lines that meet"
+msgstr ""
+
+msgid "Chamfer — click the second line"
+msgstr ""
+
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Offset — click the entity to offset"
+msgstr ""
+
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Mirror — first click the LINE to mirror about (a construction line works)"
+msgstr ""
+
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Move — click the entities to move"
+msgstr ""
+
+msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+msgstr ""
+
+msgid "Rotate — click the entities to rotate"
+msgstr ""
+
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+msgstr ""
+
+msgid "Scale — click the entities to scale"
+msgstr ""
+
+msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+msgstr ""
+
+msgid "Array — click the entities to repeat"
+msgstr ""
+
+msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Polar array — click the entities to repeat"
+msgstr ""
+
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgstr ""
+
+msgid "  ·  Esc goes back to Select"
+msgstr ""
+
+msgid "  ·  click a constraint badge to remove it"
+msgstr ""
+
+msgid "select something first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mate: %s  →  %s"
+msgstr ""
+
+msgid "Fastened"
+msgstr ""
+
+msgid "Revolute"
+msgstr ""
+
+msgid "Slider"
+msgstr ""
+
+msgid "Cylindrical"
+msgstr ""
+
+msgid "Click a solid FACE in the viewport"
+msgstr ""
+
+msgid "Click a solid EDGE in the viewport"
+msgstr ""
+
+msgid "An angled plane needs an edge to tilt about — pick Edge A"
+msgstr ""
+
+msgid "A midplane needs two faces — pick Face A and Face B"
+msgstr ""
+
+msgid "Face A and Face B are the same face — a midplane needs two different faces"
+msgstr ""
+
+msgid "A tangent plane needs a cylindrical face — pick Face A"
+msgstr ""
+
+msgid "This plane needs two edges — pick Edge A and Edge B"
+msgstr ""
+
+msgid "Plane added — pick it as a sketch plane"
+msgstr ""
+
+msgid "Axis added"
+msgstr ""
+
+msgid "Coord Sys added"
+msgstr ""
+
+msgid "Shell needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a picked face — click a side face first"
+msgstr ""
+
+msgid ""
+"Nothing yet — import a STEP or a mesh from the toolbar,\n"
+"or click a reference plane and right-click it to start a sketch."
+msgstr ""
+
+msgid "No solid yet — select a sketch and right-click it to Extrude."
+msgstr ""
+
+msgid "Could not restore the CAD model from this project"
+msgstr ""
+
+msgid "Could not restore the CAD model: "
+msgstr ""
+
+#, c-format
+msgid "Body %zu — %s"
+msgstr ""
+
+msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
+msgstr ""
+
+msgid "Section view off"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Section view — showing the %s half"
+msgstr ""
+
+msgid "upper"
+msgstr ""
+
+msgid "lower"
+msgstr ""
+
+msgid "Boolean needs two bodies — create or import a second solid"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr ""
+
+msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
+msgstr ""
+
+msgid "Select a body first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d colour set"
+msgstr ""
+
+msgid "Click a face on the solid, then press F"
+msgstr ""
+
+msgid "Placed on face — body laid flat on the bed"
+msgstr ""
+
+msgid "Edit rejected: "
+msgstr ""
+
+msgid "Erase all features and bodies and start a new design? This cannot be undone."
+msgstr ""
+
+msgid "New Design"
+msgstr ""
+
+msgid "This body has no feature to delete — use New Design to start over"
+msgstr ""
+
+#, c-format, boost-format
+msgid "feature %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete %s?\n"
+"\n"
+"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgstr ""
+
+msgid "Delete body"
+msgstr ""
+
+msgid "Select the FEATURE that created this body (or use New Design)"
+msgstr ""
+
+msgid "Select a feature in the tree first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d shown"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d hidden"
+msgstr ""
+
+msgid "Feature shown"
+msgstr ""
+
+msgid "Feature hidden"
+msgstr ""
+
+msgid "Draw a sketch first, then Constrain"
+msgstr ""
+
+msgid "Select a sketch in the tree first"
+msgstr ""
+
+msgid "Selected feature is not a sketch"
+msgstr ""
+
+msgid "Pick 1-2 lines, then a constraint; right-click exits"
+msgstr ""
+
+msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
+msgstr ""
+
+msgid "Pick an entity first"
+msgstr ""
+
+msgid "Pick two entities first"
+msgstr ""
+
+msgid "Horizontal and Vertical apply to a line"
+msgstr ""
+
+msgid "Angle applies between two lines"
+msgstr ""
+
+msgid "Collinear needs two lines"
+msgstr ""
+
+msgid "Parallel, perpendicular and equal length apply to two lines"
+msgstr ""
+
+msgid "Equal radius needs two circles or arcs"
+msgstr ""
+
+msgid "Concentric needs two circles or arcs"
+msgstr ""
+
+msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
+msgstr ""
+
+msgid "This constraint needs two entities with a point to join"
+msgstr ""
+
+msgid "This dimension needs two entities with a point to measure between"
+msgstr ""
+
+msgid "Midpoint needs a point and a line"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines + an axis"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines"
+msgstr ""
+
+msgid "Symmetric: pick two entities, then an axis line"
+msgstr ""
+
+msgid "Radius/Diameter needs a circle or arc"
+msgstr ""
+
+msgid "Unsupported constraint"
+msgstr ""
+
+msgid "Constraint rejected (over-constrained)"
+msgstr ""
+
+msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr ""
+
+msgid "Applied constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Fix %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock X %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock Y %s"
+msgstr ""
+
+msgid "Equal"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric %s — %s / %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about Y axis %s — %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about X axis %s — %s"
+msgstr ""
+
+msgid "On line"
+msgstr ""
+
+msgid "On edge"
+msgstr ""
+
+msgid "Constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Constraints (%d)"
+msgstr ""
+
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
+msgid "Constraint deleted"
+msgstr ""
+
+msgid "Press Constrain on a sketch first"
+msgstr ""
+
+msgid "Pick the entity, then a mirror-axis line"
+msgstr ""
+
+msgid "Mirror axis must be a line"
+msgstr ""
+
+msgid "Mirror produced nothing"
+msgstr ""
+
+msgid "Offset distance (+left / -right of direction)"
+msgstr ""
+
+msgid "Offset collapsed the entity"
+msgstr ""
+
+msgid "Pick two lines to fillet"
+msgstr ""
+
+msgid "Fillet needs two lines"
+msgstr ""
+
+msgid "Fillet radius"
+msgstr ""
+
+msgid "Fillet failed (parallel lines or radius too large)"
+msgstr ""
+
+msgid "Pick two lines to chamfer"
+msgstr ""
+
+msgid "Chamfer needs two lines"
+msgstr ""
+
+msgid "Chamfer distance"
+msgstr ""
+
+msgid "Chamfer failed (parallel lines or distance too large)"
+msgstr ""
+
+msgid "Trim works on lines, arcs and circles"
+msgstr ""
+
+msgid "Extend works on lines and arcs"
+msgstr ""
+
+msgid "Pick the edge to trim/extend"
+msgstr ""
+
+msgid "Nothing to trim at the pick"
+msgstr ""
+
+msgid "No edge to extend to"
+msgstr ""
+
+msgid "Array count (incl. original)"
+msgstr ""
+
+msgid "Spacing (mm)"
+msgstr ""
+
+msgid "Array produced nothing"
+msgstr ""
+
+msgid "Move dX (mm)"
+msgstr ""
+
+msgid "Move dY (mm)"
+msgstr ""
+
+msgid "Move produced nothing"
+msgstr ""
+
+msgid "Rotate angle (deg)"
+msgstr ""
+
+msgid "Rotate produced nothing"
+msgstr ""
+
+msgid "Scale factor"
+msgstr ""
+
+msgid "Scale produced nothing"
+msgstr ""
+
+msgid "Polar count (incl. original)"
+msgstr ""
+
+msgid "Total sweep (deg)"
+msgstr ""
+
+msgid "Polar array produced nothing"
+msgstr ""
+
+msgid "Applied edit"
+msgstr ""
+
+msgid " — type a value, press Enter (or Confirm)"
+msgstr ""
+
+msgid "Pick a segment in the viewport first"
+msgstr ""
+
+msgid "Applied Horizontal"
+msgstr ""
+
+msgid "Applied Vertical"
+msgstr ""
+
+msgid "Sketch: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "On a face of Body %d"
+msgstr ""
+
+msgid "On a stored face"
+msgstr ""
+
+msgid "Editing sketch — drag a handle or click a quote to edit"
+msgstr ""
+
+msgid "An imported solid has no parameters — use Transform to move or rotate it"
+msgstr ""
+
+msgid "This feature type can't be edited yet"
+msgstr ""
+
+msgid "Nothing to export — add a feature first"
+msgstr ""
+
+msgid "Export STEP"
+msgstr ""
+
+msgid "Exported STEP"
+msgstr ""
+
+msgid "STEP export failed: "
+msgstr ""
+
+msgid "Nothing to commit — add a feature first"
+msgstr ""
+
+msgid "All bodies hidden — show one before committing"
+msgstr ""
+
+msgid "Plane ready"
+msgstr ""
+
+msgid "Axis ready"
+msgstr ""
+
+msgid "Coord Sys ready"
+msgstr ""
+
+msgid "Helix ready"
+msgstr ""
+
+msgid "Project ready"
+msgstr ""
+
+msgid "Sketch ready"
+msgstr ""
+
+msgid "Mate needs at least two CoordSys features"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different"
+msgstr ""
+
+msgid "Mate ready"
+msgstr ""
+
+msgid "Invalid: "
+msgstr ""
+
+#, c-format
+msgid "Preview — %zu triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
+msgstr ""
+
+msgid "Profile: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d (push/pull)"
+msgstr ""
+
+msgid "Move cancelled"
+msgstr ""
+
+msgid "Discard this sketch and everything drawn in it?"
+msgstr ""
+
+msgid "Discard sketch"
+msgstr ""
+
+msgid "Keep drawing"
+msgstr ""
+
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr ""
+
+msgid "Nothing to redo"
+msgstr ""
+
+msgid "Nothing to undo"
+msgstr ""
+
+#, c-format
+msgid "Redo  (%zu more)"
+msgstr ""
+
+#, c-format
+msgid "Undo  (%zu more)"
+msgstr ""
+
+msgid "Variable name:"
+msgstr ""
+
+msgid "Add Variable"
+msgstr ""
+
+msgid "Variable name must not contain spaces"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Expression for '%s':"
+msgstr ""
+
+msgid "Select a variable first"
+msgstr ""
+
+msgid "Edit Variable"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
+msgstr ""
+
+msgid "No binding for that field"
+msgstr ""
+
+msgid "Primitive"
+msgstr ""
+
+msgid "Empty mesh generated"
+msgstr ""
+
+msgid "Pocket (Cut)"
+msgstr ""
+
+msgid "Clear All"
+msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -21361,11 +24540,149 @@ msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
 
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "เปิดสปีดไดอัลการดำเนินการ"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "ซ้าย: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "ขวา: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "อุณหภูมิสูงสุดต้องไม่เกิน "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "อุณหภูมิต่ำสุดไม่ควรต่ำกว่า"
+
+#~ msgid "up to"
+#~ msgstr "สูงสุด"
+
+#~ msgid "above"
+#~ msgstr "ข้างบน"
+
+#~ msgid "from"
+#~ msgstr "จาก"
+
+#~ msgid "Configuration package: "
+#~ msgstr "แพคเกจการกำหนดค่า:"
+
+#~ msgid " updated to "
+#~ msgstr "อัปเดตเป็น"
+
+#~ msgid "Grouping error: "
+#~ msgstr "ข้อผิดพลาดในการจัดกลุ่ม:"
+
+#~ msgid " can not be placed in the "
+#~ msgstr "ไม่สามารถวางใน"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " อุณหภูมิอบแห้งสูงสุดคือ "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " อุณหภูมิอบแห้งต่ำสุดคือ "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "ต้องการ"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "ไม่ได้เปิดใช้"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "วัสดุยังไม่ถูกเผยแพร่"
+
+#~ msgid "Select the language"
+#~ msgstr "เลือกภาษา"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "เลือกปลั๊กอิน"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "ทิศทางที่พื้นผิวด้านบนถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+#~ "ออกด้านนอกเริ่มที่กึ่งกลางของพื้นผิว ดังนั้นวัสดุส่วนเกินจะถูกดันไปทางขอบซึ่งมองเห็นได้น้อยที่สุด เข้าด้านในเริ่มที่ขอบและจบด้วยเส้นโค้งแคบที่กึ่งกลาง\n"
+#~ "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "ทิศทางที่พื้นผิวด้านล่างถูกเติมเมื่อใช้ลวดลายแบบอิงจุดศูนย์กลาง (Concentric, Archimedean Chords, Octagram Spiral)\n"
+#~ "เข้าด้านในเริ่มแต่ละพื้นผิวด้วยเส้นโค้งด้านนอกที่กว้างกว่า ซึ่งช่วยเพิ่มการยึดเกาะเลเยอร์แรกบนฐานพิมพ์ที่เส้นโค้งแคบตรงกลางอาจไม่ติด ออกด้านนอกเริ่มที่กึ่งกลาง โดยดันวัสดุส่วนเกินไปทางขอบ\n"
+#~ "ค่าเริ่มต้นใช้การเรียงลำดับเส้นทางสั้นที่สุด ซึ่งอาจทำงานในทิศทางใดก็ได้"
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "หากเปิดใช้งาน Wipe Tower จะไม่ถูกพิมพ์บนเลเยอร์โดยไม่มีการเปลี่ยนแปลงเครื่องมือ บนเลเยอร์ที่มีการเปลี่ยนเครื่องมือ ชุดดันเส้นจะเคลื่อนลงด้านล่างเพื่อพิมพ์ Wipe Tower ผู้ใช้มีหน้าที่รับผิดชอบในการตรวจสอบให้แน่ใจว่าไม่มีการชนกันกับงานพิมพ์"
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "ส่งออกการตั้งค่าไปยังไฟล์"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "การประหยัดเส้นพลาสติก"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "ความสูงของเลเยอร์น้อยเกินไป\n"
+#~ "มันจะตั้งค่าเป็น min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "ความสูงของเลเยอร์เกินขีดจำกัดในการตั้งค่าเครื่องพิมพ์ -> ชุดดันเส้น -> ขีดจำกัดความสูงของเลเยอร์ ซึ่งอาจทำให้เกิดปัญหาคุณภาพการพิมพ์"
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "ปรับเป็นช่วงที่ตั้งไว้อัตโนมัติ?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "เส้นผ่านศูนย์กลางหัว"
+
 #~ msgid "Print order within a single layer."
 #~ msgstr "สั่งพิมพ์ภายในชั้นเดียว"
-
-#~ msgid "Bottom"
-#~ msgstr "ล่าง"
 
 #~ msgid "Front"
 #~ msgstr "ด้านหน้า"
@@ -21378,9 +24695,6 @@ msgstr ""
 
 #~ msgid "Esc"
 #~ msgstr "Esc"
-
-#~ msgid "Del"
-#~ msgstr "เดล"
 
 #~ msgid "Backspace"
 #~ msgstr "แบ็คสเปซ"
@@ -21396,9 +24710,6 @@ msgstr ""
 
 #~ msgid "Arrow Right"
 #~ msgstr "ลูกศรขวา"
-
-#~ msgid "End"
-#~ msgstr "จบ"
 
 #~ msgid "Hotend"
 #~ msgstr "ฮอตเอนด์"

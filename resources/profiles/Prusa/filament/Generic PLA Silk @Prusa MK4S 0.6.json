@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Prusa MK4S 0.6",
+	"inherits": "Generic PLA Silk @Prusa MK4S",
+	"renamed_from": "Prusa Generic PLA Silk @MK4S 0.6;Prusa Generic PLA Silk MK4S 0.6",
+	"from": "system",
+	"setting_id": "lWYrhnu1MUizrdOB",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa MK4S 0.6 nozzle",
+		"Prusa MK4S HF0.6 nozzle"
+	],
+	"fan_cooling_layer_time": "22",
+	"filament_max_volumetric_speed": [
+		"9"
+	],
+	"nozzle_temperature": "215",
+	"slow_down_layer_time": "10"
+}

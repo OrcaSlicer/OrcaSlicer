@@ -1,5 +1,7 @@
 // Include GLGizmoBase.hpp before I18N.hpp as it includes some libigl code, which overrides our localization "L" macro.
 #include "GLGizmoAdvancedCut.hpp"
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
 #include <glad/gl.h>
