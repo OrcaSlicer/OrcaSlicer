@@ -91,7 +91,8 @@ Paths below are relative to this skill. Commands run from the repository root.
    ```
 
    On Windows use `py -3` instead of `python3`, and `scripts\check_profile.bat -Vendor "<Vendor>"`
-   / `scripts\check_profile.bat`. Logs: `.test/check_profiles/logs/<check>.log`.
+   / `scripts\check_profile.bat`. Logs land in a per-user cache dir (see
+   [validation.md](references/validation.md)).
    Id checks remain tree-wide under `--vendor`; filament-only bundles skip the default slice check.
    See [validation.md](references/validation.md) for flags, coverage and error remedies.
 5. **Verify the changed behavior.** Slice newly added non-default processes explicitly, and
