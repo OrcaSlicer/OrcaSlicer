@@ -514,6 +514,7 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            Used_Filament_Volume_Placeholder,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }

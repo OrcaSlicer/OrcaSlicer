@@ -76,7 +76,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    "@USED_FILAMENT_VOLUME@"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -99,7 +100,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    "@USED_FILAMENT_VOLUME@"
 };
 
 
@@ -1215,12 +1217,13 @@ void GCodeProcessor::run_post_process()
         return ret;
     };
 
-    // Process inline placeholders (print_time_sec and used_filament_length)
+    // Process inline placeholders (print_time_sec, used_filament_length and used_filament_volume)
     auto process_inline_placeholders = [&](std::string& gcode_line) {
         bool processed = false;
 
         const std::string& print_time_placeholder = reserved_tag(ETags::Print_Time_Sec_Placeholder);
         const std::string& used_filament_placeholder = reserved_tag(ETags::Used_Filament_Length_Placeholder);
+        const std::string& used_filament_volume_placeholder = reserved_tag(ETags::Used_Filament_Volume_Placeholder);
 
         // Replace print_time_sec
         size_t pos = gcode_line.find(print_time_placeholder);
@@ -1246,6 +1249,25 @@ void GCodeProcessor::run_post_process()
             gcode_line.replace(pos, used_filament_placeholder.length(), buf);
             processed = true;
             pos = gcode_line.find(used_filament_placeholder, pos + strlen(buf));
+        }
+
+        // Replace used_filament_volume
+        pos = gcode_line.find(used_filament_volume_placeholder);
+        while (pos != std::string::npos) {
+            // Volume of filament used, in mm^3, computed per filament as
+            // used_filament_length_mm * pi * (filament_diameter / 2)^2
+            // i.e. length in millimeters times the filament cross-section area.
+            double used_filament_volume = 0.0; // mm^3
+            for (size_t id = 0; id < filament_mm.size(); ++id) {
+                const double diameter = (id < m_result.filament_diameters.size()) ?
+                    m_result.filament_diameters[id] : m_result.filament_diameters.back();
+                used_filament_volume += filament_mm[id] * static_cast<double>(M_PI) * sqr(0.5 * diameter);
+            }
+            char buf[64];
+            snprintf(buf, sizeof(buf), "%.2f", used_filament_volume);
+            gcode_line.replace(pos, used_filament_volume_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(used_filament_volume_placeholder, pos + strlen(buf));
         }
 
         return processed;
