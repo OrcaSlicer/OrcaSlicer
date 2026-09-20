@@ -291,6 +291,9 @@ public:
     void            apply_print_config(const PrintConfig &print_config);
 
     std::string     travel_to(const Point& point, ExtrusionRole role, std::string comment, double z = DBL_MAX);
+    // While a Type2 prime-tower block is being written, travel_to / extrude use this instead of the
+    // normal travel/print accelerations. 0 = no override.
+    void            set_prime_tower_acceleration_override(unsigned int accel) { m_wipe_tower_acceleration = accel; }
     bool            needs_retraction(const Polyline& travel, ExtrusionRole role, LiftType& lift_type);
     std::string     retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::NormalLift, bool apply_instantly = false, ExtrusionRole role = erNone);
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
@@ -789,6 +792,7 @@ private:
     double   m_sub_layer_flow_ratio = 0.0;
     double   m_sub_layer_height     = 0.0;
     bool m_need_change_layer_lift_z = false;
+    unsigned int m_wipe_tower_acceleration = 0;
     int m_start_gcode_filament = -1;
     std::string m_filament_instances_code;
 

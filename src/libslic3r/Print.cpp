@@ -399,6 +399,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_cone_angle"
             || opt_key == "wipe_tower_extra_spacing"
             || opt_key == "wipe_tower_max_purge_speed"
+            || opt_key == "prime_tower_acceleration"
             || opt_key == "wipe_tower_wall_type"
             || opt_key == "wipe_tower_extra_rib_length"
             || opt_key == "wipe_tower_rib_width"
@@ -1164,6 +1165,38 @@ static bool independent_prime_towers_enabled(const PrintConfig &config)
     return config.prime_tower_independent && !config.prime_tower_multimaterial;
 }
 
+// Clipper leftover smaller than this (mm²) is a bed-edge sliver, not a real overflow.
+static constexpr double wipe_tower_outside_area_eps_mm2 = 0.25;
+
+static bool wipe_tower_footprints_leave_printable(const Polygons &footprints, const Polygons &printable)
+{
+    if (printable.empty() || footprints.empty())
+        return false;
+    const Polygons leftover = diff(footprints, offset(printable, float(scale_(0.05))));
+    if (leftover.empty())
+        return false;
+    double area_mm2 = 0.;
+    for (const Polygon &p : leftover)
+        area_mm2 += std::abs(unscaled<double>(unscaled<double>(p.area())));
+    return area_mm2 > wipe_tower_outside_area_eps_mm2;
+}
+
+static Polygon place_wipe_tower_footprint(Polygon local, const Vec2d &pos, double rotation_deg)
+{
+    local.rotate(Geometry::deg2rad(rotation_deg));
+    local.translate(Point(scale_(pos.x()), scale_(pos.y())));
+    return local;
+}
+
+static Vec2f clamp_wipe_tower_pos_to_printable(const Polygon &local_footprint, Vec2f pos,
+                                               double rotation_deg, const Polygons &bed)
+{
+    if (bed.empty() || local_footprint.empty())
+        return pos;
+    const Polygon fp = place_wipe_tower_footprint(local_footprint, pos.cast<double>(), rotation_deg);
+    return pos + WipeTower::move_box_inside_polygon(get_extents(fp), bed, scaled<coord_t>(WIPE_TOWER_MARGIN));
+}
+
 static std::vector<CompactedTowerZone> compacted_zones_from_footprints(const PrintConfig &config,
                                                                        const Polygons    &footprints)
 {
@@ -1651,9 +1684,9 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
     for (Polygon &p : printable_polys)
         p.translate(plate_shift);
-    if (!diff(tower_polys_checked, printable_polys).empty())
+    if (wipe_tower_footprints_leave_printable(tower_polys_checked, printable_polys))
         return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
-    if (warning && !diff(tower_polys_estimated, printable_polys).empty())
+    if (warning && wipe_tower_footprints_leave_printable(tower_polys_estimated, printable_polys))
         warning->string += L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n");
     return {};
 }
@@ -5102,6 +5135,23 @@ void Print::_make_wipe_tower()
                                                  config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
                                                      (float) config().wipe_tower_cone_angle.value : 0.f);
                 tower.wipe_tower_mesh_data = m_wipe_tower_data.wipe_tower_mesh_data;
+                // Ribs and brim make the real first-layer outline larger than the preview cube.
+                // Nudge the generated tower (and its TCRs) onto the bed without writing project
+                // config: mutating independent_wipe_tower_x/y here made apply() see a diff after
+                // the slice finished and immediately invalidated the result.
+                if (tower.wipe_tower_mesh_data) {
+                    const Vec2f clamped = clamp_wipe_tower_pos_to_printable(tower.wipe_tower_mesh_data->bottom, pos,
+                                                                            m_config.wipe_tower_rotation_angle.value,
+                                                                            get_extruder_shared_printable_polygon());
+                    if ((clamped - pos).squaredNorm() > EPSILON) {
+                        pos = clamped;
+                        for (auto &layer : m_wipe_tower_data.tool_changes)
+                            for (WipeTower::ToolChangeResult &tcr : layer)
+                                if (tcr.tower_filament == int(filament))
+                                    tcr.tower_pos = pos;
+                    }
+                }
+                tower.pos = pos;
                 m_wipe_tower_data.independent_towers.emplace_back(std::move(tower));
 
                 const std::vector<float> used_len = wipe_tower.get_used_filament();
@@ -5244,11 +5294,9 @@ void Print::_make_wipe_tower()
     // so an off-plate tower fails with a clear error instead of exporting unprintable G-code
     // (validate() only sees the mesh on its next run).
     auto check_footprint = [&](const Polygon &footprint_in, const Vec2d &pos) {
-        Polygon footprint = footprint_in;
-        footprint.rotate(Geometry::deg2rad(m_config.wipe_tower_rotation_angle.value));
-        footprint.translate(Point(scale_(pos.x()), scale_(pos.y())));
+        const Polygon footprint = place_wipe_tower_footprint(footprint_in, pos, m_config.wipe_tower_rotation_angle.value);
         const Polygons printable_polys = this->get_extruder_shared_printable_polygon();
-        if (!printable_polys.empty() && !diff(Polygons{footprint}, printable_polys).empty()) {
+        if (wipe_tower_footprints_leave_printable({footprint}, printable_polys)) {
             const BoundingBox fp = get_extents(footprint);
             const BoundingBox pr = get_extents(printable_polys);
             BOOST_LOG_TRIVIAL(error) << boost::format("wipe tower footprint [%1%,%2%]-[%3%,%4%] leaves printable [%5%,%6%]-[%7%,%8%]") %

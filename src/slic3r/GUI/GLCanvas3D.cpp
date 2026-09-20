@@ -2962,11 +2962,14 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 float brim_width = float(footprint.brim_width);
                 Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
-                // set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
-                // filament count, so redo its clamp here on every reload — unconditionally: a
-                // paint-triggered reload can arrive before the background process invalidates
-                // psWipeTower, so gating on it would skip the clamp exactly when it is needed.
-                {
+                const bool independent = dconfig.option("prime_tower_independent") &&
+                                         dconfig.opt_bool("prime_tower_independent") &&
+                                         !(dconfig.option("prime_tower_multimaterial") && dconfig.opt_bool("prime_tower_multimaterial"));
+
+                // Independent towers have their own stored XY. Re-clamping the leftover stock
+                // wipe_tower_x/y against a single combined footprint rewrote project config on
+                // every post-slice reload and immediately unsliced the plate.
+                if (!independent) {
                     Vec3d clamped_pos, clamped_size;
                     part_plate->estimate_wipe_tower_polygon(full_config, plate_id, clamped_pos, clamped_size);
                     if (std::abs(x - (float) clamped_pos(0)) > EPSILON || std::abs(y - (float) clamped_pos(1)) > EPSILON) {
@@ -2984,9 +2987,6 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                         map_glvolume_old_to_new[it->second] = volume_idx_new;
                 };
 
-                const bool independent = dconfig.option("prime_tower_independent") &&
-                                         dconfig.opt_bool("prime_tower_independent") &&
-                                         !(dconfig.option("prime_tower_multimaterial") && dconfig.opt_bool("prime_tower_multimaterial"));
                 std::vector<int> plate_extruders = part_plate->get_extruders(true); // 1-based
                 if (independent && plate_extruders.size() > 1) {
                     const float spacing = independent_wipe_tower_spacing(float(wipe_tower_size(0)), brim_width);

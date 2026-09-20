@@ -7749,6 +7749,16 @@ void PrintConfigDef::init_fff_params()
     def->min = 10;
     def->set_default_value(new ConfigOptionFloat(90.));
 
+    def = this->add("prime_tower_acceleration", coFloat);
+    def->label = L("Acceleration");
+    def->tooltip = L("Acceleration used when travelling to the prime tower and printing it. "
+                     "Set to 0 to keep the current print and travel acceleration.\n\n"
+                     "A lower value reduces how hard the nozzle hits the tower.");
+    def->sidetext = L(u8"mm/s²");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
     def = this->add("wipe_tower_wall_type", coEnum);
     def->label = L("Wall type");
     def->tooltip = L("Wipe tower outer wall type.\n"

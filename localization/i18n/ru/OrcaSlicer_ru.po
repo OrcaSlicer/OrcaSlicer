@@ -17816,7 +17816,6 @@ msgstr "Мультиматериальную черновую башню нел�
 msgid "Turn off filament ramming now?"
 msgstr "Отключить ramming филамента сейчас?"
 
-
 msgid "Prime all printing extruders"
 msgstr "Подготовка всех печатающих экструдеров"
 
@@ -18453,6 +18452,11 @@ msgid "Multimaterial tower"
 msgstr "Мультиматериальная башня"
 
 # AI Translated
+msgid "Acceleration used when travelling to the prime tower and printing it. Set to 0 to keep the current print and travel acceleration.\n\nA lower value reduces how hard the nozzle hits the tower."
+msgstr ""
+"Ускорение при перелёте к черновой башне и при её печати. 0 — не менять текущее ускорение печати и переездов.\n\n"
+"Меньшее значение снижает удар сопла по башне."
+
 msgid "Independent towers"
 msgstr "Независимые башни"
 

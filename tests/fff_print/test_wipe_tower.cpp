@@ -1,9 +1,12 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <limits>
 #include <map>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -838,4 +841,107 @@ TEST_CASE("Independent prime towers export G-code without an unexpected toolchan
     std::string out;
     REQUIRE_NOTHROW(out = gcode(print));
     CHECK_FALSE(out.empty());
+}
+
+TEST_CASE("Independent prime towers change tools before travelling to the next tower", "[WipeTower]")
+{
+    DynamicPrintConfig config = independent_tower_config();
+    config.set_deserialize_strict({ { "wipe_tower_no_sparse_layers", "0" }, { "gcode_comments", "1" } });
+    Print print;
+    Model model;
+    slice_prime_tower(config, print, model);
+    const auto &towers = print.wipe_tower_data().independent_towers;
+    REQUIRE(towers.size() == 2);
+
+    const std::string out = gcode(print);
+    int               last_tool = 0;
+    size_t            checked   = 0;
+    GCodeReader       reader;
+    reader.parse_buffer(out, [&](GCodeReader &r, const GCodeReader::GCodeLine &line) {
+        const char *raw = line.raw().c_str();
+        while (*raw == ' ' || *raw == '\t')
+            ++raw;
+        if (raw[0] == 'T' && std::isdigit(static_cast<unsigned char>(raw[1])))
+            last_tool = std::atoi(raw + 1);
+        if (line.comment().find("Travel to a Wipe Tower") == std::string_view::npos)
+            return;
+        const float x = line.new_X(r);
+        const float y = line.new_Y(r);
+        int         match  = -1;
+        int         nmatch = 0;
+        for (const auto &tower : towers) {
+            const bool on_tower = x >= tower.pos.x() - 1.f && x <= tower.pos.x() + tower.width + 1.f &&
+                                  y >= tower.pos.y() - 1.f && y <= tower.pos.y() + tower.depth + 1.f;
+            if (!on_tower)
+                continue;
+            match = int(tower.filament_id);
+            ++nmatch;
+        }
+        if (nmatch == 1) {
+            CHECK(match == last_tool);
+            ++checked;
+        }
+    });
+    CHECK(checked > 0);
+}
+
+TEST_CASE("Prime tower acceleration is emitted when set", "[WipeTower]")
+{
+    DynamicPrintConfig config = independent_tower_config();
+    config.set_deserialize_strict({ { "prime_tower_acceleration", "500" },
+                                    { "default_acceleration", "10000" },
+                                    { "travel_acceleration", "10000" } });
+    Print print;
+    Model model;
+    slice_prime_tower(config, print, model);
+    const std::string out = gcode(print);
+    int               last_accel    = 0;
+    size_t            tower_blocks  = 0;
+    std::istringstream ss(out);
+    std::string        line;
+    while (std::getline(ss, line)) {
+        if (const auto at = line.find("M204 S"); at != std::string::npos)
+            last_accel = std::atoi(line.c_str() + at + 6);
+        else if (const auto at = line.find("M204 P"); at != std::string::npos)
+            last_accel = std::atoi(line.c_str() + at + 6);
+        else if (const auto at = line.find("ACCEL="); at != std::string::npos)
+            last_accel = std::atoi(line.c_str() + at + 6);
+        if (line.find("CP TOOLCHANGE WIPE") == std::string::npos)
+            continue;
+        CHECK(last_accel == 500);
+        ++tower_blocks;
+    }
+    CHECK(tower_blocks > 0);
+}
+
+TEST_CASE("Independent rib towers at the bed edge stay inside the printable area", "[WipeTower]")
+{
+    DynamicPrintConfig config = independent_tower_config();
+    config.set_deserialize_strict({ { "wipe_tower_wall_type", "rib" },
+                                    { "wipe_tower_extra_rib_length", "10" },
+                                    { "wipe_tower_rib_width", "8" },
+                                    { "wipe_tower_fillet_wall", "1" },
+                                    { "prime_tower_brim_width", "5" },
+                                    { "prime_tower_width", "30" },
+                                    { "printable_area", "0x0,200x0,200x200,0x200" } });
+    config.set_key_value("independent_wipe_tower_x", new ConfigOptionFloats{ 160., 20. });
+    config.set_key_value("independent_wipe_tower_y", new ConfigOptionFloats{ 160., 20. });
+    Print print;
+    Model model;
+    REQUIRE_NOTHROW(slice_prime_tower(config, print, model));
+    const Polygons bed = print.get_extruder_shared_printable_polygon();
+    REQUIRE_FALSE(bed.empty());
+    const BoundingBox bed_bb = get_extents(bed);
+    REQUIRE_FALSE(print.wipe_tower_data().independent_towers.empty());
+    for (const auto &tower : print.wipe_tower_data().independent_towers) {
+        REQUIRE(tower.wipe_tower_mesh_data.has_value());
+        Polygon fp = tower.wipe_tower_mesh_data->bottom;
+        fp.translate(Point(scale_(tower.pos.x()), scale_(tower.pos.y())));
+        const BoundingBox bb = get_extents(fp);
+        CHECK(unscaled(bb.max.x()) <= unscaled(bed_bb.max.x()) + 0.2);
+        CHECK(unscaled(bb.max.y()) <= unscaled(bed_bb.max.y()) + 0.2);
+        CHECK(unscaled(bb.min.x()) >= unscaled(bed_bb.min.x()) - 0.2);
+        CHECK(unscaled(bb.min.y()) >= unscaled(bed_bb.min.y()) - 0.2);
+    }
+    CHECK(print.validate().string.find("partially outside") == std::string::npos);
 }

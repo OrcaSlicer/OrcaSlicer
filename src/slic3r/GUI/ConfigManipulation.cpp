@@ -1059,6 +1059,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
                     "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
+                    "prime_tower_acceleration",
                     "wipe_tower_bridging", "wipe_tower_extra_flow"})
             toggle_line(el, have_prime_tower && supports_wipe_tower_2);
 
