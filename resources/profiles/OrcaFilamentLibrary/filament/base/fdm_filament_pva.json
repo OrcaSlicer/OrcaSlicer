@@ -40,6 +40,15 @@
 	"filament_max_volumetric_speed": [
 		"12"
 	],
+	"filament_multitool_ramming": [
+		"0"
+	],
+	"filament_multitool_ramming_flow": [
+		"6"
+	],
+	"filament_multitool_ramming_volume": [
+		"0.1"
+	],
 	"filament_soluble": [
 		"1"
 	],

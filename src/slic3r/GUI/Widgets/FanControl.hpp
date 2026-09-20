@@ -109,7 +109,6 @@ public:
     void    decrease_fan_speeds();
 private:
     int     m_current_speeds;
-    int     m_target_speed;
     int     m_min_speeds;
     int     m_max_speeds;
     ScalableBitmap   m_bitmap_add;
@@ -213,7 +212,6 @@ private:
     wxGridSizer* m_sizer_fanControl { nullptr };
 
     wxBoxSizer *m_mode_sizer{ nullptr };
-    wxBoxSizer *m_bottom_sizer{ nullptr };
 
     // mode switch buttons
     std::unordered_map<int, SendModeSwitchButton*> m_mode_switch_btns; //<mode_id, SendModeSwitchButton>

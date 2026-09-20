@@ -42,9 +42,15 @@ public:
 
     void SetBorderColor(StateColor const &color);
 
-    void SetFont(wxFont set_font);
+    bool SetFont(const wxFont &set_font) override;
 
     bool Enable(bool enable) override;
+
+    // Only meant to be used by inspector, not public API
+    int        GetCornerRadius() const { return m_radius; }
+    int        GetBorderWidth() const  { return m_border_width; }
+    StateColor GetBorderColor() const  { return border_color; }
+    float      GetScale() const        { return m_scale; }
 
 private:
     void PickDC(wxDC& dc);

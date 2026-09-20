@@ -1,5 +1,7 @@
 // Include GLGizmoBase.hpp before I18N.hpp as it includes some libigl code, which overrides our localization "L" macro.
 #include "GLGizmoAdvancedCut.hpp"
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
 #include <glad/gl.h>
@@ -372,7 +374,7 @@ bool GLGizmoAdvancedCut::on_init()
 
 std::string GLGizmoAdvancedCut::on_get_name() const
 {
-    return (_(L("Cut"))).ToUTF8().data();
+    return (_L_CONTEXT("Cut", "Cut tool")).ToUTF8().data();
 }
 
 void GLGizmoAdvancedCut::on_load(cereal::BinaryInputArchive &ar)
@@ -1905,7 +1907,7 @@ bool GLGizmoAdvancedCut::render_slider_double_input(const std::string &label, fl
         mean_size *= float(units_mm_to_in);
         min_size *= float(units_mm_to_in);
     }
-    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _CTX_utf8("in", "inches") : "%.2f  " + _u8L("mm");
+    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _u8L_CONTEXT("in", "inches") : "%.2f  " + _u8L("mm");
 
     m_imgui->bbl_slider_float_style(("##" + label).c_str(), &value, min_size, mean_size, format.c_str());
 

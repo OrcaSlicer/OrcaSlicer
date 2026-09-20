@@ -3,7 +3,7 @@
 	"name": "Bambu ASA-Aero @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OGFB02",
+	"filament_id": "OFXzQ4yL",
 	"instantiation": "false",
 	"description": "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide.",
 	"fan_cooling_layer_time": [

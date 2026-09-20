@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PPS-CF @FF G4P",
-	"inherits": "Flashforge Generic PLA-CF10",
+	"inherits": "Generic PLA-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "i5DllSvYjVPO04Su",
+	"filament_id": "OFTSXxzE",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"additional_cooling_fan_speed": [
 		"0"
 	],

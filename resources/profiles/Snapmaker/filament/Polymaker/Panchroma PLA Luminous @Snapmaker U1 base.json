@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Luminous @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM011",
+	"filament_id": "OF0kCNDK",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

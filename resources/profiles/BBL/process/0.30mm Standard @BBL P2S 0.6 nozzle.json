@@ -81,10 +81,6 @@
 		"10",
 		"10"
 	],
-	"overhang_totally_speed": [
-		"10",
-		"10"
-	],
 	"print_extruder_id": [
 		"1",
 		"1"
@@ -93,7 +89,6 @@
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_speed": [
 		"270",
 		"600"

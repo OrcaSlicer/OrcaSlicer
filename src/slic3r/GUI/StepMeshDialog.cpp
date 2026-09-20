@@ -30,7 +30,7 @@ static int _ITEM_WIDTH() { return _scale(30); }
 #define SLIDER_SCALE_10(val)    ((val) / 0.01)
 #define SLIDER_UNSCALE_10(val)  ((val) * 0.01)
 #define LEFT_RIGHT_PADING       FromDIP(20)
-#define FONT_COLOR              wxColour("#262E30")
+#define FONT_COLOR              wxColour("#363636") // label color
 
 wxDEFINE_EVENT(wxEVT_THREAD_DONE, wxCommandEvent);
 
@@ -167,7 +167,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
         e.Skip();
     }));
     // textctrl bind slider
-    linear_input->Bind(wxEVT_TEXT, ([this, linear_slider, linear_input](wxCommandEvent& e) {
+    linear_input->Bind(wxEVT_TEXT, ([linear_slider, linear_input](wxCommandEvent& e) {
         double slider_value_long;
         int slider_value;
         wxString value = linear_input->GetTextCtrl()->GetValue();
@@ -222,7 +222,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
         e.Skip();
     }));
     // textctrl bind slider
-    angle_input->Bind(wxEVT_TEXT, ([this, angle_slider, angle_input](wxCommandEvent& e) {
+    angle_input->Bind(wxEVT_TEXT, ([angle_slider, angle_input](wxCommandEvent& e) {
         double slider_value_long;
         int slider_value;
         wxString value = angle_input->GetTextCtrl()->GetValue();
@@ -310,10 +310,9 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     bSizer->Add(bSizer_button, 1, wxEXPAND);
 
-    this->SetSizer(bSizer);
+    this->SetSizerAndFit(bSizer);
     update_mesh_number_text();
     this->Layout();
-    bSizer->Fit(this);
 
     this->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
         SetFocusIgnoringChildren();

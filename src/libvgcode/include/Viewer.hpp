@@ -91,6 +91,16 @@ public:
     //
     void toggle_top_layer_only_view_range();
     //
+    // Dim previous layers (ORCA)
+    // Whether the layers the layer slider is not scrubbed to are rendered darkened while
+    // showing less than the full print, so only the inspected layer(s) are at full brightness.
+    // How bright those darkened layers are rendered, 1.0 = unchanged, 0.0 = black.
+    //
+    bool is_dim_previous_layers() const;
+    void set_dim_previous_layers(bool value);
+    float get_dim_previous_layers_brightness() const;
+    void set_dim_previous_layers_brightness(float value);
+    //
     // Returns true if the given option is visible.
     //
     bool is_option_visible(EOptionType type) const;

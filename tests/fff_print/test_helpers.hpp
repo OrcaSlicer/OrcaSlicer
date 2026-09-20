@@ -108,6 +108,10 @@ void place_two_cubes_apart(double gap, std::initializer_list<Slic3r::ConfigBase:
 // Slice two 20mm cubes `gap` mm apart (not auto-arranged) and return the G-code.
 std::string slice_two_cubes_apart(double gap, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> config_items);
 
+// Place two instances of one 20mm cube `gap` mm apart edge-to-edge.
+void place_two_cube_instances_apart(double gap, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> config_items,
+    Slic3r::Print &print, Slic3r::Model &model);
+
 // Distinct layer Z heights carrying an extrusion of the given `role` (e.g. "skirt").
 std::set<double> layers_with_role(const std::string &gcode, const std::string &role);
 
