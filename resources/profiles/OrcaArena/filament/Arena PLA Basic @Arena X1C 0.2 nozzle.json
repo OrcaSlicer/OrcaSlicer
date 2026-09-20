@@ -3,7 +3,7 @@
 	"name": "Arena PLA Basic @Arena X1C 0.2 nozzle",
 	"inherits": "Arena PLA Basic @base",
 	"from": "system",
-	"setting_id": "GFSA00_00",
+	"setting_id": "BWfmscHWlV8kxaNX",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

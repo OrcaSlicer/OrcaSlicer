@@ -3,7 +3,7 @@
 	"name": "Vzbot 330 AWD 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "vxwG1SY30m0B6XTp",
 	"instantiation": "true",
 	"printer_model": "Vzbot 330 AWD",
 	"nozzle_diameter": [

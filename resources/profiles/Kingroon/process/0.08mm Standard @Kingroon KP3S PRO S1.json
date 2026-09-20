@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "0.08mm Standard @Kingroon KP3S PRO S1",
 	"inherits": "fdm_process_common",
+	"setting_id": "0DvblEjz2NxcdZBB",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Kingroon KP3S PRO S1 0.4 nozzle"

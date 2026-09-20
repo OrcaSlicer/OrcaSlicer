@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
 	"inherits": "fdm_process_flashforge_0.20",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "ZRw6CP34Q7qxgPI0",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.4 Nozzle"

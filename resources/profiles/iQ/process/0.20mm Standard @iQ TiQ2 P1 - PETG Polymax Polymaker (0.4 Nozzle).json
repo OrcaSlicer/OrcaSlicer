@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @iQ TiQ2 P1 - PETG Polymax Polymaker (0.4 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "MjcIXgMAbvXbskhu",
 	"instantiation": "true",
 	"exclude_object": "0",
 	"gcode_label_objects": "0",

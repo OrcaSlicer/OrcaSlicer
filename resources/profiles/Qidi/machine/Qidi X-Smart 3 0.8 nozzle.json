@@ -3,7 +3,7 @@
 	"name": "Qidi X-Smart 3 0.8 nozzle",
 	"inherits": "Qidi X-Smart 3 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "GWRUzX26tWoJ5dlM",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8"
@@ -11,7 +11,7 @@
 	"printer_model": "Qidi X-Smart 3",
 	"printer_variant": "0.8",
 	"default_filament_profile": [
-		"Qidi Generic PLA"
+		"Generic PLA @Qidi"
 	],
 	"default_print_profile": "0.40mm Standard @Qidi XSmart3 0.8 nozzle",
 	"max_layer_height": [

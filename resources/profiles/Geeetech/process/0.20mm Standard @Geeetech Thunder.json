@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Geeetech Thunder",
 	"inherits": "fdm_process_Geeetech_HS_0.20",
 	"from": "system",
-	"setting_id": "GP_Geeetech_018",
+	"setting_id": "LbbZZy7Mek5Zj75c",
 	"instantiation": "true",
 	"default_acceleration": "5000",
 	"top_surface_acceleration": "3000",

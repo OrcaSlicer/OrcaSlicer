@@ -3,7 +3,7 @@
 	"name": "0.2mm Fast @Co Print ChromaSet 0.4",
 	"inherits": "fdm_process_coprint_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "dRtVJZ0gU9Nniomg",
 	"instantiation": "true",
 	"elefant_foot_compensation": "0.1",
 	"initial_layer_speed": "60",

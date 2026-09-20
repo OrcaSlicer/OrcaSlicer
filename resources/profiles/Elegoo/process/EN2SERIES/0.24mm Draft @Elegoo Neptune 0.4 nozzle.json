@@ -1,5 +1,6 @@
 {
-	"setting_id": "PEN204024",
+	"type": "process",
+	"setting_id": "AQnZ1c7zUfkqHzUV",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
 	"name": "0.24mm Draft @Elegoo Neptune 0.4 nozzle",

@@ -3,7 +3,7 @@
 	"name": "Arena Support W @Arena X1C 0.2 nozzle",
 	"inherits": "Arena Support W @base",
 	"from": "system",
-	"setting_id": "GFSS00_00",
+	"setting_id": "5pMWRVIJS8vOcR4S",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"0.5"

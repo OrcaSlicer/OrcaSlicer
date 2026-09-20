@@ -3,7 +3,7 @@
 	"name": "COEX ABS @System",
 	"inherits": "COEX ABS @base",
 	"from": "system",
-	"setting_id": "COXABS01",
+	"setting_id": "i5h7v70QQ9wy4NYt",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

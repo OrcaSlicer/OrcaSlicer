@@ -3,6 +3,11 @@
 	"name": "Flashforge PVA @FF C5P",
 	"inherits": "Generic PVA @System",
 	"from": "system",
+	"setting_id": "nwgbMjLRJLtJ04ri",
+	"filament_id": "OFaaddbQ",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

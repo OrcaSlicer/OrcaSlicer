@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "PolyLite ABS @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "PolyLite ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "TUafLspNks0QbMsJ",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.02"
 	],

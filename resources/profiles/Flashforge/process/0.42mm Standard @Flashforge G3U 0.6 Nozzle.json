@@ -3,7 +3,7 @@
 	"name": "0.42mm Standard @Flashforge G3U 0.6 Nozzle",
 	"inherits": "0.30mm Standard @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "bDWkZppcXi8NILsC",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Guider 3 Ultra 0.6 Nozzle"

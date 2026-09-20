@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Matte Basic @Qidi Q2 0.8 nozzle",
 	"inherits": "QIDI PLA Matte Basic@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "Nt59HnGKjIHV07Kd",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.008"

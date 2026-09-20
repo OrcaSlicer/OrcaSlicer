@@ -3,6 +3,7 @@
 	"name": "0.55mm DRAFT @CORE One L 0.8",
 	"inherits": "0.55mm DRAFT @MK4S 0.8",
 	"from": "system",
+	"setting_id": "yYMszPCSBo67sVjd",
 	"instantiation": "true",
 	"top_surface_speed": "2000",
 	"inner_wall_acceleration": "2500",

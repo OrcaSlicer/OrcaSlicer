@@ -3,7 +3,8 @@
     "name": "FilAr PLA Verde Pixel",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0015",
+    "setting_id": "Z7toK1R2GuzHVgfo",
+    "filament_id": "OFkGvN4d",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

@@ -3,7 +3,7 @@
 	"name": "Elegoo Neptune 4 1.0 nozzle",
 	"inherits": "Elegoo Neptune 4 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EN410",
+	"setting_id": "4HgOQhJrRHmdoUQC",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"1.0"

@@ -1,9 +1,9 @@
 {
 	"type": "machine",
 	"name": "fdm_elegoo_common",
+	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
-	"inherits": "fdm_machine_common",
 	"gcode_flavor": "marlin",
 	"printer_technology": "FFF",
 	"nozzle_diameter": [
@@ -141,7 +141,6 @@
 	"thumbnails_format": "PNG",
 	"nozzle_type": "brass",
 	"machine_end_gcode": "G90 ;Absolute positionning\nM83 ; extruder relative mode\nG1 X10 Y{print_bed_max[1]*0.8} Z{min(max_layer_z+100, printable_height)} E-8 F{travel_speed*60} ; Move print head up\nG1 Z{min(max_layer_z+100, printable_height-2)} F600\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM106 S0 ; turn off fan\nM84 ;Disable all steppers",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M600",

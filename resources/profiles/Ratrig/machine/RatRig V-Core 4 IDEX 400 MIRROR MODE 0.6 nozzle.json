@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 4 IDEX 400 MIRROR MODE 0.6 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "U4ORSoWyw8RvMl4j",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 IDEX 400 MIRROR MODE",
 	"printer_variant": "0.6",

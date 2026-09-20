@@ -3,8 +3,8 @@
 	"name": "QIDI PA-Ultra @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "QIDI PA-Ultra",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "bWc3l0t1llvWvFei",
+	"filament_id": "OFlN6DL1",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

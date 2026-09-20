@@ -3,7 +3,8 @@
     "name": "FilAr PETG Cristal",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0055",
+    "setting_id": "MnA2FnHdIuViwo41",
+    "filament_id": "OFJQDUk3",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

@@ -3,7 +3,7 @@
 	"name": "Bambu ABS @Qidi Q2 0.8 nozzle",
 	"inherits": "Bambu ABS@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "0eP7UhT4gbchwFvv",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"

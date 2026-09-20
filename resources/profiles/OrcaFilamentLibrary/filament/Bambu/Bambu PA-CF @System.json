@@ -3,7 +3,7 @@
 	"name": "Bambu PA-CF @System",
 	"inherits": "Bambu PA-CF @base",
 	"from": "system",
-	"setting_id": "OGFSN00",
+	"setting_id": "XTve0TGrHzrMdBnZ",
 	"instantiation": "true",
 	"nozzle_temperature_initial_layer": [
 		"290"

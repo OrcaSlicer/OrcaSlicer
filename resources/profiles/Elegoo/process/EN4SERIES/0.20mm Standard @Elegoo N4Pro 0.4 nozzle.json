@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "PEN4Pro04020",
+	"setting_id": "ev7Dl6VzLoldRKK3",
 	"name": "0.20mm Standard @Elegoo N4Pro 0.4 nozzle",
 	"from": "system",
 	"inherits": "fdm_process_elegoo_04020",

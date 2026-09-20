@@ -3,13 +3,13 @@
 	"name": "Prusa MINIIS 0.8 nozzle",
 	"inherits": "Prusa MINIIS 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "wcrnNKRdyH27iDuB",
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa MINI IS",
 	"printer_variant": "0.8",
 	"default_filament_profile": [
-		"Prusa Generic PLA @MINIIS 0.8"
+		"Generic PLA @Prusa MINIIS 0.8"
 	],
 	"default_print_profile": "0.40mm Standard @MINIIS",
 	"nozzle_diameter": [

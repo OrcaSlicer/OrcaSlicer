@@ -4,8 +4,7 @@
 	"renamed_from": "My Generic TPU @MyToolChanger",
 	"inherits": "Generic TPU @System",
 	"from": "system",
-	"setting_id": "GFU99_MTC_0",
-	"filament_id": "GFU99",
+	"setting_id": "H45dfn4BGdLAx9nN",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

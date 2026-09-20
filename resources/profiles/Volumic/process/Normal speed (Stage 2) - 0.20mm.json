@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "M0E4QeWLUVdWUHfJ",
 	"name": "Normal speed (Stage 2) - 0.20mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

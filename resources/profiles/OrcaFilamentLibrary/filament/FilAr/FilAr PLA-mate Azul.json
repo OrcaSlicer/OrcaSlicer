@@ -3,7 +3,8 @@
     "name": "FilAr PLA-mate Azul",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
-    "filament_id": "FILAR0031",
+    "setting_id": "QMBocqysEed86R9y",
+    "filament_id": "OF5vgi2G",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

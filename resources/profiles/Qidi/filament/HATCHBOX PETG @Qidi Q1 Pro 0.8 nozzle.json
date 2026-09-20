@@ -3,8 +3,8 @@
 	"name": "HATCHBOX PETG @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "HATCHBOX PETG @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "xeu1S6h53DRVM9Pw",
+	"filament_id": "OFIWMSGX",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

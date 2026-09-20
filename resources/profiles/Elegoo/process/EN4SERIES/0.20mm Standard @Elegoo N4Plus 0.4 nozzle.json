@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "PEN4Plus04020",
+	"setting_id": "EWip2jSpsehCzgdG",
 	"name": "0.20mm Standard @Elegoo N4Plus 0.4 nozzle",
 	"from": "system",
 	"inherits": "fdm_process_elegoo_04020",

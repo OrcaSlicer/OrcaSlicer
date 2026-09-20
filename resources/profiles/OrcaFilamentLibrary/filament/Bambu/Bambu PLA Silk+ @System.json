@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Silk+ @System",
 	"inherits": "Bambu PLA Silk+ @base",
 	"from": "system",
-	"setting_id": "OGFSA06_00",
+	"setting_id": "zsVhjbZLne5ejStD",
 	"instantiation": "true",
 	"supertack_plate_temp": [
 		"35"

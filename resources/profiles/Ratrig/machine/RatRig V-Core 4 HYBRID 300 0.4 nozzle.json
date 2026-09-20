@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 4 HYBRID 300 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "Fm7vQtx26w3gQasV",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 HYBRID 300",
 	"printer_variant": "0.4",

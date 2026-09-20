@@ -3,8 +3,8 @@
 	"name": "Eryone ASA-CF",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA82",
-	"filament_id": "EFL82",
+	"setting_id": "wSiMHM1kTIgJ2gCt",
+	"filament_id": "OFwyt1xt",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.4 nozzle"

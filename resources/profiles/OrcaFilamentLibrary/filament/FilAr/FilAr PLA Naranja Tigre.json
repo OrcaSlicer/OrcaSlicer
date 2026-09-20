@@ -3,7 +3,8 @@
     "name": "FilAr PLA Naranja Tigre",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0020",
+    "setting_id": "zLZxXa78e1oiYWSg",
+    "filament_id": "OFKZ9skj",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

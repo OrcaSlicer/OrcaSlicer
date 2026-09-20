@@ -3,7 +3,8 @@
 	"name": "WonderMaker PLA Matte",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA01",
+	"setting_id": "YufHNkKBRBBxucHO",
+	"filament_id": "OFepU7Tl",
 	"instantiation": "true",
 	"filament_cost": [
 		"24.99"

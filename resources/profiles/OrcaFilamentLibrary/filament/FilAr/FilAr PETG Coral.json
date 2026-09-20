@@ -3,7 +3,8 @@
     "name": "FilAr PETG Coral",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0054",
+    "setting_id": "fspbgXmAOWjFBQqh",
+    "filament_id": "OFysxCep",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

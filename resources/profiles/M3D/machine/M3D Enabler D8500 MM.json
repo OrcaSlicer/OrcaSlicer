@@ -3,7 +3,7 @@
 	"name": "M3D Enabler D8500 MM",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "M3D_D8500_MM_04",
+	"setting_id": "AEagqO0H5lE3ndsg",
 	"instantiation": "true",
 	"printer_model": "M3D Enabler D8500 MM Model",
 	"printer_variant": "0.4",

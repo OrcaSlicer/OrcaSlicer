@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone ABS-CF @0.2 nozzle",
 	"from": "system",
+	"setting_id": "a7qk6VtkbJziQHZo",
 	"instantiation": "true",
 	"inherits": "Eryone ABS-CF",
 	"compatible_printers": [

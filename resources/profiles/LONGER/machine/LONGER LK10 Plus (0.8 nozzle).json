@@ -3,7 +3,7 @@
 	"name": "LONGER LK10 Plus (0.8 nozzle)",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "KPqFqYPrJVyfImNw",
 	"instantiation": "true",
 	"printer_model": "LONGER LK10 Plus",
 	"printer_settings_id": "LONGER",

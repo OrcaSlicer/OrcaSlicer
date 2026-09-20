@@ -1,0 +1,172 @@
+# Temperature and tool-change commands of a wait_for_temp_on_wipe_tower-off slice,
+# captured from the main branch at a10d9e77cf. Regeneration is described
+# at the test that reads this file: "Toolchange temperature commands are unchanged
+# when the wipe tower wait is off" in tests/fff_print/test_multifilament.cpp.
+#
+# The "time:" and "lead" values are toolchain-specific -- GCC, Clang and MSVC each produce
+# slightly different estimates from an identical toolpath -- so they are compared with a
+# tolerance, not exactly. Do not regenerate this file to resolve a mismatch in them: no single
+# capture satisfies all three, and recapturing just moves the failure to other platforms.
+M104 S215 T0 ; set nozzle temperature
+M104 S215 T1 ; set nozzle temperature
+; CP PRIMING START
+T1 ; change extruder
+M109 S215 T1 ; set nozzle temperature and wait for it to be reached
+M104 S175 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S215 T0 ; set nozzle temperature and wait for it to be reached
+; CP PRIMING END
+M104 S215 T1 ; preheat T1 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S175 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S215 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; set nozzle temperature
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.0s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.4s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 31s	lead 30.9s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 31s	lead 30.7s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 31s	lead 30.6s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.3s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 31s	lead 30.6s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.0s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.2s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 31s	lead 30.7s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.4s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.4s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T0 ; preheat T0 time: 30s	lead 30.0s
+; CP TOOLCHANGE START
+M104 S200 T1 ; set nozzle temperature ;cooldown
+T0 ; change extruder
+M109 S240 T0 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+M104 S240 T1 ; preheat T1 time: 30s	lead 30.0s
+; CP TOOLCHANGE START
+M104 S200 T0 ; set nozzle temperature ;cooldown
+T1 ; change extruder
+M109 S240 T1 ; set nozzle temperature and wait for it to be reached
+; CP TOOLCHANGE END
+; CP TOOLCHANGE START
+; CP TOOLCHANGE END
+M104 S0 ; turn off temperature

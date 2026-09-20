@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "FILL3D PA @System",
 	"from": "system",
-	"setting_id": "FILL3D006SYS",
+	"setting_id": "IX32M9Hib9UlDHuW",
 	"instantiation": "true",
 	"inherits": "FILL3D PA @base",
 	"compatible_printers": []

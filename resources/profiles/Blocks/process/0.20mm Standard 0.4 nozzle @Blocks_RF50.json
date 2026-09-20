@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard 0.4 nozzle @Blocks_RF50",
 	"inherits": "fdm_process_blocks_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "gwPin2OF8praSH3q",
 	"instantiation": "true",
 	"layer_height": "0.20",
 	"initial_layer_print_height": "0.2",
@@ -14,7 +14,6 @@
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",
 	"compatible_printers": [
-		"BLOCKS RF50",
 		"BLOCKS RF50 0.4 nozzle"
 	],
 	"sparse_infill_speed": "300",
@@ -42,7 +41,6 @@
 	"support_speed": "300",
 	"detect_overhang_wall": "1",
 	"enable_overhang_speed": "1",
-	"overhang_speed_classic": "0",
 	"overhang_1_4_speed": "0",
 	"overhang_2_4_speed": "50",
 	"overhang_3_4_speed": "30",

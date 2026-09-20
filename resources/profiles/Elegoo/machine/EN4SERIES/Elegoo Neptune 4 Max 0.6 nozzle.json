@@ -3,7 +3,7 @@
 	"name": "Elegoo Neptune 4 Max 0.6 nozzle",
 	"inherits": "Elegoo Neptune 4 Max 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EN4MAX06",
+	"setting_id": "DXxpsdZ4r73cfNT7",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.6"

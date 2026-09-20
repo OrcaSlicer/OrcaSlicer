@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "Generic PC @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PC@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "SL8yGVK6yyh7Ce0P",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"
 	],

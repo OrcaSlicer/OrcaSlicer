@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S300 Dual 0.4 nozzle",
 	"inherits": "Z-Bolt S300 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "F6Mu65zXaazaah92",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"manual_filament_change": "0",

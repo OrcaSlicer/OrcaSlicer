@@ -3,7 +3,8 @@
     "name": "FilAr PLA-mate Rosa",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
-    "filament_id": "FILAR0043",
+    "setting_id": "GrEXuL6TYue238MK",
+    "filament_id": "OFausr3F",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

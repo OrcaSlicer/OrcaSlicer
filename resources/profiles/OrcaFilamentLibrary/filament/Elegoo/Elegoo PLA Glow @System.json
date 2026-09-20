@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Glow @System",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Glow @base",
 	"from": "system",
-	"setting_id": "OEPLAGLOWS00",
+	"setting_id": "yFdF2YmEMeCHiPxl",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PLA Glow",
 	"pressure_advance": [

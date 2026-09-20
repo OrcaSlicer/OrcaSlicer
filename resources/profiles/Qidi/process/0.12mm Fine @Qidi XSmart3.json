@@ -3,7 +3,7 @@
 	"name": "0.12mm Fine @Qidi XSmart3",
 	"inherits": "0.12mm Fine @Qidi X3",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "GpIwZD9OVYk5sTYx",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Smart 3 0.4 nozzle"

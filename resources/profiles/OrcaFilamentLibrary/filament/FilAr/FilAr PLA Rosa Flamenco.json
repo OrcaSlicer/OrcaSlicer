@@ -3,7 +3,8 @@
     "name": "FilAr PLA Rosa Flamenco",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0011",
+    "setting_id": "FhROwdLMSz3cyRZo",
+    "filament_id": "OFZ4QbfK",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

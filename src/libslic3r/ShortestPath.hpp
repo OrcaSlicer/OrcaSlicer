@@ -15,7 +15,9 @@ namespace Slic3r {
 		using PolyNodes = std::vector<PolyNode*, PointsAllocator<PolyNode*>>;
 	}
 
-std::vector<size_t> 				 chain_points(const Points &points, Point *start_near = nullptr);
+std::vector<size_t> 				 chain_points(const Points &points, const Point *start_near = nullptr);
+// Variant with post-processing (crossing removal + 2-opt) for object ordering.
+std::vector<size_t> 				 chain_points_with_postprocessing(const Points &points, const Point *start_near = nullptr);
 std::vector<size_t> 				 chain_expolygons(const ExPolygons &input_exploy);
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near = nullptr);

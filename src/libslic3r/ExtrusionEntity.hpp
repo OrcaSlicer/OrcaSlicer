@@ -96,10 +96,19 @@ inline bool is_solid_infill(ExtrusionRole role)
         || role == erIroning;
 }
 
-inline bool is_bridge(ExtrusionRole role) {
+inline bool is_bridge(ExtrusionRole role)
+{
     return role == erBridgeInfill
         || role == erInternalBridgeInfill
         || role == erOverhangPerimeter;
+}
+
+// Orca
+inline bool is_support(ExtrusionRole role)
+{
+    return role == erSupportMaterial
+        || role == erSupportMaterialInterface
+        || role == erSupportTransition;
 }
 
 class ExtrusionEntity
@@ -445,6 +454,10 @@ class ExtrusionLoop : public ExtrusionEntity
 {
 public:
     ExtrusionPaths paths;
+    // ORCA: Set on a loop extruded entirely in mid air and out of reach of the layer below: it has
+    // nothing to lean on until this layer is bridged, so the G-code writer holds it back until the
+    // infill is down. See defer_unsupported_loops() in PerimeterGenerator.cpp.
+    bool print_after_infill = false;
 
     ExtrusionLoop(ExtrusionLoopRole role = elrDefault) : m_loop_role(role) {}
     ExtrusionLoop(const ExtrusionPaths &paths, ExtrusionLoopRole role = elrDefault) : paths(paths), m_loop_role(role) {}

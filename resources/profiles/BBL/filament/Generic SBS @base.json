@@ -3,7 +3,7 @@
 	"name": "Generic SBS @base",
 	"inherits": "fdm_filament_sbs",
 	"from": "system",
-	"filament_id": "GFLSBS99",
+	"filament_id": "OFhQfUQY",
 	"instantiation": "false",
 	"filament_flow_ratio": [
 		"0.98"

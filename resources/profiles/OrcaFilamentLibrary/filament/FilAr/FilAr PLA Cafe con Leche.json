@@ -3,7 +3,8 @@
     "name": "FilAr PLA Cafe con Leche",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0006",
+    "setting_id": "vlPu3T66cQhIr5nl",
+    "filament_id": "OFWwF7K7",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

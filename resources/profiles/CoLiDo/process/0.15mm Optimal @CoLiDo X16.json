@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @CoLiDo X16",
 	"inherits": "fdm_process_colidox16_common",
 	"from": "system",
-	"setting_id": "GP005",
+	"setting_id": "SxJ6hJE1GZF6dc2D",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"layer_height": "0.15",

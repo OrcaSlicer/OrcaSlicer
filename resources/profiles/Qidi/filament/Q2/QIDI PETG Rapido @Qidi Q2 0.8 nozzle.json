@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido @Qidi Q2 0.8 nozzle",
 	"inherits": "QIDI PETG Rapido@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "qa0V0FgstQWaZ89W",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"

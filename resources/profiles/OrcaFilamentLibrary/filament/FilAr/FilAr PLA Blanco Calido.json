@@ -3,7 +3,8 @@
     "name": "FilAr PLA Blanco Calido",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0018",
+    "setting_id": "pAToQatK3PVTMHrW",
+    "filament_id": "OFKTSiYF",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

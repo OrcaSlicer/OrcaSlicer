@@ -3,7 +3,8 @@
     "name": "FilAr PLA Titanio",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0004",
+    "setting_id": "ZRedeSWJhUayeJLw",
+    "filament_id": "OFQWIKbV",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

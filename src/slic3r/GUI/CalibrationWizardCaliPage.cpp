@@ -90,7 +90,7 @@ void CalibrationCaliPage::on_subtask_abort(wxCommandEvent& event)
 
     if (abort_dlg == nullptr) {
         abort_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Cancel print"));
-        abort_dlg->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this, obj](wxCommandEvent& e) {
+        abort_dlg->Bind(EVT_SECONDARY_CHECK_CONFIRM, [obj](wxCommandEvent& e) {
             if (obj) obj->command_task_abort();
             });
     }
@@ -326,7 +326,7 @@ void CalibrationCaliPage::update_subtask(MachineObject* obj)
                     prepare_text = wxString::Format(_L("Cloud Slicing..."));
                 }
                 else {
-                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead."), std::to_string(obj->queue_number));
+                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead of you."), std::to_string(obj->queue_number));
                     show_percent = false;
                 }
             }

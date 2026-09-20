@@ -3,6 +3,7 @@
 	"name": "0.35mm Standard @SeeMeCNC Artemis 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
+	"setting_id": "DpyLLAbWQymvvT5P",
 	"instantiation": "true",
 	"print_settings_id": "0.35mm Standard @SeeMeCNC Artemis 0.7",
 	"compatible_printers": [

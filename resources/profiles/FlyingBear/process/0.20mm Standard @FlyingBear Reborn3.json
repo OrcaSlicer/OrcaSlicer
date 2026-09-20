@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @FlyingBear Reborn3",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "r3aIXL8Weo1sx6w8",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"overhang_1_4_speed": "50",

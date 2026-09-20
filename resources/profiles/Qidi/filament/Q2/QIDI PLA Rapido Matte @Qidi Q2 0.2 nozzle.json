@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Matte @Qidi Q2 0.2 nozzle",
 	"inherits": "QIDI PLA Rapido Matte@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "GS4njT7svm7OASXo",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

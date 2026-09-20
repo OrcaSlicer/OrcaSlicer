@@ -3,8 +3,8 @@
 	"name": "Creality Hyper ABS @Ender-5Max-all",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
-	"filament_id": "03001",
+	"setting_id": "9Ek7KtQF2kgJbeXg",
+	"filament_id": "OFFP4ORR",
 	"instantiation": "true",
 	"activate_air_filtration": "0",
 	"activate_chamber_temp_control": "0",
@@ -43,7 +43,6 @@
 	],
 	"filament_flow_ratio": "0.92",
 	"filament_is_support": "0",
-	"filament_load_time": "0",
 	"filament_loading_speed": "28",
 	"filament_loading_speed_start": "3",
 	"filament_max_volumetric_speed": [
@@ -73,7 +72,6 @@
 	"filament_type": [
 		"ABS"
 	],
-	"filament_unload_time": "0",
 	"filament_unloading_speed": "90",
 	"filament_unloading_speed_start": "100",
 	"filament_vendor": [

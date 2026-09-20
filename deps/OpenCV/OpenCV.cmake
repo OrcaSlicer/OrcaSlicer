@@ -1,7 +1,20 @@
-if (MSVC)
+# Intel IPP / IPP-ICV is x86/x64 only — there is no ARM64 build, so enabling it
+# leaves ~200 unresolved ippicv* externals at link time on Windows ARM64.
+if (MSVC AND NOT "${DEPS_ARCH}" STREQUAL "arm64")
     set(_use_IPP "-DWITH_IPP=ON")
+    if (DEP_DEBUG)
+        set(_options "FORWARD_CONFIG")
+    endif ()
 else ()
     set(_use_IPP "-DWITH_IPP=OFF")
+    set(_options "")
+endif ()
+
+# carotene is OpenCV's ARM NEON HAL. It uses M_PI without _USE_MATH_DEFINES
+# and does not compile with clang-cl.
+set(_disable_carotene "")
+if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(_disable_carotene "-DWITH_CAROTENE=OFF")
 endif ()
 
 if (IN_GIT_REPO)
@@ -9,6 +22,7 @@ if (IN_GIT_REPO)
 endif ()
 
 orcaslicer_add_cmake_project(OpenCV
+    ${_options}
     URL https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
     URL_HASH SHA256=1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
     PATCH_COMMAND git apply ${OpenCV_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-vs.patch  ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch
@@ -76,5 +90,6 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_PROTOBUF=OFF
        -DWITH_WIN32UI=OFF
        -DHAVE_WIN32UI=FALSE
+       ${_disable_carotene}
 )
 

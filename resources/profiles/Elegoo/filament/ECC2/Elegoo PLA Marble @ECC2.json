@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Marble @ECC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Marble @base",
 	"from": "system",
-	"setting_id": "EPLAMARBLEECC2",
+	"setting_id": "vBkiE3Uh1LdCiOig",
 	"instantiation": "true",
 	"fan_min_speed": [
 		"80"

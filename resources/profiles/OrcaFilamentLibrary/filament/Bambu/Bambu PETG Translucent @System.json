@@ -3,7 +3,7 @@
 	"name": "Bambu PETG Translucent @System",
 	"inherits": "Bambu PETG Translucent @base",
 	"from": "system",
-	"setting_id": "OGFSG01_00",
+	"setting_id": "qUW9pYQ6aYUpMb2I",
 	"instantiation": "true",
 	"filament_long_retractions_when_cut": [
 		"1"

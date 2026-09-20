@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PETG @0.2 nozzle",
 	"inherits": "Snapmaker J1 PETG @base",
 	"from": "system",
-	"setting_id": "1003693375",
+	"setting_id": "LkY5PsZG6UNeeOp1",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.2 nozzle)"

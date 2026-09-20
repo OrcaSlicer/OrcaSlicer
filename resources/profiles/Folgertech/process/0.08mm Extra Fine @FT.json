@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @FT 0.4 nozzle",
 	"inherits": "fdm_process_folgertech_common",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "4mumHLuCrFPe3ylw",
 	"instantiation": "true",
 	"layer_height": "0.08",
 	"elefant_foot_compensation": "0.15",

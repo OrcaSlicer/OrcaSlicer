@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S400 Dual 0.8 nozzle",
 	"inherits": "Z-Bolt S400 Dual 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM016",
+	"setting_id": "mHCjknijcVhtMmIB",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"nozzle_diameter": [

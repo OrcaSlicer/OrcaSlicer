@@ -3,8 +3,8 @@
 	"name": "Prusament PVB @CORE One 0.8",
 	"inherits": "Prusament PVB @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "Prusament PVB @CORE One 0.8",
+	"setting_id": "Nn7eVPawILDH4BRW",
+	"filament_id": "OFh7mvPO",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa CORE One 0.8 nozzle",

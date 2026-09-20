@@ -72,7 +72,6 @@ public:
             float m_model_z_offset{ 0.5f };
             bool m_visible{ true };
             bool m_is_dark = false;
-            bool m_fixed_screen_size{ false };
             float m_scale_factor{ 1.0f };
 #if ENABLE_ACTUAL_SPEED_DEBUG
             ActualSpeedImguiWidget m_actual_speed_imgui_widget;
@@ -154,7 +153,10 @@ public:
         GCodeWindow gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
-        void render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
+        // The tool marker at the current move, drawn in 3D.
+        void render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
+        // The marker's position window and the G-code window, both ImGui.
+        void render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
     };
     struct ExtruderFilament
     {
@@ -226,6 +228,7 @@ private:
     std::vector<libvgcode::EViewType> view_type_items;
     std::vector<std::string> view_type_items_str;
     int       m_view_type_sel = 0;
+    int       m_last_extruder_count_default_applied{0};  // 0=unset, 1=single, 2+=multi
     std::vector<EMoveType> options_items;
 
     bool m_legend_visible{ true };
@@ -272,7 +275,10 @@ public:
     //BBS: add all plates filament statistics
     void render_all_plates_stats(const std::vector<const GCodeProcessorResult*>& gcode_result_list, bool show = true) const;
     //BBS: GUI refactor: add canvas width and height
-    void render(int canvas_width, int canvas_height, int right_margin);
+    // Shells, toolpaths and the sequential marker, drawn in 3D.
+    void render_scene(int canvas_width, int canvas_height);
+    // Legend, sliders, the marker's position window and the G-code window, all ImGui.
+    void render_overlay(int canvas_width, int canvas_height, int right_margin);
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
@@ -332,6 +338,13 @@ public:
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
 
+    // ORCA: darken the layers not scrubbed to while using the preview layer slider
+    void set_dim_previous_layers(bool value) { m_viewer.set_dim_previous_layers(value); }
+    bool is_dim_previous_layers() const { return m_viewer.is_dim_previous_layers(); }
+    // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
+    void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
+    float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
     bool is_legend_shown() const { return m_legend_visible && m_legend_enabled; }
@@ -355,6 +368,8 @@ public:
 private:
     //BBS: always load shell at preview
     //void load_shells(const Print& print);
+    // Canvas height minus the room the horizontal slider takes.
+    int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
     void render_shells(int canvas_width, int canvas_height);
 

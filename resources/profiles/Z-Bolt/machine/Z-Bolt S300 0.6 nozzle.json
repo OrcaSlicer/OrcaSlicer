@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S300 0.6 nozzle",
 	"inherits": "Z-Bolt S300 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "bv3xhNCXPQEch67E",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"nozzle_diameter": [

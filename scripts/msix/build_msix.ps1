@@ -10,6 +10,8 @@ Requires the Windows SDK (makeappx.exe) unless -StageOnly is used.
 param(
     [string]$InstallDir = "build/OrcaSlicer",
     [string]$OutputPath = "build/OrcaSlicer_Windows_MSIX.msix",
+    [ValidateSet("x64", "arm64")]
+    [string]$Architecture = "x64",
     [string]$StagingDir = "",
     [switch]$StageOnly,
     [string]$IdentityName = "OrcaSlicer.OrcaSlicer",
@@ -47,6 +49,7 @@ $manifest = $manifest.Replace('@MSIX_VERSION@', $msixVersion)
 $manifest = $manifest.Replace('@MSIX_IDENTITY_NAME@', $IdentityName)
 $manifest = $manifest.Replace('@MSIX_PUBLISHER@', $Publisher)
 $manifest = $manifest.Replace('@MSIX_PUBLISHER_DISPLAY_NAME@', $PublisherDisplayName)
+$manifest = $manifest.Replace('@MSIX_ARCH@', $Architecture)
 Set-Content -Path (Join-Path $StagingDir 'AppxManifest.xml') -Value $manifest -Encoding utf8
 
 if ($StageOnly) {
@@ -54,11 +57,15 @@ if ($StageOnly) {
     return
 }
 
-$makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64\makeappx.exe" -ErrorAction SilentlyContinue |
+# makeappx is a host tool: x64 runners ship only x64, arm64 runners ship arm64.
+# Pick the build host's architecture (not the target $Architecture, which only
+# affects the manifest ProcessorArchitecture above).
+$hostArch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' { 'arm64' } 'x86' { 'x86' } default { 'x64' } }
+$makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\$hostArch\makeappx.exe" -ErrorAction SilentlyContinue |
     Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
     Select-Object -First 1 -ExpandProperty FullName
 if (-not $makeappx) {
-    throw "makeappx.exe not found under '${env:ProgramFiles(x86)}\Windows Kits\10\bin' - install the Windows SDK"
+    throw "makeappx.exe not found under '${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\$hostArch' - install the Windows SDK"
 }
 Write-Output "Using makeappx: $makeappx"
 

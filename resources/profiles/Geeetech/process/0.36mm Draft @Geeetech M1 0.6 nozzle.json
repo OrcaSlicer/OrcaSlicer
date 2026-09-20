@@ -3,7 +3,7 @@
 	"name": "0.36mm Draft @Geeetech M1 0.6 nozzle",
 	"inherits": "fdm_process_Geeetech_HS_0.36_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP_Geeetech_049",
+	"setting_id": "7dLPmG2GiJcmnqlk",
 	"instantiation": "true",
 	"initial_layer_speed": "30",
 	"initial_layer_infill_speed": "50",

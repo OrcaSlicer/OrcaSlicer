@@ -3,8 +3,8 @@
 	"name": "Qidi ASA-Aero @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Qidi ASA-Aero",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "FKWhpunDSV0iusbz",
+	"filament_id": "OFG4do34",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"0"

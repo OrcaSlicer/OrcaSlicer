@@ -2,9 +2,9 @@
 	"type": "filament",
 	"name": "Elegoo Rapid PETG @ECC2",
 	"renamed_from": "Elegoo RAPID PETG @ECC2",
-	"inherits": "Elegoo PETG @base",
+	"inherits": "Elegoo Rapid PETG @base",
 	"from": "system",
-	"setting_id": "ERPETGECC2",
+	"setting_id": "oVp14HbITUsNcgvp",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.052"

@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Wanhao-D12-300 PoopTool",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "nkw0oVHu8xPoWe8i",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"bottom_shell_layers": "4",

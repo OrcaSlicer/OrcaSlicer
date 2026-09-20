@@ -3,7 +3,7 @@
 	"name": "HATCHBOX ABS @Qidi Q2 0.6 nozzle",
 	"inherits": "HATCHBOX ABS@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "yk6xtgojznV3KVMb",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"

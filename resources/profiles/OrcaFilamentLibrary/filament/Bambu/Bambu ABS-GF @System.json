@@ -3,7 +3,7 @@
 	"name": "Bambu ABS-GF @System",
 	"inherits": "Bambu ABS-GF @base",
 	"from": "system",
-	"setting_id": "OGFSB50_00",
+	"setting_id": "mxgv6vFKgwBAF1Gw",
 	"instantiation": "true",
 	"filament_long_retractions_when_cut": [
 		"1"

@@ -3,7 +3,7 @@
 	"name": "0.20mm Quality @RatRig V-Core 4 IDEX 0.5",
 	"inherits": "fdm_process_ratrig_idex",
 	"from": "system",
-	"setting_id": "GP006",
+	"setting_id": "ELxmcKk3ZheIjH7w",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"inital_layer_height": "0.3",

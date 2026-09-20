@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "CoLiDo 160 V2 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "RRzVDMk3GxAV3tMW",
 	"instantiation": "true",
 	"printer_model": "CoLiDo 160 V2",
 	"adaptive_bed_mesh_margin": "0",
@@ -23,7 +23,7 @@
 	"cooling_tube_length": "5",
 	"cooling_tube_retraction": "91.5",
 	"default_filament_profile": [
-		"CoLiDo Generic PLA @CoLiDo X16"
+		"Generic PLA @CoLiDo X16"
 	],
 	"default_print_profile": "0.20mm Standard @CoLiDo X16",
 	"deretraction_speed": [
@@ -189,7 +189,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",

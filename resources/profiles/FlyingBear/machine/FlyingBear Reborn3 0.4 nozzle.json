@@ -3,7 +3,7 @@
 	"name": "FlyingBear Reborn3 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "yluu0jklGesUFUuk",
 	"instantiation": "true",
 	"printer_model": "FlyingBear Reborn3",
 	"nozzle_diameter": [

@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PETG-CF",
 	"inherits": "Snapmaker Dual PETG-CF @base",
 	"from": "system",
-	"setting_id": "950459082",
+	"setting_id": "jbK61bqOzFY2NOHi",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.4 nozzle)",

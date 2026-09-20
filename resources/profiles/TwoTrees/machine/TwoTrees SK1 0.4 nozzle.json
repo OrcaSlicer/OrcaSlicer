@@ -3,7 +3,7 @@
 	"name": "TwoTrees SK1 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "oYYnPwOmTTN2p6y2",
 	"instantiation": "true",
 	"printer_model": "TwoTrees SK1",
 	"nozzle_diameter": [

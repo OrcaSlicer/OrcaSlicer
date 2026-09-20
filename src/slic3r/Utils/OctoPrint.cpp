@@ -345,13 +345,15 @@ bool OctoPrint::upload_inner_with_resolved_ip(PrintHostUpload upload_data, Progr
 
     info_fn(L"resolve", boost::nowide::widen(url));
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% at %3%, filename: %4%, path: %5%, print: %6%")
+    const std::string plateindex = upload_data.extended("plateindex");
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% at %3%, filename: %4%, path: %5%, print: %6%, plateindex: %7%")
         % name
         % upload_data.source_path
         % url
         % upload_filename.string()
         % upload_parent_path.string()
-        % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false");
+        % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false")
+        % (plateindex.empty() ? "-" : plateindex);
 
     auto http = Http::post(url);//std::move(url));
     // "Host" header is necessary here. We have resolved IP address and subsituted it into "url" variable.
@@ -362,8 +364,13 @@ bool OctoPrint::upload_inner_with_resolved_ip(PrintHostUpload upload_data, Progr
     http.header("Host", Http::get_host_header_value(m_host));
     set_auth(http);
     http.form_add("print", upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false")
-        .form_add("path", upload_parent_path.string())      // XXX: slashes on windows ???
-        .form_add_file("file", upload_data.source_path.string(), upload_filename.string())
+        .form_add("path", upload_parent_path.string());     // XXX: slashes on windows ???
+    //ORCA: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode), so the upload names the
+    //      plate via a 1-based `plateindex` (see Plater::send_gcode_legacy); servers that don't use it
+    //      ignore the unknown form field.
+    if (!plateindex.empty())
+        http.form_add("plateindex", plateindex);
+    http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
   
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
@@ -429,13 +436,15 @@ bool OctoPrint::upload_inner_with_host(PrintHostUpload upload_data, ProgressFn p
     }
 #endif // _WIN32
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% at %3%, filename: %4%, path: %5%, print: %6%")
+    const std::string plateindex = upload_data.extended("plateindex");
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% at %3%, filename: %4%, path: %5%, print: %6%, plateindex: %7%")
         % name
         % upload_data.source_path
         % url
         % upload_filename.string()
         % upload_parent_path.string()
-        % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false");
+        % (upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false")
+        % (plateindex.empty() ? "-" : plateindex);
 
     auto http = Http::post(std::move(url));
 #ifdef WIN32
@@ -449,8 +458,13 @@ bool OctoPrint::upload_inner_with_host(PrintHostUpload upload_data, ProgressFn p
 #endif // _WIN32
     set_auth(http);
     http.form_add("print", upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false")
-        .form_add("path", upload_parent_path.string())      // XXX: slashes on windows ???
-        .form_add_file("file", upload_data.source_path.string(), upload_filename.string())
+        .form_add("path", upload_parent_path.string());     // XXX: slashes on windows ???
+    //ORCA: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode), so the upload names the
+    //      plate via a 1-based `plateindex` (see Plater::send_gcode_legacy); servers that don't use it
+    //      ignore the unknown form field.
+    if (!plateindex.empty())
+        http.form_add("plateindex", plateindex);
+    http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
         })

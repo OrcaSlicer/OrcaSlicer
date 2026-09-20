@@ -3,8 +3,8 @@
 	"name": "Bambu PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
-	"filament_id": "GFG99",
+	"setting_id": "5ZkReXpCOi19xuJg",
+	"filament_id": "OFLYDngx",
 	"instantiation": "true",
 	"filament_type": [
 		"PETG"

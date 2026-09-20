@@ -3,7 +3,8 @@
     "name": "FilAr PETG Rojo Carmesi",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0060",
+    "setting_id": "ok1h38XzyQXPBIMM",
+    "filament_id": "OFPbyOSk",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

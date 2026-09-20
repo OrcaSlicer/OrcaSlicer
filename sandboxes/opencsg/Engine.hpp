@@ -353,7 +353,7 @@ private:
 // The basic Display. This is almost just an interface but will do all the
 // initialization and show the fps values. Overriding the render_scene is
 // needed to show the scene content. The specific method of displaying the
-// scene is up the the particular implementation (OpenCSG or other screen space
+// scene is up the particular implementation (OpenCSG or other screen space
 // boolean algorithms)
 class Display : public Scene::Listener
 {

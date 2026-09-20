@@ -3,8 +3,12 @@
 	"name": "Prusament ASA @XL 5T",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IQu91UAWOJOQcUq9",
+	"filament_id": "OFmFwUWM",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Prusa Polymers"
+	],
 	"nozzle_temperature_intial_layer": "260",
 	"nozzle_temperature": "260",
 	"hot_plate_temp_initial_layer": "100",
@@ -37,8 +41,6 @@
 	"filament_loading_speed": "14",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "20",
-	"filament_load_time": "15",
-	"filament_unload_time": "12",
 	"filament_cooling_moves": "5",
 	"filament_cooling_initial_speed": "10",
 	"filament_cooling_final_speed": "50",

@@ -3,7 +3,7 @@
 	"name": "0.24mm Optimal @Geeetech M1 0.6 nozzle",
 	"inherits": "fdm_process_Geeetech_HS_0.24_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP_Geeetech_045",
+	"setting_id": "tO8DKxjoFp9qkGxc",
 	"instantiation": "true",
 	"initial_layer_speed": "30",
 	"initial_layer_infill_speed": "50",

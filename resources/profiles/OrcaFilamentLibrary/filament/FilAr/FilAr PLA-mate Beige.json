@@ -3,7 +3,8 @@
     "name": "FilAr PLA-mate Beige",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
-    "filament_id": "FILAR0032",
+    "setting_id": "XoilIv3HqpDTVRwv",
+    "filament_id": "OFGcLA5R",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

@@ -4,8 +4,7 @@
 	"renamed_from": "My Generic PC @MyToolChanger",
 	"inherits": "Generic PC @System",
 	"from": "system",
-	"setting_id": "GFC99_MTC_0",
-	"filament_id": "GFC99",
+	"setting_id": "HMOa2jbj19Xjipt5",
 	"instantiation": "true",
 	"filament_cooling_final_speed": [
 		"3.5"
@@ -16,29 +15,17 @@
 	"filament_cooling_moves": [
 		"2"
 	],
-	"filament_load_time": [
-		"10.5"
-	],
 	"filament_loading_speed": [
 		"10"
 	],
 	"filament_loading_speed_start": [
 		"50"
 	],
-	"filament_multitool_ramming": [
-		"1"
-	],
-	"filament_multitool_ramming_flow": [
-		"40"
-	],
 	"filament_stamping_distance": [
 		"45"
 	],
 	"filament_stamping_loading_speed": [
 		"29"
-	],
-	"filament_unload_time": [
-		"8.5"
 	],
 	"filament_unloading_speed": [
 		"100"

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSL99",
 	"name": "Generic PLA+ @Qidi X-Max 4 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PLA+@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "5zmqHwM0HFBxi2xH",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

@@ -3,6 +3,11 @@
 	"name": "Flashforge PLA Luminous @FF C5P",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "jEUZyaEIBf2eXXeh",
+	"filament_id": "OFdqkWtz",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

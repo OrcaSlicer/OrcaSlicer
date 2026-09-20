@@ -3,7 +3,7 @@
 	"name": "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "Fs3iRbeNcLJoUhdJ",
 	"instantiation": "true",
 	"printer_model": "Co Print ChromaSet",
 	"default_print_profile": "0.2mm Standard @Co Print ChromaSet 0.4",
@@ -108,7 +108,7 @@
 	"machine_end_gcode": "end_print",
 	"change_filament_gcode": "FILAMENT_CHANGE LAYER_NUM=[layer_num] NEXT_EXTRUDER=[next_extruder]",
 	"default_filament_profile": [
-		"CoPrint Generic PLA"
+		"Generic PLA @CoPrint"
 	],
 	"extruder_clearance_radius": [
 		"65"

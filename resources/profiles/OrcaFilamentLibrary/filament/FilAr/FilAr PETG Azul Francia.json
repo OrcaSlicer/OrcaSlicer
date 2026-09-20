@@ -3,7 +3,8 @@
     "name": "FilAr PETG Azul Francia",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0050",
+    "setting_id": "O24dTvHOzlbikvmq",
+    "filament_id": "OF44VYzK",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

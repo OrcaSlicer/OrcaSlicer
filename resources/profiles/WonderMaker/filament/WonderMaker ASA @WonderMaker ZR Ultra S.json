@@ -3,7 +3,7 @@
 	"name": "WonderMaker ASA @WonderMaker ZR Ultra S",
 	"inherits": "WonderMaker ASA",
 	"from": "system",
-	"setting_id": "GFSB01_07",
+	"setting_id": "UFAjAywKaIFE8fh4",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"60"

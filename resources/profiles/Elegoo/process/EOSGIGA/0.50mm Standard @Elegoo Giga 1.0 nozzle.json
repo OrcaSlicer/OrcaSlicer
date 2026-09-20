@@ -1,8 +1,9 @@
 {
+	"type": "process",
 	"inherits": "fdm_process_elegoo_10050",
 	"name": "0.50mm Standard @Elegoo Giga 1.0 nozzle",
 	"from": "system",
-	"setting_id": "PEOSG10050",
+	"setting_id": "hLPWpsFCvKgbrebl",
 	"instantiation": "true",
 	"renamed_from": "0.50mm Standard @EOS Giga 1.0 nozzle",
 	"default_acceleration": "3000",

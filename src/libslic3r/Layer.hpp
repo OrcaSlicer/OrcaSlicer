@@ -16,7 +16,9 @@ using LayerPtrs = std::vector<Layer*>;
 class LayerRegion;
 using LayerRegionPtrs = std::vector<LayerRegion*>;
 class PrintRegion;
+class PrintRegionConfig;
 class PrintObject;
+class Print;
 
 namespace FillAdaptive {
     struct Octree;
@@ -156,6 +158,10 @@ public:
     ExPolygons 				 lslices;
     ExPolygons 				 lslices_extrudable;  // BBS: the extrudable part of lslices used for tree support
     std::vector<BoundingBox> lslices_bboxes;
+    // Orca: for separated infills / per-model centering. Aligned with lslices: for each island, the
+    // full bounding box of the 3D connected body (across all layers) it belongs to. Populated by
+    // PrintObject::infill() only when the feature is used; empty otherwise.
+    std::vector<BoundingBox> lslices_separated_component_bboxes;
 
     // BBS
     ExPolygons              loverhangs;
@@ -186,7 +192,7 @@ public:
     }
 
     // Whether two regions can be printed in a continues perimeter
-    static bool             is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b);
+    static bool             is_perimeter_compatible(const Print& print, const PrintRegion& a, const PrintRegion& b);
     void                    make_perimeters();
     // Phony version of make_fills() without parameters for Perl integration only.
     void                    make_fills() { this->make_fills(nullptr, nullptr); }
@@ -195,6 +201,11 @@ public:
                                                                            FillAdaptive::Octree *support_fill_octree,
                                                                            FillLightning::Generator* lightning_generator) const;
     void 					make_ironing();
+    // Returns the filament id (1-based) the region is ironed with, or -1 when the
+    // region is not ironed.
+    static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
+                                                    bool spiral_mode,
+                                                    bool is_topmost_layer);
     void                    make_contour_z(const sla::IndexedMesh &mesh);
 
     void                    export_region_slices_to_svg(const char *path) const;

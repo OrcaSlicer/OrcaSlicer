@@ -1,8 +1,9 @@
 {
 	"type": "process",
 	"name": "0.30mm Fine @Elegoo N3Plus 1.0 nozzle",
+	"from": "system",
 	"inherits": "0.50mm Standard @Elegoo N3Plus 1.0 nozzle",
 	"layer_height": "0.3",
-	"settings_id": "PEN3Plus10030",
+	"setting_id": "nnGIKTAThcIjqiNY",
 	"instantiation": "true"
 }

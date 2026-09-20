@@ -3,8 +3,8 @@
 	"name": "CoLiDo PLA Silk @CoLiDo SR1",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA99_06",
-	"filament_id": "GFA99",
+	"setting_id": "mLgBNw0OzvJSS8IG",
+	"filament_id": "OFnSeLHk",
 	"instantiation": "true",
 	"filament_vendor": [
 		"CoLiDo"

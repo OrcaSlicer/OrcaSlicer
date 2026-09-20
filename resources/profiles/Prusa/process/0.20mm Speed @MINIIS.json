@@ -3,7 +3,7 @@
 	"name": "0.20mm Speed @MINIIS",
 	"inherits": "process_speed_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "8Sg9zpg5mIR9bcnU",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MINIIS 0.4 nozzle"

@@ -4,6 +4,7 @@
 	"printer_model": "E3NG v1.2S",
 	"inherits": "fdm_common_E3NG v1.2S",
 	"from": "system",
+	"setting_id": "GSUiav9EILSf8XF4",
 	"instantiation": "true",
 	"default_print_profile": "0.20mm Standard @E3NG v1.2S",
 	"nozzle_diameter": [

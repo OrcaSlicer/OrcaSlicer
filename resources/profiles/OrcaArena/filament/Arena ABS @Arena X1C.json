@@ -3,7 +3,7 @@
 	"name": "Arena ABS @Arena X1C",
 	"inherits": "Arena ABS @base",
 	"from": "system",
-	"setting_id": "GFSB00",
+	"setting_id": "25fcPM16xLDCkzr9",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"22"

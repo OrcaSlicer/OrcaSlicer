@@ -3,7 +3,7 @@
 	"name": "UltiMaker 2 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "Jl8sUeuACVyrnrst",
 	"instantiation": "true",
 	"printer_model": "UltiMaker 2",
 	"default_print_profile": "0.18mm Standard @UltiMaker 2",

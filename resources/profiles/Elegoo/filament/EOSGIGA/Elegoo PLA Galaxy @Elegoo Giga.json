@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Galaxy @Elegoo Giga",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Galaxy @base",
 	"from": "system",
-	"setting_id": "EPLAGALAXYEOSG00",
+	"setting_id": "Nq1YaFeJ6Osr7OZ9",
 	"instantiation": "true",
 	"fan_min_speed": [
 		"80"

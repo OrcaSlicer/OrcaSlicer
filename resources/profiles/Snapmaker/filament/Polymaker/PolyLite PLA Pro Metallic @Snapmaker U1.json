@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Pro Metallic @Snapmaker U1",
 	"inherits": "PolyLite PLA Pro Metallic @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL75_00",
+	"setting_id": "21wjCLo6hOb9p38K",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

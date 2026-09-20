@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSL99",
 	"name": "HATCHBOX PLA @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "HATCHBOX PLA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "d9Zcvd5g3fN8TZw9",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.016"
 	],

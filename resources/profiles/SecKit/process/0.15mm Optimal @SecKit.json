@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @SecKit",
 	"inherits": "fdm_process_seckit_common",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "vmlaA0Yl7JdiHglT",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

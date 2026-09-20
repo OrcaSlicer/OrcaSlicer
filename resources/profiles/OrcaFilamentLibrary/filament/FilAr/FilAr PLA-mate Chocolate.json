@@ -3,7 +3,8 @@
     "name": "FilAr PLA-mate Chocolate",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
-    "filament_id": "FILAR0036",
+    "setting_id": "DdW1XKqqRuLM1cAd",
+    "filament_id": "OFdzlrhi",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

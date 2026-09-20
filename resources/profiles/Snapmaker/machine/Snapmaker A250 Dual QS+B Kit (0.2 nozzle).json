@@ -3,7 +3,7 @@
 	"name": "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
 	"inherits": "fdm_a250_dual_qs_bk",
 	"from": "system",
-	"setting_id": "1173309402",
+	"setting_id": "4UhrgxofVvD8MfdX",
 	"instantiation": "true",
 	"printer_model": "Snapmaker A250 Dual QS+B Kit",
 	"default_print_profile": "0.14 Standard @Snapmaker (0.2 nozzle)",

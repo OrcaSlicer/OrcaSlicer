@@ -3,7 +3,7 @@
 	"name": "0.25mm Vase Mode @LH Stinger",
 	"inherits": "fdm_process_lh_common",
 	"from": "system",
-	"setting_id": "LHS_P_vase_mode",
+	"setting_id": "tfGhpXLVB51jD4SA",
 	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",

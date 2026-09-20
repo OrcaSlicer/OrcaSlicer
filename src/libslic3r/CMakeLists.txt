@@ -19,6 +19,12 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
+option(USE_SLIC3R_CONSOLE_LOG "Enable console logging in RelWithDebInfo builds" OFF)
+
+# SolveSpace constraint solver (2D sketch solver backbone), built in deps/SLVS.
+if (SLIC3R_CAD)
+    find_package(SLVS REQUIRED)
+endif ()
 
 set(lisbslic3r_sources
     AABBMesh.cpp
@@ -146,8 +152,12 @@ set(lisbslic3r_sources
     Fill/FillBase.hpp
     Fill/FillConcentric.cpp
     Fill/FillConcentric.hpp
+    Fill/FillSpiralInset.cpp
+    Fill/FillSpiralInset.hpp
     Fill/FillConcentricInternal.cpp
     Fill/FillConcentricInternal.hpp
+    Fill/FillCornerSmoothing.cpp
+    Fill/FillCornerSmoothing.hpp
     Fill/Fill.cpp
     Fill/FillCrossHatch.cpp
     Fill/FillCrossHatch.hpp
@@ -176,6 +186,17 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
+    FilamentMixer.cpp
+    FilamentMixer.hpp
+    FilamentMixerModel.hpp
+    ColorDecomposeRecipe.cpp
+    ColorDecomposeRecipe.hpp
+    TexturePainting.hpp
+    TexturePainting.cpp
+    TextureToColor/TextureToColor.hpp
+    TextureToColor/TextureToColor.cpp
+    TextureToColor/ColorUtils.hpp
+    TextureToColor/ColorUtils.cpp
     Flow.cpp
     Flow.hpp
     FlushVolCalc.cpp
@@ -191,6 +212,9 @@ set(lisbslic3r_sources
     format.hpp
     Format/OBJ.cpp
     Format/OBJ.hpp
+    Format/AssimpImport.hpp
+    Format/AssimpImport.cpp
+    Format/ResourcePathUtils.hpp
     Format/objparser.cpp
     Format/objparser.hpp
     Format/SL1.cpp
@@ -221,11 +245,10 @@ set(lisbslic3r_sources
     GCode/FanMover.hpp
     GCode/GCodeProcessor.cpp
     GCode/GCodeProcessor.hpp
+    GCode/ElegooGCodeProcessorHelper.cpp
     GCode.hpp
     GCode/PchipInterpolatorHelper.cpp
     GCode/PchipInterpolatorHelper.hpp
-    GCode/PostProcessor.cpp
-    GCode/PostProcessor.hpp
     GCode/PressureEqualizer.cpp
     GCode/PressureEqualizer.hpp
     GCode/PrintExtents.cpp
@@ -242,16 +265,22 @@ set(lisbslic3r_sources
     GCode/SmallAreaInfillFlowCompensator.hpp
     GCode/SpiralVase.cpp
     GCode/SpiralVase.hpp
+    GCode/WipePathHelpers.cpp
+    GCode/WipePathHelpers.hpp
     GCode/ThumbnailData.cpp
     GCode/ThumbnailData.hpp
     GCode/Thumbnails.cpp
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
     GCode/ToolOrdering.hpp
+    GCode/OrderingStrategies.cpp
+    GCode/OrderingStrategies.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
     GCode/WipeTower.hpp
+    GCode/WipeTowerEstimate.cpp
+    GCode/WipeTowerEstimate.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
     Geometry/ArcWelder.hpp
@@ -280,6 +309,8 @@ set(lisbslic3r_sources
     Layer.cpp
     Layer.hpp
     LayerRegion.cpp
+    LayOnFace.cpp
+    LayOnFace.hpp
     libslic3r.cpp
     libslic3r.h
     Line.cpp
@@ -344,10 +375,14 @@ set(lisbslic3r_sources
     Polyline.hpp
     PresetBundle.cpp
     PresetBundle.hpp
+    PresetCacheFormat.cpp
+    PresetCacheFormat.hpp
     Preset.cpp
     Preset.hpp
     PrincipalComponents2D.cpp
     PrincipalComponents2D.hpp
+    PublishSettings.cpp
+    PublishSettings.hpp
     PrintApply.cpp
     PrintBase.cpp
     PrintBase.hpp
@@ -470,11 +505,36 @@ set(lisbslic3r_sources
     FilamentGroup.cpp
     FilamentGroupUtils.hpp
     FilamentGroupUtils.cpp
+    MultiNozzleUtils.hpp
+    MultiNozzleUtils.cpp
     GCode/ToolOrderUtils.hpp
     GCode/ToolOrderUtils.cpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp
 )
+
+# Parametric Design/CAD kernel. Needs OCCT's ModelingAlgorithms module and the
+# vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
+if (SLIC3R_CAD)
+    list(APPEND lisbslic3r_sources
+            CAD/GeometryEngine.cpp
+            CAD/GeometryEngine.hpp
+            CAD/SketchEngine.cpp
+            CAD/SketchEngine.hpp
+            CAD/SketchConstraints.cpp
+            CAD/SketchConstraints.hpp
+            CAD/SketchSolver.cpp
+            CAD/SketchSolver.hpp
+            CAD/SketchInference.cpp
+            CAD/SketchInference.hpp
+            CAD/SketchImport.cpp
+            CAD/SketchImport.hpp
+            CAD/CadDocument.cpp
+            CAD/CadDocument.hpp
+            CAD/ThreadStandards.cpp
+            CAD/ThreadStandards.hpp
+        )
+endif ()
 
 if (APPLE)
     list(APPEND lisbslic3r_sources
@@ -496,8 +556,13 @@ set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE ON CACHE BOOL "" FORCE)
 
 cmake_policy(PUSH)
 cmake_policy(SET CMP0011 NEW)
+# CGAL's config resets policies (cmake_minimum_required ...3.23), so a plain SET
+# can't reach it; the default opts its Boost lookup into BoostConfig (CMP0167).
+set(CMAKE_POLICY_DEFAULT_CMP0167 NEW)
 find_package(CGAL REQUIRED)
 find_package(OpenCV REQUIRED core)
+find_package(assimp REQUIRED)
+unset(CMAKE_POLICY_DEFAULT_CMP0167)
 cmake_policy(POP)
 
 add_library(libslic3r_cgal STATIC
@@ -525,6 +590,12 @@ if (_opts)
     target_compile_options(libslic3r_cgal PRIVATE "${_opts_bad}")
 endif()
 
+if (IS_CLANG_CL)
+    # CGAL passes /fp:strict /fp:except-. clang-cl reports the second as overriding part of
+    # the first; the settings cc1 receives are the same ones MSVC produces from that pair.
+    target_compile_options(libslic3r_cgal PRIVATE -Wno-overriding-option)
+endif ()
+
 target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs)
 
 if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # 32 bit MSVC workaround
@@ -534,7 +605,10 @@ endif ()
 encoding_check(libslic3r)
 
 target_compile_definitions(libslic3r PUBLIC -DUSE_TBB -DTBB_USE_CAPTURED_EXCEPTION=0)
-target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+if (USE_SLIC3R_CONSOLE_LOG)
+    target_compile_definitions(libslic3r PRIVATE $<$<CONFIG:RelWithDebInfo>:SLIC3R_CONSOLE_LOG>)
+endif()
+target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/TextureToColor PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
 
 # Find the OCCT and related libraries
@@ -543,7 +617,7 @@ find_package(OpenCASCADE REQUIRED)
 target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 
 find_package(JPEG REQUIRED)
-find_package(draco REQUIRED)
+find_package(Draco REQUIRED)
 
 set(OCCT_LIBS
     TKXDESTEP
@@ -573,6 +647,30 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
+# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module: TKFillet
+# (BRepFilletAPI), TKOffset (BRepOffsetAPI) and TKBool, which the other two need.
+#
+# PREPEND, never append: this list is single-pass static link order, dependents before
+# dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
+# references BRepAlgo_Loop, which TKBool defines, so TKOffset must come BEFORE TKBool.
+# Appending put it after, and a strictly single-pass linker (the Flatpak build) failed with
+#     libTKOffset.a(BRepOffset_MakeLoops.cxx.o): undefined reference to
+#     `BRepAlgo_Loop::BRepAlgo_Loop()'
+# while the ordinary Linux, macOS and Windows links resolved it anyway. Use set() rather
+# than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
+if (SLIC3R_CAD)
+    set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
+    # deps is configured separately, so its SLIC3R_CAD can differ from ours. The module is
+    # all-or-nothing, so one absent toolkit proves it; fail here rather than at link time.
+    if (NOT TARGET TKFillet)
+        message(FATAL_ERROR
+            "SLIC3R_CAD is ON, but the OpenCASCADE in ${CMAKE_PREFIX_PATH} was built without "
+            "BUILD_MODULE_ModelingAlgorithms. Rebuild the dependencies with -DSLIC3R_CAD=ON, "
+            "or configure this project with -DSLIC3R_CAD=OFF.")
+    endif ()
+endif ()
+# Published for the Windows packaging step in the top-level CMakeLists.txt.
+set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
 
 target_link_libraries(libslic3r
     PUBLIC
@@ -582,6 +680,7 @@ target_link_libraries(libslic3r
         libnest2d
         miniz
         opencv_world
+        assimp::assimp
     PRIVATE
         ${CMAKE_DL_LIBS}
         ${EXPAT_LIBRARIES}
@@ -624,6 +723,10 @@ if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
 endif()
 
+if (SLIC3R_CAD)
+    target_link_libraries(libslic3r PUBLIC SLVS::slvs)
+endif ()
+
 if(WIN32)
     target_link_libraries(libslic3r PRIVATE Psapi.lib bcrypt.lib)
 endif()
@@ -631,6 +734,13 @@ endif()
 if(SLIC3R_PROFILE)
     target_link_libraries(libslic3r PRIVATE Shiny)
 endif()
+
+if (WIN32)
+    # Public, since BlacklistedLibraryCheck.hpp includes windows.h. Empty
+    # WIN32_LEAN_AND_MEAN matches the sources that define it themselves; bare
+    # NOMINMAX matches the one libigl already passes.
+    target_compile_definitions(libslic3r PUBLIC "WIN32_LEAN_AND_MEAN=" "NOMINMAX")
+endif ()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)

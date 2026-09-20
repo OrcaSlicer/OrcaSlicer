@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Basic @Elegoo Giga",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Basic @base",
 	"from": "system",
-	"setting_id": "EPLABASICEOSG00",
+	"setting_id": "vdtyGUjloveBjsGV",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"220"

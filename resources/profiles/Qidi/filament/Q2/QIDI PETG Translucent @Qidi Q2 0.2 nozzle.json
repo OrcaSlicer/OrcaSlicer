@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Translucent @Qidi Q2 0.2 nozzle",
 	"inherits": "QIDI PETG Translucent@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "VEwJneFk2i7mTA4s",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

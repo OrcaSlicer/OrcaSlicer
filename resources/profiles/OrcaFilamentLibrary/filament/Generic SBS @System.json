@@ -3,7 +3,8 @@
 	"name": "Generic SBS @System",
 	"inherits": "fdm_filament_sbs",
 	"from": "system",
-	"setting_id": "OGFSL99",
+	"setting_id": "fjVWcIfxaOAZHNU1",
+	"filament_id": "OFhQfUQY",
 	"instantiation": "true",
 	"compatible_printers": []
 }

@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.02",
+	"version": "02.04.00.08",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -67,258 +67,6 @@
 		{
 			"name": "fdm_filament_pla",
 			"sub_path": "filament/base/fdm_filament_pla.json"
-		},
-		{
-			"name": "FilAr PLA @base",
-			"sub_path": "filament/FilAr/FilAr PLA @base.json"
-		},
-		{
-			"name": "FilAr PLA Bronce",
-			"sub_path": "filament/FilAr/FilAr PLA Bronce.json"
-		},
-		{
-			"name": "FilAr PLA Gris Plata",
-			"sub_path": "filament/FilAr/FilAr PLA Gris Plata.json"
-		},
-		{
-			"name": "FilAr PLA Cobre",
-			"sub_path": "filament/FilAr/FilAr PLA Cobre.json"
-		},
-		{
-			"name": "FilAr PLA Titanio",
-			"sub_path": "filament/FilAr/FilAr PLA Titanio.json"
-		},
-		{
-			"name": "FilAr PLA Tabaco",
-			"sub_path": "filament/FilAr/FilAr PLA Tabaco.json"
-		},
-		{
-			"name": "FilAr PLA Cafe con Leche",
-			"sub_path": "filament/FilAr/FilAr PLA Cafe con Leche.json"
-		},
-		{
-			"name": "FilAr PLA Manteca",
-			"sub_path": "filament/FilAr/FilAr PLA Manteca.json"
-		},
-		{
-			"name": "FilAr PLA Marron Oxido",
-			"sub_path": "filament/FilAr/FilAr PLA Marron Oxido.json"
-		},
-		{
-			"name": "FilAr PLA Carpincho",
-			"sub_path": "filament/FilAr/FilAr PLA Carpincho.json"
-		},
-		{
-			"name": "FilAr PLA Rosa Amaranto",
-			"sub_path": "filament/FilAr/FilAr PLA Rosa Amaranto.json"
-		},
-		{
-			"name": "FilAr PLA Rosa Flamenco",
-			"sub_path": "filament/FilAr/FilAr PLA Rosa Flamenco.json"
-		},
-		{
-			"name": "FilAr PLA Piel",
-			"sub_path": "filament/FilAr/FilAr PLA Piel.json"
-		},
-		{
-			"name": "FilAr PLA Verde FilAr",
-			"sub_path": "filament/FilAr/FilAr PLA Verde FilAr.json"
-		},
-		{
-			"name": "FilAr PLA Verde Manzana",
-			"sub_path": "filament/FilAr/FilAr PLA Verde Manzana.json"
-		},
-		{
-			"name": "FilAr PLA Verde Pixel",
-			"sub_path": "filament/FilAr/FilAr PLA Verde Pixel.json"
-		},
-		{
-			"name": "FilAr PLA Verde Oliva",
-			"sub_path": "filament/FilAr/FilAr PLA Verde Oliva.json"
-		},
-		{
-			"name": "FilAr PLA Blanco Antartida",
-			"sub_path": "filament/FilAr/FilAr PLA Blanco Antartida.json"
-		},
-		{
-			"name": "FilAr PLA Blanco Calido",
-			"sub_path": "filament/FilAr/FilAr PLA Blanco Calido.json"
-		},
-		{
-			"name": "FilAr PLA Negro Azabache",
-			"sub_path": "filament/FilAr/FilAr PLA Negro Azabache.json"
-		},
-		{
-			"name": "FilAr PLA Naranja Tigre",
-			"sub_path": "filament/FilAr/FilAr PLA Naranja Tigre.json"
-		},
-		{
-			"name": "FilAr PLA Rojo de Carreras",
-			"sub_path": "filament/FilAr/FilAr PLA Rojo de Carreras.json"
-		},
-		{
-			"name": "FilAr PLA Amarillo Lirio",
-			"sub_path": "filament/FilAr/FilAr PLA Amarillo Lirio.json"
-		},
-		{
-			"name": "FilAr PLA Violeta Jacaranda",
-			"sub_path": "filament/FilAr/FilAr PLA Violeta Jacaranda.json"
-		},
-		{
-			"name": "FilAr PLA Gris Pizarra",
-			"sub_path": "filament/FilAr/FilAr PLA Gris Pizarra.json"
-		},
-		{
-			"name": "FilAr PLA Gris Ceniza",
-			"sub_path": "filament/FilAr/FilAr PLA Gris Ceniza.json"
-		},
-		{
-			"name": "FilAr PLA Azul Francia",
-			"sub_path": "filament/FilAr/FilAr PLA Azul Francia.json"
-		},
-		{
-			"name": "FilAr PLA Celeste Cielo",
-			"sub_path": "filament/FilAr/FilAr PLA Celeste Cielo.json"
-		},
-		{
-			"name": "FilAr PLA Oro",
-			"sub_path": "filament/FilAr/FilAr PLA Oro.json"
-		},
-		{
-			"name": "FilAr PLA Dorado",
-			"sub_path": "filament/FilAr/FilAr PLA Dorado.json"
-		},
-		{
-			"name": "FilAr PLA-mate @base",
-			"sub_path": "filament/FilAr/FilAr PLA-mate @base.json"
-		},
-		{
-			"name": "FilAr PLA-mate Amarillo",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Amarillo.json"
-		},
-		{
-			"name": "FilAr PLA-mate Azul",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Azul.json"
-		},
-		{
-			"name": "FilAr PLA-mate Beige",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Beige.json"
-		},
-		{
-			"name": "FilAr PLA-mate Blanco",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Blanco.json"
-		},
-		{
-			"name": "FilAr PLA-mate Bordo",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Bordo.json"
-		},
-		{
-			"name": "FilAr PLA-mate Celeste Cielo",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Celeste Cielo.json"
-		},
-		{
-			"name": "FilAr PLA-mate Chocolate",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Chocolate.json"
-		},
-		{
-			"name": "FilAr PLA-mate Gris",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Gris.json"
-		},
-		{
-			"name": "FilAr PLA-mate Marron",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Marron.json"
-		},
-		{
-			"name": "FilAr PLA-mate Naranja",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Naranja.json"
-		},
-		{
-			"name": "FilAr PLA-mate Negro",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Negro.json"
-		},
-		{
-			"name": "FilAr PLA-mate Piel",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Piel.json"
-		},
-		{
-			"name": "FilAr PLA-mate Rojo",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Rojo.json"
-		},
-		{
-			"name": "FilAr PLA-mate Rosa",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Rosa.json"
-		},
-		{
-			"name": "FilAr PLA-mate Uva",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Uva.json"
-		},
-		{
-			"name": "FilAr PLA-mate Verde",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Verde.json"
-		},
-		{
-			"name": "FilAr PLA-mate Violeta",
-			"sub_path": "filament/FilAr/FilAr PLA-mate Violeta.json"
-		},
-		{
-			"name": "FilAr PETG @base",
-			"sub_path": "filament/FilAr/FilAr PETG @base.json"
-		},
-		{
-			"name": "FilAr PETG Amarillo Lima",
-			"sub_path": "filament/FilAr/FilAr PETG Amarillo Lima.json"
-		},
-		{
-			"name": "FilAr PETG Amarillo Radiante",
-			"sub_path": "filament/FilAr/FilAr PETG Amarillo Radiante.json"
-		},
-		{
-			"name": "FilAr PETG Azul Boreal",
-			"sub_path": "filament/FilAr/FilAr PETG Azul Boreal.json"
-		},
-		{
-			"name": "FilAr PETG Azul Francia",
-			"sub_path": "filament/FilAr/FilAr PETG Azul Francia.json"
-		},
-		{
-			"name": "FilAr PETG Azul Imperial",
-			"sub_path": "filament/FilAr/FilAr PETG Azul Imperial.json"
-		},
-		{
-			"name": "FilAr PETG Blanco Antartida",
-			"sub_path": "filament/FilAr/FilAr PETG Blanco Antartida.json"
-		},
-		{
-			"name": "FilAr PETG Cian",
-			"sub_path": "filament/FilAr/FilAr PETG Cian.json"
-		},
-		{
-			"name": "FilAr PETG Coral",
-			"sub_path": "filament/FilAr/FilAr PETG Coral.json"
-		},
-		{
-			"name": "FilAr PETG Cristal",
-			"sub_path": "filament/FilAr/FilAr PETG Cristal.json"
-		},
-		{
-			"name": "FilAr PETG Gris Ceniza",
-			"sub_path": "filament/FilAr/FilAr PETG Gris Ceniza.json"
-		},
-		{
-			"name": "FilAr PETG Gris Plata",
-			"sub_path": "filament/FilAr/FilAr PETG Gris Plata.json"
-		},
-		{
-			"name": "FilAr PETG Magenta",
-			"sub_path": "filament/FilAr/FilAr PETG Magenta.json"
-		},
-		{
-			"name": "FilAr PETG Negro Azabache",
-			"sub_path": "filament/FilAr/FilAr PETG Negro Azabache.json"
-		},
-		{
-			"name": "FilAr PETG Rojo Carmesi",
-			"sub_path": "filament/FilAr/FilAr PETG Rojo Carmesi.json"
 		},
 		{
 			"name": "fdm_filament_pp",
@@ -525,8 +273,8 @@
 			"sub_path": "filament/DREMC/DREMC PA6-CF @base.json"
 		},
 		{
-			"name": "Elegoo PAHT @base",
-			"sub_path": "filament/Elegoo/Elegoo PAHT @base.json"
+			"name": "Elegoo PAHT-CF @base",
+			"sub_path": "filament/Elegoo/Elegoo PAHT-CF @base.json"
 		},
 		{
 			"name": "FILL3D PA @base",
@@ -557,6 +305,14 @@
 			"sub_path": "filament/Generic PA-CF @System.json"
 		},
 		{
+			"name": "INSLOGIC PA6-66 @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @base.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @base.json"
+		},
+		{
 			"name": "Bambu PC @base",
 			"sub_path": "filament/Bambu/Bambu PC @base.json"
 		},
@@ -585,8 +341,8 @@
 			"sub_path": "filament/Generic PE @System.json"
 		},
 		{
-			"name": "Generic PE-CF @System",
-			"sub_path": "filament/Generic PE-CF @System.json"
+			"name": "Generic PE-CF @base",
+			"sub_path": "filament/Generic PE-CF @base.json"
 		},
 		{
 			"name": "AliZ PETG @base",
@@ -669,20 +425,32 @@
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @base.json"
 		},
 		{
+			"name": "FilAr PETG @base",
+			"sub_path": "filament/FilAr/FilAr PETG @base.json"
+		},
+		{
 			"name": "Generic PETG @System",
 			"sub_path": "filament/Generic PETG @System.json"
 		},
 		{
-			"name": "Generic PETG HF @System",
-			"sub_path": "filament/Generic PETG HF @System.json"
+			"name": "Generic PETG HF @base",
+			"sub_path": "filament/Generic PETG HF @base.json"
 		},
 		{
-			"name": "Generic PETG-CF @System",
-			"sub_path": "filament/Generic PETG-CF @System.json"
+			"name": "Generic PETG-CF @base",
+			"sub_path": "filament/Generic PETG-CF @base.json"
 		},
 		{
 			"name": "GreenGate3D PETG @base",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @base.json"
+		},
+		{
+			"name": "JAYO PETG @base",
+			"sub_path": "filament/JAYO/JAYO PETG @base.json"
 		},
 		{
 			"name": "NIT PETG @base",
@@ -857,6 +625,14 @@
 			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @base.json"
 		},
 		{
+			"name": "FilAr PLA @base",
+			"sub_path": "filament/FilAr/FilAr PLA @base.json"
+		},
+		{
+			"name": "FilAr PLA-mate @base",
+			"sub_path": "filament/FilAr/FilAr PLA-mate @base.json"
+		},
+		{
 			"name": "Generic PLA @System",
 			"sub_path": "filament/Generic PLA @System.json"
 		},
@@ -865,12 +641,24 @@
 			"sub_path": "filament/Generic PLA High Speed @System.json"
 		},
 		{
-			"name": "Generic PLA Matte @System",
-			"sub_path": "filament/Generic PLA Matte @System.json"
+			"name": "Generic PLA Matte @base",
+			"sub_path": "filament/Generic PLA Matte @base.json"
 		},
 		{
 			"name": "Generic PLA-CF @System",
 			"sub_path": "filament/Generic PLA-CF @System.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @base.json"
+		},
+		{
+			"name": "JAYO PLA @base",
+			"sub_path": "filament/JAYO/JAYO PLA @base.json"
+		},
+		{
+			"name": "JAYO PLA Classic @base",
+			"sub_path": "filament/JAYO/JAYO PLA Classic @base.json"
 		},
 		{
 			"name": "NIT PLA @base",
@@ -1073,12 +861,12 @@
 			"sub_path": "filament/Generic PP @System.json"
 		},
 		{
-			"name": "Generic PP-CF @System",
-			"sub_path": "filament/Generic PP-CF @System.json"
+			"name": "Generic PP-CF @base",
+			"sub_path": "filament/Generic PP-CF @base.json"
 		},
 		{
-			"name": "Generic PP-GF @System",
-			"sub_path": "filament/Generic PP-GF @System.json"
+			"name": "Generic PP-GF @base",
+			"sub_path": "filament/Generic PP-GF @base.json"
 		},
 		{
 			"name": "Bambu PPA-CF @base",
@@ -1145,8 +933,8 @@
 			"sub_path": "filament/DREMC/DREMC TPU 95A @base.json"
 		},
 		{
-			"name": "Elegoo TPU @base",
-			"sub_path": "filament/Elegoo/Elegoo TPU @base.json"
+			"name": "Elegoo TPU 95A @base",
+			"sub_path": "filament/Elegoo/Elegoo TPU 95A @base.json"
 		},
 		{
 			"name": "Eolas Prints TPU D60 UV Resistant @System",
@@ -1265,8 +1053,8 @@
 			"sub_path": "filament/Elegoo/Elegoo ASA @System.json"
 		},
 		{
-			"name": "Elegoo ASA-CF @System",
-			"sub_path": "filament/Elegoo/Elegoo ASA-CF @System.json"
+			"name": "Elegoo ASA-CF @base",
+			"sub_path": "filament/Elegoo/Elegoo ASA-CF @base.json"
 		},
 		{
 			"name": "Overture ASA @System",
@@ -1345,6 +1133,30 @@
 			"sub_path": "filament/Polymaker/Fiberon PA612-CF @System.json"
 		},
 		{
+			"name": "INSLOGIC PA6-66 @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-66 @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-66 @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PA6-66 @Prusa CORE One.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-CF @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-CF @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PA6-CF @Prusa CORE One.json"
+		},
+		{
 			"name": "Bambu PC @System",
 			"sub_path": "filament/Bambu/Bambu PC @System.json"
 		},
@@ -1357,12 +1169,16 @@
 			"sub_path": "filament/Elegoo/Elegoo PC @System.json"
 		},
 		{
-			"name": "Elegoo PC-FR @System",
-			"sub_path": "filament/Elegoo/Elegoo PC-FR @System.json"
+			"name": "Elegoo PC-FR @base",
+			"sub_path": "filament/Elegoo/Elegoo PC-FR @base.json"
 		},
 		{
 			"name": "COEX PCTG PRIME @System",
 			"sub_path": "filament/COEX/COEX PCTG PRIME @System.json"
+		},
+		{
+			"name": "Generic PE-CF @System",
+			"sub_path": "filament/Generic PE-CF @System.json"
 		},
 		{
 			"name": "AliZ PETG @System",
@@ -1413,36 +1229,36 @@
 			"sub_path": "filament/Elas/Elas PETG Basic @System.json"
 		},
 		{
-			"name": "Elegoo PET-CF @System",
-			"sub_path": "filament/Elegoo/Elegoo PET-CF @System.json"
+			"name": "Elegoo PET-CF @base",
+			"sub_path": "filament/Elegoo/Elegoo PET-CF @base.json"
 		},
 		{
 			"name": "Elegoo PETG @System",
 			"sub_path": "filament/Elegoo/Elegoo PETG @System.json"
 		},
 		{
-			"name": "Elegoo PETG HF @System",
-			"sub_path": "filament/Elegoo/Elegoo PETG HF @System.json"
+			"name": "Elegoo PETG HF @base",
+			"sub_path": "filament/Elegoo/Elegoo PETG HF @base.json"
 		},
 		{
-			"name": "Elegoo PETG PRO @System",
-			"sub_path": "filament/Elegoo/Elegoo PETG PRO @System.json"
+			"name": "Elegoo PETG PRO @base",
+			"sub_path": "filament/Elegoo/Elegoo PETG PRO @base.json"
 		},
 		{
-			"name": "Elegoo PETG Translucent @System",
-			"sub_path": "filament/Elegoo/Elegoo PETG Translucent @System.json"
+			"name": "Elegoo PETG Translucent @base",
+			"sub_path": "filament/Elegoo/Elegoo PETG Translucent @base.json"
 		},
 		{
-			"name": "Elegoo PETG-CF @System",
-			"sub_path": "filament/Elegoo/Elegoo PETG-CF @System.json"
+			"name": "Elegoo PETG-CF @base",
+			"sub_path": "filament/Elegoo/Elegoo PETG-CF @base.json"
 		},
 		{
-			"name": "Elegoo PETG-GF @System",
-			"sub_path": "filament/Elegoo/Elegoo PETG-GF @System.json"
+			"name": "Elegoo PETG-GF @base",
+			"sub_path": "filament/Elegoo/Elegoo PETG-GF @base.json"
 		},
 		{
-			"name": "Elegoo Rapid PETG @System",
-			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @System.json"
+			"name": "Elegoo Rapid PETG @base",
+			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @base.json"
 		},
 		{
 			"name": "FDplast PETG @System",
@@ -1469,8 +1285,100 @@
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
 		},
 		{
+			"name": "FilAr PETG Amarillo Lima",
+			"sub_path": "filament/FilAr/FilAr PETG Amarillo Lima.json"
+		},
+		{
+			"name": "FilAr PETG Amarillo Radiante",
+			"sub_path": "filament/FilAr/FilAr PETG Amarillo Radiante.json"
+		},
+		{
+			"name": "FilAr PETG Azul Boreal",
+			"sub_path": "filament/FilAr/FilAr PETG Azul Boreal.json"
+		},
+		{
+			"name": "FilAr PETG Azul Francia",
+			"sub_path": "filament/FilAr/FilAr PETG Azul Francia.json"
+		},
+		{
+			"name": "FilAr PETG Azul Imperial",
+			"sub_path": "filament/FilAr/FilAr PETG Azul Imperial.json"
+		},
+		{
+			"name": "FilAr PETG Blanco Antartida",
+			"sub_path": "filament/FilAr/FilAr PETG Blanco Antartida.json"
+		},
+		{
+			"name": "FilAr PETG Cian",
+			"sub_path": "filament/FilAr/FilAr PETG Cian.json"
+		},
+		{
+			"name": "FilAr PETG Coral",
+			"sub_path": "filament/FilAr/FilAr PETG Coral.json"
+		},
+		{
+			"name": "FilAr PETG Cristal",
+			"sub_path": "filament/FilAr/FilAr PETG Cristal.json"
+		},
+		{
+			"name": "FilAr PETG Gris Ceniza",
+			"sub_path": "filament/FilAr/FilAr PETG Gris Ceniza.json"
+		},
+		{
+			"name": "FilAr PETG Gris Plata",
+			"sub_path": "filament/FilAr/FilAr PETG Gris Plata.json"
+		},
+		{
+			"name": "FilAr PETG Magenta",
+			"sub_path": "filament/FilAr/FilAr PETG Magenta.json"
+		},
+		{
+			"name": "FilAr PETG Negro Azabache",
+			"sub_path": "filament/FilAr/FilAr PETG Negro Azabache.json"
+		},
+		{
+			"name": "FilAr PETG Rojo Carmesi",
+			"sub_path": "filament/FilAr/FilAr PETG Rojo Carmesi.json"
+		},
+		{
+			"name": "Generic PETG HF @System",
+			"sub_path": "filament/Generic PETG HF @System.json"
+		},
+		{
+			"name": "Generic PETG-CF @System",
+			"sub_path": "filament/Generic PETG-CF @System.json"
+		},
+		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PETG Pro @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PETG Pro @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PETG Pro @Prusa CORE One.json"
+		},
+		{
+			"name": "JAYO PETG @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PETG @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PETG @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PETG @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @System",
+			"sub_path": "filament/JAYO/JAYO PETG @System.json"
 		},
 		{
 			"name": "NIT PETG @System",
@@ -1593,56 +1501,56 @@
 			"sub_path": "filament/Elegoo/Elegoo PLA @System.json"
 		},
 		{
-			"name": "Elegoo PLA Basic @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Basic @System.json"
+			"name": "Elegoo PLA Basic @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Basic @base.json"
 		},
 		{
-			"name": "Elegoo PLA Galaxy @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Galaxy @System.json"
+			"name": "Elegoo PLA Galaxy @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Galaxy @base.json"
 		},
 		{
-			"name": "Elegoo PLA Glow @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Glow @System.json"
+			"name": "Elegoo PLA Glow @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Glow @base.json"
 		},
 		{
-			"name": "Elegoo PLA Marble @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Marble @System.json"
+			"name": "Elegoo PLA Marble @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Marble @base.json"
 		},
 		{
-			"name": "Elegoo PLA Matte @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Matte @System.json"
+			"name": "Elegoo PLA Matte @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Matte @base.json"
 		},
 		{
-			"name": "Elegoo PLA PRO @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA PRO @System.json"
+			"name": "Elegoo PLA PRO @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA PRO @base.json"
 		},
 		{
-			"name": "Elegoo PLA Silk @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Silk @System.json"
+			"name": "Elegoo PLA Silk @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Silk @base.json"
 		},
 		{
-			"name": "Elegoo PLA Sparkle @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Sparkle @System.json"
+			"name": "Elegoo PLA Sparkle @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Sparkle @base.json"
 		},
 		{
-			"name": "Elegoo PLA Translucent2 @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Translucent2 @System.json"
+			"name": "Elegoo PLA Translucent2 @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Translucent2 @base.json"
 		},
 		{
-			"name": "Elegoo PLA Wood @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA Wood @System.json"
+			"name": "Elegoo PLA Wood @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA Wood @base.json"
 		},
 		{
-			"name": "Elegoo PLA+ @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA+ @System.json"
+			"name": "Elegoo PLA+ @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA+ @base.json"
 		},
 		{
-			"name": "Elegoo PLA-CF @System",
-			"sub_path": "filament/Elegoo/Elegoo PLA-CF @System.json"
+			"name": "Elegoo PLA-CF @base",
+			"sub_path": "filament/Elegoo/Elegoo PLA-CF @base.json"
 		},
 		{
-			"name": "Elegoo Rapid PLA+ @System",
-			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @System.json"
+			"name": "Elegoo Rapid PLA+ @base",
+			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @base.json"
 		},
 		{
 			"name": "FDplast PLA @System",
@@ -1655,6 +1563,238 @@
 		{
 			"name": "FILL3D PLA Turbo @System",
 			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
+		},
+		{
+			"name": "FilAr PLA Amarillo Lirio",
+			"sub_path": "filament/FilAr/FilAr PLA Amarillo Lirio.json"
+		},
+		{
+			"name": "FilAr PLA Azul Francia",
+			"sub_path": "filament/FilAr/FilAr PLA Azul Francia.json"
+		},
+		{
+			"name": "FilAr PLA Blanco Antartida",
+			"sub_path": "filament/FilAr/FilAr PLA Blanco Antartida.json"
+		},
+		{
+			"name": "FilAr PLA Blanco Calido",
+			"sub_path": "filament/FilAr/FilAr PLA Blanco Calido.json"
+		},
+		{
+			"name": "FilAr PLA Bronce",
+			"sub_path": "filament/FilAr/FilAr PLA Bronce.json"
+		},
+		{
+			"name": "FilAr PLA Cafe con Leche",
+			"sub_path": "filament/FilAr/FilAr PLA Cafe con Leche.json"
+		},
+		{
+			"name": "FilAr PLA Carpincho",
+			"sub_path": "filament/FilAr/FilAr PLA Carpincho.json"
+		},
+		{
+			"name": "FilAr PLA Celeste Cielo",
+			"sub_path": "filament/FilAr/FilAr PLA Celeste Cielo.json"
+		},
+		{
+			"name": "FilAr PLA Cobre",
+			"sub_path": "filament/FilAr/FilAr PLA Cobre.json"
+		},
+		{
+			"name": "FilAr PLA Dorado",
+			"sub_path": "filament/FilAr/FilAr PLA Dorado.json"
+		},
+		{
+			"name": "FilAr PLA Gris Ceniza",
+			"sub_path": "filament/FilAr/FilAr PLA Gris Ceniza.json"
+		},
+		{
+			"name": "FilAr PLA Gris Pizarra",
+			"sub_path": "filament/FilAr/FilAr PLA Gris Pizarra.json"
+		},
+		{
+			"name": "FilAr PLA Gris Plata",
+			"sub_path": "filament/FilAr/FilAr PLA Gris Plata.json"
+		},
+		{
+			"name": "FilAr PLA Manteca",
+			"sub_path": "filament/FilAr/FilAr PLA Manteca.json"
+		},
+		{
+			"name": "FilAr PLA Marron Oxido",
+			"sub_path": "filament/FilAr/FilAr PLA Marron Oxido.json"
+		},
+		{
+			"name": "FilAr PLA Naranja Tigre",
+			"sub_path": "filament/FilAr/FilAr PLA Naranja Tigre.json"
+		},
+		{
+			"name": "FilAr PLA Negro Azabache",
+			"sub_path": "filament/FilAr/FilAr PLA Negro Azabache.json"
+		},
+		{
+			"name": "FilAr PLA Oro",
+			"sub_path": "filament/FilAr/FilAr PLA Oro.json"
+		},
+		{
+			"name": "FilAr PLA Piel",
+			"sub_path": "filament/FilAr/FilAr PLA Piel.json"
+		},
+		{
+			"name": "FilAr PLA Rojo de Carreras",
+			"sub_path": "filament/FilAr/FilAr PLA Rojo de Carreras.json"
+		},
+		{
+			"name": "FilAr PLA Rosa Amaranto",
+			"sub_path": "filament/FilAr/FilAr PLA Rosa Amaranto.json"
+		},
+		{
+			"name": "FilAr PLA Rosa Flamenco",
+			"sub_path": "filament/FilAr/FilAr PLA Rosa Flamenco.json"
+		},
+		{
+			"name": "FilAr PLA Tabaco",
+			"sub_path": "filament/FilAr/FilAr PLA Tabaco.json"
+		},
+		{
+			"name": "FilAr PLA Titanio",
+			"sub_path": "filament/FilAr/FilAr PLA Titanio.json"
+		},
+		{
+			"name": "FilAr PLA Verde FilAr",
+			"sub_path": "filament/FilAr/FilAr PLA Verde FilAr.json"
+		},
+		{
+			"name": "FilAr PLA Verde Manzana",
+			"sub_path": "filament/FilAr/FilAr PLA Verde Manzana.json"
+		},
+		{
+			"name": "FilAr PLA Verde Oliva",
+			"sub_path": "filament/FilAr/FilAr PLA Verde Oliva.json"
+		},
+		{
+			"name": "FilAr PLA Verde Pixel",
+			"sub_path": "filament/FilAr/FilAr PLA Verde Pixel.json"
+		},
+		{
+			"name": "FilAr PLA Violeta Jacaranda",
+			"sub_path": "filament/FilAr/FilAr PLA Violeta Jacaranda.json"
+		},
+		{
+			"name": "FilAr PLA-mate Amarillo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Amarillo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Azul",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Azul.json"
+		},
+		{
+			"name": "FilAr PLA-mate Beige",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Beige.json"
+		},
+		{
+			"name": "FilAr PLA-mate Blanco",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Blanco.json"
+		},
+		{
+			"name": "FilAr PLA-mate Bordo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Bordo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Celeste Cielo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Celeste Cielo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Chocolate",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Chocolate.json"
+		},
+		{
+			"name": "FilAr PLA-mate Gris",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Gris.json"
+		},
+		{
+			"name": "FilAr PLA-mate Marron",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Marron.json"
+		},
+		{
+			"name": "FilAr PLA-mate Naranja",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Naranja.json"
+		},
+		{
+			"name": "FilAr PLA-mate Negro",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Negro.json"
+		},
+		{
+			"name": "FilAr PLA-mate Piel",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Piel.json"
+		},
+		{
+			"name": "FilAr PLA-mate Rojo",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Rojo.json"
+		},
+		{
+			"name": "FilAr PLA-mate Rosa",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Rosa.json"
+		},
+		{
+			"name": "FilAr PLA-mate Uva",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Uva.json"
+		},
+		{
+			"name": "FilAr PLA-mate Verde",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Verde.json"
+		},
+		{
+			"name": "FilAr PLA-mate Violeta",
+			"sub_path": "filament/FilAr/FilAr PLA-mate Violeta.json"
+		},
+		{
+			"name": "Generic PLA Matte @System",
+			"sub_path": "filament/Generic PLA Matte @System.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PLA Pro @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PLA Pro @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PLA Pro @Prusa CORE One.json"
+		},
+		{
+			"name": "JAYO PLA @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PLA @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @System",
+			"sub_path": "filament/JAYO/JAYO PLA @System.json"
+		},
+		{
+			"name": "JAYO PLA Classic @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA Classic @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA Classic @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PLA Classic @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @System",
+			"sub_path": "filament/JAYO/JAYO PLA Classic @System.json"
 		},
 		{
 			"name": "NIT PLA @System",
@@ -1761,8 +1901,8 @@
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @System.json"
 		},
 		{
-			"name": "PolyLite Dual PLA @System",
-			"sub_path": "filament/Polymaker/PolyLite Dual PLA @System.json"
+			"name": "PolyLite Dual PLA @base",
+			"sub_path": "filament/Polymaker/PolyLite Dual PLA @base.json"
 		},
 		{
 			"name": "PolyLite PLA @System",
@@ -1861,6 +2001,14 @@
 			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
 		},
 		{
+			"name": "Generic PP-CF @System",
+			"sub_path": "filament/Generic PP-CF @System.json"
+		},
+		{
+			"name": "Generic PP-GF @System",
+			"sub_path": "filament/Generic PP-GF @System.json"
+		},
+		{
 			"name": "Bambu PPA-CF @System",
 			"sub_path": "filament/Bambu/Bambu PPA-CF @System.json"
 		},
@@ -1905,8 +2053,8 @@
 			"sub_path": "filament/DREMC/DREMC TPU 95A @System.json"
 		},
 		{
-			"name": "Elegoo Rapid TPU 95A @System",
-			"sub_path": "filament/Elegoo/Elegoo Rapid TPU 95A @System.json"
+			"name": "Elegoo Rapid TPU 95A @base",
+			"sub_path": "filament/Elegoo/Elegoo Rapid TPU 95A @base.json"
 		},
 		{
 			"name": "Elegoo TPU 95A @System",
@@ -1921,6 +2069,14 @@
 			"sub_path": "filament/Overture/Overture TPU @System.json"
 		},
 		{
+			"name": "Elegoo ASA-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo ASA-CF @System.json"
+		},
+		{
+			"name": "Elegoo PC-FR @System",
+			"sub_path": "filament/Elegoo/Elegoo PC-FR @System.json"
+		},
+		{
 			"name": "AliZ PETG-CF @System",
 			"sub_path": "filament/AliZ/AliZ PETG-CF @System.json"
 		},
@@ -1929,8 +2085,96 @@
 			"sub_path": "filament/AliZ/AliZ PETG-Metal @System.json"
 		},
 		{
+			"name": "Elegoo PET-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo PET-CF @System.json"
+		},
+		{
+			"name": "Elegoo PETG HF @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG HF @System.json"
+		},
+		{
+			"name": "Elegoo PETG PRO @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG PRO @System.json"
+		},
+		{
+			"name": "Elegoo PETG Translucent @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG Translucent @System.json"
+		},
+		{
+			"name": "Elegoo PETG-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG-CF @System.json"
+		},
+		{
+			"name": "Elegoo PETG-GF @System",
+			"sub_path": "filament/Elegoo/Elegoo PETG-GF @System.json"
+		},
+		{
+			"name": "Elegoo Rapid PETG @System",
+			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @System.json"
+		},
+		{
+			"name": "Elegoo PLA Basic @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Basic @System.json"
+		},
+		{
+			"name": "Elegoo PLA Galaxy @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Galaxy @System.json"
+		},
+		{
+			"name": "Elegoo PLA Glow @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Glow @System.json"
+		},
+		{
+			"name": "Elegoo PLA Marble @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Marble @System.json"
+		},
+		{
+			"name": "Elegoo PLA Matte @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Matte @System.json"
+		},
+		{
+			"name": "Elegoo PLA PRO @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA PRO @System.json"
+		},
+		{
+			"name": "Elegoo PLA Silk @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Silk @System.json"
+		},
+		{
+			"name": "Elegoo PLA Sparkle @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Sparkle @System.json"
+		},
+		{
+			"name": "Elegoo PLA Translucent2 @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Translucent2 @System.json"
+		},
+		{
+			"name": "Elegoo PLA Wood @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA Wood @System.json"
+		},
+		{
+			"name": "Elegoo PLA+ @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA+ @System.json"
+		},
+		{
+			"name": "Elegoo PLA-CF @System",
+			"sub_path": "filament/Elegoo/Elegoo PLA-CF @System.json"
+		},
+		{
+			"name": "Elegoo Rapid PLA+ @System",
+			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @System.json"
+		},
+		{
+			"name": "PolyLite Dual PLA @System",
+			"sub_path": "filament/Polymaker/PolyLite Dual PLA @System.json"
+		},
+		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
+		},
+		{
+			"name": "Elegoo Rapid TPU 95A @System",
+			"sub_path": "filament/Elegoo/Elegoo Rapid TPU 95A @System.json"
 		}
 	],
 	"process_list": [],

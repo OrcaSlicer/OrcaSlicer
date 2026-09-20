@@ -4,7 +4,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
-#include "libslic3r/Geometry/ConvexHull.hpp"
+#include "libslic3r/LayOnFace.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <numeric>
@@ -45,10 +45,10 @@ void GLGizmoFlatten::data_changed(bool is_serializing)
     const ModelObject *model_object = nullptr;
     int                instance_id = -1;
     if (selection.is_single_full_instance() ||
-        selection.is_from_single_object() ) {        
+        selection.is_from_single_object() ) {
         model_object = selection.get_model()->objects[selection.get_object_idx()];
         instance_id = selection.get_instance_idx();
-    }    
+    }
     set_flattening_data(model_object, instance_id);
 }
 
@@ -69,7 +69,7 @@ CommonGizmosDataID GLGizmoFlatten::on_get_requirements() const
 
 std::string GLGizmoFlatten::on_get_name() const
 {
-    return _u8L("Lay on face");
+    return _u8L("Lay on Face");
 }
 
 bool GLGizmoFlatten::on_is_activable() const
@@ -86,7 +86,7 @@ void GLGizmoFlatten::on_render()
     GLShaderProgram* shader = wxGetApp().get_shader("flat");
     if (shader == nullptr)
         return;
-    
+
     shader->start_using();
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
 
@@ -152,134 +152,18 @@ void GLGizmoFlatten::set_flattening_data(const ModelObject* model_object, int in
 void GLGizmoFlatten::update_planes()
 {
     const ModelObject* mo = m_c->selection_info()->model_object();
-    TriangleMesh ch;
-    for (const ModelVolume* vol : mo->volumes) {
-        if (vol->type() != ModelVolumeType::MODEL_PART)
-            continue;
-        TriangleMesh vol_ch = vol->get_convex_hull();
-        vol_ch.transform(vol->get_matrix());
-        ch.merge(vol_ch);
-    }
-    ch = ch.convex_hull_3d();
+    const Transform3d &inst_matrix = mo->instances.front()->get_matrix_no_offset();
+    // The candidate faces are shared with the CLI --ground-* options, the rest only prepares them for rendering.
+    std::vector<LayOnFacePlane> planes = lay_on_face_planes(*mo, inst_matrix);
     m_planes.clear();
     on_unregister_raycasters_for_picking();
-    const Transform3d &inst_matrix = mo->instances.front()->get_matrix_no_offset();
 
-    // Following constants are used for discarding too small polygons.
-    const float minimal_area = 5.f; // in square mm (world coordinates)
-    const float minimal_side = 1.f; // mm
-    const float minimal_angle = 1.f; // degree, initial value was 10, but cause bugs
+    // We only keep the 254 largest planes (because of the picking pass limitations):
+    planes.resize(std::min((int)planes.size(), 254));
 
-    // Now we'll go through all the facets and append Points of facets sharing the same normal.
-    // This part is still performed in mesh coordinate system.
-    const int                num_of_facets  = ch.facets_count();
-    const std::vector<Vec3f> face_normals   = its_face_normals(ch.its);
-    const std::vector<Vec3i32> face_neighbors = its_face_neighbors(ch.its);
-    std::vector<int>         facet_queue(num_of_facets, 0);
-    std::vector<bool>        facet_visited(num_of_facets, false);
-    int                      facet_queue_cnt = 0;
-    const stl_normal*        normal_ptr      = nullptr;
-    int                      facet_idx       = 0;
-    while (1) {
-        // Find next unvisited triangle:
-        for (; facet_idx < num_of_facets; ++ facet_idx)
-            if (!facet_visited[facet_idx]) {
-                facet_queue[facet_queue_cnt ++] = facet_idx;
-                facet_visited[facet_idx] = true;
-                normal_ptr = &face_normals[facet_idx];
-                m_planes.emplace_back();
-                break;
-            }
-        if (facet_idx == num_of_facets)
-            break; // Everything was visited already
-
-        while (facet_queue_cnt > 0) {
-            int facet_idx = facet_queue[-- facet_queue_cnt];
-            const stl_normal& this_normal = face_normals[facet_idx];
-            if (std::abs(this_normal(0) - (*normal_ptr)(0)) < 0.001 && std::abs(this_normal(1) - (*normal_ptr)(1)) < 0.001 && std::abs(this_normal(2) - (*normal_ptr)(2)) < 0.001) {
-                const Vec3i32 face = ch.its.indices[facet_idx];
-                for (int j=0; j<3; ++j)
-                    m_planes.back().vertices.emplace_back(ch.its.vertices[face[j]].cast<double>());
-
-                facet_visited[facet_idx] = true;
-                for (int j = 0; j < 3; ++ j)
-                    if (int neighbor_idx = face_neighbors[facet_idx][j]; neighbor_idx >= 0 && ! facet_visited[neighbor_idx])
-                        facet_queue[facet_queue_cnt ++] = neighbor_idx;
-            }
-        }
-        m_planes.back().normal = normal_ptr->cast<double>();
-
-        Pointf3s& verts = m_planes.back().vertices;
-        // Now we'll transform all the points into world coordinates, so that the areas, angles and distances
-        // make real sense.
-        verts = transform(verts, inst_matrix);
-
-        // if this is a just a very small triangle, remove it to speed up further calculations (it would be rejected later anyway):
-        if (verts.size() == 3 &&
-            ((verts[0] - verts[1]).norm() < minimal_side
-            || (verts[0] - verts[2]).norm() < minimal_side
-            || (verts[1] - verts[2]).norm() < minimal_side))
-            m_planes.pop_back();
-    }
-
-    // Let's prepare transformation of the normal vector from mesh to instance coordinates.
-    const Matrix3d normal_matrix = inst_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
-
-    // Now we'll go through all the polygons, transform the points into xy plane to process them:
-    for (unsigned int polygon_id=0; polygon_id < m_planes.size(); ++polygon_id) {
-        Pointf3s& polygon = m_planes[polygon_id].vertices;
-        const Vec3d& normal = m_planes[polygon_id].normal;
-
-        // transform the normal according to the instance matrix:
-        const Vec3d normal_transformed = normal_matrix * normal;
-
-        // We are going to rotate about z and y to flatten the plane
-        Eigen::Quaterniond q;
-        Transform3d m = Transform3d::Identity();
-        m.matrix().block(0, 0, 3, 3) = q.setFromTwoVectors(normal_transformed, Vec3d::UnitZ()).toRotationMatrix();
-        polygon = transform(polygon, m);
-
-        // Now to remove the inner points. We'll misuse Geometry::convex_hull for that, but since
-        // it works in fixed point representation, we will rescale the polygon to avoid overflows.
-        // And yes, it is a nasty thing to do. Whoever has time is free to refactor.
-        Vec3d bb_size = BoundingBoxf3(polygon).size();
-        float sf = std::min(1./bb_size(0), 1./bb_size(1));
-        Transform3d tr = Geometry::scale_transform({ sf, sf, 1.f });
-        polygon = transform(polygon, tr);
-        polygon = Slic3r::Geometry::convex_hull(polygon);
-        polygon = transform(polygon, tr.inverse());
-
-        // Calculate area of the polygons and discard ones that are too small
-        float& area = m_planes[polygon_id].area;
-        area = 0.f;
-        for (unsigned int i = 0; i < polygon.size(); i++) // Shoelace formula
-            area += polygon[i](0)*polygon[i + 1 < polygon.size() ? i + 1 : 0](1) - polygon[i + 1 < polygon.size() ? i + 1 : 0](0)*polygon[i](1);
-        area = 0.5f * std::abs(area);
-
-        bool discard = false;
-        if (area < minimal_area)
-            discard = true;
-        else {
-            // We also check the inner angles and discard polygons with angles smaller than the following threshold
-            const double angle_threshold = ::cos(minimal_angle * (double)PI / 180.0);
-
-            for (unsigned int i = 0; i < polygon.size(); ++i) {
-                const Vec3d& prec = polygon[(i == 0) ? polygon.size() - 1 : i - 1];
-                const Vec3d& curr = polygon[i];
-                const Vec3d& next = polygon[(i == polygon.size() - 1) ? 0 : i + 1];
-
-                if ((prec - curr).normalized().dot((next - curr).normalized()) > angle_threshold) {
-                    discard = true;
-                    break;
-                }
-            }
-        }
-
-        if (discard) {
-            m_planes[polygon_id--] = std::move(m_planes.back());
-            m_planes.pop_back();
-            continue;
-        }
+    for (LayOnFacePlane& plane : planes) {
+        // The outline is convex and lies in the plane frame, where the plane is horizontal.
+        Pointf3s& polygon = plane.outline;
 
         // We will shrink the polygon a little bit so it does not touch the object edges:
         Vec3d centroid = std::accumulate(polygon.begin(), polygon.end(), Vec3d(0.0, 0.0, 0.0));
@@ -332,12 +216,11 @@ void GLGizmoFlatten::update_planes()
             b(2) += 0.1f;
 
         // Transform back to 3D (and also back to mesh coordinates)
-        polygon = transform(polygon, inst_matrix.inverse() * m.inverse());
+        m_planes.emplace_back();
+        m_planes.back().normal = plane.normal;
+        m_planes.back().area = plane.area;
+        m_planes.back().vertices = transform(polygon, inst_matrix.inverse() * plane.to_plane_frame.inverse());
     }
-
-    // We'll sort the planes by area and only keep the 254 largest ones (because of the picking pass limitations):
-    std::sort(m_planes.rbegin(), m_planes.rend(), [](const PlaneData& a, const PlaneData& b) { return a.area < b.area; });
-    m_planes.resize(std::min((int)m_planes.size(), 254));
 
     // Planes are finished - let's save what we calculated it from:
     m_volumes_matrices.clear();

@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <nlohmann/json.hpp>
 #include "DevMapping.h"
 #include "DevFilaSystem.h"
@@ -95,6 +97,10 @@ namespace Slic3r
             {
                 result.id = ams_id + slot_id;
             }
+            else if (type == DevAms::AMS_LITE_MIXED)
+            {
+                result.id = AMS_LITE_MIXED_TRAY_INDEX_OFFSET + slot_id;
+            }
             else
             {
                 result.id = ams_id * 4 + slot_id;
@@ -117,6 +123,11 @@ namespace Slic3r
         {
             std::string ams_id = ams->second->GetAmsId();
             auto        ams_type = ams->second->GetAmsType();
+            // GetAmsType() maps mixed -> AMS_LITE; recover the mixed type so N9 trays index at 24+slot.
+            if (ams_type == DevAms::AMS_LITE && ams->second->IsAmsLiteMixed())
+            {
+                ams_type = DevAms::AMS_LITE_MIXED;
+            }
             for (auto tray = ams->second->GetTrays().begin(); tray != ams->second->GetTrays().end(); tray++)
             {
                 int ams_id = atoi(ams->first.c_str());
@@ -125,6 +136,10 @@ namespace Slic3r
                 if (ams_type == DevAms::AMS || ams_type == DevAms::AMS_LITE || ams_type == DevAms::N3F)
                 {
                     tray_index = ams_id * 4 + tray_id;
+                }
+                else if (ams_type == DevAms::AMS_LITE_MIXED)
+                {
+                    tray_index = AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id;
                 }
                 else if (ams_type == DevAms::N3S)
                 {
@@ -149,8 +164,8 @@ namespace Slic3r
                 }
 
                 //first: left,nozzle=1,map=1   second: right,nozzle=0,map=2
-                bool right_ams_valid = ams->second->GetExtruderId() == 0 && map_opt[MappingOption::USE_RIGHT_AMS];
-                bool left_ams_valid = ams->second->GetExtruderId() == 1 && map_opt[MappingOption::USE_LEFT_AMS];
+                bool right_ams_valid = (ams->second->GetBindedExtruderSet().count(MAIN_EXTRUDER_ID) != 0) && map_opt[MappingOption::USE_RIGHT_AMS];
+                bool left_ams_valid = (ams->second->GetBindedExtruderSet().count(DEPUTY_EXTRUDER_ID) != 0) && map_opt[MappingOption::USE_LEFT_AMS];
                 if (right_ams_valid || left_ams_valid)
                 {
                     tray_filaments.emplace(std::make_pair(tray_index, info));
@@ -186,7 +201,7 @@ namespace Slic3r
                         }
                     }
                     FilamentInfo info;
-                    _parse_tray_info(atoi(tray.id.c_str()), 0, DevAms::DUMMY, tray, info);
+                    _parse_tray_info(atoi(tray.id.c_str()), 0, DevAms::EXT_SPOOL, tray, info);
                     tray_filaments.emplace(std::make_pair(info.tray_id, info));
                 }
             }
@@ -257,7 +272,7 @@ namespace Slic3r
         std::set<int> picked_tar;
         for (int k = 0; k < distance_map.size(); k++)
         {
-            float min_val = INT_MAX;
+            float min_val = std::numeric_limits<float>::max();
             int picked_src_idx = -1;
             int picked_tar_idx = -1;
             for (int i = 0; i < distance_map.size(); i++)

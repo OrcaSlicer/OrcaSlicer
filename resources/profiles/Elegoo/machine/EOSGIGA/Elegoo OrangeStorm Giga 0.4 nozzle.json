@@ -3,7 +3,7 @@
 	"name": "Elegoo OrangeStorm Giga 0.4 nozzle",
 	"inherits": "fdm_elegoo_3dp_001_common",
 	"from": "system",
-	"setting_id": "EOSG04",
+	"setting_id": "PCZpqnHSGs2twFx9",
 	"instantiation": "true",
 	"host_type": "elegoolink",
 	"printer_model": "Elegoo OrangeStorm Giga",

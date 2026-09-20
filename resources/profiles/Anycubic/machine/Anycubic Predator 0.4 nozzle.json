@@ -3,7 +3,7 @@
 	"name": "Anycubic Predator 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "MwdK4pzPlNcVU3eW",
 	"instantiation": "true",
 	"printer_model": "Anycubic Predator",
 	"default_print_profile": "0.20mm Standard @Anycubic Predator",

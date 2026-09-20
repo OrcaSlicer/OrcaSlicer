@@ -3,7 +3,8 @@
     "name": "FilAr PETG Amarillo Lima",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0047",
+    "setting_id": "QuJY74Af8ssl9uuB",
+    "filament_id": "OFt6e0US",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

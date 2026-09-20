@@ -3,7 +3,6 @@
 	"name": "DREMC ASA CF @System",
 	"inherits": "DREMC ASA CF @base",
 	"from": "system",
-	"setting_id": "DREMC012_00",
 	"instantiation": "false",
 	"compatible_printers": []
 }

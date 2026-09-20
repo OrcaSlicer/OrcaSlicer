@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "7eBDjJbetxOC3aNT",
+	"name": "QIDI PAHT-CF @Qidi X-Plus 5 0.6 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PAHT-CF@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.6 nozzle"
+	]
+}

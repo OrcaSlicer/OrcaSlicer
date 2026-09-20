@@ -1,8 +1,8 @@
 {
 	"name": "LHS PCTG",
 	"type": "filament",
-	"filament_id": "LHF_pctg",
-	"setting_id": "LHF_S_pctg",
+	"filament_id": "OFBJAdLw",
+	"setting_id": "dKWttiAQNwymKsIC",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",

@@ -613,7 +613,7 @@ std::string SLAPrint::output_filename(const std::string &filename_base) const
     return this->PrintBase::output_filename(m_print_config.filename_format.value, ".sl1", filename_base, &config);
 }
 
-StringObjectException SLAPrint::validate(StringObjectException *exception, Polygons *collison_polygons, std::vector<std::pair<Polygon, float>> *height_polygons) const
+StringObjectException SLAPrint::validate(std::vector<StringObjectException> *warnings, Polygons *collison_polygons, std::vector<std::pair<Polygon, float>> *height_polygons) const
 {
     for(SLAPrintObject * po : m_objects) {
 
@@ -1007,7 +1007,9 @@ bool SLAPrintObject::invalidate_step(SLAPrintObjectStep step)
 
 bool SLAPrintObject::invalidate_all_steps()
 {
-    return Inherited::invalidate_all_steps() | m_print->invalidate_all_steps();
+    const bool inherited_invalidated = Inherited::invalidate_all_steps();
+    const bool print_invalidated     = m_print->invalidate_all_steps();
+    return inherited_invalidated || print_invalidated;
 }
 
 double SLAPrintObject::get_elevation() const {

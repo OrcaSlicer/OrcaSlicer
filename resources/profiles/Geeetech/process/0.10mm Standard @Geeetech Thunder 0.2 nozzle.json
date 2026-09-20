@@ -3,7 +3,7 @@
 	"name": "0.10mm Standard @Geeetech Thunder 0.2 nozzle",
 	"inherits": "fdm_process_Geeetech_HS_0.10_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP_Geeetech_008",
+	"setting_id": "TtyXYNnMjlptZc05",
 	"instantiation": "true",
 	"default_acceleration": "5000",
 	"top_surface_acceleration": "3000",

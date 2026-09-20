@@ -3,8 +3,8 @@
 	"name": "QIDI PETG Basic @Qidi X-Plus 4 0.2 nozzle",
 	"inherits": "QIDI PETG Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "QD_0_1_39",
+	"setting_id": "SaZRrBNZwbPUxSRv",
+	"filament_id": "OFuJ49uH",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

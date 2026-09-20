@@ -3,7 +3,7 @@
 	"name": "AliZ PA-CF @System",
 	"inherits": "AliZ PA-CF @base",
 	"from": "system",
-	"setting_id": "AliZGFSA04",
+	"setting_id": "swYTbQ8tIa0jDyig",
 	"instantiation": "true",
 	"compatible_printers": []
 }

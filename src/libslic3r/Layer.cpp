@@ -136,7 +136,7 @@ ExPolygons Layer::merged(float offset_scaled) const
     return out;
 }
 
-bool Layer::is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b)
+bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, const PrintRegion& b)
 {
     const PrintRegionConfig& config       = a.config();
     const PrintRegionConfig& other_config = b.config();
@@ -146,12 +146,14 @@ bool Layer::is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b)
 		&& config.wall_loops                  == other_config.wall_loops
 		&& config.wall_sequence               == other_config.wall_sequence
 		&& config.is_infill_first             == other_config.is_infill_first
-		&& config.inner_wall_speed             == other_config.inner_wall_speed
-		&& config.outer_wall_speed    == other_config.outer_wall_speed
-		&& config.small_perimeter_speed    == other_config.small_perimeter_speed
-        && config.gap_infill_speed.value == other_config.gap_infill_speed.value
+		&& config.inner_wall_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.inner_wall_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+		&& config.outer_wall_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.outer_wall_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+		&& config.small_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.small_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+		&& config.small_support_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.small_support_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.gap_infill_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.gap_infill_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
         && config.filter_out_gap_fill.value == other_config.filter_out_gap_fill.value
 		&& config.detect_overhang_wall                   == other_config.detect_overhang_wall
+		&& config.unsupported_wall_last                  == other_config.unsupported_wall_last
 		&& config.overhang_reverse                       == other_config.overhang_reverse
 		&& config.overhang_reverse_threshold             == other_config.overhang_reverse_threshold
 		&& config.wall_direction                         == other_config.wall_direction
@@ -186,6 +188,12 @@ void Layer::make_perimeters()
 {
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id();
 
+    const auto clear_generated_extrusions = [](LayerRegion *layer_region) {
+        layer_region->perimeters.clear();
+        layer_region->fills.clear();
+        layer_region->thin_fills.clear();
+    };
+
     // keep track of regions whose perimeters we have already generated
     std::vector<unsigned char> done(m_regions.size(), false);
 
@@ -209,14 +217,18 @@ void Layer::make_perimeters()
 	            if (! (*it)->slices.empty()) {
 		            LayerRegion* other_layerm = *it;
 		            const PrintRegion &other_region = other_layerm->region();
-                    if (is_perimeter_compatible(this_region, other_region))
-		            {
-			 			other_layerm->perimeters.clear();
-			 			other_layerm->fills.clear();
-			 			other_layerm->thin_fills.clear();
-		                layerms.push_back(other_layerm);
-		                done[it - m_regions.begin()] = true;
-		            }
+                    // Per-part gradient tags a region with its owning ModelVolume; merging two
+                    // differently-tagged regions would collapse volumes that need independent
+                    // gradient runs. Both tags are invalid unless per-part gradient is on, so
+                    // this is a no-op for every other configuration.
+                    if (this_region.gradient_volume_id() != other_region.gradient_volume_id())
+                        continue;
+                    if (is_perimeter_compatible(*m_object->print(), this_region, other_region))
+                    {
+                        clear_generated_extrusions(other_layerm);
+                        layerms.push_back(other_layerm);
+                        done[it - m_regions.begin()] = true;
+                    }
 		        }
 
 	        if (layerms.size() == 1) {  // optimization
@@ -224,6 +236,10 @@ void Layer::make_perimeters()
                 (*layerm)->make_perimeters((*layerm)->slices, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
 	            (*layerm)->fill_expolygons = to_expolygons((*layerm)->fill_surfaces.surfaces);
 	        } else {
+	            // Orca: Unlike the compatible regions above, the initiating region has not
+	            // been cleared yet and may contain paths from a previous incompatible run.
+	            clear_generated_extrusions(*layerm);
+
 	            SurfaceCollection new_slices;
 	            // Use the region with highest infill rate, as the make_perimeters() function below decides on the gap fill based on the infill existence.
 	            LayerRegion *layerm_config = layerms.front();
@@ -412,6 +428,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         double spacing = flow.scaled_spacing() * (100 - density) / density;
         switch (pattern) {
             case ipConcentric:
+            case ipSpiralInset:
             case ipRectilinear:
             case ipLine:
             case ipGyroid:

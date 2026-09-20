@@ -3,8 +3,8 @@
 	"name": "QIDI PLA Basic @Qidi X-Plus 4 0.2 nozzle",
 	"inherits": "QIDI PLA Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "QD_0_1_7",
+	"setting_id": "AOa9WW2IN1VHGXGM",
+	"filament_id": "OF4nQ62r",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

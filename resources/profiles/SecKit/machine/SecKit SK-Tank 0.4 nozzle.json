@@ -3,7 +3,7 @@
 	"name": "SecKit SK-Tank 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "qfCyVyaTuCJ4gkr3",
 	"instantiation": "true",
 	"printer_model": "SecKit SK-Tank",
 	"nozzle_diameter": [

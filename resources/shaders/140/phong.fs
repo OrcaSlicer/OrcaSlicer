@@ -1,4 +1,7 @@
 #version 140
+// Multisample depth texture for the anti-aliased outline (see 3DScene.cpp render_with_outline).
+// Optional on the GLSL 140 path: if unavailable, fallback to a non-multisample depth texture.
+#extension GL_ARB_texture_multisample : enable
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 const vec3 LightRed = vec3(0.78, 0.0, 0.0);
@@ -10,18 +13,18 @@ const float EPSILON = 0.0001;
 
 // normalized values for (-0.6/1.31, 0.6/1.31, 1./1.31)
 const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
-#define LIGHT_TOP_DIFFUSE    (0.8 * INTENSITY_CORRECTION)
-#define LIGHT_TOP_SPECULAR   (0.8 * INTENSITY_CORRECTION)
-#define LIGHT_TOP_SHININESS  128.0
+#define LIGHT_TOP_DIFFUSE    (0.85 * INTENSITY_CORRECTION)   
+#define LIGHT_TOP_SPECULAR   (0.35 * INTENSITY_CORRECTION)   
+#define LIGHT_TOP_SHININESS  32.0                           
 
 // normalized values for (1./1.43, 0.2/1.43, 1./1.43)
 const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
-#define LIGHT_FRONT_DIFFUSE  (0.3 * INTENSITY_CORRECTION)
-#define LIGHT_FRONT_SPECULAR (0.28 * INTENSITY_CORRECTION)
-#define LIGHT_FRONT_SHININESS 64.0
+#define LIGHT_FRONT_DIFFUSE  (0.35 * INTENSITY_CORRECTION)   
+#define LIGHT_FRONT_SPECULAR (0.12 * INTENSITY_CORRECTION)   
+#define LIGHT_FRONT_SHININESS 16.0                           
 
-#define INTENSITY_AMBIENT    0.22
-#define WINDOW_REFLECTION_INTENSITY 0.55
+#define INTENSITY_AMBIENT    0.25                            
+#define WINDOW_REFLECTION_INTENSITY 0.30                    
 
 struct PrintVolumeDetection
 {
@@ -51,7 +54,14 @@ uniform SlopeDetection slope;
 
 //BBS: add outline_color
 uniform bool is_outline;
+// The outline is a per-fragment discard mask, which the framebuffer MSAA cannot smooth, so the
+// silhouette is resolved per sample from a multisample copy of the outlined model's depth buffer.
+#ifdef GL_ARB_texture_multisample
+uniform sampler2DMS depth_tex;
+uniform int msaa_samples; // samples in depth_tex, 1 when MSAA is off
+#else
 uniform sampler2D depth_tex;
+#endif
 uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
@@ -64,6 +74,12 @@ uniform PrintVolumeDetection print_volume;
 uniform float z_far;
 uniform float z_near;
 uniform bool enable_ssao;
+
+// Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
+uniform sampler2D shadow_map;
+uniform mat4 shadow_light_vp;
+uniform float shadow_intensity;
+uniform float shadow_map_texel;
 
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
@@ -94,12 +110,27 @@ float GetTolerance(float d, float k)
     return -k*(d+A)*(d+A)/B;
 }
 
-float DetectSilho(vec2 fragCoord, vec2 dir)
+// Depth of sample s at integer pixel coord.
+#ifdef GL_ARB_texture_multisample
+float FetchDepth(ivec2 coord, int s)
 {
-    float x0 = abs(texture(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
+    // texelFetch has no wrap mode, so clamp to the edge texel (sampler2D used CLAMP_TO_EDGE).
+    ivec2 sz = textureSize(depth_tex);
+    return abs(texelFetch(depth_tex, clamp(coord, ivec2(0), sz - 1), s).r);
+}
+#else
+float FetchDepth(ivec2 coord, int s)
+{
+    return abs(texture(depth_tex, (vec2(coord) + 0.5) / screen_size).r);
+}
+#endif
+
+float DetectSilho(ivec2 coord, ivec2 dir, int s)
+{
+    float x0 = FetchDepth(coord + dir*-2, s);
+    float x1 = FetchDepth(coord + dir*-1, s);
+    float x2 = FetchDepth(coord,          s);
+    float x3 = FetchDepth(coord + dir* 1, s);
 
     float d0 = (x1-x0);
     float d1 = (x2-x3);
@@ -110,15 +141,43 @@ float DetectSilho(vec2 fragCoord, vec2 dir)
     float tol = GetTolerance(x2, 0.04);
 
     return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
-
 }
 
-float DetectSilho(vec2 fragCoord)
+float DetectSilho(ivec2 coord, int s)
 {
     return max(
-        DetectSilho(fragCoord, vec2(1,0)),
-        DetectSilho(fragCoord, vec2(0,1))
+        DetectSilho(coord, ivec2(1,0), s),
+        DetectSilho(coord, ivec2(0,1), s)
         );
+}
+
+// Full response of one sample. Reduce the max() per sample and average only afterwards:
+// max(mean) <= mean(max), and averaging first hollows out diagonal and curved lines.
+float DetectSilhoSample(ivec2 coord, int s)
+{
+    float v = DetectSilho(coord, s);
+    // Makes silhouettes thicker.
+    for (int i = 1; i <= INFLATE; ++i)
+    {
+        v = max(v, DetectSilho(coord + ivec2(i, 0), s));
+        v = max(v, DetectSilho(coord + ivec2(0, i), s));
+    }
+    return v;
+}
+
+// Average the per-sample coverage into the sub-pixel anti-aliasing of the line.
+float DetectSilho(vec2 fragCoord)
+{
+    ivec2 coord = ivec2(fragCoord);
+#ifdef GL_ARB_texture_multisample
+    int n = max(msaa_samples, 1);
+#else
+    const int n = 1;
+#endif
+    float acc = 0.0;
+    for (int s = 0; s < n; ++s)
+        acc += DetectSilhoSample(coord, s);
+    return acc / float(n);
 }
 
 float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
@@ -164,14 +223,44 @@ vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
     // No bars - just pure circular glass
     float bars = 1.0;
     
-    // Fresnel effect for edge glow
-    float fresnel = pow(1.0 - max(dot(normal, view_dir), 0.0), 1.0);
+
+    float fresnel = pow(1.0 - max(dot(normal, view_dir), 0.0), 1.2);
     float facing = smoothstep(-0.4, 0.6, reflect_light.z);
     
-    float intensity = window_light * bars * (0.25 + 0.25 * fresnel) * facing;
-    intensity = clamp(intensity, 0.0, 0.45);
-    
+
+    float intensity = window_light * bars * (0.15 + 0.15 * fresnel) * facing;
+    intensity = clamp(intensity, 0.0, 0.25);
+
     return vec3(intensity);
+}
+
+// Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
+// occluded from the light in the shadow map. 3x3 PCF softens the edges.
+float shadow_shade()
+{
+    if (shadow_intensity <= 0.0)
+        return 1.0;
+
+    vec4 lp = shadow_light_vp * world_pos;
+    vec3 proj = lp.xyz / lp.w;
+    proj = proj * 0.5 + 0.5;
+    if (proj.z > 1.0)
+        return 1.0;
+
+    // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
+    // suppresses self-shadow acne without discarding real shadows cast by other objects onto
+    // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
+    float NdotL = dot(normalize(eye_normal), LIGHT_TOP_DIR);
+    float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
+    // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
+    float sum = 0.0;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            float closest = texture(shadow_map, proj.xy + vec2(float(x), float(y)) * shadow_map_texel).r;
+            sum += (proj.z - bias > closest) ? 1.0 : 0.0;
+        }
+    }
+    return 1.0 - shadow_intensity * (sum / 25.0);
 }
 
 void main()
@@ -229,22 +318,20 @@ void main()
 
     // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
+    float shade = shadow_shade();
+
     if (is_outline) {
-        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS * shade;
         vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
-        vec2 fragCoord = gl_FragCoord.xy;
-        float s = DetectSilho(fragCoord);
-        for(int i=1;i<=INFLATE; i++)
-        {
-           s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
-           s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
-        }
+        float s = DetectSilho(gl_FragCoord.xy);
+        if (s < 0.01)
+            discard;
         out_color = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
-        out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
 #endif
     else
-        out_color = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        out_color = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
 }

@@ -3,7 +3,8 @@
     "name": "FilAr PETG Azul Boreal",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0049",
+    "setting_id": "JQsOaH7Zcs0cLLPY",
+    "filament_id": "OFNU9YIW",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

@@ -3,8 +3,8 @@
 	"name": "QIDI ASA @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "tohpo42HW9BLvVcH",
+	"filament_id": "OFTsHNQi",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"0"
@@ -19,7 +19,7 @@
 		"16"
 	],
 	"filament_settings_id": [
-		"Qidi Generic ASA @Qidi X-Plus 4 0.4 nozzle"
+		"Generic ASA @Qidi X-Plus 4 0.4 nozzle"
 	],
 	"nozzle_temperature": [
 		"255"

@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Silk",
 	"inherits": "Snapmaker PLA Silk @base",
 	"from": "system",
-	"setting_id": "76896312",
+	"setting_id": "huBPyGifPs5s3FTU",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.4 nozzle)",

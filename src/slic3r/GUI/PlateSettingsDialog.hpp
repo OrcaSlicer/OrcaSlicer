@@ -62,6 +62,9 @@ public:
     int get_layers_print_seq_choice() { return m_other_layer_print_seq_choice->GetSelection(); };
 
     std::vector<LayerSeqInfo> get_layers_print_seq_infos() { return m_layer_seq_infos; }
+    // Lets callers grey out the sequence choice (e.g. when a mixed filament makes a
+    // user-defined filament order impossible).
+    void enable_seq_choice(bool enable) { m_other_layer_print_seq_choice->Enable(enable); }
 
 protected:
     void append_layer(const LayerSeqInfo* layer_info = nullptr);

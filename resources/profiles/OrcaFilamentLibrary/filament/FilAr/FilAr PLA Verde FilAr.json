@@ -3,7 +3,8 @@
     "name": "FilAr PLA Verde FilAr",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0013",
+    "setting_id": "SYWoimklLqx5O2Xh",
+    "filament_id": "OFvPPMxL",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

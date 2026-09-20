@@ -3,8 +3,8 @@
 	"name": "Qidi ASA-Aero",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "xTg8UPJXoXdyGccz",
+	"filament_id": "OFG4do34",
 	"instantiation": "true",
 	"filament_type": [
 		"ASA-AERO"

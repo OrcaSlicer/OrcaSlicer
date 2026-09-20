@@ -3,7 +3,7 @@
 	"name": "0.12mm Balanced Quality @OpenEYE Peacock V2 0.2 nozzle",
 	"inherits": "fdm_process_openeye_0.12_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP140",
+	"setting_id": "fqgA9GWd3xHRa5hs",
 	"instantiation": "true",
 	"default_acceleration": "8000",
 	"initial_layer_speed": "40",

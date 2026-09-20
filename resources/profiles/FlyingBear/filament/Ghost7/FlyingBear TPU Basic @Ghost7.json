@@ -3,8 +3,8 @@
 	"name": "FlyingBear TPU Basic @Ghost7",
 	"inherits": "fdm_filament_tpu @Ghost7",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFU99",
+	"setting_id": "wQQncT0OCAktGyHr",
+	"filament_id": "OFHf2lKK",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3"

@@ -3,7 +3,7 @@
 	"name": "DREMC ABS-GF @System",
 	"inherits": "DREMC ABS-GF @base",
 	"from": "system",
-	"setting_id": "DREMC009",
+	"setting_id": "eWq555EPhD9cVAPL",
 	"instantiation": "true",
 	"filament_long_retractions_when_cut": [
 		"1"

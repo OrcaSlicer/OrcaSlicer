@@ -3,7 +3,7 @@
 	"name": "Elas PLA Pro @System",
 	"inherits": "Elas PLA Pro @base",
 	"from": "system",
-	"setting_id": "OGFSA00",
+	"setting_id": "M6lezmKWfkgoj0V0",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"13"

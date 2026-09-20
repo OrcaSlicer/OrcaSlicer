@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Galaxy @System",
 	"inherits": "Panchroma PLA Galaxy @base",
 	"from": "system",
-	"setting_id": "OGFSPM007",
+	"setting_id": "OFqVtp8Ph7Rv4NxJ",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

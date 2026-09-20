@@ -3,7 +3,7 @@
 	"name": "PolyLite PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFG60",
+	"filament_id": "OF0UJcb6",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri 0.4 nozzle",
 	"inherits": "fdm_elegoo_3dp_001_common",
 	"from": "system",
-	"setting_id": "EC04",
+	"setting_id": "Tzf5yPxAneRY9c7W",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.4"

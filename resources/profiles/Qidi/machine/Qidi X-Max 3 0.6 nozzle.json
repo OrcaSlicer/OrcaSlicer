@@ -3,7 +3,7 @@
 	"name": "Qidi X-Max 3 0.6 nozzle",
 	"inherits": "Qidi X-Max 3 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "zminbxV7Q04jQS05",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.6"
@@ -11,7 +11,7 @@
 	"printer_model": "Qidi X-Max 3",
 	"printer_variant": "0.6",
 	"default_filament_profile": [
-		"Qidi Generic PLA"
+		"Generic PLA @Qidi"
 	],
 	"default_print_profile": "0.30mm Standard @Qidi XMax3 0.6 nozzle",
 	"max_layer_height": [

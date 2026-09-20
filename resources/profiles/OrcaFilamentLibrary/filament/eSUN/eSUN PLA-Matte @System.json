@@ -3,7 +3,7 @@
 	"name": "eSUN PLA-Matte @System",
 	"inherits": "eSUN PLA-Matte @base",
 	"from": "system",
-	"setting_id": "OGFSL05_00",
+	"setting_id": "xV0KBHENaEdiz9zl",
 	"instantiation": "true",
 	"compatible_printers": []
 }

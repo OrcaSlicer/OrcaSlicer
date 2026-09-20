@@ -3,8 +3,8 @@
 	"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFPEBA",
+	"setting_id": "zCqTTjac3ydSAw3q",
+	"filament_id": "OFjLAYgO",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PEBA @Anycubic Kobra S1 Max 0.4 nozzle"

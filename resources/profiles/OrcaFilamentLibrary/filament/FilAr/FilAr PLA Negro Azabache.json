@@ -3,7 +3,8 @@
     "name": "FilAr PLA Negro Azabache",
     "inherits": "FilAr PLA @base",
     "from": "system",
-    "filament_id": "FILAR0019",
+    "setting_id": "glc7ip75qjodcceS",
+    "filament_id": "OFgMWJ8T",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

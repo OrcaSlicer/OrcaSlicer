@@ -3,8 +3,8 @@
 	"name": "InfiMech PC @EX+APS",
 	"inherits": "fdm_filament_pc @EX+APS",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFC99",
+	"setting_id": "GsYpyooWb6ymAb36",
+	"filament_id": "OFf6ZEvu",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"12"

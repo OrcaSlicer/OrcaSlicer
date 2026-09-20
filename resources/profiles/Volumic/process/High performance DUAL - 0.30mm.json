@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "Rheh3fgJfFugxKZL",
 	"name": "High performance DUAL - 0.30mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

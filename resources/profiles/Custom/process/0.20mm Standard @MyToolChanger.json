@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @MyToolChanger",
 	"inherits": "fdm_process_mytoolchanger_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "MHpNmkShui6fTwVu",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"compatible_printers": [

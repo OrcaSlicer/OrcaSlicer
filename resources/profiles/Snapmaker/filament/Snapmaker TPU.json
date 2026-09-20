@@ -3,7 +3,7 @@
 	"name": "Snapmaker TPU",
 	"inherits": "Snapmaker TPU @base",
 	"from": "system",
-	"setting_id": "2492353721",
+	"setting_id": "VeUwcJ6jFwrFOksc",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.4 nozzle)",

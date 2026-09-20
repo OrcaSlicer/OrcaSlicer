@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA-CF @System",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA-CF @base",
 	"from": "system",
-	"setting_id": "OEPLACFS00",
+	"setting_id": "cYxM93L2KZBnAuWu",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

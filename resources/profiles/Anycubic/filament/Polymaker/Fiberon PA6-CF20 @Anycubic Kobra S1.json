@@ -3,8 +3,8 @@
 	"name": "Fiberon PA6-CF20 @Anycubic Kobra S1",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSL57_AC",
-	"filament_id": "GFL57",
+	"setting_id": "DmRzQzlSf2KdWwKu",
+	"filament_id": "OFEabreg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anycubic Kobra S1 0.4 nozzle"

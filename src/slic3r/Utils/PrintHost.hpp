@@ -29,10 +29,10 @@ ENABLE_ENUM_BITMASK_OPERATORS(PrintHostPostUploadAction);
 
 struct PrintHostUpload
 {
-    bool use_3mf;
+    bool use_3mf { false };
     boost::filesystem::path source_path;
     boost::filesystem::path upload_path;
-    
+
     std::string group;
     std::string storage;
 
@@ -40,6 +40,13 @@ struct PrintHostUpload
 
     // Some extended parameters for different upload methods.
     std::map<std::string, std::string> extended_info;
+
+    // Safe accessor for an extended_info entry; returns `def` when the key is absent.
+    std::string extended(const std::string &key, const std::string &def = {}) const
+    {
+        auto it = extended_info.find(key);
+        return it != extended_info.end() ? it->second : def;
+    }
 };
 
 class PrintHost

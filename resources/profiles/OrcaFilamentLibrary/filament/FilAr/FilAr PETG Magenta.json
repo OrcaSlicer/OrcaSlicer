@@ -3,7 +3,8 @@
     "name": "FilAr PETG Magenta",
     "inherits": "FilAr PETG @base",
     "from": "system",
-    "filament_id": "FILAR0058",
+    "setting_id": "CEOhwBE63SWwuh6P",
+    "filament_id": "OFurdQxc",
     "instantiation": "true",
     "filament_vendor": [
         "FilAr"

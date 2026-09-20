@@ -3,6 +3,7 @@
 #include "I18N.hpp"
 
 #include "GUI_App.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/RadioBox.hpp"
 #include <wx/listimpl.cpp>
@@ -814,13 +815,13 @@ wxBoxSizer* SendMultiMachinePage::create_item_title(wxString title, wxWindow* pa
     wxBoxSizer* m_sizer_title = new wxBoxSizer(wxHORIZONTAL);
 
     auto m_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    m_title->SetForegroundColour(DESIGN_GRAY800_COLOR);
+    m_title->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_title->SetFont(::Label::Head_13);
     m_title->Wrap(-1);
     m_title->SetToolTip(tooltip);
 
     auto m_line = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    m_line->SetBackgroundColour(DESIGN_GRAY400_COLOR);
+    m_line->SetBackgroundColour(SEND_DESIGN_GRAY400_COLOR);
 
     m_sizer_title->Add(m_title, 0, wxALIGN_CENTER | wxALL, 3);
     m_sizer_title->Add(0, 0, 0, wxLEFT, 9);
@@ -843,7 +844,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow*
     m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 8);
 
     auto checkbox_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    checkbox_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     checkbox_title->SetFont(::Label::Body_13);
 
     auto size = checkbox_title->GetTextExtent(title);
@@ -867,12 +868,12 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
 {
     wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
     auto input_title = new wxStaticText(parent, wxID_ANY, str_before);
-    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     input_title->SetFont(::Label::Body_13);
     input_title->SetToolTip(tooltip);
     input_title->Wrap(-1);
 
-    auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, SEND_DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
@@ -880,7 +881,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
     input->GetTextCtrl()->SetValidator(validator);
 
     auto second_title = new wxStaticText(parent, wxID_ANY, str_after, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    second_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     second_title->SetFont(::Label::Body_13);
     second_title->SetToolTip(tooltip);
     second_title->Wrap(-1);
@@ -1337,7 +1338,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_tip_text->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_tip_text->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_tip_text->SetLabel(_L("Please select the devices you would like to manage here (up to 6 devices)"));
-    m_tip_text->SetForegroundColour(DESIGN_GRAY800_COLOR);
+    m_tip_text->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_tip_text->SetFont(::Label::Head_20);
     m_tip_text->Wrap(-1);
 
@@ -1369,7 +1370,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     // add printing options
     wxBoxSizer* title_print_option = create_item_title(_L("Printing Options"), main_page, "");
-    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed Leveling"), main_page, "", 50, "bed_leveling");
+    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed leveling"), main_page, "", 50, "bed_leveling");
     wxBoxSizer* item_timelapse = create_item_checkbox(_L("Timelapse"), main_page, "", 50, "timelapse");
     wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamic Calibration"), main_page, "", 50, "flow_cali");
     sizer->Add(title_print_option, 0, wxEXPAND, 0);
@@ -1383,7 +1384,7 @@ wxPanel* SendMultiMachinePage::create_page()
     // add send option
     wxBoxSizer* title_send_option = create_item_title(_L("Send Options"), main_page, "");
     wxBoxSizer* max_printer_send = create_item_input(_L("Send to"), _L("printers at the same time. (It depends on how many devices can undergo heating at the same time.)"), main_page, "", "max_send");
-    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete the heating.)"), main_page, "", "sending_interval");
+    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete heating.)"), main_page, "", "sending_interval");
     sizer->Add(title_send_option, 0, wxEXPAND, 0);
     sizer->Add(max_printer_send, 0, wxLEFT, FromDIP(20));
     sizer->AddSpacer(FromDIP(3));
@@ -1468,7 +1469,7 @@ void SendMultiMachinePage::sync_ams_list()
         item->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>());
         m_ams_list_sizer->Add(item, 0, wxALL, FromDIP(4));
 
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent& e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent& e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder](wxMouseEvent& e) {
             MaterialHash::iterator iter = m_material_list.begin();
             while (iter != m_material_list.end()) {
@@ -1650,17 +1651,17 @@ void SendMultiMachinePage::on_rename_enter()
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line = _L("The name is not allowed to be empty.");
+        info_line = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line = _L("The name is not allowed to start with space character.");
+        info_line = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line = _L("The name is not allowed to end with space character.");
+        info_line = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 

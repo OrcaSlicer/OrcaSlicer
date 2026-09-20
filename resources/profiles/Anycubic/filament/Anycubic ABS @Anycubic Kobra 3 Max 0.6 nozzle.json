@@ -3,8 +3,8 @@
 	"name": "Anycubic ABS @Anycubic Kobra 3 Max 0.6 nozzle",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "Moc1cylP6mmSQjlb",
+	"filament_id": "OF223rZv",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic ABS @Anycubic Kobra 3 Max 0.6 nozzle"
@@ -120,9 +120,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"42"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -203,9 +200,6 @@
 	],
 	"filament_type": [
 		"ABS"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"0"

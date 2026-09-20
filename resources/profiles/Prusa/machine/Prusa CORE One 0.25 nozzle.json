@@ -3,6 +3,7 @@
 	"name": "Prusa CORE One 0.25 nozzle",
 	"inherits": "Prusa CORE One HF 0.4 nozzle",
 	"from": "system",
+	"setting_id": "uzZnbJnFuHfqW6Ks",
 	"instantiation": "true",
 	"default_print_profile": "0.12mm STRUCTURAL @CORE One 0.25",
 	"machine_max_jerk_x": [

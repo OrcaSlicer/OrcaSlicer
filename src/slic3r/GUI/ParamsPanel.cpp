@@ -128,7 +128,7 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
     m_show_again = wxGetApp().app_config->has(param);
     checkbox->SetValue(m_show_again);
 
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent &e) {
+    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, param](wxCommandEvent &e) {
         m_show_again = m_show_again ? false : true;
         e.Skip();
     });
@@ -279,12 +279,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         });
         m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
         m_mode_view = new ModeSwitchButton(m_top_panel);
-        if (wxGetApp().get_mode() == comDevelop) {
-            m_mode_view->SetSelection(mode_to_selection(comExpert));
-            m_mode_view->Enable(false);
-        } else {
-            m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
-        }
+        bool isDevMode = wxGetApp().get_mode() == comDevelop;
+        m_mode_view->SetSelection(mode_to_selection(isDevMode ? comExpert : wxGetApp().get_saved_mode()));
+        m_mode_view->SetDevMode(isDevMode);
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -293,11 +290,11 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_compare_btn->SetToolTip(_L("Compare presets"));
-        m_compare_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
+        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
 
         m_setting_btn = new ScalableButton(m_top_panel, wxID_ANY, "table", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_setting_btn->SetToolTip(_L("View all object's settings"));
-        m_setting_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
+        m_setting_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
 
         m_highlighter.set_timer_owner(this, 0);
         this->Bind(wxEVT_TIMER, [this](wxTimerEvent &)
@@ -327,7 +324,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
                                wxID_ANY,
                                wxDefaultPosition,
                                wxDefaultSize,
-                               wxVSCROLL) // hide hori-bar will cause hidden field mis-position
+                               wxVSCROLL            // hide hori-bar will cause hidden field mis-position
+                               | wxTAB_TRAVERSAL    // Allows for traversal via tab key
+                            ) 
         {
             // ShowScrollBar(GetHandle(), SB_BOTH, FALSE);
             Bind(wxEVT_SCROLL_CHANGED, [this](auto &e) {
@@ -653,13 +652,13 @@ void ParamsPanel::update_mode()
 
         if (app_mode == comDevelop) {
             mode_view->SetSelection(mode_to_selection(comExpert));
-            mode_view->Enable(false);
+            mode_view->SetDevMode(true);
             return;
         }
 
         mode_view->SetSelection(mode_to_selection(Slic3r::GUI::wxGetApp().get_saved_mode()));
-        if (!mode_view->IsEnabled())
-            mode_view->Enable();
+        if (mode_view->GetDevMode())
+            mode_view->SetDevMode(false);
     };
 
     sync_mode_view(m_mode_view);

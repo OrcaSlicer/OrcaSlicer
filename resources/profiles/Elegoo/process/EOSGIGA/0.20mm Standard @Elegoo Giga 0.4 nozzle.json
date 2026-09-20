@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Elegoo Giga 0.4 nozzle",
 	"inherits": "fdm_process_elegoo_04020",
 	"from": "system",
-	"setting_id": "PEOSG04020",
+	"setting_id": "GIglVjgVd5bAy2nW",
 	"instantiation": "true",
 	"renamed_from": "0.20mm Standard @EOS Giga 0.4 nozzle",
 	"default_acceleration": "3000",

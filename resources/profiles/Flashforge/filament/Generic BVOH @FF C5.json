@@ -3,6 +3,7 @@
 	"name": "Generic BVOH @FF C5",
 	"inherits": "Generic BVOH @System",
 	"from": "system",
+	"setting_id": "fTnS5cbxHv8cctBa",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

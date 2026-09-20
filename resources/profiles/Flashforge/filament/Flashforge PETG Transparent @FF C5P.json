@@ -3,6 +3,11 @@
 	"name": "Flashforge PETG Transparent @FF C5P",
 	"inherits": "Generic PETG @System",
 	"from": "system",
+	"setting_id": "66OWHhGyuaFISu6v",
+	"filament_id": "OFwjMiKL",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

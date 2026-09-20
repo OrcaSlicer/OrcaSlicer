@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"setting_id": "AUO7iSMEa6GDvM7Y",
+	"name": "QIDI PLA-CF @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PLA-CF@X-Plus 5-Series",
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

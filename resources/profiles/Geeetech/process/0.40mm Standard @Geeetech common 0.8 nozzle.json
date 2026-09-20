@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Geeetech common 0.8 nozzle",
 	"inherits": "fdm_process_geeetech_0.40_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP_Geeetech_033",
+	"setting_id": "wUcv6T33q7BHi6Qu",
 	"instantiation": "true",
 	"elefant_foot_compensation": "0.15",
 	"compatible_printers": [

@@ -3,7 +3,7 @@
 	"name": "Sovol SV08 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "ogyad4pXAoqy9915",
 	"instantiation": "true",
 	"printer_model": "Sovol SV08",
 	"default_print_profile": "0.20mm Standard @Sovol SV08",
@@ -102,6 +102,6 @@
 	"machine_end_gcode": "END_PRINT\n",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Sovol SV08 PLA"
+		"Generic PLA @Sovol SV08"
 	]
 }

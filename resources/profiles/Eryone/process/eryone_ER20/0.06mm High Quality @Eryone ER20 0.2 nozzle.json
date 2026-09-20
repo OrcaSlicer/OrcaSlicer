@@ -3,6 +3,7 @@
 	"name": "0.06mm High Quality @Eryone ER20 0.2 nozzle",
 	"inherits": "fdm_process_ER20_0.06_nozzle_0.2",
 	"from": "system",
+	"setting_id": "GhfBuKKydzWt05Zt",
 	"instantiation": "true",
 	"sparse_infill_pattern": "gyroid",
 	"compatible_printers": [

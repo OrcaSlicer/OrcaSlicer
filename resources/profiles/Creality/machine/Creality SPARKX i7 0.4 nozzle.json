@@ -1,8 +1,10 @@
 {
 	"type": "machine",
-	"from": "system",
-	"instantiation": "true",
+	"name": "Creality SPARKX i7 0.4 nozzle",
 	"inherits": "fdm_creality_common",
+	"from": "system",
+	"setting_id": "4usBaKppjmBSZy8N",
+	"instantiation": "true",
 	"printer_model": "Creality SPARKX i7",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
@@ -78,7 +80,6 @@
 	"printhost_ssl_ignore_revoke": "0",
 	"purge_in_prime_tower": "0",
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",
@@ -118,7 +119,5 @@
 	"wipe": "1",
 	"wipe_distance": "2",
 	"z_hop": "0.4",
-	"z_hop_types": "Slope Lift",
-	"name": "Creality SPARKX i7 0.4 nozzle",
-	"setting_id": "88315"
+	"z_hop_types": "Slope Lift"
 }

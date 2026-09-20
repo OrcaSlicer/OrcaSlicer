@@ -3,7 +3,7 @@
 	"name": "0.20mm Daily @LH Stinger",
 	"inherits": "fdm_process_lh_common",
 	"from": "system",
-	"setting_id": "LHS_P_daily",
+	"setting_id": "oCPHcikuQmP0q1et",
 	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",

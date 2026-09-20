@@ -3,7 +3,8 @@
 	"name": "Tiertime PVA",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"filament_id": "GFS04",
+	"setting_id": "9Z1HdjB3dx1Rlyng",
+	"filament_id": "OFyreocX",
 	"instantiation": "true",
 	"filament_cost": [
 		"79.98"

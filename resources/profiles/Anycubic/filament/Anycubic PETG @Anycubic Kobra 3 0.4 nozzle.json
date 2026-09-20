@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Anycubic PETG @Anycubic Kobra 3 0.4 nozzle",
-	"inherits": "Anycubic Generic PETG",
+	"inherits": "Generic PETG @Anycubic",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFG99",
+	"setting_id": "qe2wYLf7CEMjmfxj",
+	"filament_id": "OFo6n2pB",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Anycubic"
@@ -108,9 +108,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"42"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -178,9 +175,6 @@
 		"; filament start gcode\n"
 	],
 	"filament_toolchange_delay": [
-		"0"
-	],
-	"filament_unload_time": [
 		"0"
 	],
 	"filament_unloading_speed": [

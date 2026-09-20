@@ -3,7 +3,7 @@
 	"name": "Voron Switchwire 250 0.5 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "tjek5U0AkXTYI7cn",
 	"instantiation": "true",
 	"printer_model": "Voron Switchwire 250",
 	"default_print_profile": "0.25mm Standard 0.5 nozzle @Voron",

@@ -3,7 +3,7 @@
 	"name": "D12 230 PRO M2 DIRECT 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "R46FVqdQJNceXFVB",
 	"instantiation": "true",
 	"printer_model": "D12 230 PRO M2 DIRECT",
 	"gcode_flavor": "marlin2",

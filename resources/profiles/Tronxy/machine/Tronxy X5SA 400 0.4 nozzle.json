@@ -3,7 +3,7 @@
 	"name": "Tronxy X5SA 400 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "t8KY1zhDKOtHo3I4",
 	"instantiation": "true",
 	"printer_model": "Tronxy X5SA 400 Marlin Firmware",
 	"default_filament_profile": "Generic PLA @System",
