@@ -79,7 +79,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Generic PLA @Creality Ender-3V3-all"
+		"Generic PLA @Ender-3 V3-all"
 	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#018001",

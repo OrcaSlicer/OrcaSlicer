@@ -165,6 +165,9 @@
 	"pressure_advance": "0.02",
 	"support_material_interface_fan_speed": "-1",
 	"compatible_printers": [
-		"Creality CR-10 SE 0.4 nozzle"
+		"Creality CR-10 SE 0.2 nozzle",
+		"Creality CR-10 SE 0.4 nozzle",
+		"Creality CR-10 SE 0.6 nozzle",
+		"Creality CR-10 SE 0.8 nozzle"
 	]
 }

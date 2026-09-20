@@ -166,6 +166,8 @@
 	"pressure_advance": "0.02",
 	"support_material_interface_fan_speed": "-1",
 	"compatible_printers": [
-		"Creality Ender-3 V3 Plus 0.4 nozzle"
+		"Creality Ender-3 V3 Plus 0.4 nozzle",
+		"Creality Ender-3 V3 Plus 0.6 nozzle",
+		"Creality Ender-3 V3 Plus 0.8 nozzle"
 	]
 }

@@ -86,7 +86,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Generic PLA @Creality"
+		"Generic PLA @CR-10 Smart-all"
 	],
 	"deretraction_speed": "40",
 	"extruder_colour": "#FCE94F",
