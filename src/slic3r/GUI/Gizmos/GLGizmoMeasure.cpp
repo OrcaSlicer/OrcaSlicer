@@ -563,8 +563,30 @@ void GLGizmoMeasure::init_plane_glmodel(GripperType gripper_type, const Measure:
     }
 }
 
+bool GLGizmoMeasure::render_follows_cursor() const
+{
+    // The two raycasts on_render() starts with, without their side effects.
+    if (m_editing_distance)
+        return false;
+
+    const Vec2d mouse_position = m_parent.get_local_mouse_position();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Vec3f hit = Vec3f::Zero();
+    Vec3f normal = Vec3f::Zero();
+    for (const auto& item : m_gripper_id_raycast_map) {
+        if (item.second->get_id() > 0 && item.second->get_raycaster()->closest_hit(mouse_position, item.second->get_transform(), camera, hit, normal))
+            return true;
+    }
+    for (const auto& item : m_mesh_raycaster_map) {
+        if (item.second->get_raycaster()->unproject_on_mesh(mouse_position, item.second->get_transform(), camera, hit, normal))
+            return true;
+    }
+    return false;
+}
+
 void GLGizmoMeasure::on_render()
 {
+    m_rendered_this_frame = true;
 #if ENABLE_MEASURE_GIZMO_DEBUG
     render_debug_dialog();
 #endif // ENABLE_MEASURE_GIZMO_DEBUG
@@ -701,35 +723,36 @@ void GLGizmoMeasure::on_render()
                 reset_gripper_pick(GripperType::UNDEFINE, true);
 
                 m_curr_feature = curr_feature;
-                if (!m_curr_feature.has_value())
-                    return;
-                m_curr_feature->volume     = m_last_hit_volume;
-                m_curr_feature->world_tran = m_mesh_raycaster_map[m_last_hit_volume]->get_transform();
+                // The selected features are drawn below whether or not one is hovered.
+                if (m_curr_feature.has_value()) {
+                    m_curr_feature->volume     = m_last_hit_volume;
+                    m_curr_feature->world_tran = m_mesh_raycaster_map[m_last_hit_volume]->get_transform();
 
-                switch (m_curr_feature->get_type()) {
-                default: { assert(false); break; }
-                case Measure::SurfaceFeatureType::Point:
-                {
-                    m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
-                    break;
-                }
-                case Measure::SurfaceFeatureType::Edge:
-                {
-                    m_gripper_id_raycast_map[GripperType::EDGE] = std::make_shared<PickRaycaster>(EDGE_ID, *m_cylinder.mesh_raycaster);
-                    break;
-                }
-                case Measure::SurfaceFeatureType::Circle: {
-                    m_curr_circle.last_circle_feature = nullptr;
-                    m_curr_circle.inv_zoom            = 0;
-                    init_circle_glmodel(GripperType::CIRCLE, *m_curr_feature, m_curr_circle,inv_zoom);
-                    break;
-                }
-                case Measure::SurfaceFeatureType::Plane: {
-                    update_world_plane_features(m_curr_measuring.get(), *m_curr_feature);
-                    m_curr_plane.plane_idx = -1;
-                    init_plane_glmodel(GripperType::PLANE, *m_curr_feature, m_curr_plane);
-                    break;
-                }
+                    switch (m_curr_feature->get_type()) {
+                    default: { assert(false); break; }
+                    case Measure::SurfaceFeatureType::Point:
+                    {
+                        m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
+                        break;
+                    }
+                    case Measure::SurfaceFeatureType::Edge:
+                    {
+                        m_gripper_id_raycast_map[GripperType::EDGE] = std::make_shared<PickRaycaster>(EDGE_ID, *m_cylinder.mesh_raycaster);
+                        break;
+                    }
+                    case Measure::SurfaceFeatureType::Circle: {
+                        m_curr_circle.last_circle_feature = nullptr;
+                        m_curr_circle.inv_zoom            = 0;
+                        init_circle_glmodel(GripperType::CIRCLE, *m_curr_feature, m_curr_circle,inv_zoom);
+                        break;
+                    }
+                    case Measure::SurfaceFeatureType::Plane: {
+                        update_world_plane_features(m_curr_measuring.get(), *m_curr_feature);
+                        m_curr_plane.plane_idx = -1;
+                        init_plane_glmodel(GripperType::PLANE, *m_curr_feature, m_curr_plane);
+                        break;
+                    }
+                    }
                 }
             }
         }
@@ -2136,8 +2159,18 @@ void GLGizmoMeasure::init_render_input_window()
     m_same_model_object = is_two_volume_in_same_model_object();
 }
 
+void GLGizmoMeasure::render_dimensioning_if_scene_reused()
+{
+    // The labels are ImGui and live one frame; the lines drawn with them land under the cached
+    // scene, which is drawn after the overlay is built.
+    if (!m_rendered_this_frame)
+        render_dimensioning();
+    m_rendered_this_frame = false;
+}
+
 void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit)
 {
+    render_dimensioning_if_scene_reused();
     static std::optional<Measure::SurfaceFeature> last_feature;
     static EMode last_mode = EMode::FeatureSelection;
     static SelectedFeatures last_selected_features;

@@ -448,9 +448,26 @@ jobs:
 
       - name: Install nsis
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        shell: pwsh
+        # The Chocolatey community feed intermittently 504s, and `choco install`
+        # exits 0 when package resolution fails that way. Unchecked, the job then
+        # builds for ~25 minutes before `cpack -G NSIS` reports a missing makensis.
+        # Retry the install and verify makensis itself, so a real failure stops here.
         run: |
           dir "C:/Program Files (x86)/Windows Kits/10/Include"
-          choco install nsis
+          $nsisDir = Join-Path ${env:ProgramFiles(x86)} 'NSIS'
+          $makensis = Join-Path $nsisDir 'makensis.exe'
+          for ($attempt = 1; $attempt -le 3 -and -not (Test-Path $makensis); $attempt++) {
+            if ($attempt -gt 1) { Start-Sleep -Seconds (15 * $attempt) }
+            Write-Host "::group::choco install nsis (attempt $attempt)"
+            choco install nsis --yes --no-progress
+            Write-Host "::endgroup::"
+          }
+          if (-not (Test-Path $makensis)) {
+            throw "NSIS install failed: $makensis not found after 3 attempts."
+          }
+          & $makensis /VERSION
+          $nsisDir | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Build slicer Win
         if: runner.os == 'Windows'
@@ -685,6 +702,18 @@ jobs:
           name: OrcaSlicer_profile_validator_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
           path: './build/src/Release/OrcaSlicer_profile_validator'
 
+      # generate_system_cache is what scripts/build_preset_cache.sh bakes the
+      # <vendor>.opc caches with; it was already built by the "Build system
+      # preset cache (Linux)" step above. The .opc format is 64-bit
+      # little-endian native, i.e. identical across every platform Orca ships,
+      # so only the Linux binary is published.
+      - name: Upload generate_system_cache Ubuntu
+        if: ${{ ! env.ACT && runner.os == 'Linux' && !vars.SELF_HOSTED && inputs.arch != 'aarch64' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: generate_system_cache_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
+          path: './build/src/dev-utils/Release/generate_system_cache'
+
       - name: Deploy Ubuntu release
         if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && env.deploy_nightly == 'true' && runner.os == 'Linux' && !vars.SELF_HOSTED }}
         uses: WebFreak001/deploy-nightly@v3.2.0
@@ -712,6 +741,17 @@ jobs:
           release_id: 137995723
           asset_path: ./build/src/Release/OrcaSlicer_profile_validator
           asset_name: OrcaSlicer_profile_validator_Linux${{ env.ubuntu-ver-str }}_nightly
+          asset_content_type: application/octet-stream
+          max_releases: 1
+
+      - name: Deploy Ubuntu generate_system_cache release
+        if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED && inputs.arch != 'aarch64' }}
+        uses: WebFreak001/deploy-nightly@v3.2.0
+        with:
+          upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
+          release_id: 137995723
+          asset_path: ./build/src/dev-utils/Release/generate_system_cache
+          asset_name: generate_system_cache_Linux${{ env.ubuntu-ver-str }}_nightly
           asset_content_type: application/octet-stream
           max_releases: 1
 

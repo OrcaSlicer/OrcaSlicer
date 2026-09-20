@@ -51,11 +51,11 @@ and take the whole vendor bundle down; an unindexed file gets reviewed, merged a
 ## 3. Are ids generated, not written?
 
 No hand-typed or copied `setting_id` / `filament_id`. Instantiated presets have a `setting_id`; bases do
-not. A filament id change comes with a `scripts/filament_id_snapshot.json` diff in the same commit.
-`check` enforces all of that; what it cannot tell you is whether the identity *should* have moved.
+not. `check` enforces all of that; what it cannot tell you is whether the identity *should* have moved.
 
-Read the snapshot diff as the identity gate: a removed id or a changed triple means a product's identity
-moved, and the old id is not forwarded anywhere. Confirm that was intended.
+A rewritten or removed `filament_id` means a product's identity moved — a rename, or an edited
+`filament_vendor` / `filament_type` — and the old id is not forwarded anywhere. Confirm that was
+intended, and that a new id is not a rename in disguise.
 
 *Why:* a duplicate `filament_id` on one printer makes AMS spool matching a coin toss; a copied
 `setting_id` breaks preset identity. See [ids.md](ids.md).
@@ -79,8 +79,15 @@ and written in the preset's own file — golden rule 6, with the flattened-vs-ow
 inherited or copied the base's full printer list, and for two presets of one product with overlapping
 lists — duplicate combobox entries and an ambiguous AMS match.
 
+Two presets of one product (`filament_id`) must not share a variant. Resolve it by specificity: move the
+variant to the most specific preset and remove it from the more general ones — preferred over deleting a
+profile. Then repoint the machine's `default_filament_profile` and the model's `default_materials` at the
+profile that now covers it. See
+[one variant, one profile](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product).
+
 *Why:* real shipped bugs twice (`b7b3418baf` "showing up everywhere", `ff83aa41ef` duplicate Flashforge
-entries).
+entries). The Python `check` passes on an overlap; only the full `check_profile.sh` (`validate_system`)
+reports `Ambiguous AMS filament match`.
 
 ## 6. Model ↔ variant ↔ process consistency
 
@@ -128,7 +135,11 @@ numbers nobody measured.
 ## 11. `default_materials` (checked by CI)
 
 `check` fails on a `default_materials` / `default_filament_profile` name that resolves to no system
-filament, so a dangling entry no longer reaches review. Scope the run while working on one vendor:
+filament, so a dangling entry no longer reaches review. When compatibility moves between profiles of a
+product, the machine's `default_filament_profile` and the model's `default_materials` must be repointed at
+the most specific profile that still covers the variant, dropping generic entries that no longer apply —
+the same [specificity rule](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product)
+applies when adding or fixing defaults. Scope the run while working on one vendor:
 
 ```bash
 python3 scripts/orca_profile_tool.py check --vendor "<Vendor>"   # py -3 on Windows

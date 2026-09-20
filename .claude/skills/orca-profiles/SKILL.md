@@ -1,6 +1,6 @@
 ---
 name: orca-profiles
-description: Use when creating, modifying, reviewing or debugging OrcaSlicer FFF system profiles under resources/profiles, including printer/vendor/nozzle/material additions, bundle indexes and versions, preset renames, setting_id, filament_id and filament_id_snapshot.json. Also use for missing presets or vendors, ignored profile settings, ambiguous AMS filament matches, and failures from orca_profile_tool.py, check_profile.sh/.bat, OrcaSlicer_profile_validator or the Check profiles CI job.
+description: Use when creating, modifying, reviewing or debugging OrcaSlicer FFF system profiles under resources/profiles, including printer/vendor/nozzle/material additions, bundle indexes and versions, preset renames, setting_id and filament_id. Also use for missing presets or vendors, ignored profile settings, ambiguous AMS filament matches, and failures from orca_profile_tool.py, check_profile.sh/.bat, OrcaSlicer_profile_validator or the Check profiles CI job.
 ---
 
 # OrcaSlicer system profiles
@@ -21,7 +21,8 @@ Paths below are relative to this skill. Commands run from the repository root.
 | Add a printer or nozzle; change models, variants, assets or extruder vectors | [machine-profiles.md](references/machine-profiles.md) |
 | Add a quality tier or tune a process | [process-profiles.md](references/process-profiles.md) |
 | Create a vendor bundle; diagnose loading or inheritance; migrate preset names | [vendor-bundle.md](references/vendor-bundle.md) |
-| Change ids or snapshot claims; diagnose AMS identity | [ids.md](references/ids.md), then `docs/HLSD/filament_id.md` for identity changes |
+| Name a preset; check what a name must equal | [naming.md](references/naming.md) |
+| Change ids; diagnose AMS identity | [ids.md](references/ids.md), then `docs/HLSD/filament_id.md` for identity changes |
 | Review a profile diff | [review-checklist.md](references/review-checklist.md) |
 | Run checks, interpret failures, test another tree or verify in the app | [validation.md](references/validation.md) |
 
@@ -44,7 +45,10 @@ Paths below are relative to this skill. Commands run from the repository root.
    update in-tree references too. See [migration rules](references/vendor-bundle.md#renamed_from).
 6. **Compatibility uses exact printer variant names.** Every instantiated non-library filament
    needs a non-empty `compatible_printers` in its own file. Library fallbacks may omit it;
-   library printer-specific tunes use a non-empty list. Keep same-product tunes disjoint.
+   library printer-specific tunes use a non-empty list. One variant may be claimed by only one
+   profile per filament product (`filament_id`); an overlap is resolved by moving the variant to the
+   most specific preset, which is preferred over deleting a profile. See
+   [one variant, one profile](references/filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product).
 7. **Preset values are strings or arrays of strings.** Use `"instantiation": "false"`, not `false`.
    Model `nozzle_diameter` is a `;`-separated string; machine `nozzle_diameter` is an array.
    Wrong types can abort loading; see [failure scopes](references/vendor-bundle.md#failure-modes-ranked-by-blast-radius).
@@ -71,14 +75,11 @@ Paths below are relative to this skill. Commands run from the repository root.
    python3 scripts/orca_profile_tool.py normalize --vendor "<Vendor>"
    python3 scripts/orca_profile_tool.py update-index --vendor "<Vendor>"
    python3 scripts/orca_profile_tool.py generate-id --vendor "<Vendor>"
-   python3 scripts/orca_profile_tool.py update-snapshot
    python3 scripts/orca_profile_tool.py check
    ```
 
    Writing commands support `--dry-run`. Inspect their diffs: `normalize` changes content and can
-   reformat entire files. `update-snapshot` is tree-wide; include its diff whenever a filament id
-   **or claim** changes, even if no new id was minted. Skip it when filament identity and claims
-   are unchanged. Stop and resolve command errors before proceeding.
+   reformat entire files. Stop and resolve command errors before proceeding.
 
    **Do not use `trim` in this workflow:** it can delete newly authored, unindexed profiles.
    Do not use `normalize --force` for routine edits.

@@ -527,9 +527,7 @@ class TestCheck(TreeCase):
         # `check`, now that the per-vendor pass no longer skips it.
         self.t.write(apt.OFL, "filament/Stray.json",
                      {"type": "filament", "name": "Stray"})
-        snapshot = os.path.join(self.t.dir, "snapshot.json")
-        self.run_command("update-snapshot", "--snapshot", snapshot)
-        rc, out = self.run_command("check", "--snapshot", snapshot)
+        rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)
         self.assertIn(f"{apt.OFL}/filament/Stray.json: no {apt.OFL}.json list "
                       f"references it", out)
@@ -598,9 +596,7 @@ class TestCheck(TreeCase):
         self.t.write("V", "filament/A.json", {
             "type": "filament", "name": "A", "silent_mode": "0"})
         self.run_command("update-index")
-        snapshot = os.path.join(self.t.dir, "snapshot.json")
-        self.run_command("update-snapshot", "--snapshot", snapshot)
-        rc, out = self.run_command("check", "--snapshot", snapshot)
+        rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)  # normalization also rejects the obsolete key
         self.assertIn("Obsolete key: 'silent_mode' found in V/filament/A.json", out)
         self.assertIn("Files with warnings : 1", out)
@@ -623,9 +619,7 @@ class TestCheck(TreeCase):
             "type": "machine", "name": "M 0.4 nozzle",
             "default_filament_profile": ["A", "Nope"]})
         self.t.index("V", "machine", "M 0.4 nozzle", "machine/M.json")
-        snapshot = os.path.join(self.t.dir, "snapshot.json")
-        self.run_command("update-snapshot", "--snapshot", snapshot)
-        rc, out = self.run_command("check", "--snapshot", snapshot)
+        rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)
         self.assertIn("Missing filament profile: 'Nope'", out)
 
@@ -635,9 +629,7 @@ class TestCheck(TreeCase):
         self.bundle()
         for sub in apt.PROFILE_SUBDIRS:
             os.makedirs(os.path.join(self.t.profiles, apt.USER_DIR, "default", sub))
-        snapshot = os.path.join(self.t.dir, "snapshot.json")
-        self.run_command("update-snapshot", "--snapshot", snapshot)
-        _rc, out = self.run_command("check", "--snapshot", snapshot)
+        _rc, out = self.run_command("check")
         self.assertIn("Checked vendors     : 1", out)
         self.assertNotIn("user", out)
 
@@ -743,9 +735,7 @@ class TestCheck(TreeCase):
             self.t.write("V", f"filament/Stray{n}.json",
                          {"type": "filament", "name": f"Stray{n}"})
         self.t.write("V", "filament/NoType.json", {"name": "NoType"})
-        snapshot = os.path.join(self.t.dir, "snapshot.json")
-        self.run_command("update-snapshot", "--snapshot", snapshot)
-        rc, out = self.run_command("check", "--snapshot", snapshot)
+        rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)
         self.assertEqual(out.count("update-index\" to add them"), 1, out)
         self.assertEqual(out.count("or delete them"), 1, out)
@@ -796,11 +786,6 @@ class TestNormalized(TreeCase):
         with contextlib.redirect_stdout(buf):
             errors, gaps = apt.check_normalized(self.t.profiles, vendor)
         return errors, gaps, buf.getvalue()
-
-    def snapshot(self):
-        path = os.path.join(self.t.dir, "snapshot.json")
-        self.run_command("update-snapshot", "--snapshot", path)
-        return path
 
     def test_a_bundle_the_two_commands_just_wrote_reports_nothing(self):
         self.t.write("V", "filament/A.json", {"type": "filament", "name": "A"})
@@ -862,7 +847,7 @@ class TestNormalized(TreeCase):
         # library included.
         self.t.write(apt.OFL, "filament/A.json",
                      {"type": "filament", "name": "A", "version": "01.00.00.00"})
-        rc, out = self.run_command("check", "--snapshot", self.snapshot())
+        rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)
         self.assertIn(f"{apt.OFL}/filament/A.json: normalize would remove version", out)
 
@@ -872,7 +857,7 @@ class TestNormalized(TreeCase):
                          {"type": "filament", "name": f"A{n}",
                           "version": "01.00.00.00"})
         self.t.write("W", "filament/B.json", {"type": "filament", "name": "B"})
-        rc, out = self.run_command("check", "--snapshot", self.snapshot())
+        rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)
         self.assertIn("3 profile file(s) above are not what", out)
         self.assertEqual(out.count('normalize" writes: run it and commit'), 1, out)
@@ -898,8 +883,7 @@ class TestDispatch(TreeCase):
     def test_an_option_belongs_to_one_command_only(self):
         for argv in (["trim", "--force"],
                      ["update-index", "--filament-id"],
-                     ["check", "--profile-type", "filament"],
-                     ["update-snapshot", "--vendor", "V"]):
+                     ["check", "--profile-type", "filament"]):
             with self.subTest(argv=argv):
                 with self.assertRaises(SystemExit) as cm, \
                         contextlib.redirect_stdout(io.StringIO()), \

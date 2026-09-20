@@ -14,8 +14,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/2DBed.hpp
     GUI/3DBed.cpp
     GUI/3DBed.hpp
-    GUI/Widgets/StaticGroup.cpp
-    GUI/Widgets/StaticGroup.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
     GUI/Widgets/FilamentLoad.cpp
@@ -129,6 +127,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SpeedDialDialog.hpp
     GUI/ActionRegistry.cpp
     GUI/ActionRegistry.hpp
+    GUI/NativeCommands.cpp
+    GUI/NativeCommands.hpp
     GUI/PluginsConfigDialog.cpp
     GUI/PluginsConfigDialog.hpp
     GUI/ProcessRunner.cpp
@@ -469,6 +469,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SavePresetDialog.hpp
     GUI/SceneRaycaster.cpp
     GUI/SceneRaycaster.hpp
+    GUI/SceneCache.cpp
+    GUI/SceneCache.hpp
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
@@ -476,6 +478,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SkipPartCanvas.hpp
     GUI/Search.cpp
     GUI/Search.hpp
+    GUI/SettingsIndex.cpp
+    GUI/SettingsIndex.hpp
     GUI/Selection.cpp
     GUI/Selection.hpp
     GUI/SelectMachine.cpp
@@ -787,6 +791,30 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
     Utils/wxInspectorPlugins/Registration.hpp
 )
+
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP control socket.
+# All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
+if (SLIC3R_CAD)
+    list(APPEND SLIC3R_GUI_SOURCES
+        GUI/CAD/DesignPanel.cpp
+        GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignCanvas.cpp
+        GUI/CAD/DesignCanvas.hpp
+        GUI/CAD/DesignSketchTool.cpp
+        GUI/CAD/DesignSketchTool.hpp
+        GUI/CAD/DesignOffer.hpp
+        GUI/CAD/DesignInteraction.hpp
+        GUI/CAD/SketchInlineEditor.cpp
+        GUI/CAD/SketchInlineEditor.hpp
+        GUI/CAD/McpControl.cpp
+        GUI/CAD/McpControl.hpp
+        GUI/Gizmos/GLGizmoSketch.cpp
+        GUI/Gizmos/GLGizmoSketch.hpp
+        # Needs GeometryEngine (make_primitive / apply_fillet / tessellate).
+        GUI/Gizmos/GLGizmoPrimitive.cpp
+        GUI/Gizmos/GLGizmoPrimitive.hpp
+    )
+endif ()
 
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)
