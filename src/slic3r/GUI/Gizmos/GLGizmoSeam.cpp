@@ -49,7 +49,7 @@ bool GLGizmoSeam::on_init()
         {_L("Left mouse button"),           m_desc["enforce"]},
         {_L("Right mouse button"),          m_desc["block"]},
         {shift + _L("Left mouse button"),   m_desc["remove"]},
-        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["cursor_size"]},
         {alt + _L("Mouse wheel"),           m_desc["clipping_of_view"]}
     };
 
