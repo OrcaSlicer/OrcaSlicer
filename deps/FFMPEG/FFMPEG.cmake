@@ -14,10 +14,10 @@ endif()
 if (MSVC)
     set(_source_dir "${CMAKE_BINARY_DIR}/dep_FFMPEG-prefix/src/dep_FFMPEG")
 
-    set(PREBUILD_URL_arm64 "https://github.com/Noisyfox/FFmpeg-Builds-Orca/releases/download/autobuild-2026-07-17-14-28/ffmpeg-n7.0.3-31-g9b6ffd74b5-winarm64-orca-shared-7.0.zip")
-    set(PREBUILD_HASH_arm64 "12f4140279f2f8469885e1b5b2e8be9d788882914c21523cacd56989f3548054")
-    set(PREBUILD_URL_x64 "https://github.com/Noisyfox/FFmpeg-Builds-Orca/releases/download/autobuild-2026-07-17-14-28/ffmpeg-n7.0.3-31-g9b6ffd74b5-win64-orca-shared-7.0.zip")
-    set(PREBUILD_HASH_x64 "e65916020ddb9ef84b2666dfbcbfc9b1d67f69d15b4a66db53754637bf2d498c")
+    set(PREBUILD_URL_arm64 "https://github.com/Noisyfox/FFmpeg-Builds-Orca/releases/download/autobuild-2026-09-18-16-50/ffmpeg-n7.0.3-33-g887d4b4919-winarm64-orca-shared-7.0.zip")
+    set(PREBUILD_HASH_arm64 "da480cbb39680056de824c57ec4dc3bd577b479ebbc310ff1f9dc55cf014b4c1")
+    set(PREBUILD_URL_x64 "https://github.com/Noisyfox/FFmpeg-Builds-Orca/releases/download/autobuild-2026-09-18-16-50/ffmpeg-n7.0.3-33-g887d4b4919-win64-orca-shared-7.0.zip")
+    set(PREBUILD_HASH_x64 "85da19daf198f5548259d8aabb349db84997a3f6e6886d8d7764114add9c6dae")
 
     ExternalProject_Add(dep_FFMPEG
         ${_ffmpeg_depends}
