@@ -1633,7 +1633,7 @@ void GCodeViewer::reset()
 // IDEX/IQEX: resolve where every secondary carriage marker sits, relative to the primary,
 // for one (printer preset, active mode, plate bed) triple. This parses the mode string
 // several times over and rebuilds the zone grid, and every one of its inputs is preset or
-// plate state, so render() runs it only when GCodeViewer::ImexMarkerKey changes and replays
+// plate state, so render_scene() runs it only when GCodeViewer::ImexMarkerKey changes and replays
 // the returned plan on all the frames in between.
 //
 // `mode` is already resolved (the plate's mode beats the process preset). An empty

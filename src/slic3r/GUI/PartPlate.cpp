@@ -1122,9 +1122,9 @@ Polygon PartPlate::imex_wipe_tower_hull() const
     // Whether a tower is PRINTED is normalize_fdm_2's rule, shared with the slicer through
     // prime_tower_is_printed() rather than re-derived here - re-deriving it is what let this
     // validate a tower the slicer had already cancelled. Do not substitute the footprint
-    // estimate: it reports a tower for a single filament whenever the flush matrix purges
-    // (SEMM + purge_in_prime_tower, the Klipper default), which hard-blocks a plate with
-    // nothing drawn on screen to move.
+    // estimate: it never reads enable_prime_tower or print_sequence, so it still sizes a tower
+    // for a plate that switched the tower off or prints by object, which would hard-block a
+    // plate with nothing drawn on screen to move.
     //
     // Counts are the ones normalize_fdm_2 is handed: filament slots as authored, so a mixed
     // slot counts once, and distinct objects rather than instances. filament_is_mixed is a

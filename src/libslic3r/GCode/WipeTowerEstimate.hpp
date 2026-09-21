@@ -45,8 +45,8 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase               
                                                  double                           max_object_height);
 
 // Whether a prime tower is PRINTED for a plate. The footprint estimate above answers how big a
-// tower is and reports one for a single filament whenever the flush matrix purges, so it cannot
-// answer this; the authority is DynamicPrintConfig::normalize_fdm_2(), which clears
+// tower is and never reads enable_prime_tower or print_sequence, so it reports a size for a plate
+// that prints no tower at all; the authority is DynamicPrintConfig::normalize_fdm_2(), which clears
 // enable_prime_tower before the plate is sliced. This mirrors that rule so pre-slice consumers can
 // ask it without mutating a config, and a test pins the two together.
 //

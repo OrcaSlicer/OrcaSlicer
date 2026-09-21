@@ -214,7 +214,7 @@ private:
     bool m_fold = {false};
     std::string m_marker_filename;      // cached for lazy secondary marker init
 
-    // IDEX/IQEX: everything render() needs to place the secondary carriage markers and the
+    // IDEX/IQEX: everything render_scene() needs to place the secondary carriage markers and the
     // toolhead footprint boxes, resolved from the printer preset, the active mode and the
     // plate bed. Resolving it walks the mode string through compute_imex_zone_layout()
     // (several string parses plus a zone-grid rebuild), and none of its inputs change
@@ -365,7 +365,7 @@ public:
     //BBS: add all plates filament statistics
     void render_all_plates_stats(const std::vector<const GCodeProcessorResult*>& gcode_result_list, bool show = true) const;
     //BBS: GUI refactor: add canvas width and height
-    // Shells, toolpaths and the sequential marker, drawn in 3D.
+    // Shells, toolpaths, the sequential markers and the IDEX/IQEX toolhead boxes, drawn in 3D.
     void render_scene(int canvas_width, int canvas_height);
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
     void render_overlay(int canvas_width, int canvas_height, int right_margin);
