@@ -13,17 +13,17 @@
 #include <functional>
 namespace igl
 {
-  // Compute ambient occlusion per given point
-  //
-  // Inputs:
-  //    shoot_ray  function handle that outputs hits of a given ray against a
-  //      mesh (embedded in function handles as captured variable/data)
-  //    P  #P by 3 list of origin points
-  //    N  #P by 3 list of origin normals
-  // Outputs:
-  //    S  #P list of ambient occlusion values between 1 (fully occluded) and
-  //      0 (not occluded)
-  //
+  /// Compute ambient occlusion per given point using ray-mesh intersection
+  /// function handle.
+  ///
+  /// @param[in]  shoot_ray  function handle that outputs hits of a given ray against a
+  ///               mesh (embedded in function handles as captured variable/data)
+  /// @param[in]  P  #P by 3 list of origin points
+  /// @param[in]  N  #P by 3 list of origin normals
+  /// @param[in] num_samples  number of samples to use (e.g., 1000)
+  /// @param[out]  S  #P list of ambient occlusion values between 1 (fully occluded) and
+  ///      0 (not occluded)
+  ///
   template <
     typename DerivedP,
     typename DerivedN,
@@ -31,15 +31,25 @@ namespace igl
   IGL_INLINE void ambient_occlusion(
     const std::function<
       bool(
-        const Eigen::Vector3f&,
-        const Eigen::Vector3f&)
+        const Eigen::Matrix<typename DerivedP::Scalar,3,1>&,
+        const Eigen::Matrix<typename DerivedP::Scalar,3,1>&)
         > & shoot_ray,
-    const Eigen::PlainObjectBase<DerivedP> & P,
-    const Eigen::PlainObjectBase<DerivedN> & N,
+    const Eigen::MatrixBase<DerivedP> & P,
+    const Eigen::MatrixBase<DerivedN> & N,
     const int num_samples,
     Eigen::PlainObjectBase<DerivedS> & S);
-  // Inputs:
-  //   AABB  axis-aligned bounding box hierarchy around (V,F)
+  /// Compute ambient occlusion per given point for mesh (V,F) with precomputed
+  /// AABB tree.
+  ///
+  //  @param[in] AABB  axis-aligned bounding box hierarchy around (V,F)
+  /// @param[in] V  #V by 3 list of mesh vertex positions
+  /// @param[in] F  #F by 3 list of mesh face indices into V
+  /// @param[in]  P  #P by 3 list of origin points
+  /// @param[in]  N  #P by 3 list of origin normals
+  /// @param[in] num_samples  number of samples to use (e.g., 1000)
+  /// @param[out]  S  #P list of ambient occlusion values between 1 (fully occluded) and
+  ///      0 (not occluded)
+  ///
   template <
     typename DerivedV,
     int DIM,
@@ -49,15 +59,21 @@ namespace igl
     typename DerivedS >
   IGL_INLINE void ambient_occlusion(
     const igl::AABB<DerivedV,DIM> & aabb,
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::PlainObjectBase<DerivedF> & F,
-    const Eigen::PlainObjectBase<DerivedP> & P,
-    const Eigen::PlainObjectBase<DerivedN> & N,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedP> & P,
+    const Eigen::MatrixBase<DerivedN> & N,
     const int num_samples,
     Eigen::PlainObjectBase<DerivedS> & S);
-  // Inputs:
-  //    V  #V by 3 list of mesh vertex positions
-  //    F  #F by 3 list of mesh face indices into V
+  /// Compute ambient occlusion per given point for mesh (V,F)
+  ///
+  /// @param[in] V  #V by 3 list of mesh vertex positions
+  /// @param[in] F  #F by 3 list of mesh face indices into V
+  /// @param[in]  P  #P by 3 list of origin points
+  /// @param[in]  N  #P by 3 list of origin normals
+  /// @param[in] num_samples  number of samples to use (e.g., 1000)
+  /// @param[out]  S  #P list of ambient occlusion values between 1 (fully occluded) and
+  ///      0 (not occluded)
   template <
     typename DerivedV,
     typename DerivedF,
@@ -65,10 +81,10 @@ namespace igl
     typename DerivedN,
     typename DerivedS >
   IGL_INLINE void ambient_occlusion(
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::PlainObjectBase<DerivedF> & F,
-    const Eigen::PlainObjectBase<DerivedP> & P,
-    const Eigen::PlainObjectBase<DerivedN> & N,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedP> & P,
+    const Eigen::MatrixBase<DerivedN> & N,
     const int num_samples,
     Eigen::PlainObjectBase<DerivedS> & S);
 

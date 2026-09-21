@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Qidi Q2C 0.2 nozzle",
+	"inherits": "Generic PC@Q2C-Series",
+	"from": "system",
+	"setting_id": "khy9tY2jZWHSlIYt",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
+}

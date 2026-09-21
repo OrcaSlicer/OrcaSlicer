@@ -47,7 +47,7 @@ namespace igl
         {
           A =-pow(fabs(r)+sqrt(r2-q3),1./3);
           if( r<0 ) A=-A;
-          B = A==0? 0 : B=q/A;
+          B = A==0? 0 : q/A;
 
           a/=3;
           x[0] =(A+B)-a;
@@ -301,10 +301,10 @@ namespace igl
 }
 
 IGL_INLINE double igl::flip_avoiding_line_search(
-  const Eigen::MatrixXi F,
+  const Eigen::MatrixXi & F,
   Eigen::MatrixXd& cur_v,
-  Eigen::MatrixXd& dst_v,
-  std::function<double(Eigen::MatrixXd&)> energy,
+  const Eigen::MatrixXd& dst_v,
+  std::function<double(Eigen::MatrixXd&)> & energy,
   double cur_energy)
 {
   using namespace std;

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_pc",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "fdm_filament_common",
+	"filament_type": [
+		"PC"
+	]
+}

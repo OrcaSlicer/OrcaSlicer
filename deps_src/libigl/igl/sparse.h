@@ -13,32 +13,23 @@
 #include <Eigen/Sparse>
 namespace igl
 {
-  // Build a sparse matrix from list of indices and values (I,J,V), functions
-  // like the sparse function in matlab
-  //
-  // Templates:
-  //   IndexVector  list of indices, value should be non-negative and should
-  //     expect to be cast to an index. Must implement operator(i) to retrieve
-  //     ith element
-  //   ValueVector  list of values, value should be expect to be cast to type
-  //     T. Must implement operator(i) to retrieve ith element
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Input:
-  //   I  nnz vector of row indices of non zeros entries in X
-  //   J  nnz vector of column indices of non zeros entries in X
-  //   V  nnz vector of non-zeros entries in X
-  //   Optional:
-  //     m  number of rows
-  //     n  number of cols
-  // Outputs:
-  //   X  m by n matrix of type T whose entries are to be found 
-  //
-  template <class IndexVector, class ValueVector, typename T>
-  IGL_INLINE void sparse(
-    const IndexVector & I,
-    const IndexVector & J,
-    const ValueVector & V,
-    Eigen::SparseMatrix<T>& X);
+  /// Build a sparse matrix from list of indices and values (I,J,V), functions
+  /// like the sparse function in matlab
+  ///
+  /// @tparam IndexVector  list of indices, value should be non-negative and should
+  ///     expect to be cast to an index. Must implement operator(i) to retrieve
+  ///     ith element
+  /// @tparam ValueVector  list of values, value should be expect to be cast to type
+  ///     T. Must implement operator(i) to retrieve ith element
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] I  nnz vector of row indices of non zeros entries in X
+  /// @param[in] J  nnz vector of column indices of non zeros entries in X
+  /// @param[in] V  nnz vector of non-zeros entries in X
+  /// @param[in] m  number of rows
+  /// @param[in] n  number of cols
+  /// @param[out] X  m by n matrix of type T whose entries are to be found 
+  ///
+  /// \deprecated just use Eigen::SparseMatrix<>.setFromTriplets()
   template <
     class IndexVectorI, 
     class IndexVectorJ, 
@@ -51,23 +42,28 @@ namespace igl
     const size_t m,
     const size_t n,
     Eigen::SparseMatrix<T>& X);
-  // THIS MAY BE SUPERSEDED BY EIGEN'S .sparseView Indeed it is.
-  // Convert a full, dense matrix to a sparse one
-  //
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Input:
-  //   D  m by n full, dense matrix
-  // Output:
-  //   X  m by n sparse matrix
+  /// \overload
+  template <class IndexVector, class ValueVector, typename T>
+  IGL_INLINE void sparse(
+    const IndexVector & I,
+    const IndexVector & J,
+    const ValueVector & V,
+    Eigen::SparseMatrix<T>& X);
+  /// Convert a full, dense matrix to a sparse one
+  ///
+  /// \note Just use .sparseView()
+  ///
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] D  m by n full, dense matrix
+  /// @param[out] X  m by n sparse matrix
   template <typename DerivedD, typename T>
   IGL_INLINE void sparse(
-    const Eigen::PlainObjectBase<DerivedD>& D,
+    const Eigen::MatrixBase<DerivedD>& D,
     Eigen::SparseMatrix<T>& X);
-  // Wrapper with return
+  /// \overload
   template <typename DerivedD>
   IGL_INLINE Eigen::SparseMatrix<typename DerivedD::Scalar > sparse(
-    const Eigen::PlainObjectBase<DerivedD>& D);
+    const Eigen::MatrixBase<DerivedD>& D);
 
 }
 

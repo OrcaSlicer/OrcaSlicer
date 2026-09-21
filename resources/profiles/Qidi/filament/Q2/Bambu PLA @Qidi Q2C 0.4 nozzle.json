@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA @Qidi Q2C 0.4 nozzle",
+	"inherits": "Bambu PLA@Q2C-Series",
+	"from": "system",
+	"setting_id": "6R2VF4VRx4OsEAIr",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

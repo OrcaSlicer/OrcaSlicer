@@ -7,9 +7,9 @@
 
 // OpenGL loader
 #ifdef ENABLE_OPENGL_ES
-#include "../glad/include/glad/gles2.h"
+#include <glad/gles2.h>
 #else
-#include "../glad/include/glad/gl.h"
+#include <glad/gl.h>
 #endif // ENABLE_OPENGL_ES
 
 #include <string>

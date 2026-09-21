@@ -5,20 +5,18 @@
 #include <vector>
 namespace igl
 {
-  // Traverse a **directed** graph represented by an adjacency list using
-  // depth first search
-  //
-  // Inputs:
-  //   A  #V list of adjacency lists
-  //   s  starting node (index into A)
-  // Outputs:
-  //   D  #V list of indices into rows of A in the order in which graph nodes
-  //     are discovered.
-  //   P  #V list of indices into rows of A of predecessor in resulting
-  //     spanning tree {-1 indicates root/not discovered), order corresponds to
-  //     V **not** D.
-  //   C  #V list of indices into rows of A in order that nodes are "closed"
-  //     (all descendants have been discovered)
+  /// Traverse a **directed** graph represented by an adjacency list using
+  /// depth first search
+  ///
+  /// @param[in] A  #V list of adjacency lists
+  /// @param[in] s  starting node (index into A)
+  /// @param[out] D  #V list of indices into rows of A in the order in which graph nodes
+  ///     are discovered.
+  /// @param[out] P  #V list of indices into rows of A of predecessor in resulting
+  ///     spanning tree {-1 indicates root/not discovered), order corresponds to
+  ///     V **not** D.
+  /// @param[out] C  #V list of indices into rows of A in order that nodes are "closed"
+  ///     (all descendants have been discovered)
   template <
     typename AType,
     typename DerivedD,
@@ -30,6 +28,7 @@ namespace igl
     Eigen::PlainObjectBase<DerivedD> & D,
     Eigen::PlainObjectBase<DerivedP> & P,
     Eigen::PlainObjectBase<DerivedC> & C);
+  /// \overload
   template <
     typename AType,
     typename DType,

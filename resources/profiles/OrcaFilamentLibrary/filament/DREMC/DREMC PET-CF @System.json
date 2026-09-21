@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "DREMC PET-CF @System",
+	"inherits": "DREMC PET-CF @base",
+	"from": "system",
+	"instantiation": "false",
+	"compatible_printers": []
+}

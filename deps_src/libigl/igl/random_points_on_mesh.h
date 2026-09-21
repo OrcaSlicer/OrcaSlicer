@@ -9,38 +9,39 @@
 #define IGL_RANDOM_POINTS_ON_MESH_H
 
 #include "igl_inline.h"
+#include "generate_default_urbg.h"
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
 namespace igl
 {
-  // RANDOM_POINTS_ON_MESH Randomly sample a mesh (V,F) n times.
-  //
-  // Inputs:
-  //   n  number of samples
-  //   V  #V by dim list of mesh vertex positions
-  //   F  #F by 3 list of mesh triangle indices
-  // Outputs:
-  //   B  n by 3 list of barycentric coordinates, ith row are coordinates of
-  //     ith sampled point in face FI(i)
-  //   FI  n list of indices into F 
-  //
-  template <typename DerivedV, typename DerivedF, typename DerivedB, typename DerivedFI>
+  /// Randomly sample a mesh (V,F) n times.
+  ///
+  /// @param[in] n  number of samples
+  /// @param[in] V  #V by dim list of mesh vertex positions
+  /// @param[in] F  #F by 3 list of mesh triangle indices
+  /// @param[out] B  n by 3 list of barycentric coordinates, ith row are coordinates of
+  ///     ith sampled point in face FI(i)
+  /// @param[in] urbg An instance of UnformRandomBitGenerator (e.g.,
+  ///  `std::minstd_rand(0)`)
+  /// @param[out] FI  n list of indices into F 
+  /// @param[in,out] urbg An instance of UnformRandomBitGenerator.
+  /// @param[out] X  n by dim list of sample positions.
+  template <
+    typename DerivedV, 
+    typename DerivedF, 
+    typename DerivedB, 
+    typename DerivedFI,
+    typename DerivedX,
+    typename URBG = DEFAULT_URBG>
   IGL_INLINE void random_points_on_mesh(
     const int n,
-    const Eigen::PlainObjectBase<DerivedV > & V,
-    const Eigen::PlainObjectBase<DerivedF > & F,
+    const Eigen::MatrixBase<DerivedV > & V,
+    const Eigen::MatrixBase<DerivedF > & F,
     Eigen::PlainObjectBase<DerivedB > & B,
-    Eigen::PlainObjectBase<DerivedFI > & FI);
-  // Outputs:
-  //   B n by #V sparse matrix so that  B*V produces a list of sample points
-  template <typename DerivedV, typename DerivedF, typename ScalarB, typename DerivedFI>
-  IGL_INLINE void random_points_on_mesh(
-    const int n,
-    const Eigen::PlainObjectBase<DerivedV > & V,
-    const Eigen::PlainObjectBase<DerivedF > & F,
-    Eigen::SparseMatrix<ScalarB > & B,
-    Eigen::PlainObjectBase<DerivedFI > & FI);
+    Eigen::PlainObjectBase<DerivedFI > & FI,
+    Eigen::PlainObjectBase<DerivedX> & X,
+    URBG && urbg = igl::generate_default_urbg());
 }
 
 #ifndef IGL_STATIC_LIBRARY
@@ -48,5 +49,3 @@ namespace igl
 #endif
 
 #endif
-
-

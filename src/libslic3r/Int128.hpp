@@ -57,7 +57,7 @@
 	#define HAS_INTRINSIC_128_TYPE
 #endif
 
-#if defined(_MSC_VER) && defined(_WIN64)
+#if defined(_MSC_VER) && defined(_M_X64)
 	#include <intrin.h>
 	#pragma intrinsic(_mul128)
 #endif
@@ -125,7 +125,6 @@ public:
 /******************************************** Splitting the 128bit number into two 64bit words *********************************************/
 
 	Int128(int64_t lo = 0) : m_lo((uint64_t)lo), m_hi((lo < 0) ? -1 : 0) {}
-	Int128(const Int128 &val) : m_lo(val.m_lo), m_hi(val.m_hi) {}
 	Int128(const int64_t& hi, const uint64_t& lo) : m_lo(lo), m_hi(hi) {}
 
 	Int128& operator = (const int64_t &val)
@@ -188,8 +187,9 @@ public:
 
 	static inline Int128 multiply(int64_t lhs, int64_t rhs)
 	{
-#if defined(_MSC_VER) && defined(_WIN64)
-		// On Visual Studio 64bit, use the _mul128() intrinsic function.
+#if defined(_MSC_VER) && defined(_M_X64)
+		// On Visual Studio x64, use the _mul128() intrinsic function.
+		// (ARM64 MSVC has no _mul128; it falls through to the portable path.)
 		Int128 result;
 	    result.m_lo = (uint64_t)_mul128(lhs, rhs, &result.m_hi);
 	    return result;

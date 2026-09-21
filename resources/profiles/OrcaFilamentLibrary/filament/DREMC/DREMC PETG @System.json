@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "DREMC PETG @System",
+	"inherits": "DREMC PETG @base",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"nozzle_temperature_range_high": [
+		"270"
+	],
+	"compatible_printers": []
+}

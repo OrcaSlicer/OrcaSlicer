@@ -19,3 +19,9 @@
 <!--
 > Please describe the tests that you have conducted to verify the changes made in this PR.
 -->
+
+<!--
+> A guide for users on how to download the artifacts from this PR.
+-->
+
+[How to Download Pull Requests Artifacts for Testing](https://www.orcaslicer.com/wiki/how_to_download_pr_artifacts)

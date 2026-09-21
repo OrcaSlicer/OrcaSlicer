@@ -110,6 +110,7 @@ public:
     };
 
     HttpServer(boost::asio::ip::port_type port = LOCALHOST_PORT);
+    ~HttpServer();
 
     boost::thread m_http_server_thread;
     bool          start_http_server = false;
@@ -122,6 +123,7 @@ public:
     void set_request_handler(const std::function<std::shared_ptr<Response>(const std::string&)>& m_request_handler);
 
     static std::shared_ptr<Response> bbl_auth_handle_request(const std::string& url);
+    static std::shared_ptr<Response> auth_handle_request(const std::string& url, const std::string& provider);
 
 private:
     class IOServer

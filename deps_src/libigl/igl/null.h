@@ -13,19 +13,16 @@
 
 namespace igl 
 {
-  // Like MATLAB's null
-  //
-  // Compute a basis for the null space for the given matrix A: the columns of
-  // the output N form a basis for the space orthogonal to that spanned by the
-  // rows of A.
-  //
-  // Inputs:
-  //   A  m by n matrix
-  // Outputs:
-  //   N  n by r matrix, where r is the row rank of A
+  /// Compute a basis for the null space for the given matrix A: the columns of
+  /// the output N form a basis for the space orthogonal to that spanned by the
+  /// rows of A.
+  /// Like MATLAB's null
+  ///
+  /// @param[in] A  m by n matrix
+  /// @param[out] N  n by r matrix, where r is the row rank of A
   template <typename DerivedA, typename DerivedN>
   IGL_INLINE void null(
-    const Eigen::PlainObjectBase<DerivedA> & A,
+    const Eigen::MatrixBase<DerivedA> & A,
     Eigen::PlainObjectBase<DerivedN> & N);
 }
 

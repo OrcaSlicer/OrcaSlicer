@@ -47,6 +47,8 @@ namespace cereal {
 }
 
 namespace Slic3r {
+
+struct TexturedMesh;
 enum class ConversionType;
 
 class BuildVolume;
@@ -516,7 +518,7 @@ public:
     void delete_connectors();
     void clone_for_cut(ModelObject **obj);
 
-    void split(ModelObjectPtrs*new_objects);
+    void split(ModelObjectPtrs*new_objects, bool remap_paint);
     void merge();
 
     // BBS: Boolean opts - Musang King
@@ -719,6 +721,7 @@ enum class ConversionType : int {
 };
 
 enum class En3mfType : int {
+    From_Orca,
     From_BBS,
     From_Prusa,
     From_Other
@@ -730,6 +733,7 @@ public:
     void assign(const FacetsAnnotation &rhs) { if (! this->timestamp_matches(rhs)) { m_data = rhs.m_data; this->copy_timestamp(rhs); } }
     void assign(FacetsAnnotation &&rhs) { if (! this->timestamp_matches(rhs)) { m_data = std::move(rhs.m_data); this->copy_timestamp(rhs); } }
     const TriangleSelector::TriangleSplittingData &get_data() const noexcept { return m_data; }
+    void set_data(TriangleSelector::TriangleSplittingData &&data) { m_data = std::move(data); this->touch(); }
     bool set(const TriangleSelector& selector);
     indexed_triangle_set get_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     // BBS
@@ -738,6 +742,13 @@ public:
                                                        EnforcerBlockerType max_type,
                                                        EnforcerBlockerType to_delete_filament = EnforcerBlockerType::NONE,
                                                        EnforcerBlockerType replace_filament = EnforcerBlockerType::NONE);
+    // Shift painted filament indices >= threshold by delta. Used when a physical filament is
+    // inserted ahead of existing slots (mixed-color slots are kept at the end of the list).
+    void                 shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta);
+    // Relabel painted filament indices according to state_map (old state value -> new state
+    // value; untouched states keep their identity). Used when published-3MF import relocates
+    // mixed-filament definitions onto new slot numbers.
+    void                 remap_states(const ModelVolume &mv, const EnforcerBlockerStateMap &state_map);
     indexed_triangle_set get_facets_strict(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool has_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool empty() const { return m_data.triangles_to_split.empty(); }
@@ -876,12 +887,17 @@ public:
     // List of mesh facets painted for fuzzy skin.
     FacetsAnnotation    fuzzy_skin_facets;
 
+    // Save painting data before reset_extra_facets() discards it.
+    // Used for replacing mesh without losing painting data.
+    // Only for model parts (not modifiers/connectors).
+    std::optional<TriangleSelector::SavedPainting> save_painting() const;
+    
+    // Remap painting data from previous saved source to this mesh
+    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, bool keep_existing_paint = false);
+
     // BBS: quick access for volume extruders, 1 based
     mutable std::vector<int> mmuseg_extruders;
     mutable Timestamp        mmuseg_ts;
-
-    // List of exterior faces
-    FacetsAnnotation    exterior_facets;
 
     // Is set only when volume is Embossed Text type
     // Contain information how to re-create volume
@@ -913,17 +929,25 @@ public:
     // Extruder ID is only valid for FFF. Returns -1 for SLA or if the extruder ID is not applicable (support volumes).
     int                 extruder_id() const;
 
+    //Orca: cache clearing procedure to ensure that the shape is positioned accurately when manipulating it
+    void clear_cache() {
+        m_cached_trans_matrix = Transform3d::Identity().inverse(); // get unvelivable matrix
+        m_convex_hull_2d.clear();
+        m_cached_2d_polygon.clear();
+    };
+
     bool                is_splittable() const;
 
     // BBS
     std::vector<int>    get_extruders() const;
     void                update_extruder_count(size_t extruder_count);
-    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1);
+    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1,
+                                                                   const std::vector<unsigned char> &filament_is_mixed = {});
 
     // Split this volume, append the result to the object owning this volume.
     // Return the number of volumes created from this one.
     // This is useful to assign different materials to different volumes of an object.
-    size_t              split(unsigned int max_extruders);
+    size_t              split(unsigned int max_extruders, bool remap_paint);
     void                translate(double x, double y, double z) { translate(Vec3d(x, y, z)); }
     void                translate(const Vec3d& displacement);
     void                scale(const Vec3d& scaling_factors);
@@ -959,34 +983,34 @@ public:
     static std::string  type_to_string(const ModelVolumeType t);
 
     const Geometry::Transformation& get_transformation() const { return m_transformation; }
-    void set_transformation(const Geometry::Transformation& transformation) { m_transformation = transformation; }
-    void set_transformation(const Transform3d& trafo) { m_transformation.set_matrix(trafo); }
+    void set_transformation(const Geometry::Transformation& transformation) { clear_cache(); m_transformation = transformation; }
+    void set_transformation(const Transform3d& trafo) { clear_cache(); m_transformation.set_matrix(trafo); }
 
     Vec3d get_offset() const { return m_transformation.get_offset(); }
 
     double get_offset(Axis axis) const { return m_transformation.get_offset(axis); }
 
-    void set_offset(const Vec3d& offset) { m_transformation.set_offset(offset); }
-    void set_offset(Axis axis, double offset) { m_transformation.set_offset(axis, offset); }
+    void set_offset(const Vec3d& offset) { clear_cache(); m_transformation.set_offset(offset); }
+    void set_offset(Axis axis, double offset) { clear_cache(); m_transformation.set_offset(axis, offset); }
 
     Vec3d get_rotation() const { return m_transformation.get_rotation(); }
     double get_rotation(Axis axis) const { return m_transformation.get_rotation(axis); }
 
-    void set_rotation(const Vec3d& rotation) { m_transformation.set_rotation(rotation); }
-    void set_rotation(Axis axis, double rotation) { m_transformation.set_rotation(axis, rotation); }
+    void set_rotation(const Vec3d& rotation) { clear_cache(); m_transformation.set_rotation(rotation); }
+    void set_rotation(Axis axis, double rotation) { clear_cache(); m_transformation.set_rotation(axis, rotation); }
 
     Vec3d get_scaling_factor() const { return m_transformation.get_scaling_factor(); }
     double get_scaling_factor(Axis axis) const { return m_transformation.get_scaling_factor(axis); }
 
-    void set_scaling_factor(const Vec3d& scaling_factor) { m_transformation.set_scaling_factor(scaling_factor); }
-    void set_scaling_factor(Axis axis, double scaling_factor) { m_transformation.set_scaling_factor(axis, scaling_factor); }
+    void set_scaling_factor(const Vec3d& scaling_factor) { clear_cache(); m_transformation.set_scaling_factor(scaling_factor); }
+    void set_scaling_factor(Axis axis, double scaling_factor) {clear_cache(); m_transformation.set_scaling_factor(axis, scaling_factor); }
 
     Vec3d get_mirror() const { return m_transformation.get_mirror(); }
     double get_mirror(Axis axis) const { return m_transformation.get_mirror(axis); }
     bool is_left_handed() const { return m_transformation.is_left_handed(); }
 
-    void set_mirror(const Vec3d& mirror) { m_transformation.set_mirror(mirror); }
-    void set_mirror(Axis axis, double mirror) { m_transformation.set_mirror(axis, mirror); }
+    void set_mirror(const Vec3d& mirror) { clear_cache(); m_transformation.set_mirror(mirror); }
+    void set_mirror(Axis axis, double mirror) { clear_cache(); m_transformation.set_mirror(axis, mirror); }
     void convert_from_imperial_units();
     void convert_from_meters();
 
@@ -1006,6 +1030,7 @@ public:
     bool is_seam_painted() const { return !this->seam_facets.empty(); }
     bool is_mm_painted() const { return !this->mmu_segmentation_facets.empty(); }
     bool is_fuzzy_skin_painted() const { return !this->fuzzy_skin_facets.empty(); }
+    bool is_any_painted() const { return is_fdm_support_painted() || is_seam_painted() || is_mm_painted() || is_fuzzy_skin_painted(); }
     
     // Orca: Implement prusa's filament shrink compensation approach
     // Returns 0-based indices of extruders painted by multi-material painting gizmo.
@@ -1251,6 +1276,7 @@ public:
     ModelInstanceEPrintVolumeState print_volume_state;
     // Whether or not this instance is printable
     bool printable;
+    bool auto_drop;
     bool use_loaded_id_for_label {false};
     int arrange_order = 0; // BBS
     size_t loaded_id = 0; // BBS
@@ -1379,7 +1405,11 @@ private:
     Polygon convex_hull; // BBS
 
     // Constructor, which assigns a new unique ID.
-    explicit ModelInstance(ModelObject* object) : print_volume_state(ModelInstancePVS_Inside), printable(true), object(object), m_assemble_initialized(false) { assert(this->id().valid()); }
+    explicit ModelInstance(ModelObject* object)
+        : print_volume_state(ModelInstancePVS_Inside), printable(true), auto_drop(true), object(object), m_assemble_initialized(false)
+    {
+        assert(this->id().valid());
+    }
     // Constructor, which assigns a new unique ID.
     explicit ModelInstance(ModelObject *object, const ModelInstance &other) :
         m_transformation(other.m_transformation)
@@ -1387,6 +1417,7 @@ private:
         , m_offset_to_assembly(other.m_offset_to_assembly)
         , print_volume_state(ModelInstancePVS_Inside)
         , printable(other.printable)
+        , auto_drop(other.auto_drop)
         , object(object)
         , m_assemble_initialized(false) { assert(this->id().valid() && this->id() != other.id()); }
 
@@ -1400,7 +1431,7 @@ private:
 	ModelInstance() : ObjectBase(-1), object(nullptr) { assert(this->id().invalid()); }
     // BBS. Add added members to archive.
     template<class Archive> void serialize(Archive& ar) {
-        ar(m_transformation, print_volume_state, printable, m_assemble_transformation, m_offset_to_assembly, m_assemble_initialized);
+        ar(m_transformation, print_volume_state, printable, auto_drop, m_assemble_transformation, m_offset_to_assembly, m_assemble_initialized);
     }
 };
 
@@ -1453,6 +1484,7 @@ struct GlobalSpeedMap
     double topSolidInfillSpeed;
     double supportSpeed;
     double smallPerimeterSpeed;
+    double smallSupportPerimeterSpeed;
     double maxSpeed;
     Polygon bed_poly;
 };
@@ -1527,11 +1559,19 @@ public:
     std::shared_ptr<ModelInfo> model_info = nullptr;
     std::shared_ptr<ModelProfileInfo> profile_info = nullptr;
 
+    // Textured mesh data for texture-to-painting import. Populated by the loader when a mesh
+    // arrives with usable UVs and a texture map; consumed (and reset) by the import dialog.
+    std::shared_ptr<TexturedMesh> texture_mesh;
+
     //makerlab information
     std::string mk_name;
     std::string mk_version;
     std::vector<std::string> md_name;
     std::vector<std::string> md_value;
+
+    // Opaque parametric CAD recipe (CadDocument::serialize_recipe()), round-tripped through
+    // the 3MF as Metadata/orca_cad.bin. Empty for non-CAD projects.
+    std::string cad_recipe;
 
     void SetDesigner(std::string designer, std::string designer_user_id) {
         if (design_info == nullptr) {
@@ -1574,8 +1614,8 @@ public:
                                 ImportStepProgressFn                                    stepFn,
                                 StepIsUtf8Fn                                            stepIsUtf8Fn,
                                 std::function<int(Slic3r::Step&, double&, double&, bool&)>     step_mesh_fn,
-                                double                                                  linear_defletion,
-                                double                                                  angle_defletion,
+                                double                                                  linear_deflection,
+                                double                                                  angle_deflection,
                                 bool                                                    is_split_compound);
 
     //BBS: add part plate related logic
@@ -1757,6 +1797,13 @@ bool model_brim_points_data_changed(const ModelObject& mo, const ModelObject& mo
 bool model_has_multi_part_objects(const Model &model);
 // If the model has advanced features, then it cannot be processed in simple mode.
 bool model_has_advanced_features(const Model &model);
+
+// Remap the model's filament-slot references after a published-3MF import relocated
+// mixed-filament definitions onto new slot numbers: object/volume "extruder" configs and
+// multi-material color-painting states (paint state stores the one-based slot number).
+// slot_relocations maps the author's zero-based slot number to its final zero-based slot;
+// entries are applied simultaneously (no chained lookups), untouched slots keep everything.
+void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_relocations);
 
 #ifndef NDEBUG
 // Verify whether the IDs of Model / ModelObject / ModelVolume / ModelInstance / ModelMaterial are valid and unique.

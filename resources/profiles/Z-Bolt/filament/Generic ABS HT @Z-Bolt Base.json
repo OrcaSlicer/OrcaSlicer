@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "Generic ABS HT @Z-Bolt Base",
+	"inherits": "Generic ABS @Z-Bolt Base",
+	"from": "system",
+	"filament_id": "OFsP8PKH",
+	"instantiation": "false",
+	"description": "Use this filament profile to print big ABS models with chamber heating",
+	"chamber_temperatures": [
+		"60"
+	]
+}

@@ -62,6 +62,7 @@ public:
     widget_t	widget {nullptr};
     std::function<wxWindow*(wxWindow*)>	near_label_widget{ nullptr };
 	wxWindow*	near_label_widget_win {nullptr};
+    wxStaticText* label_widget {nullptr};
     wxSizer*	widget_sizer {nullptr};
     wxSizer*	extra_widget_sizer {nullptr};
     //BBS: export the extra colume widget
@@ -80,6 +81,14 @@ public:
 	Line(wxString label, wxString tooltip) :
 		label(_(label)), label_tooltip(_(tooltip)) {}
 	Line() : m_is_separator(true) {}
+
+    void set_label(const wxString& new_label) {
+        label = new_label;
+        if (label_widget != nullptr) {
+            label_widget->SetLabel(label + (label.IsEmpty() ? "" : ": "));
+            label_widget->Refresh();
+        }
+    }
 
 	bool is_separator() const { return m_is_separator; }
 	bool has_only_option(const std::string& opt_key) const { return m_options.size() == 1 && m_options[0].opt_id == opt_key; }
@@ -106,6 +115,7 @@ public:
     wxWindow *     stb;
     const wxString  icon;
     const wxString  title;
+    bool            m_labels_hidden{false};
     size_t			label_width = 20 ;// {200};
     wxSizer*		sizer {nullptr};
 	OG_CustomCtrl*  custom_ctrl{ nullptr };
@@ -128,6 +138,7 @@ public:
     wxFont			label_font {wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT) };
 	int				sidetext_width{ -1 };
 	int				sublabel_width{ -1 };
+	bool			draw_multi_extruder { false };
 
     /// Returns a copy of the pointer of the parent wxWindow.
     /// Accessor function is because users are not allowed to change the parent
@@ -184,11 +195,11 @@ public:
 
     void            clear_fields_except_of(const std::vector<std::string> left_fields);
 
-    void            hide_labels() { label_width = 0; }
+    void            hide_labels() { label_width = 0; m_labels_hidden = true; }
 
 	OptionsGroup(wxWindow *_parent, const wxString &title, const wxString &icon, bool is_tab_opt = false,
                     column_t extra_clmn = nullptr);
-	~OptionsGroup() { clear(true); }
+	virtual ~OptionsGroup() { clear(true); }
 
     wxGridSizer*        get_grid_sizer() { return m_grid_sizer; }
 	const std::vector<Line>& get_lines() { return m_lines; }
@@ -239,9 +250,16 @@ protected:
 	virtual void		back_to_initial_value(const std::string& opt_key) {}
 	virtual void		back_to_sys_value(const std::string& opt_key) {}
 
+	// Preset::Type of a settings group; -1 for groups not tied to a preset. Used by append_line to
+	// register each option's wiki path with the searcher. Overridden by ConfigOptionsGroup.
+	virtual int			config_type() const { return -1; }
+
 public:
 	static wxString		get_url(const std::string& path_end);
 	static bool			launch_browser(const std::string& path_end);
+
+protected:
+    std::string         pick_plugin(const ConfigOptionDef& opt);
 };
 
 class ConfigOptionsGroup: public OptionsGroup {
@@ -259,7 +277,7 @@ public:
 		OptionsGroup(parent, wxEmptyString, wxEmptyString, true, nullptr) {}
 
 	const wxString& config_category() const throw() { return m_config_category; }
-	int config_type() const throw() { return m_config_type; }
+	int config_type() const throw() override { return m_config_type; }
 	const t_opt_map&   opt_map() const throw() { return m_opt_map; }
 
 	void 		set_config_category_and_type(const wxString &category, int type) { m_config_category = category; m_config_type = type; }

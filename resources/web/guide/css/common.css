@@ -137,16 +137,15 @@ label:has(input[type="checkbox"])>span{
 input[type="checkbox"] {
 	-webkit-appearance: none;
 	appearance: none;
-	background-color:#FFFFFF;
 	margin:0;
 	margin-right: 6px;
 	width: 1em;
 	height: 1em;
-	border: 0.1em solid #DBDBDB;
+	border: 0.1em solid var(--border-color);;
 	border-radius: 0.15em;
 	display: inline-flex;
 	place-content: center;
-	background-color:#FFFFFF;
+	background-color: var(--bg-color);;
 }
 
 input[type="checkbox"]::before {
@@ -155,16 +154,26 @@ input[type="checkbox"]::before {
 	height: 0.8em;
 	transform: scale(0);
 	box-shadow: inset 1em 1em #FFFFFF;
-	clip-path: polygon(7% 37%, 0 45%, 33% 78%, 100% 30%, 95% 21%, 33% 64%);
 }
 
-input[type="checkbox"]:checked {
-	border-color:#009688;
-	background-color:#009688;
+input[type="checkbox"]:is(:checked, :indeterminate) {
+	border-color:    var(--main-color);
+	background-color:var(--main-color);
+}
+
+input[type="checkbox"]:is(:checked, :indeterminate):hover {
+	border-color:    var(--main-color-hover);
+	background-color:var(--main-color-hover);
 }
 
 input[type="checkbox"]:checked::before {
-    transform: scale(1);
+	transform: scale(1);
+	clip-path: polygon(7% 37%, 0 45%, 33% 78%, 100% 30%, 95% 21%, 33% 64%);
+}
+
+input[type="checkbox"]:indeterminate::before {
+	transform: scale(1);
+	clip-path: polygon(7% 44%, 93% 44%, 93% 56%, 7% 56%);
 }
 
 /*----------------Light Mode-------------------*/

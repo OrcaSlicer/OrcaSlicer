@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PPS-CF @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI PPS-CF@Q2C-Series",
+	"from": "system",
+	"setting_id": "PyswXDniz2jG2qcr",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

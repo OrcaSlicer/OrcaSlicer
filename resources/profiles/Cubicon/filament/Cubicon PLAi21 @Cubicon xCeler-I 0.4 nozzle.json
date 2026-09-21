@@ -1,12 +1,13 @@
 {
-    "type": "filament",
+	"type": "filament",
+	"name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle",
+	"inherits": "Cubicon PLAi21 @base",
+	"renamed_from": "Cubicon PLAi21 @base",
+	"from": "system",
+	"setting_id": "vcLVF3cglagBfVAF",
+	"filament_id": "OFRhBryT",
 	"instantiation": "true",
-    "version": "1.0.0.0",
-    "from": "system",
-    "name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle",
-
-    "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
-    ],
-    "inherits": "Cubicon PLAi21 @base"
+	"compatible_printers": [
+		"Cubicon xCeler-I 0.4 nozzle"
+	]
 }

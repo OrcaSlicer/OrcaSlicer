@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "re3D Terabot 4",
+	"model_id": "re3D Terabot 4",
+	"nozzle_diameter": "0.4;0.8",
+	"instantiation": "false",
+	"machine_tech": "FFF",
+	"family": "re3D",
+	"bed_model": "",
+	"bed_texture": "re3D Terabot 4_buildplate_texture.svg",
+	"hotend_model": "GB-HOTEND.stl",
+	"default_materials": "re3D PLA @0.4 nozzle;re3D PLA @0.8 nozzle;re3D PETG @0.4 nozzle;re3D PETG @0.8 nozzle;re3D PC @0.4 nozzle;re3D PC @0.8 nozzle"
+}

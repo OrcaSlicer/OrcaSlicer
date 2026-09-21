@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Basic @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI PLA Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "gEs3guvsWgjmTsHz",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

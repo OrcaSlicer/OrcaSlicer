@@ -222,7 +222,7 @@ void Bed_2D::repaint(const std::vector<Vec2d>& shape)
 	dc.DrawText(origin_label, origin_label_x, origin_label_y);
 
     // ORCA add grid size value as information for large scale beds
-    auto grid_label = wxString("1x1 Grid: " + std::to_string(step) + " mm");
+    auto grid_label = wxString::Format(_L("1x1 Grid: %d mm"), step);
     Point draw_bb = to_pixels(Vec2d(
         std::min(m_pos(0),bb.min(0)),
         std::min(m_pos(1),bb.min(1))

@@ -12,21 +12,16 @@
 #include <Eigen/Dense>
 namespace igl 
 {
-  // average_onto_vertices 
-  // Move a scalar field defined on faces to vertices by averaging
-  //
-  // Input:
-  // V,F: mesh
-  // S: scalar field defined on vertices, Vx1
-  // 
-  // Output:
-  // SV: scalar field defined on faces
-  template <typename T, typename I>
+  /// Move a scalar field defined on vertices to faces by averaging
+  ///
+  /// @param[in] F  #F by ss list of simples/faces
+  /// @param[in] S  #V by dim list of per-vertex values
+  /// @param[out] SF  #F by dim list of per-face values
+  template <typename DerivedF, typename DerivedS, typename DerivedSF>
   IGL_INLINE void average_onto_faces(
-    const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &V,
-    const Eigen::Matrix<I, Eigen::Dynamic, Eigen::Dynamic> &F,
-    const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &S,
-    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &SF);
+    const Eigen::MatrixBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedS> & S,
+    Eigen::PlainObjectBase<DerivedSF> & SF);
 }
 
 #ifndef IGL_STATIC_LIBRARY

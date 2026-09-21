@@ -61,8 +61,8 @@ IGL_INLINE void igl::copyleft::cgal::insert_into_cdt(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-// Explicit template instantiation
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+// Explicit template instantiation
 template void igl::copyleft::cgal::insert_into_cdt<CGAL::Epick>(CGAL::Object const&, CGAL::Plane_3<CGAL::Epick> const&, CGAL::Constrained_triangulation_plus_2<CGAL::Constrained_Delaunay_triangulation_2<CGAL::Epick, CGAL::Triangulation_data_structure_2<CGAL::Triangulation_vertex_base_2<CGAL::Epick, CGAL::Triangulation_ds_vertex_base_2<void> >, CGAL::Constrained_triangulation_face_base_2<CGAL::Epick, CGAL::Triangulation_face_base_2<CGAL::Epick, CGAL::Triangulation_ds_face_base_2<void> > > >, CGAL::Exact_intersections_tag> >&);
 template void igl::copyleft::cgal::insert_into_cdt<CGAL::Epeck>(CGAL::Object const&, CGAL::Plane_3<CGAL::Epeck> const&, CGAL::Constrained_triangulation_plus_2<CGAL::Constrained_Delaunay_triangulation_2<CGAL::Epeck, CGAL::Triangulation_data_structure_2<CGAL::Triangulation_vertex_base_2<CGAL::Epeck, CGAL::Triangulation_ds_vertex_base_2<void> >, CGAL::Constrained_triangulation_face_base_2<CGAL::Epeck, CGAL::Triangulation_face_base_2<CGAL::Epeck, CGAL::Triangulation_ds_face_base_2<void> > > >, CGAL::Exact_intersections_tag> >&);
 #endif

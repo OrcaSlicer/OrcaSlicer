@@ -228,6 +228,9 @@ protected:
     void restore_scene_raycasters_state();
 
     void render_dimensioning();
+    // Builds the dimension labels on a frame that reused the cached scene and so skipped on_render().
+    void render_dimensioning_if_scene_reused();
+    bool m_rendered_this_frame{ false };
 
 #if ENABLE_MEASURE_GIZMO_DEBUG
     void render_debug_dialog();
@@ -255,6 +258,9 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The hover is resolved inside on_render(), against the mesh and against the grippers of the
+    // selected features, which sit off the mesh.
+    bool render_follows_cursor() const override;
     void on_render() override;
     void on_set_state() override;
 
@@ -271,7 +277,6 @@ protected:
     void remove_selected_sphere_raycaster(int id);
     void update_measurement_result();
 
-    void show_tooltip_information(float caption_max, float x, float y);
     void reset_all_pick();
     void reset_gripper_pick(GripperType id,bool is_all = false);
     void register_single_mesh_pick();
@@ -303,9 +308,9 @@ protected:
 
     bool is_pick_meet_assembly_mode(const SelectedFeatures::Item& item);
  protected:
-    // This map holds all translated description texts, so they can be easily referenced during layout calculations
-    // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
-    std::map<std::string, wxString> m_desc;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts;
+
     bool                     m_show_reset_first_tip{false};
     bool                     m_selected_wrong_feature_waring_tip{false};
     EMeasureMode             m_measure_mode{EMeasureMode::ONLY_MEASURE};

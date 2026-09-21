@@ -13,27 +13,25 @@
 #include <functional>
 namespace igl
 {
-  // Compute the signed distance to a sweep surface of a mesh under-going
-  // an arbitrary motion V(t) discretely sampled at `steps`-many moments in
-  // time at a grid.
-  //
-  // Inputs:
-  //   V  #V by 3 list of mesh positions in reference pose
-  //   F  #F by 3 list of triangle indices [0,n)
-  //   transform  function handle so that transform(t) returns the rigid
-  //     transformation at time t∈[0,1]
-  //   steps  number of time steps: steps=3 --> t∈{0,0.5,1}
-  //   GV  #GV by 3 list of evaluation point grid positions
-  //   res  3-long resolution of GV grid
-  //   h  edge-length of grid
-  //   isolevel  isolevel to "focus" on; grid positions far enough away from
-  //     isolevel (based on h) will get approximate values). Set
-  //     isolevel=infinity to get good values everywhere (slow and
-  //     unnecessary if just trying to extract isolevel-level set).
-  //   S0  #GV initial values (will take minimum with these), can be same
-  //     as S)
-  // Outputs:
-  //   S  #GV list of signed distances
+  /// Compute the signed distance to a sweep surface of a mesh under-going
+  /// an arbitrary motion V(t) discretely sampled at `steps`-many moments in
+  /// time at a grid.
+  ///
+  /// @param[in] V  #V by 3 list of mesh positions in reference pose
+  /// @param[in] F  #F by 3 list of triangle indices [0,n)
+  /// @param[in] transform  function handle so that transform(t) returns the rigid
+  ///     transformation at time t∈[0,1]
+  /// @param[in] steps  number of time steps: steps=3 --> t∈{0,0.5,1}
+  /// @param[in] GV  #GV by 3 list of evaluation point grid positions
+  /// @param[in] res  3-long resolution of GV grid
+  /// @param[in] h  edge-length of grid
+  /// @param[in] isolevel  isolevel to "focus" on; grid positions far enough away from
+  ///     isolevel (based on h) will get approximate values). Set
+  ///     isolevel=infinity to get good values everywhere (slow and
+  ///     unnecessary if just trying to extract isolevel-level set).
+  /// @param[in] S0  #GV initial values (will take minimum with these), can be same
+  ///     as S)
+  /// @param[out] S  #GV list of signed distances
   IGL_INLINE void swept_volume_signed_distance(
     const Eigen::MatrixXd & V,
     const Eigen::MatrixXi & F,
@@ -45,6 +43,7 @@ namespace igl
     const double isolevel,
     const Eigen::VectorXd & S0,
     Eigen::VectorXd & S);
+  /// \overload
   IGL_INLINE void swept_volume_signed_distance(
     const Eigen::MatrixXd & V,
     const Eigen::MatrixXi & F,

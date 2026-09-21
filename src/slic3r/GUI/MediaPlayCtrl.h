@@ -8,7 +8,7 @@
 #ifndef MediaPlayCtrl_h
 #define MediaPlayCtrl_h
 
-#include "wxMediaCtrl2.h"
+#include "wxMediaCtrl3.h"
 
 #include <wx/panel.h>
 
@@ -30,7 +30,7 @@ namespace GUI {
 class MediaPlayCtrl : public wxPanel
 {
 public:
-    MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
+    MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
 
     ~MediaPlayCtrl();
 
@@ -67,15 +67,15 @@ private:
     static bool get_stream_url(std::string *url = nullptr);
 
 private:
-    static const wxMediaState MEDIASTATE_IDLE = (wxMediaState) 3;
-    static const wxMediaState MEDIASTATE_INITIALIZING = (wxMediaState) 4;
-    static const wxMediaState MEDIASTATE_LOADING = (wxMediaState) 5;
-    static const wxMediaState MEDIASTATE_BUFFERING = (wxMediaState) 6;
+    static inline const wxMediaState MEDIASTATE_IDLE = static_cast<wxMediaState>(3);
+    static inline const wxMediaState MEDIASTATE_INITIALIZING = static_cast<wxMediaState>(4);
+    static inline const wxMediaState MEDIASTATE_LOADING = static_cast<wxMediaState>(5);
+    static inline const wxMediaState MEDIASTATE_BUFFERING = static_cast<wxMediaState>(6);
 
     // token
     std::shared_ptr<int> m_token = std::make_shared<int>(0);
 
-    wxMediaCtrl2 * m_media_ctrl;
+    wxMediaCtrl3 * m_media_ctrl;
     wxMediaState m_last_state = MEDIASTATE_IDLE;
     std::string m_machine;
     int m_lan_proto = 0;
@@ -90,7 +90,7 @@ private:
     bool m_device_busy = false;
     bool m_disable_lan = false;
     wxString m_url;
-    
+
     std::deque<wxString> m_tasks;
     boost::mutex m_mutex;
     boost::condition_variable m_cond;

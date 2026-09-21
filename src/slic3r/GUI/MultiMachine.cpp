@@ -147,7 +147,7 @@ wxString DeviceItem::get_state_printable()
     str_state_printable.push_back(_L("Printing"));
     str_state_printable.push_back(_L("Upgrading"));
     str_state_printable.push_back(_L("Incompatible"));
-    str_state_printable.push_back(_L("syncing"));
+    str_state_printable.push_back(_L("Syncing"));
 
     return str_state_printable[state_printable];
 }
@@ -163,7 +163,7 @@ wxString DeviceItem::get_state_device()
     str_state_device.push_back(_L("Printing Pause"));
     str_state_device.push_back(_L("Prepare"));
     str_state_device.push_back(_L("Slicing"));
-    str_state_device.push_back(_L("syncing"));
+    str_state_device.push_back(_L("Syncing"));
 
     return str_state_device[state_device];
 }
@@ -217,7 +217,7 @@ std::vector<DeviceItem*> selected_machines(const std::vector<DeviceItem*>& dev_i
 
 SortItem::SortItem()
 {
-    sort_map.emplace(std::make_pair(SortRule::SR_None, [this](const DeviceItem* d1, const DeviceItem* d2) {
+    sort_map.emplace(std::make_pair(SortRule::SR_None, [](const DeviceItem* d1, const DeviceItem* d2) {
         return d1->state_dev_name > d2->state_dev_name;
     }));
     sort_map.emplace(std::make_pair(SortRule::SR_DEV_NAME, [this](const DeviceItem* d1, const DeviceItem* d2) {

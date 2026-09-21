@@ -3,6 +3,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "../GUI/DeviceCore/DevStorage.h"
@@ -19,6 +20,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cctype>
+#include <map>
 #include <thread>
 
 namespace {
@@ -229,10 +231,11 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
 }
 
 int MoonrakerPrinterAgent::bind(
-    std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
+    std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
     (void) dev_ip;
     (void) dev_id;
+    (void) dev_model;
     (void) sec_link;
     (void) timezone;
     (void) improved;
@@ -251,6 +254,15 @@ int MoonrakerPrinterAgent::request_bind_ticket(std::string* ticket)
     if (ticket)
         *ticket = "";
     return BAMBU_NETWORK_SUCCESS;
+}
+
+int MoonrakerPrinterAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
+{
+    // No BBL cloud snapshot source; report failure so the caller falls back.
+    (void) dev_id;
+    (void) file_name;
+    (void) callback;
+    return -1;
 }
 
 int MoonrakerPrinterAgent::set_server_callback(OnServerErrFn fn)
@@ -536,7 +548,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     print_json["ams"] = ams_json;
 
     // Call the parser to populate DevFilaSystem
-    DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
+    DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem().get(), false);
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
 
     // Set printer_type so update_sync_status() can match it against the preset's printer type.
@@ -571,7 +583,18 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
-    // Try Happy Hare first (more widely adopted, supports more filament changers)
+    // Try Moonraker filament data (more generic, supports any filament changer
+    // software that reports lane data to Moonraker like AFC and recent Happy
+    // Hare as of Feb 15, 2026)
+    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
+                                << (max_lane_index + 1) << " lanes";
+        int ams_count = (max_lane_index + 4) / 4;
+        build_ams_payload(ams_count, max_lane_index, trays);
+        return true;
+    }
+
+    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
     if (fetch_hh_filament_info(trays, max_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
@@ -580,17 +603,8 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         return true;
     }
 
-    // Fallback to AFC
-    if (fetch_afc_filament_info(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected AFC with "
-                                << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
     // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor AFC)";
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
     return false;
 }
 
@@ -607,51 +621,70 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 {
     const std::string upper = trim_and_upper(filament_type);
 
-    // Map to OrcaFilamentLibrary preset IDs (compatible with all printers)
-    // Source: resources/profiles/OrcaFilamentLibrary/filament/
+    // Normalize reported material names (trimmed, uppercased) to an OrcaFilamentLibrary
+    // generic family. The family's filament_id is resolved from the loaded system presets
+    // below rather than hardcoded, so profile id re-mints never require touching this table.
+    // scripts/test_moonraker_lane_data.py parses this initializer; keep the {"A", "B"} format.
+    static const std::map<std::string, std::string> type_to_ofl_family = {
+        // PLA variants
+        {"PLA", "PLA"},
+        {"PLA-CF", "PLA-CF"},
+        {"PLA SILK", "PLA Silk"},
+        {"PLA-SILK", "PLA Silk"},
+        {"PLA HIGH SPEED", "PLA High Speed"},
+        {"PLA-HS", "PLA High Speed"},
+        {"PLA HS", "PLA High Speed"},
 
-    // PLA variants
-    if (upper == "PLA")           return "OGFL99";
-    if (upper == "PLA-CF")        return "OGFL98";
-    if (upper == "PLA SILK" || upper == "PLA-SILK") return "OGFL96";
-    if (upper == "PLA HIGH SPEED" || upper == "PLA-HS" || upper == "PLA HS") return "OGFL95";
+        // ABS/ASA variants
+        {"ABS", "ABS"},
+        {"ASA", "ASA"},
 
-    // ABS/ASA variants
-    if (upper == "ABS")           return "OGFB99";
-    if (upper == "ASA")           return "OGFB98";
+        // PETG/PET variants
+        {"PETG", "PETG"},
+        {"PET", "PETG"},
+        {"PCTG", "PCTG"},
 
-    // PETG/PET variants
-    if (upper == "PETG" || upper == "PET") return "OGFG99";
-    if (upper == "PCTG")          return "OGFG97";
+        // PA/Nylon variants
+        {"PA", "PA"},
+        {"NYLON", "PA"},
+        {"PA-CF", "PA-CF"},
+        {"PPA", "PPA-CF"},
+        {"PPA-CF", "PPA-CF"},
+        {"PPA-GF", "PPA-GF"},
 
-    // PA/Nylon variants
-    if (upper == "PA" || upper == "NYLON") return "OGFN99";
-    if (upper == "PA-CF")         return "OGFN98";
-    if (upper == "PPA" || upper == "PPA-CF") return "OGFN97";
-    if (upper == "PPA-GF")        return "OGFN96";
+        // PC variants
+        {"PC", "PC"},
 
-    // PC variants
-    if (upper == "PC")            return "OGFC99";
+        // PP/PE variants
+        {"PE", "PE"},
+        {"PP", "PP"},
 
-    // PP/PE variants
-    if (upper == "PE")            return "OGFP99";
-    if (upper == "PP")            return "OGFP97";
+        // Support materials
+        {"PVA", "PVA"},
+        {"HIPS", "HIPS"},
+        {"BVOH", "BVOH"},
 
-    // Support materials
-    if (upper == "PVA")           return "OGFS99";
-    if (upper == "HIPS")          return "OGFS98";
-    if (upper == "BVOH")          return "OGFS97";
+        // TPU variants
+        {"TPU", "TPU"},
 
-    // TPU variants
-    if (upper == "TPU")           return "OGFU99";
+        // Other materials
+        {"EVA", "EVA"},
+        {"PHA", "PHA"},
+        {"COPE", "CoPE"},
+        {"SBS", "SBS"},
+    };
 
-    // Other materials
-    if (upper == "EVA")           return "OGFR99";
-    if (upper == "PHA")           return "OGFR98";
-    if (upper == "COPE")          return "OGFLC99";
-    if (upper == "SBS")           return "OFLSBS99";
+    auto it = type_to_ofl_family.find(upper);
+    if (it == type_to_ofl_family.end())
+        return UNKNOWN_FILAMENT_ID;
 
-    // Unknown material
+    if (auto* bundle = GUI::wxGetApp().preset_bundle) {
+        const Preset* preset = bundle->filaments.find_preset("Generic " + it->second + " @System");
+        if (preset != nullptr && preset->is_system && !preset->filament_id.empty())
+            return preset->filament_id;
+    }
+
+    // Unknown material, or no loaded preset data to resolve against
     return UNKNOWN_FILAMENT_ID;
 }
 
@@ -721,10 +754,10 @@ std::string MoonrakerPrinterAgent::normalize_color_value(const std::string& colo
     return normalized;
 }
 
-// Fetch filament info from Armored Turtle AFC
-bool MoonrakerPrinterAgent::fetch_afc_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index)
+// Fetch filament info from moonraker database
+bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
 {
-    // Fetch AFC lane data from Moonraker database
+    // Fetch lane data from Moonraker database
     std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
 
     std::string response_body;
@@ -754,19 +787,19 @@ bool MoonrakerPrinterAgent::fetch_afc_filament_info(std::vector<AmsTrayData>& tr
         .perform_sync();
 
     if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Failed to fetch lane data: " << http_error;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: " << http_error;
         return false;
     }
 
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Invalid JSON response";
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Invalid JSON response";
         return false;
     }
 
     // Expected structure: { "result": { "namespace": "lane_data", "value": { "lane1": {...}, ... } } }
     if (!json.contains("result") || !json["result"].contains("value") || !json["result"]["value"].is_object()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Unexpected JSON structure or no lane_data found";
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Unexpected JSON structure or no lane_data found";
         return false;
     }
 
@@ -812,7 +845,7 @@ bool MoonrakerPrinterAgent::fetch_afc_filament_info(std::vector<AmsTrayData>& tr
     }
 
     if (trays.empty()) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_filament_info: No AFC lanes found";
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: No lanes found";
         return false;
     }
 
@@ -1347,7 +1380,6 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     if (auto* app_config = GUI::wxGetApp().app_config) {
         const std::string access_code = device_info.api_key.empty() ? "88888888" : device_info.api_key;
         app_config->set_str("access_code", device_info.dev_id, access_code);
-        app_config->set_str("user_access_code", device_info.dev_id, access_code);
     }
 
     nlohmann::json payload;

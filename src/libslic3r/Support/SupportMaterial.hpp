@@ -28,7 +28,7 @@ public:
 	bool 		has_support()				const { return m_object_config->enable_support.value || m_object_config->enforce_support_layers; }
 	bool 		build_plate_only() 			const { return this->has_support() && m_object_config->support_on_build_plate_only.value; }
 	// BBS
-	bool 		synchronize_layers()		const { return /*m_slicing_params.soluble_interface && */!m_print_config->independent_support_layer_height.value; }
+	bool 		synchronize_layers()		const { return /*m_slicing_params.zero_gap_interface_top && */!m_print_config->independent_support_layer_height.value; }
 	bool 		has_contact_loops() 		const { return m_object_config->support_interface_loop_pattern.value; }
 
 	// Generate support material for the object.
@@ -86,7 +86,6 @@ private:
 */
 
 	// Following objects are not owned by SupportMaterial class.
-	const PrintObject 		*m_object;
 	const PrintConfig 		*m_print_config;
 	const PrintObjectConfig *m_object_config;
 	// Pre-calculated parameters shared between the object slicer and the support generator,

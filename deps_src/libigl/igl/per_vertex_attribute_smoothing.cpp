@@ -10,8 +10,8 @@
 
 template <typename DerivedV, typename DerivedF>
 IGL_INLINE void igl::per_vertex_attribute_smoothing(
-    const Eigen::PlainObjectBase<DerivedV>& Ain,
-    const Eigen::PlainObjectBase<DerivedF>& F,
+    const Eigen::MatrixBase<DerivedV>& Ain,
+    const Eigen::MatrixBase<DerivedF>& F,
     Eigen::PlainObjectBase<DerivedV> & Aout)
 {
     std::vector<double> denominator(Ain.rows(), 0);
@@ -29,5 +29,5 @@ IGL_INLINE void igl::per_vertex_attribute_smoothing(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template void igl::per_vertex_attribute_smoothing<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template void igl::per_vertex_attribute_smoothing<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 #endif

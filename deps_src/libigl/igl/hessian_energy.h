@@ -16,20 +16,17 @@
 
 namespace igl
 {
-    // Constructs the Hessian energy matrix using mixed FEM
-    // as described in https://arxiv.org/abs/1707.04348
-    // Natural Boundary Conditions for Smoothing in Geometry Processing
-    // (Oded Stein, Eitan Grinspun, Max Wardetzky, Alec Jacobson)
-    //
-    // Inputs:
-    //   V  #V by dim list of mesh vertex positions
-    //   F  #F by 3 list of mesh faces (must be triangles)
-    // Outputs:
-    //   Q  #V by #V Hessian energy matrix, each row/column i
-    //     corresponding to V(i,:)
-    //
-    //
-    //
+    /// Constructs the Hessian energy matrix using mixed FEM
+    /// as described in https://arxiv.org/abs/1707.04348
+    /// Natural Boundary Conditions for Smoothing in Geometry Processing
+    /// (Oded Stein, Eitan Grinspun, Max Wardetzky, Alec Jacobson)
+    ///
+    /// @param[in] V  #V by dim list of mesh vertex positions
+    /// @param[in] F  #F by 3 list of mesh faces (must be triangles)
+    /// @param[out] Q  #V by #V Hessian energy matrix, each row/column i
+    ///     corresponding to V(i,:)
+    ///
+    /// \see hessian, curved_hessian_energy
     template <typename DerivedV, typename DerivedF, typename Scalar>
     IGL_INLINE void hessian_energy(
                                    const Eigen::MatrixBase<DerivedV> & V,

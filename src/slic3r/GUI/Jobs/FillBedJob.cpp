@@ -184,7 +184,7 @@ void FillBedJob::prepare()
         ap.poly = m_selected.front().poly;
         ap.bed_idx = PartPlateList::MAX_PLATES_COUNT;
         ap.itemid = -1;
-        ap.setter = [this, mi, offset](const ArrangePolygon &p) {
+        ap.setter = [this, offset](const ArrangePolygon &p) {
             ModelObject *mo = m_plater->model().objects[m_object_idx];
             ModelObject *obj;
             if (m_instances) {
@@ -348,6 +348,8 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
         }
         m_plater->update();
     }
+
+    m_plater->mark_plate_toolbar_image_dirty();
 }
 
 }} // namespace Slic3r::GUI

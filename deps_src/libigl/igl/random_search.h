@@ -5,22 +5,22 @@
 #include <functional>
 namespace igl
 {
-  // Solve the problem:
-  //
-  //   minimize f(x)
-  //   subject to lb ≤ x ≤ ub 
-  // 
-  // by uniform random search.
-  //
-  // Inputs:
-  //   f  function to minimize
-  //   LB  #X vector of finite lower bounds
-  //   UB  #X vector of finite upper bounds
-  //   iters  number of iterations
-  // Outputs:
-  //   X  #X optimal parameter vector
-  // Returns f(X)
-  //
+  /// Global optimization via random search.
+  ///
+  /// Solve the problem:
+  ///
+  ///   minimize f(x)
+  ///   subject to lb ≤ x ≤ ub 
+  /// 
+  /// by uniform random search.
+  ///
+  /// @param[in] f  function to minimize
+  /// @param[in] LB  #X vector of finite lower bounds
+  /// @param[in] UB  #X vector of finite upper bounds
+  /// @param[in] iters  number of iterations
+  /// @param[out] X  #X optimal parameter vector
+  /// @return f(X)
+  ///
   template <
     typename Scalar, 
     typename DerivedX, 

@@ -14,23 +14,15 @@
 
 namespace igl
 {
-  // Builds an m by n sparse identity matrix like matlab's speye function
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Inputs:
-  //   m  number of rows
-  //   n  number of cols
-  // Outputs:
-  //   I  m by n sparse matrix with 1's on the main diagonal
+  /// Builds an m by n sparse identity matrix like matlab's speye function
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] m  number of rows
+  /// @param[in] n  number of cols
+  /// @param[out] I  m by n sparse matrix with 1's on the main diagonal
   template <typename T>
   IGL_INLINE void speye(const int n,const int m, Eigen::SparseMatrix<T> & I);
-  // Builds an n by n sparse identity matrix like matlab's speye function
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Inputs:
-  //   n  number of rows and cols
-  // Outputs:
-  //   I  n by n sparse matrix with 1's on the main diagonal
+  /// \overload
+  /// \brief m = n
   template <typename T>
   IGL_INLINE void speye(const int n, Eigen::SparseMatrix<T> & I);
 }

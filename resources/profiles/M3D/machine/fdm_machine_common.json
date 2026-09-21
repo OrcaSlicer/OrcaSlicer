@@ -1,45 +1,44 @@
 {
-    "type": "machine",
-    "name": "fdm_machine_common",
-    "from": "system",
-    "instantiation": "false",
-    "printer_technology": "FFF",
-    "printer_settings_id": "fdm_machine_common",
-    "version": "1.0.0.0",
-    "nozzle_diameter": [
-        "0.4"
-    ],
-    "thumbnails": [
-        "16x16"
-    ],
-    "machine_max_acceleration_e": [
-        "5000"
-    ],
-    "machine_max_acceleration_x": [
-        "1000"
-    ],
-    "machine_max_acceleration_y": [
-        "1000"
-    ],
-    "machine_max_acceleration_z": [
-        "200"
-    ],
-    "machine_max_speed_e": [
-        "25"
-    ],
-    "machine_max_speed_x": [
-        "200"
-    ],
-    "machine_max_speed_y": [
-        "200"
-    ],
-    "machine_max_speed_z": [
-        "10"
-    ],
-    "max_layer_height": [
-        "0.32"
-    ],
-    "min_layer_height": [
-        "0.1"
-    ]
+	"type": "machine",
+	"name": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"printer_technology": "FFF",
+	"printer_settings_id": "fdm_machine_common",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"thumbnails": [
+		"16x16"
+	],
+	"machine_max_acceleration_e": [
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"1000"
+	],
+	"machine_max_acceleration_y": [
+		"1000"
+	],
+	"machine_max_acceleration_z": [
+		"200"
+	],
+	"machine_max_speed_e": [
+		"25"
+	],
+	"machine_max_speed_x": [
+		"200"
+	],
+	"machine_max_speed_y": [
+		"200"
+	],
+	"machine_max_speed_z": [
+		"10"
+	],
+	"max_layer_height": [
+		"0.32"
+	],
+	"min_layer_height": [
+		"0.1"
+	]
 }

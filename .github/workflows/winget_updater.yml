@@ -1,0 +1,14 @@
+name: Publish to WinGet
+on:
+  release:
+    types: [ released ]
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: SoftFever.OrcaSlicer
+          version: ${{ github.event.release.tag_name }}
+          token: ${{ secrets.WINGET_TOKEN }}
+          installers-regex: '\.exe$'

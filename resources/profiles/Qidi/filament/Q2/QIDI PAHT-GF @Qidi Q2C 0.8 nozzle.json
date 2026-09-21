@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PAHT-GF @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI PAHT-GF@Q2C-Series",
+	"from": "system",
+	"setting_id": "fF4PUJX9cgyqBj5s",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.01"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

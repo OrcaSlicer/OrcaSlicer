@@ -21,7 +21,9 @@
 #ifdef _WIN32
 	// The standard Windows includes.
 	#define WIN32_LEAN_AND_MEAN
+	#ifndef NOMINMAX
 	#define NOMINMAX
+	#endif
 	#include <Windows.h>
 	#include <psapi.h>
 #endif /* _WIN32 */
@@ -109,7 +111,7 @@ SysInfoDialog::SysInfoDialog()
         title_font.SetFamily(wxFONTFAMILY_ROMAN);
         title_font.SetPointSize(22);
         title->SetFont(title_font);
-        vsizer->Add(title, 0, wxEXPAND | wxALIGN_LEFT | wxTOP, wxGetApp().em_unit()/*50*/);
+        vsizer->Add(title, 0, wxEXPAND | wxTOP, wxGetApp().em_unit()/*50*/);
     }
 
     // main_info_text

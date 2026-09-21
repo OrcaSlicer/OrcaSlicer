@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Rapido Metal @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI PLA Rapido Metal@Q2C-Series",
+	"from": "system",
+	"setting_id": "mn6J5ZBTjcr4cINP",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.038"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

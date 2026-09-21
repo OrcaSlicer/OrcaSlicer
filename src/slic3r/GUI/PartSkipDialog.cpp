@@ -1,5 +1,6 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
@@ -197,9 +198,9 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 #else
     m_dlg_btn_sizer->Add(m_tot_label, 0, wxALIGN_CENTER_VERTICAL, 0);
 #endif
-    m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND, FromDIP(0));
     m_dlg_btn_sizer->Add(m_apply_btn, 0, wxALIGN_CENTER_VERTICAL, FromDIP(0));
-    m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(24));
+    m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND, FromDIP(24));
 
     m_dlg_placeholder = new wxPanel(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
     m_dlg_placeholder->SetMinSize(wxSize(-1, FromDIP(15)));
@@ -270,7 +271,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_simplebook->AddPage(m_book_third_panel, _("dialog page"), false);
     m_sizer->Add(m_simplebook, 1, wxEXPAND | wxALL, 5);
 
-    SetSizer(m_sizer);
+    SetSizerAndFit(m_sizer);
     m_zoom_in_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnZoomIn, this);
     m_zoom_out_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnZoomOut, this);
     m_switch_drag_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnSwitchDrag, this);
@@ -281,7 +282,6 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_all_checkbox->Bind(wxEVT_TOGGLEBUTTON, &PartSkipDialog::OnAllCheckbox, this);
 
     Layout();
-    Fit();
     CentreOnParent();
 }
 
@@ -367,7 +367,7 @@ std::string PartSkipDialog::create_tmp_path()
     }
     std::string tmp_path = (parent_path / buf.str()).string();
 
-    if (!std::filesystem::exists(tmp_path + "Metadata/") && !fs::create_directories(tmp_path + "Metadata/")) { wxMessageBox("create file failed."); }
+    if (!std::filesystem::exists(tmp_path + "Metadata/") && !fs::create_directories(tmp_path + "Metadata/")) { wxMessageBox(_L("Failed to create the temporary folder.")); }
     return tmp_path;
 }
 
@@ -824,7 +824,7 @@ bool PartSkipDialog::IsAllChecked()
     return true;
 }
 
-bool PartSkipDialog::IsAllCancled()
+bool PartSkipDialog::IsAllCanceled()
 {
     for (auto &[part_id, part_state] : m_parts_state) {
         if (part_state == PartState::psChecked) return false;
@@ -851,7 +851,7 @@ void PartSkipDialog::OnAllCheckbox(wxCommandEvent &event)
 
 void PartSkipDialog::UpdateApplyButtonStatus()
 {
-    if (IsAllCancled()) {
+    if (IsAllCanceled()) {
         m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("Nothing selected"));
         m_enable_apply_btn = false;

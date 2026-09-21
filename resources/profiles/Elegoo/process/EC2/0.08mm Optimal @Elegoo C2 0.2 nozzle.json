@@ -1,0 +1,10 @@
+{
+	"type": "process",
+	"from": "system",
+	"elefant_foot_compensation": "0.05",
+	"inherits": "0.10mm Standard @Elegoo C2 0.2 nozzle",
+	"layer_height": "0.08",
+	"name": "0.08mm Optimal @Elegoo C2 0.2 nozzle",
+	"setting_id": "w51mhOmSGgIFKlYV",
+	"instantiation": "true"
+}

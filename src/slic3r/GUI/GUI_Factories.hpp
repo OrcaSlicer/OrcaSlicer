@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <array>
+#include <cstddef>
 
 #include <wx/bitmap.h>
 
@@ -50,6 +51,23 @@ public:
 	static std::vector<wxBitmap>    get_volume_bitmaps();
 	static std::vector<wxBitmap> get_text_volume_bitmaps();
 	static std::vector<wxBitmap> get_svg_volume_bitmaps();
+
+    // Orca: handy models shipped under <resources>/handy_models. The menu and the command palette
+    // share this table so the model list and its per-model behavior live in one place.
+    struct HandyModel
+    {
+        const char*              key;
+        const char*              label;
+        std::vector<std::string> file_names;
+        bool                     arrange_after_import = false;
+        bool                     is_stringhell        = false;
+    };
+    static const std::vector<HandyModel>& handy_models();
+    static void                           load_handy_model(std::size_t index);
+
+    // Add a Text/SVG volume through the Emboss/SVG gizmo. Shared by the add menu and the palette.
+    static void add_text_volume(ModelVolumeType type);
+    static void add_svg_volume(ModelVolumeType type);
 
     MenuFactory();
     ~MenuFactory() = default;
@@ -137,8 +155,9 @@ private:
     wxMenuItem* append_menu_item_change_type(wxMenu* menu);
     wxMenuItem* append_menu_item_instance_to_object(wxMenu* menu);
     wxMenuItem* append_menu_item_printable(wxMenu* menu);
+    wxMenuItem* append_menu_item_auto_drop(wxMenu* menu);
     void        append_menu_item_rename(wxMenu* menu);
-    wxMenuItem* append_menu_item_fix_through_netfabb(wxMenu* menu);
+    wxMenuItem* append_menu_item_fix_through_cgal(wxMenu* menu);
     //wxMenuItem* append_menu_item_simplify(wxMenu* menu);
     void        append_menu_item_export_stl(wxMenu* menu, bool is_mulity_menu = false);
     void        append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu = false);
@@ -171,6 +190,7 @@ private:
     void        append_menu_item_per_object_settings(wxMenu* menu);
     void        append_menu_item_change_filament(wxMenu* menu);
     void        append_menu_item_set_printable(wxMenu* menu);
+    void        append_menu_item_set_auto_drop(wxMenu* menu);
     void        append_menu_item_locked(wxMenu* menu);
     void        append_menu_item_fill_bed(wxMenu *menu);
     void        append_menu_item_plate_name(wxMenu *menu);

@@ -9,6 +9,8 @@
 #include <cctype>
 #include <sstream>
 
+using json = nlohmann::json;
+
 namespace Slic3r {
 
 namespace {
@@ -49,6 +51,10 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
         if (fetch_device_info(device_info.base_url, device_info.api_key, info, error)) {
             series_id = infer_series_id(info.model_id, info.dev_name);
         }
+    }
+    if (series_id.empty()) {
+        // Fall back to the configured Orca model if Moonraker doesn't expose a usable identifier.
+        series_id = infer_series_id(device_info.model_id, device_info.model_name);
     }
 
     // 2. Fetch filament dictionary

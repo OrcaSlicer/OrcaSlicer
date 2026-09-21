@@ -8,27 +8,22 @@
 #ifndef IGL_BFS_ORIENT_H
 #define IGL_BFS_ORIENT_H
 #include <Eigen/Core>
-#include <igl/igl_inline.h>
+#include "igl_inline.h"
 
 namespace igl
 {
-  // Consistently orient faces in orientable patches using BFS
-  //
-  // F = bfs_orient(F,V);
-  //
-  // Inputs:
-  //  F  #F by 3 list of faces
-  // Outputs:
-  //  FF  #F by 3 list of faces (OK if same as F)
-  //  C  #F list of component ids
-  //
-  //
+  /// Consistently orient faces in orientable patches using BFS.
+  ///
+  /// @param[in] F  #F by 3 list of faces
+  /// @param[out] FF  #F by 3 list of faces (OK if same as F)
+  /// @param[out] C  #F list of component ids
+  ///
   template <typename DerivedF, typename DerivedFF, typename DerivedC>
   IGL_INLINE void bfs_orient(
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedF> & F,
     Eigen::PlainObjectBase<DerivedFF> & FF,
     Eigen::PlainObjectBase<DerivedC> & C);
-};
+}
 #ifndef IGL_STATIC_LIBRARY
 #  include "bfs_orient.cpp"
 #endif

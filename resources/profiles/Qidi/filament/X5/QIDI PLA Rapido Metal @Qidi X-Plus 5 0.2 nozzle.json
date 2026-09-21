@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"setting_id": "t9qUv1IlI5VJ8LoV",
+	"name": "QIDI PLA Rapido Metal @Qidi X-Plus 5 0.2 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PLA Rapido Metal@X-Plus 5-Series",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.038"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.2 nozzle"
+	]
+}

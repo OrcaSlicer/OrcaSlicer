@@ -601,7 +601,7 @@ PAPageHelpPanel::PAPageHelpPanel(wxWindow* parent, bool ground_panel, wxWindowID
     wxBoxSizer* top_sizer = new wxBoxSizer(wxVERTICAL);
     top_sizer->AddSpacer(FromDIP(10));
 
-    auto help_text_title = new Label(this, _L("How to use calibration result?"));
+    auto help_text_title = new Label(this, _L("How can I use calibration results\?"));
     help_text_title->SetFont(Label::Head_14);
     top_sizer->Add(help_text_title, 0, wxLEFT | wxRIGHT, left_align_padding);
 
@@ -762,7 +762,7 @@ void CaliPageActionPanel::bind_button(CaliPageActionType action_type, bool is_bl
 
             if (is_block) {
                 m_action_btns[i]->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent& evt) {
+                    [](wxCommandEvent& evt) {
                         MessageDialog msg(nullptr, _L("The current firmware version of the printer does not support calibration.\nPlease upgrade the printer firmware."), _L("Calibration not supported"), wxOK | wxICON_WARNING);
                         msg.ShowModal();
                     });

@@ -15,36 +15,41 @@
 
 namespace igl
 {
+  /// Parameters and precomputed values for arap solver.
+  ///
+  /// \fileinfo
   struct ARAPData
   {
-    // n  #V
-    // G  #V list of group indices (1 to k) for each vertex, such that vertex i
-    //    is assigned to group G(i)
-    // energy  type of energy to use
-    // with_dynamics  whether using dynamics (need to call arap_precomputation
-    //   after changing)
-    // f_ext  #V by dim list of external forces
-    // vel  #V by dim list of velocities
-    // h  dynamics time step
-    // ym  ~Young's modulus smaller is softer, larger is more rigid/stiff
-    // max_iter  maximum inner iterations
-    // K  rhs pre-multiplier
-    // M  mass matrix
-    // solver_data  quadratic solver data
-    // b  list of boundary indices into V
-    // dim  dimension being used for solving
+    /// #V size of mesh
     int n;
+    /// #V list of group indices (1 to k) for each vertex, such that vertex i
+    ///    is assigned to group G(i)
     Eigen::VectorXi G;
+    /// type of energy to use
     ARAPEnergyType energy;
+    /// whether using dynamics (need to call arap_precomputation after changing)
     bool with_dynamics;
-    Eigen::MatrixXd f_ext,vel;
+    /// #V by dim list of external forces
+    Eigen::MatrixXd f_ext;
+    /// #V by dim list of velocities
+    Eigen::MatrixXd vel;
+    /// dynamics time step
     double h;
+    /// "Young's modulus" smaller is softer, larger is more rigid/stiff
     double ym;
+    /// maximum inner iterations
     int max_iter;
-    Eigen::SparseMatrix<double> K,M;
+    /// @private rhs pre-multiplier
+    Eigen::SparseMatrix<double> K;
+    /// @private mass matrix
+    Eigen::SparseMatrix<double> M;
+    /// @private covariance scatter matrix
     Eigen::SparseMatrix<double> CSM;
+    /// @private quadratic solver data
     min_quad_with_fixed_data<double> solver_data;
+    /// @private list of boundary indices into V
     Eigen::VectorXi b;
+    /// @private dimension being used for solving
     int dim;
       ARAPData():
         n(0),
@@ -64,37 +69,51 @@ namespace igl
     };
   };
   
-  // Compute necessary information to start using an ARAP deformation
-  //
-  // Inputs:
-  //   V  #V by dim list of mesh positions
-  //   F  #F by simplex-size list of triangle|tet indices into V
-  //   dim  dimension being used at solve time. For deformation usually dim =
-  //     V.cols(), for surface parameterization V.cols() = 3 and dim = 2
-  //   b  #b list of "boundary" fixed vertex indices into V
-  // Outputs:
-  //   data  struct containing necessary precomputation
+  /// Compute necessary information to start using an ARAP deformation using
+  /// local-global solver as described in "As-rigid-as-possible surface
+  /// modeling" [Sorkine and Alexa 2007].
+  ///
+  /// @param[in] V  #V by dim list of mesh positions
+  /// @param[in] F  #F by simplex-size list of triangle|tet indices into V
+  /// @param[in] dim  dimension being used at solve time. For deformation usually dim =
+  ///    V.cols(), for surface parameterization V.cols() = 3 and dim = 2
+  /// @param[in] b  #b list of "boundary" fixed vertex indices into V
+  /// @param[out] data  struct containing necessary precomputation
+  /// @return whether initialization succeeded
+  ///
+  /// \fileinfo
   template <
     typename DerivedV,
     typename DerivedF,
     typename Derivedb>
   IGL_INLINE bool arap_precomputation(
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
     const int dim,
-    const Eigen::PlainObjectBase<Derivedb> & b,
+    const Eigen::MatrixBase<Derivedb> & b,
     ARAPData & data);
-  // Inputs:
-  //   bc  #b by dim list of boundary conditions
-  //   data  struct containing necessary precomputation and parameters
-  //   U  #V by dim initial guess
+  /// Conduct arap solve.
+  ///
+  /// @param[in] bc  #b by dim list of boundary conditions
+  /// @param[in] data  struct containing necessary precomputation and parameters
+  /// @param[in,out] U  #V by dim initial guess
+  ///
+  /// \fileinfo
+  ///
+  /// \note While the libigl guidelines require outputs to be of type 
+  /// PlainObjectBase so that the user does not need to worry about allocating
+  /// memory for the output, in this case, the user is required to give an initial
+  /// guess and hence fix the size of the problem domain.
+  /// Taking a reference to MatrixBase in this case thus allows the user to provide e.g.
+  /// a map to the position data, allowing seamless interoperability with user-defined
+  /// datastructures without requiring a copy.
   template <
     typename Derivedbc,
     typename DerivedU>
   IGL_INLINE bool arap_solve(
-    const Eigen::PlainObjectBase<Derivedbc> & bc,
+    const Eigen::MatrixBase<Derivedbc> & bc,
     ARAPData & data,
-    Eigen::PlainObjectBase<DerivedU> & U);
+    Eigen::MatrixBase<DerivedU> & U);
 };
 
 #ifndef IGL_STATIC_LIBRARY

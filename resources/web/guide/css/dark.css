@@ -23,20 +23,6 @@ body
 	color: #009688;
 }
 
-.search>input[type=text]{
-	background-color:#2D2D31;
-}
-
-/*---Checkboxes ORCA---*/
-input[type=checkbox]{
-	background-color:#2D2D31;
-	border-color:#4A4A51;
-}
-
-input[type=checkbox]:checked{
-	background-color:#009688;
-}
-
 /*-------Text------*/
 
 .TextS1

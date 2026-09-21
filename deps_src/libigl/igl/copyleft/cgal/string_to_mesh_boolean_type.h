@@ -18,19 +18,18 @@ namespace igl
   {
     namespace cgal
     {
-      // Convert string to boolean type
-      //
-      //  Inputs:
-      //    s  string identifying type, one of the following:
-      //      "union","intersect","minus","xor","resolve"
-      //  Outputs:
-      //    type  type of boolean operation
-      // Returns true only on success
-      //     
+      /// Convert string to boolean type
+      ///
+      /// @param[in] s  string identifying type, one of the following:
+      ///      "union","intersect","minus","xor","resolve"
+      /// @param[out] type  type of boolean operation
+      /// @return true only on success
+      ///     
       IGL_INLINE bool string_to_mesh_boolean_type(
         const std::string & s,
         MeshBooleanType & type);
-      // Returns type without error handling
+      /// \overload
+      /// \brief Returns type without error handling
       IGL_INLINE MeshBooleanType string_to_mesh_boolean_type(
         const std::string & s);
     }

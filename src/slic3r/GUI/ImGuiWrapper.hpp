@@ -3,10 +3,12 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <cstdlib>
 
 #include <imgui/imgui.h>
 
+#include <wx/colour.h>
 #include <wx/string.h>
 
 #include "libslic3r/Point.hpp"
@@ -96,7 +98,11 @@ public:
     const ImWchar *get_glyph_ranges() const { return m_glyph_ranges; } // language specific
 
     void new_frame();
-    void render();
+    // Ends the frame and returns its draw data without drawing it.
+    ImDrawData* end_frame();
+    void render(ImDrawData* draw_data);
+    // Hash of every draw list's vertices, indices and commands.
+    static ImGuiID draw_data_signature(const ImDrawData* draw_data);
 
     float scaled(float x) const { return x * m_font_size; }
     ImVec2 scaled(float x, float y) const { return ImVec2(x * m_font_size, y * m_font_size); }
@@ -133,6 +139,7 @@ public:
     bool bbl_button(const wxString &label, const wxString& tooltip = {});
     bool button(const wxString& label, float width, float height);
     bool button(const wxString& label, const ImVec2 &size, bool enable); // default size = ImVec2(0.f, 0.f)
+    bool glyph_button(wchar_t icon_char, ImVec2 icon_size); // ORCA
     bool radio_button(const wxString &label, bool active);
     static ImVec4          to_ImVec4(const ColorRGB &color);
     bool input_double(const std::string &label, const double &value, const std::string &format = "%.3f");
@@ -299,6 +306,20 @@ public:
                                 float         thickness    = 4.f);
 
     /// <summary>
+    /// Fill a rect with a filament gradient ramp, one band per pixel row, ramp.front() along
+    /// the bottom edge. Bands rather than one interpolated rect, because the ramp follows the
+    /// slot's gradient curve and ImGui's corner interpolation could only draw a straight fade.
+    /// </summary>
+    /// <param name="draw_list">Define where to draw it</param>
+    /// <param name="top_left">Upper left corner of the rect</param>
+    /// <param name="bottom_right">Lower right corner of the rect</param>
+    /// <param name="ramp">Colours printed, bottom of the model first</param>
+    static void draw_gradient_ramp(ImDrawList *          draw_list,
+                                   const ImVec2 &        top_left,
+                                   const ImVec2 &        bottom_right,
+                                   const std::vector<wxColour> &ramp);
+
+    /// <summary>
     /// Check that font ranges contain all chars in string
     /// (rendered Unicodes are stored in GlyphRanges)
     /// </summary>
@@ -347,7 +368,11 @@ public:
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
+    static const ImVec4 COL_ORCA_DARK;
+    static const ImVec4 COL_ORCA_HOVER;
+    static const ImVec4 COL_ORCA_HOVER_DARK;
     static const ImVec4 COL_MODIFIED;
+    static const ImVec4 COL_WARNING;
 
     //BBS
     static void on_change_color_mode(bool is_dark);
@@ -371,12 +396,13 @@ public:
     //BBS
     static int TOOLBAR_WINDOW_FLAGS;
 
+    bool display_initialized() const;
+
 private:
     void init_font(bool compress);
     void init_input();
     void init_style();
     void render_draw_data(ImDrawData *draw_data);
-    bool display_initialized() const;
     void destroy_font();
     std::vector<unsigned char> load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight);
 

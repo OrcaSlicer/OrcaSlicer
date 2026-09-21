@@ -9,27 +9,24 @@
 #ifndef IGL_NCHOOSEK
 #define IGL_NCHOOSEK
 #include "igl_inline.h"
-#include "deprecated.h"
 #include <vector>
 
 #include <Eigen/Core>
 
 namespace igl 
 {
-  // NCHOOSEK  Like matlab's nchoosek.
-  //
-  // Inputs:
-  //   n  total number elements
-  //   k  size of sub-set to consider
-  // Returns number of k-size combinations out of the set [1,...,n]
+  /// Binomial coefficient. Like matlab's nchoosek.
+  ///
+  /// @param[in] n  total number elements
+  /// @param[in] k  size of sub-set to consider
+  /// @return number of k-size combinations out of the set [1,...,n]
   IGL_INLINE double nchoosek(const int n, const int k);
-  // 
-  // Inputs:
-  //   V  n-long vector of elements
-  //   k  size of sub-set to consider
-  // Outputs:
-  //   U  nchoosek by k long matrix where each row is a unique k-size
-  //     combination
+  /// All combinations . Like matlab's nchoosek.
+  /// 
+  /// @param[in] V  n-long vector of elements
+  /// @param[in] k  size of sub-set to consider
+  /// @param[out] U  nchoosek by k long matrix where each row is a unique k-size
+  ///   combination
   template < typename DerivedV, typename DerivedU>
   IGL_INLINE void nchoosek(
     const Eigen::MatrixBase<DerivedV> & V,

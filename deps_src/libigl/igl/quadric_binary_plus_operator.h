@@ -13,15 +13,14 @@
 
 namespace igl
 {
-  // A binary addition operator for Quadric tuples compatible with qslim,
-  // computing c = a+b
-  //
-  // Inputs:
-  //   a  QSlim quadric
-  //   b  QSlim quadric
-  // Output
-  //   c  QSlim quadric
-  //
+  /// A binary addition operator for Quadric tuples compatible with qslim,
+  /// computing c = a+b
+  ///
+  /// @param[in] a  QSlim quadric
+  /// @param[in] b  QSlim quadric
+  /// @param[out] c  QSlim quadric
+  ///
+  /// \fileinfo
   IGL_INLINE std::tuple< Eigen::MatrixXd, Eigen::RowVectorXd, double> 
     operator+(
       const std::tuple< Eigen::MatrixXd, Eigen::RowVectorXd, double>  & a, 

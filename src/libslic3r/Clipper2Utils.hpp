@@ -15,6 +15,7 @@ Slic3r::Polylines  diff_pl_2(const Slic3r::Polylines& subject, const Slic3r::Pol
 ExPolygons         union_ex_2(const Polygons &expolygons);
 ExPolygons         union_ex_2(const ExPolygons &expolygons);
 ExPolygons         offset_ex_2(const ExPolygons &expolygons, double delta);
+ExPolygons         offset_ex_2(const ExPolygons &expolygons, double delta, Clipper2Lib::JoinType joinType);
 ExPolygons         offset2_ex_2(const ExPolygons &expolygons, double delta1, double delta2);
 }
 

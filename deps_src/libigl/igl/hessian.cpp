@@ -34,8 +34,8 @@ IGL_INLINE void igl::hessian(
 
     //Construct the combined gradient matric
     SparseMat G;
-    igl::grad(DerivedV(V),
-              DerivedF(F),
+    igl::grad(V,
+              F,
               G, false);
     SparseMat GG(F.rows(), dim*V.rows());
     GG.reserve(G.nonZeros());

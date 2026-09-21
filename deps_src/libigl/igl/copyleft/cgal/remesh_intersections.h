@@ -19,28 +19,26 @@ namespace igl
   {
     namespace cgal
     {
-      // Remesh faces according to results of intersection detection and
-      // construction (e.g. from `igl::copyleft::cgal::intersect_other` or
-      // `igl::copyleft::cgal::SelfIntersectMesh`)
-      //
-      // Inputs:
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices into V
-      //   T  #F list of cgal triangles
-      //   offending #offending map taking face indices into F to pairs of order
-      //     of first finding and list of intersection objects from all
-      //     intersections
-      //   stitch_all  if true, merge all vertices with the same coordinate.
-      // Outputs:
-      //   VV  #VV by 3 list of vertex positions, if stitch_all = false then
-      //     first #V vertices will always be V
-      //   FF  #FF by 3 list of triangle indices into V
-      //   IF  #intersecting face pairs by 2  list of intersecting face pairs,
-      //     indexing F
-      //   J  #FF list of indices into F denoting birth triangle
-      //   IM  / stitch_all = true   #VV list from 0 to #VV-1
-      //       \ stitch_all = false  #VV list of indices into VV of unique vertices.
-      //
+      /// Remesh faces according to results of intersection detection and
+      /// construction (e.g. from `igl::copyleft::cgal::intersect_other` or
+      /// `igl::copyleft::cgal::SelfIntersectMesh`)
+      ///
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices into V
+      /// @param[in] T  #F list of cgal triangles
+      /// @param[in] offending #offending map taking face indices into F to pairs of order
+      ///     of first finding and list of intersection objects from all
+      ///     intersections
+      /// @param[in] stitch_all  if true, merge all vertices with the same coordinate.
+      /// @param[out] VV  #VV by 3 list of vertex positions, if stitch_all = false then
+      ///     first #V vertices will always be V
+      /// @param[out] FF  #FF by 3 list of triangle indices into V
+      /// @param[out] IF  #intersecting face pairs by 2  list of intersecting face pairs,
+      ///     indexing F
+      /// @param[out] J  #FF list of indices into F denoting birth triangle
+      /// @param[out] IM  if stitch_all = true   #VV list from 0 to #VV-1
+      ///       elseif stitch_all = false  #VV list of indices into VV of unique vertices.
+      ///
       template <
         typename DerivedV,
         typename DerivedF,
@@ -58,27 +56,7 @@ namespace igl
             std::vector<
             std::pair<typename DerivedF::Index, CGAL::Object> > > & offending,
         bool stitch_all,
-        Eigen::PlainObjectBase<DerivedVV> & VV,
-        Eigen::PlainObjectBase<DerivedFF> & FF,
-        Eigen::PlainObjectBase<DerivedJ> & J,
-        Eigen::PlainObjectBase<DerivedIM> & IM);
-      // Same as above except stitch_all is assumed "false"
-      template <
-        typename DerivedV,
-        typename DerivedF,
-        typename Kernel,
-        typename DerivedVV,
-        typename DerivedFF,
-        typename DerivedJ,
-        typename DerivedIM>
-      IGL_INLINE void remesh_intersections(
-        const Eigen::MatrixBase<DerivedV> & V,
-        const Eigen::MatrixBase<DerivedF> & F,
-        const std::vector<CGAL::Triangle_3<Kernel> > & T,
-        const std::map<
-          typename DerivedF::Index,
-            std::vector<
-            std::pair<typename DerivedF::Index, CGAL::Object> > > & offending,
+        bool slow_and_more_precise_rounding,
         Eigen::PlainObjectBase<DerivedVV> & VV,
         Eigen::PlainObjectBase<DerivedFF> & FF,
         Eigen::PlainObjectBase<DerivedJ> & J,

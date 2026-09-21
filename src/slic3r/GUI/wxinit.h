@@ -12,14 +12,4 @@
 // later when we no longer need to undef _
 #define __(s)                     wxGetTranslation((s))
 
-// legacy macros
-// https://wiki.wxwidgets.org/EventTypes_and_Event-Table_Macros
-#ifndef wxEVT_BUTTON
-#define wxEVT_BUTTON wxEVT_COMMAND_BUTTON_CLICKED
-#endif
-
-#ifndef wxEVT_HTML_LINK_CLICKED
-#define wxEVT_HTML_LINK_CLICKED wxEVT_COMMAND_HTML_LINK_CLICKED
-#endif
-
 #endif

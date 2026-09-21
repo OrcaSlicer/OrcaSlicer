@@ -31,6 +31,7 @@
 #include "GUI_Utils.hpp"
 #include "Widgets/Button.hpp"
 
+class ModeSwitchButton;
 class SwitchButton;
 class StaticBox;
 
@@ -65,7 +66,6 @@ class ParamsPanel : public wxPanel
 {
 #if __WXOSX__
     wxWindow*            m_tmp_panel;
-    int                 m_size_move = -1;
 #endif // __WXOSX__
 
 	private:
@@ -85,7 +85,7 @@ class ParamsPanel : public wxPanel
         ScalableButton *m_tips_arrow{nullptr};
         bool m_tips_arror_blink{false};
         ScalableButton* m_mode_icon { nullptr }; // ORCA
-        SwitchButton* m_mode_view { nullptr };
+        ModeSwitchButton* m_mode_view { nullptr };
         //wxBitmapButton* m_search_button { nullptr };
         wxStaticLine* m_staticline_print { nullptr };
         //wxBoxSizer* m_print_sizer { nullptr };

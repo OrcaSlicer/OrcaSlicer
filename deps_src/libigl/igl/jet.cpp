@@ -11,48 +11,13 @@
 template <typename T>
 IGL_INLINE void igl::jet(const T x, T * rgb)
 {
-  igl::colormap(igl::COLOR_MAP_TYPE_JET, x, rgb);
+  igl::colormap(igl::COLOR_MAP_TYPE_JET,x, rgb);
 }
 
 template <typename T>
-IGL_INLINE void igl::jet(const T x_in, T & r, T & g, T & b)
+IGL_INLINE void igl::jet(const T f, T & r, T & g, T & b)
 {
-  // Only important if the number of colors is small. In which case the rest is
-  // still wrong anyway
-  // x = linspace(0,1,jj)' * (1-1/jj) + 1/jj;
-  //
-  const double rone = 0.8;
-  const double gone = 1.0;
-  const double bone = 1.0;
-  T x = x_in;
-  x = (x_in<0 ? 0 : (x>1 ? 1 : x));
-
-  if (x<1. / 8.)
-  {
-    r = 0;
-    g = 0;
-    b = bone*(0.5 + (x) / (1. / 8.)*0.5);
-  } else if (x<3. / 8.)
-  {
-    r = 0;
-    g = gone*(x - 1. / 8.) / (3. / 8. - 1. / 8.);
-    b = bone;
-  } else if (x<5. / 8.)
-  {
-    r = rone*(x - 3. / 8.) / (5. / 8. - 3. / 8.);
-    g = gone;
-    b = (bone - (x - 3. / 8.) / (5. / 8. - 3. / 8.));
-  } else if (x<7. / 8.)
-  {
-    r = rone;
-    g = (gone - (x - 5. / 8.) / (7. / 8. - 5. / 8.));
-    b = 0;
-  } else
-  {
-    r = (rone - (x - 7. / 8.) / (1. - 7. / 8.)*0.5);
-    g = 0;
-    b = 0;
-  }
+  igl::colormap(igl::COLOR_MAP_TYPE_JET, f, r, g, b);
 }
 
 template <typename DerivedZ, typename DerivedC>

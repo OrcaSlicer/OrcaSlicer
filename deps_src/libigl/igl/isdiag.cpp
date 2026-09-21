@@ -7,14 +7,14 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "isdiag.h"
 
-template <typename Scalar>
-IGL_INLINE bool igl::isdiag(const Eigen::SparseMatrix<Scalar> & A)
+template <typename Derived>
+IGL_INLINE bool igl::isdiag(const Eigen::SparseCompressedBase<Derived> & A)
 {
   // Iterate over outside of A
   for(int k=0; k<A.outerSize(); ++k)
   {
     // Iterate over inside
-    for(typename Eigen::SparseMatrix<Scalar>::InnerIterator it (A,k); it; ++it)
+    for(typename Derived::InnerIterator it (A,k); it; ++it)
     {
       if(it.row() != it.col() && it.value()!=0)
       {
@@ -28,5 +28,5 @@ IGL_INLINE bool igl::isdiag(const Eigen::SparseMatrix<Scalar> & A)
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template bool igl::isdiag<double>(class Eigen::SparseMatrix<double,0,int> const &);
+template bool igl::isdiag<Eigen::SparseMatrix<double,0,int>>(Eigen::SparseCompressedBase<Eigen::SparseMatrix<double,0,int>> const &);
 #endif

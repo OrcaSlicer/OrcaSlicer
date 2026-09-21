@@ -7,12 +7,16 @@ namespace Slic3r {
 unsigned int PrintRegion::extruder(FlowRole role) const
 {
     size_t extruder = 0;
-    if (role == frPerimeter || role == frExternalPerimeter)
-        extruder = m_config.wall_filament;
+    if (role == frPerimeter)
+        extruder = m_config.inner_wall_filament_id;
+    else if (role == frExternalPerimeter)
+        extruder = m_config.outer_wall_filament_id;
     else if (role == frInfill)
-        extruder = m_config.sparse_infill_filament;
-    else if (role == frSolidInfill || role == frTopSolidInfill)
-        extruder = m_config.solid_infill_filament;
+        extruder = m_config.sparse_infill_filament_id;
+    else if (role == frSolidInfill)
+        extruder = m_config.internal_solid_filament_id;
+    else if (role == frTopSolidInfill)
+        extruder = m_config.top_surface_filament_id;
     else
         throw Slic3r::InvalidArgument("Unknown role");
     return extruder;
@@ -51,9 +55,12 @@ Flow PrintRegion::flow(const PrintObject &object, FlowRole role, double layer_he
 
 coordf_t PrintRegion::nozzle_dmr_avg(const PrintConfig &print_config) const
 {
-    return (print_config.nozzle_diameter.get_at(m_config.wall_filament.value    - 1) + 
-            print_config.nozzle_diameter.get_at(m_config.sparse_infill_filament.value       - 1) + 
-            print_config.nozzle_diameter.get_at(m_config.solid_infill_filament.value - 1)) / 3.;
+    return (print_config.nozzle_diameter.get_at(m_config.outer_wall_filament_id.value    - 1) +
+            print_config.nozzle_diameter.get_at(m_config.inner_wall_filament_id.value    - 1) +
+            print_config.nozzle_diameter.get_at(m_config.sparse_infill_filament_id.value       - 1) +
+            print_config.nozzle_diameter.get_at(m_config.internal_solid_filament_id.value - 1) +
+            print_config.nozzle_diameter.get_at(m_config.top_surface_filament_id.value    - 1) +
+            print_config.nozzle_diameter.get_at(m_config.bottom_surface_filament_id.value - 1)) / 6.;
 }
 
 coordf_t PrintRegion::bridging_height_avg(const PrintConfig &print_config) const
@@ -70,12 +77,19 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
     	int i = std::max(0, extruder_id - 1);
         object_extruders.emplace_back((i >= num_extruders) ? 0 : i);
     };
-    if (region_config.wall_loops.value > 0 || has_brim)
-    	emplace_extruder(region_config.wall_filament);
+    if (region_config.wall_loops.value > 0 || has_brim) {
+    	emplace_extruder(region_config.outer_wall_filament_id);
+                if (region_config.wall_loops.value > 1)
+			emplace_extruder(region_config.inner_wall_filament_id);
+    }
     if (region_config.sparse_infill_density.value > 0)
-    	emplace_extruder(region_config.sparse_infill_filament);
-    if (region_config.top_shell_layers.value > 0 || region_config.bottom_shell_layers.value > 0)
-    	emplace_extruder(region_config.solid_infill_filament);
+    	emplace_extruder(region_config.sparse_infill_filament_id);
+    if (region_config.sparse_infill_density.value > 0 || region_config.top_shell_layers.value > 0 || region_config.bottom_shell_layers.value > 0)
+    	emplace_extruder(region_config.internal_solid_filament_id);
+    if (region_config.top_shell_layers.value > 0)
+    	emplace_extruder(region_config.top_surface_filament_id);
+    if (region_config.bottom_shell_layers.value > 0)
+    	emplace_extruder(region_config.bottom_surface_filament_id);
 }
 
 void PrintRegion::collect_object_printing_extruders(const Print &print, std::vector<unsigned int> &object_extruders) const
@@ -85,9 +99,12 @@ void PrintRegion::collect_object_printing_extruders(const Print &print, std::vec
 #ifndef NDEBUG
     // BBS
     auto num_extruders = int(print.config().filament_diameter.size());
-    assert(this->config().wall_filament    <= num_extruders);
-    assert(this->config().sparse_infill_filament       <= num_extruders);
-    assert(this->config().solid_infill_filament <= num_extruders);
+    assert(this->config().outer_wall_filament_id    <= num_extruders);
+    assert(this->config().inner_wall_filament_id    <= num_extruders);
+    assert(this->config().sparse_infill_filament_id       <= num_extruders);
+    assert(this->config().internal_solid_filament_id <= num_extruders);
+    assert(this->config().top_surface_filament_id <= num_extruders);
+    assert(this->config().bottom_surface_filament_id <= num_extruders);
 #endif
     collect_object_printing_extruders(print.config(), this->config(), print.has_brim(), object_extruders);
 }

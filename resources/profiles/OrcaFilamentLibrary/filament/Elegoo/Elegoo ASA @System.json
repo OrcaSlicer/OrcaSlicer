@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @System",
+	"inherits": "Elegoo ASA @base",
+	"from": "system",
+	"setting_id": "mpSVVs77BAdKmtP6",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.04"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"compatible_printers": [],
+	"renamed_from": "Elegoo ASA"
+}

@@ -15,26 +15,28 @@
 
 namespace igl 
 {
-  // Compute a local orthogonal reference system for each triangle in the given mesh
-  // Templates:
-  //   DerivedV derived from vertex positions matrix type: i.e. MatrixXd
-  //   DerivedF derived from face indices matrix type: i.e. MatrixXi
-  // Inputs:
-  //   V  eigen matrix #V by 3
-  //   F  #F by 3 list of mesh faces (must be triangles)
-  // Outputs:
-  //   B1 eigen matrix #F by 3, each vector is tangent to the triangle
-  //   B2 eigen matrix #F by 3, each vector is tangent to the triangle and perpendicular to B1
-  //   B3 eigen matrix #F by 3, normal of the triangle
-  //
-  // See also: adjacency_matrix
-  template <typename DerivedV, typename DerivedF>
+  /// Compute a local orthogonal reference system for each triangle in the given mesh
+  ///
+  /// @tparam DerivedV derived from vertex positions matrix type: i.e. MatrixXd
+  /// @tparam DerivedF derived from face indices matrix type: i.e. MatrixXi
+  /// @param[in] V  eigen matrix #V by 3
+  /// @param[in] F  #F by 3 list of mesh faces (must be triangles)
+  /// @param[out] B1 eigen matrix #F by 3, each vector is tangent to the triangle
+  /// @param[out] B2 eigen matrix #F by 3, each vector is tangent to the triangle and perpendicular to B1
+  /// @param[out] B3 eigen matrix #F by 3, normal of the triangle
+  ///
+  template <
+    typename DerivedV, 
+    typename DerivedF,
+    typename DerivedB1,
+    typename DerivedB2,
+    typename DerivedB3>
   IGL_INLINE void local_basis(
-    const Eigen::PlainObjectBase<DerivedV>& V,
-    const Eigen::PlainObjectBase<DerivedF>& F,
-    Eigen::PlainObjectBase<DerivedV>& B1,
-    Eigen::PlainObjectBase<DerivedV>& B2,
-    Eigen::PlainObjectBase<DerivedV>& B3
+    const Eigen::MatrixBase<DerivedV>& V,
+    const Eigen::MatrixBase<DerivedF>& F,
+    Eigen::PlainObjectBase<DerivedB1>& B1,
+    Eigen::PlainObjectBase<DerivedB2>& B2,
+    Eigen::PlainObjectBase<DerivedB3>& B3
     );
 
 }

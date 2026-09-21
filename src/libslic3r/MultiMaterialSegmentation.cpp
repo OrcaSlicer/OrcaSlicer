@@ -1177,6 +1177,18 @@ static bool is_volume_sinking(const indexed_triangle_set &its, const Transform3d
 
 //#define MMU_SEGMENTATION_DEBUG_TOP_BOTTOM
 
+double resolve_outer_wall_line_width(const PrintRegionConfig &region_config, const PrintObjectConfig &object_config, const PrintConfig &print_config)
+{
+    // A filament id of 0 underflows, and get_at() then falls back to the first nozzle.
+    const double               nozzle_diameter = print_config.nozzle_diameter.get_at(region_config.outer_wall_filament_id - 1);
+    ConfigOptionFloatOrPercent width           = region_config.outer_wall_line_width;
+    if (width.value == 0)
+        width = object_config.line_width;
+    if (!width.percent && width.value <= 0.)
+        return Flow::auto_extrusion_width(frExternalPerimeter, float(nozzle_diameter));
+    return width.get_abs_value(nozzle_diameter);
+}
+
 // Returns segmentation of top and bottom layers based on painting in segmentation gizmos.
 static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_layers(const PrintObject                                               &print_object,
                                                                                       const std::vector<ExPolygons>                                   &input_expolygons,
@@ -1345,14 +1357,13 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
             if (const PrintRegionConfig &config = region->region().config();
                 // color_idx == 0 means "don't know" extruder aka the underlying extruder.
                 // As this region may split existing regions, we collect statistics over all regions for color_idx == 0.
-                color_idx == 0 || config.wall_filament == int(color_idx)) {
+                color_idx == 0 || config.outer_wall_filament_id == int(color_idx)) {
                 //BBS: the extrusion line width is outer wall rather than inner wall
-                const double nozzle_diameter = print_object.print()->config().nozzle_diameter.get_at(0);
-                double outer_wall_line_width = config.get_abs_value("outer_wall_line_width", nozzle_diameter);
+                double outer_wall_line_width = resolve_outer_wall_line_width(config, print_object.config(), print_object.print()->config());
                 out.extrusion_width     = std::max<float>(out.extrusion_width, outer_wall_line_width);
                 out.top_shell_layers    = std::max<int>(out.top_shell_layers, config.top_shell_layers);
                 out.bottom_shell_layers = std::max<int>(out.bottom_shell_layers, config.bottom_shell_layers);
-                out.small_region_threshold = config.gap_infill_speed.value > 0 ?
+                out.small_region_threshold = config.gap_infill_speed.get_at(print_object.print()->get_extruder_id(config.outer_wall_filament_id - 1)) > 0 ?
                                              // Gap fill enabled. Enable a single line of 1/2 extrusion width.
                                              0.5f * outer_wall_line_width :
                                              // Gap fill disabled. Enable two lines slightly overlapping.

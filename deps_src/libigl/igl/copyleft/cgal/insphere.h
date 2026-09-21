@@ -17,12 +17,17 @@ namespace igl
   {
     namespace cgal
     {
-      // Inputs:
-      //   pa,pb,pc,pd,pe  3D points.
-      // Output:
-      //   1 if pe is inside of the oriented sphere formed by pa,pb,pc,pd.
-      //   0 if pe is co-spherical with pa,pb,pc,pd.
-      //  -1 if pe is outside of the oriented sphere formed by pa,pb,pc,pd.
+      /// Test whether point is in a given sphere.
+      ///
+      /// @param[in] pa 3D point on sphere
+      /// @param[in] pb 3D point on sphere
+      /// @param[in] pc 3D point on sphere
+      /// @param[in] pd 3D point on sphere
+      /// @param[in] pe 3D point to test
+      /// @return 1 if pe is inside of the oriented sphere formed by pa,pb,pc,pd,
+      ///  0 if pe is co-spherical with pa,pb,pc,pd, 
+      ///  -1 if pe is outside of the oriented sphere formed by pa,pb,pc,pd.
+      ///
       template <typename Scalar>
       IGL_INLINE short insphere(
           const Scalar pa[3],

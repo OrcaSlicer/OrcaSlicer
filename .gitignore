@@ -1,7 +1,9 @@
 Build
 Build.bat
 /build*/
+/out/
 CMakeLists.txt.user
+CMakeUserPresets.json
 **/CMakeLists.txt.autosave
 deps/build*
 MYMETA.json
@@ -36,6 +38,7 @@ src/OrcaSlicer-doc/
 /deps/DL_CACHE/
 /deps/DL_CACHE
 **/.flatpak-builder/
+*.no-debug.yml
 resources/profiles/user/default
 *.code-workspace
 deps_src/build/
@@ -43,3 +46,10 @@ test.js
 /.cache/
 .clangd
 internal_docs/
+*.flatpak
+/flatpak-repo/
+# Python bytecode
+__pycache__/
+*.pyc
+*.opc
+docs/superpowers/

@@ -68,7 +68,7 @@ AddMachinePanel::AddMachinePanel(wxWindow* parent, wxWindowID id, const wxPoint&
     m_button_add_machine->SetBorderColor(0x909090);
     m_button_add_machine->SetMinSize(wxSize(96, 39));
     btn_sizer->Add(m_button_add_machine, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
-    m_staticText_add_machine = new wxStaticText(this, wxID_ANY, wxT("click to add machine"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_add_machine = new wxStaticText(this, wxID_ANY, _L("click to add machine"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_add_machine->Wrap(-1);
     m_staticText_add_machine->SetForegroundColour(0x909090);
     btn_sizer->Add(m_staticText_add_machine, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
@@ -186,21 +186,21 @@ void MonitorPanel::init_tabpanel()
 
     //m_status_add_machine_panel = new AddMachinePanel(m_tabpanel);
     m_status_info_panel        = new StatusPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_status_info_panel, _L("Status"), "", true);
+    m_tabpanel->AddPage(m_status_info_panel, _L("Status"), true);
 
     m_media_file_panel = new MediaFilePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), "", false);
-    //m_tabpanel->AddPage(m_media_file_panel, _L("Internal Storage"), "", false);
+    m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
+    //m_tabpanel->AddPage(m_media_file_panel, _L("Internal Storage"), false);
 
     m_upgrade_panel = new UpgradePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_upgrade_panel, _CTX(L_CONTEXT("Update", "Firmware"), "Firmware"), "", false);
+    m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), false);
 
     m_hms_panel = new HMSPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    "", false);
+    m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    false);
 
     std::string network_ver = Slic3r::NetworkAgent::get_version();
     if (!network_ver.empty()) {
-        m_tabpanel->SetFooterText(wxString::Format("Network plugin v%s", network_ver));
+        m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
     }
 
     m_initialized = true;
@@ -362,7 +362,7 @@ void MonitorPanel::update_all()
         // only disconnected server in cloud mode
         if (obj->connection_type() != "lan") {
             if (m_agent) {
-                server_status = m_agent->is_server_connected() ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
+                server_status = m_agent->is_server_connected(wxGetApp().get_printer_cloud_provider()) ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
             }
         }
         show_status((int) MONITOR_DISCONNECTED + server_status);
@@ -413,7 +413,10 @@ void MonitorPanel::update_hms_tag()
 bool MonitorPanel::Show(bool show)
 {
 #ifdef __APPLE__
-    wxGetApp().mainframe->SetMinSize(wxGetApp().plater()->GetMinSize());
+    // Notebook::InsertPage() hides every page it appends, so this also runs while MainFrame is
+    // still constructing, before GUI_App::mainframe is assigned. Same guard as Plater::Show().
+    if (wxGetApp().mainframe)
+        wxGetApp().mainframe->SetMinSize(wxGetApp().plater()->GetMinSize());
 #endif
 
     NetworkAgent* m_agent = wxGetApp().getAgent();
@@ -518,6 +521,16 @@ void MonitorPanel::jump_to_HMS()
         m_tabpanel->SetSelection(PT_HMS);
 }
 
+void MonitorPanel::jump_to_Upgrade()
+{
+    if (this->IsShown()) {
+        auto page = m_tabpanel->GetCurrentPage();
+        if (page && page != m_upgrade_panel) {
+            m_tabpanel->SetSelection(PT_UPDATE);
+        }
+    }
+}
+
 void MonitorPanel::jump_to_LiveView()
 {
     if (!this->IsShown()) { return; }
@@ -529,6 +542,20 @@ void MonitorPanel::jump_to_LiveView()
     }
 
     m_status_info_panel->get_media_play_ctrl()->jump_to_play();
+}
+
+void MonitorPanel::jump_to_Rack()
+{
+    if (!this->IsShown()) {
+        return;
+    }
+
+    auto page = m_tabpanel->GetCurrentPage();
+    if (page && page != m_status_info_panel) {
+        m_tabpanel->SetSelection(PT_STATUS);
+    }
+
+    m_status_info_panel->jump_to_Rack();
 }
 
 void MonitorPanel::update_network_version_footer()
@@ -543,9 +570,9 @@ void MonitorPanel::update_network_version_footer()
 
     wxString footer_text;
     if (!suffix.empty() && configured_base == binary_version) {
-        footer_text = wxString::Format("Network plugin v%s (%s)", binary_version, suffix);
+        footer_text = wxString::Format(_L("Network plug-in v%s (%s)"), binary_version, suffix);
     } else {
-        footer_text = wxString::Format("Network plugin v%s", binary_version);
+        footer_text = wxString::Format(_L("Network plug-in v%s"), binary_version);
     }
 
     m_tabpanel->SetFooterText(footer_text);

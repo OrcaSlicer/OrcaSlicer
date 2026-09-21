@@ -36,8 +36,19 @@ if ("${DEPS_ARCH}" STREQUAL "x86")
     set(DEP_PLATFORM "Win32")
 elseif ("${DEPS_ARCH}" STREQUAL "x64")
     set(DEP_PLATFORM "x64")
+elseif ("${DEPS_ARCH}" STREQUAL "arm64")
+    set(DEP_PLATFORM "ARM64")
 else ()
-    message(FATAL_ERROR "Unsupported OS architecture")
+    message(FATAL_ERROR "Unsupported OS architecture: ${DEPS_ARCH}")
+endif ()
+
+# Draco's tools and NLopt's testopt compile sources that are also in their
+# static library. MSBuild passes the library before the objects and lld-link
+# resolves as it goes, so the library's copy wins and the object then reads as
+# a duplicate. Nothing uses those executables, so let lld keep the first one.
+set(DEP_LLD_FORCE_MULTIPLE "")
+if (CMAKE_GENERATOR MATCHES "Visual Studio" AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(DEP_LLD_FORCE_MULTIPLE "-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
 endif ()
 
 if (${DEP_DEBUG})
@@ -64,8 +75,11 @@ if ("${DEPS_ARCH}" STREQUAL "x86")
 elseif ("${DEPS_ARCH}" STREQUAL "x64")
     set(DEP_WXWIDGETS_TARGET "TARGET_CPU=X64")
     set(DEP_WXWIDGETS_LIBDIR "vc_x64_lib")
+elseif ("${DEPS_ARCH}" STREQUAL "arm64")
+    set(DEP_WXWIDGETS_TARGET "TARGET_CPU=ARM64")
+    set(DEP_WXWIDGETS_LIBDIR "vc_arm64_lib")
 else ()
-    message(FATAL_ERROR "Unsupported OS architecture")
+    message(FATAL_ERROR "Unsupported OS architecture: ${DEPS_ARCH}")
 endif ()
 
 find_package(Git REQUIRED)

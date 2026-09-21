@@ -45,7 +45,7 @@ public:
     /*!
      * Generate an interlocking structure between each two adjacent meshes.
      */
-    static void generate_interlocking_structure(PrintObject* print_object);
+    static void generate_interlocking_structure(PrintObject* print_object, const std::function<void()>& throw_on_cancel);
 
 private:
     /*!
@@ -75,7 +75,8 @@ private:
                           const coord_t         beam_layer_count,
                           const DilationKernel& interface_dilation,
                           const DilationKernel& air_dilation,
-                          const bool            air_filtering)
+                          const bool            air_filtering,
+                          const std::function<void()>& throw_on_cancel)
         : print_object(print_object)
         , region_a_index(region_a_index)
         , region_b_index(region_b_index)
@@ -88,6 +89,7 @@ private:
         , interface_dilation(interface_dilation)
         , air_dilation(air_dilation)
         , air_filtering(air_filtering)
+        , throw_on_cancel(throw_on_cancel)
     {}
     
     /*! Given two polygons, return the parts that border on air, and grow 'perpendicular' up to 'detect' distance.
@@ -165,6 +167,8 @@ private:
     // Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells
     // will be cut off midway in a beam.
     const bool air_filtering;
+
+    const std::function<void()>& throw_on_cancel;
 };
 
 } // namespace Slic3r

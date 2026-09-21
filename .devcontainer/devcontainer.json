@@ -4,7 +4,7 @@
 		"dockerfile": "Dockerfile",
 			"args": {
 				"PLATFORM": "linux/amd64",
-				"BASE_IMAGE": "mcr.microsoft.com/devcontainers/cpp:ubuntu-22.04"
+				"BASE_IMAGE": "mcr.microsoft.com/devcontainers/cpp:ubuntu-24.04"
 			},
 			"options": ["--platform=linux/amd64"]
 	},

@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Translucent @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI PETG Translucent@Q2C-Series",
+	"from": "system",
+	"setting_id": "D1FXyPnXPva8J8GK",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

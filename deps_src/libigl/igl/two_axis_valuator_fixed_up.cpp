@@ -20,21 +20,19 @@ IGL_INLINE void igl::two_axis_valuator_fixed_up(
   const int mouse_y,
   Eigen::Quaternion<Scalarquat> & quat)
 {
-  using namespace Eigen;
-  Matrix<Scalarquat,3,1> axis(0,1,0);
+  Eigen::Matrix<Scalarquat,3,1> axis(0,1,0);
   quat = down_quat *
-    Quaternion<Scalarquat>(
-      AngleAxis<Scalarquat>(
+    Eigen::Quaternion<Scalarquat>(
+      Eigen::AngleAxis<Scalarquat>(
         PI*((Scalarquat)(mouse_x-down_x))/(Scalarquat)w*speed/2.0,
         axis.normalized()));
   quat.normalize();
   {
-    Matrix<Scalarquat,3,1> axis(1,0,0);
+    Eigen::Matrix<Scalarquat,3,1> axis(1,0,0);
     if(axis.norm() != 0)
     {
-      quat =
-        Quaternion<Scalarquat>(
-          AngleAxis<Scalarquat>(
+        quat = Eigen::Quaternion<Scalarquat>(
+                   Eigen::AngleAxis<Scalarquat>(
             PI*(mouse_y-down_y)/(Scalarquat)h*speed/2.0,
             axis.normalized())) * quat;
       quat.normalize();

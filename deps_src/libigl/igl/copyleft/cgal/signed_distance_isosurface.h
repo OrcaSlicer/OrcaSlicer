@@ -16,22 +16,21 @@ namespace igl
   {
     namespace cgal
     {
-      // SIGNED_DISTANCE_ISOSURFACE Compute the contour of an iso-level of the
-      // signed distance field to a given mesh.
-      //
-      // Inputs:
-      //   IV  #IV by 3 list of input mesh vertex positions
-      //   IF  #IF by 3 list of input triangle indices
-      //   level  iso-level to contour in world coords, negative is inside.
-      //   angle_bound  lower bound on triangle angles (mesh quality) (e.g. 28)
-      //   radius_bound  upper bound on triangle size (mesh density?) (e.g. 0.02)
-      //   distance_bound  cgal mysterious parameter (mesh density?) (e.g. 0.01)
-      //   sign_type  method for computing distance _sign_ (see
-      //     ../signed_distance.h)
-      // Outputs:
-      //   V  #V by 3 list of input mesh vertex positions
-      //   F  #F by 3 list of input triangle indices
-      //  
+      /// Compute the contour of an iso-level of the signed distance field to a
+      /// given mesh.
+      ///
+      /// @param[in] IV  #IV by 3 list of input mesh vertex positions
+      /// @param[in] IF  #IF by 3 list of input triangle indices
+      /// @param[in] level  iso-level to contour in world coords, negative is inside.
+      /// @param[in] angle_bound  lower bound on triangle angles (mesh quality) (e.g. 28)
+      /// @param[in] radius_bound  upper bound on triangle size (mesh density?) (e.g. 0.02)
+      /// @param[in] distance_bound  cgal mysterious parameter (mesh density?) (e.g. 0.01)
+      /// @param[in] sign_type  method for computing distance _sign_ (see
+      ///     ../signed_distance.h)
+      /// @param[out] V  #V by 3 list of input mesh vertex positions
+      /// @param[out] F  #F by 3 list of input triangle indices
+      /// @return true if complex_to_mesh is successful
+      ///  
       IGL_INLINE bool signed_distance_isosurface(
         const Eigen::MatrixXd & IV,
         const Eigen::MatrixXi & IF,

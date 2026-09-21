@@ -1,0 +1,17 @@
+{
+	"type": "process",
+	"name": "0.10mm Standard @Elegoo N4Plus 0.2 nozzle",
+	"inherits": "fdm_process_elegoo_02010",
+	"from": "system",
+	"setting_id": "RpheR4sGaJlp7yJp",
+	"instantiation": "true",
+	"filename_format": "EN4Plus_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+	"elefant_foot_compensation": "0.15",
+	"compatible_printers": [
+		"Elegoo Neptune 4 Plus 0.2 nozzle"
+	],
+	"default_acceleration": "5000",
+	"min_width_top_surface": "50%",
+	"outer_wall_acceleration": "2500",
+	"renamed_from": "0.20mm Standard @Elegoo Neptune4 Plus (0.2 nozzle)"
+}

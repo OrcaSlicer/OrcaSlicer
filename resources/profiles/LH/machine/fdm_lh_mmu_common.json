@@ -1,0 +1,21 @@
+{
+	"type": "machine",
+	"name": "fdm_lh_mmu_common",
+	"inherits": "fdm_lh_common",
+	"from": "system",
+	"instantiation": "false",
+	"cooling_tube_length": "0",
+	"cooling_tube_retraction": "0",
+	"enable_filament_ramming": "0",
+	"extra_loading_move": "0",
+	"machine_start_gcode": " _SP_PRINT_START LANE=[initial_tool] TEMP=[nozzle_temperature_initial_layer]\n\nPRINT_START_LHS BED=[bed_temperature_initial_layer_single] HOTEND=[nozzle_temperature_initial_layer] AUTOMESH=1 AUTOPURGE=1 QUIETMODE={if print_preset =~ /.*Quiet.*/ }1{else}0{endif}\n\n",
+	"change_filament_gcode": " _SP_SET_PURGE PURGE=[first_flush_volume] ",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGES\n;[layer_z]",
+	"machine_end_gcode": "PRINT_END\n\n_SP_PRINT_END",
+	"machine_tool_change_time": "20",
+	"parking_pos_retraction": "0",
+	"manual_filament_change": "0",
+	"retract_length_toolchange": [
+		"0"
+	]
+}

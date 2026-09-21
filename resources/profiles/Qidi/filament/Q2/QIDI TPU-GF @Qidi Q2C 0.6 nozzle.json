@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU-GF @Qidi Q2C 0.6 nozzle",
+	"inherits": "QIDI TPU-GF@Q2C-Series",
+	"from": "system",
+	"setting_id": "1GHTHZoint67pkmJ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi Q2C 0.6 nozzle"
+	]
+}

@@ -3,6 +3,7 @@
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
 
@@ -80,14 +81,15 @@ public:
     bool on_mouse(const wxMouseEvent& mouse_event) override;
     bool gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down);
     void delete_selected_points();
+    bool has_selected_points() const;
     void update_model_object();
     //ClippingPlane get_sla_clipping_plane() const;
 
-    bool is_selection_rectangle_dragging() const { return m_selection_rectangle.is_dragging(); }
+    bool is_selection_rectangle_dragging() const override { return m_selection_rectangle.is_dragging(); }
 
     bool wants_enter_leave_snapshots() const override { return true; }
-    std::string get_gizmo_entering_text() const override { return "Entering Brim Ears"; }
-    std::string get_gizmo_leaving_text() const override { return "Leaving Brim Ears"; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Brim Ears"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Brim Ears"); }
 
 private:
     bool on_init() override;
@@ -96,12 +98,12 @@ private:
 
     void render_points(const Selection& selection);
 
-    float m_new_point_head_diameter;        // Size of a new point.
+    float m_new_point_head_radius;          // Radius of a new point.
     float m_max_angle = 125.f;
     float m_detection_radius = 1.f;
     double m_detection_radius_max = .0f;
     CacheEntry m_point_before_drag;         // undo/redo - so we know what state was edited
-    float m_old_point_head_diameter = 0.;   // the same
+    float m_old_point_head_radius = 0.;     // the same
     mutable std::vector<CacheEntry> m_editing_cache; // a support point and whether it is currently selectedchanges or undo/redo
     std::map<int, CacheEntry> m_single_brim;
     ObjectID m_old_mo_id;
@@ -117,6 +119,9 @@ private:
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
     std::map<std::string, wxString> m_desc;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts;
+
 
     GLSelectionRectangle m_selection_rectangle;
 
@@ -159,10 +164,11 @@ protected:
     void on_start_dragging() override;
     void on_stop_dragging() override;
     void on_render_input_window(float x, float y, float bottom_limit) override;
-    void show_tooltip_information(float x, float y);
 
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The preview ear is drawn only while the cursor is on the model.
+    bool render_follows_cursor() const override { return render_hover_point.has_value(); }
     //bool on_is_selectable() const override;
     virtual CommonGizmosDataID on_get_requirements() const override;
     void on_load(cereal::BinaryInputArchive& ar) override;

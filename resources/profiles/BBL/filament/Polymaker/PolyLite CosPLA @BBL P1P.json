@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "PolyLite CosPLA @BBL P1P",
+	"inherits": "PolyLite CosPLA @base",
+	"from": "system",
+	"setting_id": "GFSL62_02",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab P1P 0.4 nozzle",
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle"
+	],
+	"slow_down_layer_time": [
+		"15"
+	]
+}

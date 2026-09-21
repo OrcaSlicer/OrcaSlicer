@@ -267,7 +267,7 @@ void ImGui::Text(const char* fmt, ...)
 void ImGui::TextCentered(const char* text, ...)
 {
     va_list vaList;
-    va_start(vaList,&text);
+    va_start(vaList, text);
 
     float font_size = ImGui::GetFontSize() * strlen(text) / 2;
     ImGui::SameLine(ImGui::GetCursorPos().x / 2 - font_size + (font_size / 2));

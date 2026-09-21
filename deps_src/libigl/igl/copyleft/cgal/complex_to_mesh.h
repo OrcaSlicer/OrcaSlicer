@@ -18,18 +18,16 @@ namespace igl
   {
     namespace cgal
     {
-      // Templates:
-      //   Tr  CGAL triangulation type, e.g.
-      //     CGAL::Surface_mesh_default_triangulation_3
-      // Inputs
-      //   c2t3  2-complex (surface) living in a 3d triangulation (e.g. result of
-      //     CGAL::make_surface_mesh)
-      // Outputs:
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices
-      // Returns true iff conversion was successful, failure can ok if CGAL code
-      // can't figure out ordering.
-      //
+      /// Convert a CGAL::Complex_2_in_triangulation_3 to a mesh (V,F)
+      ///
+      /// @tparam Tr  CGAL triangulation type, e.g. CGAL::Surface_mesh_default_triangulation_3
+      /// @param[in] c2t3  2-complex (surface) living in a 3d triangulation
+      ///   (e.g. result of CGAL::make_surface_mesh)
+      /// @param[out] V  #V by 3 list of vertex positions
+      /// @param[out] F  #F by 3 list of triangle indices
+      /// @return true iff conversion was successful, failure can ok if CGAL code
+      /// can't figure out ordering.
+      ///
       template <typename Tr, typename DerivedV, typename DerivedF>
       IGL_INLINE bool complex_to_mesh(
         const CGAL::Complex_2_in_triangulation_3<Tr> & c2t3,

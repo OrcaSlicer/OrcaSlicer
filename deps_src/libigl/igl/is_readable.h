@@ -10,14 +10,13 @@
 #include "igl_inline.h"
 namespace igl
 {
-  // Check if a file is reabable like PHP's is_readable function:
-  // http://www.php.net/manual/en/function.is-readable.php
-  // Input:
-  //   filename  path to file
-  // Returns true if file exists and is readable and false if file doesn't
-  // exist or *is not readable*
-  //
-  // Note: Windows version will not check user or group ids
+  /// Check if a file is reabable like PHP's is_readable function:
+  /// http://www.php.net/manual/en/function.is-readable.php
+  /// @param[in] filename  path to file
+  /// @return true if file exists and is readable and false if file doesn't
+  /// exist or *is not readable*
+  ///
+  /// \note Windows version will not check user or group ids
   IGL_INLINE bool is_readable(const char * filename);
 }
 

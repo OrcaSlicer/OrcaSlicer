@@ -15,6 +15,6 @@ target_include_directories(clipper SYSTEM
 )
 
 target_link_libraries(clipper 
-    PUBLIC eigen
+    PUBLIC Eigen3::Eigen
     PRIVATE TBB::tbb TBB::tbbmalloc
 )

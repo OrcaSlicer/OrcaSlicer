@@ -13,7 +13,6 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &printable_area, const double 
     : m_bed_shape(printable_area), m_max_print_height(printable_height), m_extruder_shapes(extruder_areas), m_extruder_printable_height(extruder_printable_heights)
 {
     assert(printable_height >= 0);
-    //assert(extruder_printable_heights.size() == extruder_areas.size());
 
     m_polygon     = Polygon::new_scale(printable_area);
     assert(m_polygon.is_counter_clockwise());
@@ -86,6 +85,9 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &printable_area, const double 
         m_shared_volume.data[2] = m_bboxf.max.x();
         m_shared_volume.data[3] = m_bboxf.max.y();
         m_shared_volume.zs[1] = m_bboxf.max.z();
+        if (extruder_printable_heights.size() < m_extruder_shapes.size())
+            BOOST_LOG_TRIVIAL(warning) << boost::format("extruder_printable_height has only %1% entries but extruder_printable_area has %2%, falling back to the bed printable_height for the missing ones")
+                    % extruder_printable_heights.size() % m_extruder_shapes.size();
         for (unsigned int index = 0; index < m_extruder_shapes.size(); index++)
         {
             std::vector<Vec2d>& extruder_shape = m_extruder_shapes[index];
@@ -100,7 +102,9 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &printable_area, const double 
                 return;
             }
 
-            if ((extruder_shape == printable_area)&&(extruder_printable_heights[index] == printable_height)) {
+            const double extruder_height = index < extruder_printable_heights.size() ? extruder_printable_heights[index] : printable_height;
+
+            if ((extruder_shape == printable_area)&&(extruder_height == printable_height)) {
                 extruder_volume.same_with_bed = true;
                 extruder_volume.type = m_type;
                 extruder_volume.bbox = m_bbox;
@@ -113,7 +117,7 @@ BuildVolume::BuildVolume(const std::vector<Vec2d> &printable_area, const double 
                 double poly_area         = poly.area();
                 extruder_volume.bbox = get_extents(poly);
                 BoundingBoxf temp_bboxf = get_extents(extruder_shape);
-                extruder_volume.bboxf = BoundingBoxf3{ to_3d(temp_bboxf.min, 0.), to_3d(temp_bboxf.max, extruder_printable_heights[index]) };
+                extruder_volume.bboxf = BoundingBoxf3{ to_3d(temp_bboxf.min, 0.), to_3d(temp_bboxf.max, extruder_height) };
 
                 if (extruder_shape.size() >= 4 && std::abs((poly_area - double(extruder_volume.bbox.size().x()) * double(extruder_volume.bbox.size().y()))) < sqr(SCALED_EPSILON))
                 {
@@ -527,7 +531,16 @@ bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const Boun
             build_volume.max.z() = std::numeric_limits<double>::max();
         if (ignore_bottom)
             build_volume.min.z() = -std::numeric_limits<double>::max();
-        return build_volume.contains(paths_bbox);
+        // BBox-only callers may provide no moves. Validate bbox corners regardless of paths_bbox.defined.
+        if (paths.moves.empty())
+            return build_volume.contains(paths_bbox.min) && build_volume.contains(paths_bbox.max);
+        if (paths_bbox.defined && build_volume.contains(paths_bbox))
+            return true;
+
+        // Fallback: validate only relevant extrusion moves.
+        const BoundingBox3Base<Vec3f> build_volumef(build_volume.min.cast<float>(), build_volume.max.cast<float>());
+        return std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, build_volumef](const GCodeProcessorResult::MoveVertex &move)
+            { return !move_valid(move) || build_volumef.contains(move.position); });
     }
     case BuildVolume_Type::Circle:
     {

@@ -1,0 +1,56 @@
+{
+	"type": "process",
+	"name": "0.24mm Standard @BBL X2D",
+	"inherits": "fdm_process_dual_0.24_nozzle_0.4",
+	"from": "system",
+	"setting_id": "GP228",
+	"instantiation": "true",
+	"default_acceleration": [
+		"10000",
+		"8000",
+		"1000",
+		"1000"
+	],
+	"enable_tower_interface_features": "1",
+	"initial_layer_speed": [
+		"50",
+		"50",
+		"50",
+		"50"
+	],
+	"internal_solid_infill_speed": [
+		"250",
+		"300",
+		"100",
+		"100"
+	],
+	"outer_wall_speed": [
+		"200",
+		"200",
+		"50",
+		"50"
+	],
+	"prime_tower_brim_width": "-1",
+	"prime_tower_width": "60",
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Bowden Standard",
+		"Bowden High Flow"
+	],
+	"sparse_infill_speed": [
+		"270",
+		"600",
+		"100",
+		"100"
+	],
+	"travel_speed": [
+		"1000",
+		"1000",
+		"1000",
+		"1000"
+	],
+	"compatible_printers": [
+		"Bambu Lab X2D 0.4 nozzle"
+	]
+}

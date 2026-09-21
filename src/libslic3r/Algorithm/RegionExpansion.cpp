@@ -266,10 +266,44 @@ std::vector<WaveSeed> wave_seeds(
             //(front.z() < 0 && back.z() < 0));
             // Hope that at least one end of an open polyline is clipped by the boundary, thus an intersection point is created.
             (front.z() < 0 || back.z() < 0));
+        // However, with complex geometry, both endpoints may coincide with existing polygon
+        // vertices (z >= 0), which is handled below.
 
         if (front != back && front.z() >= 0 && back.z() >= 0) {
             // Very rare case when both endpoints intersect boundary ExPolygons in existing points.
             // So the ZFillFunction callback hasn't been called.
+            // Both endpoints coincide with existing polygon vertices, so the
+            // ZFillFunction callback was never called.  With complex geometry
+            // this is common because source and boundary contours share many
+            // vertices.  Determine src_id / boundary_id from Z coordinates
+            // (and fall back to an AABB-tree point-in-polygon test when a
+            // boundary ID is not directly available).
+            coord_t src_z = -1, boundary_z = -1;
+            // Scan all path points for the information we need.
+            for (const ClipperLib_Z::IntPoint &point : path) {
+                if (point.z() >= idx_boundary_end && point.z() < idx_src_end && src_z < 0)
+                    src_z = point.z();
+                else if (point.z() >= idx_boundary_begin && point.z() < idx_boundary_end && boundary_z < 0)
+                    boundary_z = point.z();
+                if (src_z >= 0 && boundary_z >= 0)
+                    break;
+            }
+            if (src_z >= 0) {
+                uint32_t src_id = uint32_t(src_z - idx_boundary_end);
+                if (boundary_z >= 0) {
+                    out.push_back({ src_id, uint32_t(boundary_z - 1), ClipperZUtils::from_zpath(path) });
+                } else {
+                    // Source ID known but boundary unknown – use AABB tree.
+                    if (aabb_tree.empty())
+                        aabb_tree = build_aabb_tree_over_expolygons(boundary);
+                    int boundary_id = sample_in_expolygons(aabb_tree, boundary, Point(front.x(), front.y()));
+                    if (boundary_id >= 0)
+                        out.push_back({ src_id, uint32_t(boundary_id), ClipperZUtils::from_zpath(path) });
+                }
+                ++ iseed;
+                continue;
+            }
+            // Unable to determine source ID – drop the segment.
             continue;
         } else
         if (front == back && (front.z() < idx_boundary_end)) {

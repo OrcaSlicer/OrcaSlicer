@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "DREMC PA12-CF @System",
+	"inherits": "DREMC PA12-CF @base",
+	"from": "system",
+	"instantiation": "false",
+	"compatible_printers": []
+}

@@ -14,31 +14,28 @@
 #include <vector>
 
 namespace igl {
-  // Given the per-face local bases computed via igl::local_basis, this function
-  // computes the angle between the two reference frames across each edge.
-  // Any two vectors across the edge whose 2D representation only differs by
-  // this angle are considered to be parallel.
-
-  // Inputs:
-  //   V               #V by 3 list of mesh vertex coordinates
-  //   F               #F by 3 list of mesh faces (must be triangles)
-  //   FN              #F by 3 list of face normals
-  //   E2F             #E by 2 list of the edge-to-face relation (e.g. computed
-  //                   via igl::edge_topology)
-  //   F2E             #F by 3 list of the face-to-edge relation (e.g. computed
-  //                   via igl::edge_topology)
-  // Output:
-  //   K               #E by 1 list of the parallel transport angles (zero
-  //                   for all boundary edges)
-  //
-template <typename DerivedV, typename DerivedF, typename DerivedK>
-IGL_INLINE void parallel_transport_angles(
-const Eigen::PlainObjectBase<DerivedV>&V,
-const Eigen::PlainObjectBase<DerivedF>&F,
-const Eigen::PlainObjectBase<DerivedV>&FN,
-const Eigen::MatrixXi &E2F,
-const Eigen::MatrixXi &F2E,
-Eigen::PlainObjectBase<DerivedK>&K);
+  /// Given the per-face local bases computed via igl::local_basis, this function
+  /// computes the angle between the two reference frames across each edge.
+  /// Any two vectors across the edge whose 2D representation only differs by
+  /// this angle are considered to be parallel.
+  ///
+  /// @param[in] V   #V by 3 list of mesh vertex coordinates
+  /// @param[in] F   #F by 3 list of mesh faces (must be triangles)
+  /// @param[in] FN  #F by 3 list of face normals
+  /// @param[in] E2F #E by 2 list of the edge-to-face relation (e.g. computed
+  ///                via igl::edge_topology)
+  /// @param[in] F2E #F by 3 list of the face-to-edge relation (e.g. computed
+  /// @param[out] K  #E by 1 list of the parallel transport angles (zero
+  ///                   for all boundary edges)
+  ///
+  template <typename DerivedV, typename DerivedF, typename DerivedK>
+  IGL_INLINE void parallel_transport_angles(
+    const Eigen::MatrixBase<DerivedV>&V,
+    const Eigen::MatrixBase<DerivedF>&F,
+    const Eigen::MatrixBase<DerivedV>&FN,
+    const Eigen::MatrixXi &E2F,
+    const Eigen::MatrixXi &F2E,
+    Eigen::PlainObjectBase<DerivedK>&K);
 
 };
 

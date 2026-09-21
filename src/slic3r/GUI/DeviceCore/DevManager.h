@@ -48,6 +48,13 @@ public:
     MachineObject* get_selected_machine();
     bool set_selected_machine(std::string dev_id);
 
+    // why: clears stale sidebar sync-status / AMS visuals. Public so the printer-agent
+    // swap path can reuse it instead of duplicating the two sidebar calls.
+    void OnSelectedMachineLost();
+
+    void record_user_last_machine(const std::string& dev_id);
+    std::string get_user_last_machine() const;
+
     // local machine
     void           set_local_selected_machine(std::string dev_id) { local_selected_machine = dev_id; };
     MachineObject* get_local_selected_machine() const { return get_local_machine(local_selected_machine); }
@@ -65,14 +72,19 @@ public:
     std::map<std::string, MachineObject*> get_user_machinelist() const { return userMachineList; }
     std::string get_first_online_user_machine() const;
     void erase_user_machine(std::string dev_id) { userMachineList.erase(dev_id); }
-    void clean_user_info();
+    void clean_user_info(bool keep_local_selection = false);
+
+    // target_agent_id: id of the agent being swapped to (empty = no agent-mismatch check,
+    // just the original "drop Other Devices" behavior). Pass the incoming agent's id, not the
+    // live one - this runs before the live agent is repointed.
+    void clear_other_devices(const std::string& target_agent_id = "");
 
     void load_last_machine();
-    void update_user_machine_list_info();
+    void update_user_machine_list_info(const std::string& provider);
     void parse_user_print_info(std::string body);
     void reload_printer_settings();
 
-    MachineObject* get_user_machine(std::string dev_id);
+    MachineObject* get_user_machine(std::string dev_id, const std::string& provider);
 
     // subscribe
     void add_user_subscribe();
@@ -81,13 +93,18 @@ public:
 
     /* my machine*/
     MachineObject* get_my_machine(std::string dev_id);
-    std::map<std::string, MachineObject*> get_my_machine_list();
-    std::map<std::string, MachineObject*> get_my_cloud_machine_list();
-    void modify_device_name(std::string dev_id, std::string dev_name);
+    std::map<std::string, MachineObject*> get_my_machine_list(const std::string& agent_id = "");
+    std::map<std::string, MachineObject*> get_my_cloud_machine_list(const std::string& agent_id = "");
+    void modify_device_name(std::string dev_id, std::string dev_name, const std::string& provider);
+
+    // id of the currently live IPrinterAgent (IPrinterAgent::get_agent_info().id), or empty if
+    // m_agent has no printer agent set yet. Pass to get_my_machine_list()/get_my_cloud_machine_list()
+    // to scope results to the active agent.
+    std::string get_current_printer_agent_id() const;
 
     /* create machine or update machine properties */
     void on_machine_alive(std::string json_str);
-    int query_bind_status(std::string& msg);
+    int query_bind_status(std::string& msg, const std::string& provider);
 
     // mutil-device
     void EnableMultiMachine(bool enable = true);
@@ -96,11 +113,17 @@ public:
     std::map<std::string, std::vector<std::string>> device_subseries;
 
 private:
+    // Load the LAN printers persisted in AppConfig into localMachineList. Runs from the
+    // constructor when an agent is available and, for the case where the DeviceManager was
+    // first built without one (network plugin not yet installed at startup), from set_agent()
+    // once a real agent finally arrives - so paired printers survive a plugin install/hot
+    // reload without an app restart.
+    void load_local_machines_from_config();
+
     void keep_alive();
     void check_pushing();
 
     void OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state);
-    void OnSelectedMachineLost();
     void OnSelectedMachineChanged(const std::string& pre_dev_id, const std::string& new_dev_id);
 
 
@@ -116,7 +139,7 @@ public:
 class DeviceManagerRefresher : public wxObject
 {
     wxTimer* m_timer{ nullptr };
-    int            m_timer_interval_msec = 1000;
+    int            m_timer_interval_msec = 5000;
 
     DeviceManager* m_manager{ nullptr };
 

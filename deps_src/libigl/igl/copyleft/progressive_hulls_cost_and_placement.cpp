@@ -32,8 +32,8 @@ IGL_INLINE void igl::copyleft::progressive_hulls_cost_and_placement(
 
   assert(V.cols() == 3 && "V.cols() should be 3");
   // Gather list of unique face neighbors
-  vector<int> Nall =  circulation(e, true,F,E,EMAP,EF,EI);
-  vector<int> Nother= circulation(e,false,F,E,EMAP,EF,EI);
+  vector<int> Nall =  circulation(e, true,EMAP,EF,EI);
+  vector<int> Nother= circulation(e,false,EMAP,EF,EI);
   Nall.insert(Nall.end(),Nother.begin(),Nother.end());
   vector<int> N;
   igl::unique(Nall,N);

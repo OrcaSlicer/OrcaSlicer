@@ -5,11 +5,11 @@
 IGL_INLINE bool igl::opengl::glfw::background_window(GLFWwindow* & window)
 {
   if(!glfwInit()) return false;
-  glfwSetErrorCallback([](int id,const char* m){std::cerr<<m<<std::endl;});
+  glfwSetErrorCallback([](int /*id*/,const char* m){std::cerr<<m<<std::endl;});
   glfwWindowHint(GLFW_SAMPLES, 4);
-  // Use 3.2 core profile
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  // Use 4.1 core profile
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   // Use background window

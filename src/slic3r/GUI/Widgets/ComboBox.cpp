@@ -87,10 +87,18 @@ void ComboBox::SetSelection(int n)
         return;
     drop.SetSelection(n);
     SetLabel(drop.GetValue());
-    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk())
-        SetIcon(items[drop.selection].icon_textctrl);
-    else
+    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk()) {
+        if (m_keep_drop_arrow) {
+            SetIcon("drop_down");
+            SetIcon_1(items[drop.selection].icon_textctrl);
+        } else {
+            SetIcon(items[drop.selection].icon_textctrl);
+        }
+    } else {
         SetIcon("drop_down");
+        if (m_keep_drop_arrow)
+            SetIcon_1(wxNullBitmap);
+    }
 
     if (drop.selection >= 0) {
         SetStaticTips(items[drop.selection].text_static_tips, wxNullBitmap);
@@ -120,10 +128,18 @@ void ComboBox::SetValue(const wxString &value)
 {
     drop.SetValue(value);
     SetLabel(value);
-    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk())
-        SetIcon(items[drop.selection].icon_textctrl);
-    else
+    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk()) {
+        if (m_keep_drop_arrow) {
+            SetIcon("drop_down");
+            SetIcon_1(items[drop.selection].icon_textctrl);
+        } else {
+            SetIcon(items[drop.selection].icon_textctrl);
+        }
+    } else {
         SetIcon("drop_down");
+        if (m_keep_drop_arrow)
+            SetIcon_1(wxNullBitmap);
+    }
 
     if (drop.selection >= 0) {
         SetStaticTips(items[drop.selection].text_static_tips, wxNullBitmap);
@@ -192,7 +208,7 @@ bool ComboBox::SetFont(wxFont const& font)
 
 int ComboBox::Append(const wxString &item, const wxBitmap &bitmap, int style)
 {
-    if (&bitmap && bitmap.IsOk()) {
+    if (bitmap.IsOk()) {
         return Append(item, bitmap, nullptr, style);
     }
     return Append(item, wxNullBitmap, nullptr, style);
@@ -203,7 +219,7 @@ int ComboBox::Append(const wxString &text,
                      void *          clientData,
                      int style)
 {
-    if (&bitmap && bitmap.IsOk()) {
+    if (bitmap.IsOk()) {
         return Append(text, bitmap, wxString{}, clientData, style);
     }
     return Append(text, wxNullBitmap, wxString{}, clientData, style);
@@ -211,8 +227,18 @@ int ComboBox::Append(const wxString &text,
 
 int ComboBox::Append(const wxString &text, const wxBitmap &bitmap, const wxString &group, void *clientData, int style)
 {
-    auto valid_bit_map = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
-    Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, clientData, group};
+    return Append(text, bitmap, group, group, clientData, style);
+}
+
+int ComboBox::Append(const wxString &text,
+                     const wxBitmap &bitmap,
+                     const wxString &group_key,
+                     const wxString &group_label,
+                     void *clientData,
+                     int style)
+{
+    auto valid_bit_map = bitmap.IsOk() ? bitmap : wxNullBitmap;
+    Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, clientData, group_key, group_label};
     item.style = style;
     items.push_back(item);
     SetClientDataType(wxClientData_Void);
@@ -239,6 +265,23 @@ void ComboBox::DoDeleteOneItem(unsigned int pos)
     if (pos >= items.size()) return;
     items.erase(items.begin() + pos);
     drop.Invalidate(true);
+}
+
+void ComboBox::ForceDropdownOpen()
+{
+    if (!IsEnabled())
+        return;
+
+    if (!drop_down) {
+        drop.need_sync = true;
+        drop.messureSize();
+        drop.autoPosition();
+        drop_down = true;
+        drop.Popup(&drop);
+
+        wxCommandEvent e(wxEVT_COMBOBOX_DROPDOWN);
+        GetEventHandler()->ProcessEvent(e);
+    }
 }
 
 unsigned int ComboBox::GetCount() const { return items.size(); }
@@ -273,12 +316,24 @@ void ComboBox::SetItemTooltip(unsigned int n, wxString const &value) {
     if (n == drop.GetSelection()) drop.SetToolTip(value);
 }
 
+wxString ComboBox::GetItemAlias(unsigned int n) const
+{
+    if (n >= items.size()) return wxString();
+    return items[n].alias;
+}
+
+void ComboBox::SetItemAlias(unsigned int n, wxString const &value)
+{
+    if (n >= items.size()) return;
+    items[n].alias = value;
+}
+
 wxBitmap ComboBox::GetItemBitmap(unsigned int n) { return items[n].icon; }
 
 void ComboBox::SetItemBitmap(unsigned int n, wxBitmap const &bitmap)
 {
     if (n >= items.size()) return;
-    items[n].icon = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
+    items[n].icon = bitmap.IsOk() ? bitmap : wxNullBitmap;
     drop.Invalidate();
 }
 

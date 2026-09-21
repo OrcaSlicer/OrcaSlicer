@@ -13,35 +13,30 @@
 
 namespace igl
 {
-  // Constructs a list of face areas of faces opposite each index in a tet list
-  //
-  // Inputs:
-  //   V  #V by 3 list of mesh vertex positions
-  //   T  #T by 3 list of tet mesh indices into V
-  // Outputs:
-  //   A   #T by 4 list of face areas corresponding to faces opposite vertices
-  //     0,1,2,3
-  //
+  /// Constructs a list of face areas of faces opposite each index in a tet list
+  ///
+  /// @param[in] V  #V by 3 list of mesh vertex positions
+  /// @param[in] T  #T by 3 list of tet mesh indices into V
+  /// @param[out] A   #T by 4 list of face areas corresponding to faces opposite vertices
+  ///     0,1,2,3
+  ///
   template <typename DerivedV, typename DerivedT, typename DerivedA>
   IGL_INLINE void face_areas(
     const Eigen::MatrixBase<DerivedV>& V,
     const Eigen::MatrixBase<DerivedT>& T,
     Eigen::PlainObjectBase<DerivedA>& A);
-  // Compute tet-mesh face areas from edge lengths.
-  //
-  // Inputs:
-  //   L  #T by 6 list of tet-mesh edge lengths corresponding to edges
-  //     [3 0],[3 1],[3 2],[1 2],[2 0],[0 1]
-  // Outputs:
-  //   A   #T by 4 list of face areas corresponding to faces opposite vertices 
-  //     0,1,2,3: i.e. made of edges [123],[024],[015],[345]
-  //    
-  //
+  /// \overload
+  /// \brief Compute tet-mesh face areas from edge lengths.
+  ///
+  /// @param[in] L  #T by 6 list of tet-mesh edge lengths corresponding to edges
+  ///     [3 0],[3 1],[3 2],[1 2],[2 0],[0 1]
   template <typename DerivedL, typename DerivedA>
   IGL_INLINE void face_areas(
     const Eigen::MatrixBase<DerivedL>& L,
     Eigen::PlainObjectBase<DerivedA>& A);
-  // doublearea_nan_replacement  See doublearea.h
+  /// \overload
+  ///
+  /// @param[in] doublearea_nan_replacement  See doublearea.h
   template <typename DerivedL, typename DerivedA>
   IGL_INLINE void face_areas(
     const Eigen::MatrixBase<DerivedL>& L,

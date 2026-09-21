@@ -30,13 +30,21 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 
+#include <atomic>
+#include <memory>
+#include <unordered_map>
+
 #include <nlohmann/json.hpp>
+
+#include <boost/thread.hpp>
 
 namespace Slic3r { namespace GUI {
 
 class GuideFrame : public DPIDialog
 {
 public:
+    using json = nlohmann::json;
+
     GuideFrame(GUI_App *pGUI, long style = wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU);
     virtual ~GuideFrame();
 
@@ -76,6 +84,12 @@ public:
     int LoadProfileData();
     int SaveProfileData();
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
+    void init_guide_paths();
+    void on_profile_loaded();
+    bool BuildProfileJson(const PresetBundle& bundle, bool require_all_resource_vendors);
+    bool BuildProfileDataFromPresetBundle();
+    bool BuildProfileDataFromVendors();
+    void reset_profile_json();
     int SaveProfile();
     int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
 
@@ -100,7 +114,6 @@ private:
     AppConfig m_appconfig_new;
 
     wxWebView *m_browser;
-    wxButton * m_TestBtn;
 
     wxString m_SectionName;
 
@@ -110,8 +123,11 @@ private:
 
     //First Load
     bool bFirstComplete{false};
-    bool m_destroy{false};
-    boost::thread* m_load_task{ nullptr };
+    // Set once in the destructor. Read through `this` by the loading thread
+    // (joined before `this` dies) and captured as the shared_ptr by CallAfter
+    // lambdas so they don't touch `this` after the object is freed.
+    std::shared_ptr<std::atomic<bool>> m_cancel_token{std::make_shared<std::atomic<bool>>(false)};
+    std::unique_ptr<boost::thread> m_load_task;
 
     // User Config
     bool PrivacyUse;
@@ -121,6 +137,7 @@ private:
     bool InstallNetplugin;
     bool network_plugin_ready {false};
 
+    json m_ProfileJson;
     json m_OrcaFilaList;
     std::string m_OrcaFilaLibPath;
 
@@ -135,6 +152,14 @@ private:
 
     wxString m_bbl_user_agent;
     std::string m_editing_filament_id;
+
+    struct CachedFilamentInfo
+    {
+        int         status{-1};
+        std::string vendor;
+        std::string type;
+    };
+    std::unordered_map<std::string, CachedFilamentInfo> filament_info_cache;
 };
 
 }} // namespace Slic3r::GUI

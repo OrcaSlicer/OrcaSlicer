@@ -12,19 +12,16 @@
 
 namespace igl
 {
-  // PARTITION partition vertices into groups based on each
-  // vertex's vector: vertices with similar coordinates (close in 
-  // space) will be put in the same group.
-  //
-  // Inputs:
-  //   W  #W by dim coordinate matrix
-  //   k  desired number of groups default is dim
-  // Output:
-  //   G  #W list of group indices (1 to k) for each vertex, such that vertex i 
-  //     is assigned to group G(i)
-  //   S  k  list of seed vertices
-  //   D  #W list of squared distances for each vertex to it's corresponding
-  //     closest seed
+  /// Partition vertices into groups based on each vertex's vector: vertices
+  /// with similar coordinates (close in space) will be put in the same group.
+  ///
+  /// @param[in] W  #W by dim coordinate matrix
+  /// @param[in] k  desired number of groups default is dim
+  /// @param[out] G  #W list of group indices (1 to k) for each vertex, such that vertex i 
+  ///     is assigned to group G(i)
+  /// @param[out] S  k  list of seed vertices
+  /// @param[out] D  #W list of squared distances for each vertex to it's corresponding
+  ///     closest seed
   IGL_INLINE void partition(
     const Eigen::MatrixXd & W,
     const int k,

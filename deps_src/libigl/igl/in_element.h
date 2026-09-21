@@ -15,34 +15,42 @@
 
 namespace igl
 {
-  // Determine whether each point in a list of points is in the elements of a
-  // mesh.
-  //
-  // templates:
-  //   DIM  dimension of vertices in V (# of columns)
-  // Inputs:
-  //   V  #V by dim list of mesh vertex positions.
-  //   Ele  #Ele by dim+1 list of mesh indices into #V.
-  //   Q  #Q by dim list of query point positions
-  //   aabb  axis-aligned bounding box tree object (see AABB.h)
-  // Outputs:
-  //   I  #Q list of indices into Ele of first containing element (-1 means no
-  //     containing element)
-  template <typename DerivedV, typename DerivedQ, int DIM>
+  /// Determine whether each point in a list of points is in the elements of a
+  /// mesh.
+  ///
+  /// @tparam  DIM  dimension of vertices in V (# of columns)
+  /// @param[in] V  #V by dim list of mesh vertex positions.
+  /// @param[in] Ele  #Ele by dim+1 list of mesh indices into #V.
+  /// @param[in] Q  #Q by dim list of query point positions
+  /// @param[in] aabb  axis-aligned bounding box tree object (see AABB.h)
+  /// @param[out] I  #Q list of indices into Ele of first containing element (-1 means no
+  ///     containing element)
+  template <
+    typename DerivedV, 
+    typename DerivedEle,
+    typename DerivedQ, 
+    int DIM,
+    typename DerivedI>
   IGL_INLINE void in_element(
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::MatrixXi & Ele,
-    const Eigen::PlainObjectBase<DerivedQ> & Q,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedEle> & Ele,
+    const Eigen::MatrixBase<DerivedQ> & Q,
     const AABB<DerivedV,DIM> & aabb,
-    Eigen::VectorXi & I);
-  // Outputs:
-  //   I  #Q by #Ele sparse matrix revealing whether each element contains each
-  //     point: I(q,e) means point q is in element e
-  template <typename DerivedV, typename DerivedQ, int DIM, typename Scalar>
+    Eigen::PlainObjectBase<DerivedI> & I);
+  /// \overload
+  ///
+  /// @param[out] I  #Q by #Ele sparse matrix revealing whether each element contains each
+  ///     point: I(q,e) means point q is in element e
+  template <
+    typename DerivedV, 
+    typename DerivedEle, 
+    typename DerivedQ, 
+    int DIM, 
+    typename Scalar>
   IGL_INLINE void in_element(
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::MatrixXi & Ele,
-    const Eigen::PlainObjectBase<DerivedQ> & Q,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedEle> & Ele,
+    const Eigen::MatrixBase<DerivedQ> & Q,
     const AABB<DerivedV,DIM> & aabb,
     Eigen::SparseMatrix<Scalar> & I);
 };

@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PPS-GF @Qidi X-Plus 4 0.8 nozzle",
+	"inherits": "QIDI PPS-GF",
+	"from": "system",
+	"setting_id": "MuexSudjg1ht7pBE",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 4 0.8 nozzle"
+	]
+}

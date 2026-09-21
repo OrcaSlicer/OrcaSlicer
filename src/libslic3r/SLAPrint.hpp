@@ -450,7 +450,7 @@ public:
     bool                empty() const override { return m_objects.empty(); }
     // List of existing PrintObject IDs, to remove notifications for non-existent IDs.
     std::vector<ObjectID> print_object_ids() const override;
-    ApplyStatus         apply(const Model &model, DynamicPrintConfig config) override;
+    ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
     void                set_task(const TaskParams &params) override;
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
     void                finalize() override;
@@ -488,7 +488,7 @@ public:
 
     const SLAPrintStatistics&   print_statistics() const { return m_print_statistics; }
 
-    StringObjectException validate(StringObjectException *                 warning           = nullptr,
+    StringObjectException validate(std::vector<StringObjectException> *    warnings          = nullptr,
                                    Polygons *                              collison_polygons = nullptr,
                                    std::vector<std::pair<Polygon, float>> *height_polygons   = nullptr) const override;
 

@@ -1,0 +1,58 @@
+*
+{
+	padding: 0;
+	border: 0;
+	margin: 0;
+}
+
+
+html,body
+{
+	height:100%;
+	padding: 0;
+	border: 0;
+	margin: 0;	
+	overflow: hidden;
+	background-color: #fff;
+}
+
+#PageArea
+{
+	height:100%;
+	width: 100%;
+}
+
+.swiper {
+    height: 100%;
+	top: 0px;
+	left: 0px;
+	bottom: 35px;
+}
+
+.swiper-slide {
+	font-size: 18px;
+    height: 100%;
+	width: 100%;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.swiper-slide iframe
+{
+	width:100%;
+	height: 100%;
+	overflow-y: hidden;
+}
+
+.CBtn
+{
+	padding: 3mm 100m;
+	background-color: #77EFF9;
+	display: inline-block;
+	height: 30px;
+	width: 150px;
+	text-align: center;
+	z-index: 99;
+	position: absolute;
+	top:30px;
+}
