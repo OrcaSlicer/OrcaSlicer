@@ -2,6 +2,7 @@
 	"type": "machine_model",
 	"name": "Flashforge Artemis",
 	"model_id": "Flashforge-Artemis",
+	"default_materials": "Generic PETG @Flashforge Artemis",
 	"nozzle_diameter": "0.4",
 	"machine_tech": "FFF",
 	"family": "Flashforge",

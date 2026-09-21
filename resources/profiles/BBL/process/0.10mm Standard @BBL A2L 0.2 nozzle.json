@@ -30,9 +30,6 @@
 	"overhang_4_4_speed": [
 		"35"
 	],
-	"overhang_totally_speed": [
-		"25"
-	],
 	"prime_tower_brim_width": "-1",
 	"slowdown_end_acc": [
 		"1000"
@@ -40,7 +37,6 @@
 	"slowdown_end_height": [
 		"225"
 	],
-	"smooth_coefficient": "4",
 	"support_line_width": "0.4",
 	"travel_acceleration": [
 		"8000"

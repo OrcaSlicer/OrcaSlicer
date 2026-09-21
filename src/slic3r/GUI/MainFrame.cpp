@@ -1,6 +1,7 @@
 #include "MainFrame.hpp"
 
 #include <wx/panel.h>
+#include <wx/textentry.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
 #include <wx/simplebook.h>
@@ -37,12 +38,18 @@
 #include "I18N.hpp"
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "slic3r/GUI/CAD/McpControl.hpp"
+#endif
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
 // BBS
 #include "PartPlate.hpp"
 #include "Preferences.hpp"
+#include "Widgets/Button.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include "Widgets/StaticBox.hpp"
 #include "BindDialog.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/NetworkAgentFactory.hpp"
@@ -102,6 +109,31 @@ enum class ERescaleTarget
     Mainframe,
     SettingsDialog
 };
+
+namespace {
+
+// Space opens the speed dial, but it is the activation key for buttons, checkboxes and other
+// controls. CHAR_HOOK runs before the focused child, so only take Space when the focused window has
+// no keyboard-activation meaning of its own. Canvases (GLCanvas3D) and panels are not controls and
+// fall through to "open"; the Notebook itself does too, so Space still opens the dial on any page.
+bool focus_keeps_space(wxWindow* focus)
+{
+    if (!focus)
+        return false;
+    if (dynamic_cast<wxTextEntryBase*>(focus))
+        return true; // typing a space into a text field
+    if (dynamic_cast<wxWebView*>(focus))
+        return true; // web content scrolls and hosts its own text fields
+    if (dynamic_cast<::Button*>(focus))
+        return true; // custom button: Space clicks it (it is a wxWindow, not a wxControl)
+    if (dynamic_cast<StaticBox*>(focus))
+        return true; // custom composites (ComboBox, SpinInput, ...) activate with Space and are wxWindow
+    if (dynamic_cast<wxControl*>(focus) && !dynamic_cast<Notebook*>(focus))
+        return true; // stock button/checkbox/choice/list/etc. keep Space
+    return false;
+}
+
+} // namespace
 
 #ifdef __WXGTK__
 // A thin transparent panel placed at a window edge to handle resize.
@@ -698,6 +730,22 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             }
             return;}
 #endif
+        // Orca: open the speed dial from any page with a bare Space. Only when no modifier is held (so
+        // editing shortcuts like Ctrl+Shift+Space in the canvas still reach it) and the focused window
+        // doesn't use Space to activate itself (buttons, checkboxes, list/choice controls, text fields),
+        // so a bare Space there still clicks/toggles instead of being hijacked. Gated by a preference
+        // (default on) so users can hand Space back to the focused control entirely.
+        if (wxGetApp().app_config->get_bool("enable_speed_dial") && !evt.CmdDown() && !evt.ShiftDown() &&
+            !evt.AltDown() && evt.GetKeyCode() == WXK_SPACE) {
+            if (focus_keeps_space(wxWindow::FindFocus())) {
+                evt.Skip(); // let the focused control keep Space
+                return;
+            }
+            // Defer out of the native key-event stack: open_speed_dial() may create a WebView and
+            // run script, the same window work the codebase avoids doing on native callbacks.
+            this->CallAfter([] { wxGetApp().open_speed_dial(); });
+            return;
+        }
         if (evt.CmdDown() && evt.GetKeyCode() == 'R') { if (m_slice_enable) { wxGetApp().plater()->update(true, true); wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE)); this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); } return; }
         if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'G') {
             m_plater->apply_background_progress();
@@ -1019,7 +1067,15 @@ void MainFrame::update_layout()
         // Right after Home — or first, when there is no Home tab (PositionAfter() would
         // append instead, and by now the other built-in tabs are already in place).
         const int home_idx = m_tabpanel->FindPageByName(TAB_ID_HOME);
-        const size_t prepare_pos = (home_idx == wxNOT_FOUND) ? 0 : static_cast<size_t>(home_idx) + 1;
+        size_t prepare_pos = (home_idx == wxNOT_FOUND) ? 0 : static_cast<size_t>(home_idx) + 1;
+#ifdef SLIC3R_CAD
+        // Design sits between Home and Prepare, so it goes in first and pushes Prepare along.
+        // The page only exists when the experimental CAD feature is enabled.
+        if (m_design_page != nullptr) {
+            m_design_page->Reparent(m_tabpanel);
+            m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
+        }
+#endif
         m_tabpanel->InsertPage(prepare_pos, TAB_ID_PREPARE, m_plater, _L("Prepare"), "tab_3d_active");
         m_tabpanel->InsertPage(prepare_pos + 1, TAB_ID_PREVIEW, m_plater, _L("Preview"), "tab_preview_active");
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 0);
@@ -1237,6 +1293,19 @@ void MainFrame::show_option(bool show)
     }
 }
 
+#ifdef SLIC3R_CAD
+DesignPanel* MainFrame::ensure_design_panel()
+{
+    if (m_design_panel == nullptr && m_design_page != nullptr) {
+        wxBusyCursor busy;
+        m_design_panel = new DesignPanel(m_design_page);
+        m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
+        m_design_page->Layout();
+    }
+    return m_design_panel;
+}
+#endif
+
 void MainFrame::init_tabpanel() {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on
     // Windows 10 with multiple high resolution displays connected.
@@ -1277,9 +1346,26 @@ void MainFrame::init_tabpanel() {
         }
         //else if (panel == m_param_panel)
         //    m_param_panel->OnActivate();
+#ifdef SLIC3R_CAD
+        else if (m_design_page != nullptr && panel == m_design_page) {
+            // Built on first activation, never at startup: the panel creates several hundred
+            // controls and its own GL canvas, which a user who does not open the tab should
+            // not pay for.
+            ensure_design_panel();
+            // Re-sync the Design bed to the active printer: the panel is built before the
+            // printer profile is fully applied, so its bed must refresh on activation or the
+            // grid (true bed) spills past the stale default bed quad.
+            m_design_panel->on_tab_shown();
+        }
+#endif
         else if (panel == m_monitor) {
             //monitor
         }
+#ifdef SLIC3R_CAD
+        // Any page that is not Design takes the Design status line down with it — see
+        // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
+        if (m_design_panel != nullptr && panel != m_design_page) m_design_panel->on_tab_hidden();
+#endif
 #ifndef __APPLE__
         if (m_last_selected_tab == TAB_ID_PREPARE) {
             m_topbar->EnableUndoRedoItems();
@@ -1309,6 +1395,20 @@ void MainFrame::init_tabpanel() {
     m_plater->Hide();
 
     wxGetApp().plater_ = m_plater;
+
+#ifdef SLIC3R_CAD
+    // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
+    // the tab is selected (see the page-changed handler above), so nothing it constructs sits
+    // on the startup path. The experimental feature is off by default, and when it is off the
+    // page is never created, so the tab does not appear at all (the preference takes effect on
+    // the next start, like the other feature toggles).
+    if (wxGetApp().is_enable_cad_feature()) {
+        m_design_page = new wxPanel(this);
+        m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
+        m_design_page->Hide();
+        start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
+    }
+#endif
 
     create_preset_tabs();
 
@@ -3288,6 +3388,11 @@ void MainFrame::init_menubar_as_editor()
             wxGetApp().open_preferences();
         },
         "", nullptr, []() { return true; }, this, 1);
+    parent_menu->AppendSeparator();
+    append_menu_item(
+        parent_menu, wxID_ANY, _L("Open speed dial...") + sep + "Space", "",
+        [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
+        "", nullptr, []() { return true; }, this);
     //parent_menu->Insert(1, preference_item);
 #endif
     // Help menu
@@ -3312,7 +3417,13 @@ void MainFrame::init_menubar_as_editor()
     auto top_menu = m_topbar->GetTopMenu();
     top_menu->AppendSeparator();
 
-        append_menu_item(
+    append_menu_item(
+        top_menu, wxID_ANY, _L("Open speed dial...") + "\t" + "Space", "",
+        [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
+        "", nullptr, []() { return true; }, this);
+    top_menu->AppendSeparator();
+
+    append_menu_item(
         top_menu, wxID_ANY, _L("Preset Bundle") + "\t", "",
         [this](wxCommandEvent &) {
             // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
@@ -3358,88 +3469,51 @@ void MainFrame::init_menubar_as_editor()
 
     // Temperature
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Temperature"), _L("Temperature Calibration"),
-        [this](wxCommandEvent&) {
-            if (!m_temp_calib_dlg)
-                m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_temp_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Temperature); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Max Volumetric Speed
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Max flowrate"), _L("Max flowrate"),
-        [this](wxCommandEvent&) {
-            if (!m_vol_test_dlg)
-                m_vol_test_dlg = new MaxVolumetricSpeed_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vol_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::MaxVolumetric); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Pressure Advance
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Pressure advance"), _L("Pressure advance"),
-        [this](wxCommandEvent&) {
-            if (!m_pa_calib_dlg)
-                m_pa_calib_dlg = new PA_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_pa_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::PressureAdvance); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flow rate (Wizard Dialog)
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
-        [this](wxCommandEvent&) {
-            if (!m_plater) return;
-            if (!m_flow_rate_calib_dlg)
-                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
-            m_flow_rate_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Retraction
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction"), _L("Retraction"),
-        [this](wxCommandEvent&) {
-            if (!m_retraction_calib_dlg)
-                m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_retraction_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Retraction); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Cornering
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Cornering"), _L("Cornering calibration"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Cornering_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Cornering); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Input Shaping (with submenu)
     auto input_shaping_menu = new wxMenu();
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Frequency"), _L("Input Shaping Frequency"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Freq_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingFreq); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Damping/zeta factor"), _L("Input Shaping Damping/zeta factor"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Damp_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingDamp); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     m_topbar->GetCalibMenu()->AppendSubMenu(input_shaping_menu, _L("Input Shaping"));
 
     // VFA
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("VFA"), _L("VFA"),
-        [this](wxCommandEvent&) {
-            if (!m_vfa_test_dlg)
-                m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vfa_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // help
@@ -3450,6 +3524,10 @@ void MainFrame::init_menubar_as_editor()
 #else
     // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
     fileMenu->AppendSeparator();
+    append_menu_item(
+        fileMenu, wxID_ANY, _L("Open speed dial...") + sep + "Space", "",
+        [](wxCommandEvent&) { wxGetApp().open_speed_dial(); },
+        "", nullptr, []() { return true; }, this);
     append_menu_item(
         fileMenu, wxID_ANY, _L("Preset Bundle"), "",
         [this](wxCommandEvent&) {
@@ -3496,89 +3574,52 @@ void MainFrame::init_menubar_as_editor()
 
     // Temperature
     append_menu_item(calib_menu, wxID_ANY, _L("Temperature"), _L("Temperature"),
-        [this](wxCommandEvent&) {
-            if (!m_temp_calib_dlg)
-                m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_temp_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Temperature); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Max Volumetric Speed
     append_menu_item(calib_menu, wxID_ANY, _L("Max flowrate"), _L("Max flowrate"),
-        [this](wxCommandEvent&) {
-            if (!m_vol_test_dlg)
-                m_vol_test_dlg = new MaxVolumetricSpeed_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vol_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::MaxVolumetric); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Pressure Advance
     append_menu_item(calib_menu, wxID_ANY, _L("Pressure advance"), _L("Pressure advance"),
-        [this](wxCommandEvent&) {
-            if (!m_pa_calib_dlg)
-                m_pa_calib_dlg = new PA_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_pa_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::PressureAdvance); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flowrate (with submenu)
     // ORCA: Flow rate (Wizard Dialog)
     append_menu_item(calib_menu, wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
-        [this](wxCommandEvent&) {
-            if (!m_plater) return;
-            if (!m_flow_rate_calib_dlg)
-                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
-            m_flow_rate_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Retraction
     append_menu_item(calib_menu, wxID_ANY, _L("Retraction"), _L("Retraction"),
-        [this](wxCommandEvent&) {
-            if (!m_retraction_calib_dlg)
-                m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_retraction_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Retraction); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Cornering
     append_menu_item(calib_menu, wxID_ANY, _L("Cornering"), _L("Cornering calibration"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Cornering_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Cornering); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Input Shaping (with submenu)
     auto input_shaping_menu = new wxMenu();
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Frequency"), _L("Input Shaping Frequency"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Freq_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingFreq); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Damping/zeta factor"), _L("Input Shaping Damping/zeta factor"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Damp_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingDamp); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     calib_menu->AppendSubMenu(input_shaping_menu, _L("Input Shaping"));
 
     // VFA
     append_menu_item(calib_menu, wxID_ANY, _L("VFA"), _L("VFA"),
-        [this](wxCommandEvent&) {
-            if (!m_vfa_test_dlg)
-                m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vfa_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     // help
     append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
@@ -4350,6 +4391,72 @@ void MainFrame::technology_changed()
     PrinterTechnology pt = plater()->printer_technology();
     if (int id = m_menubar->FindMenu(pt == ptFFF ? _omitL("Material Settings") : _L("Filament settings")); id != wxNOT_FOUND)
         m_menubar->SetMenuLabel(id, pt == ptSLA ? _omitL("Material Settings") : _L("Filament settings"));
+}
+
+// Opens the calibration wizard for `calib_kind`. Single source of truth for the wizard lifecycle:
+// the Calibration menu handlers and the Speed Dial native commands both call it. Most wizards are
+// cached members reused across launches; cornering/input-shaping build a fresh transient dialog.
+// Call while the Prepare (3D) panel is shown.
+void MainFrame::run_calibration(CalibKind calib_kind)
+{
+    switch (calib_kind) {
+    case CalibKind::Temperature: {
+        if (!m_temp_calib_dlg)
+            m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_temp_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::MaxVolumetric: {
+        if (!m_vol_test_dlg)
+            m_vol_test_dlg = new MaxVolumetricSpeed_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_vol_test_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::PressureAdvance: {
+        if (!m_pa_calib_dlg)
+            m_pa_calib_dlg = new PA_Calibration_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_pa_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::FlowRatio: {
+        if (!m_plater)
+            break;
+        if (!m_flow_rate_calib_dlg)
+            m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*) this, wxID_ANY, m_plater);
+        m_flow_rate_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::Retraction: {
+        if (!m_retraction_calib_dlg)
+            m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_retraction_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::Cornering: {
+        auto dlg = new Cornering_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        dlg->ShowModal();
+        dlg->Destroy();
+        break;
+    }
+    case CalibKind::InputShapingFreq: {
+        auto dlg = new Input_Shaping_Freq_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        dlg->ShowModal();
+        dlg->Destroy();
+        break;
+    }
+    case CalibKind::InputShapingDamp: {
+        auto dlg = new Input_Shaping_Damp_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        dlg->ShowModal();
+        dlg->Destroy();
+        break;
+    }
+    case CalibKind::VFA: {
+        if (!m_vfa_test_dlg)
+            m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_vfa_test_dlg->ShowModal();
+        break;
+    }
+    }
 }
 
 

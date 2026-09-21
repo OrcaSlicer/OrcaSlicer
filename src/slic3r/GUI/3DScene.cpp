@@ -507,10 +507,10 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glClearStencil(0));
     glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
     glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
+    // This pass paints the visible surface, so it must go through simple_render() to keep
+    // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
+    // highlight and are fine using the single-color model.
+    simple_render(shader, model_objects, colors);
     glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
     glsafe(::glStencilMask(0x00));
     shader->set_uniform("is_outline", true);
@@ -670,6 +670,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
     } while (0);
 
     if (color_volume && !picking) {
+        const bool brighten_selected = selected && !disabled && !force_native_color && !force_neutral_color;
+
         // when force_transparent, we need to keep the alpha
         if (force_native_color && render_color.is_transparent()) {
             for (auto &extruder_color : extruder_colors)
@@ -691,6 +693,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                         int color_idx = std::clamp(extruder_id - 1, 0, int(extruder_colors.size()) - 1);
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - color_idx)/255.0f;
                         }
@@ -702,6 +706,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     if (idx <= extruder_colors.size()) {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[idx - 1]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - (idx - 1))/255.0f;
                         }
@@ -711,6 +717,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     else {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[0]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - 0) / 255.0f;
                         }
