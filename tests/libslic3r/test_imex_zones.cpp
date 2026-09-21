@@ -38,7 +38,10 @@ DynamicPrintConfig make_cfg(const PrinterCfg& p)
     cfg.set_key_value("is_imex", new ConfigOptionBool(p.is_imex));
     cfg.set_key_value("imex_gantry_count", new ConfigOptionInt(p.gantry_count));
     cfg.set_key_value("imex_tools_per_gantry", new ConfigOptionInt(p.tools_per_gantry));
-    cfg.set_key_value("imex_tool_layout", new ConfigOptionEnum<ImexToolLayout>(p.tool_layout));
+    // Deserialized from its stored string, not constructed typed: that is the generic form a
+    // preset, a project's settings and the CLI all carry, and the form a reader can reject
+    // while the typed one it never sees would have answered correctly.
+    cfg.set_deserialize_strict("imex_tool_layout", ConfigOptionEnum<ImexToolLayout>(p.tool_layout).serialize());
     // Slot 0 is the reserved Primary mode, which never carries tools; kMode is slot 1.
     cfg.set_key_value("imex_mode_names",
                       new ConfigOptionStrings(std::vector<std::string>{ kImexPrimaryMode, kMode }));

@@ -375,17 +375,30 @@ void imex_cfg_report_unregistered(const char* fn, const std::string& key);
 template<class T>
 T imex_cfg_enum(const ConfigBase& cfg, const std::string& key)
 {
-    // dynamic_cast on BOTH halves here, unlike imex_cfg_int/_float. Every ConfigOptionEnum<T>
-    // reports coEnum, so the type() comparison that option<TYPE>() (Config.hpp:2643) and the
-    // int/float accessors rely on cannot tell one enum type from another: it would accept a
-    // ConfigOptionEnum<OtherEnum> and static_cast it to this T. ConfigOptionEnum<A> and
-    // ConfigOptionEnum<B> are unrelated siblings (both derive from ConfigOptionSingle<T>), so a
-    // dynamic_cast rejects the mismatch outright. The ConfigOptionPercent : ConfigOptionFloat
-    // inheritance that rules dynamic_cast out for imex_cfg_float has no analogue for enums.
-    if (const ConfigOption* opt = cfg.option(key))
+    // Matched by type, not by the coEnum tag. Every ConfigOptionEnum<T> reports coEnum, so the
+    // type() comparison that option<TYPE>() (Config.hpp:2656) and the int/float accessors rely on
+    // cannot tell one enum type from another: it would accept a ConfigOptionEnum<OtherEnum> and
+    // static_cast it to this T. ConfigOptionEnum<A> and ConfigOptionEnum<B> are unrelated
+    // siblings (both derive from ConfigOptionSingle<T>), so a dynamic_cast rejects the mismatch.
+    //
+    // A coEnum value has a second representation, ConfigOptionEnumGeneric, which derives from
+    // ConfigOptionInt rather than ConfigOptionSingle<T> - the enum analogue of the
+    // ConfigOptionPercent : ConfigOptionFloat inheritance that rules dynamic_cast out for
+    // imex_cfg_float. It is what a config not seeded from the static PrinterConfig holds, so it
+    // is read here too, keyed on the value map it carries: only T's own map yields a T.
+    const ConfigOptionDef* def = print_config_def.get(key);
+    if (const ConfigOption* opt = cfg.option(key)) {
         if (const auto* e = dynamic_cast<const ConfigOptionEnum<T>*>(opt))
             return e->value;
-    if (const ConfigOptionDef* def = print_config_def.get(key))
+        // The map the generic option was built from identifies the enum it holds: T's own map
+        // means T's own enumerators, so the stored int is a T. A key whose definition names a
+        // different enum carries a different map and falls through to the default below,
+        // exactly as the typed cast above would reject it.
+        if (const auto* g = dynamic_cast<const ConfigOptionEnumGeneric*>(opt))
+            if (g->keys_map == &ConfigOptionEnum<T>::get_enum_values())
+                return static_cast<T>(g->value);
+    }
+    if (def)
         if (const ConfigOption* dv = def->default_value.get())
             if (const auto* e = dynamic_cast<const ConfigOptionEnum<T>*>(dv))
                 return e->value;

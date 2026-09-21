@@ -441,6 +441,12 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         }
         else if (opt_key == "z_hop_types") {
             osteps.emplace_back(posDetectOverhangsForLift);
+        }
+        // The bed-zone colour scheme and the advisory margin bands are drawn from the printer
+        // config but never reach the slice: compute_imex_zone_layout keeps the margin out of
+        // primary_zone_box, which is the only part of the layout update_imex_slice_offset reads.
+        // imex_tool_layout does move that box, so it is left to the fallback below.
+        else if (opt_key == "imex_viz_theme" || opt_key == "imex_carriage_margin") {
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
             //FIXME invalidate all steps of all objects as well?
@@ -3907,9 +3913,8 @@ Points Print::first_layer_wipe_tower_corners(bool check_wipe_tower_existance) co
 // firmware to fan copies out — parts in the wrong place, no diagnostic.
 //
 // Inputs, all reachable without a GUI:
-//   * m_full_print_config — the printer preset's IMEX keys. It is the full config rather
-//     than m_config because `imex_tool_layout` and `imex_carriage_margin` are printer-preset
-//     options with no home in the static PrintConfig, so m_config does not carry them.
+//   * m_full_print_config — the printer preset's IMEX keys, read from the full config so this
+//     sees the same values the preset holds whichever representation carries them.
 //   * the plate's `imex_parallel_mode`, read off the object config. That is the same source
 //     GCode.cpp and validate() resolve the active mode from (the plate's own config is
 //     merged into the full config before apply() by BackgroundSlicingProcess in the GUI and

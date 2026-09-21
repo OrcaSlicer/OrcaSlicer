@@ -1554,3 +1554,25 @@ TEST_CASE("resolve_filament_for_head answers in nozzle index space, not filament
     // Only a head with no routing at all yields -1, so "-1 means safe to index" is false.
     REQUIRE(resolve_filament_for_head({}, pem, 9) == -1);
 }
+
+// A coEnum value reaches a reader in either of two representations: the typed option a config
+// seeded from the static PrinterConfig carries, and the ConfigOptionEnumGeneric that a config
+// built from the definitions alone - a project's settings, the CLI's - creates. Both have to
+// read back as the value that was stored, or a setting silently reverts to its default while
+// the file on disk still holds what the user chose.
+TEST_CASE("Enum printer keys read back the stored value, not their default", "[IMEX]")
+{
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+
+    cfg.set_deserialize_strict("imex_tool_layout", "rear-left");
+    CHECK(int(imex_cfg_enum<ImexToolLayout>(cfg, "imex_tool_layout")) == int(ImexToolLayout::RearLeft));
+
+    cfg.set_deserialize_strict("imex_viz_theme", "deuteranopia");
+    CHECK(int(imex_cfg_enum<ImexVizTheme>(cfg, "imex_viz_theme")) == int(ImexVizTheme::Deuteranopia));
+
+    // A config that never saw the static defaults - a 3mf's project_settings.config, and the
+    // CLI's - holds the generic form of the same option, and has to read back the same.
+    DynamicPrintConfig bare;
+    bare.set_deserialize_strict("imex_tool_layout", "rear-right");
+    CHECK(int(imex_cfg_enum<ImexToolLayout>(bare, "imex_tool_layout")) == int(ImexToolLayout::RearRight));
+}

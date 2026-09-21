@@ -1294,13 +1294,11 @@ void PartPlate::render_imex_zones(bool force_default_color)
     const IMEXTheme* theme = &k_standard;
     if (wxGetApp().preset_bundle) {
         const DynamicPrintConfig& pcfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-        if (auto* t = pcfg.option<ConfigOptionEnum<ImexVizTheme>>("imex_viz_theme")) {
-            switch (t->value) {
-            case ImexVizTheme::Deuteranopia: theme = &k_deuteranopia;  break;
-            case ImexVizTheme::Tritanopia:   theme = &k_tritanopia;    break;
-            case ImexVizTheme::HighContrast: theme = &k_high_contrast; break;
-            default: break; // Standard
-            }
+        switch (imex_cfg_enum<ImexVizTheme>(pcfg, "imex_viz_theme")) {
+        case ImexVizTheme::Deuteranopia: theme = &k_deuteranopia;  break;
+        case ImexVizTheme::Tritanopia:   theme = &k_tritanopia;    break;
+        case ImexVizTheme::HighContrast: theme = &k_high_contrast; break;
+        default: break; // Standard
         }
     }
 
