@@ -5913,7 +5913,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
     if (list.empty()) {
         auto printer_name = p->plater->get_selected_printer_name_in_combox();
-        p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
+        p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::AMS_UNAVAILABLE, _L("Sync printer information"));
         return;
     }
     bool exist_at_list_one_filament =false;
@@ -20930,6 +20930,8 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
         content = _L("There are no filaments on the printer. Please load the filaments on the printer first.");
     } else if (type == PrinterWarningType::EMPTY_FILAMENT) {
         content = _L("The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type.");
+    } else if (type == PrinterWarningType::AMS_UNAVAILABLE) {
+        content = _L("No AMS filament data is available for this printer. Make sure the printer's material system is detected and connected, then try again.");
     }
     MessageDialog dlg(this, content, title, wxOK | wxFORWARD | wxICON_WARNING, _L("Device Page"));
     auto          result = dlg.ShowModal();

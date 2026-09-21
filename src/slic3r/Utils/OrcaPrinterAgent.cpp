@@ -943,7 +943,6 @@ OrcaPrinterAgent::LaneDataState OrcaPrinterAgent::fetch_lane_data(const std::str
 
     std::string response_body;
     unsigned http_status = 0;
-    bool transport_error = false;
     std::string http_error;
     auto http = Http::get(url);
     if (!api_key.empty())
@@ -959,15 +958,18 @@ OrcaPrinterAgent::LaneDataState OrcaPrinterAgent::fetch_lane_data(const std::str
             }
         })
         .on_error([&](std::string, std::string err, unsigned status) {
-            transport_error = true;
-            http_status     = status;
-            http_error      = err;
+            http_status = status;
+            http_error  = err;
             if (status > 0)
                 http_error += " (HTTP " + std::to_string(status) + ")";
         })
         .perform_sync();
 
-    if (http_status == 404 && !transport_error) {
+    // Http routes every >=400 response through on_error(), so a 404 arrives here
+    // with an empty err and the status in http_status. It is a real HTTP
+    // response, not a transport failure: the namespace is not served / topology
+    // unknown (REQ-STS-007 §7.7). Never latch a retry for it.
+    if (http_status == 404) {
         BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::fetch_lane_data: lane_data not served yet (unknown topology)";
         return LaneDataState::unknown;
     }
