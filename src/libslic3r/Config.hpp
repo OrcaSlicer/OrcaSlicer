@@ -878,7 +878,8 @@ public:
     static double 			nil_value() { return std::numeric_limits<double>::quiet_NaN(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (! std::isnan(v)) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return std::isnan(this->values[idx]); }
+    // Clamps like get_at(), which callers pair it with, instead of reading out of bounds.
+    bool 					is_nil(size_t idx) const override { return std::isnan(this->get_at(idx)); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1058,7 +1059,8 @@ public:
     static int	 			nil_value() { return std::numeric_limits<int>::max(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (v != nil_value()) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return this->values[idx] == nil_value(); }
+    // Clamps like get_at(), which callers pair it with, instead of reading out of bounds.
+    bool 					is_nil(size_t idx) const override { return this->get_at(idx) == nil_value(); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1391,7 +1393,8 @@ public:
     static FloatOrPercent   nil_value() { return { std::numeric_limits<double>::quiet_NaN(), false }; }
     // A scalar is nil, or all values of a vector are nil.
     bool                    is_nil() const override { for (auto v : this->values) if (! std::isnan(v.value)) return false; return true; }
-    bool                    is_nil(size_t idx) const override { return std::isnan(this->values[idx].value); }
+    // Clamps like get_at(), which callers pair it with, instead of reading out of bounds.
+    bool                    is_nil(size_t idx) const override { return std::isnan(this->get_at(idx).value); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1930,7 +1933,9 @@ public:
     static unsigned char	nil_value() { return std::numeric_limits<unsigned char>::max(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (v != nil_value()) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return this->values[idx] == nil_value(); }
+    // Clamps like get_at(), which callers pair it with, instead of reading out of bounds. The local
+    // get_at() narrows to bool, so the nil value only survives the base class one.
+    bool 					is_nil(size_t idx) const override { return this->ConfigOptionVector<unsigned char>::get_at(idx) == nil_value(); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
