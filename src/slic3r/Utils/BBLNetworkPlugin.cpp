@@ -200,7 +200,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     m_network_abi = network_plugin_abi(loaded_version.empty() ? version : loaded_version);
     m_is_oss_plugin = is_oss_version(loaded_version.empty() ? version : loaded_version);
     if (m_is_oss_plugin && m_network_abi == NetworkAbi::Unsupported) {
-        m_network_abi = NetworkAbi::Legacy;
+        m_network_abi = NetworkAbi::Current;
     }
 
     // A library reporting a series this build has no ABI for stays loaded but uncallable -

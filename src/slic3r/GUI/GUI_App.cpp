@@ -2033,7 +2033,17 @@ int GUI_App::updating_bambu_networking()
 
 bool GUI_App::check_networking_version()
 {
+#ifdef ORCA_OSS_NETWORK_PLUGIN
+    m_networking_compatible = true;
+    m_networking_need_update = false;
+    return true;
+#endif
     std::string network_ver = Slic3r::NetworkAgent::get_version();
+    if (is_oss_plugin_version(network_ver)) {
+        m_networking_compatible = true;
+        m_networking_need_update = false;
+        return true;
+    }
     if (!network_ver.empty()) {
         BOOST_LOG_TRIVIAL(info) << "get_network_agent_version=" << network_ver;
     }
@@ -3574,7 +3584,7 @@ void GUI_App::copy_network_if_available()
 void GUI_App::ensure_oss_network_plugin()
 {
     namespace fs = boost::filesystem;
-    const std::string ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
+    const std::string ver = "02.07.01";
     // The OSS plugin is a single bundled build, so it is provisioned under the
     // plain unversioned name rather than a synthetic bambu_networking_<ver>.dll.
     // BBLNetworkPlugin::initialize() loads this name when the versioned file is
@@ -3602,6 +3612,22 @@ void GUI_App::ensure_oss_network_plugin()
     boost::system::error_code ec;
     fs::path dst_dir = fs::path(data_dir()) / "plugins";
     fs::create_directories(dst_dir, ec);
+
+    // Remove any proprietary Bambu DLLs so they are never loaded
+    if (fs::exists(dst_dir) && fs::is_directory(dst_dir)) {
+        for (fs::directory_iterator it(dst_dir); it != fs::directory_iterator(); ++it) {
+            if (fs::is_regular_file(*it)) {
+                std::string stem = it->path().stem().string();
+                if (stem.rfind("bambu_networking_02.08.", 0) == 0 ||
+                    stem.rfind("bambu_networking_02.07.01.6", 0) == 0 ||
+                    stem.rfind("bambu_networking_02.07.01.7", 0) == 0 ||
+                    stem == "bambu_networking_02.07.01") {
+                    fs::remove(it->path(), ec);
+                }
+            }
+        }
+    }
+
     fs::path dst = dst_dir / fname;
     fs::path dst_ver = dst_dir / fname_ver;
 
@@ -3673,6 +3699,7 @@ void GUI_App::ensure_oss_network_plugin()
 
     app_config->set_bool("installed_networking", true);
     app_config->set_network_plugin_version(ver);
+    app_config->set("update_network_plugin", "false");
     app_config->save();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": provisioned OSS network plugin into " << dst_dir;
 }
