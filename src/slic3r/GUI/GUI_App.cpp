@@ -3613,13 +3613,48 @@ void GUI_App::ensure_oss_network_plugin()
     copy_if_diff(src, dst);
     copy_if_diff(src, dst_ver);
 
-    // Also copy BambuSource.dll and live555.dll if present
-    for (const auto& extra : { "BambuSource.dll", "live555.dll" }) {
-        fs::path extra_src = src_dir / extra;
-        fs::path extra_dst = dst_dir / extra;
-        if (fs::exists(extra_src)) {
-            copy_if_diff(extra_src, extra_dst);
+    // Copy all plugin files and extras from src_dir
+    if (fs::exists(src_dir) && fs::is_directory(src_dir)) {
+        for (fs::directory_iterator it(src_dir); it != fs::directory_iterator(); ++it) {
+            if (fs::is_regular_file(*it)) {
+                copy_if_diff(it->path(), dst_dir / it->path().filename());
+            }
         }
+    }
+
+    // Auto-register BambuSource.dll on Windows for DirectShow camera liveview
+#if defined(_WIN32)
+    fs::path bambu_source_dst = dst_dir / "BambuSource.dll";
+    if (fs::exists(bambu_source_dst)) {
+        HMODULE hModule = LoadLibraryW(bambu_source_dst.c_str());
+        if (hModule) {
+            typedef HRESULT(STDAPICALLTYPE *fnDllRegisterServer)();
+            fnDllRegisterServer pfn = (fnDllRegisterServer)GetProcAddress(hModule, "DllRegisterServer");
+            if (pfn) {
+                HRESULT hr = pfn();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": BambuSource DllRegisterServer hr=" << hr;
+            }
+            FreeLibrary(hModule);
+        }
+    }
+#endif
+
+    // Ensure obn.conf enables Option B (Cloud mode without Developer Mode)
+    fs::path obn_conf = fs::path(data_dir()) / "obn.conf";
+    try {
+        boost::nowide::ofstream out(obn_conf.string(), std::ios::binary);
+        if (out) {
+            out << "# Open Bamboo Networking Configuration\n"
+                << "# Option B: Cloud mode without Developer Mode\n"
+                << "block_cloud = 0\n"
+                << "client_name = BambuStudio\n"
+                << "cloud_print = cloud_only\n"
+                << "lan_tls_skip_verify = 1\n";
+            out.close();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": written obn.conf (Option B cloud mode) to " << obn_conf;
+        }
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to write obn.conf: " << e.what();
     }
 
     app_config->set_bool("installed_networking", true);
@@ -6342,6 +6377,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
+#ifndef ORCA_OSS_NETWORK_PLUGIN
             // Plugin re-emits this on every subscribe retry; latch it so it shows
             // once per connection episode.
             if (!m_show_error_msgdlg && !m_unsigned_plugin_warning_shown) {
@@ -6359,6 +6395,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                 msg_dlg.ShowModal();
                 m_show_error_msgdlg = false;
             }
+#endif
             return true;
         }
     }
