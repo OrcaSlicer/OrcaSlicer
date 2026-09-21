@@ -79,10 +79,6 @@
 		"120",
 		"500"
 	],
-	"overhang_totally_speed": [
-		"10",
-		"10"
-	],
 	"prime_tower_flat_ironing": "1",
 	"prime_tower_width": "60",
 	"print_extruder_id": [
@@ -141,7 +137,6 @@
 		"80",
 		"80"
 	],
-	"smooth_coefficient": "4",
 	"travel_speed": [
 		"1000",
 		"1000"

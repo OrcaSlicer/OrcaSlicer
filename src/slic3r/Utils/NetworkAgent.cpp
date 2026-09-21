@@ -535,6 +535,15 @@ int NetworkAgent::get_camera_url(std::string dev_id, std::function<void(std::str
     return -1;
 }
 
+std::unique_ptr<ICameraSignalingChannel>
+NetworkAgent::create_camera_signaling_channel(const std::string& dev_id, const std::string& provider)
+{
+    const auto cloud_agent = get_cloud_agent(provider);
+    if (cloud_agent)
+        return cloud_agent->create_camera_signaling_channel(dev_id);
+    return nullptr;
+}
+
 int NetworkAgent::get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback, const std::string& provider)
 {
     const auto cloud_agent = get_cloud_agent(provider);
@@ -1071,14 +1080,6 @@ std::string NetworkAgent::get_local_camera_stream_url() const
     if (m_printer_agent)
         return m_printer_agent->get_camera_url();
     return {};
-}
-
-std::unique_ptr<ICameraSignalingChannel>
-NetworkAgent::create_camera_signaling_channel(const std::string& dev_id)
-{
-    if (m_printer_agent)
-        return m_printer_agent->create_camera_signaling_channel(dev_id);
-    return nullptr;
 }
 
 int NetworkAgent::request_bind_ticket(std::string* ticket)

@@ -389,7 +389,7 @@ void MediaPlayCtrl::Play()
         if (is_webrtc) {
             BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play webrtc: last_state=" << m_last_state << " failed_retry=" << m_failed_retry
                                     << " shown=" << IsShownOnScreen();
-            auto channel = agent ? agent->create_camera_signaling_channel(m_machine) : nullptr;
+            auto channel = agent ? agent->create_camera_signaling_channel(m_machine, wxGetApp().get_printer_cloud_provider()) : nullptr;
             if (!channel) {
                 Stop(_L("Sign in to OrcaCloud to view the camera."));
                 return;

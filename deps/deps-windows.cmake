@@ -42,6 +42,15 @@ else ()
     message(FATAL_ERROR "Unsupported OS architecture: ${DEPS_ARCH}")
 endif ()
 
+# Draco's tools and NLopt's testopt compile sources that are also in their
+# static library. MSBuild passes the library before the objects and lld-link
+# resolves as it goes, so the library's copy wins and the object then reads as
+# a duplicate. Nothing uses those executables, so let lld keep the first one.
+set(DEP_LLD_FORCE_MULTIPLE "")
+if (CMAKE_GENERATOR MATCHES "Visual Studio" AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(DEP_LLD_FORCE_MULTIPLE "-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
+endif ()
+
 if (${DEP_DEBUG})
     set(DEP_BOOST_DEBUG "debug")
 else ()
