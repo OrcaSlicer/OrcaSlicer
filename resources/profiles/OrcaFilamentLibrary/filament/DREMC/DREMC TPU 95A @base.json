@@ -3,7 +3,7 @@
 	"name": "DREMC TPU 95A @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "DREMC010",
+	"filament_id": "OFYd5uS3",
 	"instantiation": "false",
 	"filament_cost": [
 		"40"

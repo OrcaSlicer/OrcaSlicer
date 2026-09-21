@@ -12,6 +12,7 @@
 
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/format.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../GUI/I18N.hpp"
@@ -69,6 +70,9 @@ public:
 // Returns false if fixing was canceled. fix_result contains error message if failed.
 bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result, bool keep_painting)
 {
+    // Hold SaveObjectGaurd to prevent backup manager from racing concurrent mesh mutations (use-after-free).
+    SaveObjectGaurd backup_gaurd(model_object);
+
     // Orca: Synchronization primitives for progress updates between worker thread and GUI.
     std::mutex mtx;
     std::condition_variable condition;

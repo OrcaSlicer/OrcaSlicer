@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pla",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "GFRH04",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"40"

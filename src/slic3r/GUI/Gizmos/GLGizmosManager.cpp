@@ -27,10 +27,16 @@
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoAssembly.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/Gizmos/GLGizmoPrimitive.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoSketch.hpp"
+#endif
 
 #include "libslic3r/format.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
+
+#include <boost/functional/hash.hpp>
 
 #include <wx/glcanvas.h>
 
@@ -176,6 +182,14 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case (EType::BrimEars):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg");
             break;
+#ifdef SLIC3R_CAD
+        case (EType::Primitive):
+            gizmo->set_icon_filename(m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg");
+            break;
+        case (EType::Sketch):
+            gizmo->set_icon_filename(m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg");
+            break;
+#endif
         }
 
     }
@@ -219,6 +233,14 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoAssembly(m_parent, m_is_dark ? "toolbar_assembly_dark.svg" : "toolbar_assembly.svg", EType::Assembly));
     m_gizmos.emplace_back(new GLGizmoSimplify(m_parent, "reduce_triangles.svg", EType::Simplify));
     m_gizmos.emplace_back(new GLGizmoBrimEars(m_parent, m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg", EType::BrimEars));
+#ifdef SLIC3R_CAD
+    // Registered last: Primitive and Sketch are the final entries before Undefined, so
+    // omitting them leaves every preceding m_gizmos index (indexed by EType) untouched.
+    if (wxGetApp().is_enable_cad_feature()) {
+        m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
+        m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
+    }
+#endif
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
@@ -611,6 +633,7 @@ void GLGizmosManager::render_painter_assemble_view() const
         m_assemble_view_data->model_objects_clipper()->render_cut();
 }
 
+// The icon bar, drawn with GL.
 void GLGizmosManager::render_overlay()
 {
     if (!m_enabled)
@@ -619,7 +642,27 @@ void GLGizmosManager::render_overlay()
     if (m_icons_texture_dirty)
         generate_icons_texture();
 
-    do_render_overlay();
+    do_render_overlay(true);
+}
+
+// The open gizmo's settings panel, ImGui.
+void GLGizmosManager::render_overlay_input_window()
+{
+    if (!m_enabled)
+        return;
+
+    do_render_overlay(false);
+}
+
+size_t GLGizmosManager::get_overlay_state_hash() const
+{
+    size_t hash = 0;
+    boost::hash_combine(hash, m_enabled);
+    boost::hash_combine(hash, (int)m_hover);
+    boost::hash_combine(hash, (int)m_current);
+    boost::hash_combine(hash, (int)m_highlight.first);
+    boost::hash_combine(hash, m_highlight.second);
+    return hash;
 }
 
 std::string GLGizmosManager::get_tooltip() const
@@ -998,16 +1041,40 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                     keyCode = keyCode- WXK_NUMPAD0+'0';
                 }
                 if (keyCode >= '0' && keyCode <= '9') {
-                    if (keyCode == '1' && !m_timer_set_color.IsRunning()) {
+                    // The paint palette reaches EXTRUDERS_LIMIT slots (mixed-color filaments take
+                    // ordinary slots too), so any leading digit that can start a valid two-digit
+                    // number waits briefly for a second one.
+                    const int digit        = keyCode - '0';
+                    const int shortcut_max = int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT);
+                    auto can_start_two_digit = [](int d) { return d > 0 && d * 10 <= shortcut_max; };
+                    auto select = [mmu_seg](int number) { return number > 0 && mmu_seg->on_number_key_down(number); };
+
+                    if (m_timer_set_color.IsRunning() && m_pending_color_shortcut_tens > 0) {
+                        const int two_digit = m_pending_color_shortcut_tens * 10 + digit;
+                        const int pending   = m_pending_color_shortcut_tens;
+                        m_pending_color_shortcut_tens = 0;
+                        m_timer_set_color.Stop();
+                        if (two_digit <= shortcut_max) {
+                            processed = select(two_digit);
+                        } else {
+                            // Out of range: commit the pending digit, then treat this one as new input.
+                            processed = select(pending);
+                            if (can_start_two_digit(digit)) {
+                                m_pending_color_shortcut_tens = digit;
+                                m_timer_set_color.StartOnce(500);
+                                processed = true;
+                            } else {
+                                processed = select(digit) || processed;
+                            }
+                        }
+                    }
+                    else if (can_start_two_digit(digit)) {
+                        m_pending_color_shortcut_tens = digit;
                         m_timer_set_color.StartOnce(500);
                         processed = true;
                     }
-                    else if (keyCode < '7' && m_timer_set_color.IsRunning()) {
-                        processed = mmu_seg->on_number_key_down(keyCode - '0'+10);
-                        m_timer_set_color.Stop();
-                    }
                     else {
-                        processed = mmu_seg->on_number_key_down(keyCode - '0');
+                        processed = select(digit);
                     }
                 }
                 else if (keyCode == 'F' || keyCode == 'T' || keyCode == 'S' || keyCode == 'C' || keyCode == 'H' || keyCode == 'G') {
@@ -1054,11 +1121,15 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
 
 void GLGizmosManager::on_set_color_timer(wxTimerEvent& evt)
 {
-    if (m_current == MmSegmentation) {
+    // No second digit arrived in time: commit the pending leading digit on its own.
+    if (m_current == MmSegmentation && m_pending_color_shortcut_tens > 0) {
         GLGizmoMmuSegmentation* mmu_seg = dynamic_cast<GLGizmoMmuSegmentation*>(get_current());
-        mmu_seg->on_number_key_down(1);
-        m_parent.set_as_dirty();
+        if (mmu_seg != nullptr) {
+            mmu_seg->on_number_key_down(m_pending_color_shortcut_tens);
+            m_parent.set_as_dirty();
+        }
     }
+    m_pending_color_shortcut_tens = 0;
 }
 
 void GLGizmosManager::update_after_undo_redo(const UndoRedo::Snapshot& snapshot)
@@ -1174,7 +1245,9 @@ void GLGizmosManager::render_arrow(const GLCanvas3D& parent, EType highlighted_t
 
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
 //when rendering, {0, 0} is at the center, {-0.5, 0.5} at the left-top
-void GLGizmosManager::do_render_overlay() const
+// draw_icons selects the icon bar (GL) or the open gizmo's input window (ImGui), placed by the same
+// layout walk.
+void GLGizmosManager::do_render_overlay(bool draw_icons) const
 {
     const std::vector<size_t> selectable_idxs = get_selectable_idxs();
     if (selectable_idxs.empty())
@@ -1213,7 +1286,8 @@ void GLGizmosManager::do_render_overlay() const
     }
     float top_y = 1.0f;
 
-    render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
+    if (draw_icons)
+        render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
 
     top_x += border_w;
     top_y -= border_h;
@@ -1250,7 +1324,8 @@ void GLGizmosManager::do_render_overlay() const
         const float v_top    = v_offset + sprite_id * dv;
         const float v_bottom = v_top + dv - v_offset;
 
-        GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
+        if (draw_icons)
+            GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
         if (idx == m_current
             // Orca: Show Svg dialog at the same place as emboss gizmo
             || (m_current == Svg && idx == Emboss)) {
@@ -1258,7 +1333,8 @@ void GLGizmosManager::do_render_overlay() const
             //render_input_window uses a different coordination(imgui)
             //1. no need to scale by camera zoom, set {0,0} at left-up corner for imgui
             //gizmo->render_input_window(width, 0.5f * cnv_h - zoomed_top_y * zoom, toolbar_top);
-            m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
+            if (!draw_icons)
+                m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
 
             is_render_current = true;
         }
@@ -1266,7 +1342,7 @@ void GLGizmosManager::do_render_overlay() const
     }
 
     // BBS simplify gizmo is not a selected gizmo and need to render input window
-    if (!is_render_current && m_current != Undefined) {
+    if (!draw_icons && !is_render_current && m_current != Undefined) {
         m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
     }
 }
@@ -1298,7 +1374,8 @@ GLGizmoBase* GLGizmosManager::get_current() const
 
 GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 {
-    return ((type == Undefined) || m_gizmos.empty()) ? nullptr : m_gizmos[type].get();
+    // m_gizmos ends before the enum does when the CAD gizmos are not registered.
+    return type < m_gizmos.size() ? m_gizmos[type].get() : nullptr;
 }
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const

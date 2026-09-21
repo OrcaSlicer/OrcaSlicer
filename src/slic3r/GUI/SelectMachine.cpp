@@ -4,6 +4,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/Color.hpp"
+#include "FilamentBitmapUtils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
@@ -482,7 +483,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
-        if (this && this->m_is_in_sending_mode) {
+        if (m_is_in_sending_mode) {
             return;
         }
 
@@ -1088,8 +1089,8 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
         }
     }
     relayout_nozzle_cards();
-    auto tab_index = (MainFrame::TabPosition) dynamic_cast<Notebook *>(wxGetApp().tab_panel())->GetSelection();
-    if (tab_index == MainFrame::TabPosition::tp3DEditor || tab_index == MainFrame::TabPosition::tpPreview) {
+    wxString tab_name = wxGetApp().tab_panel()->GetSelectedPageName();
+    if (tab_name == TAB_ID_PREPARE || tab_name == TAB_ID_PREVIEW) {
         updata_thumbnail_data_after_connected_printer();
     }
 }
@@ -2175,7 +2176,7 @@ void SelectMachineDialog::on_reselect_dialog_btn_clicked(wxMouseEvent&)
                 best_pos_map[slot.id] = pos.value();
         }
     }
-    m_best_pos_dialog->Update(obj, best_pos_map, m_ams_mapping_result, text);
+    m_best_pos_dialog->UpdateInfo(obj, best_pos_map, m_ams_mapping_result, text);
     m_best_pos_dialog->ShowModal();
 }
 
@@ -2200,7 +2201,7 @@ void SelectMachineDialog::update_best_pos_dialog(wxCommandEvent& evt)
                 best_pos_map[slot.id] = pos.value();
         }
     }
-    m_best_pos_dialog->Update(obj_, best_pos_map, m_ams_mapping_result, text);
+    m_best_pos_dialog->UpdateInfo(obj_, best_pos_map, m_ams_mapping_result, text);
 }
 
 void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxString> params, wxString wiki_url)
@@ -2846,7 +2847,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
             });
 
         // STUDIO-9580
-        /* use warning color if there are warning and normal messages* /
+        /* use warning color if there are warning and normal messages*/
         /* use indexes if there are several messages*/
         /* add header and ending if there are several messages or has none block warnings*/
         if (confirm_text.size() > 1 || !is_printing_block)
@@ -3072,7 +3073,7 @@ static bool _HasExt(const std::vector<FilamentInfo> &ams_mapping_result) {
     };
 
     for (const auto &info : ams_mapping_result) {
-        if (info.ams_id == VIRTUAL_AMS_MAIN_ID_STR || info.ams_id == VIRTUAL_AMS_DEPUTY_ID_STR && !info.ams_id.empty()) {
+        if (info.ams_id == VIRTUAL_AMS_MAIN_ID_STR || (info.ams_id == VIRTUAL_AMS_DEPUTY_ID_STR && !info.ams_id.empty())) {
             return true;
         }
     }
@@ -3427,7 +3428,7 @@ void SelectMachineDialog::show_timelapse_storage_dialog(MachineObject* obj)
 
     if (show_cleanup_btn) {
         auto* btn_cleanup = new Button(&dlg, _L("Clean Up"));
-        btn_cleanup->Bind(wxEVT_BUTTON, [&dlg, ID_CLEANUP](wxCommandEvent&) { dlg.EndModal(ID_CLEANUP); });
+        btn_cleanup->Bind(wxEVT_BUTTON, [&dlg](wxCommandEvent&) { dlg.EndModal(ID_CLEANUP); });
         btn_sizer->Add(btn_cleanup, 0, wxEXPAND);
     }
 
@@ -3844,8 +3845,12 @@ int SelectMachineDialog::update_print_required_data(Slic3r::DynamicPrintConfig c
     m_required_data_config = config;
     m_required_data_model = model;
     //m_required_data_plate_data_list = plate_data_list;
+    auto* agent = wxGetApp().getAgent();
     for (auto i = 0; i < plate_data_list.size(); i++) {
         if (!plate_data_list[i]->gcode_file.empty()) {
+            if (agent)
+                for (auto& info : plate_data_list[i]->slice_filaments_info)
+                    info.filament_id = agent->to_orca_filament_id(info.filament_id);
             m_required_data_plate_data_list.push_back(plate_data_list[i]);
         }
     }
@@ -3912,7 +3917,7 @@ _collect_sorted_machines(Slic3r::DeviceManager* dev_manager,
     };
 
     // collect from user machine list
-    const auto& user_machine_list = dev_manager->get_my_machine_list();// user machine list
+    const auto& user_machine_list = dev_manager->get_my_machine_list(dev_manager->get_current_printer_agent_id());// user machine list
     for (const auto& elem : user_machine_list)
     {
         MachineObject* mobj = elem.second;
@@ -5050,8 +5055,11 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         const auto& warning_tpu_filaments =
             DevPrinterConfigUtil::get_value_from_config<std::vector<std::string>>(obj_->printer_type, "auto_on_cali_warning_tpu_filaments");
         if (!warning_tpu_filaments.empty()) {
+            auto* agent = wxGetApp().getAgent();
             for (const auto& fila : m_ams_mapping_result) {
-                if (std::find(warning_tpu_filaments.begin(), warning_tpu_filaments.end(), fila.filament_id) != warning_tpu_filaments.end()) {
+                // fila.filament_id is our OF id; the printer config list holds the printer's own.
+                const std::string printer_filament_id = agent ? agent->from_orca_filament_id(fila.filament_id) : fila.filament_id;
+                if (std::find(warning_tpu_filaments.begin(), warning_tpu_filaments.end(), printer_filament_id) != warning_tpu_filaments.end()) {
                     show_status(PrintDialogStatus::PrintStatusTPUUnsuggestCali,
                                 { _L("If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page.") });
                     break;
@@ -5207,9 +5215,12 @@ bool SelectMachineDialog::can_support_pa_auto_cali()
 
     std::vector<std::string> unsupport_auto_cali_filaments = DevPrinterConfigUtil::get_unsupport_auto_cali_filaments(obj->printer_type);
     if (!unsupport_auto_cali_filaments.empty()) {
+        auto* agent = wxGetApp().getAgent();
         auto iter = std::find_if(m_filaments.begin(), m_filaments.end(),
-            [&unsupport_auto_cali_filaments](const FilamentInfo &item) {
-            auto iter = std::find(unsupport_auto_cali_filaments.begin(), unsupport_auto_cali_filaments.end(), item.filament_id);
+            [&unsupport_auto_cali_filaments, agent](const FilamentInfo &item) {
+            // item.filament_id is our OF id; the printer config list holds the printer's own.
+            const std::string printer_filament_id = agent ? agent->from_orca_filament_id(item.filament_id) : item.filament_id;
+            auto iter = std::find(unsupport_auto_cali_filaments.begin(), unsupport_auto_cali_filaments.end(), printer_filament_id);
             return iter != unsupport_auto_cali_filaments.end();
         });
 
@@ -5496,7 +5507,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
             first_enabled_id = extruder;
         }
 
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent &e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent &e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder](wxMouseEvent &e) {
             if (!item->m_enable) {return;}
             if (!m_check_flag || m_print_status == PrintDialogStatus::PrintStatusUnsupportedPrinter) { return; } /*STUDIO-11301*/
@@ -5693,10 +5704,15 @@ void SelectMachineDialog::clone_thumbnail_data() {
         m_preview_colors_in_thumbnail.resize(m_materialList.size());
     }
     while (iter != m_materialList.end()) {
-        int           id   = iter->first;
         Material *    item = iter->second;
         MaterialItem *m    = item->item;
-        m_preview_colors_in_thumbnail[id] = m->m_material_coloul;
+        // Orca: key the preview colours by filament slot, as m_cur_colors_in_thumbnail and
+        // SyncAmsInfoDialog already do, so recompute_mixed_slot_colors() below can look a mixed
+        // slot's component colours up by id (BBS keys this array by list position).
+        if (item->id >= m_preview_colors_in_thumbnail.size()) {
+            m_preview_colors_in_thumbnail.resize(item->id + 1);
+        }
+        m_preview_colors_in_thumbnail[item->id] = m->m_material_coloul;
         if (item->id < m_cur_colors_in_thumbnail.size()) {
             m_cur_colors_in_thumbnail[item->id] = m->m_ams_coloul;
         }
@@ -5706,6 +5722,20 @@ void SelectMachineDialog::clone_thumbnail_data() {
         }
         iter++;
     }
+
+    // Expand color arrays to cover mixed (virtual) slots and compute their blended colors
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    size_t total = 0;
+    if (auto* opt = cfg.option<ConfigOptionBools>("filament_is_mixed"))
+        total = opt->values.size();
+    size_t target = std::max(total, m_cur_colors_in_thumbnail.size());
+    if (m_cur_colors_in_thumbnail.size() < target)
+        m_cur_colors_in_thumbnail.resize(target);
+    if (m_preview_colors_in_thumbnail.size() < target)
+        m_preview_colors_in_thumbnail.resize(target);
+    recompute_mixed_slot_colors(m_preview_colors_in_thumbnail, cfg);
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     //copy data
     auto &data   = m_cur_input_thumbnail_data;
     m_preview_thumbnail_data.reset();
@@ -5880,6 +5910,10 @@ void SelectMachineDialog::change_default_normal(int old_filament_id, wxColour te
             return;
         }
     }
+    // Recompute mixed slot colors after physical slot color change
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     ThumbnailData& data = m_cur_input_thumbnail_data;
     ThumbnailData& no_light_data = m_cur_no_light_thumbnail_data;
     if (data.width > 0 && data.height > 0 && data.width == no_light_data.width && data.height == no_light_data.height) {
@@ -6104,8 +6138,8 @@ void SelectMachineDialog::set_default_from_sdcard()
             first_enabled_id = fo.id;
         }
 
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials](wxMouseEvent& e) {});
-        item->Bind(wxEVT_LEFT_DOWN, [this, obj_, item, materials, diameters_count, fo](wxMouseEvent& e) {
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent& e) {});
+        item->Bind(wxEVT_LEFT_DOWN, [this, obj_, item, materials, fo](wxMouseEvent& e) {
             if (!item->m_enable) {return;}
             if (!m_check_flag || m_print_status == PrintDialogStatus::PrintStatusUnsupportedPrinter) { return; } /*STUDIO-11301*/
 
