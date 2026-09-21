@@ -73,7 +73,12 @@ TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Pyth
     REQUIRE(py::hasattr(pa, "PrinterAgentBase"));
     py::object base = pa.attr("PrinterAgentBase");
     for (const char* method : { "get_agent_info", "connect_printer", "disconnect_printer",
-                                "send_message", "start_discovery", "bind_detect",
+                                "send_message", "send_message_to_printer",
+                                "command_ams_refresh_rfid", "command_ams_calibrate",
+                                "command_ams_select_tray", "command_start_camera",
+                                "command_xyz_abs", "command_auto_leveling", "command_go_home",
+                                "command_set_bed", "command_set_nozzle", "command_axis_control",
+                                "start_discovery", "bind_detect",
                                 "start_print", "get_filament_sync_mode" }) {
         CAPTURE(method);
         CHECK(py::hasattr(base, method));
@@ -95,6 +100,7 @@ TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Pyth
     REQUIRE(py::hasattr(pa, "CameraStreamMode"));
     py::object camera_mode = pa.attr("CameraStreamMode");
     CHECK(py::hasattr(camera_mode, "HTTPS"));
+    CHECK_FALSE(py::hasattr(camera_mode, "WebRTC"));
 
     // Plugin-type enum exposed at module root (host reads it without the GIL).
     CHECK(py::hasattr(orca, "PluginType"));
