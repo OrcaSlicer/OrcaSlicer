@@ -18,27 +18,28 @@ constexpr int BINDABLE_MODIFIERS = wxMOD_CONTROL | wxMOD_SHIFT | wxMOD_ALT | wxM
 struct KeyName
 {
     int         key;
-    const char* name;       // canonical name
+    const char* name;       // canonical name, as wx parses it
     const char* alias;      // accepted when parsing; nullptr when there is none
+    const char* label;      // translation key for KeyChord::display(); nullptr when name is it
 };
 
-// The canonical names double as translation keys for KeyChord::display().
 constexpr std::array<KeyName, 15> special_keys{{
-    { WXK_BACK,     L_CONTEXT("Backspace", "Keyboard Shortcut"), "Back" },
-    { WXK_TAB,      L_CONTEXT("Tab", "Keyboard Shortcut"),       nullptr },
-    { WXK_RETURN,   L_CONTEXT("Enter", "Keyboard Shortcut"),     "Return" },
-    { WXK_ESCAPE,   L_CONTEXT("Esc", "Keyboard Shortcut"),       "Escape" },
-    { WXK_SPACE,    L_CONTEXT("Space", "Keyboard Shortcut"),     nullptr },
-    { WXK_DELETE,   L_CONTEXT("Del", "Keyboard Shortcut"),       "Delete" },
-    { WXK_INSERT,   L_CONTEXT("Ins", "Keyboard Shortcut"),       "Insert" },
-    { WXK_HOME,     L_CONTEXT("Home", "Keyboard Shortcut"),      nullptr },
-    { WXK_END,      L_CONTEXT("End", "Keyboard Shortcut"),       nullptr },
-    { WXK_PAGEUP,   L_CONTEXT("PgUp", "Keyboard Shortcut"),      "PageUp" },
-    { WXK_PAGEDOWN, L_CONTEXT("PgDn", "Keyboard Shortcut"),      "PageDown" },
-    { WXK_LEFT,     L_CONTEXT("Left", "Keyboard Shortcut"),      nullptr },
-    { WXK_RIGHT,    L_CONTEXT("Right", "Keyboard Shortcut"),     nullptr },
-    { WXK_UP,       L_CONTEXT("Up", "Keyboard Shortcut"),        nullptr },
-    { WXK_DOWN,     L_CONTEXT("Down", "Keyboard Shortcut"),      nullptr },
+    { WXK_BACK,     L_CONTEXT("Backspace", "Keyboard Shortcut"), "Back",     nullptr },
+    { WXK_TAB,      L_CONTEXT("Tab", "Keyboard Shortcut"),       nullptr,    nullptr },
+    { WXK_RETURN,   L_CONTEXT("Enter", "Keyboard Shortcut"),     "Return",   nullptr },
+    { WXK_ESCAPE,   L_CONTEXT("Esc", "Keyboard Shortcut"),       "Escape",   nullptr },
+    { WXK_SPACE,    L_CONTEXT("Space", "Keyboard Shortcut"),     nullptr,    nullptr },
+    { WXK_DELETE,   L_CONTEXT("Del", "Keyboard Shortcut"),       "Delete",   nullptr },
+    { WXK_INSERT,   L_CONTEXT("Ins", "Keyboard Shortcut"),       "Insert",   nullptr },
+    { WXK_HOME,     L_CONTEXT("Home", "Keyboard Shortcut"),      nullptr,    nullptr },
+    { WXK_END,      L_CONTEXT("End", "Keyboard Shortcut"),       nullptr,    nullptr },
+    { WXK_PAGEUP,   L_CONTEXT("PgUp", "Keyboard Shortcut"),      "PageUp",   nullptr },
+    { WXK_PAGEDOWN, L_CONTEXT("PgDn", "Keyboard Shortcut"),      "PageDown", nullptr },
+    // Displayed as "Arrow Left" and so on, which is what the catalogs translate.
+    { WXK_LEFT,     "Left",  nullptr, L_CONTEXT("Arrow Left", "Keyboard Shortcut") },
+    { WXK_RIGHT,    "Right", nullptr, L_CONTEXT("Arrow Right", "Keyboard Shortcut") },
+    { WXK_UP,       "Up",    nullptr, L_CONTEXT("Arrow Up", "Keyboard Shortcut") },
+    { WXK_DOWN,     "Down",  nullptr, L_CONTEXT("Arrow Down", "Keyboard Shortcut") },
 }};
 
 bool equals_ignoring_case(const std::string& a, const char* b)
@@ -73,6 +74,14 @@ std::string special_key_name(int key)
         if (k.key == key)
             return k.name;
     return {};
+}
+
+std::string special_key_label(int key)
+{
+    for (const KeyName& k : special_keys)
+        if (k.key == key)
+            return _u8L_CONTEXT(k.label != nullptr ? k.label : k.name, "Keyboard Shortcut");
+    return special_key_name(key);
 }
 
 int parse_key(const std::string& text)
@@ -235,7 +244,7 @@ std::vector<std::string> KeyChord::display_parts() const
     for (int modifier : MODIFIER_ORDER)
         if (modifiers & modifier)
             parts.push_back(modifier_name(modifier));
-    parts.push_back(is_printable(key) ? std::string(1, char(key)) : _u8L_CONTEXT(special_key_name(key), "Keyboard Shortcut"));
+    parts.push_back(is_printable(key) ? std::string(1, char(key)) : special_key_label(key));
     return parts;
 }
 

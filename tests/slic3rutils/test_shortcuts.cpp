@@ -138,6 +138,8 @@ TEST_CASE("Display text matches the canonical text without translations", "[Shor
     CHECK(KeyChord{ WXK_DELETE, wxMOD_CONTROL | wxMOD_SHIFT }.display() == "Ctrl+Shift+Del");
     CHECK(KeyChord{ WXK_DELETE, wxMOD_CONTROL | wxMOD_SHIFT }.display_parts() == std::vector<std::string>{ "Ctrl", "Shift", "Del" });
     CHECK(KeyChord{ '+' }.display() == "+");
+    CHECK(KeyChord{ WXK_UP, wxMOD_SHIFT }.display() == "Shift+Arrow Up");   // the arrows keep the old dialog's names
+    CHECK(KeyChord{ WXK_UP, wxMOD_SHIFT }.to_string() == "Shift+Up");
     CHECK(KeyChord{}.display().empty());
 }
 #endif
