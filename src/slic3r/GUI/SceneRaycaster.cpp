@@ -114,7 +114,7 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
 
     public:
         explicit VolumeKeeper(bool enabled) {
-            // Orca: Disable selected-volume bias for SceneOnly navigation raycasts.
+            // Orca: Disable selected-volume bias for navigation raycasts.
             if (!enabled)
                 return;
 
@@ -175,9 +175,9 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
             if (item->get_raycaster()->closest_hit(mouse_pos, trafo, camera, current_hit.position, current_hit.normal, clip_plane)) {
                 current_hit.position = (trafo * current_hit.position.cast<double>()).cast<float>();
                 current_hit.normal = (trafo.matrix().block(0, 0, 3, 3).inverse().transpose() * current_hit.normal.cast<double>()).normalized().cast<float>();
-                // Perspective rays away from the viewport center are not parallel to camera_forward.
+                // Orca: Perspective rays away from the viewport center are not parallel to camera_forward.
                 // Keep picking's legacy policy, but accept every front-facing navigation surface.
-                const Vec3f view_direction = mode == EHitMode::SceneOnly && camera.get_type() == Camera::EType::Perspective ?
+                const Vec3f view_direction = mode != EHitMode::Picking && camera.get_type() == Camera::EType::Perspective ?
                     Vec3f((current_hit.position.cast<double>() - camera.get_position()).cast<float>()) : camera_forward;
                 if (item->use_back_faces() || current_hit.normal.dot(view_direction) < 0.0f) {
                     if (is_closest(camera, current_hit.position)) {
@@ -203,8 +203,8 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
     }
 
     if (!m_gizmos_on_top || !ret.is_valid()) {
-        // In perspective the bottom of the viewport can see the bed even at a horizontal view.
-        if ((mode == EHitMode::SceneOnly || camera.is_looking_downward()) && !m_bed.empty())
+        // Orca: In perspective the bottom of the viewport can see the bed even at a horizontal view.
+        if ((mode == EHitMode::SceneOnly || (mode == EHitMode::Picking && camera.is_looking_downward())) && !m_bed.empty())
             test_raycasters(EType::Bed, mouse_pos, camera, ret);
         if (!m_volumes.empty())
             test_raycasters(EType::Volume, mouse_pos, camera, ret);

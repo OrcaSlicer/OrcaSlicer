@@ -2237,15 +2237,14 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     _render_background();
 
     //BBS add partplater rendering logic
-    bool only_current = false, only_body = false, no_partplate = false;
+    bool only_current = false, only_body = false;
+    const bool show_bed = is_bed_visible();
     bool show_grid = true;
     GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
     if (!m_main_toolbar.is_enabled()) {
         //only_body = true;
         only_current = true;
     }
-    else if ((gizmo_type == GLGizmosManager::FdmSupports) || (gizmo_type == GLGizmosManager::Seam) || (gizmo_type == GLGizmosManager::MmSegmentation) || (gizmo_type == GLGizmosManager::FuzzySkin))
-        no_partplate = true;
     else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
         show_grid = false;
     if (m_axes_at_bed_center)
@@ -2259,11 +2258,11 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         // m_show_bed gates the plate list too: hiding the bed but leaving its grid and outline
         // floating would read as a rendering fault rather than a deliberate view option.
-        if (!no_partplate && m_show_bed)
+        if (show_bed)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        if (!no_partplate && m_show_bed) //BBS: add outline logic
+        if (show_bed) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
-        if (m_axes_at_bed_center && m_show_bed && !no_partplate)
+        if (m_axes_at_bed_center && show_bed)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
         
@@ -3312,6 +3311,9 @@ void GLCanvas3D::unbind_event_handlers()
         m_canvas->Unbind(wxEVT_GESTURE_PAN, &GLCanvas3D::on_gesture, this);
         m_canvas->Unbind(wxEVT_GESTURE_ZOOM, &GLCanvas3D::on_gesture, this);
         m_canvas->Unbind(wxEVT_GESTURE_ROTATE, &GLCanvas3D::on_gesture, this);
+#if __WXOSX__
+        initGestures(m_canvas->GetHandle(), nullptr);
+#endif
     }
 }
 
@@ -4381,7 +4383,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             post_event(SimpleEvent(EVT_GLCANVAS_SWITCH_TO_GLOBAL));
     }
     else if (evt.LeftDown() || evt.RightDown() || evt.MiddleDown()) {
-        // Retain the click position even if the first motion event crosses a surface edge.
+        // Orca: Retain the click position even if the first motion event crosses a surface edge.
         m_mouse.set_start_position_2D_as_invalid();
         m_mouse.drag.start_position_2D = pos;
 
@@ -10715,9 +10717,27 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
     return target.isZero() ? std::nullopt : std::make_optional(target);
 }
 
+bool GLCanvas3D::is_bed_visible() const
+{
+    if (m_canvas_type == ECanvasType::CanvasPreview)
+        return m_render_preview;
+    if (m_canvas_type != ECanvasType::CanvasView3D || !m_show_bed)
+        return false;
+    if (!m_main_toolbar.is_enabled())
+        return true;
+
+    const auto type = m_gizmos.get_current_type();
+    return type != GLGizmosManager::FdmSupports && type != GLGizmosManager::Seam &&
+        type != GLGizmosManager::MmSegmentation && type != GLGizmosManager::FuzzySkin;
+}
+
 Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,
     const Vec2d& screen_position) const
 {
+    // Orthographic panning has the same scale at every depth, so no raycast is needed.
+    if (camera.get_type() != Camera::EType::Perspective)
+        return camera.get_target();
+
     // Orca: Reject non-finite anchors and points behind the camera before their depth is
     // allowed to scale a perspective pan.
     const Vec3d camera_position = camera.get_position();
@@ -10729,8 +10749,9 @@ Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType na
     // Orca: Prefer the nearest visible bed or volume surface and exclude gizmos and
     // selected-volume picking priority from navigation depth selection.
     const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
+    const bool bed_visible = is_bed_visible();
     const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(screen_position, camera, &clipping_plane,
-        SceneRaycaster::EHitMode::SceneOnly);
+        bed_visible ? SceneRaycaster::EHitMode::SceneOnly : SceneRaycaster::EHitMode::VolumesOnly);
     if (hit.is_valid()) {
         const Vec3d hit_position = hit.position.cast<double>();
         if (is_valid_anchor(hit_position))
@@ -10743,9 +10764,8 @@ Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType na
     // Orca: An almost edge-on perspective makes intersection depth extremely sensitive to
     // the cursor's vertical position. Use the stable orbit depth around horizontal views.
     static constexpr double min_plate_plane_forward_z = 0.05;
-    const bool stable_plate_plane = camera.get_type() != Camera::EType::Perspective ||
-        std::abs(camera_forward.z()) >= min_plate_plane_forward_z;
-    if (stable_plate_plane && current_plate != nullptr && current_plate->get_bounding_box().defined) {
+    if (bed_visible && std::abs(camera_forward.z()) >= min_plate_plane_forward_z &&
+        current_plate != nullptr && current_plate->get_bounding_box().defined) {
         Vec3d ray_origin;
         Vec3d ray_direction;
         CameraUtils::ray_from_screen_pos(camera, screen_position, ray_origin, ray_direction);

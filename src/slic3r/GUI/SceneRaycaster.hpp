@@ -62,7 +62,8 @@ public:
     enum class EHitMode : unsigned char
     {
         Picking,
-        SceneOnly
+        SceneOnly,
+        VolumesOnly // Navigation when the bed is hidden.
     };
 
     struct HitResult

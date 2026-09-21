@@ -1,7 +1,8 @@
 #import "MacDarkMode.hpp"
 #include "../GUI/Widgets/Label.hpp"
 
-#include "wx/osx/core/cfstring.h"
+#include "wx/graphics.h"
+#include "wx/osx/private.h"
 
 #import <algorithm>
 
@@ -334,11 +335,27 @@ bool addObserver = false;
 }
 @end
 
+// Orca: A Shift-trackpad pan belongs to one GL view; sharing its lifecycle across views
+// could make a gesture reuse another canvas's world-space anchor.
+static char scroll_pan_active_key;
+static char gesture_handler_key;
+
+static wxEvtHandler* get_gesture_handler(NSView* view)
+{
+    return static_cast<wxEvtHandler*>([objc_getAssociatedObject(view, &gesture_handler_key) pointerValue]);
+}
+
+static bool is_scroll_pan_active(NSView* view)
+{
+    return [objc_getAssociatedObject(view, &scroll_pan_active_key) boolValue];
+}
+
+static void set_scroll_pan_active(NSView* view, bool active)
+{
+    objc_setAssociatedObject(view, &scroll_pan_active_key, active ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 @implementation wxNSCustomOpenGLView (Gesture)
-
-wxEvtHandler * _gestureHandler = nullptr;
-static bool scroll_pan_active = false;
 
 - (void) onGestureMove: (NSPanGestureRecognizer*) gesture
 {
@@ -365,40 +382,43 @@ static bool scroll_pan_active = false;
 - (void) postEvent: (wxGestureEvent &) evt withGesture: (NSGestureRecognizer* ) gesture
 {
     NSPoint pos = [gesture locationInView: self];
-    evt.SetPosition({(int) pos.x, (int) pos.y});
+    evt.SetPosition(wxFromNSPoint(self, pos));
     if (gesture.state == NSGestureRecognizerStateBegan)
         evt.SetGestureStart();
     else if (gesture.state == NSGestureRecognizerStateEnded)
         evt.SetGestureEnd();
-    _gestureHandler->ProcessEvent(evt);
+    if (wxEvtHandler* handler = get_gesture_handler(self))
+        handler->ProcessEvent(evt);
 }
 
 - (void) scrollWheel2:(NSEvent *)event
 {
     bool shiftDown = [event modifierFlags] & NSShiftKeyMask;
-    if (_gestureHandler && shiftDown && event.hasPreciseScrollingDeltas) {
+    wxEvtHandler* handler = get_gesture_handler(self);
+    if (handler && shiftDown && event.hasPreciseScrollingDeltas) {
         wxPanGestureEvent evt;
-        const NSPoint pos = [self convertPoint:[event locationInWindow] fromView:nil];
+        // NSOpenGLView uses bottom-left coordinates; wx gestures use top-left coordinates.
+        const wxPoint pos = wxFromNSPoint(self, [self convertPoint:[event locationInWindow] fromView:nil]);
         const wxPoint delta(-(int)[event scrollingDeltaX], -(int)[event scrollingDeltaY]);
         // Orca: GLCanvas3D derives the anchor position as position - delta, so synthesize
         // the post-delta position from the native cursor coordinate.
-        evt.SetPosition({(int) pos.x + delta.x, (int) pos.y + delta.y});
+        evt.SetPosition(pos + delta);
         evt.SetDelta(delta);
-        // Preserve the anchor throughout a trackpad scroll, including its momentum events.
+        // Orca: Preserve the anchor throughout a trackpad scroll, including its momentum events.
         // Keep it after phase Ended: momentum may follow. The next Began replaces it.
         const NSEventPhase phase = event.phase;
         const NSEventPhase momentum_phase = event.momentumPhase;
         const bool unphased = phase == NSEventPhaseNone && momentum_phase == NSEventPhaseNone;
-        if (!scroll_pan_active || unphased || (phase & (NSEventPhaseMayBegin | NSEventPhaseBegan)))
+        if (!is_scroll_pan_active(self) || unphased || (phase & (NSEventPhaseMayBegin | NSEventPhaseBegan)))
             evt.SetGestureStart();
         if (unphased || (phase & NSEventPhaseCancelled) ||
             (momentum_phase & (NSEventPhaseEnded | NSEventPhaseCancelled)))
             evt.SetGestureEnd();
-        scroll_pan_active = !evt.IsGestureEnd();
-        _gestureHandler->ProcessEvent(evt);
+        set_scroll_pan_active(self, !evt.IsGestureEnd());
+        handler->ProcessEvent(evt);
     } else {
-        // Switching away from Shift-pan must not reuse its depth when Shift is pressed again.
-        scroll_pan_active = false;
+        // Orca: Switching away from Shift-pan must not reuse its depth when Shift is pressed again.
+        set_scroll_pan_active(self, false);
         [self scrollWheel2: event];
     }
 }
@@ -420,8 +440,9 @@ static bool scroll_pan_active = false;
 //    [self addGestureRecognizer:pan];
 //    [self addGestureRecognizer:magnification];
 //    [self addGestureRecognizer:rotation];
-    _gestureHandler = handler;
-    scroll_pan_active = false;
+    objc_setAssociatedObject(self, &gesture_handler_key, handler ? [NSValue valueWithPointer:handler] : nil,
+        OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    set_scroll_pan_active(self, false);
 }
 
 @end
