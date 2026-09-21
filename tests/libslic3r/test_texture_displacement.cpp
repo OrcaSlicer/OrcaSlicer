@@ -1,4 +1,6 @@
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
@@ -779,11 +781,27 @@ static std::shared_ptr<std::vector<unsigned char>> make_rgb_png_2x2()
     return std::make_shared<std::vector<unsigned char>>(std::begin(bytes), std::end(bytes));
 }
 
+// The same image with an opaque alpha channel, so four bytes per pixel instead of three.
+static std::shared_ptr<std::vector<unsigned char>> make_rgba_png_2x2()
+{
+    static const unsigned char bytes[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x72, 0xb6, 0x0d, 0x24, 0x00, 0x00, 0x00,
+        0x12, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xf8, 0xcf, 0xc0, 0xf0,
+        0x1f, 0x0c, 0x81, 0x34, 0x18, 0x00, 0x00, 0x49, 0xc8, 0x09, 0xf7, 0x03,
+        0xd9, 0x64, 0xf1, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+        0x42, 0x60, 0x82,
+    };
+    return std::make_shared<std::vector<unsigned char>>(std::begin(bytes), std::end(bytes));
+}
+
 TEST_CASE("TextureDisplacement: a colour texture decodes to both colour and height", "[TextureDisplacement]")
 {
     TextureDisplacementLayer layer;
     layer.slot       = 0;
-    layer.image_data = make_rgb_png_2x2();
+    // Row stride differs between the two, and both must come out the same way up.
+    layer.image_data = GENERATE(make_rgb_png_2x2(), make_rgba_png_2x2());
 
     const DecodedHeightTexture tex = decode_height_texture(layer);
     REQUIRE_FALSE(tex.empty());
@@ -804,6 +822,38 @@ TEST_CASE("TextureDisplacement: a colour texture decodes to both colour and heig
     CHECK(int(tex.pixels[1]) == int(std::lround(0.587 * 255))); // green
     CHECK(int(tex.pixels[2]) == int(std::lround(0.114 * 255))); // blue
     CHECK(int(tex.pixels[3]) == 255);                           // white
+}
+
+TEST_CASE("A 16-bit colour texture decodes to nothing rather than noise", "[TextureDisplacement]")
+{
+    // The 2x2 image above at 16 bits per channel. The texture library converts such a file to 8-bit
+    // on load, so it can only arrive here stored as-is, from a project file.
+    static const unsigned char bytes[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02,
+        0x10, 0x02, 0x00, 0x00, 0x00, 0xad, 0x44, 0x46, 0x30, 0x00, 0x00, 0x00,
+        0x12, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xf8, 0xff, 0x9f, 0x01,
+        0x0c, 0x60, 0x34, 0x90, 0x01, 0x01, 0x00, 0x75, 0xa4, 0x0b, 0xf5, 0x97,
+        0xf4, 0x36, 0xa1, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+        0x42, 0x60, 0x82,
+    };
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = std::make_shared<std::vector<unsigned char>>(std::begin(bytes), std::end(bytes));
+
+    CHECK(decode_height_texture(layer).empty());
+}
+
+TEST_CASE("A truncated texture decodes to nothing instead of aborting", "[TextureDisplacement]")
+{
+    // A half-copied file in the texture folder, or a damaged project file. libpng reports this by
+    // longjmp, and aborts the process if the decoder has not set a jump buffer to land on.
+    const auto whole = GENERATE(make_flat_gray_png(128, 16, 16), make_rgb_png_2x2());
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = std::make_shared<std::vector<unsigned char>>(whole->begin(), whole->begin() + whole->size() / 2);
+
+    CHECK(decode_height_texture(layer).empty());
 }
 
 TEST_CASE("TextureDisplacement: a grayscale texture reports no colour", "[TextureDisplacement]")

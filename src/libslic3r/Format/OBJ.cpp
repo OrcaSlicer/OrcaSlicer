@@ -10,6 +10,7 @@
 #include <string>
 
 #include <boost/log/trivial.hpp>
+#include <boost/nowide/fstream.hpp>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'

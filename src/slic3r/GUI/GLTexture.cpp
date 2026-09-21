@@ -9,6 +9,7 @@
 #include "3DScene.hpp"
 #include "OpenGLManager.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "GLModel.hpp"
 
 #include <glad/gl.h>
@@ -31,6 +32,7 @@
 #include "GUI_App.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
 namespace Slic3r {
 namespace GUI {
 

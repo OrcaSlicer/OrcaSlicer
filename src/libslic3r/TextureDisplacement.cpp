@@ -273,32 +273,34 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
             // coefficients are wxImage::ConvertToGreyscale()'s, which is what the importer used to
             // apply on the way in - so a texture that used to be flattened to grey at import time
             // displaces identically now that its colour is preserved.
+            // The loop below steps bytes_per_pixel per texel, which only holds at 8 bits per channel:
+            // decode_colored_png() does not narrow a 16-bit image, so that would read as noise.
             png::ImageColorscale col;
             if (!png::decode_colored_png(rbuf, col) || col.cols == 0 || col.rows == 0 ||
-                col.bytes_per_pixel < 3)
+                col.bytes_per_pixel < 3 || col.buf.size() != col.cols * col.rows * size_t(col.bytes_per_pixel))
                 return result;
 
-            const size_t cols = size_t(col.cols), rows = size_t(col.rows), n = cols * rows;
-            const size_t bpp    = size_t(col.bytes_per_pixel);
-            const size_t stride = col.buf.size() / rows;
-            result.width  = int(cols);
-            result.height = int(rows);
-            result.pixels.resize(n);
-            result.rgb.resize(n * 3);
-            // decode_colored_png() fills its buffer bottom-up (its other callers hand the rows to
-            // OpenGL, which wants them that way); a height map is top-down, like decode_png()'s grey
-            // output, so a colour image has to read the same way up as a grey copy of itself.
-            for (size_t y = 0; y < rows; ++y) {
-                const uint8_t *src = col.buf.data() + (rows - 1 - y) * stride;
-                for (size_t x = 0; x < cols; ++x) {
-                    const size_t  i = y * cols + x;
-                    const uint8_t r = src[x * bpp], g = src[x * bpp + 1], b = src[x * bpp + 2];
-                    result.rgb[i * 3]     = r;
-                    result.rgb[i * 3 + 1] = g;
-                    result.rgb[i * 3 + 2] = b;
-                    result.pixels[i] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+            const int    w   = int(col.cols);
+            const int    h   = int(col.rows);
+            const size_t bpp = size_t(col.bytes_per_pixel);
+            result.width  = w;
+            result.height = h;
+            result.pixels.resize(size_t(w) * size_t(h));
+            result.rgb.resize(size_t(w) * size_t(h) * 3);
+            // decode_colored_png() hands its buffer back bottom-up - it is shared with the CLI's
+            // plate-thumbnail loader, which expects that - while this type, and decode_png()'s
+            // grayscale path above, are top-to-bottom. Reverse the rows on the way in so a colour
+            // height map displaces the same way up as a grayscale one.
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x) {
+                    const uint8_t *src = col.buf.data() + (size_t(h - 1 - y) * size_t(w) + size_t(x)) * bpp;
+                    const size_t   dst = size_t(y) * size_t(w) + size_t(x);
+                    const uint8_t  r = src[0], g = src[1], b = src[2];
+                    result.rgb[dst * 3]     = r;
+                    result.rgb[dst * 3 + 1] = g;
+                    result.rgb[dst * 3 + 2] = b;
+                    result.pixels[dst] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
                 }
-            }
         }
 
         std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);

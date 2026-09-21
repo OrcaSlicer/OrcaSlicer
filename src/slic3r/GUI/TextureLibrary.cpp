@@ -153,8 +153,8 @@ std::vector<unsigned char> read_file_bytes(const std::string &path)
 }
 
 // True if these bytes are a PNG libslic3r can decode, i.e. can be stored on a layer as-is. Mirrors
-// exactly what decode_height_texture() accepts: 8-bit grayscale, or colour (whose luminance is the
-// height and whose RGB is available to colour the model).
+// exactly what decode_height_texture() accepts: 8-bit grayscale, or 8-bit colour (whose luminance is
+// the height and whose RGB is available to colour the model). Anything else is converted on load.
 bool is_supported_height_map(const std::vector<unsigned char> &bytes)
 {
     if (bytes.empty())
@@ -167,7 +167,8 @@ bool is_supported_height_map(const std::vector<unsigned char> &bytes)
         return true;
     png::ImageColorscale color;
     return png::decode_colored_png(rbuf, color) && color.cols > 0 && color.rows > 0 &&
-           color.bytes_per_pixel >= 3;
+           color.bytes_per_pixel >= 3 &&
+           color.buf.size() == color.cols * color.rows * size_t(color.bytes_per_pixel);
 }
 
 std::vector<TextureLibraryEntry> g_library;

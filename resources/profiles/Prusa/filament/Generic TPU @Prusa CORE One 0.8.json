@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @Prusa CORE One 0.8",
+	"inherits": "Generic TPU @Prusa CORE One",
+	"renamed_from": "Prusa Generic TPU @CORE One 0.8;Prusa Generic TPU CORE One 0.8",
+	"from": "system",
+	"setting_id": "LUUEXi6UUk0Zs5Pf",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.8 nozzle",
+		"Prusa CORE One HF 0.8 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"7.5"
+	],
+	"filament_z_hop": [
+		"0.6"
+	]
+}

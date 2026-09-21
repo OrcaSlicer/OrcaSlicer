@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-17 12:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2473,15 +2473,6 @@ msgstr "アップデートが利用可能です。プリセットバンドルの
 msgid "%s has been removed."
 msgstr "%sを削除しました。"
 
-msgid "Switching application language"
-msgstr "アプリケーション言語の切り替え"
-
-msgid "Select the language"
-msgstr "言語を選択"
-
-msgid "Language"
-msgstr "言語"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2969,6 +2960,10 @@ msgstr "編集"
 msgid "Merge with"
 msgstr "結合"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "色を分解"
+
 msgid "Delete this filament"
 msgstr "このフィラメントを削除"
 
@@ -3265,6 +3260,10 @@ msgstr "アセンブリ"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "パーツをオブジェクトに結合"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "可変積層ピッチと混色サブレイヤーを併用すると、混色の品質が低下する場合があります。"
 
 # AI Translated
 msgid "Add layers"
@@ -3721,11 +3720,15 @@ msgstr "Filament Track Switchで現在のフィラメントを引き戻す"
 msgid "Switch track at Filament Track Switch"
 msgstr "Filament Track Switchでトラックを切り替える"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "最高温度は次の値を超えることはできません "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "最高温度は %d を超えることはできません"
 
-msgid "The minmum temperature should not be less than "
-msgstr "最低温度は次の値を下回ることはできません "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "最低温度は %d を下回ることはできません"
 
 # AI Translated
 msgid "Type to filter..."
@@ -4604,6 +4607,15 @@ msgstr ""
 "一時的なGコードの出力Gコードへのコピーに失敗しました。 もしかしたらSDカードが書き込みロックされていませんか？\n"
 "エラーメッセージ：%1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"一時G-codeから出力G-codeへのコピーに失敗しました。\n"
+"エラーメッセージ: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "一時Gコードの出力Gコードへのコピーに失敗しました。 ターゲットデバイスに問題がある可能性があります。もう一度エクスポートするか、別のデバイスを使用してみてください。 破損した出力Gコードは%1%.tmpにあります。"
@@ -4818,7 +4830,7 @@ msgstr ""
 "\n"
 "値は0にリセットされます。"
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "垂直シェル厚さを「すべて」に設定すると、交互追加壁が適切に機能しません。"
 
 msgid ""
@@ -4864,7 +4876,7 @@ msgstr ""
 "いいえ - 「独立サポート積層ピッチ」を有効にする"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_heightはlayer_heightより小さくする必要があります。\n"
@@ -4872,7 +4884,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "ロック深さはスキン深さより小さくする必要があります。\n"
@@ -4911,6 +4923,10 @@ msgstr ""
 "これらの設定を変更しますか？\n"
 "はい - 変更して、スパイラルモードを有効にします\n"
 "いいえ - 変更せず、スパイラルモードを有効しません"
+
+# AI Translated
+msgid "N/A"
+msgstr "N/A"
 
 msgid "Printing"
 msgstr "造形中"
@@ -5342,13 +5358,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "値%sは範囲外です。有効な範囲は%dから%dです。"
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
-msgstr ""
-"%s%% か、それとも %s %sですか？\n"
-"%s%% の場合ははい、 %s %s はいいえ。"
+msgid "Is it %s%% or %s %s?"
+msgstr "%s%% か、それとも %s %sですか？"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5371,28 +5385,20 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無効なフォーマット、%1%であるはずです。"
 
 # AI Translated
-msgid "N/A"
-msgstr "N/A"
-
-# AI Translated
 msgid "System agents"
 msgstr "システムエージェント"
-
-# AI Translated
-msgid "No plugin selected"
-msgstr "プラグインが選択されていません"
 
 # AI Translated
 msgid "Add plugin"
 msgstr "プラグインを追加"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "プラグインを選択"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "プラグインを削除"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "プラグインが選択されていません"
 
 # AI Translated
 msgid "Configure"
@@ -5650,14 +5656,20 @@ msgstr "最適に設定"
 msgid "Regroup filament"
 msgstr "フィラメントを再グルーピング"
 
-msgid "up to"
-msgstr "最大"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "%1% mm まで"
 
-msgid "above"
-msgstr "以上"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm 以上"
 
-msgid "from"
-msgstr "から"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm から %2% mm まで"
 
 msgid "Usage"
 msgstr "使用量"
@@ -6020,7 +6032,7 @@ msgstr "ボリューム"
 msgid "Size:"
 msgstr "サイズ:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "レイヤー%d、Z = %.2lfmmでG-codeパスの衝突が検出されました。衝突するオブジェクトをもっと離してください（%s <-> %s）。"
 
@@ -6328,16 +6340,24 @@ msgstr "プロジェクトを名前を付けて保存"
 msgid "Save current project as"
 msgstr "プロジェクトを名前を付けて保存"
 
+# AI Translated
+msgid "Publish 3MF"
+msgstr "3MFを公開"
+
+# AI Translated
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr "選択した設定を埋め込んだ3MFファイルをエクスポートします"
+
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "3MF/STL/STEP/SVG/OBJ/AMFをインポート"
 
 msgid "Load a model"
 msgstr "モデルを読み込む"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "ZIPアーカイブをインポート"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "ZIPアーカイブ内のモデルをロード"
 
 msgid "Import Configs"
@@ -7601,6 +7621,14 @@ msgid "Bottom"
 msgstr "底面"
 
 # AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "この設定にはプラグイン機能タイプが指定されていません。"
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "この設定には認識できないプラグイン機能タイプが指定されています: "
+
+# AI Translated
 msgid "Plugin Selection"
 msgstr "プラグインの選択"
 
@@ -7859,6 +7887,10 @@ msgstr "現在のプレートをカスタマイズ"
 msgid "The %s nozzle can not print %s."
 msgstr "%sノズルは%sを印刷できません。"
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "単一押出機のプリンターで混色フィラメントを印刷すると、フィラメント交換とフラッシュが頻繁に発生し、廃材やノズル／廃棄シュートの詰まりのリスクが大幅に増加する可能性があります。"
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "%1%と%2%を混合して印刷することは推奨されません。\n"
@@ -7984,11 +8016,43 @@ msgstr "AMSと素材を同期"
 msgid "Set filaments to use"
 msgstr "フィラメントを選択"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "混合フィラメントを追加"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "混合フィラメント"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "最後の混合フィラメントを削除"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "混合フィラメントを追加"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "混合フィラメントのコンポーネントが無効か一致していません。該当する項目を編集し直してください。"
+
 msgid "Search plate, object and part."
 msgstr "プレート、オブジェクト、パーツを検索。"
 
 msgid "Pellets"
 msgstr "ペレット"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "混合フィラメントのコンポーネント参照が壊れています"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "編集 / 削除 / 結合"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "対象の混合フィラメントはこの物理フィラメントをコンポーネントとして使用しています。結合するとこの物理フィラメントは削除され、混合フィラメントが無効になる可能性があります。続行しますか？"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8133,8 +8197,16 @@ msgstr "これらのプリセット内のG-codeがマシンに損傷を与えな
 msgid "Customized Preset"
 msgstr "カスタマイズされたプリセット"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "ファイルのエンコーディング方式はUTF8形式ではありません"
+# AI Translated
+msgid "Some published settings could not be applied:"
+msgstr "一部の公開された設定を適用できませんでした:"
+
+# AI Translated
+msgid "Some filament slots were changed:"
+msgstr "一部のフィラメントスロットが変更されました:"
+
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "ファイルのエンコーディング方式はUTF-8形式ではありません"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "文字化けがあるようです、ご確認ください"
@@ -8155,7 +8227,7 @@ msgstr "オブジェクトの体積が0です"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "ファイル %s 中のオブジェクトが小さいすぎます、ファイルの単位をご確認ください。\n"
 "mm単位に変換しますか？"
@@ -8175,6 +8247,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "マルチパーツ検出"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "テクスチャをフィラメントに対応付けています"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "テクスチャインポートの警告"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "これらのファイルを一つのオブジェクトとしてロードしますか？\n"
@@ -8389,6 +8469,22 @@ msgstr ""
 msgid "Sync now"
 msgstr "今すぐ同期"
 
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "テクスチャのインポートに失敗しました。モデルにテクスチャデータが含まれているようですが、インポート処理を完了できませんでした。モデルはジオメトリのみとしてインポートされます。"
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "テクスチャの色を適用しています..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "3Dビューを更新しています..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "テクスチャの色を適用しました。"
+
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "変更したプリセットをプロジェクト内に保存するか、破棄もできます"
 
@@ -8520,6 +8616,21 @@ msgstr "名前を付けて保存:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "%sを送信しました、プリンターにて確認できます"
+
+# AI Translated
+msgid "Publish 3MF file as:"
+msgstr "3MFファイルを次の名前で公開:"
+
+# AI Translated
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+"公開する3MFファイルのエクスポートに失敗しました。\n"
+"フォルダーがオンラインで存在するか、他のプログラムがファイルを開いていないか確認してください。"
+
+msgid "Publish"
+msgstr "公開する"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "ノズルタイプが設定されていません。ノズルを設定して再試行してください。"
@@ -8734,9 +8845,6 @@ msgstr "続行しますか？"
 msgid "Language selection"
 msgstr "言語選択"
 
-msgid "Switching application language while some presets are modified."
-msgstr "アプリケーション言語を切り替える時に、プリセットの変更があります"
-
 msgid "Asia-Pacific"
 msgstr "アジア太平洋地域"
 
@@ -8840,6 +8948,9 @@ msgstr "現在のインスタンスのパス: "
 
 msgid "General"
 msgstr "一般"
+
+msgid "Language"
+msgstr "言語"
 
 msgid "Metric"
 msgstr "メートル"
@@ -9305,9 +9416,6 @@ msgstr "スライスプレビューで積層スライダーを操作する際、
 msgid "Dimmed layer brightness"
 msgstr "暗くした積層の明るさ"
 
-msgid "%"
-msgstr "%"
-
 # AI Translated
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
@@ -9676,6 +9784,10 @@ msgstr "スパイラル"
 msgid "First layer filament sequence"
 msgstr "初期レイヤーフィラメント順序"
 
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "フィラメントリストに混合フィラメントが含まれています。カスタムフィラメント順序は適用されません。"
+
 msgid "By Layer"
 msgstr "レイヤー別"
 
@@ -9704,9 +9816,6 @@ msgstr "モデル公開ページに移動"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "注意: 準備するには数分かかる場合があります、暫くお待ち下さい。"
 
-msgid "Publish"
-msgstr "公開する"
-
 msgid "Publish was canceled"
 msgstr "公開は取り消しました"
 
@@ -9721,6 +9830,81 @@ msgstr "データをアップロード中"
 
 msgid "Jump to webpage"
 msgstr "ウェブページに移動"
+
+# AI Translated
+msgid "Material"
+msgstr "材料"
+
+# AI Translated
+msgid "Mixed filament"
+msgstr "混合フィラメント"
+
+# AI Translated
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr "一部の混合フィラメントは、公開されないフィラメントに依存しています:"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr "フィラメント %d (混合)"
+
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1%には%2%が必要ですが、有効化されていません。"
+
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1%には%2%が必要ですが、その材料は公開されません。"
+
+# AI Translated
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr "混合フィラメントを公開するには、使用しているすべてのフィラメントを有効にし、完全公開を選ぶか、タイプの要件を満たしてください。"
+
+# AI Translated
+msgid "Publish anyway"
+msgstr "それでも公開"
+
+# AI Translated
+msgid "Publish 3MF..."
+msgstr "3MFを公開..."
+
+# AI Translated
+msgid "Select which settings to be published in the 3MF file"
+msgstr "3MFファイルで公開する設定を選択してください"
+
+# AI Translated
+msgid "Publish 3MF Wiki"
+msgstr "3MF公開のWiki"
+
+# AI Translated
+msgid "Publish 3MF Video Guide"
+msgstr "3MF公開のビデオガイド"
+
+# AI Translated
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr "混合フィラメント - 上の「有効化」を選択すると全体が公開されます"
+
+# AI Translated
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr "この混合フィラメントを公開し、その構成フィラメントを有効化＋完全公開します"
+
+# AI Translated
+msgid "Publish this filament slot in the 3MF file"
+msgstr "このフィラメントスロットを3MFファイルで公開します"
+
+# AI Translated
+msgid "Full Publish"
+msgstr "完全公開"
+
+# AI Translated
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr "このスロットのフィラメント全体を3MFファイルに埋め込みます"
+
+# AI Translated
+msgid "Filter non-selected"
+msgstr "未選択を絞り込み"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9738,6 +9922,10 @@ msgstr "親プリセットから継承したすべての値をこのプリセッ
 
 msgid "Detach from parent"
 msgstr "親から分離"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "親なしで保存"
 
 # AI Translated
 msgid "Unique preset"
@@ -10445,8 +10633,16 @@ msgstr "クランピング検出にはプライムタワーが必要です。プ
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "正確なZ高さとプライムタワーの両方を有効にすると、スライスエラーが発生する可能性があります。それでも正確なZ高さを有効にしますか？"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "スムーズタイムラプスは全積層にプライムタワーが必要なため、「スパース層なし」とは併用できません。「スパース層なし」をオフにしました。"
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "スムーズタイムラプスビデオを作成するにはプライムタワーが必要です。プライムタワーを有効にしますか？"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "「スパース層なし」は、全積層にプライムタワーが必要なスムーズタイムラプスとは併用できません。タイムラプスを通常モードに切り替えました。"
 
 msgid "Still print by object?"
 msgstr "それでもオブジェクト別に印刷しますか？"
@@ -10617,7 +10813,7 @@ msgid "Junction Deviation"
 msgstr "接合偏差"
 
 msgid "Jerk(XY)"
-msgstr "ジャーク(XY)"
+msgstr "Jerk(XY)"
 
 msgid "Raft"
 msgstr "ラフト"
@@ -10814,9 +11010,6 @@ msgstr "互換性のあるプロセスプロファイル"
 msgid "Printable space"
 msgstr "造形可能領域"
 
-msgid "Printer Agent"
-msgstr "プリンターエージェント"
-
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "プリンター通信用のネットワークエージェント実装を選択します。使用可能なエージェントは起動時に登録されます。"
 
@@ -10914,7 +11107,7 @@ msgid "Acceleration limitation"
 msgstr "加速制限"
 
 msgid "Jerk limitation"
-msgstr "振動特性"
+msgstr "Jerk制限"
 
 msgid "Single extruder multi-material setup"
 msgstr "シングルエクストルーダー マルチマテリアル設定"
@@ -11068,12 +11261,12 @@ msgid "No modifications need to be copied."
 msgstr "コピーが必要な変更はありません。"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "パラメータをコピー"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "%sのパラメータを変更"
 
 # AI Translated
@@ -11228,14 +11421,6 @@ msgstr "エクストルーダー数"
 
 msgid "Capabilities"
 msgstr "能力"
-
-# AI Translated
-msgid "Left: "
-msgstr "左: "
-
-# AI Translated
-msgid "Right: "
-msgstr "右: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "全てのプリセットを表示"
@@ -11590,33 +11775,6 @@ msgstr "フィラメントを入替える為のフラッシュ量"
 
 msgid "Please choose the filament colour"
 msgstr "フィラメントの色を選択してください"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "ネイティブWaylandのライブビューにはGStreamer GTKビデオシンクが必要です。GStreamer用のgtksinkプラグインをインストールし、OrcaSlicerを再起動してください。"
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "ネイティブWaylandのGStreamerビデオシンクの初期化に失敗しました。GStreamer GTKプラグインのインストール状況をご確認ください。"
-
-# AI Translated
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "このタスクにはWindows Media Playerが必要です！お使いのOSで「Windows Media Player」を有効にしますか？"
-
-# AI Translated
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "メディア再生用のBambuSourceが正しく登録されていません！「はい」を押して再登録してください。確認が2回表示されます"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "メディア再生用のBambuSourceコンポーネントが見つかりません！OrcaSlicerを再インストールするかコミュニティに助けを求めてください。"
-
-# AI Translated
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "別のインストール環境のBambuSourceを使用しているため、動画が正しく再生されない可能性があります！「はい」を押して修正してください。"
-
-# AI Translated
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "お使いのシステムには、動画再生に必要なGStreamer用のH.264コーデックがありません。(gstreamer1.0-plugins-badまたはgstreamer1.0-libavパッケージをインストールし、Orca Slicerを再起動してみてください)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -12115,14 +12273,21 @@ msgstr "修復を取消しました"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "ファイル %1% を %2% へのコピーが失敗しました (%3%)"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "新しいベンダープロファイルをダウンロード中: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "設定パッケージ: %1% を %2% に更新しました"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "ベンダープロファイルのダウンロードに失敗しました: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "構成を更新する前に、未保存の変更をご確認ください"
-
-msgid "Configuration package: "
-msgstr "設定パッケージ: "
-
-msgid " updated to "
-msgstr " を更新しました "
 
 msgid "Open G-code file:"
 msgstr "G-codeファイルを開く"
@@ -12187,11 +12352,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "インプットシェーピングはKlipper、RepRapFirmware、Marlin 2のみが対応しています。"
 
-msgid "Grouping error: "
-msgstr "グルーピングエラー: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "グルーピングエラー: %1% は左ノズルに配置できません"
 
-msgid " can not be placed in the "
-msgstr " に配置できません "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "グルーピングエラー: %1% は右ノズルに配置できません"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12305,6 +12474,10 @@ msgstr "%1% は他のオブジェクトと近すぎるため、衝突の可能�
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% は高すぎます、衝突の可能性があります。"
 
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "モデルとプライムタワーの相対位置が「スパース層なし」機能の要件を満たしていません。相対位置を調整するか、モデルの高さを下げるか、「スパース層なし」をオフにしてください。"
+
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr "が除外領域に近すぎます。衝突の可能性があります。"
 
@@ -12343,6 +12516,10 @@ msgstr "それでも印刷する場合は、環境設定 / 制御 / スライス
 msgid "No extrusions under current settings."
 msgstr "現在の設定では造形しません"
 
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "グラデーション付きの混合フィラメントが使用されていますが、「混色サブレイヤー」が無効です。グラデーションは印刷されません。"
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "オブジェクト順で造形するでは、この機能を使用できません。"
 
@@ -12378,6 +12555,10 @@ msgstr "モデルのサイズを小さくするか、現在のプリント設定
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "可変レイヤー高さはオーガニックサポートではサポートされていません。"
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "ワイプタワーのフィラメントに混合フィラメントは使用できません。"
 
 # AI Translated
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
@@ -12485,7 +12666,7 @@ msgid "Plate %d: %s does not support filament %s"
 msgstr "プレート %d: %s がフィラメント %s を使用できません"
 
 msgid "Setting the jerk speed too low could lead to artifacts on curved surfaces"
-msgstr "ジャーク速度を低く設定しすぎると曲面にアーティファクトが発生する可能性があります"
+msgstr "Jerk速度を低く設定しすぎると曲面にアーティファクトが発生する可能性があります"
 
 # AI Translated
 msgid ""
@@ -12669,6 +12850,9 @@ msgstr "G-codeの代わりに3MFを使用"
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "プリンターが印刷ジョブとして3MFファイルを受け付ける場合に有効にします。有効にすると、Orca Slicerはスライス済みファイルを通常の.gcodeファイルではなく.gcode.3mfとして送信します。"
 
+msgid "Printer Agent"
+msgstr "プリンターエージェント"
+
 msgid "Select the network agent implementation for printer communication."
 msgstr "プリンター通信用のネットワークエージェント実装を選択します。"
 
@@ -12756,14 +12940,12 @@ msgstr "mm 或は %"
 msgid "Other layers"
 msgstr "他の層"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "1層目を除く各層のベッド温度です。0の場合、そのフィラメントはCool Plate SuperTackでの印刷に対応していません。"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "ベッドの温度です（1層目以外）。値が0の場合、フィラメントが常温プレートで使用できないという意味です。"
 
-# AI Translated
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "1層目を除く各層のベッド温度です。0の場合、そのフィラメントはTextured Cool Plateでの印刷に対応していません。"
 
@@ -12774,7 +12956,7 @@ msgid "This is the bed temperature for layers except for the first one. A value 
 msgstr "ベッドの温度です（1層目以外）。値が0の場合、フィラメントが高温プレートで使用できないという意味です。"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
-msgstr "1層目以外のベッド温度。値が0の場合、フィラメントがPEIプレートをサポートしない意味をします。"
+msgstr "1層目を除く各層のベッド温度です。0の場合、そのフィラメントはTextured PEI Plateでの印刷に対応していません。"
 
 msgid "First layer"
 msgstr "1層目"
@@ -13780,6 +13962,10 @@ msgstr "整列直線"
 msgid "Concentric"
 msgstr "同心"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "スパイラルインセット"
+
 msgid "Hilbert Curve"
 msgstr "ヒルベルト曲線"
 
@@ -13873,13 +14059,13 @@ msgstr "上面の充填順序"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、上面を充填する方向です。\n"
-"外向きは面の中心から始まるため、余分な材料が最も目立たない縁へ押し出されます。内向きは縁から始まり、中心の細かいカーブで終わります。\n"
-"デフォルトは最短経路順で、どちらの方向にもなり得ます。"
+"中心を起点とするパターン（同心、スパイラルインセット、アルキメデス螺旋、オクタグラムスパイラル）を使用する場合の、トップ面を充填する方向です。\n"
+"外側は面の中心から始まるため、余分な材料は最も目立たない縁へ押し出されます。内側は縁から始まり、中心の細かいカーブで終わります。\n"
+"デフォルトは最短経路順を使用し、どちらの方向にも進むことがあります。"
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -13887,13 +14073,13 @@ msgstr "底面の充填順序"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、底面を充填する方向です。\n"
-"内向きは各面を幅の広い外側のカーブから始めるため、中心の細かいカーブが定着しにくいベッドでも1層目の密着性が向上します。外向きは中心から始まり、余分な材料を縁へ押し出します。\n"
-"デフォルトは最短経路順で、どちらの方向にもなり得ます。"
+"中心を起点とするパターン（同心、スパイラルインセット、アルキメデス螺旋、オクタグラムスパイラル）を使用する場合の、底面を充填する方向です。\n"
+"内側は各面を幅の広い外側のカーブから始めるため、中心の細かいカーブが定着しにくいベッドでも1層目の接着が改善します。外側は中心から始まり、余分な材料を縁へ押し出します。\n"
+"デフォルトは最短経路順を使用し、どちらの方向にも進むことがあります。"
 
 msgid "Internal solid infill pattern"
 msgstr "内部ソリッドインフィルパターン"
@@ -14001,6 +14187,14 @@ msgstr "反時計回り"
 
 msgid "Clockwise"
 msgstr "時計回り"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "ロッドまでの距離"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "ノズル先端からロッドの遠い側の端までの水平距離です。オブジェクト順の造形で衝突を回避するために使用されます。"
 
 msgid "Height to rod"
 msgstr "レールまでの高さ"
@@ -14200,6 +14394,8 @@ msgstr "積層時間"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "パーツ冷却ファンは、積層造形時間がこの値より短い時に作動します。"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
 msgstr "s"
 
@@ -14518,6 +14714,62 @@ msgstr "サポート材料"
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "サポート素材は、サポート又はサポート接触面の造形によく使われます。"
 
+# AI Translated
+msgid "Is mixed filament"
+msgstr "混合フィラメントかどうか"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "このフィラメントスロットが複数の物理フィラメントで構成される混合フィラメントかどうか"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "混合フィラメントのコンポーネント"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "構成フィラメントの番号（1 始まり）をカンマ区切りで指定します。例: \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "混合フィラメントのサブレイヤー比率"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "合計が 1.0 になる比率をカンマ区切りで指定します。例: \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "混合フィラメントのグラデーション"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "混合フィラメントのサブレイヤーに対して Z 方向のグラデーションモードを有効にします。有効にすると、サブレイヤーの比率が積層ごとに直線的に変化します。"
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "混合フィラメントのグラデーション範囲"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "グラデーションモードにおける最初のコンポーネントの開始比率と終了比率。カンマ区切りの 2 つの値で指定します。例: \"0.10,0.90\" は 10% から 90% を意味します。"
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "混合フィラメントのグラデーションカーブ"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Z 方向の進行度を最初のコンポーネントの比率に対応付ける、Photoshop 風のカスタムカーブ（省略可）。制御点を縦棒区切りでエンコードし、\"x,y\"（旧形式）または接線を上書きする場合は \"x,y,m_in,m_out\" の形式で指定します（空欄または \"nan\" は PCHIP の既定値を使用します）。x は [0,1] の範囲で、y は設定された比率範囲に制限されます。例: \"0,0.15|0.5,0.50|1,0.85\"。空欄の場合は線形の gradient_range が使用されます。"
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "混合フィラメントのパーツ別グラデーション"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "グラデーションモードが有効な場合、アセンブリ全体を 1 つの Z 範囲として扱うのではなく、アセンブリ内の各パーツに個別にグラデーションを適用します。"
+
 msgid "Filament printable"
 msgstr "フィラメント印刷可能"
 
@@ -14750,7 +15002,7 @@ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration.
 msgstr "Klipperのmax_accel_to_decelが、加速度のこの%%に調整されます。"
 
 msgid "Default jerk."
-msgstr "デフォルトジャーク。"
+msgstr "デフォルトのJerkです。"
 
 # AI Translated
 msgid "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting)."
@@ -15841,28 +16093,28 @@ msgid "Maximum acceleration of the E axis"
 msgstr "E軸最大加速度"
 
 msgid "Maximum jerk X"
-msgstr "最大振動 X"
+msgstr "最大Jerk X"
 
 msgid "Maximum jerk Y"
-msgstr "最大振動 Y"
+msgstr "最大Jerk Y"
 
 msgid "Maximum jerk Z"
-msgstr "最大振動 Z"
+msgstr "最大Jerk Z"
 
 msgid "Maximum jerk E"
-msgstr "最大振動 E"
+msgstr "最大Jerk E"
 
 msgid "Maximum jerk of the X axis"
-msgstr "最大振動 X"
+msgstr "X軸最大Jerk"
 
 msgid "Maximum jerk of the Y axis"
-msgstr "最大振動 Y"
+msgstr "Y軸最大Jerk"
 
 msgid "Maximum jerk of the Z axis"
-msgstr "最大振動 Z"
+msgstr "Z軸最大Jerk"
 
 msgid "Maximum jerk of the E axis"
-msgstr "最大振動 E"
+msgstr "E軸最大Jerk"
 
 msgid "Maximum Junction Deviation"
 msgstr "最大接合偏差"
@@ -15894,6 +16146,7 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Y軸の許容最大出力"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
 msgstr "N"
 
@@ -15904,6 +16157,7 @@ msgid "The machine bed mass load of Y axis"
 msgstr "Y軸のマシンベッド質量"
 
 # AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "g"
 
@@ -16238,7 +16492,7 @@ msgstr "カッター領域から廃料排出口までの終始点"
 msgid "Reduce infill retraction"
 msgstr "ｲﾝﾌｨﾙのﾘﾄﾗｸｼｮﾝ低減"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "インフィル領域内の移動はリトラクションしません。造形時間を節約できます。"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16280,6 +16534,20 @@ msgstr "オーバーハングを検出"
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "この設定により、線幅に対するオーバーハングの割合を検出し、異なる速度で造形します。100%%のオーバーハングの場合、ブリッジの速度が使用されます。"
+
+# AI Translated
+msgid "Print unsupported walls last"
+msgstr "支えのない壁を最後に造形"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"完全に宙に浮いている壁面ループは、支えとなるものができてから造形されます。\n"
+"壁の順序にかかわらず、同じアイランドの他の壁の後に、最も内側から順に押し出されます。\n"
+"この積層のブリッジだけが固定できるループは、それらのブリッジが造形されるまで待ちます。一方、支えのある壁に沿って走るループは、それをアンカーとして必要とするインフィルの前という位置を保ちます。"
 
 # AI Translated
 msgid "Outer walls"
@@ -16423,7 +16691,7 @@ msgstr "ワイプ後のリトラクション量"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "ワイプ後の高速リトラクションの長さで、リトラクション長に対する割合です。\n"
@@ -16474,7 +16742,7 @@ msgstr "ツール交換の前にリトラクションが行われるとき、指
 msgid "Z-hop height"
 msgstr "Zホップの高さ"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "リトラクション時に、ノズルを少し上げてから移動します。この動作でモデルとの衝突を回避できます。"
 
 # AI Translated
@@ -16772,6 +17040,39 @@ msgstr "ループ上でワイプ"
 # AI Translated
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "閉ループ押出における継ぎ目を目立たなくするため、押出機がループを離れる前にわずかに内側へ移動します。"
+
+# AI Translated
+msgid "Wipe inward"
+msgstr "内側へ拭き上げ"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"穴の輪郭を含む外壁にのみ適用されます。拭き上げ中に高温のノズルを造形済みの内壁へ向かって動かし、造形したばかりの樹脂の再加熱と継ぎ目の跡を抑えます。\n"
+"\n"
+"拭き上げの跡が目立ちやすい積層ピッチ0.1 mm未満で特に有効です。\n"
+"\n"
+"隣接する内壁がまだ造形されていない場合（壁が1本のみの領域や、壁の順序が外側/内側の場合）、または細かい角や継ぎ目の隙間などで支えのある内向きの経路が見つからない場合は、通常の拭き上げを使用します。"
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "内側への拭き上げ距離"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"拭き上げ経路を外周から離す距離で、ミリメートルまたは実際の外壁の押出線幅に対する割合で指定します。\n"
+"\n"
+"例えば50%では、経路を外壁幅の半分だけずらします。実効オフセットは実際の外壁幅と隣接する壁までの利用可能な間隔の両方で制限されるため、100%を超える値や同等の絶対距離を指定しても追加の効果はありません。0に設定するとオフセットは無効になります。"
 
 # AI Translated
 msgid "Wipe before external loop"
@@ -17075,8 +17376,9 @@ msgstr "印刷温度に達するのを待たずに新しいツールを取り付
 msgid "No sparse layers (beta)"
 msgstr "スパース層なし (ベータ)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "有効にすると、ツール変更がない場合にワイプタワーをプリントしなくなります。 ワイプタワーの高さが同期しなくなりますので、ツールチェンジのあるレイヤーでは、エクストルーダーがプリント面より下方に移動してワイプタワーをプリントするケースもあります。 この場合、プリントした部分との衝突がないことをご自身で確認しておく必要があります。"
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "有効にすると、ツール交換のない積層ではワイプタワーを造形しません。ツール交換のある積層では押出機が下降してワイプタワーを造形するため、タワーはモデルより下に位置し、ツールヘッドがそこまで下りる必要があります。造形済みのオブジェクトと衝突するような配置は拒否されます。全積層にタワーが必要なスムーズタイムラプスやノズル付着検出では効果がありません。"
 
 msgid "Prime all printing extruders"
 msgstr "全てのエクストルーダーでプライムを実施"
@@ -17102,6 +17404,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "循環"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "循環順"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"循環ツール交換順で使用するカスタムフィラメント順序です。フィラメント番号をカンマ区切りで指定します（例: 「3,2,1,4」）。\n"
+"各積層はこの順序に従ってフィラメントを造形します。記載のないフィラメントは最後に、昇順で造形されます。\n"
+"空欄のままにすると、フィラメントを昇順で巡回します。"
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "循環順を1層目にも適用"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"循環ツール交換順を1層目にも適用します。\n"
+"既定では無効です。1層目は代わりにベッド接着が最良になるよう並べ替えられるためです。1層目の小さく壊れやすい部分を造形するフィラメントを最後に回すことで、その後のツール交換や移動が、弱く固定された部分を剥がしにくくなります。この1層目の順序は、1層目用のカスタムフィラメント順序が設定されていればそれも尊重します。循環順の利点（ツール交換が増えることで各積層の冷却時間が長くなる）は、接着のために低速かつ高温で造形される1層目には当てはまりません。\n"
+"接着の最適化を犠牲にしてでも、1層目を含む全積層でまったく同じツール順序が必要な場合にのみ有効にしてください。"
+
 msgid "Slice gap closing radius"
 msgstr "隙間充填半径"
 
@@ -17111,9 +17441,6 @@ msgstr "三角メッシュのスライス時に、隙間閉じ半径の2倍よ�
 
 msgid "Slicing Mode"
 msgstr "スライシングモード"
-
-msgid "Other"
-msgstr "その他"
 
 # AI Translated
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
@@ -17632,6 +17959,14 @@ msgstr ""
 "ワイプ動作の長さ、押出機/フィラメントのリトラクション設定の速度と長さによっては、残りのフィラメントを引き戻すためのリトラクション動作が必要になる場合があります。\n"
 "\n"
 "下の「ワイプ前のリトラクション量」設定に値を設定すると、超過分のリトラクションはワイプの前に行われます。それ以外の場合はワイプの後に行われます。"
+
+# AI Translated
+msgid "Mixed color sublayer"
+msgstr "混色サブレイヤー"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "混色サブレイヤーへの分割を有効にします。有効にすると、混色フィラメントを含む積層がサブレイヤーに分割され、色を混ぜる効果が得られます。"
 
 # AI Translated
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
@@ -18168,6 +18503,14 @@ msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "G-codeパスの競合チェックなど、いかなる妥当性チェックも実行しません。"
 
 # AI Translated
+msgid "Strict mode"
+msgstr "厳格モード"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "サポートが無効なのにサポートが必要なモデルなど、通常はログに記録されるだけの重大でない警告がスライス時に発生した場合、ゼロ以外の終了コードで終了します。わずかに壊れたスライス結果を決して出荷してはならないCIやスクリプト処理で使用してください。そうした警告はいずれも、Linuxでのみ書き出されるresult.jsonの`warnings`配列に、安定したクラス名とともに列挙されます。サポート確認を省略する--no-checkとは併用できません。"
+
+# AI Translated
 msgid "Normative check"
 msgstr "規範チェック"
 
@@ -18181,11 +18524,28 @@ msgstr "出力モデル情報"
 msgid "This outputs the model’s information."
 msgstr "出力するモデル情報です。"
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "メッシュを検査 (JSONをstdoutへ)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "読み込んだ各オブジェクトのJSON要約をstdoutに出力して終了します。バウンディングボックスと、設置できる凸包の面、およびそれらの法線・面積・中心が含まれます。--ground-*オプションはこれらの面から選択します。--infoの機械可読版です。"
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "ペイントを検査 (JSONをstdoutへ)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "読み込んだモデルに保存済みの各ペイント層（サポート、継ぎ目、MMUカラー、ファジー壁面）について、状態ごとの面数・表面積・メッシュ座標系のバウンディングボックスを構造化JSONで出力して終了します。GUIでペイントギズモを開く操作の機械可読版です。"
+
 msgid "Export Settings"
 msgstr "エクスポート設定"
 
-msgid "This exports settings to a file."
-msgstr "設定をファイルにエクスポートします。"
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "設定をファイルにエクスポートします。- を指定するとstdoutに書き出します。"
 
 msgid "Send progress to pipe"
 msgstr "パイプに進捗を送信"
@@ -18245,6 +18605,30 @@ msgstr "Y軸周りの回転"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Y軸を中心とした回転角（度単位）。"
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "最大面を接地"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "各オブジェクトを凸包の最大面で接地させ、ベッドへ落とします。同じ大きさの面が複数ある場合は、すでに下を向いている面が保持されます。載せられるだけの大きさの面がないオブジェクトはそのまま残ります。変換はコマンドラインの順に実行されるため、このオプションより前に指定した回転は尊重されます。--orient 1 はすべての変換の後に実行され、向きを置き換えます。"
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "法線で面を接地"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "各オブジェクトを、外向き法線が方向 NX,NY,NZ に最も近い凸包の面で接地させ、ベッドへ落とします。方向はオブジェクト座標系で指定します。この座標系はこのオプションより前に指定した回転を含み、入力ファイルがオブジェクトを回転していない限りプレートの軸と一致します。例えば 1,0,0 はオブジェクトを +X 側で立たせます。--orient 1 はすべての変換の後に実行され、向きを置き換えます。"
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "指定点の面を接地"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "各オブジェクトを、点 X,Y,Z を含む凸包の面で接地させ、ベッドへ落とします。点はオブジェクト座標系で指定します。この座標系はこのオプションより前に指定した回転を含み、--inspect-mesh はこの座標系で面の中心を報告します。該当する面がないオブジェクトはそのまま残り、どのオブジェクトにも該当面がない場合は実行が失敗します。--orient 1 はすべての変換の後に実行され、向きを置き換えます。"
 
 msgid "Scale the model by a float factor."
 msgstr "指定した比率で伸縮する"
@@ -18439,10 +18823,10 @@ msgid "Allow 3MF with newer version to be sliced."
 msgstr "新しいバージョンの3MFのスライスを許可します。"
 
 msgid "Current Z-hop"
-msgstr "現在のz-hop"
+msgstr "現在のZ-hop"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "カスタムGコードブロックの先頭に存在するz-hopを含む。"
+msgstr "カスタムGコードブロックの先頭に存在するZ-hopを含む。"
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
 msgstr "カスタム G コード ブロックの先頭のエクストルーダーのモーターの位置。 カスタム G コードで動かしたとき、PrusaSlicer が制御を取り戻したときにどこから移動したかを認識できるように、この変数に書き込む必要があります。"
@@ -18803,6 +19187,10 @@ msgstr "モデルファイルのメッシュ処理に失敗したか、有効な
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "提供されたファイルは空であるため読み込めませんでした。"
+
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "ファイル形式に互換性がないため、解析できません。"
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "ファイル形式が不明です。入力ファイルの拡張子は .stl、.obj、.amf（.xml）である必要があります。"
@@ -20340,19 +20728,19 @@ msgstr "プリンタ、フィラメント、加工プリセットに変更があ
 msgid "Only display the filament names with changes to filament presets."
 msgstr "フィラメントプリセットを変更したフィラメント名のみを表示します。"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "ユーザープリンタプリセットを持つプリンタ名のみが表示され、選択した各プリセットがZIPとしてエクスポートされます。"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "ユーザーフィラメントプリセットを含むフィラメント名のみが表示されます、 \n"
 "選択した各フィラメント名に含まれるすべてのユーザーフィラメントプリセットがZIP形式でエクスポートされます。"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr "変更されたプロセスプリセットがあるプリンタ名のみが表示され、選択した各プリンタ名にあるすべてのユーザープロセスプリセットがZIP形式でエクスポートされます。"
 
 msgid "Please select at least one printer or filament."
@@ -20596,7 +20984,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "問題の原因を特定するために情報が必要です。詳しい手順はWikiページをご覧ください。"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "「パック」ボタンは、現在のセッションのプロジェクトファイルとログをzipファイルにまとめます。"
 
 # AI Translated
@@ -20652,7 +21040,7 @@ msgid "Stored logs"
 msgstr "保存されたログ"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "保存されたすべてのログをzipファイルにまとめます。"
 
 # AI Translated
@@ -20740,7 +21128,7 @@ msgid "Authorizing..."
 msgstr "認証中..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "エラー。認証用のAPIトークンを取得できません"
 
 # AI Translated
@@ -21226,8 +21614,8 @@ msgid "Enable smart filament assign: Assign one filament to multiple nozzles to 
 msgstr "スマートフィラメント割り当てを有効にする: 1つのフィラメントを複数のノズルに割り当てて節約を最大化します"
 
 # AI Translated
-msgid "Fila Saving"
-msgstr "フィラ節約"
+msgid "File Saving"
+msgstr "ファイル保存"
 
 msgid "Don't remind me again"
 msgstr "再度通知しない"
@@ -21555,6 +21943,18 @@ msgstr "この操作は元に戻せません。続行しますか？"
 msgid "Skipping objects."
 msgstr "オブジェクトをスキップ中。"
 
+# AI Translated
+msgid "Material Ratio"
+msgstr "材料比率"
+
+# AI Translated
+msgid "Model Height"
+msgstr "モデル高さ"
+
+# AI Translated
+msgid "Ratio"
+msgstr "比率"
+
 msgid "Select Filament"
 msgstr "フィラメントを選択"
 
@@ -21633,6 +22033,9 @@ msgstr "今すぐ再起動"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ラミングなし"
+
+msgid "s"
+msgstr "s"
 
 msgid "Volumetric speed"
 msgstr "体積速度"
@@ -21834,12 +22237,14 @@ msgid "Drying-Dehumidifying"
 msgstr "乾燥 - 除湿"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " の最高乾燥温度は "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s の最高乾燥温度は %d°C です。"
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " の最低乾燥温度は "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s の最低乾燥温度は %d°C です。"
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22295,6 +22700,136 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Other"
+#~ msgstr "その他"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "左: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "右: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "最高温度は次の値を超えることはできません "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "最低温度は次の値を下回ることはできません "
+
+#~ msgid "up to"
+#~ msgstr "最大"
+
+#~ msgid "above"
+#~ msgstr "以上"
+
+#~ msgid "from"
+#~ msgstr "から"
+
+#~ msgid "Configuration package: "
+#~ msgstr "設定パッケージ: "
+
+#~ msgid " updated to "
+#~ msgstr " を更新しました "
+
+#~ msgid "Grouping error: "
+#~ msgstr "グルーピングエラー: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " に配置できません "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " の最高乾燥温度は "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " の最低乾燥温度は "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "が必要"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "未有効"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "材料が未公開"
+
+#~ msgid "Select the language"
+#~ msgstr "言語を選択"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "プラグインを選択"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、上面を充填する方向です。\n"
+#~ "外向きは面の中心から始まるため、余分な材料が最も目立たない縁へ押し出されます。内向きは縁から始まり、中心の細かいカーブで終わります。\n"
+#~ "デフォルトは最短経路順で、どちらの方向にもなり得ます。"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "中心を基準とするパターン (同心円、アルキメデス弦、八芒星スパイラル) を使用する場合に、底面を充填する方向です。\n"
+#~ "内向きは各面を幅の広い外側のカーブから始めるため、中心の細かいカーブが定着しにくいベッドでも1層目の密着性が向上します。外向きは中心から始まり、余分な材料を縁へ押し出します。\n"
+#~ "デフォルトは最短経路順で、どちらの方向にもなり得ます。"
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "有効にすると、ツール変更がない場合にワイプタワーをプリントしなくなります。 ワイプタワーの高さが同期しなくなりますので、ツールチェンジのあるレイヤーでは、エクストルーダーがプリント面より下方に移動してワイプタワーをプリントするケースもあります。 この場合、プリントした部分との衝突がないことをご自身で確認しておく必要があります。"
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "設定をファイルにエクスポートします。"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "ネイティブWaylandのライブビューにはGStreamer GTKビデオシンクが必要です。GStreamer用のgtksinkプラグインをインストールし、OrcaSlicerを再起動してください。"
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "ネイティブWaylandのGStreamerビデオシンクの初期化に失敗しました。GStreamer GTKプラグインのインストール状況をご確認ください。"
+
+# AI Translated
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "このタスクにはWindows Media Playerが必要です！お使いのOSで「Windows Media Player」を有効にしますか？"
+
+# AI Translated
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "メディア再生用のBambuSourceが正しく登録されていません！「はい」を押して再登録してください。確認が2回表示されます"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "メディア再生用のBambuSourceコンポーネントが見つかりません！OrcaSlicerを再インストールするかコミュニティに助けを求めてください。"
+
+# AI Translated
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "別のインストール環境のBambuSourceを使用しているため、動画が正しく再生されない可能性があります！「はい」を押して修正してください。"
+
+# AI Translated
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "お使いのシステムには、動画再生に必要なGStreamer用のH.264コーデックがありません。(gstreamer1.0-plugins-badまたはgstreamer1.0-libavパッケージをインストールし、Orca Slicerを再起動してみてください)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "フィラ節約"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"
