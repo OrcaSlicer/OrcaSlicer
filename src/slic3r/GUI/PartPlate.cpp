@@ -2099,6 +2099,9 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                 PresetBundle* pb = wxGetApp().preset_bundle;
                 auto* is_imex_opt = pb ? pb->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex") : nullptr;
                 if (is_imex_opt && is_imex_opt->value) {
+                    // Both the mode name and the conflict warning describe the same hovered icon,
+                    // and set_hover_tooltip records one string per frame, so they are composed here.
+                    std::string hover_tip;
                     if (hover_id == (int)PLATE_IMEX_MODE_ID) {
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_hovered_texture);
                         std::string cur = get_imex_mode();
@@ -2111,22 +2114,25 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                         // TRANSLATED string drops or malforms %1%, and an exception escaping here
                         // would take down the frame rather than show a wrong tooltip. The English
                         // literal is the fallback and cannot itself throw.
-                        std::string imex_tip;
                         try {
-                            imex_tip = (boost::format(_u8L("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)")) % cur).str();
+                            hover_tip = (boost::format(_u8L("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)")) % cur).str();
                         } catch (const std::exception&) {
-                            imex_tip = (boost::format("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)") % cur).str();
+                            hover_tip = (boost::format("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)") % cur).str();
                         }
-                        set_hover_tooltip(imex_tip);
                     } else {
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_texture);
                     }
                     // Warning badge: IMEX parallel mode active alongside multi-material objects
                     if (has_imex_multimaterial_conflict()) {
                         render_icon_texture(m_imex_warn_icon, m_partplate_list->m_imex_warn_texture);
+                        // The warning joins the mode line rather than replacing it: one hover
+                        // records one string, and the mode name carries the click affordances.
                         if (hover_id == (int)PLATE_IMEX_MODE_ID)
-                            set_hover_tooltip(_u8L("Warning: this plate uses a parallel IDEX/IQEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly."));
+                            hover_tip += (hover_tip.empty() ? "" : "\n\n") +
+                                         _u8L("Warning: this plate uses a parallel IDEX/IQEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly.");
                     }
+                    if (!hover_tip.empty())
+                        set_hover_tooltip(hover_tip);
                 }
             }
 
