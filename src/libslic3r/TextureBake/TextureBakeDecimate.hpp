@@ -47,10 +47,14 @@ struct DecimateResult
 
 // `locked_faces`: one entry per input triangle; a vertex touching one may neither move nor be
 // removed, which also pins the ring between the two regions.
+// `face_color`: optional, one entry per input triangle. An edge between two faces of different
+// colour is treated as a crease, so the simplified triangles never span a colour boundary and the
+// boundary keeps its place - a per-triangle colour read off the result then has nothing to smear.
 DecimateResult decimate(const TriSoup &geometry, size_t target_triangles, bool harvest_flat = true,
                         double harvest_tol = DECIMATE_DEFAULT_HARVEST_TOL,
                         const std::vector<uint8_t> &locked_faces = {},
-                        const DecimateProgressFn   &on_progress  = {});
+                        const DecimateProgressFn   &on_progress  = {},
+                        const std::vector<int>     &face_color   = {});
 
 } // namespace TextureBake
 } // namespace Slic3r

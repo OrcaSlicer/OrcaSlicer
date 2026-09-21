@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <cassert>
 #include <chrono>
 #include <cmath>
@@ -277,18 +278,26 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
                 col.bytes_per_pixel < 3)
                 return result;
 
-            const size_t n   = size_t(col.cols) * size_t(col.rows);
-            const size_t bpp = size_t(col.bytes_per_pixel);
-            result.width  = int(col.cols);
-            result.height = int(col.rows);
+            const size_t cols = size_t(col.cols), rows = size_t(col.rows), n = cols * rows;
+            const size_t bpp    = size_t(col.bytes_per_pixel);
+            const size_t stride = col.buf.size() / rows;
+            result.width  = int(cols);
+            result.height = int(rows);
             result.pixels.resize(n);
             result.rgb.resize(n * 3);
-            for (size_t i = 0; i < n; ++i) {
-                const uint8_t r = col.buf[i * bpp], g = col.buf[i * bpp + 1], b = col.buf[i * bpp + 2];
-                result.rgb[i * 3]     = r;
-                result.rgb[i * 3 + 1] = g;
-                result.rgb[i * 3 + 2] = b;
-                result.pixels[i] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+            // decode_colored_png() fills its buffer bottom-up (its other callers hand the rows to
+            // OpenGL, which wants them that way); a height map is top-down, like decode_png()'s grey
+            // output, so a colour image has to read the same way up as a grey copy of itself.
+            for (size_t y = 0; y < rows; ++y) {
+                const uint8_t *src = col.buf.data() + (rows - 1 - y) * stride;
+                for (size_t x = 0; x < cols; ++x) {
+                    const size_t  i = y * cols + x;
+                    const uint8_t r = src[x * bpp], g = src[x * bpp + 1], b = src[x * bpp + 2];
+                    result.rgb[i * 3]     = r;
+                    result.rgb[i * 3 + 1] = g;
+                    result.rgb[i * 3 + 2] = b;
+                    result.pixels[i] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+                }
             }
         }
 
@@ -386,6 +395,24 @@ TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer)
         else if (out.sharp_fraction > 0.05f || out.mean_gradient > 20.f) out.pixels_per_edge = 1.5f;
         else if (out.mean_gradient > 8.f)                                out.pixels_per_edge = 2.5f;
         else                                                             out.pixels_per_edge = 4.f;
+
+        // Colour spread: a coarse histogram (8 levels per channel, 64 levels for a grey image) and
+        // the share of the eight fullest bins. Tiles, logos and camouflage put nearly everything in a
+        // handful of bins even with some texture noise; a photograph spreads across hundreds.
+        std::vector<uint32_t> bins(size_t(8 * 8 * 8), 0);
+        const size_t          npx = size_t(w) * size_t(h);
+        if (tex.has_color())
+            for (size_t i = 0; i < npx; ++i)
+                ++bins[size_t(tex.rgb[i * 3] >> 5) * 64 + size_t(tex.rgb[i * 3 + 1] >> 5) * 8 + size_t(tex.rgb[i * 3 + 2] >> 5)];
+        else
+            for (size_t i = 0; i < npx; ++i)
+                ++bins[size_t(tex.pixels[i] >> 2) * 8]; // 64 grey levels, spread over distinct bins
+        std::partial_sort(bins.begin(), bins.begin() + 8, bins.end(), std::greater<uint32_t>());
+        uint64_t top = 0;
+        for (int i = 0; i < 8; ++i)
+            top += bins[size_t(i)];
+        out.flat_share  = float(double(top) / double(npx));
+        out.flat_colors = out.flat_share >= 0.85f;
     }
     std::lock_guard<std::mutex> lock(g_texture_detail_cache.mutex);
     auto &entries = g_texture_detail_cache.entries;
@@ -399,60 +426,40 @@ V2Resolution recommend_v2_resolution(const indexed_triangle_set                 
                                      const std::vector<TextureDisplacementLayer> &layers,
                                      const Transform3d                           &volume_to_world)
 {
-    // BumpMesh's smart resolution, the numbers included: equilateral-cover triangle density, a 16 M
-    // triangle refinement cap taken at 75 %, a 0.5 mm reference relief for the budget.
-    constexpr double TRIS_PER_AREA = 2.309, CAP_TRIANGLES = 16e6 * 0.75;
-    constexpr double EDGE_MIN = 0.05, EDGE_MAX = 5.0;
-    constexpr double BUDGET_MIN = 10e3, BUDGET_MAX = 2000e3, REF_DEPTH = 0.5, MIN_DEPTH = 0.1;
+    // bumpmesh.com's defaults on model load: edge = diagonal / 250 in [0.05, 5] mm, budget 750 k. A
+    // texture-driven variant (BumpMesh's smart resolution) was measured to give better walls on step
+    // textures at 2-10x the bake time and up to 2 M output triangles; the user preferred the site's
+    // defaults. The texel size and sharpness are still reported for the panel.
+    constexpr double EDGE_MIN = 0.05, EDGE_MAX = 5.0, DIAG_DIVISOR = 250.0;
+    constexpr int    BUDGET_K = 750;
 
     V2Resolution out;
-    // The finest layer decides: the smallest detail edge (texel x pixels per edge) across the layers.
-    double detail_edge = std::numeric_limits<double>::max(), depth = 0.0;
+    if (mesh.vertices.empty())
+        return out;
     for (const TextureDisplacementLayer &layer : layers) {
         if (layer.empty() || layer.tiling_scale <= 0.f)
             continue;
         const DecodedHeightTexture &tex = decode_height_texture(layer);
         if (tex.width <= 0)
             continue;
-        const TextureDetail detail = analyze_texture_detail(layer);
-        const double texel = double(layer.tiling_scale) / double(tex.width);
-        const double edge  = texel * double(detail.pixels_per_edge);
-        if (edge < detail_edge) {
-            detail_edge         = edge;
-            out.texel_mm        = float(texel);
-            out.pixels_per_edge = detail.pixels_per_edge;
-            depth               = std::abs(double(layer.depth_mm));
+        const float texel = layer.tiling_scale / float(tex.width);
+        if (out.texel_mm <= 0.f || texel < out.texel_mm) {
+            out.texel_mm        = texel;
+            out.pixels_per_edge = analyze_texture_detail(layer).pixels_per_edge;
         }
     }
-    if (out.texel_mm <= 0.f || mesh.vertices.empty())
-        return out;
-
-    // Surface area and diagonal in world mm: the tile is in world mm and the pipeline refines there.
-    double area = 0.0;
-    Vec3d  bmin = Vec3d::Constant(std::numeric_limits<double>::max()), bmax = -bmin;
-    std::vector<Vec3d> world(mesh.vertices.size());
-    for (size_t i = 0; i < world.size(); ++i) {
-        world[i] = volume_to_world * mesh.vertices[i].cast<double>();
-        bmin = bmin.cwiseMin(world[i]);
-        bmax = bmax.cwiseMax(world[i]);
+    Vec3d bmin = Vec3d::Constant(std::numeric_limits<double>::max()), bmax = -bmin;
+    for (const Vec3f &v : mesh.vertices) {
+        const Vec3d w = volume_to_world * v.cast<double>();
+        bmin = bmin.cwiseMin(w);
+        bmax = bmax.cwiseMax(w);
     }
-    for (const stl_triangle_vertex_indices &t : mesh.indices)
-        area += 0.5 * (world[size_t(t[1])] - world[size_t(t[0])]).cross(world[size_t(t[2])] - world[size_t(t[0])]).norm();
     const double diag = (bmax - bmin).norm();
-
-    const double budget_edge = std::sqrt(TRIS_PER_AREA * area / CAP_TRIANGLES);
-    double       edge        = std::max(detail_edge, budget_edge);
-    out.budget_bound         = budget_edge > detail_edge;
-    const double hi          = std::max(EDGE_MIN, std::min(EDGE_MAX, diag / 50.0));
-    edge                     = std::clamp(edge, EDGE_MIN, hi);
-    edge                     = std::max(EDGE_MIN, std::ceil(edge * 100.0) / 100.0); // up, so the cap holds
-    out.edge_mm              = float(edge);
-
-    const double depth_scale = std::sqrt(REF_DEPTH / std::max(depth, MIN_DEPTH));
-    const double target_edge = double(out.pixels_per_edge) * double(out.texel_mm) * depth_scale;
-    const double raw         = TRIS_PER_AREA * area / (target_edge * target_edge);
-    const double stepped     = std::round(raw / 10e3) * 10e3;
-    out.budget_k             = int(std::clamp(stepped, BUDGET_MIN, BUDGET_MAX) / 1000.0);
+    double       edge = std::clamp(diag / DIAG_DIVISOR, EDGE_MIN, EDGE_MAX);
+    edge              = std::max(EDGE_MIN, std::ceil(edge * 100.0) / 100.0);
+    out.edge_mm       = float(edge);
+    out.budget_k      = BUDGET_K;
+    out.budget_bound  = false;
     return out;
 }
 
@@ -917,6 +924,9 @@ PatchUnwrap compute_patch_unwrap(const indexed_triangle_set &patch, float seam_a
         std::vector<Vec2f>                       uvs;
         std::vector<int>                         to_patch; // chart vertex -> patch vertex
         std::vector<stl_triangle_vertex_indices> indices;  // chart-local
+        // Parallel to `indices`: the patch triangle each one came from. compact_patch_with_map() keeps
+        // the patch's triangle count *and* order, so a compact face index is already a patch face index.
+        std::vector<int>                         faces;
         Vec2f                                    min  = Vec2f::Zero();
         Vec2f                                    size = Vec2f::Zero();
     };
@@ -950,6 +960,7 @@ PatchUnwrap compute_patch_unwrap(const indexed_triangle_set &patch, float seam_a
                 local_tri[i] = compact_to_local[size_t(cv)];
             }
             chart_mesh.indices.push_back(local_tri);
+            chart.faces.push_back(int(f));
         }
         if (chart_mesh.indices.empty())
             continue;
@@ -1043,6 +1054,7 @@ PatchUnwrap compute_patch_unwrap(const indexed_triangle_set &patch, float seam_a
         result.vertex_chart.insert(result.vertex_chart.end(), chart.uvs.size(), c);
         for (const stl_triangle_vertex_indices &tri : chart.indices)
             result.indices.emplace_back(tri[0] + base, tri[1] + base, tri[2] + base);
+        result.source_face.insert(result.source_face.end(), chart.faces.begin(), chart.faces.end());
 
         if (!chart.uvs.empty()) {
             Vec2f sum = Vec2f::Zero();
@@ -1509,6 +1521,41 @@ std::vector<Vec2f> compute_lscm_uvs(const indexed_triangle_set &patch, const Tex
     return per_vertex;
 }
 
+std::vector<Vec2f> compute_lscm_corner_uvs(const indexed_triangle_set &patch, const TextureDisplacementLayer &layer)
+{
+    // Padding 0 and the layer's own seam angle/edges, exactly as compute_lscm_uvs() does - the two must
+    // unwrap identically or a hand placement would land in one place on screen and another in the bake.
+    const PatchUnwrap unwrap = compute_patch_unwrap(patch, layer.lscm_seam_angle_deg, 0.f, layer.lscm_seam_edges);
+    if (unwrap.empty() || unwrap.source_face.size() != unwrap.indices.size())
+        return {};
+
+    PatchUnwrap edited_unwrap = unwrap;
+    apply_lscm_uv_overrides(edited_unwrap, layer.lscm_uv_overrides);
+
+    // No first-copy-wins collapse here: the unwrap's triangles are already per chart, so each corner
+    // simply takes its own chart's copy. A triangle the unwrap dropped (a sliver a chart rejected) keeps
+    // the zero it was initialised with; the callers treat that as "no placement" the same way they treat
+    // an empty result.
+    std::vector<Vec2f> corner(patch.indices.size() * 3, Vec2f::Zero());
+    for (size_t t = 0; t < edited_unwrap.indices.size(); ++t) {
+        const int f = edited_unwrap.source_face[t];
+        if (f < 0 || size_t(f) >= patch.indices.size())
+            continue;
+        const stl_triangle_vertex_indices &tri = edited_unwrap.indices[t];
+        for (int k = 0; k < 3; ++k) {
+            const int uvi = tri[k];
+            if (uvi < 0 || size_t(uvi) >= edited_unwrap.uvs.size())
+                continue;
+            // The island transform is taken against the *unedited* unwrap, whose chart_centroid is the
+            // pivot the UV editor rotates about - same as compute_lscm_uvs().
+            corner[size_t(f) * 3 + size_t(k)] = apply_island_transform(edited_unwrap.uvs[size_t(uvi)],
+                                                                       edited_unwrap.vertex_chart[size_t(uvi)],
+                                                                       unwrap, layer.islands);
+        }
+    }
+    return corner;
+}
+
 namespace {
 // apply_uv_transform()'s per-layer constants, worked out once. Triplanar sampling runs the transform
 // three times per point, and recomputing the rotation's cos/sin and the tiling reciprocal on every one
@@ -1820,7 +1867,7 @@ bool compute_layer_paint_anchor(const indexed_triangle_set                    &b
 // these once, up front, and every layer both projects and displaces along them - so a vertex
 // covered by several layers is pushed along one single, well-defined direction rather than along
 // whatever direction the surface happened to be pointing partway through the stack.
-static std::vector<Vec3f> texture_displacement_vertex_normals(const indexed_triangle_set &its)
+std::vector<Vec3f> texture_displacement_vertex_normals(const indexed_triangle_set &its)
 {
     std::vector<Vec3f> normals(its.vertices.size(), Vec3f::Zero());
     for (const stl_triangle_vertex_indices &tri : its.indices) {
@@ -1943,6 +1990,98 @@ void despeckle_triangle_colors(const indexed_triangle_set &mesh, std::vector<int
 }
 } // namespace
 
+void merge_small_color_regions(const indexed_triangle_set &mesh, std::vector<int> &color, float min_area_mm2)
+{
+    const size_t n = mesh.indices.size();
+    if (min_area_mm2 <= 0.f || color.size() != n)
+        return;
+    const std::vector<Vec3i32> neighbors = its_face_neighbors(mesh);
+    if (neighbors.size() != n)
+        return;
+
+    const auto edge_length = [&mesh](size_t f, int e) {
+        const stl_triangle_vertex_indices &t = mesh.indices[f];
+        return (mesh.vertices[size_t(t[(e + 1) % 3])] - mesh.vertices[size_t(t[e])]).norm();
+    };
+
+    // Connected components of equal colour: `faces` lists every coloured face, component by
+    // component, `start` delimits them. Uncoloured faces (-1) belong to no component and block the
+    // flood, so a region never grows across the paint's border.
+    std::vector<int>    component(n, -1);
+    std::vector<int>    faces;
+    std::vector<size_t> start;
+    std::vector<float>  area;
+    std::vector<int>    stack;
+    faces.reserve(n);
+    for (size_t seed = 0; seed < n; ++seed) {
+        if (color[seed] < 0 || component[seed] >= 0)
+            continue;
+        const int c  = color[seed];
+        const int id = int(area.size());
+        start.push_back(faces.size());
+        area.push_back(0.f);
+        component[seed] = id;
+        stack.push_back(int(seed));
+        while (!stack.empty()) {
+            const size_t f = size_t(stack.back());
+            stack.pop_back();
+            faces.push_back(int(f));
+            const stl_triangle_vertex_indices &t = mesh.indices[f];
+            const Vec3f &a = mesh.vertices[size_t(t[0])], &b = mesh.vertices[size_t(t[1])], &cv = mesh.vertices[size_t(t[2])];
+            area[size_t(id)] += 0.5f * (b - a).cross(cv - a).norm();
+            for (int e = 0; e < 3; ++e) {
+                const int nb = neighbors[f][e];
+                if (nb < 0 || size_t(nb) >= n || component[size_t(nb)] >= 0 || color[size_t(nb)] != c)
+                    continue;
+                component[size_t(nb)] = id;
+                stack.push_back(nb);
+            }
+        }
+    }
+    start.push_back(faces.size());
+
+    // Smallest first, so that when a small island borders a slightly larger one the larger one has
+    // not yet moved and the small one joins whatever the two of them sit in; the larger one then
+    // reads that colour in turn.
+    std::vector<int> order;
+    for (int id = 0; id < int(area.size()); ++id)
+        if (area[size_t(id)] < min_area_mm2)
+            order.push_back(id);
+    std::sort(order.begin(), order.end(), [&area](int l, int r) { return area[size_t(l)] < area[size_t(r)]; });
+
+    std::vector<std::pair<int, float>> weights; // neighbouring colour -> shared edge length
+    for (const int id : order) {
+        const size_t begin = start[size_t(id)], end = start[size_t(id) + 1];
+        const int    own   = color[size_t(faces[begin])];
+        weights.clear();
+        for (size_t k = begin; k < end; ++k) {
+            const size_t f = size_t(faces[k]);
+            for (int e = 0; e < 3; ++e) {
+                const int nb = neighbors[f][e];
+                if (nb < 0 || size_t(nb) >= n)
+                    continue;
+                const int c = color[size_t(nb)]; // read now: an earlier merge may have recoloured it
+                if (c < 0 || c == own)
+                    continue;
+                const float len = edge_length(f, e);
+                auto it = std::find_if(weights.begin(), weights.end(), [c](const std::pair<int, float> &w) { return w.first == c; });
+                if (it == weights.end())
+                    weights.emplace_back(c, len);
+                else
+                    it->second += len;
+            }
+        }
+        if (weights.empty())
+            continue; // bordered only by uncoloured faces (or nothing): stays
+        const int target = std::max_element(weights.begin(), weights.end(),
+                                            [](const std::pair<int, float> &l, const std::pair<int, float> &r) {
+                                                return l.second < r.second;
+                                            })->first;
+        for (size_t k = begin; k < end; ++k)
+            color[size_t(faces[k])] = target;
+    }
+}
+
 namespace {
 
 // Wired to the same layer stack via make_combined_displacement_sampler(), so layers, blend modes and
@@ -1960,8 +2099,13 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     if (!combined)
         return mesh; // nothing decodable to displace with
 
-    // Unpainted triangles are excluded, keeping them out of refinement and pinned thereafter.
+    // Unpainted triangles are excluded, keeping them out of refinement and pinned thereafter. The
+    // paint is finer than that, though: a brush stroke splits a source triangle into pieces, and only
+    // some of them are painted. `painted_pieces` keeps every layer's painted pieces (they lie in the
+    // source surface) so the refined faces can be tested against the paint itself, not against the
+    // source triangle they came from.
     std::vector<uint8_t> excluded(mesh.indices.size(), 1);
+    indexed_triangle_set painted_pieces;
     {
         const TriangleMesh selector_mesh(mesh);
         TriangleSelector   selector(selector_mesh);
@@ -1977,10 +2121,48 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
             for (const int src : piece_src)
                 if (src >= 0 && size_t(src) < excluded.size())
                     excluded[size_t(src)] = 0;
+            // `patch` carries the whole mesh's vertex array (see compact_patch_with_map()); append
+            // only what its pieces reference.
+            std::vector<int>           unused;
+            const indexed_triangle_set compact = compact_patch_with_map(patch, unused);
+            const int                  offset  = int(painted_pieces.vertices.size());
+            painted_pieces.vertices.insert(painted_pieces.vertices.end(), compact.vertices.begin(), compact.vertices.end());
+            for (const stl_triangle_vertex_indices &t : compact.indices)
+                painted_pieces.indices.emplace_back(t[0] + offset, t[1] + offset, t[2] + offset);
         }
     }
-    if (std::all_of(excluded.begin(), excluded.end(), [](uint8_t e) { return e != 0; }))
+    if (std::all_of(excluded.begin(), excluded.end(), [](uint8_t e) { return e != 0; }) || painted_pieces.indices.empty())
         return mesh; // nothing painted
+
+    // Distance to the nearest painted piece. Built once here; the tree is read-only afterwards, so
+    // the parallel stages below share it freely.
+    const AABBTreeIndirect::Tree3f painted_tree =
+        AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(painted_pieces.vertices, painted_pieces.indices);
+    // `foot`/`normal`, when asked for, are the closest point on the painted pieces and that piece's
+    // normal. The pieces lie in the *undisplaced* surface, so for a displaced point those two are the
+    // base position and normal underneath it - the frame colour has to be projected in (see below).
+    const auto painted_closest = [&painted_pieces, &painted_tree](const Vec3f &p, Vec3f *foot, Vec3f *normal) {
+        size_t      hit = 0;
+        Vec3f       hit_point;
+        const float d2 = AABBTreeIndirect::squared_distance_to_indexed_triangle_set(
+            painted_pieces.vertices, painted_pieces.indices, painted_tree, p, hit, hit_point);
+        if (foot != nullptr)
+            *foot = hit_point;
+        if (normal != nullptr && hit < painted_pieces.indices.size()) {
+            const stl_triangle_vertex_indices &t = painted_pieces.indices[hit];
+            const Vec3f &a = painted_pieces.vertices[size_t(t[0])], &b = painted_pieces.vertices[size_t(t[1])],
+                        &c = painted_pieces.vertices[size_t(t[2])];
+            Vec3f       n = (b - a).cross(c - a);
+            const float l = n.norm();
+            *normal = (l > 0.f) ? Vec3f(n / l) : Vec3f::UnitZ();
+        }
+        return d2;
+    };
+    const auto painted_dist2 = [&painted_closest](const Vec3f &p) { return painted_closest(p, nullptr, nullptr); };
+    // Before displacement the queried centroids lie in the same surface as the pieces, so anything
+    // beyond a hair is genuinely outside the paint.
+    constexpr float paint_tol = 0.05f;
+    const auto      painted_at = [&painted_dist2](const Vec3f &p) { return painted_dist2(p) < paint_tol * paint_tol; };
 
     // "Auto" resolution and budget (0 and -1) resolve here, from the texture and the model - the mesh
     // is already in world mm at this point, so no transform is needed.
@@ -2012,6 +2194,30 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     // of vertices that samples both faces' patterns half and half otherwise comes out as a row of
     // notches, since it matches neither face.
     settings.displace.blend_normal_smoothing = 32;
+    // Refined faces are asked against the paint itself, so a stroke narrower than a source triangle
+    // moves only what it covers.
+    // Only when some included source triangle is painted in part: the pieces then cover less area
+    // than the triangles they came from. Whole-triangle paint (the usual case, and every bench) has
+    // nothing to gain from a query per refined face.
+    {
+        const auto area_of = [](const indexed_triangle_set &its) {
+            double a = 0.0;
+            for (const stl_triangle_vertex_indices &t : its.indices)
+                a += 0.5 * double((its.vertices[size_t(t[1])] - its.vertices[size_t(t[0])])
+                                      .cross(its.vertices[size_t(t[2])] - its.vertices[size_t(t[0])]).norm());
+            return a;
+        };
+        double included_area = 0.0;
+        for (size_t t = 0; t < mesh.indices.size(); ++t)
+            if (excluded[t] == 0) {
+                const stl_triangle_vertex_indices &f = mesh.indices[t];
+                included_area += 0.5 * double((mesh.vertices[size_t(f[1])] - mesh.vertices[size_t(f[0])])
+                                                  .cross(mesh.vertices[size_t(f[2])] - mesh.vertices[size_t(f[0])]).norm());
+            }
+        const double pieces_area = area_of(painted_pieces);
+        if (pieces_area < included_area * (1.0 - 1e-4))
+            settings.painted = painted_at;
+    }
 
     TextureBake::DisplaceBounds bounds;
     bounds.min = bounds.max = mesh.vertices.empty() ? Vec3f::Zero() : mesh.vertices.front();
@@ -2039,6 +2245,26 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     // 0 means no simplification, i.e. Bake mode.
     const TextureBake::PipelineMode mode = settings.max_triangles > 0 ? TextureBake::PipelineMode::Export
                                                                       : TextureBake::PipelineMode::Bake;
+    // Colour, when asked for. The sampler is built now so the simplification can see the colour
+    // boundaries: a simplified triangle must not span two colours, or its one colour is wrong over
+    // part of it (half a tile in the neighbour's colour, a tile edge that wanders).
+    const bool              want_color = color != nullptr && color->out_triangle != nullptr && bool(color->quantize);
+    const ColorFieldSampler color_sampler =
+        want_color ? make_combined_color_sampler(mesh, layers, facets_data, color->quantize, color->quantize_pure) : ColorFieldSampler{};
+    //
+    // The *palette* index, not the printed filament. The decimation treats any edge whose two faces
+    // differ as a crease (TextureBakeDecimate.cpp), so it must only ever see where the **perceived**
+    // colour changes - which is exactly what ColorResolveFn's own contract says the interleaving may
+    // never be fed into. Handing it the resolved filament made every Z band boundary a crease: on an
+    // upright wall that is one crease per band, so the collapse ran along those lines and left a stack
+    // of horizontal slivers, each printing in a single filament. Those were the horizontal colour
+    // lines in the baked result, and they also spent the triangle budget drawing a pattern the eye is
+    // meant to blend away. Faces the paint excludes are skipped by the pipeline itself.
+    const TextureBake::ColorSampleFn color_sample =
+        color_sampler ? TextureBake::ColorSampleFn([&color_sampler](const Vec3f &p, const Vec3f &n) {
+                            return color_sampler(p, n);
+                        })
+                      : TextureBake::ColorSampleFn{};
     // The pipeline works on `oriented`, whose winding was reversed above for a mirrored placement, so
     // the stages it records are wound the same way. Note where they start and turn the whole range
     // back afterwards, exactly as the result itself is turned back below.
@@ -2048,7 +2274,7 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         [&progress](const char *, double f) {
             return !progress || progress(std::clamp(int(f * 100.0), 0, 99));
         },
-        debug);
+        debug, color_sample);
     if (debug != nullptr && flip_normals)
         debug->rebase(debug_mark, nullptr, /* flip_winding */ true);
     if (result.canceled || result.geometry.empty())
@@ -2063,44 +2289,56 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
 
     // Colour, per output triangle. The topology is new, so unlike the classic path there is no base
     // triangle to inherit a colour from: each output triangle samples the colour stack at its own
-    // centroid, and takes colour only where the base surface under it is painted - found by the nearest
-    // base triangle, which is never more than the relief depth away. Then the same despeckle and
+    // centroid, and takes colour only where the paint is - measured against the painted pieces, which
+    // an output centroid is never further from than the relief depth. Then the same despeckle and
     // filament resolution as the classic path.
-    if (color != nullptr && color->out_triangle != nullptr && bool(color->quantize)) {
-        std::vector<uint8_t>    out_color(out.indices.size(), 0);
-        const ColorFieldSampler sampler = make_combined_color_sampler(mesh, layers, facets_data, color->quantize);
+    if (want_color) {
+        std::vector<uint8_t>     out_color(out.indices.size(), 0);
+        const ColorFieldSampler &sampler = color_sampler;
         if (sampler) {
             const bool all_painted = std::none_of(excluded.begin(), excluded.end(), [](uint8_t e) { return e != 0; });
-            AABBTreeIndirect::Tree3f tree;
-            if (!all_painted)
-                tree = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(mesh.vertices, mesh.indices);
+            float      max_depth   = 0.f;
+            for (const TextureDisplacementLayer &layer : layers)
+                max_depth = std::max(max_depth, std::abs(layer.depth_mm));
+            const float relief_tol = max_depth + paint_tol;
             std::vector<int> palette(out.indices.size(), -1);
             tbb::parallel_for(tbb::blocked_range<size_t>(0, out.indices.size()), [&](const tbb::blocked_range<size_t> &r) {
                 for (size_t i = r.begin(); i < r.end(); ++i) {
                     const stl_triangle_vertex_indices &t = out.indices[i];
                     const Vec3f &a = out.vertices[size_t(t[0])], &b = out.vertices[size_t(t[1])], &c = out.vertices[size_t(t[2])];
                     const Vec3f  centroid = (a + b + c) / 3.f;
-                    if (!all_painted) {
-                        size_t hit = 0;
-                        Vec3f  hit_point;
-                        AABBTreeIndirect::squared_distance_to_indexed_triangle_set(mesh.vertices, mesh.indices, tree,
-                                                                                    centroid, hit, hit_point);
-                        if (hit >= excluded.size() || excluded[hit] != 0)
-                            continue;
-                    }
-                    Vec3f       n = (b - a).cross(c - a);
-                    const float l = n.norm();
-                    n = (l > 0.f) ? Vec3f(n / l) : Vec3f::UnitZ();
-                    palette[i] = sampler(centroid, n);
+                    // Sample on the *base* surface under this face, not on the relief. The projection
+                    // is a function of position and normal, and the displacement has moved both: the
+                    // triplanar blend weights three axis planes by |n|^4, so a face tilted ~45 degrees
+                    // away from its base normal reads the image half through an unrelated plane. The
+                    // patch border is a ring of exactly such faces - the relief ramps to zero there -
+                    // which is the coloured fringe around the border, and the steep interior slopes
+                    // streak for the same reason. The classic path samples the base patch for this very
+                    // reason; this path was the inconsistent one.
+                    Vec3f       foot = centroid, base_n = Vec3f::UnitZ();
+                    const float d2   = painted_closest(centroid, &foot, &base_n);
+                    if (!all_painted && d2 >= relief_tol * relief_tol)
+                        continue;
+                    palette[i] = sampler(foot, base_n);
                 }
             });
-            despeckle_triangle_colors(out, palette, color->despeckle_passes);
+            // The despeckle filter is for a fine, uniform mesh, where one facet flipping colour is
+            // noise. A simplified mesh is neither: its triangles are as large as the colour regions
+            // themselves and already end on the colour boundaries, so a majority vote among three
+            // neighbours would repaint whole features. Bake mode (no simplification) keeps it.
+            const bool simplified = result.face_parent_id.empty();
+            despeckle_triangle_colors(out, palette, simplified ? 0 : color->despeckle_passes);
+            merge_small_color_regions(out, palette, color->min_color_region_mm2);
             for (size_t i = 0; i < out.indices.size(); ++i) {
                 if (palette[i] < 0)
                     continue;
                 const stl_triangle_vertex_indices &t = out.indices[i];
-                const Vec3f centroid = (out.vertices[size_t(t[0])] + out.vertices[size_t(t[1])] + out.vertices[size_t(t[2])]) / 3.f;
-                const int   filament = color->resolve ? color->resolve(palette[i], centroid) : palette[i];
+                const Vec3f &a = out.vertices[size_t(t[0])], &b = out.vertices[size_t(t[1])], &c = out.vertices[size_t(t[2])];
+                const Vec3f  centroid = (a + b + c) / 3.f;
+                Vec3f        normal   = (b - a).cross(c - a);
+                const float  nl       = normal.norm();
+                normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
+                const int filament = color->resolve ? color->resolve(palette[i], centroid, normal) : palette[i];
                 if (filament >= 0)
                     out_color[i] = uint8_t(std::min(filament + 1, 255));
             }
@@ -2278,6 +2516,10 @@ static indexed_triangle_set build_texture_displacement_in_place(
         selector_dirty = true;
 
         const bool       color_this_layer = want_color && layer->color_enabled;
+        // A flat-colour image is matched against the filaments alone (see TextureColorRequest).
+        const ColorQuantizeFn &layer_quantize =
+            (color_this_layer && color->quantize_pure && analyze_texture_detail(*layer).flat_colors) ? color->quantize_pure
+                                                                                                     : color->quantize;
         std::vector<int> patch_source; // sub-triangle -> base mesh triangle, only built when colouring
         const indexed_triangle_set patch =
             selector.get_facets_strict(EnforcerBlockerType::ENFORCER, color_this_layer ? &patch_source : nullptr);
@@ -2302,34 +2544,11 @@ static indexed_triangle_set build_texture_displacement_in_place(
             }
         const bool pin_boundary = !options.displace_border;
 
-        // Only the Cylindrical/Spherical methods need these; Triplanar blends each vertex's own
-        // normal and LSCM solves the patch globally.
-        Vec3f average_normal = Vec3f::Zero();
-        Vec3f patch_centroid = Vec3f::Zero();
-        int   patch_vertex_count = 0;
-        for (const stl_triangle_vertex_indices &tri : patch.indices)
-            for (int i = 0; i < 3; ++i) {
-                const int vi = tri[i];
-                patch_centroid += patch.vertices[size_t(vi)];
-                ++patch_vertex_count;
-                // A brush stroke that split a triangle appends new vertices past the base mesh's own
-                // (see the get_facets_strict() note above); vertex_normals is sized to the base mesh,
-                // so those split indices must be skipped here or this reads out of bounds. The main
-                // displacement loop below guards the same way.
-                if (vi < int(vertex_normals.size()))
-                    average_normal += vertex_normals[size_t(vi)];
-            }
-        average_normal = (average_normal.norm() > 1e-8f) ? Vec3f(average_normal.normalized()) : Vec3f::UnitZ();
-        patch_centroid = (patch_vertex_count > 0) ? Vec3f(patch_centroid / float(patch_vertex_count)) : Vec3f::Zero();
-
-        // Cylinder axis auto-picked as the world axis *least* aligned with the average normal
-        // (perpendicular to the outward radial normal, as a cylinder's own axis would be).
-        Vec3f       patch_axis = Vec3f::UnitZ();
-        const Vec3f an         = average_normal.cwiseAbs();
-        if (an.x() <= an.y() && an.x() <= an.z())
-            patch_axis = Vec3f::UnitX();
-        else if (an.y() <= an.x() && an.y() <= an.z())
-            patch_axis = Vec3f::UnitY();
+        // Only the Cylindrical/Spherical methods need the centroid and axis; Triplanar blends each
+        // vertex's own normal and LSCM solves the patch globally. average_normal is also the fallback
+        // normal the colour pass below uses for a degenerate triangle.
+        Vec3f average_normal, patch_centroid, patch_axis;
+        texture_displacement_patch_frame(patch, vertex_normals, patch_centroid, patch_axis, average_normal);
 
         // A real unwrap of the whole patch, computed once here rather than per vertex - it is a
         // per-chart solve over the whole patch, not a per-point formula. Cached, so repeating this
@@ -2337,6 +2556,15 @@ static indexed_triangle_set build_texture_displacement_in_place(
         const std::vector<Vec2f> lscm_uvs = (layer->projection_method == TextureProjectionMethod::LSCM) ?
                                                  compute_lscm_uvs(patch, *layer) :
                                                  std::vector<Vec2f>{};
+        // The colour pass below samples per *triangle*, so it takes the per-corner unwrap instead: the
+        // per-vertex collapse above would hand a triangle at a seam the island layout did not join its
+        // neighbour's placement, painting one triangle per face from the wrong part of the texture.
+        // (The displacement itself stays on lscm_uvs - a vertex has one position, so one height.)
+        const std::vector<Vec2f> lscm_corner_uvs = (layer->projection_method == TextureProjectionMethod::LSCM) ?
+                                                        compute_lscm_corner_uvs(patch, *layer) :
+                                                        std::vector<Vec2f>{};
+        const bool               corner_uv_ok    = !lscm_corner_uvs.empty() &&
+                                                   lscm_corner_uvs.size() == patch.indices.size() * 3;
 
         // Colour, if this layer carries any. Area-weighted over each base triangle's *painted* part,
         // so a triangle the brush only clipped a corner off takes the colour of that corner rather
@@ -2371,7 +2599,11 @@ static indexed_triangle_set build_texture_displacement_in_place(
                         const int vi = t[k];
                         if (vi < int(vertex_normals.size()))
                             n += vertex_normals[size_t(vi)];
-                        if (have_uv && size_t(vi) < lscm_uvs.size())
+                        if (!have_uv)
+                            continue;
+                        if (corner_uv_ok)
+                            uv += lscm_corner_uvs[j * 3 + size_t(k)];
+                        else if (size_t(vi) < lscm_uvs.size())
                             uv += lscm_uvs[size_t(vi)];
                         else
                             have_uv = false;
@@ -2388,7 +2620,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
                 }
                 for (size_t i = 0; i < mesh.indices.size(); ++i)
                     if (sum_area[i] > 0.f) {
-                        const int idx = color->quantize(sum[i] / sum_area[i]);
+                        const int idx = layer_quantize(sum[i] / sum_area[i]);
                         // A quantizer that declines this colour leaves whatever a lower layer put
                         // there, rather than punching a hole in it.
                         if (idx >= 0)
@@ -2548,15 +2780,19 @@ static indexed_triangle_set build_texture_displacement_in_place(
         // to keep, and interleaving before the filter would have the filter treat two halves of one
         // blended colour as a disagreement.
         despeckle_triangle_colors(mesh, triangle_palette, color->despeckle_passes);
+        merge_small_color_regions(mesh, triangle_palette, color->min_color_region_mm2);
 
         std::vector<uint8_t> out_color(mesh.indices.size(), 0);
         for (size_t i = 0; i < mesh.indices.size(); ++i) {
             if (triangle_palette[i] < 0)
                 continue;
             const stl_triangle_vertex_indices &t = mesh.indices[i];
-            const Vec3f centroid = (mesh.vertices[size_t(t[0])] + mesh.vertices[size_t(t[1])] +
-                                    mesh.vertices[size_t(t[2])]) / 3.f;
-            const int filament = color->resolve ? color->resolve(triangle_palette[i], centroid)
+            const Vec3f &a = mesh.vertices[size_t(t[0])], &b = mesh.vertices[size_t(t[1])], &c = mesh.vertices[size_t(t[2])];
+            const Vec3f  centroid = (a + b + c) / 3.f;
+            Vec3f        normal   = (b - a).cross(c - a);
+            const float  nl       = normal.norm();
+            normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
+            const int filament = color->resolve ? color->resolve(triangle_palette[i], centroid, normal)
                                                 : triangle_palette[i];
             if (filament >= 0)
                 out_color[i] = uint8_t(std::min(filament + 1, 255));
@@ -2613,6 +2849,32 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     for (Vec3f &v : out.vertices)
         v = (to_local * v.cast<double>()).cast<float>();
     return out;
+}
+
+void texture_displacement_patch_frame(const indexed_triangle_set &patch, const std::vector<Vec3f> &vertex_normals,
+                                      Vec3f &center, Vec3f &axis, Vec3f &average_normal)
+{
+    Vec3f normal_sum   = Vec3f::Zero();
+    Vec3f centroid_sum = Vec3f::Zero();
+    int   count        = 0;
+    for (const stl_triangle_vertex_indices &tri : patch.indices)
+        for (int i = 0; i < 3; ++i) {
+            const int vi = tri[i];
+            centroid_sum += patch.vertices[size_t(vi)];
+            ++count;
+            // A brush stroke that split a triangle appends new vertices past the base mesh's own, and
+            // vertex_normals is sized to the base mesh, so those indices must be skipped here.
+            if (vi < int(vertex_normals.size()))
+                normal_sum += vertex_normals[size_t(vi)];
+        }
+    average_normal = (normal_sum.norm() > 1e-8f) ? Vec3f(normal_sum.normalized()) : Vec3f::UnitZ();
+    center         = (count > 0) ? Vec3f(centroid_sum / float(count)) : Vec3f::Zero();
+
+    // The world axis least aligned with the average normal - perpendicular to the outward radial
+    // normal, as a cylinder's own axis would be.
+    const Vec3f an = average_normal.cwiseAbs();
+    axis = (an.x() <= an.y() && an.x() <= an.z()) ? Vec3f::UnitX() :
+           (an.y() <= an.x() && an.y() <= an.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
 }
 
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world)
@@ -2704,11 +2966,89 @@ void smooth_mesh_vertices(indexed_triangle_set &mesh, const std::vector<uint8_t>
 namespace {
 // One decoded texture + placement per sampleable layer, in blend (slot) order. Held by shared_ptr so
 // the returned closure owns it for as long as the subdivider keeps calling back.
+// An unwrap turned into something a *point* sampler can use. LSCM has no formula from position to
+// uv - it is a per-triangle map - so a point is placed on the painted patch (the nearest patch
+// triangle, and its barycentric coordinates there) and the uv is interpolated from that triangle's own
+// per-corner uvs. Exact for a point on the base surface, which is where both samplers are queried: the
+// displacement samples refined positions before moving them, and the colour pass samples the foot
+// point on the painted pieces.
+struct LscmLookup {
+    indexed_triangle_set    patch;  // the layer's painted patch, as the unwrap was solved on
+    AABBTreeIndirect::Tree3f tree;
+    std::vector<Vec2f>      corner; // compute_lscm_corner_uvs(patch, layer)
+
+    // False when `pos` is not on this layer's patch (farther than `tol`): there is no uv there, so the
+    // layer contributes nothing - the same as a non-tiled texture outside its placement.
+    bool uv_at(const Vec3f &pos, float tol, Vec2f &uv) const
+    {
+        size_t      hit = 0;
+        Vec3f       foot;
+        const float d2 = AABBTreeIndirect::squared_distance_to_indexed_triangle_set(patch.vertices, patch.indices, tree,
+                                                                                    pos, hit, foot);
+        if (d2 < 0.f || d2 > tol * tol || hit >= patch.indices.size())
+            return false;
+        const stl_triangle_vertex_indices &t = patch.indices[hit];
+        const Vec3f &a = patch.vertices[size_t(t[0])], &b = patch.vertices[size_t(t[1])], &c = patch.vertices[size_t(t[2])];
+        const Vec3f  e0 = b - a, e1 = c - a, ep = foot - a;
+        const float  d00 = e0.dot(e0), d01 = e0.dot(e1), d11 = e1.dot(e1), dp0 = ep.dot(e0), dp1 = ep.dot(e1);
+        const float  den = d00 * d11 - d01 * d01;
+        float        w1 = 1.f / 3.f, w2 = 1.f / 3.f; // a degenerate triangle takes its centroid's uv
+        if (std::abs(den) > 1e-20f) {
+            w1 = (d11 * dp0 - d01 * dp1) / den;
+            w2 = (d00 * dp1 - d01 * dp0) / den;
+        }
+        const Vec2f *c3 = &corner[hit * 3];
+        uv = (1.f - w1 - w2) * c3[0] + w1 * c3[1] + w2 * c3[2];
+        return true;
+    }
+};
+
+// A layer's painted patch as a point-in-region test. Every layer is sampled on its own paint only - the
+// analytic projections included: unlike an unwrap they are defined everywhere, so without this every layer's
+// relief was stacked over every other layer's painted area, and the top layer's texture showed on all of them.
+struct PatchRegion {
+    indexed_triangle_set     patch;
+    AABBTreeIndirect::Tree3f tree;
+
+    bool contains(const Vec3f &pos, float tol) const
+    {
+        size_t      hit = 0;
+        Vec3f       foot;
+        const float d2 = AABBTreeIndirect::squared_distance_to_indexed_triangle_set(patch.vertices, patch.indices, tree,
+                                                                                    pos, hit, foot);
+        return d2 >= 0.f && d2 <= tol * tol;
+    }
+};
+
 struct PreparedLayer {
     DecodedHeightTexture     tex;
     TextureDisplacementLayer layer;  // a copy of the params (depth/tiling/rotation/offset/blend/...)
     Vec3f                    center; // patch centroid, for Cylindrical/Spherical
     Vec3f                    axis;   // cylinder axis, for Cylindrical
+    // Unwrap layers only; null when the unwrap failed, in which case sampling falls through to the
+    // layer's analytic fallback exactly as build_texture_displacement()'s classic path does.
+    std::shared_ptr<const LscmLookup> lscm;
+    // The painted patch of a layer without an unwrap lookup (the unwrap's own lookup already stops at its patch).
+    // Null when the paint covers the whole mesh, where every point is on it.
+    std::shared_ptr<const PatchRegion> region;
+
+    // The uv to hand sample_layer_height()/sample_layer_color(): nullptr for every analytic projection
+    // (they project `pos` themselves). False means `pos` is off this layer's paint and the layer must be
+    // skipped.
+    bool lscm_uv(const Vec3f &pos, Vec2f &uv, const Vec2f *&out) const
+    {
+        out = nullptr;
+        // Queries lie on the base surface, so anything beyond a hair is off this layer's patch.
+        constexpr float ON_PATCH_TOL = 0.05f;
+        if (region && !region->contains(pos, ON_PATCH_TOL))
+            return false;
+        if (!lscm)
+            return true;
+        if (!lscm->uv_at(pos, ON_PATCH_TOL, uv))
+            return false;
+        out = &uv;
+        return true;
+    }
 };
 
 // Shared by both point samplers, so the height field and the colour field can never disagree about
@@ -2731,10 +3071,12 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
 
     const std::vector<Vec3f> vertex_normals = texture_displacement_vertex_normals(base_mesh);
     const TriangleMesh       selector_mesh(base_mesh);
+    const float              mesh_area = area_3d(base_mesh);
 
     for (const TextureDisplacementLayer *layer : ordered) {
-        if (layer->projection_method == TextureProjectionMethod::LSCM)
-            continue; // no per-point UV -> not sampleable here (caller falls back to uniform for these)
+        // Unwrap layers used to be skipped here ("no per-point UV"). That made the default pipeline
+        // bake an unwrap layer as nothing at all - and since the job then clears the baked layers'
+        // paint, the painted region simply vanished. They get an LscmLookup below instead.
         if (need_color && !layer->color_enabled)
             continue;
         const TriangleSelector::TriangleSplittingData &data = facets_data[size_t(layer->slot)];
@@ -2750,30 +3092,34 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
         if (patch.indices.empty())
             continue;
 
-        // Patch centroid + cylinder axis, computed exactly as build_texture_displacement() does, so a
+        // Patch centroid + cylinder axis, shared with build_texture_displacement() so a
         // Cylindrical/Spherical layer's detach criterion matches the geometry the bake will produce.
-        Vec3f average_normal = Vec3f::Zero();
-        Vec3f centroid       = Vec3f::Zero();
-        int   count          = 0;
-        for (const stl_triangle_vertex_indices &tri : patch.indices)
-            for (int i = 0; i < 3; ++i) {
-                const int vi = tri[i];
-                centroid += patch.vertices[size_t(vi)];
-                ++count;
-                if (vi < int(vertex_normals.size()))
-                    average_normal += vertex_normals[size_t(vi)];
+        Vec3f centroid, axis, average_normal;
+        texture_displacement_patch_frame(patch, vertex_normals, centroid, axis, average_normal);
+
+        std::shared_ptr<const LscmLookup> lscm;
+        if (layer->projection_method == TextureProjectionMethod::LSCM) {
+            // Solved on the very patch the classic path and the GUI solve it on (same geometry, seam
+            // angle and edges), so it hits the unwrap cache and lands exactly where the UV editor
+            // shows it, hand-placed islands and UV edits included.
+            auto l    = std::make_shared<LscmLookup>();
+            l->corner = compute_lscm_corner_uvs(patch, *layer);
+            if (l->corner.size() == patch.indices.size() * 3) {
+                l->patch = patch;
+                l->tree  = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(l->patch.vertices, l->patch.indices);
+                lscm     = std::move(l);
             }
-        average_normal = (average_normal.norm() > 1e-8f) ? Vec3f(average_normal.normalized()) : Vec3f::UnitZ();
-        centroid       = (count > 0) ? Vec3f(centroid / float(count)) : Vec3f::Zero();
+        }
 
-        Vec3f       axis = Vec3f::UnitZ();
-        const Vec3f an   = average_normal.cwiseAbs();
-        if (an.x() <= an.y() && an.x() <= an.z())
-            axis = Vec3f::UnitX();
-        else if (an.y() <= an.x() && an.y() <= an.z())
-            axis = Vec3f::UnitY();
+        std::shared_ptr<const PatchRegion> region;
+        if (!lscm && area_3d(patch) < 0.9999f * mesh_area) {
+            auto r   = std::make_shared<PatchRegion>();
+            r->patch = patch;
+            r->tree  = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(r->patch.vertices, r->patch.indices);
+            region   = std::move(r);
+        }
 
-        prepared->push_back({ tex, *layer, centroid, axis });
+        prepared->push_back({ tex, *layer, centroid, axis, std::move(lscm), std::move(region) });
     }
     return prepared;
 }
@@ -2782,22 +3128,34 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
 ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set                  &base_mesh,
                                               const std::vector<TextureDisplacementLayer> &layers,
                                               const TextureDisplacementFacetsData         &facets_data,
-                                              ColorQuantizeFn                              quantize)
+                                              ColorQuantizeFn                              quantize,
+                                              ColorQuantizeFn                              quantize_pure)
 {
     if (!quantize)
         return nullptr;
     auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ true);
     if (prepared->empty())
         return nullptr;
+    // Per layer: a flat-colour image is matched against the filaments alone, when that quantizer
+    // was supplied; anything else may use the mixes. Decided once here, not per sample.
+    auto pure = std::make_shared<std::vector<uint8_t>>(prepared->size(), 0);
+    if (quantize_pure)
+        for (size_t i = 0; i < prepared->size(); ++i)
+            (*pure)[i] = analyze_texture_detail((*prepared)[i].layer).flat_colors ? 1 : 0;
 
-    return [prepared, quantize = std::move(quantize)](const Vec3f &pos, const Vec3f &normal) -> int {
+    return [prepared, pure, quantize = std::move(quantize), quantize_pure = std::move(quantize_pure)](const Vec3f &pos, const Vec3f &normal) -> int {
         // Last one wins: `prepared` is in ascending slot order and the bake lets a higher layer
         // overwrite a lower one's colour, so the sampler has to resolve overlaps the same way.
         int result = -1;
-        for (const PreparedLayer &p : *prepared) {
+        for (size_t i = 0; i < prepared->size(); ++i) {
+            const PreparedLayer &p = (*prepared)[i];
+            Vec2f        uv;
+            const Vec2f *lscm_uv = nullptr;
+            if (!p.lscm_uv(pos, uv, lscm_uv))
+                continue;
             Vec3f rgb;
-            if (sample_layer_color(p.tex, p.layer, pos, normal, rgb, p.center, p.axis, nullptr))
-                if (const int idx = quantize(rgb); idx >= 0)
+            if (sample_layer_color(p.tex, p.layer, pos, normal, rgb, p.center, p.axis, lscm_uv))
+                if (const int idx = ((*pure)[i] ? quantize_pure : quantize)(rgb); idx >= 0)
                     result = idx;
         }
         return result;
@@ -2816,7 +3174,11 @@ HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set
         float total = 0.f;
         bool  any   = false;
         for (const PreparedLayer &p : *prepared) {
-            const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, nullptr);
+            Vec2f        uv;
+            const Vec2f *lscm_uv = nullptr;
+            if (!p.lscm_uv(pos, uv, lscm_uv))
+                continue; // off this unwrap layer's patch: no uv, so no contribution
+            const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, lscm_uv);
             const float sign     = p.layer.invert ? -1.f : 1.f;
             const float signed_h = (h - p.layer.midlevel) * p.layer.depth_mm * sign;
             // The first (lowest) sampleable layer folds additively; the rest use their own blend mode -
@@ -3264,10 +3626,10 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
                 p = std::max(p, ll / color_sq);
         }
         // The band straddling the paint's edge, refined by plain edge length. Deliberately *not* run
-        // through detail_error(): outside the paint the sampler still reports full relief (it has no
-        // per-point paint test), so the chord test there would chase texture detail on a surface the
-        // bake is going to leave flat. Length alone is what this band needs - the error it is fixing
-        // is the size of the triangles spanning the displacement step, not the curvature of anything.
+        // through detail_error(): the sampler reports no relief off the paint, so across its edge the
+        // chord test sees a step and would chase it down to the length floor. Length alone is what this
+        // band needs - the error it is fixing is the size of the triangles spanning the displacement
+        // step, not the curvature of anything.
         if ((flags & REFINE_BORDER) && border_sq > 0.f)
             p = std::max(p, ll / border_sq);
         return p;

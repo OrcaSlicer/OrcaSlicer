@@ -20,6 +20,15 @@ uniform vec3  tex_anchor; // the volume's origin in world space
 uniform float rotation_rad;
 uniform vec2  uv_offset;
 uniform bool  use_vertex_uv;
+// The in-shader projection (0 Triplanar, 1 Cylindrical, 2 Spherical) and the painted patch's frame the
+// wrapping ones wrap around, in the texture frame - the same uniforms, and the same formulas, as
+// texture_displacement_bump.fs, so the checker reports the projection the bake will actually use.
+uniform int   projection_mode;
+uniform vec3  patch_center;
+uniform vec3  patch_axis;
+// Height map width / height, as apply_uv_transform() applies it. Without it the checker diverged from
+// the bake for any non-square texture, in every in-shader projection.
+uniform float tex_aspect;
 
 varying vec3  clipping_planes_dots;
 varying vec4  model_pos;
@@ -27,14 +36,46 @@ varying vec4  world_pos;
 varying float distortion;
 varying vec2  vertex_uv;
 
+void cylinder_frame(out vec3 up, out vec3 right, out vec3 fwd)
+{
+    up = (length(patch_axis) > 1e-8) ? normalize(patch_axis) : vec3(0.0, 0.0, 1.0);
+    vec3 arbitrary = (abs(up.z) < 0.9) ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    right = normalize(cross(up, arbitrary));
+    fwd   = normalize(cross(right, up));
+}
+
+// Term for term libslic3r's project_planar() / project_cylindrical() / project_spherical(), in mm.
+vec2 projection_raw(vec3 p, vec3 n)
+{
+    if (projection_mode == 1) {
+        vec3  up, right, fwd;
+        cylinder_frame(up, right, fwd);
+        vec3  rel = p - patch_center;
+        float x   = dot(rel, right);
+        float y   = dot(rel, fwd);
+        return vec2(atan(y, x) * sqrt(x * x + y * y), dot(rel, up));
+    }
+    if (projection_mode == 2) {
+        vec3  rel    = p - patch_center;
+        float radius = length(rel);
+        if (radius < 1e-8)
+            return vec2(0.0);
+        vec3 dir = rel / radius;
+        return vec2(atan(dir.y, dir.x), asin(clamp(dir.z, -1.0, 1.0))) * radius;
+    }
+    vec3 an = abs(n);
+    return (an.x >= an.y && an.x >= an.z) ? p.yz : ((an.y >= an.x && an.y >= an.z) ? p.xz : p.xy);
+}
+
 vec2 project_uv(vec3 p, vec3 n)
 {
-    vec3 an = abs(n);
-    vec2 planar = (an.x >= an.y && an.x >= an.z) ? p.yz : ((an.y >= an.x && an.y >= an.z) ? p.xz : p.xy);
+    vec2 planar = projection_raw(p, n);
     planar *= (tiling_scale > 1e-6) ? (1.0 / tiling_scale) : 1.0;
     float cs = cos(rotation_rad);
     float sn = sin(rotation_rad);
-    return vec2(planar.x * cs - planar.y * sn, planar.x * sn + planar.y * cs) + uv_offset;
+    vec2 r = vec2(planar.x * cs - planar.y * sn, planar.x * sn + planar.y * cs);
+    r.y *= tex_aspect; // after the rotation, so the rotation stays a rotation rather than a shear
+    return r + uv_offset;
 }
 
 vec3 heatmap(float t)

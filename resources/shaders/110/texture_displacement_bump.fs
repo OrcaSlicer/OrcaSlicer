@@ -28,6 +28,20 @@ uniform vec4 uniform_color;
 uniform vec3      palette_lab[64];
 uniform vec3      palette_rgb[64];
 uniform int       palette_count;
+uniform bool      pure_only;      // match against single filaments only (flat-colour image)
+// How each entry prints. A pure entry is one filament (a == b); a mix interleaves filaments a and b,
+// num parts of a in every den, and the print shows that interleave rather than the entry's average
+// colour. The fragment resolves it exactly as GLGizmoTextureDisplacement::make_mix_resolver() does
+// per triangle on the CPU, so the preview shows the pattern the bake will print.
+uniform int       palette_a[64];
+uniform int       palette_b[64];
+uniform int       palette_num[64];
+uniform int       palette_den[64];
+uniform vec3      filament_rgb[16];
+uniform int       filament_count;
+uniform int       mix_mode;     // ColorMixMode: 0 Z bands, 1 XY dither, 2 auto
+uniform float     layer_height; // mm; one Z band per print layer
+uniform float     dither_cell;  // mm; one XY dither cell
 uniform sampler2D color_tex;     // the layer's colour image, sampled at the same uv as the height
 uniform bool      has_color_tex;
 uniform bool volume_mirrored;
@@ -53,6 +67,11 @@ uniform bool       use_vertex_uv;
 // 140 variant. Identity when nothing is dragged.
 uniform vec4       island_delta_lin;
 uniform vec2       island_delta_tr;
+// In-shader projection (0 Triplanar, 1 Cylindrical, 2 Spherical) and the painted patch's own frame the
+// two wrapping ones wrap around, in the texture frame; see the 140 variant.
+uniform int        projection_mode;
+uniform vec3       patch_center;
+uniform vec3       patch_axis;
 
 varying vec3  clipping_planes_dots;
 varying vec4  model_pos;
@@ -61,8 +80,71 @@ varying float weight;
 varying float island_active;
 varying vec2  vertex_uv;
 
-void projection_axes(vec3 n, out vec3 t, out vec3 b)
+// The cylinder's own frame, built exactly as libslic3r's project_cylindrical() builds it - including
+// the handedness, which comes out left-handed for an axis of +Z. Copied rather than "corrected", so
+// the preview wraps the texture the same way round as the bake.
+void cylinder_frame(out vec3 up, out vec3 right, out vec3 fwd)
 {
+    up = (length(patch_axis) > 1e-8) ? normalize(patch_axis) : vec3(0.0, 0.0, 1.0);
+    vec3 arbitrary = (abs(up.z) < 0.9) ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    right = normalize(cross(up, arbitrary));
+    fwd   = normalize(cross(right, up));
+}
+
+// The raw, millimetre-valued projection of `p` (a position in the texture frame), before the layer's
+// tiling/rotation/aspect/offset - a term-for-term transcription of libslic3r's project_planar(),
+// project_cylindrical() and project_spherical(). `n` is read by the planar mode only.
+vec2 projection_raw(vec3 p, vec3 n)
+{
+    if (projection_mode == 1) {                 // Cylindrical: (arc length around, distance along)
+        vec3  up, right, fwd;
+        cylinder_frame(up, right, fwd);
+        vec3  rel = p - patch_center;
+        float x   = dot(rel, right);
+        float y   = dot(rel, fwd);
+        return vec2(atan(y, x) * sqrt(x * x + y * y), dot(rel, up));
+    }
+    if (projection_mode == 2) {                 // Spherical: (longitude, latitude) * radius
+        vec3  rel    = p - patch_center;
+        float radius = length(rel);
+        if (radius < 1e-8)
+            return vec2(0.0);
+        vec3 dir = rel / radius;
+        return vec2(atan(dir.y, dir.x), asin(clamp(dir.z, -1.0, 1.0))) * radius;
+    }
+    vec3 an = abs(n);                           // Triplanar: drop the dominant normal axis
+    return (an.x >= an.y && an.x >= an.z) ? p.yz : ((an.y >= an.x && an.y >= an.z) ? p.xz : p.xy);
+}
+
+// The two surface directions projection_raw()'s u and v run along at `p`, plus how many raw units one
+// millimetre of travel along each of them covers - the factor that turns the uv-space height gradient
+// into a real mm-per-mm slope. For the planar projection both axes are world axes and the factor is 1.
+// Cylindrical and Spherical are arc-length parametrized, so it is 1 there too, except for the
+// spherical longitude, whose circle shrinks by cos(latitude) toward the poles. Exact where the surface
+// really is the cylinder/sphere the projection assumes - the same assumption libslic3r makes.
+void projection_axes(vec3 p, vec3 n, out vec3 t, out vec3 b, out vec2 units_per_mm)
+{
+    units_per_mm = vec2(1.0, 1.0);
+    if (projection_mode == 1) {
+        vec3 up, right, fwd;
+        cylinder_frame(up, right, fwd);
+        vec3  rel = p - patch_center;
+        vec2  xy  = vec2(dot(rel, right), dot(rel, fwd));
+        float r   = length(xy);
+        t = (r > 1e-6) ? (fwd * xy.x - right * xy.y) / r : right; // circumferential: u runs along it
+        b = up;                                                   // v is the distance along the axis
+        return;
+    }
+    if (projection_mode == 2) {
+        vec3  rel = p - patch_center;
+        float r   = length(rel);
+        vec3  dir = (r > 1e-8) ? rel / r : vec3(0.0, 0.0, 1.0);
+        float c   = length(dir.xy);                               // cos(latitude)
+        t = (c > 1e-6) ? vec3(-dir.y, dir.x, 0.0) / c : vec3(1.0, 0.0, 0.0);
+        b = cross(dir, t);                                        // increasing latitude, unit length
+        units_per_mm = vec2(1.0 / max(c, 1e-3), 1.0);
+        return;
+    }
     vec3 an = abs(n);
     if (an.x >= an.y && an.x >= an.z) {        // planar = p.yz
         t = vec3(0.0, 1.0, 0.0);
@@ -78,8 +160,7 @@ void projection_axes(vec3 n, out vec3 t, out vec3 b)
 
 vec2 project_uv(vec3 p, vec3 n)
 {
-    vec3 an = abs(n);
-    vec2 planar = (an.x >= an.y && an.x >= an.z) ? p.yz : ((an.y >= an.x && an.y >= an.z) ? p.xz : p.xy);
+    vec2 planar = projection_raw(p, n);
     planar *= (tiling_scale > 1e-6) ? (1.0 / tiling_scale) : 1.0;
     float cs = cos(rotation_rad);
     float sn = sin(rotation_rad);
@@ -112,22 +193,99 @@ vec3 srgb_to_lab(vec3 c)
 //
 // Squared distance in Lab (CIE76) rather than the CPU's CIEDE2000: the two agree except on near-ties,
 // and CIEDE2000 per fragment across 64 entries is not worth its cost in a preview.
-vec3 quantize_to_palette(vec3 rgb)
+int nearest_palette_entry(vec3 rgb)
 {
     vec3  lab  = srgb_to_lab(rgb);
     int   best = 0;
+    int   best_pure = -1;
     float bd   = 1.0e20;
+    float bd_pure = 1.0e20;
     for (int i = 0; i < 64; ++i) {
         if (i >= palette_count)
             break;
+        if (pure_only && palette_a[i] != palette_b[i])
+            continue; // a flat-colour image never takes a mix (see the bake)
         vec3  d  = lab - palette_lab[i];
         float d2 = dot(d, d);
+        if (palette_a[i] == palette_b[i] && d2 < bd_pure) {
+            bd_pure   = d2;
+            best_pure = i;
+        }
         if (d2 < bd) {
             bd   = d2;
             best = i;
         }
     }
-    return palette_rgb[best];
+    // The same bias make_palette_quantizer() applies (PREFER_PURE_DE = 10): a mix is an interleave, so
+    // it is only worth taking when it beats the nearest single filament by a visible step. Without it
+    // this picked a mix for almost every fragment - with four filaments the palette is 4 pure entries
+    // against 30 mixes - while the bake picked a single filament for most of them, so the preview
+    // interleaved the whole wall where the bake interleaves only patches. Compared on the distances
+    // rather than their squares, so the threshold means the same thing as it does on the CPU (up to
+    // CIE76 against CIEDE2000, the approximation already noted above).
+    if (best_pure >= 0 && palette_a[best] != palette_b[best] && sqrt(bd_pure) - sqrt(bd) < 10.0)
+        best = best_pure;
+    return best;
+}
+
+// One 2x2 Bayer cell, {0, 2; 3, 1}, for x and y in {0, 1}.
+float bayer2(float x, float y) { return 2.0 * x + 3.0 * y - 4.0 * x * y; }
+
+// The colour the printer lays down at world point `pos` for palette entry `index`: its filament, or
+// for a mix whichever of its two filaments this point falls on. Mirrors make_mix_resolver() on the
+// CPU, floors on the band/cell size included. All the modular arithmetic is done in floats with
+// mod(), which wraps negative coordinates the way the CPU's ((v % n) + n) % n does and needs no
+// integer % (not available on every GLSL 1.10 target).
+vec3 printed_color(int index, vec3 pos, vec3 normal, vec3 footprint)
+{
+    int a = palette_a[index];
+    int b = palette_b[index];
+    if (a < 0 || a >= filament_count || b < 0 || b >= filament_count)
+        return palette_rgb[index]; // no filament to resolve to: the entry's own colour
+    if (a == b)
+        return filament_rgb[a];
+    float num = float(palette_num[index]);
+    float den = float(palette_den[index]);
+    // Auto: bands where the surface is steeper than ~45 degrees, the dominant filament elsewhere.
+    if (mix_mode == 2 && abs(normal.z) >= 0.7)
+        return filament_rgb[(num * 2.0 >= den) ? a : b];
+
+    // Pre-filter. The interleave is an ordered dither the eye is meant to blend away, and no dither
+    // blends when it is drawn at less than a few pixels per period - it aliases, which is what turned
+    // every upright wall into horizontal streaks: the Z band cycle is den * layer_height (around a
+    // millimetre), and every pixel of a row on a vertical wall shares one z, so each row came out as a
+    // 1-bit threshold of the image at that row's phase. `footprint` is mm of world position per pixel,
+    // so this is zoom- and resolution-correct rather than a tuned constant: where the print's own
+    // pattern is finer than this view can resolve, show what the print looks like from here, which is
+    // the entry's perceptual average. The Normal view remains where the per-facet truth lives.
+    float period = (mix_mode == 1) ? 2.0 * max(dither_cell, 0.01) : den * max(layer_height, 0.01);
+    float px     = (mix_mode == 1) ? max(footprint.x, footprint.y) : footprint.z;
+    float sharp  = clamp(period / max(4.0 * px, 1e-6) - 0.5, 0.0, 1.0);
+    if (sharp <= 0.0)
+        return palette_rgb[index];
+
+    vec3 picked;
+    if (mix_mode == 1) {
+        // Ordered 4x4 Bayer over floor(x / cell), floor(y / cell). The CPU's table
+        //     0  8  2 10
+        //    12  4 14  6
+        //     3 11  1  9
+        //    15  7 13  5
+        // is 4 * bayer2(x % 2, y % 2) + bayer2(x / 2, y / 2), which needs no array (GLSL 1.10 has
+        // no constant arrays).
+        float cell  = max(dither_cell, 0.01);
+        float gx    = mod(floor(pos.x / cell), 4.0);
+        float gy    = mod(floor(pos.y / cell), 4.0);
+        float bayer = 4.0 * bayer2(mod(gx, 2.0), mod(gy, 2.0)) + bayer2(floor(gx / 2.0), floor(gy / 2.0));
+        picked = filament_rgb[(num / den > (bayer + 0.5) / 16.0) ? a : b];
+    } else {
+        // Z bands: one per band height, the band's phase in the a/b cycle picks the filament. Both
+        // operands are integer-valued, so the half keeps "phase < num" exact under float rounding.
+        float slot  = floor(pos.z / max(layer_height, 0.01));
+        float phase = mod(slot, den);
+        picked = filament_rgb[(phase < num - 0.5) ? a : b];
+    }
+    return mix(palette_rgb[index], picked, sharp);
 }
 
 void main()
@@ -138,6 +296,9 @@ void main()
     // World millimetres throughout, like the bake - see the 140 variant.
     vec3 triangle_normal = normalize(cross(dFdx(world_pos.xyz), dFdy(world_pos.xyz)));
     vec3 tex_pos = world_pos.xyz - tex_anchor; // the frame the texture is projected in, as the bake does
+    // World mm per pixel, for pre-filtering the interleave in printed_color(). Taken here because the
+    // albedo branch at the end of main() is non-uniform control flow, where derivatives are undefined.
+    vec3 pos_fwidth = fwidth(world_pos.xyz);
     if (volume_mirrored)
         triangle_normal = -triangle_normal;
 
@@ -169,7 +330,8 @@ void main()
             triangle_normal = normalize(triangle_normal - (dHdx * R1 + dHdy * R2) / det);
     } else if (weight > 0.0) {
         vec3 t, b;
-        projection_axes(triangle_normal, t, b);
+        vec2 units_per_mm;
+        projection_axes(tex_pos, triangle_normal, t, b, units_per_mm);
 
         // Parallax occlusion mapping: march the view ray through the height shell and shade at the
         // first point where it drops below the displaced surface (see header).
@@ -229,7 +391,8 @@ void main()
         // One uv unit is tiling_scale mm along u but tiling_scale / tex_aspect mm along v, so the v
         // component of the gradient carries the extra factor before being rotated back into t/b.
         vec2  g     = vec2(dh_duv.x, dh_duv.y * tex_aspect);
-        vec2  slope = amplitude * vec2(g.x * cs + g.y * sn, -g.x * sn + g.y * cs);
+        // ...and back out of raw-projection units into millimetres along t / b; see the 140 variant.
+        vec2  slope = amplitude * vec2(g.x * cs + g.y * sn, -g.x * sn + g.y * cs) * units_per_mm;
 
         vec3 gradient = slope.x * t + slope.y * b;
         gradient -= triangle_normal * dot(triangle_normal, gradient);
@@ -247,11 +410,16 @@ void main()
     NdotL = max(dot(eye_normal, LIGHT_FRONT_DIR), 0.0);
     intensity.x += NdotL * LIGHT_FRONT_DIFFUSE;
 
-    // Diffuse albedo: the image's colour at this fragment, snapped to the nearest printable colour.
+    // Diffuse albedo: the image's colour at this fragment, snapped to the nearest printable colour -
+    // and, where that is a mix, the filament the interleave puts here, so the pattern that prints shows.
     // Only the albedo - the specular term (intensity.y) stays white - so a coloured fragment reads as
     // the same material under the same light, and the relief this preview exists to show is unaffected.
     vec3 albedo = uniform_color.rgb;
     if (palette_count > 0 && has_color_tex && have_uv && weight > 0.0)
-        albedo = quantize_to_palette(texture2D(color_tex, color_uv).rgb);
+        // tex_pos, not world_pos: the bake resolves the interleave in the bake frame (world
+        // orientation and scale about the volume's origin, see texture_displacement_bake_frame()), so
+        // measuring z from the bed instead shifted the band phase by the volume origin's height - a
+        // different filament in the same place than the bake produces.
+        albedo = printed_color(nearest_palette_entry(texture2D(color_tex, color_uv).rgb), tex_pos, triangle_normal, pos_fwidth);
     gl_FragColor = vec4(vec3(intensity.y) + albedo * intensity.x, uniform_color.a);
 }

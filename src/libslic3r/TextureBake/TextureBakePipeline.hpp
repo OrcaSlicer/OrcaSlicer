@@ -2,8 +2,8 @@
 
 // The bake pipeline:
 //
-//   subdivide -> [regularize -> re-subdivide] -> [relocate] -> displace -> [decimate]
-//             -> bottom clamp -> bottom snap -> [resolve T-junctions]
+//   subdivide -> [regularize -> re-subdivide] -> [paint test] -> [relocate] -> [flip edges]
+//             -> displace -> [decimate] -> bottom clamp -> bottom snap -> [resolve T-junctions]
 //
 // Regularization sits between two subdivisions on purpose: it dissolves the slivers refinement
 // inherited, which lengthens some edges past the target, and the second pass brings those back.
@@ -66,6 +66,13 @@ struct PipelineSettings
 
     DisplaceSettings displace;
 
+    // Optional. Asked once per refined face (its centroid, in the soup's coordinates) after the
+    // refinement stages and before displacement, for faces whose source triangle was included:
+    // false marks the face as unpainted (no displacement), so paint finer than the input triangles
+    // is honoured. Faces excluded from the start are never asked. Called from several threads at
+    // once, so it must be safe to call concurrently.
+    std::function<bool(const Vec3f &centroid)> painted;
+
     // Export mode only.
     size_t max_triangles = 750'000;
     // Keep removing zero-cost flat faces past the target. Only applies when decimation runs, i.e. when
@@ -87,6 +94,9 @@ struct PipelineSettings
 
 // Stage name and a fraction within it. Returning false cancels the run.
 using PipelineProgressFn = std::function<bool(const char *stage, double fraction)>;
+// Colour class of a point of the surface (a palette index, -1 for none), for the decimation's
+// colour-boundary creases. Only consulted when the mesh is over budget.
+using ColorSampleFn = std::function<int(const Vec3f &centroid, const Vec3f &normal)>;
 
 struct PipelineResult
 {
@@ -105,7 +115,7 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
                             const PipelineSettings &settings, const DisplaceBounds &bounds,
                             PipelineMode mode, const std::vector<uint8_t> &face_excluded = {},
                             const PipelineProgressFn &on_progress = {},
-                            BakeStageRecorder *debug = nullptr);
+                            BakeStageRecorder *debug = nullptr, const ColorSampleFn &color_sample = {});
 
 // Snap anything that ended below the model's original bottom back up to it.
 void clamp_below_bottom(TriSoup &geometry, float bottom_z);

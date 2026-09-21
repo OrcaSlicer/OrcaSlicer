@@ -24,6 +24,8 @@ void TextureDisplacementPreviewJob::process(Ctl &ctl)
     TextureColorRequest *color = nullptr;
     if (!m_input.color.empty()) {
         color_request.quantize = GLGizmoTextureDisplacement::make_palette_quantizer(m_input.color.palette);
+        if (!m_input.color.palette_pure.empty())
+            color_request.quantize_pure = GLGizmoTextureDisplacement::make_palette_quantizer(m_input.color.palette_pure);
         color_request.resolve  = GLGizmoTextureDisplacement::make_mix_resolver(
             m_input.color.palette, m_input.color.mix_mode, m_input.color.layer_height,
             m_input.color.dither_cell_mm);

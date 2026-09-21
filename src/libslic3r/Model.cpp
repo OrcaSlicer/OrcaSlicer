@@ -2943,6 +2943,11 @@ void ModelVolume::assign_new_unique_ids_recursive()
     seam_facets.set_new_unique_id();
     mmu_segmentation_facets.set_new_unique_id();
     fuzzy_skin_facets.set_new_unique_id();
+    // As set_new_unique_id() already does: the undo/redo stack stores FacetsAnnotation contents keyed
+    // by ObjectID, so a clone left sharing these ids with its source can be handed the source's mask
+    // on an undo - after which a paint mask and the mesh it was recorded against no longer match.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        texture_displacement_facet(i).set_new_unique_id();
 }
 
 void ModelVolume::rotate(double angle, Axis axis)

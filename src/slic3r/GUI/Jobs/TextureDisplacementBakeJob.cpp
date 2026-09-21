@@ -38,6 +38,8 @@ void TextureDisplacementBakeJob::process(Ctl &ctl)
     TextureColorRequest *color = nullptr;
     if (!m_input.color.empty()) {
         color_request.quantize = GLGizmoTextureDisplacement::make_palette_quantizer(m_input.color.palette);
+        if (!m_input.color.palette_pure.empty())
+            color_request.quantize_pure = GLGizmoTextureDisplacement::make_palette_quantizer(m_input.color.palette_pure);
         color_request.resolve  = GLGizmoTextureDisplacement::make_mix_resolver(
             m_input.color.palette, m_input.color.mix_mode, m_input.color.layer_height,
             m_input.color.dither_cell_mm);
@@ -79,6 +81,22 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
     if (canceled || eptr || m_result.empty())
         return;
 
+    // A bake that moved nothing - no layer could be sampled, or every sample was zero - must not be
+    // committed: committing is what clears the baked layers' paint, so the user would see the painted
+    // region simply vanish with no relief in its place and no idea why. Keep the paint and say so.
+    {
+        const indexed_triangle_set &out = m_result.its;
+        bool unchanged = out.indices.size() == m_input.base_mesh.indices.size() &&
+                         out.vertices.size() == m_input.base_mesh.vertices.size();
+        for (size_t i = 0; unchanged && i < out.vertices.size(); ++i)
+            unchanged = (out.vertices[i] - m_input.base_mesh.vertices[i]).cwiseAbs().maxCoeff() < 1e-5f;
+        if (unchanged) {
+            show_error(nullptr, _u8L("The bake produced no displacement, so nothing was changed and the paint was kept. "
+                                     "Check that the painted layer has a texture and a non-zero depth."));
+            return;
+        }
+    }
+
     Plater *plater = wxGetApp().plater();
 
     const auto commit = [this, plater]() {
@@ -109,11 +127,21 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
 
         // Clear the paint mask of every layer that was actually baked so a repeat bake (or the paint
         // overlay) doesn't act on triangles that no longer represent the same unbaked surface. The
-        // texture layer definitions themselves (and paint outside the baked area, if any) are left
-        // untouched so the user can keep sculpting with the same textures.
-        for (const TextureDisplacementLayer &layer : m_input.layers)
-            if (!layer.empty() && layer.slot >= 0 && layer.slot < int(TEXTURE_DISPLACEMENT_MAX_LAYERS))
-                volume->texture_displacement_facet(layer.slot).reset();
+        // texture layer definitions themselves are left untouched so the user can keep sculpting with
+        // the same textures.
+        //
+        // A mask the bake did *not* consume only still means what it did if the topology is unchanged,
+        // which is true of the classic path (it moves existing vertices) but not of the one-run
+        // pipeline, which rebuilds and then simplifies the mesh. A mask left behind against the old
+        // topology is exactly what makes the gizmo reload an empty selector over a non-empty mask and
+        // then erase it on the next flush - see GLGizmoTextureDisplacement::update_from_model_object().
+        const bool topology_changed = m_input.base_mesh.indices.size() != volume->mesh().its.indices.size();
+        for (int slot = 0; slot < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++slot) {
+            const auto it = std::find_if(m_input.layers.begin(), m_input.layers.end(),
+                                         [slot](const TextureDisplacementLayer &l) { return l.slot == slot; });
+            if (topology_changed || (it != m_input.layers.end() && !it->empty()))
+                volume->texture_displacement_facet(slot).reset();
+        }
 
         ModelObject *object = volume->get_object();
         if (object == nullptr)

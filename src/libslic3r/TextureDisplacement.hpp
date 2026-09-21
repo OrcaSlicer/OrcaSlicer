@@ -333,6 +333,10 @@ enum class ColorMixMode : int
     // height, but its cell is around the size of one facet, so a fine mix can read as texture rather
     // than as a clean blend.
     XYDither = 1,
+    // Per triangle, by its orientation: bands where the surface is upright enough for consecutive
+    // layers to alternate, the checkerboard where it faces up or down and a layer would be one band.
+    // The default - a flat-topped part with a mix on top gets no blend at all from bands alone.
+    Auto     = 2,
 };
 
 // Settings that apply to the whole layer stack rather than to one layer, held per ModelVolume next
@@ -396,9 +400,11 @@ struct TextureDisplacementOptions
     // printer will realise the colours, not about which image they came from.
 
     // Interleave pairs of filaments to get colours between them - so four loaded filaments offer far
-    // more than four colours. Off means every triangle takes one of the loaded filaments exactly.
+    // more than four colours. Whether a given layer's colours actually use mixes is decided from its
+    // image (TextureDetail::flat_colors): a texture of flat colours prints in single filaments, a
+    // photograph or gradient in mixes. Off forces single filaments everywhere.
     bool         color_mix_enabled = true;
-    ColorMixMode color_mix_mode    = ColorMixMode::ZBands;
+    ColorMixMode color_mix_mode    = ColorMixMode::Auto;
     // Majority-filter passes over the assigned colours. See TextureColorRequest::despeckle_passes -
     // this is the control for it, and 2 is enough to clear the salt-and-pepper an image with detail
     // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
@@ -423,17 +429,18 @@ struct TextureDetail
     float mean_gradient   = 0.f;
     float sharp_fraction  = 0.f;
     float pixels_per_edge = 4.f;
+    // How much of the image its eight most common colours cover (8 levels per channel), and the
+    // verdict: a "flat-colour" image (tiles, logos, camouflage) whose colours should each print in a
+    // single filament, versus a photograph or gradient where interleaved filament mixes pay off.
+    float flat_share  = 0.f;
+    bool  flat_colors = false;
 };
 TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer);
 
-// The default pipeline's automatic resolution: the refinement edge and the simplification budget the
-// texture and the model call for, when the options leave them at "auto".
-//  - edge = texel size (tile / image width, in world mm, over the finest layer) x pixels per edge,
-//    but no finer than keeps the refinement under a 12 M triangle cap for this surface area, clamped
-//    to [0.05 mm, min(5 mm, diagonal / 50)] and rounded up to 0.01 mm;
-//  - budget = the triangle count an edge of that texel size needs over the surface, scaled by the
-//    relief depth (a gentle relief needs fewer), stepped to 10 k and clamped to [10 k, 2000 k].
-// `edge_mm` is 0 when no layer has a usable texture.
+// The default pipeline's automatic resolution and budget, when the options leave them at "auto":
+// bumpmesh.com's defaults - edge = the model's world-space diagonal / 250, clamped to [0.05, 5] mm and
+// rounded up to 0.01; budget 750 k. The texel size of the finest layer and its sharpness class are
+// reported alongside for the panel. `edge_mm` is 0 for an empty mesh.
 struct V2Resolution
 {
     float edge_mm         = 0.f;
@@ -510,7 +517,7 @@ using ColorQuantizeFn = std::function<int(const Vec3f &)>;
 // criterion: that criterion asks where the **perceived** colour changes, and must not see the
 // interleaving. Refining on every band or dither-cell boundary would spend the whole triangle budget
 // drawing a pattern the eye is supposed to blend away.
-using ColorResolveFn = std::function<int(int palette_index, const Vec3f &pos)>;
+using ColorResolveFn = std::function<int(int palette_index, const Vec3f &pos, const Vec3f &normal)>;
 
 // One printable colour: either a loaded filament on its own, or a blend of two of them realised by
 // interleaving (see ColorMixMode). Plain data, so it can be captured into a background job.
@@ -529,6 +536,7 @@ struct PrintableColor
 struct TextureColorSettings
 {
     std::vector<PrintableColor> palette;
+    std::vector<PrintableColor> palette_pure; // the filaments alone, for flat-colour images
     ColorMixMode                mix_mode         = ColorMixMode::ZBands;
     float                       layer_height     = 0.2f; // sizes the Z bands
     float                       dither_cell_mm   = 0.4f; // sizes the XY dither cells
@@ -623,7 +631,12 @@ struct PatchUnwrap
     std::vector<Vec2f>                       uvs;           // one per unwrapped vertex, in mm
     std::vector<int>                         source_vertex; // unwrapped vertex -> index into patch.vertices
     std::vector<int>                         vertex_chart;  // unwrapped vertex -> chart (island) id
-    std::vector<stl_triangle_vertex_indices> indices;       // patch triangles, re-indexed into `uvs`
+    // The patch's triangles re-indexed into `uvs` - but *grouped by chart*, not left in the patch's
+    // own order: the charts are flattened one at a time and then concatenated. `source_face` is the
+    // map back, so anything that needs UVs per triangle corner (as opposed to per vertex) can place
+    // them against its own triangle list. See compute_lscm_corner_uvs().
+    std::vector<stl_triangle_vertex_indices> indices;
+    std::vector<int>                         source_face;   // unwrapped triangle -> index into patch.indices
     // Per chart, the centroid of its uvs - the point a TextureIsland's rotation turns about.
     std::vector<Vec2f> chart_centroid;
     // Edges belonging to exactly one triangle: the outline of each island. Indices into `uvs`. This
@@ -675,16 +688,29 @@ bool join_chart_placement(const PatchUnwrap &unwrap, const std::vector<TextureIs
 PatchUnwrap compute_patch_unwrap(const indexed_triangle_set &patch, float seam_angle_deg = LSCM_DEFAULT_SEAM_ANGLE_DEG,
                                  float padding_mm = -1.f, const std::vector<std::pair<int, int>> &seam_edges = {});
 
-// One UV per patch vertex, for displacement. Displacement is inherently per-vertex - a vertex has
-// exactly one position, so it can only be pushed out by one height - which means a seam vertex has
-// to settle on a single one of its charts' UVs (the first, arbitrarily). That is not a compromise
-// in the result: the surface stays watertight either way, since neighbouring vertices each move
-// along their own normals and nothing depends on the UVs agreeing across the seam. It is only the
-// *display* in the UV editor that needs the duplicated-vertex form above.
+// One UV per patch vertex, **for displacement only**. Displacement is inherently per-vertex - a
+// vertex has exactly one position, so it can only be pushed out by one height - which means a seam
+// vertex has to settle on a single one of its charts' UVs (the first, arbitrarily). That is not a
+// compromise in the result: the surface stays watertight either way, since neighbouring vertices
+// each move along their own normals and nothing depends on the UVs agreeing across the seam.
+//
+// Anything that samples or draws per *triangle* must use compute_lscm_corner_uvs() instead. This
+// collapse is wrong for those: a triangle at a seam that the island layout did not join gets handed
+// a neighbouring island's placement, which showed up as a single skewed triangle per face and as
+// every island's texture following the lowest-numbered island when it was dragged.
 //
 // Returns an empty vector if the patch has no triangles. Takes the whole layer because it applies
 // both the layer's seam angle and its hand-placed islands.
 std::vector<Vec2f> compute_lscm_uvs(const indexed_triangle_set &patch, const TextureDisplacementLayer &layer);
+
+// Three UVs per patch triangle (corner 0, 1, 2 of triangle i at index 3i..3i+2), in the patch's own
+// triangle order. Unlike compute_lscm_uvs() this keeps a seam vertex's separate per-chart copies: a
+// triangle belongs to exactly one chart and is given that chart's UVs, which is what every consumer
+// that works per triangle rather than per vertex needs - the fast preview's flat mesh, the checker
+// overlay and the bake's per-facet colour.
+//
+// Returns an empty vector if the patch has no triangles or the unwrap carries no source_face map.
+std::vector<Vec2f> compute_lscm_corner_uvs(const indexed_triangle_set &patch, const TextureDisplacementLayer &layer);
 
 // The TextureDisplacementLayer::lscm_uv_overrides key for one unwrapped vertex (an index into PatchUnwrap::uvs).
 inline int lscm_uv_override_key(int unwrapped_vertex) { return -(unwrapped_vertex + 1); }
@@ -749,6 +775,10 @@ struct TextureColorRequest
     // RGB -> palette index. Supplied by the GUI, which owns both the perceptual matching and the list
     // of filaments actually loaded (see ColorQuantizeFn).
     ColorQuantizeFn quantize;
+    // The same over the loaded filaments alone, no mixes. Optional; when given, a layer whose image is
+    // made of flat colours (TextureDetail::flat_colors) is matched with this one, so a tile or a logo
+    // prints in single filaments while a photograph on another layer may still use mixes.
+    ColorQuantizeFn quantize_pure;
     // Palette index + position -> filament. Optional: without it a palette index is taken to be a
     // filament index directly, which is the no-mixing case.
     ColorResolveFn  resolve;
@@ -760,6 +790,11 @@ struct TextureColorRequest
     // its edge neighbours removes exactly that, and leaves any feature wider than a facet alone. 0
     // turns it off.
     int             despeckle_passes = 0;
+    // After the despeckle: connected patches of one colour smaller than this (mm^2) are recoloured
+    // to whatever borders them most - see merge_small_color_regions(). The despeckle only reaches
+    // single facets; an image detail a few facets wide still leaves thousands of pinhead islands
+    // that the slicer's multi-material segmentation cannot digest. 0 turns it off.
+    float           min_color_region_mm2 = 0.5f;
     // Filled per *base mesh* triangle (the bake is topology-preserving, so this indexes the returned
     // mesh too): the quantize callback's index plus one, or 0 for "this triangle takes no colour from
     // the texture". The +1 is not arbitrary - it lines up with EnforcerBlockerType, where 0 is NONE
@@ -767,6 +802,15 @@ struct TextureColorRequest
     // straight to a TriangleSelector without a second mapping table.
     std::vector<uint8_t> *out_triangle = nullptr;
 };
+
+// Recolours connected patches of one colour whose area is under `min_area_mm2` to the colour that
+// borders them most (by shared edge length). Colour is per triangle, -1 = none (never merged into,
+// never merged away). Removes the confetti a detailed image leaves on a fine mesh - thousands of
+// one-facet zones, which the slicer's multi-material segmentation cannot digest. Patches are
+// processed smallest-first, reading their neighbours' current colour, so a chain of tiny islands
+// collapses into its surroundings rather than into each other.
+void merge_small_color_regions(const indexed_triangle_set &mesh, std::vector<int> &color, float min_area_mm2);
+
 // Where the volume sits on the plate: its instance transform times its own volume transform, i.e.
 // mesh coordinates -> world millimetres.
 //
@@ -795,6 +839,22 @@ Transform3d texture_displacement_volume_to_world(const ModelVolume &volume);
 // The frame the bake and the previews project the texture in: `volume_to_world` with its translation
 // removed, i.e. world orientation and scale about the volume's own origin. See build_texture_displacement().
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world);
+
+// Area-weighted vertex normals of `its` - the directions the bake both projects and displaces along.
+std::vector<Vec3f> texture_displacement_vertex_normals(const indexed_triangle_set &its);
+
+// The frame the Cylindrical and Spherical projections wrap around: `patch`'s triangle-corner centroid,
+// the world axis *least* aligned with the average of `vertex_normals` over those corners (a cylinder's
+// own axis is perpendicular to its outward radial normal), and that average normal itself.
+//
+// Results come out in whatever frame `patch` is given in. The bake calls this with the patch already in
+// the bake frame (see texture_displacement_bake_frame()), so a preview that wants to reproduce the
+// bake's projection must too, or it wraps the texture around a different centre. Corners past the end
+// of `vertex_normals` - the ones a brush stroke appended - contribute to the centroid but carry no
+// normal, exactly as the bake's own loops skip them.
+void texture_displacement_patch_frame(const indexed_triangle_set &patch,
+                                      const std::vector<Vec3f>   &vertex_normals,
+                                      Vec3f &center, Vec3f &axis, Vec3f &average_normal);
 
 // Convenience overload for main-thread callers: extracts the mesh/layers/paint data/options from
 // `volume` and forwards to the overload above.
@@ -844,7 +904,8 @@ using ColorFieldSampler = std::function<int(const Vec3f &pos, const Vec3f &norma
 ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set                  &base_mesh,
                                               const std::vector<TextureDisplacementLayer> &layers,
                                               const TextureDisplacementFacetsData         &facets_data,
-                                              ColorQuantizeFn                              quantize);
+                                              ColorQuantizeFn                              quantize,
+                                              ColorQuantizeFn                              quantize_pure = nullptr);
 
 HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
                                                       const std::vector<TextureDisplacementLayer> &layers,

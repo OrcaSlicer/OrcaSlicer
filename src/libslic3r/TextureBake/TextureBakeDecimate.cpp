@@ -98,7 +98,7 @@ struct HeapEntry
 
 DecimateResult decimate(const TriSoup &geometry, size_t target_triangles, bool harvest_flat,
                         double harvest_tol, const std::vector<uint8_t> &locked_faces,
-                        const DecimateProgressFn &on_progress)
+                        const DecimateProgressFn &on_progress, const std::vector<int> &face_color)
 {
     DecimateResult result;
     const size_t   n = geometry.pos.size();
@@ -211,8 +211,10 @@ DecimateResult decimate(const TriSoup &geometry, size_t target_triangles, bool h
                                               faces[size_t(er.f0) * 3 + 2]);
             const Vec3d n1 = face_normal_unit(pos, faces[size_t(er.f1) * 3], faces[size_t(er.f1) * 3 + 1],
                                               faces[size_t(er.f1) * 3 + 2]);
-            if (n0.dot(n1) >= DECIMATE_CREASE_COS)
-                continue; // smooth enough to be no crease
+            const bool color_edge = face_color.size() > std::max(size_t(er.f0), size_t(er.f1)) &&
+                                    face_color[size_t(er.f0)] != face_color[size_t(er.f1)];
+            if (!color_edge && n0.dot(n1) >= DECIMATE_CREASE_COS)
+                continue; // smooth enough to be no crease, and no colour changes across it
 
             const Vec3d  e    = pos[size_t(er.vb)] - pos[size_t(er.va)];
             const double elen = e.norm();

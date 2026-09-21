@@ -1,5 +1,8 @@
 #include "TextureBakePipeline.hpp"
 
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+
 #include "TextureBakeDebug.hpp"
 
 #include <algorithm>
@@ -111,7 +114,8 @@ size_t snap_bottom_to_flat(TriSoup &geometry, float bottom_z, double tol)
 PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
                             const PipelineSettings &settings, const DisplaceBounds &bounds,
                             PipelineMode mode, const std::vector<uint8_t> &face_excluded,
-                            const PipelineProgressFn &on_progress, BakeStageRecorder *debug)
+                            const PipelineProgressFn &on_progress, BakeStageRecorder *debug,
+                            const ColorSampleFn &color_sample)
 {
     PipelineResult result;
     const auto     report = [&](const char *stage, double f) {
@@ -193,6 +197,46 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
         }
     }
 
+    // 2b. Paint finer than the input triangles. The caller includes a source triangle when any part of
+    // it is painted; now that the faces are small, ask once more per face and switch the unpainted
+    // ones off. They are pinned like the excluded region from here on (their own corners at weight
+    // 1, and the displacement's boundary sealing pins the stroke's rim on the painted side), but they
+    // are refined pieces of painted triangles, not original geometry, so `soft_excluded` keeps them
+    // out of the decimation lock below. Every stage between here and the decimation rewrites faces in
+    // place, so the per-face flag stays valid by index.
+    std::vector<uint8_t> soft_excluded;
+    if (settings.painted) {
+        const size_t         nf     = sub.geometry.triangle_count();
+        const bool           have_w = !sub.geometry.exclude_weight.empty();
+        std::vector<uint8_t> unpainted(nf, 0);
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, nf), [&](const tbb::blocked_range<size_t> &r) {
+            for (size_t t = r.begin(); t < r.end(); ++t) {
+                if (have_w && sub.geometry.exclude_weight[t * 3] > 0.99f)
+                    continue; // excluded from the start, never asked
+                const Vec3f &a = sub.geometry.pos[t * 3], &b = sub.geometry.pos[t * 3 + 1], &c = sub.geometry.pos[t * 3 + 2];
+                if (!settings.painted((a + b + c) / 3.f))
+                    unpainted[t] = 1;
+            }
+        });
+        size_t switched = 0;
+        for (size_t t = 0; t < nf; ++t)
+            switched += unpainted[t];
+        if (switched > 0) {
+            if (sub.geometry.exclude_weight.empty())
+                sub.geometry.exclude_weight.assign(sub.geometry.pos.size(), 0.f);
+            for (size_t t = 0; t < nf; ++t)
+                if (unpainted[t])
+                    sub.geometry.exclude_weight[t * 3] = sub.geometry.exclude_weight[t * 3 + 1] =
+                        sub.geometry.exclude_weight[t * 3 + 2] = 1.f;
+            soft_excluded = std::move(unpainted);
+        }
+        lap("paint", sub.geometry, std::to_string(switched) + " faces switched off");
+        if (!report("paint", 1.0)) {
+            result.canceled = true;
+            return result;
+        }
+    }
+
     // 3. Align the mesh to the height field's edges, then displace.
     if (settings.relocate) {
         std::vector<uint8_t> locked;
@@ -247,12 +291,40 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
             std::vector<uint8_t> locked;
             if (settings.preserve_untextured && !displaced.exclude_weight.empty()) {
                 locked.assign(displaced.triangle_count(), 0);
+                // The corner average, as the displacement stage judges it: after the flip stage's
+                // per-vertex merge an included face touching the excluded region carries one corner
+                // at weight 1, and must stay free to collapse and to take colour.
                 for (size_t t = 0; t < locked.size(); ++t)
-                    locked[t] = displaced.exclude_weight[t * 3] > 0.99f ? 1 : 0;
+                    locked[t] = (displaced.exclude_weight[t * 3] + displaced.exclude_weight[t * 3 + 1] +
+                                 displaced.exclude_weight[t * 3 + 2]) / 3.f > 0.99f ? 1 : 0;
+                // Faces the paint test switched off carry weight 1 too, but are refined pieces of
+                // painted triangles rather than original geometry: locking them would keep a partly
+                // painted source triangle at full refinement. Face indices survived relocate, flip
+                // and displace unchanged, so the flag still lines up.
+                for (size_t t = 0; t < locked.size() && t < soft_excluded.size(); ++t)
+                    if (soft_excluded[t])
+                        locked[t] = 0;
+            }
+            // Colour per face on the fine mesh, so colour boundaries become creases the collapse
+            // respects. Excluded (unpainted) faces take no colour.
+            std::vector<int> face_color;
+            if (color_sample) {
+                const size_t nf = displaced.triangle_count();
+                face_color.assign(nf, -1);
+                const bool have_w = !displaced.exclude_weight.empty();
+                tbb::parallel_for(tbb::blocked_range<size_t>(0, nf), [&](const tbb::blocked_range<size_t> &r) {
+                    for (size_t t = r.begin(); t < r.end(); ++t) {
+                        if (have_w && (displaced.exclude_weight[t * 3] + displaced.exclude_weight[t * 3 + 1] +
+                                       displaced.exclude_weight[t * 3 + 2]) / 3.f > 0.99f)
+                            continue;
+                        const Vec3f &a = displaced.pos[t * 3], &b = displaced.pos[t * 3 + 1], &c = displaced.pos[t * 3 + 2];
+                        face_color[t] = color_sample((a + b + c) / 3.f, displaced.nrm[t * 3]);
+                    }
+                });
             }
             DecimateResult dec = decimate(displaced, settings.max_triangles, settings.harvest_flat,
                                           settings.harvest_tol, locked,
-                                          [&](double f) { return report("decimate", f); });
+                                          [&](double f) { return report("decimate", f); }, face_color);
             result.locked_over_budget = dec.locked_over_budget;
             displaced                 = std::move(dec.geometry);
             lap("decimate", displaced, "over budget, simplified");

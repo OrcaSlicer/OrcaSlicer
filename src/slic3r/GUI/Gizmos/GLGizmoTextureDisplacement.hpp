@@ -104,6 +104,14 @@ public:
     // The print's layer height, which sizes ColorMixMode::ZBands. Falls back to 0.2 mm if it cannot be
     // read - a wrong band size is a cosmetic error, not a reason to refuse to colour anything.
     static float print_layer_height();
+    // The Z band height, in mm. One print layer is the ideal, but the interleave is realised per
+    // *facet*: a band thinner than the mesh can resolve does not dither, it beats against the triangle
+    // grid and comes out as broad horizontal stripes - and since MMU segmentation reads facet colour,
+    // it does so in the print too, not only on screen. The refinement edge is chosen from the model's
+    // diagonal and knows nothing about the layer height, so the band is rounded up to a whole number of
+    // layers at least two facet rows tall: still exact on the printer, and representable by the mesh
+    // that has to carry it. Used by both the bake settings and the preview shader, so the two agree.
+    float        color_band_mm(const ModelVolume &mv);
 
     // The Normal preview's triangles, grouped by the filament they will print in. Colour is per facet
     // and there are at most sixteen filaments, so the mesh is uploaded once with its index buffer
@@ -480,6 +488,17 @@ private:
     // painting into a slot with no texture assigned is harmless, it just has no visible/bake
     // effect until a texture is added to that slot.
     int  m_active_layer_slot = 0;
+    // Set when m_triangle_selectors could not be loaded from the stored paint masks, because a mask
+    // was recorded against a different topology: TriangleSelector::deserialize() rejects that and
+    // returns without a word, leaving the selector empty even though the mask is not. While this is
+    // set, an *empty* selector says nothing about the paint, so update_model_object() must not flush
+    // one back - serializing it over the mask destroys the user's paint for good, and the bake then
+    // reports "nothing is painted" about the data the flush had just deleted.
+    //
+    // Deliberately not a blanket refusal to flush: once the user paints, the selector holds real
+    // content again and writing it back is exactly right - it replaces the unusable mask with one
+    // recorded against the current mesh. So only the empty-over-non-empty case is held back.
+    bool m_selectors_stale = false;
     bool m_bake_in_progress  = false;
 
     // When set, the true-displacement geometry is rebuilt on every parameter change (live), instead of
@@ -636,11 +655,22 @@ private:
     // patch only), translucent (the preview stays visible through it) and rebuilt live during a
     // stroke.
     GLModel m_paint_overlay_glmodel;
+    // The islands selected in the UV editor, tinted on the model so the pane's selection can be seen
+    // in place. Rebuilt whenever the pane's selection differs from the one it was built for.
+    GLModel          m_island_overlay_glmodel;
+    std::vector<int> m_island_overlay_selection;
+    void             rebuild_island_overlay(const std::vector<int> &selection);
+    void             render_island_overlay();
     // Set on every paint event, cleared when the overlay is rebuilt in render_painter_gizmo(). Kept
     // separate from m_bump_preview_dirty so a stroke refreshes only the small painted patch per frame,
     bool    m_paint_overlay_dirty = false;
     void    rebuild_paint_overlay();
-    void    render_paint_overlay();
+    void    render_paint_overlay(GLModel &overlay);
+    // Every *other* layer's paint, muted, so all layers stay visible while one is edited. Rebuilt only when that
+    // paint, the active layer or the preview it is lifted onto changes (m_other_paint_key).
+    GLModel     m_other_paint_glmodel;
+    std::string m_other_paint_key;
+    void        rebuild_other_paint_overlay();
     // Whether render_bump_preview_mesh() would actually draw something. Checked before the real volume
     // is hidden: with no layer, no texture or no shader the bump path draws nothing, and hiding the
     // volume for it left the model invisible.
@@ -648,6 +678,12 @@ private:
     // Whether the current bump mesh carries a precomputed per-vertex uv (LSCM) that the shader
     // should sample at directly, rather than projecting in-shader. Set by rebuild_bump_preview_mesh().
     bool    m_bump_preview_uses_vertex_uv = false;
+    // The projection frame handed to the bump shader, captured when the mesh is built. Cylindrical and
+    // Spherical are reconstructed in the fragment shader (there is no per-vertex uv for them) and wrap
+    // around the whole patch, which no fragment can work out for itself. See layer_projection_frame().
+    int   m_bump_projection_mode = 0;
+    Vec3f m_bump_patch_center    = Vec3f::Zero();
+    Vec3f m_bump_patch_axis      = Vec3f::UnitZ();
     // The palette the fast preview's per-triangle filament indices were built against, captured when
     // the mesh was. Empty when the active layer is not colouring, which is what tells the shader to
     // fall back to the model's own colour. Held rather than re-read at draw time so the indices baked
@@ -659,14 +695,23 @@ private:
     // the dragged island's vertices flagged, v_normal.y = 1) and then moved purely through the shader's
     // island_delta uniform - one uniform update per mouse move, no rebuild - so it tracks the cursor
     // as smoothly as Adjust placement. m_bump_active_chart is the dragged island (or -1);
-    // m_bump_active_vertex flags its base vertices; m_bump_baked_active_xf is that island's placement
-    // baked into the current mesh, against which the live delta is measured; m_bump_island_delta is the
-    // resulting final-uv-space affine handed to the shader (identity except mid-drag).
+    // m_bump_active_face flags the dragged islands' *triangles*, indexed by painted-patch face;
+    // m_bump_baked_active_xf is that island's placement baked into the current mesh, against which the
+    // live delta is measured; m_bump_island_delta is the resulting final-uv-space affine handed to the
+    // shader (identity except mid-drag).
+    //
+    // Per triangle rather than per vertex deliberately: a seam vertex belongs to every chart touching
+    // it, so flagging the dragged chart's base vertices also flagged the corners its neighbours use.
+    // island_active is an interpolated varying, so those neighbouring triangles then had island_delta
+    // applied too - dragging one island moved every adjacent island's texture while the editor, which
+    // is per chart, correctly moved only the one. A triangle belongs to exactly one chart.
     int                        m_bump_active_chart = -1;
-    std::vector<uint8_t>       m_bump_active_vertex;
+    std::vector<uint8_t>       m_bump_active_face;
     Eigen::Matrix<float, 2, 3> m_bump_baked_active_xf = Eigen::Matrix<float, 2, 3>::Identity();
     Eigen::Matrix<float, 2, 3> m_bump_island_delta    = Eigen::Matrix<float, 2, 3>::Identity();
-    void                       compute_bump_active_vertices(const std::vector<int> &charts);
+    // Flags `charts`' triangles in m_bump_active_face, sized to `patch_face_count` (the painted patch
+    // the bump mesh is being built from). Cleared if the unwrap carries no face map.
+    void                       compute_bump_active_faces(const std::vector<int> &charts, size_t patch_face_count);
 
     // The set of islands the current UV-editor drag moves together: the pane's multi-selection unioned
     // with each selected island's join group (see build_island_move_set()). Populated at drag start and
@@ -687,6 +732,19 @@ private:
     // the shader projects on its own. Shared by the bump preview and the UV-check overlay.
     std::vector<Vec2f> compute_layer_vertex_uvs(const indexed_triangle_set &patch,
                                                 const TextureDisplacementLayer &layer) const;
+    // The same, but three UVs per patch triangle (corner 0..2 of triangle i at 3i..3i+2). This is what
+    // the flat, unshared-vertex preview meshes actually want: under LSCM a seam vertex has a different
+    // UV in each island it borders, so collapsing to one per vertex handed a triangle at an unjoined
+    // seam its neighbour's placement - one visibly skewed triangle per face. Every other projection is
+    // single-valued per point, so there a corner's UV is just its vertex's.
+    std::vector<Vec2f> compute_layer_corner_uvs(const indexed_triangle_set &patch,
+                                                const TextureDisplacementLayer &layer) const;
+    // The in-shader projection for `layer` (0 Triplanar, 1 Cylindrical, 2 Spherical) plus, for the two
+    // wrapping ones, the patch centroid and cylinder axis they wrap around - in the texture frame the
+    // shaders project in. Taken from the bake's own texture_displacement_patch_frame(), so a preview
+    // can never wrap around a different centre, or pick a different axis, than the bake will.
+    int layer_projection_frame(const indexed_triangle_set &local_patch, const TextureDisplacementLayer &layer,
+                               Vec3f &center, Vec3f &axis) const;
     // `patch` with its vertices moved into world millimetres - the space the bake maps the texture in
     // (see build_texture_displacement()). Returned by value because the caller usually still needs the
     // original: the patch doubles as render geometry, which is drawn through the volume's own matrix.
@@ -699,6 +757,10 @@ private:
     UVCheckMode m_uv_check_mode = UVCheckMode::None;
     GLModel     m_uvcheck_glmodel;
     bool        m_uvcheck_uses_vertex_uv = false;
+    // As m_bump_projection_mode and friends, for the Checker overlay.
+    int         m_uvcheck_projection_mode = 0;
+    Vec3f       m_uvcheck_patch_center    = Vec3f::Zero();
+    Vec3f       m_uvcheck_patch_axis      = Vec3f::UnitZ();
     void rebuild_uvcheck_mesh();
     void render_uvcheck_mesh();
 
