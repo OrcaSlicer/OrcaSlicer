@@ -2,6 +2,7 @@
 
 #include "ICameraSignalingChannel.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "OrcaCloudServiceAgent.hpp"
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -21,7 +22,7 @@ namespace Slic3r {
 
 class OrcaCloudSignalingChannel : public ICameraSignalingChannel {
 public:
-    OrcaCloudSignalingChannel(std::shared_ptr<ICloudServiceAgent> cloud, std::string dev_id);
+    OrcaCloudSignalingChannel(OrcaCloudServiceAgent* cloud, std::string dev_id);
     ~OrcaCloudSignalingChannel() override;
 
     void open() override;
@@ -51,7 +52,7 @@ private:
     static std::string encode_path_component(const std::string& value);
     static std::string host_without_scheme(std::string value);
 
-    std::shared_ptr<ICloudServiceAgent> m_cloud;
+    OrcaCloudServiceAgent* m_cloud;
     std::string m_dev_id;
     std::atomic<bool> m_stop{false};
     std::atomic<bool> m_open{false};
