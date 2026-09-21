@@ -366,6 +366,7 @@ void BBLTopbar::Init(wxFrame* parent)
     Realize();
     // m_toolbar_h = this->GetSize().GetHeight();
     m_toolbar_h = FromDIP(30);
+    this->SetMinSize(wxSize(-1, m_toolbar_h));
 
     int client_w = parent->GetClientSize().GetWidth();
     this->SetSize(client_w, m_toolbar_h);
@@ -534,7 +535,6 @@ void BBLTopbar::UpdateToolbarWidth(int width)
 }
 
 void BBLTopbar::Rescale() {
-    int em = em_unit(this);
     wxAuiToolBarItem* item;
 
     /*item = this->FindTool(ID_LOGO);
@@ -592,6 +592,11 @@ void BBLTopbar::Rescale() {
     item->SetBitmap(create_scaled_bitmap("topbar_close", this, TOPBAR_ICON_SIZE));
 
     Realize();
+    m_toolbar_h = FromDIP(30);
+    this->SetMinSize(wxSize(-1, m_toolbar_h));
+
+    const int client_w = m_frame ? m_frame->GetClientSize().GetWidth() : this->GetSize().GetWidth();
+    this->SetSize(client_w, m_toolbar_h);
 }
 
 void BBLTopbar::OnIconize(wxAuiToolBarEvent& event)
