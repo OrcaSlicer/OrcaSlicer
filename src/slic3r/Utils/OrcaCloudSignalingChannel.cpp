@@ -18,8 +18,8 @@
 
 namespace Slic3r {
 
-OrcaCloudSignalingChannel::OrcaCloudSignalingChannel(std::shared_ptr<ICloudServiceAgent> cloud, std::string dev_id)
-    : m_cloud(std::move(cloud))
+OrcaCloudSignalingChannel::OrcaCloudSignalingChannel(OrcaCloudServiceAgent* cloud, std::string dev_id)
+    : m_cloud(cloud)
     , m_dev_id(std::move(dev_id))
 {
 }

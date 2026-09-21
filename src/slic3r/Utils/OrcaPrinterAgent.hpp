@@ -36,8 +36,6 @@ public:
     void set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud) override;
     CameraStreamMode get_camera_stream_mode() const override;
     std::string get_camera_url() const override;
-    std::unique_ptr<ICameraSignalingChannel>
-    create_camera_signaling_channel(const std::string& dev_id) override;
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
