@@ -1,13 +1,17 @@
 {
 	"name": "UltiMaker",
 	"url": "",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "UltiMaker configurations",
 	"machine_model_list": [
 		{
 			"name": "UltiMaker 2",
 			"sub_path": "machine/UltiMaker 2.json"
+		},
+		{
+			"name": "UltiMaker S5",
+			"sub_path": "machine/UltiMaker S5.json"
 		}
 	],
 	"process_list": [
@@ -24,8 +28,16 @@
 			"sub_path": "process/0.18mm Standard @UltiMaker 2.json"
 		},
 		{
+			"name": "0.18mm Standard @UltiMaker S5",
+			"sub_path": "process/0.18mm Standard @UltiMaker S5.json"
+		},
+		{
 			"name": "0.25mm Draft @UltiMaker 2",
 			"sub_path": "process/0.25mm Darft @UltiMaker 2.json"
+		},
+		{
+			"name": "0.2mm Fast @UltiMaker S5",
+			"sub_path": "process/0.2mm Fast @UltiMaker S5.json"
 		}
 	],
 	"filament_list": [],
@@ -37,6 +49,14 @@
 		{
 			"name": "UltiMaker 2 0.4 nozzle",
 			"sub_path": "machine/UltiMaker 2 0.4 nozzle.json"
+		},
+		{
+			"name": "UltiMaker S5 0.4 nozzle",
+			"sub_path": "machine/UltiMaker S5 0.4 nozzle.json"
+		},
+		{
+			"name": "UltiMaker S5 0.4 nozzle - Single Extruder",
+			"sub_path": "machine/UltiMaker S5 0.4 nozzle Single Extruder.json"
 		}
 	]
 }

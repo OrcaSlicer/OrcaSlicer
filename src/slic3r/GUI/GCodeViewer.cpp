@@ -1001,11 +1001,16 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
     }
 }
-void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
-    if (has_render_path && m_show_marker) {
+    if (has_render_path && m_show_marker)
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
+}
+
+void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+{
+    if (has_render_path && m_show_marker)
         marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
         // IDEX/IQEX secondary carriage markers
         for (auto& sec : m_imex_secondary_markers)
@@ -1841,7 +1846,7 @@ GCodeViewer::ImexMarkerPlan GCodeViewer::resolve_imex_marker_plan(const DynamicP
 }
 
 //BBS: GUI refactor: add canvas width and height
-void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_shells(canvas_width, canvas_height);
@@ -1850,6 +1855,20 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
         return;
 
     render_toolpaths();
+
+    auto current = m_viewer.get_view_visible_range();
+    auto endpoints = m_viewer.get_view_full_range();
+    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
+    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
+}
+
+void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
+{
+    if (m_viewer.get_extrusion_roles().empty())
+        return;
 
     float legend_height = 0.0f;
     render_legend(legend_height, canvas_width, canvas_height, right_margin);
@@ -2000,7 +2019,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     }
 
     // BBS fixed buttom margin. m_moves_slider.pos_y
-    m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
+    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
 
     // IDEX/IQEX: render toolhead footprint boxes for each active carriage.
     // Each box is imex_nozzle_clearance_x × imex_nozzle_clearance_y, sitting above the nozzle tip.
@@ -2089,6 +2108,14 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
     //BBS render slider
     render_slider(canvas_width, canvas_height);
+}
+
+int GCodeViewer::sequential_view_height(int canvas_height) const
+{
+    //BBS fixed bottom_margin for space to render horiz slider
+    const int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
+    // BBS fixed buttom margin. m_moves_slider.pos_y
+    return canvas_height - bottom_margin * m_scale;
 }
 
 #define ENABLE_CALIBRATION_THUMBNAIL_OUTPUT 0
