@@ -16,7 +16,7 @@
 	"sparse_infill_density": "0%",
 	"enable_support": "0",
 	"outer_wall_speed": "40",
-	"slow_down_for_curled_perimeters": "0",
+	"slowdown_for_curled_perimeters": "0",
 	"filename_format": "{input_filename_base}_Vase_{print_time}.gcode",
 	"brim_type": "no_brim",
 	"support_object_first_layer_gap": "1",

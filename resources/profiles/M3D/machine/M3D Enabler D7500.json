@@ -6,6 +6,5 @@
 	"machine_tech": "FFF",
 	"nozzle_diameter": "0.4",
 	"bed_texture": "model/M3D_bed_texture.png",
-	"default_materials": "Generic PLA @System",
-	"scan_folder": "1"
+	"default_materials": "Generic PLA @System"
 }
