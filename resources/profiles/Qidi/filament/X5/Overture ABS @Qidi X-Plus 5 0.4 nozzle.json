@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "1IkBG0ywAkk3VhOd",
+	"name": "Overture ABS @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Overture ABS@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.033"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

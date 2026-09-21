@@ -223,7 +223,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
 
     const int select_btn_length = 2 * ImGui::GetStyle().FramePadding.x + std::max(ImGui::CalcTextSize(("1 " + _u8L("selected")).c_str()).x, ImGui::CalcTextSize(_u8L("Select").c_str()).x);
 
-    auto selectable = [this](const std::string& label, bool selected, const ImVec2& size_arg) {
+    auto selectable = [](const std::string& label, bool selected, const ImVec2& size_arg) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
 
         ImGuiWindow* window = ImGui::GetCurrentWindow();

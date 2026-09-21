@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Basic@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_7",
+	"filament_id": "OF4nQ62r",
 	"instantiation": "false",
 	"cool_plate_temp_initial_layer": [
 		"45"

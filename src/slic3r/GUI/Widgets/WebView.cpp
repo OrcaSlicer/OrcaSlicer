@@ -1,8 +1,12 @@
 #include "WebView.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
 #include <boost/log/trivial.hpp>
+
+#include <chrono>
+#include <thread>
 
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
@@ -12,6 +16,8 @@
 #include <wx/osx/webview_webkit.h>
 #endif
 #include <wx/uri.h>
+#include <wx/filename.h>
+#include <wx/stdpaths.h>
 #if defined(__WIN32__) || defined(__WXMAC__)
 #include "wx/private/jsscriptwrapper.h"
 #endif
@@ -73,7 +79,7 @@ DWORD DownloadAndInstallWV2RT() {
       })
       .perform_sync();
   // Sleep for 1 second to wait for the buffer writen into disk
-  std::this_thread::sleep_for(1000ms);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   if (downloaded) {
     // Either Package the WebView2 Bootstrapper with your app or download it using fwlink
     // Then invoke install at Runtime.
@@ -104,7 +110,7 @@ DWORD DownloadAndInstallWV2RT() {
 class WebViewEdge : public wxWebViewEdge
 {
 public:
-    bool SetUserAgent(const wxString &userAgent)
+    bool SetUserAgent(const wxString &userAgent) override
     {
         bool dark = userAgent.Contains("dark");
         SetColorScheme(dark ? COREWEBVIEW2_PREFERRED_COLOR_SCHEME_DARK : COREWEBVIEW2_PREFERRED_COLOR_SCHEME_LIGHT);
@@ -242,7 +248,14 @@ public:
             g_webviews.erase(iter);
     }
     wxWebView *m_webView;
+    // Guards against registering the "wx" handler twice (a duplicate throws on WKWebView).
+    bool m_script_handler_added = false;
 };
+
+static WebViewRef *webview_ref(wxWebView *webView)
+{
+    return webView ? static_cast<WebViewRef *>(webView->GetRefData()) : nullptr;
+}
 
 wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 {
@@ -304,10 +317,17 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         Slic3r::GUI::WKWebView_setTransparentBackground(wkWebView);
 #endif
         auto addScriptMessageHandler = [] (wxWebView *webView) {
+            // Skip if SendAPIKey() already registered "wx"; a duplicate add throws an
+            // uncatchable NSException on WKWebView, killing the app at startup.
+            WebViewRef *ref = webview_ref(webView);
+            if (ref && ref->m_script_handler_added)
+                return;
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": begin to add script message handler for wx.";
             Slic3r::GUI::wxGetApp().set_adding_script_handler(true);
             if (!webView->AddScriptMessageHandler("wx"))
                 wxLogError("Could not add script message handler");
+            else if (ref)
+                ref->m_script_handler_added = true;
             Slic3r::GUI::wxGetApp().set_adding_script_handler(false);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished add script message handler for wx.";
         };
@@ -335,6 +355,12 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
     webView->SetRefData(new WebViewRef(webView));
     g_webviews.push_back(webView);
     return webView;
+}
+
+void WebView::MarkScriptMessageHandlerAdded(wxWebView * webView)
+{
+    if (WebViewRef *ref = webview_ref(webView))
+        ref->m_script_handler_added = true;
 }
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
@@ -407,6 +433,12 @@ void WebView::RecreateAll()
     for (auto webView : g_webviews) {
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
-        webView->Reload();
+        // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
+        // the event, skip the reload; legacy pages fall through and reload as before
+        // (their own dark.css swap re-themes them on reload).
+        wxCommandEvent evt(EVT_WEBVIEW_RECREATED);
+        evt.SetEventObject(webView);
+        if (!webView->GetEventHandler()->ProcessEvent(evt))
+            webView->Reload();
     }
 }

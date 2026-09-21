@@ -134,7 +134,7 @@ void TempInput::Create(wxWindow *parent, wxString text, wxString label, wxString
             }
         }
     });
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     text_ctrl->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
         if (m_read_only) {
             return;
@@ -275,9 +275,9 @@ void TempInput::Warning(bool warn, WarningType type)
 
         wxString warning_string;
         if (type == WarningType::WARNING_TOO_HIGH)
-             warning_string = _L("The maximum temperature cannot exceed ") + wxString::Format("%d", max_temp);
+             warning_string = wxString::Format(_L("The maximum temperature cannot exceed %d"), max_temp);
         else if (type == WarningType::WARNING_TOO_LOW)
-             warning_string = _L("The minmum temperature should not be less than ") + wxString::Format("%d", min_temp);
+             warning_string = wxString::Format(_L("The minimum temperature should not be less than %d"), min_temp);
         warning_text->SetLabel(warning_string);
         warning_text->Wrap(-1);
         warning_text->Fit();

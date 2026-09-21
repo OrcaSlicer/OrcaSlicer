@@ -19,11 +19,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: thejerrybao/setup-swap-space@v1
-        with:
-          swap-space-path: /swapfile
-          swap-size-gb: 8
-          remove-existing-swap-files: true
+      # Doxygen with call graphs over all of src/ outgrows the runner's RAM;
+      # replace the runner's swapfile with an 8 GB one.
+      - name: Grow swap space
+        run: |
+          set -euo pipefail
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
 
       - name: Checkout repository
         uses: actions/checkout@v7

@@ -20,6 +20,7 @@
 
 // Previous definitions
 class SwitchBoard;
+class MultiSwitchButton;
 
 namespace Slic3r { namespace GUI {
 
@@ -89,6 +90,12 @@ protected:
     CheckBox* m_cb_filament_tangle;
     CheckBox* m_cb_nozzle_blob;
     CheckBox* m_cb_open_door;
+    // Firmware print-option toggles (each gated on a fun2 capability bit).
+    CheckBox* m_cb_plate_align{nullptr};
+    CheckBox* m_cb_fod_check{nullptr};
+    CheckBox* m_cb_displacement_detection{nullptr};
+    CheckBox* m_cb_purify_air_at_print_end{nullptr};
+    CheckBox* m_cb_snapshot_enable{nullptr};
     Label* text_first_layer;
     Label* text_ai_detections;
     Label* text_ai_detections_caption;
@@ -99,6 +106,13 @@ protected:
     wxSizerItem *purgechutepileup_bottom_space;
     wxSizerItem *nozzleclumping_bottom_space;
     wxSizerItem *airprinting_bottom_space;
+    // Trailing spacers for the firmware print-option rows, toggled with their rows so a hidden
+    // row reserves no space (dialog renders as before when the option is unsupported).
+    wxSizerItem *purify_air_bottom_space{nullptr};
+    wxSizerItem *plate_align_bottom_space{nullptr};
+    wxSizerItem *fod_check_bottom_space{nullptr};
+    wxSizerItem *displacement_bottom_space{nullptr};
+    wxSizerItem *smart_nozzle_blob_bottom_space{nullptr};
 
     Label *           text_ai_monitoring;
     Label *           text_ai_monitoring_caption;
@@ -132,6 +146,16 @@ protected:
     Label* text_nozzle_blob;
     Label* text_nozzle_blob_caption;
     Label* text_open_door;
+    Label* text_plate_align{nullptr};
+    Label* text_plate_align_caption{nullptr};
+    Label* text_fod_check{nullptr};
+    Label* text_fod_check_caption{nullptr};
+    Label* text_displacement_detection{nullptr};
+    Label* text_displacement_detection_caption{nullptr};
+    Label* text_purify_air{nullptr};
+    Label* text_purify_air_context{nullptr};
+    Label* text_smart_nozzle_blob{nullptr};
+    Label* text_smart_nozzle_blob_mode_desc{nullptr};
     StaticLine* line1;
     StaticLine* line2;
     StaticLine* line3;
@@ -140,6 +164,9 @@ protected:
     StaticLine* line6;
     StaticLine* line7;
     SwitchBoard* open_door_switch_board;
+    SwitchBoard* purify_air_switch_board{nullptr};
+    MultiSwitchButton* m_smart_nozzle_blob_mode_switch{nullptr};
+    wxBoxSizer* m_snapshot_sizer{nullptr};
     wxBoxSizer* create_settings_group(wxWindow* parent);
     wxPanel     *m_line;
 
@@ -157,6 +184,8 @@ public:
     void update_purgechutepileup_detection_status();
     void update_nozzleclumping_detection_status();
     void update_airprinting_detection_status();
+    void update_purify_air_at_print_end(MachineObject *obj_);
+    void update_smart_nozzle_blob_mode_desc(int selection);
 
     MachineObject *obj { nullptr };
 
@@ -184,6 +213,7 @@ public:
 private:
     void UpdateOptionSavePrintFileToStorage(MachineObject *obj);
     void UpdateOptionOpenDoorCheck(MachineObject *obj);
+    void UpdateOptionSnapshot(MachineObject *obj);
 };
 
 }} // namespace Slic3r::GUI

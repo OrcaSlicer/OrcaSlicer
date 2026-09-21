@@ -2,6 +2,9 @@
 #include "ImageGrid.h"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
+#include "DeviceManager.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "Plater.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/SwitchButton.hpp"
@@ -556,7 +559,7 @@ void MediaFilePanel::doAction(size_t index, int action)
     } else if (action == 1) {
         if (fs->GetFileType() == PrinterFileSystem::F_MODEL) {
             if (index != -1) {
-                auto dlg = new MediaProgressDialog(_CTX("Print", "Verb"), this, [fs] { fs->FetchModelCancel(); });
+                auto dlg = new MediaProgressDialog(_L_CONTEXT("Print", "Verb"), this, [fs] { fs->FetchModelCancel(); });
                 dlg->Update(0, _L("Fetching model information..."));
                 fs->FetchModel(index, [this, fs, dlg, index](int result, std::string const &data) {
                     dlg->Destroy();
@@ -566,7 +569,7 @@ void MediaFilePanel::doAction(size_t index, int action)
                         wxString msg = data.empty() ? _L("Failed to fetch model information from printer.") :
                                                       from_u8(data);
                         CallAfter([this, msg] {
-                            MessageDialog(this, msg, _CTX("Print", "Verb"), wxOK).ShowModal();
+                            MessageDialog(this, msg, _L_CONTEXT("Print", "Verb"), wxOK).ShowModal();
                         });
                         return;
                     }
@@ -579,7 +582,7 @@ void MediaFilePanel::doAction(size_t index, int action)
                             || plate_data_list.empty()) {
                         MessageDialog(this,
                             _L("Failed to parse model information."),
-                            _CTX("Print", "Verb"), wxOK).ShowModal();
+                            _L_CONTEXT("Print", "Verb"), wxOK).ShowModal();
                         return;
                     }
 

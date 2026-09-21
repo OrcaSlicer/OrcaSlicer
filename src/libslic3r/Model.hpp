@@ -47,6 +47,8 @@ namespace cereal {
 }
 
 namespace Slic3r {
+
+struct TexturedMesh;
 enum class ConversionType;
 
 class BuildVolume;
@@ -740,6 +742,13 @@ public:
                                                        EnforcerBlockerType max_type,
                                                        EnforcerBlockerType to_delete_filament = EnforcerBlockerType::NONE,
                                                        EnforcerBlockerType replace_filament = EnforcerBlockerType::NONE);
+    // Shift painted filament indices >= threshold by delta. Used when a physical filament is
+    // inserted ahead of existing slots (mixed-color slots are kept at the end of the list).
+    void                 shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta);
+    // Relabel painted filament indices according to state_map (old state value -> new state
+    // value; untouched states keep their identity). Used when published-3MF import relocates
+    // mixed-filament definitions onto new slot numbers.
+    void                 remap_states(const ModelVolume &mv, const EnforcerBlockerStateMap &state_map);
     indexed_triangle_set get_facets_strict(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool has_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     bool empty() const { return m_data.triangles_to_split.empty(); }
@@ -923,7 +932,6 @@ public:
     //Orca: cache clearing procedure to ensure that the shape is positioned accurately when manipulating it
     void clear_cache() {
         m_cached_trans_matrix = Transform3d::Identity().inverse(); // get unvelivable matrix
-        m_cached_volume_bbox.reset();
         m_convex_hull_2d.clear();
         m_cached_2d_polygon.clear();
     };
@@ -933,7 +941,8 @@ public:
     // BBS
     std::vector<int>    get_extruders() const;
     void                update_extruder_count(size_t extruder_count);
-    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1);
+    void                update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id = -1,
+                                                                   const std::vector<unsigned char> &filament_is_mixed = {});
 
     // Split this volume, append the result to the object owning this volume.
     // Return the number of volumes created from this one.
@@ -968,9 +977,6 @@ public:
 
     // Get count of errors in the mesh
     int                 get_repaired_errors_count() const;
-
-    BoundingBox get_volume_bbox(const Transform3d &matrix, Point &shift, bool apply_cache);
-    void        reset_volume_bbox() { m_cached_volume_bbox.reset(); };
 
     // Helpers for loading / storing into AMF / 3MF files.
     static ModelVolumeType type_from_string(const std::string &s);
@@ -1059,9 +1065,6 @@ private:
     mutable Transform3d                 m_cached_trans_matrix; //BBS, used for convex_hell_2d acceleration
     mutable Polygon                     m_cached_2d_polygon;   //BBS, used for convex_hell_2d acceleration
     Geometry::Transformation        	m_transformation;
-    mutable BoundingBox                 m_cached_volume_bbox; //Orca: used for separated infills
-    mutable Transform3d                 m_cached_volume_bbox_matrix{Transform3d::Identity()}; //Orca: cache key for m_cached_volume_bbox
-    mutable Point                       m_cached_volume_bbox_shift{Point(0, 0)}; //Orca: cache key for m_cached_volume_bbox
 
     //BBS: add convex_hell_2d related logic
     void  calculate_convex_hull_2d(const Geometry::Transformation &transformation) const;
@@ -1556,11 +1559,19 @@ public:
     std::shared_ptr<ModelInfo> model_info = nullptr;
     std::shared_ptr<ModelProfileInfo> profile_info = nullptr;
 
+    // Textured mesh data for texture-to-painting import. Populated by the loader when a mesh
+    // arrives with usable UVs and a texture map; consumed (and reset) by the import dialog.
+    std::shared_ptr<TexturedMesh> texture_mesh;
+
     //makerlab information
     std::string mk_name;
     std::string mk_version;
     std::vector<std::string> md_name;
     std::vector<std::string> md_value;
+
+    // Opaque parametric CAD recipe (CadDocument::serialize_recipe()), round-tripped through
+    // the 3MF as Metadata/orca_cad.bin. Empty for non-CAD projects.
+    std::string cad_recipe;
 
     void SetDesigner(std::string designer, std::string designer_user_id) {
         if (design_info == nullptr) {
@@ -1786,6 +1797,13 @@ bool model_brim_points_data_changed(const ModelObject& mo, const ModelObject& mo
 bool model_has_multi_part_objects(const Model &model);
 // If the model has advanced features, then it cannot be processed in simple mode.
 bool model_has_advanced_features(const Model &model);
+
+// Remap the model's filament-slot references after a published-3MF import relocated
+// mixed-filament definitions onto new slot numbers: object/volume "extruder" configs and
+// multi-material color-painting states (paint state stores the one-based slot number).
+// slot_relocations maps the author's zero-based slot number to its final zero-based slot;
+// entries are applied simultaneously (no chained lookups), untouched slots keep everything.
+void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_relocations);
 
 #ifndef NDEBUG
 // Verify whether the IDs of Model / ModelObject / ModelVolume / ModelInstance / ModelMaterial are valid and unique.

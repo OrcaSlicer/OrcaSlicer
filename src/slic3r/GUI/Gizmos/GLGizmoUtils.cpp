@@ -32,6 +32,8 @@
 
 */
 
+using namespace std::string_view_literals;
+
 namespace Slic3r::GUI::GLGizmoUtils {
 
     void render_tooltip_button(
