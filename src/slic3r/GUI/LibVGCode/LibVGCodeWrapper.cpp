@@ -189,7 +189,8 @@ Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode)
 }
 
 GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
-    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer)
+    const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
+    const std::vector<Slic3r::FilamentGradient>& gradients)
 {
     GCodeInputData ret;
 
@@ -206,6 +207,26 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         ret.color_print_colors.emplace_back(convert(color));
     }
 
+    // determine if any filament has a gradient — if so we will populate gradient_colors
+    const bool has_gradients = !gradients.empty() &&
+        std::any_of(gradients.begin(), gradients.end(),
+                    [](const Slic3r::FilamentGradient& g) { return !g.empty(); });
+
+    // Cumulative consumed FILAMENT FEEDSTOCK length (mm) per extruder, for gradient sampling.
+    // The gradient cycle length is given in mm of filament off the spool, so we accumulate
+    // feedstock length (extruded volume / filament cross-section), NOT nozzle path length
+    // (which is ~30x longer because the extruded line is far thinner than the filament).
+    std::vector<float> cumulative_extrusion_mm(str_tool_colors.size(), 0.0f);
+
+    // Filament feedstock cross-section area (mm^2) per extruder (fallback to 1.75 mm dia).
+    static constexpr float PI = 3.14159265358979323846f;
+    std::vector<float> filament_area(str_tool_colors.size(), 0.0f);
+    for (size_t e = 0; e < filament_area.size(); ++e) {
+        const float d = (e < result.filament_diameters.size() && result.filament_diameters[e] > 0.0f)
+                        ? result.filament_diameters[e] : 1.75f;
+        filament_area[e] = PI * (d * 0.5f) * (d * 0.5f);
+    }
+
     const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves = result.moves;
     ret.vertices.reserve(2 * moves.size());
     for (size_t i = 1; i < moves.size(); ++i) {
@@ -213,6 +234,29 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         const Slic3r::GCodeProcessorResult::MoveVertex& prev = moves[i - 1];
         const EMoveType curr_type = convert(curr.type);
         const EOptionType option_type = move_type_to_option(curr_type);
+        // Accumulate consumed filament feedstock length (extrusion moves only): segment volume
+        // (path length * mm^3-per-mm) divided by filament cross-section area.
+        const float seg_len = (curr.position - prev.position).norm();
+        const uint8_t eid   = curr.extruder_id;
+        if (curr_type == EMoveType::Extrude && eid < cumulative_extrusion_mm.size()) {
+            const float area = (eid < filament_area.size()) ? filament_area[eid] : 0.0f;
+            if (area > 0.0f)
+                cumulative_extrusion_mm[eid] += seg_len * curr.mm3_per_mm / area;
+        }
+
+        // helper: compute gradient color for the current extruder position
+        auto gradient_color_for = [&](uint8_t extruder_id) -> libvgcode::Color {
+            if (has_gradients && extruder_id < gradients.size() && !gradients[extruder_id].empty()) {
+                const Slic3r::ColorRGBA rgba = gradients[extruder_id].sample(
+                    extruder_id < cumulative_extrusion_mm.size() ? cumulative_extrusion_mm[extruder_id] : 0.0f);
+                return { rgba.r_uchar(), rgba.g_uchar(), rgba.b_uchar() };
+            }
+            // no gradient: fall back to flat tool color
+            if (extruder_id < ret.tools_colors.size())
+                return ret.tools_colors[extruder_id];
+            return libvgcode::DUMMY_COLOR;
+        };
+
         if (option_type == EOptionType::COUNT || option_type == EOptionType::Travels || option_type == EOptionType::Wipes) {
             if (ret.vertices.empty() || prev.type != curr.type || prev.extrusion_role != curr.extrusion_role
                 // ORCA: Split the path when a preview value changes.
@@ -238,6 +282,8 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                     /* ORCA: Add Jerk visualization support */ curr.jerk };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
                 ret.vertices.emplace_back(vertex);
+                if (has_gradients)
+                    ret.gradient_colors.emplace_back(gradient_color_for(curr.extruder_id));
             }
         }
 
@@ -260,8 +306,12 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
             /* ORCA: Add Jerk visualization support */ curr.jerk };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
         ret.vertices.emplace_back(vertex);
+        if (has_gradients)
+            ret.gradient_colors.emplace_back(gradient_color_for(curr.extruder_id));
     }
     ret.vertices.shrink_to_fit();
+    if (has_gradients)
+        ret.gradient_colors.shrink_to_fit();
 
     ret.spiral_vase_mode = result.spiral_vase_mode;
 

@@ -995,6 +995,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     m_vertices = std::move(gcode_data.vertices);
     m_tool_colors = std::move(gcode_data.tools_colors);
     m_color_print_colors = std::move(gcode_data.color_print_colors);
+    m_gradient_colors = std::move(gcode_data.gradient_colors);
     m_vertices_colors.resize(m_vertices.size());
 
     m_settings.spiral_vase_mode = gcode_data.spiral_vase_mode;
@@ -1315,7 +1316,7 @@ void ViewerImpl::update_colors()
     // care of in update_colors_texture. That is to avoid the need to recalculate
     // the "normal" color on every slider move.
     for (size_t i = 0; i < m_vertices.size(); ++i)
-        m_vertices_colors[i] = encode_color(get_vertex_color(m_vertices[i]));
+        m_vertices_colors[i] = encode_color(get_vertex_color(m_vertices[i], i));
     
     update_colors_texture();
     m_settings.update_colors = false;
@@ -1520,7 +1521,7 @@ float ViewerImpl::get_estimated_time_at(size_t id) const
         [this](float a, const PathVertex& v) { return a + v.times[static_cast<size_t>(m_settings.time_mode)]; });
 }
 
-Color ViewerImpl::get_vertex_color(const PathVertex& v) const
+Color ViewerImpl::get_vertex_color(const PathVertex& v, size_t vertex_index) const
 {
     if (v.type == EMoveType::Noop)
         return DUMMY_COLOR;
@@ -1592,13 +1593,19 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
             m_layer_time_range[1].get_color_at(m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id)));
     }
     case EViewType::Tool:
+    case EViewType::GradientFilament:
     {
+        if (!m_gradient_colors.empty() && vertex_index < m_gradient_colors.size())
+            return m_gradient_colors[vertex_index];
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
         return m_tool_colors[v.extruder_id];
     }
     case EViewType::Summary: // ORCA
     case EViewType::ColorPrint:
     {
+        // "Filament" view: show per-vertex gradient colors when a gradient filament is in use.
+        if (!m_gradient_colors.empty() && vertex_index < m_gradient_colors.size())
+            return m_gradient_colors[vertex_index];
         return m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)) ? DUMMY_COLOR :
             m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()];
     }
