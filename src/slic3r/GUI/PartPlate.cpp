@@ -2117,7 +2117,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                         } catch (const std::exception&) {
                             imex_tip = (boost::format("IDEX/IQEX mode: %1% (left-click to cycle, right-click for menu)") % cur).str();
                         }
-                        show_tooltip(imex_tip);
+                        set_hover_tooltip(imex_tip);
                     } else {
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_texture);
                     }
@@ -2125,7 +2125,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                     if (has_imex_multimaterial_conflict()) {
                         render_icon_texture(m_imex_warn_icon, m_partplate_list->m_imex_warn_texture);
                         if (hover_id == (int)PLATE_IMEX_MODE_ID)
-                            show_tooltip(_u8L("Warning: this plate uses a parallel IDEX/IQEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly."));
+                            set_hover_tooltip(_u8L("Warning: this plate uses a parallel IDEX/IQEX mode with multi-material objects. Proceed with caution — verify your G-code handles this combination correctly."));
                     }
                 }
             }

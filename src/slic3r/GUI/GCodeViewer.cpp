@@ -1003,19 +1003,19 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
 }
 void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
-    if (has_render_path && m_show_marker)
+    if (has_render_path && m_show_marker) {
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
+        // IDEX/IQEX secondary carriage markers
+        for (auto& sec : m_imex_secondary_markers)
+            sec.render(canvas_width, canvas_height, view_type);
+    }
 }
 
 void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
 {
     if (has_render_path && m_show_marker)
         marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
-        // IDEX/IQEX secondary carriage markers
-        for (auto& sec : m_imex_secondary_markers)
-            sec.render(canvas_width, canvas_height, view_type);
-    }
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
     // BBS
@@ -1862,33 +1862,9 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
     const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
     m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
     m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
-    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
-}
-
-void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
-{
-    if (m_viewer.get_extrusion_roles().empty())
-        return;
-
-    float legend_height = 0.0f;
-    render_legend(legend_height, canvas_width, canvas_height, right_margin);
-
-    if (m_user_mode != wxGetApp().get_mode()) {
-        update_by_mode(wxGetApp().get_mode());
-        m_user_mode = wxGetApp().get_mode();
-    }
-
-    //BBS fixed bottom_margin for space to render horiz slider
-    int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
-    auto current = m_viewer.get_view_visible_range();
-    auto endpoints = m_viewer.get_view_full_range();
-    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
-    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
-    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
-    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
 
     // IDEX/IQEX: compute all carriage positions; update secondary nozzle markers;
-    // carriage_box_draws is populated for toolhead footprint rendering after sequential_view.render().
+    // carriage_box_draws is populated for toolhead footprint rendering after render_marker().
     // Okabe-Ito colorblind-safe palette — excludes orange (#E69F00) and sky blue (#56B4E9)
     // which are used by the bed zone fills, ensuring the markers contrast against the background.
     static const std::array<ColorRGBA, 4> s_carriage_colors = {{
@@ -2017,9 +1993,7 @@ void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_
         if (!imex_active)
             m_sequential_view.m_imex_secondary_markers.clear();
     }
-
-    // BBS fixed buttom margin. m_moves_slider.pos_y
-    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
 
     // IDEX/IQEX: render toolhead footprint boxes for each active carriage.
     // Each box is imex_nozzle_clearance_x × imex_nozzle_clearance_y, sitting above the nozzle tip.
@@ -2070,6 +2044,22 @@ void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_
             glsafe(::glDisable(GL_BLEND));
         }
     }
+}
+
+void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
+{
+    if (m_viewer.get_extrusion_roles().empty())
+        return;
+
+    float legend_height = 0.0f;
+    render_legend(legend_height, canvas_width, canvas_height, right_margin);
+
+    if (m_user_mode != wxGetApp().get_mode()) {
+        update_by_mode(wxGetApp().get_mode());
+        m_user_mode = wxGetApp().get_mode();
+    }
+
+    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
