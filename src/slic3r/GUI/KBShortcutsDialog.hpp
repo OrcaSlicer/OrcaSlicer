@@ -62,7 +62,10 @@ class KBShortcutsDialog : public DPIDialog
     std::vector<Page>          m_pages;
     std::vector<EditableRow>   m_editable_rows;
     std::vector<PreferenceRow> m_preference_rows;
-    int                        m_row_text_width = 0;   // what a row's description and chord share, so the description wraps at m_row_text_width - chord width
+    // Row geometry, measured once and shared by every page.
+    wxSize                     m_edit_size;            // an edit or reset icon
+    int                        m_buttons_width  = 0;   // every row's buttons column, so the right-aligned keys share an edge
+    int                        m_row_text_width = 0;   // what a description and its chord share; the description wraps at the rest
     int                        m_key_slot       = 0;   // width of the widest single key, the column single keys line up in
 
     TabCtrl*      m_tabs;

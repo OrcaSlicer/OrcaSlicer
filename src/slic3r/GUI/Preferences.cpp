@@ -1522,7 +1522,8 @@ PreferencesDialog::~PreferencesDialog()
 
 void PreferencesDialog::select_tab(PreferencesTab tab, const std::string& option)
 {
-    m_pref_tabs->SelectItem(m_tab_index.at(tab));
+    if (const auto index = m_tab_index.find(tab); index != m_tab_index.end())
+        m_pref_tabs->SelectItem(index->second);
     wxWindow* control = option.empty() ? nullptr : m_parent->FindWindow(wxString(option));
     if (control == nullptr)
         return;

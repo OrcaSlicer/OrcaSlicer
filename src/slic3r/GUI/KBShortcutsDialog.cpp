@@ -46,6 +46,12 @@ const char* mouse_action(const char* preference)
     return action == "1" ? L("Pan View") : action == "2" ? L("Rotate View") : L("None");
 }
 
+// Page layout in DIPs; titles and rows are indented as in the Preferences dialog.
+constexpr int PAGE_WIDTH   = 640;
+constexpr int TITLE_MARGIN = DESIGN_LEFT_MARGIN - 10;
+constexpr int ROW_MARGIN   = DESIGN_LEFT_MARGIN;
+constexpr int ROW_GAP      = 16;
+
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
@@ -82,6 +88,13 @@ KBShortcutsDialog::KBShortcutsDialog(wxWindow* parent, ShortcutContext page)
     SetBackgroundColour(*wxWHITE);
 
     fill_pages();
+
+    ScalableButton* probe = new ScalableButton(this, wxID_ANY, "edit");
+    m_edit_size = probe->GetBestSize();
+    probe->Destroy();
+    m_buttons_width  = 2 * m_edit_size.x + FromDIP(6);
+    m_row_text_width = FromDIP(PAGE_WIDTH) - FromDIP(ROW_MARGIN) - FromDIP(TITLE_MARGIN) - 2 * FromDIP(ROW_GAP) - m_buttons_width;
+    GetTextExtent("W", &m_key_slot, nullptr, nullptr, nullptr, &Label::Head_14);
 
     // The page tabs follow the Preferences dialog.
     m_tabs = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
@@ -195,13 +208,12 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     const wxColour page_colour = StateColor::darkModeColorFor(*wxWHITE);
     scrollable_panel->SetBackgroundColour(page_colour);
     scrollable_panel->SetScrollRate(0, 20);
-    const int page_width = FromDIP(640);
+    const int page_width = FromDIP(PAGE_WIDTH);
     scrollable_panel->SetInitialSize(wxSize(page_width, FromDIP(450)));
 
-    // Titles and rows are indented as in the Preferences dialog.
-    const int title_margin = FromDIP(DESIGN_LEFT_MARGIN - 10);
-    const int row_margin   = FromDIP(DESIGN_LEFT_MARGIN);
-    const int gap          = FromDIP(16);
+    const int title_margin = FromDIP(TITLE_MARGIN);
+    const int row_margin   = FromDIP(ROW_MARGIN);
+    const int gap          = FromDIP(ROW_GAP);
 
     wxBoxSizer* scrollable_panel_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -244,15 +256,6 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
         button->SetToolTip(tooltip);
         return button;
     };
-
-    // Every row ends in a buttons column of one width, so the right-aligned keys share an
-    // edge without sharing a column; each description wraps at whatever its own key leaves.
-    ScalableButton* probe = icon_button("edit", "");
-    const wxSize edit_size     = probe->GetBestSize();
-    const int    buttons_width = 2 * edit_size.x + FromDIP(6);
-    probe->Destroy();
-    m_row_text_width = page_width - row_margin - title_margin - 2 * gap - buttons_width;
-    scrollable_panel->GetTextExtent("W", &m_key_slot, nullptr, nullptr, nullptr, &Label::Head_14);
 
     std::optional<ShortcutSection> section;
     for (const Row& row : page.rows) {
@@ -299,11 +302,11 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
         } else {
             auto lock = new wxStaticBitmap(scrollable_panel, wxID_ANY, ScalableBitmap(scrollable_panel, "printer_status_lock", 16).bmp());
             lock->SetToolTip(_L("Not customizable"));
-            buttons->Add((edit_size.x - lock->GetBestSize().x) / 2, edit_size.y);   // centred under the edit icons, at their height
+            buttons->Add((m_edit_size.x - lock->GetBestSize().x) / 2, m_edit_size.y);   // centred under the edit icons, at their height
             buttons->Add(lock, 0, wxALIGN_CENTRE_VERTICAL);
         }
-        if (const int used = buttons->GetMinSize().x; used < buttons_width)   // a box sizer recomputes its own min size, so pad it
-            buttons->AddSpacer(buttons_width - used);
+        if (const int used = buttons->GetMinSize().x; used < m_buttons_width)   // a box sizer recomputes its own min size, so pad it
+            buttons->AddSpacer(m_buttons_width - used);
 
         wxBoxSizer* row_sizer = new wxBoxSizer(wxHORIZONTAL);
         row_sizer->AddSpacer(row_margin);
