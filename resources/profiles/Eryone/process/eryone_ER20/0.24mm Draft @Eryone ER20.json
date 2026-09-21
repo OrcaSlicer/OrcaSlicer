@@ -1,11 +1,12 @@
 {
-  "compatible_printers": [
-    "Eryone ER20 0.4 nozzle"
-  ],
-  "elefant_foot_compensation": "0",
-  "from": "system",
-  "inherits": "fdm_process_ER20_0.24",
-  "instantiation": "true",
-  "name": "0.24mm Draft @Eryone ER20",
-  "type": "process"
+	"compatible_printers": [
+		"Eryone ER20 0.4 nozzle"
+	],
+	"elefant_foot_compensation": "0",
+	"from": "system",
+	"inherits": "fdm_process_ER20_0.24",
+	"setting_id": "8rfQRPMh82vmdDeb",
+	"instantiation": "true",
+	"name": "0.24mm Draft @Eryone ER20",
+	"type": "process"
 }
