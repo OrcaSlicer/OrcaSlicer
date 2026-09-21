@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "DREMC PLA+ HS @System",
-	"inherits": "DREMC PLA+ @base",
+	"inherits": "DREMC PLA+ HS @base",
 	"from": "system",
 	"setting_id": "I0HWhYAZ3ppq91Gx",
 	"instantiation": "true",
