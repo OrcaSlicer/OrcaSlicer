@@ -2,6 +2,7 @@
 #include "../GUI/Widgets/Label.hpp"
 
 #include "wx/graphics.h"
+#include "wx/osx/core/cfstring.h"
 #include "wx/osx/private.h"
 
 #import <algorithm>
