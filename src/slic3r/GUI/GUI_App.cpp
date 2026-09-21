@@ -3282,6 +3282,12 @@ bool GUI_App::on_init_inner()
 
 
 
+#ifdef ORCA_OSS_NETWORK_PLUGIN
+    // Provision the bundled open-source network plugin and point the config at it
+    // (legacy ABI) BEFORE the version/mode is read below, so we run in legacy mode.
+    ensure_oss_network_plugin();
+#endif
+
     // Orca: select network plugin version based on configured version string
     std::string configured_version = app_config->get_network_plugin_version();
     BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
@@ -3560,6 +3566,73 @@ void GUI_App::copy_network_if_available()
     if (installed || !had_cache)
         app_config->set("update_network_plugin", "false");
 }
+
+#ifdef ORCA_OSS_NETWORK_PLUGIN
+void GUI_App::ensure_oss_network_plugin()
+{
+    namespace fs = boost::filesystem;
+    const std::string ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
+    // The OSS plugin is a single bundled build, so it is provisioned under the
+    // plain unversioned name rather than a synthetic bambu_networking_<ver>.dll.
+    // BBLNetworkPlugin::initialize() loads this name when the versioned file is
+    // absent; the config version below only seeds the pre-load legacy routing.
+#if defined(_WIN32)
+    const std::string fname = "bambu_networking.dll";
+    const std::string fname_ver = "bambu_networking_" + ver + ".dll";
+#elif defined(__APPLE__)
+    const std::string fname = "libbambu_networking.dylib";
+    const std::string fname_ver = "libbambu_networking_" + ver + ".dylib";
+#else
+    const std::string fname = "libbambu_networking.so";
+    const std::string fname_ver = "libbambu_networking_" + ver + ".so";
+#endif
+
+    fs::path src_dir = fs::path(resources_dir()) / "plugins";
+    fs::path src = src_dir / fname;
+    if (!fs::exists(src)) src = src_dir / fname_ver;
+    if (!fs::exists(src)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": bundled OSS network plugin not found at " << src
+                                   << " — leaving network config untouched";
+        return;
+    }
+
+    boost::system::error_code ec;
+    fs::path dst_dir = fs::path(data_dir()) / "plugins";
+    fs::create_directories(dst_dir, ec);
+    fs::path dst = dst_dir / fname;
+    fs::path dst_ver = dst_dir / fname_ver;
+
+    auto copy_if_diff = [](const fs::path& s, const fs::path& d) {
+        boost::system::error_code err;
+        if (!fs::exists(d) || fs::file_size(s, err) != fs::file_size(d, err) || fs::last_write_time(s, err) != fs::last_write_time(d, err)) {
+            fs::copy_file(s, d, fs::copy_option::overwrite_if_exists, err);
+            if (!err) fs::last_write_time(d, fs::last_write_time(s, err), err);
+        }
+    };
+
+    copy_if_diff(src, dst);
+    copy_if_diff(src, dst_ver);
+
+    // Also copy BambuSource.dll and live555.dll if present
+    for (const auto& extra : { "BambuSource.dll", "live555.dll" }) {
+        fs::path extra_src = src_dir / extra;
+        fs::path extra_dst = dst_dir / extra;
+        if (fs::exists(extra_src)) {
+            copy_if_diff(extra_src, extra_dst);
+        }
+    }
+
+    app_config->set_bool("installed_networking", true);
+    app_config->set_network_plugin_version(ver);
+    app_config->save();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": provisioned OSS network plugin into " << dst_dir;
+}
+
+bool GUI_App::is_oss_network_plugin() const
+{
+    return BBLNetworkPlugin::instance().is_oss_network_plugin();
+}
+#endif // ORCA_OSS_NETWORK_PLUGIN
 
 // Installs the OTA-downloaded plug-in files from ota/plugins into the plugins folder
 // (network library under its versioned name, and the configured version updated to

@@ -302,6 +302,12 @@ public:
     NetworkAbi network_abi() const { return m_network_abi; }
     bool use_legacy_network() const { return m_network_abi == NetworkAbi::Legacy; }
 
+    static bool is_oss_version(const std::string& version) {
+        const auto pos = version.find_last_of('.');
+        return pos != std::string::npos && version.substr(pos + 1) == "99";
+    }
+    bool is_oss_network_plugin() const { return m_is_oss_plugin; }
+
     // ========================================================================
     // Function Pointer Accessors
     // ========================================================================
@@ -451,6 +457,7 @@ private:
 
     // ABI generation of the currently loaded library
     NetworkAbi m_network_abi{NetworkAbi::Unsupported};
+    bool m_is_oss_plugin{false};
 
     // Function pointers
     func_check_debug_consistent m_check_debug_consistent{nullptr};

@@ -127,6 +127,23 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     library = using_backup ? (plugin_folder / versioned_name).string()
                            : resolve_library_path(version);
 
+    // The open-source plugin ships as a single unversioned bambu_networking.dll:
+    // there is only ever one build, and the _<version> suffix exists solely for
+    // the proprietary OTA download flow it does not use. When the versioned file
+    // is absent but the plain name is present, load that in place so the on-disk
+    // file stays bambu_networking.dll.
+    if (!boost::filesystem::exists(library)) {
+#if defined(_MSC_VER) || defined(_WIN32)
+        boost::filesystem::path unversioned = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + ".dll");
+#elif defined(__WXMAC__)
+        boost::filesystem::path unversioned = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".dylib");
+#else
+        boost::filesystem::path unversioned = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so");
+#endif
+        if (boost::filesystem::exists(unversioned))
+            library = unversioned.string();
+    }
+
 #if defined(_MSC_VER) || defined(_WIN32)
     wchar_t lib_wstr[256];
     memset(lib_wstr, 0, sizeof(lib_wstr));
@@ -181,6 +198,10 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     // via get_version(), which would substitute the "00.00.00.00" sentinel and pick no generation.
     const std::string loaded_version = m_get_version ? m_get_version() : std::string();
     m_network_abi = network_plugin_abi(loaded_version.empty() ? version : loaded_version);
+    m_is_oss_plugin = is_oss_version(loaded_version.empty() ? version : loaded_version);
+    if (m_is_oss_plugin && m_network_abi == NetworkAbi::Unsupported) {
+        m_network_abi = NetworkAbi::Legacy;
+    }
 
     // A library reporting a series this build has no ABI for stays loaded but uncallable -
     // check_networking_version() then reports it as incompatible and offers the update flow.
@@ -190,6 +211,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     }
 
     BOOST_LOG_TRIVIAL(info) << "BBLNetworkPlugin::initialize: abi=" << network_abi_name(m_network_abi)
+        << ", oss_plugin=" << (m_is_oss_plugin ? "true" : "false")
         << ", library=" << library
         << ", version=" << (loaded_version.empty() ? "unknown" : loaded_version)
         << ", send_message=" << (m_send_message ? "loaded" : "null")
@@ -209,6 +231,7 @@ int BBLNetworkPlugin::unload()
     destroy_agent();
 
     UnloadFTModule();
+    m_is_oss_plugin = false;
 
 #if defined(_MSC_VER) || defined(_WIN32)
     if (m_networking_module) {

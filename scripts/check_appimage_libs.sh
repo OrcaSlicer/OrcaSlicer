@@ -59,6 +59,9 @@ if [[ -n "$ENTRYPOINT" ]]; then
 fi
 
 while IFS= read -r -d '' file; do
+    if [[ "$file" == *"/resources/plugins/"* ]]; then
+        continue
+    fi
     if appimage_is_elf_file "$file"; then
         targets+=("$file")
     fi

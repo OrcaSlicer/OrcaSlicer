@@ -1,0 +1,4 @@
+[submodule "bambu_network_oss"]
+	path = bambu_network_oss
+	url = https://github.com/danielwoz/open-bamboo-networking.git
+	branch = camera-streaming
