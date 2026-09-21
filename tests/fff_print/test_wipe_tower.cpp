@@ -473,6 +473,12 @@ TEST_CASE("Type 1 tower first-layer flow follows each filament gate", "[WipeTowe
         {"filament_first_layer_flow_ratio", "0.8,1.2"}, {"filament_self_index", "1,2"},
         {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"}
     });
+    // A short nullable vector must inherit its first entry for the second filament,
+    // just like get_at(). Exercise both concrete defaults and the nil sentinel.
+    const std::string ramming_speed = GENERATE(std::string("-1"), std::string("nil"));
+    for (const char *key : {"filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc"})
+        config.set_deserialize_strict(key, ramming_speed);
+    CAPTURE(process_gate, gates, ramming_speed);
     config.set_deserialize_strict("set_other_flow_ratios", process_gate ? "1" : "0");
     config.set_deserialize_strict("filament_set_other_flow_ratios", gates);
     const std::vector<std::vector<ConfigBase::SetDeserializeItem>> objects = {
