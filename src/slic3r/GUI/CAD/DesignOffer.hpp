@@ -1,5 +1,5 @@
 // GENERATED FILE — DO NOT EDIT.
-// Source: docs/ux/tool_atlas.json   Generator: docs/ux/mockups/gen_offer_table.py
+// Source: scripts/CAD/tool_atlas.json   Generator: scripts/CAD/gen_offer_table.py
 //
 // The object-driven tool offer (charter 4.1): every verb has ONE row index, that index
 // is the same in every selection it appears in, and verbs that do not apply are shown

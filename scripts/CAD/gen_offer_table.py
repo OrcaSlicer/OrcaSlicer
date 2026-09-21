@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Emit the C++ offer table from docs/ux/tool_atlas.json.
+"""Emit the C++ offer table from scripts/CAD/tool_atlas.json.
 
-    python3 docs/ux/mockups/gen_offer_table.py
+    python3 scripts/CAD/gen_offer_table.py            # rewrite the header
+    python3 scripts/CAD/gen_offer_table.py --check     # verify the checked-in header
 
-The map exists ONCE. The mockups and the shipping menu read the same rows in the same
-order from the same file, so a drawing and the product cannot drift apart — which is the
-only way row constancy (charter 4.1) survives contact with a codebase.
+The map exists ONCE: the atlas is the only place a verb's row, key, icon and refusal
+string are written down, so the menu the user sees cannot drift from the table the code
+is compiled against.
 
 Output: src/slic3r/GUI/CAD/DesignOffer.hpp, checked in and never hand-edited.
 """
@@ -14,15 +15,9 @@ import json
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-UX = os.path.dirname(HERE)
-# One dirname more than you would expect: this generator lives at docs/CAD/ux/mockups/,
-# not docs/ux/mockups/, since the design docs moved into the CAD subfolder (bbd1989e1e).
-# With the old count REPO resolved to docs/, so OUT pointed at docs/src/.../DesignOffer.hpp,
-# which does not exist -- and --check then diffed the real generated table against an empty
-# file and reported the whole 189-line header as a difference.
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(UX)))
-ATLAS = os.path.join(UX, "tool_atlas.json")
+HERE = os.path.dirname(os.path.abspath(__file__))       # scripts/CAD
+REPO = os.path.dirname(os.path.dirname(HERE))
+ATLAS = os.path.join(HERE, "tool_atlas.json")
 OUT = os.path.join(REPO, "src", "slic3r", "GUI", "CAD", "DesignOffer.hpp")
 
 # selection id -> C++ enumerator
@@ -42,15 +37,40 @@ def cstr(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def validate(A):
+    """Refuse an atlas the header cannot represent, naming every fault at once.
+
+    An unknown slot or selection would surface as a bare ValueError from .index() below, and a
+    duplicate verb id would not surface at all: DesignPanel::mcp_run_verb looks a verb up by id
+    and takes the first match, so the second row would be unreachable from the offer.
+    """
+    slot_ids = {s["id"] for s in A["slots"]}
+    sel_ids = {s["id"] for s in A["selections"]}
+    errs, seen = [], set()
+    for v in A["verbs"]:
+        if v["slot"] not in slot_ids:
+            errs.append(f'{v["id"]}: unknown slot {v["slot"]!r}')
+        for a in v["accepts"]:
+            if a not in sel_ids:
+                errs.append(f'{v["id"]}: accepts unknown selection {a!r}')
+        if v["id"] in seen:
+            errs.append(f'{v["id"]}: duplicate verb id')
+        seen.add(v["id"])
+    for s in sel_ids - set(ENUM):
+        errs.append(f"selection {s!r} has no OfferSel enumerator")
+    if errs:
+        sys.exit("tool_atlas.json is inconsistent:\n  " + "\n  ".join(errs))
+
+
 def main():
     A = json.load(open(ATLAS, encoding="utf-8"))
+    validate(A)
     sels = [s["id"] for s in A["selections"]]
-    assert all(s in ENUM for s in sels), [s for s in sels if s not in ENUM]
     slots = [s["id"] for s in A["slots"]]
 
     lines = [
         "// GENERATED FILE — DO NOT EDIT.",
-        "// Source: docs/ux/tool_atlas.json   Generator: docs/ux/mockups/gen_offer_table.py",
+        "// Source: scripts/CAD/tool_atlas.json   Generator: scripts/CAD/gen_offer_table.py",
         "//",
         "// The object-driven tool offer (charter 4.1): every verb has ONE row index, that index",
         "// is the same in every selection it appears in, and verbs that do not apply are shown",
