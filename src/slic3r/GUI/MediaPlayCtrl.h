@@ -75,6 +75,7 @@ private:
     static bool get_stream_url(std::string *url = nullptr);
 
     CameraStreamMode current_mode() const;
+    void set_active_media_controller(CameraStreamMode mode);
 
 private:
     static inline const wxMediaState MEDIASTATE_IDLE = static_cast<wxMediaState>(3);
@@ -86,10 +87,10 @@ private:
     std::shared_ptr<int> m_token = std::make_shared<int>(0);
 
     wxMediaCtrl3 * m_media_ctrl;
+    IMediaController * m_active_media_controller = nullptr;
     IMediaController * m_web_ctrl = nullptr;
     std::unique_ptr<WebRtcMediaController> m_webrtc_ctrl;
     CameraStreamMode m_last_mode = CameraStreamMode::none;
-    bool m_webrtc_stopping = false;
     std::uint64_t m_webrtc_epoch = 0;
     std::string m_agent_camera_url;
     bool m_web_user_stopped = false;
@@ -108,7 +109,11 @@ private:
     bool m_disable_lan = false;
     wxString m_url;
 
-    std::deque<wxString> m_tasks;
+    struct MediaTask {
+        wxString command;
+        IMediaController *controller = nullptr;
+    };
+    std::deque<MediaTask> m_tasks;
     boost::mutex m_mutex;
     boost::condition_variable m_cond;
     boost::thread m_thread;

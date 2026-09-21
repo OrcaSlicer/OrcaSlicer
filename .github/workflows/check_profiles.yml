@@ -80,8 +80,8 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -s -l 2 2>&1 | tee ${{ runner.temp }}/validate_slice.log
           exit ${PIPESTATUS[0]}
-      # All vendors' filament_id collisions were fixed (see scripts/filament_id_snapshot.json),
-      # so the duplicate-filament-subtype check runs tree-wide.
+      # All vendors' filament_id collisions were fixed, so the duplicate-filament-subtype
+      # check runs tree-wide.
       - name: validate filament subtype check
         id: validate_filament_subtypes
         continue-on-error: true

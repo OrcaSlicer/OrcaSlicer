@@ -141,7 +141,6 @@ private:
     std::atomic<uint16_t> next_packet_id{1};
     std::atomic<int> m_last_connack_rc{-1};
     uint64_t m_attempt_number{0};       // worker-thread diagnostic sequence
-    std::string m_connection_stage;     // worker-thread diagnostic stage
     bool initial_result{false};
     bool initial_completed{false};
     std::atomic_bool connected{false};

@@ -1,5 +1,7 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "Http.hpp"
+#include "ICameraSignalingChannel.hpp"
+#include "OrcaCloudSignalingChannel.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -3022,6 +3024,9 @@ int OrcaCloudServiceAgent::get_camera_url(std::string dev_id, std::function<void
         callback("");
     return BAMBU_NETWORK_SUCCESS;
 }
+
+std::unique_ptr<ICameraSignalingChannel> OrcaCloudServiceAgent::create_camera_signaling_channel(const std::string& dev_id)
+{ return std::make_unique<OrcaCloudSignalingChannel>(this, dev_id); }
 
 int OrcaCloudServiceAgent::get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback)
 {

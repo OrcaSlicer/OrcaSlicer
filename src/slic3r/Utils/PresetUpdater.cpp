@@ -1711,7 +1711,7 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                             GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
                                 GUI::NotificationType::PresetUpdateFinished,
                                 GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel,
-                                _u8L("Configuration package: ") + vendor_id + _u8L(" updated to ") + cur_ver.to_string());
+                                Slic3r::format(_u8L("Configuration package: %1% updated to %2%"), vendor_id, cur_ver.to_string()));
                         }
                     });
                 }
@@ -1806,7 +1806,7 @@ PresetUpdater::UpdateResult PresetUpdater::config_update(const Semver& old_slic3
                 ->get_notification_manager()
                 ->push_notification(GUI::NotificationType::PresetUpdateFinished,
                                     GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel,
-                                    _u8L("Configuration package: ") + b + _u8L(" updated to ") + cur_ver.to_string());
+                                    Slic3r::format(_u8L("Configuration package: %1% updated to %2%"), b, cur_ver.to_string()));
             }
             return R_UPDATE_INSTALLED;
         }

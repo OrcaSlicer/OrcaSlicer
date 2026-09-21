@@ -36,7 +36,6 @@ public:
     void set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud) override;
     CameraStreamMode get_camera_stream_mode() const override;
     std::string get_camera_url() const override;
-    std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id) override;
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
@@ -120,9 +119,7 @@ public:
 
     // Test-only: observe the subscription doorbell policy without spawning the refresh worker.
     bool filament_doorbell_needed_for_test(const std::string& dev_id, const std::string& payload)
-    {
-        return filament_doorbell_needed(dev_id, payload);
-    }
+    { return filament_doorbell_needed(dev_id, payload); }
     // Test-only: arm the fetch-failure latch (retry-on-next-LAN-frame rule).
     void set_filament_failed_for_test(bool v)
     {
@@ -218,7 +215,7 @@ private:
     std::string m_lan_http_origin;                                  // guarded by state_mutex — http(s) origin of the LAN façade
     std::string m_lan_password;                                     // guarded by state_mutex — MQTT access code; X-Api-Key fallback
     std::string m_lan_api_key;                                      // guarded by state_mutex — cached Moonraker-façade key, "" = unresolved
-    uint64_t m_lan_api_key_gen = 0;                                 // m_lan_generation the cached key belongs to
+    uint64_t m_lan_api_key_gen            = 0;                      // m_lan_generation the cached key belongs to
     CameraStreamMode m_camera_stream_mode = CameraStreamMode::none; // guarded by state_mutex
     std::string m_camera_url;                                       // guarded by state_mutex
 
@@ -232,7 +229,7 @@ private:
     // print.topology_state change) and the failure latch are the only triggers —
     // no timer: an idle OrcaSonar emits no frames, and cannot change lanes either.
     void request_filament_refresh(const std::string& dev_id);
-        // OPCP §7.7: the doorbell is a CHANGE in print.topology_state.material_hash
+    // OPCP §7.7: the doorbell is a CHANGE in print.topology_state.material_hash
     // (lane content only — tool temperature churn inside topology_state must not
     // re-fetch); consuming a new value updates m_material_hash.
     bool filament_doorbell_needed(const std::string& dev_id, const std::string& payload);
@@ -246,11 +243,11 @@ private:
     enum class LaneDataState { synced, none, unknown, error };
     LaneDataState fetch_lane_data(const std::string& dev_id);
 
-    bool m_filament_wanted  = false; // guarded by state_mutex; a fetch is pending
-    bool m_filament_working = false; // guarded by state_mutex; a worker owns the queue
-    bool m_filament_failed  = false; // guarded by state_mutex; retry-on-next-LAN-frame rule
-    bool m_shutting_down    = false; // guarded by state_mutex; workers stop taking fetches
-    std::string m_material_hash;     // guarded by state_mutex; last doorbell value seen
+    bool m_filament_wanted  = false;          // guarded by state_mutex; a fetch is pending
+    bool m_filament_working = false;          // guarded by state_mutex; a worker owns the queue
+    bool m_filament_failed  = false;          // guarded by state_mutex; retry-on-next-LAN-frame rule
+    bool m_shutting_down    = false;          // guarded by state_mutex; workers stop taking fetches
+    std::string m_material_hash;              // guarded by state_mutex; last doorbell value seen
     std::atomic<int> m_filament_in_flight{0}; // detached workers; drained by the destructor
 
     OrcaCloudServiceAgent* get_orca_cloud_agent();

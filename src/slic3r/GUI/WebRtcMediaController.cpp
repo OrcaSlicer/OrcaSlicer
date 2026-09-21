@@ -31,7 +31,7 @@ WebRtcMediaController::WebRtcMediaController(std::function<void(const wxImage&, 
 
 WebRtcMediaController::~WebRtcMediaController()
 {
-    StopSession();
+    Stop();
 }
 
 void WebRtcMediaController::report(Status status)
@@ -52,8 +52,14 @@ void WebRtcMediaController::report(Status status)
         m_on_status(status);
 }
 
-void WebRtcMediaController::StartSession(std::unique_ptr<ICameraSignalingChannel> channel)
+void WebRtcMediaController::set_signalling_channel(std::unique_ptr<ICameraSignalingChannel> channel)
 {
+    m_pending_signaling = std::move(channel);
+}
+
+void WebRtcMediaController::Play()
+{
+    std::unique_ptr<ICameraSignalingChannel> channel = std::move(m_pending_signaling);
     // Tear down any previous attempt WITHOUT notifying: the Stopped that would
     // otherwise be delivered (async, via CallAfter) races the new attempt's
     // Connecting and makes the consumer cancel a session that is mid-connect.
@@ -101,7 +107,7 @@ void WebRtcMediaController::StartSession(std::unique_ptr<ICameraSignalingChannel
     signaling->open();
 }
 
-void WebRtcMediaController::StopSession()
+void WebRtcMediaController::Stop()
 {
     teardown(true);
 }

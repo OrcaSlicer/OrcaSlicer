@@ -13,5 +13,5 @@
 	"model_id": "N9",
 	"not_support_bed_type": "Cool Plate",
 	"use_double_extruder_default_texture": "true",
-	"default_materials": "Bambu PLA Matte @BBL A2L;Bambu PLA Basic @BBL A2L;Bambu PLA Silk @BBL A2L;Bambu Support For PLA/PETG @BBL A2L;Bambu TPU 95A @BBL A2L;Bambu PLA Tough @BBL A2L;Generic PLA @BBL A2L;Generic PLA High Speed @BBL A2L;Generic PETG @BBL A2L;Generic PVA @BBL A2L;Bambu PETG HF @BBL A2L"
+	"default_materials": "Bambu PLA Matte @BBL A2L 0.4 nozzle;Bambu PLA Basic @BBL A2L 0.4 nozzle;Bambu PLA Silk @BBL A2L 0.4 nozzle;Bambu Support For PLA/PETG @BBL A2L;Bambu TPU 95A @BBL A2L;Bambu PLA Tough @BBL A2L;Generic PLA @BBL A2L;Generic PLA High Speed @BBL A2L;Generic PETG @BBL A2L;Generic PVA @BBL A2L;Bambu PETG HF @BBL A2L;Bambu PLA Basic @BBL A2L 0.2 nozzle"
 }

@@ -583,7 +583,7 @@ namespace Slic3r
                                     << " printer_agent_id=" << it->second->printer_agent_id
                                     << " connection_type=" << it->second->connection_type()
                                     << " dev_connection_type=" << it->second->dev_connection_type;
-        } else {
+        } else if (!dev_id.empty()) {
             BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: target machine was not found in the current agent's machine list";
             return false;
         }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <slic3r/GUI/IMediaController.hpp>
+#include <slic3r/Utils/IPrinterAgent.hpp>
 
 #include <string>
 
@@ -15,7 +16,7 @@ public:
 
     void Load(wxURI url) override;
 
-    void Load(wxURI url, CameraStreamMode mode) override;
+    void set_mode(CameraStreamMode mode);
 
     void Play() override;
 

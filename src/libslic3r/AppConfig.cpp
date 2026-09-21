@@ -283,8 +283,16 @@ void AppConfig::set_defaults()
         set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
     }
 
+    if (get(SETTING_OPENGL_SCENE_CACHE).empty())
+        set_bool(SETTING_OPENGL_SCENE_CACHE, true);
+
+    if (get(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES).empty())
+        set_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, true);
+
     // The getter already defaults, parses and clamps; write back what it resolves to.
     set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
+
+    set(SETTING_SPEED_DIAL_RECENT_COUNT, std::to_string(get_speed_dial_recent_count()));
 
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
@@ -312,6 +320,26 @@ void AppConfig::set_defaults()
 
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
+
+#ifdef SLIC3R_CAD
+    // Experimental parametric Design tab. Off by default: the tab is not created at all
+    // until this is turned on, so nothing it builds reaches an unsuspecting user.
+    if (get("enable_cad_feature").empty())
+        set_bool("enable_cad_feature", false);
+
+    // Auto-weld sketch endpoints within kSketchJoinTol when building closed loops.
+    // Default ON: it is what the ~90% case wants; OFF makes the kernel demand an exact
+    // joint. The GUI pushes it into SketchEngine via set_sketch_auto_close().
+    if (get("auto_close_sketch_loops").empty())
+        set_bool("auto_close_sketch_loops", true);
+
+    // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
+    // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
+    // verse read without being learned, which no abstract glyph achieves. Turning it off
+    // restores the conventional CAD representation for users who expect it (x0kd).
+    if (get("design_connector_face_glyph").empty())
+        set_bool("design_connector_face_glyph", true);
+#endif
 
 //#ifdef SUPPORT_SHOW_HINTS
     if (get("show_hints").empty())
@@ -1662,6 +1690,22 @@ int AppConfig::get_plugin_pages_visible_count() const
         return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
     }
     return std::clamp(visible_count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
+}
+
+int AppConfig::get_speed_dial_recent_count() const
+{
+    std::string value = get(SETTING_SPEED_DIAL_RECENT_COUNT);
+    if (value.empty())
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+
+    int recent_count = SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    try {
+        recent_count = std::stoi(value);
+    }
+    catch (...) {
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    }
+    return std::clamp(recent_count, SPEED_DIAL_RECENT_COUNT_MIN, SPEED_DIAL_RECENT_COUNT_MAX);
 }
 
 std::vector<std::string> AppConfig::get_skipped_network_versions() const

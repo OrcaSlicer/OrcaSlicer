@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Creality Ender-5Max-all",
-	"inherits": "fdm_filament_common",
 	"renamed_from": "Creality Generic TPU @Ender-5Max-all;Creality Generic TPU Ender-5Max-all",
+	"inherits": "fdm_filament_common",
 	"from": "system",
 	"setting_id": "XqW2iYrRTVlXuCwD",
 	"filament_id": "OFgbpcy9",
@@ -44,7 +44,6 @@
 	],
 	"filament_flow_ratio": "1",
 	"filament_is_support": "0",
-	"filament_load_time": "0",
 	"filament_loading_speed": "28",
 	"filament_loading_speed_start": "3",
 	"filament_max_volumetric_speed": [
@@ -74,7 +73,6 @@
 	"filament_type": [
 		"TPU"
 	],
-	"filament_unload_time": "0",
 	"filament_unloading_speed": "90",
 	"filament_unloading_speed_start": "100",
 	"filament_vendor": [

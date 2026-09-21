@@ -14,6 +14,9 @@
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <cmath>
+#include <nlohmann/json.hpp>
+#include <boost/format.hpp>
 #include "ICameraSignalingChannel.hpp"
 
 namespace Slic3r {
@@ -109,16 +112,64 @@ public:
     virtual int command_start_camera(std::string)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
 
+private:
+    int publish_command_json(std::string dev_id, const nlohmann::json& j, bool lan_mode)
+    {
+        return lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0)
+                         : send_message(dev_id, j.dump(), 0, 0);
+    }
+
+public:
     virtual int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
-    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    {
+        nlohmann::json j;
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = "G90 \n";
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish_command_json(dev_id, j, lan_mode);
+    }
     virtual int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
-    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    {
+        nlohmann::json j;
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = "G29 \n";
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish_command_json(dev_id, j, lan_mode);
+    }
     virtual int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
-    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    {
+        nlohmann::json j;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        if (supports_mqtt_homing) {
+            j["print"]["command"] = "back_to_center";
+        } else {
+            j["print"]["command"] = "gcode_line";
+            j["print"]["param"]   = is_printing ? "G28 X\n" : "G28 \n";
+        }
+        return publish_command_json(dev_id, j, lan_mode);
+    }
     virtual int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode)
-    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    {
+        nlohmann::json j;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        if (supports_mqtt_bed_ctrl) {
+            j["print"]["command"] = "set_bed_temp";
+            j["print"]["temp"]    = temp;
+        } else {
+            j["print"]["command"] = "gcode_line";
+            j["print"]["param"]   = (boost::format("M140 S%1%\n") % temp).str();
+        }
+        return publish_command_json(dev_id, j, lan_mode);
+    }
     virtual int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode)
-    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    {
+        nlohmann::json j;
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = (boost::format("M104 S%1%\n") % temp).str();
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish_command_json(dev_id, j, lan_mode);
+    }
+
     virtual int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
                                       bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
@@ -394,15 +445,6 @@ public:
      * Only meaningful when get_camera_stream_mode() returns an HTTP, HTTPS, or RTSP mode.
      */
     virtual std::string get_camera_url() const { return {}; }
-
-    // Optional native camera signaling. Plugin agents retain the default
-    // nullptr until a plugin-facing WebRTC contract is defined.
-    virtual std::unique_ptr<ICameraSignalingChannel>
-    create_camera_signaling_channel(const std::string& dev_id)
-    {
-        (void) dev_id;
-        return nullptr;
-    }
 };
 
 } // namespace Slic3r

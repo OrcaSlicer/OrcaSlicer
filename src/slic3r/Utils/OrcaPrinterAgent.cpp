@@ -1,12 +1,10 @@
 #include "OrcaPrinterAgent.hpp"
-#include "OrcaCloudSignalingChannel.hpp"
 #include "AmsPayload.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "bambu_networking.hpp"
-#include "json_diff.hpp"
 #include <algorithm>
 #include <atomic>
 #include <boost/algorithm/string.hpp>
@@ -20,14 +18,11 @@
 #include <cstdio>
 #include <condition_variable>
 #include <cmath>
-#include <fstream>
-#include <iterator>
 #include <limits>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <random>
-#include <ratio>
 #include <set>
 #include <sstream>
 #include <string>
@@ -757,14 +752,6 @@ void OrcaPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud
     const int callback_result = get_orca_cloud_agent()->set_printer_status_callback(
         [this](std::string dev_id, std::string payload) { deliver_to_sink(dev_id, payload, false); });
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::set_cloud_agent: status callback result=" << callback_result;
-}
-
-std::unique_ptr<ICameraSignalingChannel> OrcaPrinterAgent::create_camera_signaling_channel(const std::string& dev_id)
-{
-    std::lock_guard<std::mutex> lock(state_mutex);
-    if (!m_cloud_agent)
-        return nullptr;
-    return std::make_unique<OrcaCloudSignalingChannel>(m_cloud_agent, dev_id);
 }
 
 // ============================================================================
@@ -1813,9 +1800,10 @@ int OrcaPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
 
-    const int start_rc = cloud->start_cloud_print_job(params.dev_id, job_id, remote_gcode_name(params), /*start=*/true);
-    if (start_rc != BAMBU_NETWORK_SUCCESS)
-        return start_rc;
+    result = start_sdcard_print(params, update_fn, cancel_fn);
+
+    if (result != BAMBU_NETWORK_SUCCESS)
+        return result;
 
     if (update_fn)
         update_fn(PrintingStageFinished, 100, "Print started");

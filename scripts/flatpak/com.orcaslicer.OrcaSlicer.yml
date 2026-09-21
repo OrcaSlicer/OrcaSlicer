@@ -223,6 +223,12 @@ modules:
         sha256: 51afe0db79af8386e2027d56d685177135581e0ee82ade9d7f2caff8deab5ec5
         dest: external-packages/OpenCSG
 
+      # SolveSpace libslvs (2D sketch constraint solver, Design tab)
+      - type: file
+        url: https://github.com/JacobStoren/SolveSpaceLib/archive/4d8704523e4bf212fadf5189f92484244f670fea.zip
+        sha256: 1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30
+        dest: external-packages/SLVS
+
       # Blosc 1.17.0 (tamasmeszaros fork)
       - type: file
         url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
@@ -325,12 +331,14 @@ modules:
         sha256: deedcabe339165214a3637df4c86a507aef0d793cf8774ff68735f4737e8ddbc
         dest: external-packages/FFMPEG
 
-      # libdatachannel v0.22.2
+      # libdatachannel v0.24.5
+      # The Git checkout includes the submodules that are missing from the
+      # GitHub source archive. DataChannel.cmake consumes it as SOURCE_DIR.
       - type: git
         url: https://github.com/paullouisageneau/libdatachannel.git
-        tag: v0.22.2
-        commit: b3390b4e01e97071dd054684870c4bb5221794bf
-        dest: deps/build_flatpak/dep_DataChannel-prefix/src/dep_DataChannel
+        tag: v0.24.5
+        commit: 443f6934d9007eb7076ab7825ba330f355fcbead
+        dest: external-packages/DataChannel
 
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
@@ -385,7 +393,7 @@ modules:
       - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
-    # Built (not run) here via the action's run-tests, then shipped to a separate
+    # Built (not run) here when CI injects run-tests, then shipped to a separate
     # test job. Only the test sources compile; nothing installs to /app.
     test-commands:
       - cmake . -B build_flatpak -DBUILD_TESTS=ON

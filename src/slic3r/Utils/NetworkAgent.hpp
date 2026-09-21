@@ -116,6 +116,7 @@ public:
     int query_bind_status(std::vector<std::string> query_list, unsigned int* http_code, std::string* http_body, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int modify_printer_name(std::string dev_id, std::string dev_name, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_camera_url(std::string dev_id, std::function<void(std::string)> callback, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int start_publish(PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_model_publish_url(std::string* url, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -186,7 +187,6 @@ public:
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull);
     CameraStreamMode get_camera_stream_mode() const;
     std::string get_local_camera_stream_url() const;
-    std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id);
     std::string to_orca_filament_id(const std::string& printer_filament_id) const;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const;
     int request_bind_ticket(std::string* ticket);

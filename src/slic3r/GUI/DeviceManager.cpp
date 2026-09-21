@@ -1487,29 +1487,17 @@ int MachineObject::command_upgrade_module(std::string url, std::string module_ty
 
 int MachineObject::command_xyz_abs()
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_xyz_abs(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_xyz_abs(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_auto_leveling()
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_auto_leveling(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_auto_leveling(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_go_home()
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_go_home(get_dev_id(), this->is_in_printing(), m_support_mqtt_homing, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_go_home(get_dev_id(), this->is_in_printing(), m_support_mqtt_homing, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_task_partskip(std::vector<int> part_ids)
@@ -1631,20 +1619,12 @@ int MachineObject::command_stop_buzzer()
 
 int MachineObject::command_set_bed(int temp)
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_set_bed(get_dev_id(), temp, m_support_mqtt_bet_ctrl, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_set_bed(get_dev_id(), temp, m_support_mqtt_bet_ctrl, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_set_nozzle(int temp)
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_set_nozzle(get_dev_id(), temp, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_set_nozzle(get_dev_id(), temp, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_set_nozzle_new(int nozzle_id, int temp)
@@ -1749,11 +1729,7 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
@@ -1791,11 +1767,7 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 
 int MachineObject::command_ams_refresh_rfid(std::string tray_id)
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
@@ -1817,11 +1789,7 @@ int MachineObject::command_start_camera()
 
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_ams_control(std::string action)
@@ -1980,12 +1948,9 @@ int MachineObject::command_ams_air_print_detect(bool air_print_detect)
 
 int MachineObject::command_axis_control(std::string axis, double unit, double input_val, int speed)
 {
-    if (!m_agent) return -1;
-    int rtn = m_agent->command_axis_control(get_dev_id(), axis, unit, input_val, speed, is_core_xy(),
-                                             m_support_mqtt_axis_control, MachineObject::m_sequence_id++, is_lan_mode_printer());
-    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
-        show_unsupported_dlg(rtn);
-    return rtn;
+    return command_with_dialog(m_agent->command_axis_control(get_dev_id(), axis, unit, input_val, speed, is_core_xy(),
+                                                             m_support_mqtt_axis_control, MachineObject::m_sequence_id++,
+                                                             is_lan_mode_printer()));
 }
 
 int MachineObject::command_extruder_control(int nozzle_id, double val)
@@ -6043,6 +6008,15 @@ Slic3r::DevAmsTray* MachineObject::get_ams_tray(std::string ams_id, std::string 
 bool MachineObject::HasAms() const
 {
     return m_fila_system->HasAms();
+}
+
+int MachineObject::command_with_dialog(int cmd_result)
+{
+    if (!m_agent)
+        return -1;
+    if (cmd_result == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || cmd_result == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(cmd_result);
+    return cmd_result;
 }
 
 void change_the_opacity(wxColour& colour)

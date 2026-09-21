@@ -152,6 +152,7 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "octoprint",      htOctoPrint },
     { "crealityprint",  htCrealityPrint },
     { "duet",           htDuet },
+    { "ultimaker",      htUltiMaker },
     { "flashair",       htFlashAir },
     { "astrobox",       htAstroBox },
     { "repetier",       htRepetier },
@@ -2548,6 +2549,16 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("4");
     def->enum_labels.push_back("5");
     def->mode = comAdvanced;
+
+    // Orca: already carried by the BBL/Qidi/Geeetech/Eryone machine profiles, which inherited it from
+    // the BambuStudio import; without a definition here it was parsed as an unknown key and dropped.
+    def = this->add("extruder_clearance_dist_to_rod", coFloat);
+    def->label = L("Distance to rod");
+    def->tooltip = L("Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(40));
 
     def = this->add("extruder_clearance_height_to_rod", coFloat);
     def->label = L("Height to rod");
@@ -5391,6 +5402,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("prusaconnect");
     def->enum_values.push_back("octoprint");
     def->enum_values.push_back("duet");
+    def->enum_values.push_back("ultimaker");
     def->enum_values.push_back("flashair");
     def->enum_values.push_back("astrobox");
     def->enum_values.push_back("repetier");
@@ -5407,6 +5419,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
     def->enum_labels.push_back("Duet");
+    def->enum_labels.push_back("UltiMaker");
     def->enum_labels.push_back("FlashAir");
     def->enum_labels.push_back("AstroBox");
     def->enum_labels.push_back("Repetier");
@@ -5536,6 +5549,16 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("unsupported_wall_last", coBool);
+    def->label = L("Print unsupported walls last");
+    def->category = L("Quality");
+    def->tooltip = L("Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+                     "they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+                     "A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running "
+                     "alongside a supported wall keeps its place before the infill, which needs it as an anchor.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("outer_wall_filament_id", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
@@ -6282,6 +6305,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_inward_distance", coFloatOrPercent);
     def->label = L("Wipe inward distance");
     def->category = L("Quality");
+    // xgettext:no-c-format, no-boost-format
     def->tooltip = L("The distance the wipe path is shifted away from the external perimeter, specified in millimeters "
                      "or as a percentage of the actual outer-wall extrusion width.\n\n"
                      "For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited "
@@ -6586,7 +6610,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("G-code written at the very top of the output file, before any other content. "
                      "Useful for adding metadata that printer firmware reads from the first lines of the file "
                      "(e.g. estimated print time, filament usage). "
-                     "Supports placeholders like {print_time_sec} and {used_filament_length}.");
+                     "Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}.");
     def->multiline = true;
     def->full_width = true;
     def->height = 8;
@@ -6673,8 +6697,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_tower_no_sparse_layers", coBool);
     def->label = L("No sparse layers (beta)");
     def->tooltip = L("If enabled, the wipe tower will not be printed on layers with no tool changes. "
-                    "On layers with a tool change, extruder will travel downward to print the wipe tower. "
-                    "User is responsible for ensuring there is no collision with the print.");
+                    "On layers with a tool change, extruder will travel downward to print the wipe tower, "
+                    "so the tower ends up below the model and the toolhead has to reach down to it. "
+                    "Layouts where that would collide with an already printed object are rejected. "
+                    "Has no effect with smooth timelapse or clumping detection, which need a tower on every layer.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6700,6 +6726,34 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back(L("Cyclic"));
     def->set_default_value(new ConfigOptionEnum<ToolChangeOrderingType>(ToolChangeOrderingType::Default));
 
+    def = this->add("toolchange_cyclic_order", coString);
+    def->label = L("Cyclic order");
+    def->category = L("Advanced");
+    def->tooltip = L(
+        "Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+        "Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+        "Leave empty to cycle through the filaments in ascending order."
+    );
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("toolchange_cyclic_first_layer", coBool);
+    def->label = L("Apply cyclic order to first layer");
+    def->category = L("Advanced");
+    def->tooltip = L(
+        "Applies the cyclic toolchange order to the first layer as well.\n"
+        "By default this is disabled, because the first layer is instead ordered for the best bed "
+        "adhesion: filaments that print small, fragile first-layer features are printed last, so the "
+        "following tool changes and travel moves are less likely to knock those weakly anchored parts "
+        "loose. This first-layer order also honors a custom first layer filament sequence when one is set. "
+        "The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply "
+        "to the first layer, which is printed slowly and hot for adhesion.\n"
+        "Enable this only if you need the exact same tool sequence on every layer, including the first, at "
+        "the cost of that adhesion optimization."
+    );
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("slice_closing_radius", coFloat);
     def->label = L("Slice gap closing radius");
     def->category = L("Quality");
@@ -6712,7 +6766,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("slicing_mode", coEnum);
     def->label = L("Slicing Mode");
-    def->category = L("Other");
+    def->category = L("Others");
     def->tooltip = L("Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model.");
     def->enum_keys_map = &ConfigOptionEnum<SlicingMode>::get_enum_values();
     def->enum_values.push_back("regular");
@@ -11963,6 +12017,19 @@ CLIActionsConfigDef::CLIActionsConfigDef()
                      "the --ground-* options choose from. Machine-readable alternative to --info.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    // --inspect-paint \u2014 dump the per-facet enforcer/blocker/extruder/fuzzy
+    // paint state stored on the loaded model (supports, seam, MMU color,
+    // fuzzy-skin) as JSON. Read-only; lets CI / scripted / AI tooling
+    // reason about existing paint on a .3mf without loading the GUI.
+    def = this->add("inspect_paint", coBool);
+    def->label = L("Inspect paint (JSON to stdout)");
+    def->tooltip = L("Print a structured JSON summary of every painted layer "
+                     "(supports, seam, MMU color, fuzzy-skin) already stored on "
+                     "the loaded model \u2014 per-state facet count, surface area, "
+                     "and mesh-local bounding box \u2014 then exit. Machine-readable "
+                     "alternative to opening the paint gizmos in the GUI.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("export_settings", coString);
     def->label = L("Export Settings");
     def->tooltip = L("This exports settings to a file. Use - to write them to stdout.");
@@ -12492,9 +12559,25 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def->label = L("Used filament");
     def->tooltip = L("Total length of filament used in the print.");
 
-    def = this->add("print_time_sec", coString);
-    def->label = L("Print time (seconds)");
+    def = this->add("print_time_total_sec", coString);
+    def->label = L("Print time (total seconds)");
     def->tooltip = L("Total estimated print time in seconds. Replaced with actual value during post-processing.");
+
+    def = this->add("print_time_day", coString);
+    def->label = L("Print time (days component)");
+    def->tooltip = L("Estimated print time day component (normal mode). Replaced with actual value during post-processing.");
+
+    def = this->add("print_time_hour", coString);
+    def->label = L("Print time (hours component)");
+    def->tooltip = L("Estimated print time hour component (normal mode). Replaced with actual value during post-processing.");
+
+    def = this->add("print_time_minute", coString);
+    def->label = L("Print time (minutes component)");
+    def->tooltip = L("Estimated print time minute component (normal mode). Replaced with actual value during post-processing.");
+
+    def = this->add("print_time_sec", coString);
+    def->label = L("Print time (seconds component)");
+    def->tooltip = L("Estimated print time second component (normal mode). Replaced with actual value during post-processing.");
 
     def = this->add("used_filament_length", coString);
     def->label = L("Filament length (meters)");

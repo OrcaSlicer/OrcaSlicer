@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IMediaController.hpp"
+#include <slic3r/Utils/IPrinterAgent.hpp>
 
 #include <wx/image.h>
 
@@ -36,7 +37,7 @@ public:
             DECODE_ERROR,
             TIMEOUT,
         } code = ICE_FAILED;
-        // Identifies the StartSession attempt this status belongs to, so the
+        // Identifies the Play attempt this status belongs to, so the
         // consumer can drop CallAfter-queued events from a superseded attempt.
         std::uint64_t epoch = 0;
     };
@@ -45,14 +46,13 @@ public:
                           std::function<void(Status)> on_status);
     ~WebRtcMediaController() override;
 
-    void StartSession(std::unique_ptr<ICameraSignalingChannel> channel) override;
-    void StopSession() override;
+    void set_signalling_channel(std::unique_ptr<ICameraSignalingChannel> channel);
     std::uint64_t epoch() const { return m_epoch.load(); }
     bool is_active() const { return m_alive.load(); }
 
     void Load(wxURI) override {}
-    void Play() override {}
-    void Stop() override { StopSession(); }
+    void Play() override;
+    void Stop() override;
     wxMediaState GetState() override;
     wxSize GetVideoSize() const override;
 
@@ -75,6 +75,7 @@ private:
     // addRemoteCandidate until a remote description is set, so buffer them.
     std::vector<std::pair<std::string, std::string>> m_pending_candidates;
     bool m_remote_description_set = false;
+    std::unique_ptr<ICameraSignalingChannel> m_pending_signaling;
     std::unique_ptr<ICameraSignalingChannel> m_signaling;
     std::shared_ptr<rtc::PeerConnection> m_peer_connection;
     std::shared_ptr<rtc::DataChannel> m_data_channel;

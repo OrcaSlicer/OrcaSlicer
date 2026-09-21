@@ -163,13 +163,13 @@ wxMediaState wxMediaCtrl3::GetState()
     return m_state;
 }
 
-int wxMediaCtrl3::GetLastError()
+int wxMediaCtrl3::GetLastError() const
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     return m_error;
 }
 
-wxSize wxMediaCtrl3::GetVideoSize()
+wxSize wxMediaCtrl3::GetVideoSize() const
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     return m_video_size;

@@ -7,8 +7,6 @@
 	"setting_id": "jSA9QDV6RfL4eb5X",
 	"instantiation": "true",
 	"description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
-	"smooth_coefficient": "150",
-	"overhang_totally_speed": "50",
 	"compatible_printers": [
 		"Z-Bolt S300 0.4 nozzle",
 		"Z-Bolt S300 Dual 0.4 nozzle",

@@ -13,11 +13,13 @@ WebMediaController::WebMediaController(wxWebView* webview) : m_webview(webview)
     m_webview->SetPage("<html><head><style>html,body{margin:0;height:100%;background:#000;}</style></head><body></body></html>", "");
 }
 
-void WebMediaController::Load(wxURI url) { Load(url, CameraStreamMode::http); }
-
-void WebMediaController::Load(wxURI url, CameraStreamMode mode)
+void WebMediaController::Load(wxURI url)
 {
-    m_url         = url.BuildURI().ToStdString();
+    m_url = url.BuildURI().ToStdString();
+}
+
+void WebMediaController::set_mode(CameraStreamMode mode)
+{
     m_stream_mode = mode;
 }
 

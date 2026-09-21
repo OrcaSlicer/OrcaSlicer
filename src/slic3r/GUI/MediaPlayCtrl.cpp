@@ -1,4 +1,6 @@
 #include "MediaPlayCtrl.h"
+#include "WebMediaController.hpp"
+#include "IPrinterAgent.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
@@ -24,6 +26,7 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/utf8_codecvt.hpp>
 #include <slic3r/GUI/DeviceManager.hpp>
+#include <wx/mediactrl.h>
 #undef pid_t
 #include <boost/process.hpp>
 #ifdef __WIN32__
@@ -52,6 +55,7 @@ namespace GUI {
 MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const wxPoint &pos, const wxSize &size)
     : wxPanel(parent, wxID_ANY, pos, size)
     , m_media_ctrl(media_ctrl)
+    , m_active_media_controller(media_ctrl)
 {
     SetLabel("MediaPlayCtrl");
     SetBackgroundColour(*wxWHITE);
@@ -98,7 +102,10 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const w
     });
 
     m_button_play->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &e) { TogglePlay(); });
-    m_button_play->Bind(wxEVT_RIGHT_UP, [this](auto & e) { m_media_ctrl->Play(); });
+    m_button_play->Bind(wxEVT_RIGHT_UP, [this](auto & e) {
+        if (m_active_media_controller)
+            m_active_media_controller->Play();
+    });
     // Orca: live-view FAQ link binding removed (vendor URL)
 
     Bind(wxEVT_RIGHT_UP, [this](auto & e) {
@@ -143,14 +150,12 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const w
 
 MediaPlayCtrl::~MediaPlayCtrl()
 {
-    m_webrtc_stopping = true;
     if (m_webrtc_ctrl)
-        m_webrtc_ctrl->StopSession();
+        m_webrtc_ctrl->Stop();
     m_media_ctrl->EndExternalStream();
-    m_webrtc_stopping = false;
     {
         boost::unique_lock lock(m_mutex);
-        m_tasks.push_back("<exit>");
+        m_tasks.push_back({"<exit>", nullptr});
         m_cond.notify_all();
     }
     while (!m_thread.try_join_for(boost::chrono::milliseconds(10))) {
@@ -163,6 +168,33 @@ MediaPlayCtrl::~MediaPlayCtrl()
 void MediaPlayCtrl::SetWebMediaController(IMediaController *ctrl)
 {
     m_web_ctrl = ctrl;
+    set_active_media_controller(current_mode());
+}
+
+void MediaPlayCtrl::set_active_media_controller(CameraStreamMode mode)
+{
+    switch (mode) {
+    case CameraStreamMode::http_snapshot:
+        if (auto *web_ctrl = dynamic_cast<WebMediaController *>(m_web_ctrl))
+            web_ctrl->set_mode(mode);
+        m_active_media_controller = m_web_ctrl;
+        break;
+    case CameraStreamMode::webrtc:
+        if (!m_webrtc_ctrl) {
+            m_webrtc_ctrl = std::make_unique<WebRtcMediaController>(
+                [this](const wxImage& image, wxSize size) { m_media_ctrl->SetExternalFrame(image, size); },
+                [this, token = std::weak_ptr<int>(m_token)](WebRtcMediaController::Status status) {
+                    if (token.expired())
+                        return;
+                    CallAfter([this, status] { on_webrtc_status(status); });
+                });
+        }
+        m_active_media_controller = m_webrtc_ctrl.get();
+        break;
+    default:
+        m_active_media_controller = m_media_ctrl;
+        break;
+    }
 }
 
 CameraStreamMode MediaPlayCtrl::current_mode() const
@@ -181,105 +213,96 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
         }
         m_last_mode = mode;
     }
+    set_active_media_controller(mode);
 
-    switch (mode) {
-    case CameraStreamMode::http:
-    case CameraStreamMode::https:
-    case CameraStreamMode::http_snapshot:
-    case CameraStreamMode::rtsp: {
-        std::string machine = obj ? obj->get_dev_id() : "";
+    const bool uses_local_camera_url = mode == CameraStreamMode::http || mode == CameraStreamMode::https ||
+                                       mode == CameraStreamMode::http_snapshot || mode == CameraStreamMode::rtsp;
+    const bool uses_webrtc = mode == CameraStreamMode::webrtc;
+    const std::string machine = obj ? obj->get_dev_id() : "";
+    bool changed = false;
+
+    if (uses_local_camera_url) {
         auto agent = wxGetApp().getAgent();
         std::string url = agent ? agent->get_local_camera_stream_url() : "";
         m_camera_exists = !url.empty();
         Enable(obj && m_camera_exists);
-        bool changed = machine != m_machine || url != m_agent_camera_url;
-        m_machine   = machine;
+        changed = machine != m_machine || url != m_agent_camera_url;
         m_agent_camera_url = url;
-        m_url       = from_u8(url);
-        if (!changed) {
-            return;
-        }
-        // A genuine machine/URL switch: not a failure, so drop any pending
-        // failure back-off before (re)starting on the new target.
-        m_web_user_stopped = false;
-        m_failed_code  = 0;
-        m_failed_retry = 0;
-        m_next_retry   = wxDateTime();
-        if (m_last_state != MEDIASTATE_IDLE)
-            Stop(" ");
-        return;
-    }
-    case CameraStreamMode::webrtc: {
-        std::string machine = obj ? obj->get_dev_id() : "";
+        m_url = from_u8(url);
+    } else if (uses_webrtc) {
         m_camera_exists = obj != nullptr;
         Enable(obj != nullptr);
-        const bool changed = machine != m_machine;
+        changed = machine != m_machine;
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::SetMachineObject webrtc: changed=" << changed
                                 << " last_state=" << m_last_state << " web_user_stopped=" << m_web_user_stopped;
-        m_machine = machine;
         m_url.clear();
         m_agent_camera_url.clear();
-        if (!changed) {
-            return;
+    } else {
+        if (obj) {
+            m_camera_exists  = obj->has_ipcam;
+            m_dev_ver        = obj->get_ota_version();
+            m_lan_mode       = obj->is_lan_mode_printer();
+            m_lan_proto      = obj->liveview_local;
+            m_remote_proto   = obj->get_liveview_remote();
+            m_lan_ip         = obj->get_dev_ip();
+            m_lan_passwd     = obj->get_access_code();
+            m_device_busy    = obj->is_camera_busy_off();
+            m_tutk_state     = obj->tutk_state;
+
+            if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && BBLNetworkPlugin::instance().use_legacy_network()) {
+                // Legacy plugin cannot support remote play for H2D, force using local mode
+                m_remote_proto = LiveviewRemote::LVR_None;
+            }
+        } else {
+            m_camera_exists = false;
+            m_lan_mode = false;
+            m_lan_proto = LiveviewLocal::LVL_None;
+            m_lan_ip.clear();
+            m_lan_passwd.clear();
+            m_dev_ver.clear();
+            m_tutk_state.clear();
+            m_remote_proto = 0;
+            m_device_busy = false;
         }
-        m_web_user_stopped = false;
+        Enable(obj && obj->is_info_ready() && obj->m_push_count > 0);
+        if (machine == m_machine)
+            return;
+
+        m_machine = machine;
+        BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl switch machine: " << m_machine;
+        m_disable_lan = false;
+        m_failed_retry = 0;
+        m_last_failed_codes.clear();
+        m_last_user_play = wxDateTime::Now();
+        std::string stream_url;
+        if (get_stream_url(&stream_url)) {
+            m_streaming = boost::algorithm::contains(stream_url, "device=" + m_machine);
+        } else {
+            m_streaming = false;
+        }
         if (m_last_state != MEDIASTATE_IDLE)
             Stop(" ");
+        if (m_next_retry.IsValid()) // Try open 2 seconds later, to avoid state conflict
+            m_next_retry = wxDateTime::Now() + wxTimeSpan::Seconds(2);
+        else
+            SetStatus("", false);
         return;
     }
-    default:
-        break;
-    }
 
-    std::string machine = obj ? obj->get_dev_id() : "";
-    if (obj) {
-        m_camera_exists  = obj->has_ipcam;
-        m_dev_ver        = obj->get_ota_version();
-        m_lan_mode       = obj->is_lan_mode_printer();
-        m_lan_proto      = obj->liveview_local;
-        m_remote_proto   = obj->get_liveview_remote();
-        m_lan_ip         = obj->get_dev_ip();
-        m_lan_passwd     = obj->get_access_code();
-        m_device_busy    = obj->is_camera_busy_off();
-        m_tutk_state     = obj->tutk_state;
-
-        if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && BBLNetworkPlugin::instance().use_legacy_network()) {
-            // Legacy plugin cannot support remote play for H2D, force using local mode
-            m_remote_proto = LiveviewRemote::LVR_None;
-        }
-    } else {
-        m_camera_exists = false;
-        m_lan_mode = false;
-        m_lan_proto = LiveviewLocal::LVL_None;
-        m_lan_ip.clear();
-        m_lan_passwd.clear();
-        m_dev_ver.clear();
-        m_tutk_state.clear();
-        m_remote_proto = 0;
-        m_device_busy = false;
-    }
-    Enable(obj && obj->is_info_ready() && obj->m_push_count > 0);
-    if (machine == m_machine) {
-        return;
-    }
     m_machine = machine;
-    BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl switch machine: " << m_machine;
-    m_disable_lan = false;
-    m_failed_retry = 0;
-    m_last_failed_codes.clear();
-    m_last_user_play = wxDateTime::Now();
-    std::string stream_url;
-    if (get_stream_url(&stream_url)) {
-        m_streaming = boost::algorithm::contains(stream_url, "device=" + m_machine);
-    } else {
-        m_streaming = false;
+    if (!changed)
+        return;
+
+    // A genuine target switch is not a stream failure and should clear the
+    // manual-stop state before the new target is allowed to play.
+    m_web_user_stopped = false;
+    if (uses_local_camera_url) {
+        m_failed_code = 0;
+        m_failed_retry = 0;
+        m_next_retry = wxDateTime();
     }
     if (m_last_state != MEDIASTATE_IDLE)
         Stop(" ");
-    if (m_next_retry.IsValid()) // Try open 2 seconds later, to avoid state conflict
-        m_next_retry = wxDateTime::Now() + wxTimeSpan::Seconds(2);
-    else
-        SetStatus("", false);
 }
 
 wxString hide_id_middle_string(wxString const &str, size_t offset = 0, size_t length = -1)
@@ -330,97 +353,71 @@ void refresh_agora_url(char const* device, char const* dev_ver, char const* chan
 
 void MediaPlayCtrl::Play()
 {
-    switch (current_mode()) {
-    case CameraStreamMode::http_snapshot:
-        if (!m_next_retry.IsValid() || wxDateTime::Now() < m_next_retry)
+    if ((m_next_retry.IsValid() && wxDateTime::Now() < m_next_retry) || !IsShownOnScreen() || m_last_state != MEDIASTATE_IDLE)
+        return;
+
+    const CameraStreamMode mode = current_mode();
+    set_active_media_controller(mode);
+    m_last_mode = mode;
+    auto agent = wxGetApp().getAgent();
+
+    auto printer_agent = agent ? agent->get_printer_agent() : nullptr;
+    const bool is_bbl = (printer_agent ? printer_agent->get_agent_info().id : "") == BBL_PRINTER_AGENT_ID;
+
+    if (!is_bbl) {
+        const bool is_webrtc = mode == CameraStreamMode::webrtc;
+        const bool is_snapshot = mode == CameraStreamMode::http_snapshot;
+        const bool is_http_stream = mode == CameraStreamMode::http || mode == CameraStreamMode::https || mode == CameraStreamMode::rtsp;
+        if (!is_webrtc && !is_snapshot && !is_http_stream)
             return;
-        if (!IsShownOnScreen()) return;
-        if (m_last_state != MEDIASTATE_IDLE) return;
-        if (m_machine.empty() || !IsEnabled() || !m_camera_exists || m_url.IsEmpty() || !m_web_ctrl) {
+
+        auto *webrtc_ctrl = is_webrtc ? dynamic_cast<WebRtcMediaController *>(m_active_media_controller) : nullptr;
+        if (is_webrtc && (!webrtc_ctrl || !m_media_ctrl)) {
             Stop(_L("Please confirm if the printer is connected."));
             return;
         }
-        m_button_play->SetIcon("media_stop");
-        m_web_ctrl->Load(wxURI(m_url), current_mode());
-        m_web_ctrl->Play();
-        m_last_state = wxMEDIASTATE_PLAYING;
-        SetStatus(_L("Playing..."), false);
-        return;
-    case CameraStreamMode::http:
-    case CameraStreamMode::https:
-    case CameraStreamMode::rtsp:
-        if (m_next_retry.IsValid() && wxDateTime::Now() < m_next_retry)
+        if (webrtc_ctrl && webrtc_ctrl->is_active())
             return;
-        if (!IsShownOnScreen()) return;
-        if (m_last_state != MEDIASTATE_IDLE) return;
+
         m_failed_code = 0;
-        if (m_machine.empty() || !IsEnabled() || !m_camera_exists || m_url.IsEmpty()) {
+        if (!m_active_media_controller || m_machine.empty() || !IsEnabled() || !m_camera_exists ||
+            (!is_webrtc && m_url.IsEmpty())) {
             Stop(_L("Please confirm if the printer is connected."));
             return;
         }
-        m_button_play->SetIcon("media_stop");
-        load();
-        return;
-    case CameraStreamMode::webrtc: {
-        BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play webrtc: last_state=" << m_last_state
-                                << " next_retry_valid=" << m_next_retry.IsValid()
-                                << " next_retry_future=" << (m_next_retry.IsValid() && wxDateTime::Now() < m_next_retry)
-                                << " failed_retry=" << m_failed_retry << " shown=" << IsShownOnScreen();
-        if (m_webrtc_ctrl && m_webrtc_ctrl->is_active()) {
-            BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play webrtc: session already active, ignoring";
-            return;
-        }
-        if (m_next_retry.IsValid() && wxDateTime::Now() < m_next_retry)
-            return;
-        if (!IsShownOnScreen() || m_last_state != MEDIASTATE_IDLE)
-            return;
-        m_failed_code = 0;
-        if (m_machine.empty() || !IsEnabled() || !m_camera_exists) {
-            Stop(_L("Please confirm if the printer is connected."));
-            return;
-        }
-        auto agent = wxGetApp().getAgent();
-        auto channel = agent ? agent->create_camera_signaling_channel(m_machine) : nullptr;
-        if (!channel) {
-            Stop(_L("Sign in to OrcaCloud to view the camera."));
-            return;
-        }
-        if (!m_webrtc_ctrl) {
-            m_webrtc_ctrl = std::make_unique<WebRtcMediaController>(
-                [this](const wxImage& image, wxSize size) { m_media_ctrl->SetExternalFrame(image, size); },
-                [this, token = std::weak_ptr<int>(m_token)](WebRtcMediaController::Status status) {
-                    if (token.expired())
-                        return;
-                    CallAfter([this, status] { on_webrtc_status(status); });
-                });
-        }
-        m_button_play->SetIcon("media_stop");
-        m_media_ctrl->BeginExternalStream();
-        m_last_state = MEDIASTATE_INITIALIZING;
-        SetStatus(_L("Initializing..."), false);
-        m_webrtc_stopping = false;
-        m_webrtc_ctrl->StartSession(std::move(channel));
-        m_webrtc_epoch = m_webrtc_ctrl->epoch();
-        return;
-    }
-    default: // assumed to be CameraStreamMode::none
-        if (NetworkAgent* agent = wxGetApp().getAgent()) {
-            if (auto printer_agent = agent->get_printer_agent()) {
-                if (printer_agent->get_agent_info().id != BBL_PRINTER_AGENT_ID) {
-                    return;
-                }
+
+        if (is_webrtc) {
+            BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play webrtc: last_state=" << m_last_state << " failed_retry=" << m_failed_retry
+                                    << " shown=" << IsShownOnScreen();
+            auto channel = agent ? agent->create_camera_signaling_channel(m_machine, wxGetApp().get_printer_cloud_provider()) : nullptr;
+            if (!channel) {
+                Stop(_L("Sign in to OrcaCloud to view the camera."));
+                return;
             }
+            webrtc_ctrl->set_signalling_channel(std::move(channel));
+            m_media_ctrl->BeginExternalStream();
+            m_last_state = MEDIASTATE_INITIALIZING;
+            SetStatus(_L("Initializing..."), false);
+        } else if (is_snapshot) {
+            m_last_state = wxMEDIASTATE_PLAYING;
+            SetStatus(_L("Playing..."), false);
         }
-        break;
+
+        m_button_play->SetIcon("media_stop");
+        if (m_active_media_controller == m_media_ctrl) {
+            // wxMediaCtrl3 reports when it has a decoded frame; load() waits for
+            // that event before queuing Play so the stream is not marked stopped.
+            load();
+        } else {
+            m_active_media_controller->Load(wxURI(m_url));
+            m_active_media_controller->Play();
+        }
+        if (webrtc_ctrl) {
+            m_webrtc_epoch = webrtc_ctrl->epoch();
+        }
+        return;
     }
 
-    if (!m_next_retry.IsValid() || wxDateTime::Now() < m_next_retry)
-        return;
-    if (!IsShownOnScreen())
-        return;
-    if (m_last_state != MEDIASTATE_IDLE) {
-        return;
-    }
     m_failed_code = 0;
     if (m_machine.empty()) {
         Stop(_L("Please confirm if the printer is connected."));
@@ -441,7 +438,6 @@ void MediaPlayCtrl::Play()
     }
 
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play: " << m_lan_proto << m_remote_proto << m_disable_lan;
-    NetworkAgent *agent = wxGetApp().getAgent();
     std::string  agent_version = agent ? agent->get_version() : "";
     if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
         m_disable_lan = m_remote_proto && !m_lan_mode; // try remote next time
@@ -545,8 +541,8 @@ void MediaPlayCtrl::StopWebStream()
 {
     if (m_last_state == MEDIASTATE_IDLE)
         return;
-    if (m_web_ctrl)
-        m_web_ctrl->Stop();
+    if (m_active_media_controller && m_active_media_controller == m_web_ctrl)
+        m_active_media_controller->Stop();
     m_button_play->SetIcon("media_play");
     m_last_state = MEDIASTATE_IDLE;
     SetStatus(_L("Video Stopped."), false);
@@ -554,15 +550,14 @@ void MediaPlayCtrl::StopWebStream()
 
 void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
 {
-    const bool webrtc_active = m_webrtc_ctrl && m_last_mode == CameraStreamMode::webrtc;
+    const bool webrtc_active = m_last_mode == CameraStreamMode::webrtc &&
+                               dynamic_cast<WebRtcMediaController *>(m_active_media_controller) != nullptr;
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Stop: last_state=" << m_last_state
                             << " webrtc_active=" << webrtc_active << " failed_code=" << m_failed_code
                             << " msg='" << msg.ToUTF8().data() << "'";
     if (webrtc_active) {
-        m_webrtc_stopping = true;
-        m_webrtc_ctrl->StopSession();
+        m_active_media_controller->Stop();
         m_media_ctrl->EndExternalStream();
-        m_webrtc_stopping = false;
     }
     switch (m_last_mode) {
     case CameraStreamMode::http:
@@ -571,13 +566,14 @@ void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
         const bool snapshot = m_last_mode == CameraStreamMode::http_snapshot;
         if (m_last_state != MEDIASTATE_IDLE) {
             if (snapshot) {
-                if (m_web_ctrl) m_web_ctrl->Stop();
+                if (m_active_media_controller)
+                    m_active_media_controller->Stop();
             } else {
                 // http/https mode plays through the ffmpeg backend (m_media_ctrl), not
                 // the webview - tear its read thread down too, otherwise it keeps
                 // pulling and painting frames after the UI says "Video Stopped".
                 boost::unique_lock lock(m_mutex);
-                m_tasks.push_back("<stop>");
+                m_tasks.push_back({"<stop>", m_active_media_controller});
                 m_cond.notify_all();
             }
             m_button_play->SetIcon("media_play");
@@ -611,7 +607,8 @@ void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
         m_media_ctrl->InvalidateBestSize();
         m_button_play->SetIcon("media_play");
         boost::unique_lock lock(m_mutex);
-        m_tasks.push_back("<stop>");
+        if (!webrtc_active)
+            m_tasks.push_back({"<stop>", m_active_media_controller});
         m_cond.notify_all();
         if (!msg.IsEmpty())
             SetStatus(msg);
@@ -678,7 +675,7 @@ void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
 
 void MediaPlayCtrl::on_webrtc_status(WebRtcMediaController::Status status)
 {
-    // Drop CallAfter-queued events from a superseded StartSession attempt.
+    // Drop CallAfter-queued events from a superseded Play attempt.
     if (status.epoch != m_webrtc_epoch)
         return;
     if (status.kind == WebRtcMediaController::Status::Connecting) {
@@ -839,7 +836,9 @@ void MediaPlayCtrl::jump_to_play()
 void MediaPlayCtrl::onStateChanged(wxMediaEvent &event)
 {
     auto last_state = m_last_state;
-    auto state      = m_media_ctrl->GetState();
+    if (m_active_media_controller != m_media_ctrl)
+        return;
+    auto state      = m_active_media_controller->GetState();
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::onStateChanged: " << state << ", last_state: " << last_state;
     if ((int) state < 0) return;
     {
@@ -851,14 +850,14 @@ void MediaPlayCtrl::onStateChanged(wxMediaEvent &event)
     }
     if ((last_state == MEDIASTATE_IDLE || last_state == MEDIASTATE_INITIALIZING) && state == wxMEDIASTATE_STOPPED) { return; }
     if ((last_state == wxMEDIASTATE_PAUSED || last_state == wxMEDIASTATE_PLAYING) && state == wxMEDIASTATE_STOPPED) {
-        m_failed_code = m_media_ctrl->GetLastError();
+        m_failed_code = m_active_media_controller->GetLastError();
         Stop();
         return;
     }
     if (last_state == MEDIASTATE_LOADING && (state == wxMEDIASTATE_STOPPED || state == wxMEDIASTATE_PAUSED)) {
-        wxSize size = m_media_ctrl->GetVideoSize();
+        wxSize size = m_active_media_controller->GetVideoSize();
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::onStateChanged: size: " << size.x << "x" << size.y;
-        m_failed_code = m_media_ctrl->GetLastError();
+        m_failed_code = m_active_media_controller->GetLastError();
         if (size.GetWidth() >= 320) {
             m_last_state = state;
             m_failed_code = 0;
@@ -868,7 +867,7 @@ void MediaPlayCtrl::onStateChanged(wxMediaEvent &event)
             m_failed_retry = 0;
             m_disable_lan = false;
             boost::unique_lock lock(m_mutex);
-            m_tasks.push_back("<play>");
+            m_tasks.push_back({"<play>", m_active_media_controller});
             m_cond.notify_all();
         } else if (event.GetId()) {
             if (m_failed_code == 0)
@@ -923,7 +922,7 @@ void MediaPlayCtrl::load()
         m_url                = m_url + "&dump_info=" + boost::lexical_cast<std::string>(dump_info_file);
     }
     boost::unique_lock lock(m_mutex);
-    m_tasks.push_back(m_url);
+    m_tasks.push_back({m_url, m_active_media_controller});
     m_cond.notify_all();
 }
 
@@ -943,30 +942,34 @@ void MediaPlayCtrl::media_proc()
         while (m_tasks.empty()) {
             m_cond.wait(lock);
         }
-        wxString url = m_tasks.front();
-        if (m_tasks.size() >= 2 && !url.IsEmpty() && url[0] != '<' && m_tasks[1] == "<stop>") {
-            BOOST_LOG_TRIVIAL(trace) << "MediaPlayCtrl: busy skip url: " << url;
+        MediaTask task = m_tasks.front();
+        if (m_tasks.size() >= 2 && !task.command.IsEmpty() && task.command[0] != '<' &&
+            m_tasks[1].command == "<stop>" && task.controller == m_tasks[1].controller) {
+            BOOST_LOG_TRIVIAL(trace) << "MediaPlayCtrl: busy skip url: " << task.command;
             m_tasks.pop_front();
             m_tasks.pop_front();
             continue;
         }
         lock.unlock();
-        if (url == "<stop>") {
+        if (task.command == "<stop>") {
             BOOST_LOG_TRIVIAL(info) <<  "MediaPlayCtrl: start stop";
-            m_media_ctrl->Stop();
+            if (task.controller)
+                task.controller->Stop();
             BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: end stop";
         }
-        else if (url == "<exit>") {
+        else if (task.command == "<exit>") {
             break;
         }
-        else if (url == "<play>") {
+        else if (task.command == "<play>") {
             BOOST_LOG_TRIVIAL(info) <<  "MediaPlayCtrl: start play";
-            m_media_ctrl->Play();
+            if (task.controller)
+                task.controller->Play();
             BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: end play";
         }
         else {
             BOOST_LOG_TRIVIAL(info) <<  "MediaPlayCtrl: start load";
-            m_media_ctrl->Load(wxURI(url));
+            if (task.controller)
+                task.controller->Load(wxURI(task.command));
             BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: end load";
         }
         lock.lock();

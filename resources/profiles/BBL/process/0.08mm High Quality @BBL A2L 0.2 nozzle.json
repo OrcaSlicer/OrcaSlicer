@@ -33,7 +33,6 @@
 	"slowdown_end_height": [
 		"225"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_pattern": "gyroid",
 	"travel_acceleration": [
 		"8000"

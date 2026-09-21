@@ -976,7 +976,7 @@ public:
     void command_set_save_remote_print_file_to_storage(bool save);
 
 private:
-
+    int command_with_dialog(int cmd_result);
     /* xcam door open check*/
     bool is_support_door_open_check = false;
     DoorOpenCheckState xcam_door_open_check  = DoorOpenCheckState::DOOR_OPEN_CHECK_DISABLE;

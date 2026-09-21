@@ -18,8 +18,8 @@
 
 namespace Slic3r {
 
-OrcaCloudSignalingChannel::OrcaCloudSignalingChannel(std::shared_ptr<ICloudServiceAgent> cloud, std::string dev_id)
-    : m_cloud(std::move(cloud))
+OrcaCloudSignalingChannel::OrcaCloudSignalingChannel(OrcaCloudServiceAgent* cloud, std::string dev_id)
+    : m_cloud(cloud)
     , m_dev_id(std::move(dev_id))
 {
 }
@@ -130,7 +130,6 @@ void OrcaCloudSignalingChannel::run()
 
         nlohmann::json token_response;
         std::string token_body;
-        std::string token_error;
         unsigned int http_code = 0;
         auto request = Http::post(live_token_url);
         request.set_post_body(std::string("{}"))
@@ -142,19 +141,13 @@ void OrcaCloudSignalingChannel::run()
                 http_code = status;
                 token_body = std::move(body);
             })
-            .on_error([&token_body, &token_error, &http_code](std::string body, std::string error, unsigned status) {
+            .on_error([&http_code](std::string, std::string, unsigned status) {
                 http_code = status;
-                token_body = std::move(body);
-                token_error = std::move(error);
             })
             .perform_sync();
-        BOOST_LOG_TRIVIAL(info) << "signaling: live-token HTTP " << http_code
-                                << (token_error.empty() ? "" : " error=" + token_error)
-                                << " body=" << token_body.substr(0, 512);
         try {
             token_response = nlohmann::json::parse(token_body);
-        } catch (const std::exception& e) {
-            BOOST_LOG_TRIVIAL(warning) << "signaling: live-token body is not JSON: " << e.what();
+        } catch (const std::exception&) {
         }
         if (http_code < 200 || http_code >= 300 || !token_response.contains("token")) {
             unavailable(CameraUnavailableReason::Error, "Unable to mint camera live token");
@@ -189,9 +182,9 @@ void OrcaCloudSignalingChannel::run()
                 }
             }
         }
-
         auto conn = std::make_shared<Connection>();
         conn->ssl_context.set_default_verify_paths();
+        Http::add_platform_root_certificates(conn->ssl_context.native_handle());
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_conn = conn;
@@ -203,6 +196,7 @@ void OrcaCloudSignalingChannel::run()
         if (!SSL_set_tlsext_host_name(websocket.next_layer().native_handle(), host.c_str()))
             throw std::runtime_error("Unable to configure TLS server name");
         websocket.next_layer().set_verify_mode(boost::asio::ssl::verify_peer);
+        websocket.next_layer().set_verify_callback(boost::asio::ssl::host_name_verification(host));
         websocket.next_layer().handshake(boost::asio::ssl::stream_base::client);
         const std::string ws_target = "/api/v1/printers/" + encode_path_component(m_dev_id) +
                                       "/camera/live?token=" +

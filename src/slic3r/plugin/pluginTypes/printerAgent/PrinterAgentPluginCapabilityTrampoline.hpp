@@ -50,6 +50,80 @@ public:
             dev_id, json_str, qos, flag);
     }
 
+    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_ams_refresh_rfid,
+            dev_id, tray_id, sequence_id, lan_mode);
+    }
+
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_ams_calibrate,
+            dev_id, ams_id, sequence_id, lan_mode);
+    }
+
+    int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_ams_select_tray,
+            dev_id, tray_id, sequence_id, lan_mode);
+    }
+
+    int command_start_camera(std::string dev_id) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_start_camera, dev_id);
+    }
+
+    int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_xyz_abs,
+            dev_id, sequence_id, lan_mode);
+    }
+
+    int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_auto_leveling,
+            dev_id, sequence_id, lan_mode);
+    }
+
+    int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing,
+                        int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_go_home,
+            dev_id, is_printing, supports_mqtt_homing, sequence_id, lan_mode);
+    }
+
+    int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl,
+                        int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_set_bed,
+            dev_id, temp, supports_mqtt_bed_ctrl, sequence_id, lan_mode);
+    }
+
+    int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_set_nozzle,
+            dev_id, temp, sequence_id, lan_mode);
+    }
+
+    int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val,
+                             int speed, bool is_core_xy, bool supports_mqtt_axis_control,
+                             int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            [] {}, PYBIND11_OVERRIDE, int, PrinterAgentPluginCapability, command_axis_control,
+            dev_id, axis, unit, input_val, speed, is_core_xy, supports_mqtt_axis_control,
+            sequence_id, lan_mode);
+    }
+
     bool start_discovery(bool start, bool sending) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
