@@ -1,16 +1,11 @@
 #pragma once
 
+#include "CurveEditorDialog.hpp"
 #include <string>
-#include <vector>
-#include <wx/dialog.h>
-
-class wxGrid;
-class wxPanel;
-class wxStaticText;
 
 namespace Slic3r::GUI {
 
-class SmallAreaInfillFlowCompensationDialog : public wxDialog
+class SmallAreaInfillFlowCompensationDialog : public CurveEditorDialog
 {
 public:
     SmallAreaInfillFlowCompensationDialog(wxWindow* parent, const std::vector<std::string>& parameters);
@@ -18,32 +13,20 @@ public:
     bool is_modified() const { return m_modified; }
 
 private:
-    void load_points(const std::vector<std::string>& parameters);
-    bool read_points(std::vector<double>& lengths, std::vector<double>& factors);
-    void update_preview();
-    void paint_chart();
-    void finish_edit();
-    wxRect chart_rect() const;
-    wxPoint chart_point(double length, double factor) const;
-    int hit_test(const wxPoint& position) const;
-    void drag_point(const wxPoint& position);
-    void finish_drag();
+    wxString validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const override;
+    CurveEditorPanel::Interpolator make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const override;
+    CurveEditorView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const override;
+    CurveEditorView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,
+                               const CurveEditorView& view) const override;
+    Rows default_rows() const override;
+    Rows seed_rows() const override;
+    void accept_rows(const Rows& rows) override;
+    wxString empty_message() const override;
+    wxString validate_view(const CurveEditorView& view) const override;
 
-    wxGrid*       m_grid;
-    wxPanel*      m_chart;
-    wxStaticText* m_status;
     std::vector<std::string> m_initial_parameters;
-    std::vector<double> m_lengths;
-    std::vector<double> m_factors;
     std::string m_output_data;
     bool m_modified = false;
-    int m_dragged_point = -1;
-    wxPoint m_drag_start;
-    wxPoint m_drag_previous;
-    double m_drag_length = 0.0;
-    double m_drag_factor = 0.0;
-    double m_chart_max_length = 1.0;
-    double m_chart_min_factor = 0.0;
 };
 
 } // namespace Slic3r::GUI
