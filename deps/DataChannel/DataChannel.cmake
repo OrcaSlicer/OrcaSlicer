@@ -5,12 +5,13 @@
 # It vendors plog, usrsctp and libjuice as git submodules, which a plain
 # GitHub tag tarball does not include. The flatpak sandbox has no network
 # access during the build, so there the manifest itself clones the repo
-# (submodules and all) straight into this ExternalProject's default source
-# dir before the sandbox closes; with no download method given here and that
-# dir already non-empty, ExternalProject_Add silently uses it as-is instead
-# of trying its own (network) git step.
+# (submodules and all) into the dependency download directory before the
+# sandbox closes. ExternalProject_Add is pointed at that existing checkout
+# instead of being given its own network-dependent download method.
 if (FLATPAK)
-    set(_datachannel_source "")
+    set(_datachannel_source
+        SOURCE_DIR ${DEP_DOWNLOAD_DIR}/DataChannel
+    )
 else()
     set(_datachannel_source
         GIT_REPOSITORY https://github.com/paullouisageneau/libdatachannel.git

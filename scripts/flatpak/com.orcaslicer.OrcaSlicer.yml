@@ -326,16 +326,13 @@ modules:
         dest: external-packages/FFMPEG
 
       # libdatachannel v0.24.5
-      # Use git instead of archive: it vendors plog, usrsctp and libjuice as
-      # git submodules, which a plain GitHub tag tarball does not include.
-      # Cloned (with submodules) straight into the ExternalProject source dir
-      # that deps/DataChannel/DataChannel.cmake expects, since the sandboxed
-      # build step has no network to do this itself.
+      # The Git checkout includes the submodules that are missing from the
+      # GitHub source archive. DataChannel.cmake consumes it as SOURCE_DIR.
       - type: git
         url: https://github.com/paullouisageneau/libdatachannel.git
         tag: v0.24.5
         commit: 443f6934d9007eb7076ab7825ba330f355fcbead
-        dest: deps/build_flatpak/dep_DataChannel-prefix/src/dep_DataChannel
+        dest: external-packages/DataChannel
 
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
