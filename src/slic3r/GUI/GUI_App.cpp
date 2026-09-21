@@ -2624,6 +2624,10 @@ void GUI_App::init_app_config()
         }
 #endif // _WIN32
     }
+    // Speed Dial opens on a bare Space from any page by default. Seed the flag so Preferences and the
+    // MainFrame shortcut read the same value; an existing config (true or false) is left untouched.
+    if (app_config->get("enable_speed_dial").empty())
+        app_config->set_bool("enable_speed_dial", true);
     set_logging_level(Slic3r::level_string_to_boost(app_config->get("log_severity_level")));
 
 }
@@ -4603,6 +4607,12 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI enter";
     m_is_recreating_gui = true;
 
+    // The palette injects its translated strings once, at creation; drop the cached dialog so the
+    // next open rebuilds it in the current locale (and can't outlive the old mainframe).
+    if (m_speed_dial_dialog) {
+        m_speed_dial_dialog->Destroy();
+        m_speed_dial_dialog = nullptr;
+    }
 
     mainframe->shutdown();
     ProgressDialog dlg(msg_name, msg_name, 100, nullptr, wxPD_AUTO_HIDE);
@@ -8171,6 +8181,22 @@ void GUI_App::save_mode(const /*ConfigOptionMode*/int mode)
     update_mode();
 }
 
+void GUI_App::set_mode(ConfigOptionMode mode)
+{
+    const bool was_developer = app_config->get_bool("developer_mode");
+    if (was_developer)
+        app_config->set_bool("developer_mode", false);
+    save_mode(mode);
+    if (was_developer)
+        app_config->save();
+}
+
+void GUI_App::enable_developer_mode()
+{
+    app_config->set_bool("developer_mode", true);
+    update_mode();
+}
+
 // Update view mode according to selected menu
 void GUI_App::update_mode()
 {
@@ -8319,6 +8345,65 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
     }
 }
 
+void GUI_App::refresh_plugins()
+{
+    // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
+    // and report completion through the notification manager -- the speed dial needs no dialog.
+    std::thread([]() {
+        wxString error;
+        try {
+            refresh_plugin_metadata_blocking(/*fetch_cloud=*/true);
+        } catch (const std::exception& ex) {
+            error = from_u8(ex.what());
+        } catch (...) {
+            error = "Unknown error"; // plain literal: wx translation isn't safe off the UI thread
+        }
+        if (!wxTheApp)
+            return;
+        wxTheApp->CallAfter([error]() {
+            if (wxGetApp().is_closing())
+                return;
+            Plater* plater = wxGetApp().plater();
+            if (plater == nullptr)
+                return;
+            if (error.IsEmpty())
+                plater->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::RegularNotificationLevel,
+                    into_u8(_L("Plugins refreshed.")));
+            else
+                plater->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                    into_u8(wxString::Format(_L("Failed to refresh plugins: %s"), error)));
+        });
+    }).detach();
+}
+
+void GUI_App::install_local_plugin()
+{
+    if (mainframe == nullptr)
+        return;
+
+    wxFileDialog dialog(mainframe, _L("Select plugin package"), wxEmptyString, wxEmptyString, _L("Plugin files (*.py;*.whl)|*.py;*.whl"),
+                        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK)
+        return;
+
+    wxString message;
+    const bool ok = install_local_plugin_package(boost::filesystem::path(dialog.GetPath().ToUTF8().data()), mainframe, message);
+    if (message.IsEmpty())
+        return; // user cancelled the overwrite prompt
+
+    Plater* plater = this->plater();
+    if (plater == nullptr)
+        return;
+    plater->get_notification_manager()->push_notification(
+        NotificationType::CustomNotification,
+        ok ? NotificationManager::NotificationLevel::RegularNotificationLevel : NotificationManager::NotificationLevel::ErrorNotificationLevel,
+        into_u8(message));
+}
+
 void GUI_App::open_terminal_dialog()
 {
     // Reached from the plugins dialog's webview ("open_terminal" command), i.e. from
@@ -8382,12 +8467,14 @@ void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::strin
 
 void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
 {
-    static constexpr const char* opengl_fxaa_setting_key = "opengl_fxaa_enabled";
-    static constexpr const char* opengl_fps_cap_setting_key = "opengl_fps_cap";
-    static constexpr const char* opengl_show_fps_overlay_setting_key = "opengl_show_fps_overlay";
-    const std::string previous_opengl_fxaa = app_config->get(opengl_fxaa_setting_key);
-    const std::string previous_opengl_fps_cap = app_config->get(opengl_fps_cap_setting_key);
-    const std::string previous_opengl_show_fps_overlay = app_config->get(opengl_show_fps_overlay_setting_key);
+    // Render settings the canvas reads every frame; a change needs one redraw to show.
+    static constexpr const char* opengl_render_setting_keys[] = {
+        SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SCENE_CACHE,
+        SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
+    };
+    std::vector<std::string> previous_opengl_render_settings;
+    for (const char* key : opengl_render_setting_keys)
+        previous_opengl_render_settings.emplace_back(app_config->get(key));
 
     bool need_recreate_gui = false;
     std::string pending_language;
@@ -8427,10 +8514,10 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         }
     }
 
-    const bool opengl_fxaa_changed = app_config->get(opengl_fxaa_setting_key) != previous_opengl_fxaa;
-    const bool opengl_fps_cap_changed = app_config->get(opengl_fps_cap_setting_key) != previous_opengl_fps_cap;
-    const bool opengl_show_fps_overlay_changed = app_config->get(opengl_show_fps_overlay_setting_key) != previous_opengl_show_fps_overlay;
-    if ((opengl_fxaa_changed || opengl_fps_cap_changed || opengl_show_fps_overlay_changed) && !need_recreate_gui && this->plater_ != nullptr) {
+    bool opengl_render_settings_changed = false;
+    for (size_t i = 0; i < previous_opengl_render_settings.size(); ++i)
+        opengl_render_settings_changed |= app_config->get(opengl_render_setting_keys[i]) != previous_opengl_render_settings[i];
+    if (opengl_render_settings_changed && !need_recreate_gui && this->plater_ != nullptr) {
         this->plater_->set_current_canvas_as_dirty();
         this->plater_->get_current_canvas3D()->force_set_focus();
     }
@@ -8444,6 +8531,9 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
                 this->plater_->get_current_canvas3D()->force_set_focus();
             return;
         }
+        // Built-in Speed Dial command titles are copied from the catalog at init and don't follow a
+        // live locale switch; rebuild them in the new language before the GUI (and palette) rebuilds.
+        m_action_registry.relocalize_builtins();
     }
 
     if (need_recreate_gui)

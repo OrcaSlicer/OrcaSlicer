@@ -21,6 +21,7 @@ Paths below are relative to this skill. Commands run from the repository root.
 | Add a printer or nozzle; change models, variants, assets or extruder vectors | [machine-profiles.md](references/machine-profiles.md) |
 | Add a quality tier or tune a process | [process-profiles.md](references/process-profiles.md) |
 | Create a vendor bundle; diagnose loading or inheritance; migrate preset names | [vendor-bundle.md](references/vendor-bundle.md) |
+| Name a preset; check what a name must equal | [naming.md](references/naming.md) |
 | Change ids; diagnose AMS identity | [ids.md](references/ids.md), then `docs/HLSD/filament_id.md` for identity changes |
 | Review a profile diff | [review-checklist.md](references/review-checklist.md) |
 | Run checks, interpret failures, test another tree or verify in the app | [validation.md](references/validation.md) |
@@ -44,7 +45,10 @@ Paths below are relative to this skill. Commands run from the repository root.
    update in-tree references too. See [migration rules](references/vendor-bundle.md#renamed_from).
 6. **Compatibility uses exact printer variant names.** Every instantiated non-library filament
    needs a non-empty `compatible_printers` in its own file. Library fallbacks may omit it;
-   library printer-specific tunes use a non-empty list. Keep same-product tunes disjoint.
+   library printer-specific tunes use a non-empty list. One variant may be claimed by only one
+   profile per filament product (`filament_id`); an overlap is resolved by moving the variant to the
+   most specific preset, which is preferred over deleting a profile. See
+   [one variant, one profile](references/filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product).
 7. **Preset values are strings or arrays of strings.** Use `"instantiation": "false"`, not `false`.
    Model `nozzle_diameter` is a `;`-separated string; machine `nozzle_diameter` is an array.
    Wrong types can abort loading; see [failure scopes](references/vendor-bundle.md#failure-modes-ranked-by-blast-radius).
@@ -87,7 +91,8 @@ Paths below are relative to this skill. Commands run from the repository root.
    ```
 
    On Windows use `py -3` instead of `python3`, and `scripts\check_profile.bat -Vendor "<Vendor>"`
-   / `scripts\check_profile.bat`. Logs: `.test/check_profiles/logs/<check>.log`.
+   / `scripts\check_profile.bat`. Logs land in a per-user cache dir (see
+   [validation.md](references/validation.md)).
    Id checks remain tree-wide under `--vendor`; filament-only bundles skip the default slice check.
    See [validation.md](references/validation.md) for flags, coverage and error remedies.
 5. **Verify the changed behavior.** Slice newly added non-default processes explicitly, and

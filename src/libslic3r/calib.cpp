@@ -11,12 +11,23 @@ namespace Slic3r {
 float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &config, double line_width, double layer_height, int extruder_id, int filament_idx)
 {
     const double general_suggested_min_speed   = 100.0;
-    double       filament_max_volumetric_speed = config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(filament_idx);
+    // Read defensively — CLI callers may hand us a config missing optional keys.
+    auto vector_at = [&config](const char *key, int idx) -> double {
+        if (const auto *o = config.option<ConfigOptionFloats>(key)) return o->get_at(idx);
+        const ConfigOptionDef *d = config.def() ? config.def()->get(key) : nullptr;
+        return (d && d->default_value) ? d->get_default_value<ConfigOptionFloats>()->get_at(idx) : 0.0;
+    };
+    auto nullable_at = [&config](const char *key, int idx) -> double {
+        if (const auto *o = config.option<ConfigOptionFloatsNullable>(key)) return o->get_at(idx);
+        const ConfigOptionDef *d = config.def() ? config.def()->get(key) : nullptr;
+        return (d && d->default_value) ? d->get_default_value<ConfigOptionFloatsNullable>()->get_at(idx) : 0.0;
+    };
+    double       filament_max_volumetric_speed = vector_at("filament_max_volumetric_speed", filament_idx);
     // todo multi_extruders:
-    const float  nozzle_diameter               = config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(extruder_id);
+    const float  nozzle_diameter               = vector_at("nozzle_diameter", extruder_id);
     if (line_width <= 0.) line_width = Flow::auto_extrusion_width(frPerimeter, nozzle_diameter);
     Flow         pattern_line = Flow(line_width, layer_height, nozzle_diameter);
-    auto         pa_speed     = std::min(std::max(general_suggested_min_speed, config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->get_at(extruder_id)),
+    auto         pa_speed     = std::min(std::max(general_suggested_min_speed, nullable_at("outer_wall_speed", extruder_id)),
                                          filament_max_volumetric_speed / pattern_line.mm3_per_mm());
 
     return std::floor(pa_speed);
