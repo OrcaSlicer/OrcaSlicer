@@ -2199,8 +2199,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     // Recorded by PartPlate::render_icons() below, when it runs.
     wxGetApp().plater()->get_partplate_list().clear_hover_tooltip();
     glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
-    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
+    // Invalidate the shadow map each frame; the View3D and Preview paths below rebuild it. This
+    // keeps the Assemble canvas from sampling a stale map with an outdated light matrix.
     m_shadow_map_valid = false;
     _render_background();
 
@@ -2251,6 +2251,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         _render_selection();
         _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
         _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
+        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode(cnv_size.get_width(), cnv_size.get_height());
     }
@@ -8158,7 +8160,15 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
         return;
     if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
         return;
-    if (m_volumes.empty())
+
+    // The preview canvas holds no volumes of its own for FFF. Once slicing has run its printed
+    // geometry is the G-code toolpaths, which both cast into the map here and sample it back in
+    // _render_gcode; before slicing there are only shells. View3D and SLA preview use m_volumes.
+    // The shells never cast: they are a translucent ghost of the whole object, so at any layer
+    // below the last they would drop the shadow of a print that is not there yet.
+    const bool toolpath_casters = m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data();
+    const GLVolumeCollection& casters = m_volumes.empty() ? m_gcode_viewer.m_shells.volumes : m_volumes;
+    if (!toolpath_casters && casters.empty())
         return;
 
     GLShaderProgram* shader = wxGetApp().get_shader("flat");
@@ -8174,10 +8184,14 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
         // Bounding box of the printable objects (the shadow casters).
         BoundingBoxf3 obj_bb;
-        for (const GLVolume* volume : m_volumes.volumes) {
-            if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
-                continue;
-            obj_bb.merge(volume->transformed_bounding_box());
+        if (toolpath_casters)
+            obj_bb = m_gcode_viewer.get_paths_bounding_box();
+        else {
+            for (const GLVolume* volume : casters.volumes) {
+                if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+                    continue;
+                obj_bb.merge(volume->transformed_bounding_box());
+            }
         }
         if (!obj_bb.defined)
             return; // no objects to cast shadows
@@ -8299,16 +8313,20 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             glsafe(::glPolygonOffset(4.0f, 4.0f));
             glsafe(::glDisable(GL_CULL_FACE));
 
-            shader->start_using();
-            shader->set_uniform("projection_matrix", Transform3d(light_proj));
-            for (GLVolume* volume : m_volumes.volumes) {
-                if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
-                    continue;
-                const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
-                shader->set_uniform("view_model_matrix", view_model);
-                volume->model.render(shader);
+            if (toolpath_casters)
+                m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
+            else {
+                shader->start_using();
+                shader->set_uniform("projection_matrix", Transform3d(light_proj));
+                for (GLVolume* volume : casters.volumes) {
+                    if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+                        continue;
+                    const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
+                    shader->set_uniform("view_model_matrix", view_model);
+                    volume->model.render(shader);
+                }
+                shader->stop_using();
             }
-            shader->stop_using();
 
             // Restore state
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
@@ -8741,7 +8759,26 @@ void GLCanvas3D::_render_wireframe_overlay()
 //BBS: GUI refactor: add canvas size as parameters
 void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
 {
+    // Realistic view: the toolpaths receive the same depth map they were rendered into by
+    // _render_shadows, which is what gives them object-on-object and self shadows. Intensity 0
+    // short-circuits the lookup in the shader, so this is inert whenever the map is missing.
+    const bool receive_shadows = m_shadow_map_valid && m_shadow_map_texture_id != 0 && m_shadow_map_size != 0;
+    if (receive_shadows) {
+        glsafe(::glActiveTexture(GL_TEXTURE4));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
+        glsafe(::glActiveTexture(GL_TEXTURE0));
+        m_gcode_viewer.set_shadow_map(4, m_shadow_light_vp, 0.35f, 1.0f / static_cast<float>(m_shadow_map_size));
+    }
+    else
+        m_gcode_viewer.set_shadow_map(4, Transform3d::Identity(), 0.0f, 0.0f);
+
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
+
+    if (receive_shadows) {
+        glsafe(::glActiveTexture(GL_TEXTURE4));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+        glsafe(::glActiveTexture(GL_TEXTURE0));
+    }
 }
 
 void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
@@ -9831,7 +9868,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Realistic View")),
-            m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
+            true, // work on all
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
             [&cfg]{
                 cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));

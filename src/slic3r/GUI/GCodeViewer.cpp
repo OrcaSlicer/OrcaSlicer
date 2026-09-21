@@ -1641,6 +1641,24 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
     m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
 }
 
+void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position)
+{
+    if (!has_data())
+        return;
+
+    m_viewer.render_shadow_casters(
+        libvgcode::convert(static_cast<Matrix4f>(light_view_matrix.matrix().cast<float>())),
+        libvgcode::convert(static_cast<Matrix4f>(light_projection_matrix.matrix().cast<float>())),
+        libvgcode::convert(static_cast<Vec3f>(light_position.cast<float>())));
+}
+
+void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size)
+{
+    m_viewer.set_shadow_map(texture_unit,
+        libvgcode::convert(static_cast<Matrix4f>(light_view_projection.matrix().cast<float>())),
+        intensity, texel_size);
+}
+
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
 {
     if (m_viewer.get_extrusion_roles().empty())

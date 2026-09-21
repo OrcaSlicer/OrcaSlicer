@@ -279,6 +279,10 @@ public:
     void render_scene(int canvas_width, int canvas_height);
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
     void render_overlay(int canvas_width, int canvas_height, int right_margin);
+    // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
+    // the shadow map the caller has bound, and the map they sample back in render_scene.
+    void render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position);
+    void set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size);
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);

@@ -71,6 +71,18 @@ public:
     // Render the toolpaths
     //
     void render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    //
+    // ORCA: realistic view. Render the toolpaths as seen from the light, to fill the caller's
+    // shadow map. Only depth matters here, so the caller masks colour writes; light_position
+    // takes the place of the camera when the segment boxes are expanded, which gives their
+    // silhouette as the light sees it.
+    //
+    void render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position);
+    //
+    // ORCA: realistic view. The shadow map the toolpaths sample, in the given texture unit.
+    // intensity == 0, the default, turns the lookup off and restores the plain shading.
+    //
+    void set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size);
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -330,6 +342,10 @@ private:
     int m_uni_segments_height_width_angle_tex_id{ -1 };
     int m_uni_segments_colors_tex_id{ -1 };
     int m_uni_segments_segment_index_tex_id{ -1 };
+    int m_uni_segments_shadow_map_id{ -1 };
+    int m_uni_segments_shadow_light_vp_id{ -1 };
+    int m_uni_segments_shadow_intensity_id{ -1 };
+    int m_uni_segments_shadow_map_texel_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -469,6 +485,20 @@ private:
     size_t m_enabled_options_tex_size{ 0 };
 #endif // ENABLE_OPENGL_ES
 
+    //
+    // ORCA: realistic view. Shadow map state set by set_shadow_map(), consumed by the segments
+    // shader. m_rendering_shadow_casters forces the intensity to 0 for the depth pass, which
+    // must not sample the very map it is writing.
+    //
+    // Defaults past the four texture units render_segments() binds itself, so the sampler never
+    // aliases one of the buffer textures before the owner of the map has said where it lives.
+    int    m_shadow_map_texture_unit{ 4 };
+    Mat4x4 m_shadow_light_vp{ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+    float  m_shadow_intensity{ 0.0f };
+    float  m_shadow_map_texel{ 0.0f };
+    bool   m_rendering_shadow_casters{ false };
+
+    void apply_pending_updates();
     void update_view_full_range();
     void update_color_ranges();
     void update_heights_widths();
