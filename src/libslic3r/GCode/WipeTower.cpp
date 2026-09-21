@@ -1935,8 +1935,17 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     // it is pushed in from Print via set_has_filament_switcher() instead of read here.
 {
     m_contact_speed                  = 20 * 60.f;
-    m_filaments_change_length.first = config.filament_change_length.values;
-    m_filaments_change_length.second = config.filament_change_length_nc.values;
+    // These are looked up by filament id, but the options behind them are per-variant and need not
+    // be as long as the filament count. Normalise to one entry per filament with the clamping
+    // get_at() applies, so every filament id is in range.
+    auto per_filament = [num_filaments = config.filament_colour.size()](const ConfigOptionFloats &opt) {
+        std::vector<double> values(num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i)
+            values[i] = opt.get_at(i);
+        return values;
+    };
+    m_filaments_change_length.first   = per_filament(config.filament_change_length);
+    m_filaments_change_length.second  = per_filament(config.filament_change_length_nc);
     m_hotend_heating_rate            = config.hotend_heating_rate.values;
     m_hotend_cooling_rate            = config.hotend_cooling_rate.values;
     m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
