@@ -9,6 +9,8 @@
 #include "../PrintConfig.hpp"
 #include "../Surface.hpp"
 
+#include <tbb/parallel_for.h>
+
 #include "AABBTreeLines.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Fill.hpp"
@@ -630,24 +632,28 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
     if (!line_based_pattern) {
         const coord_t scaled_spacing = scaled<coord_t>(fill.params.spacing);
 
-        for (const ExPolygon &expolygon : fill.expolygons) {
+        // Each expolygon is split on its own, so they run in parallel and are collected in their original order.
+        std::vector<std::pair<ExPolygons, ExPolygons>> split_parts(fill.expolygons.size()); // normal, narrow
+        tbb::parallel_for(size_t(0), fill.expolygons.size(), [&](size_t idx) {
+            const ExPolygon &expolygon = fill.expolygons[idx];
             Polygons filled_area = to_polygons(expolygon);
 
             // "Core" area: open (erode+dilate) to drop thin features, then clamp back to the original polygon.
             Polygons inner_area  = intersection(filled_area, opening(filled_area, scaled_spacing, scaled_spacing));
 
             if (inner_area.empty()) {
-                narrow_infill.emplace_back(expolygon);
-                continue;
+                split_parts[idx].second.emplace_back(expolygon);
+                return;
             }
 
             ExPolygons inner_ex = union_ex(inner_area);
             ExPolygons expolys{expolygon};
-            ExPolygons narrow_ex = diff_ex(expolys, inner_ex);
-            ExPolygons normal_ex = intersection_ex(expolys, inner_ex);
-
-            append(normal_infill, normal_ex); // normal infill area
-            append(narrow_infill, narrow_ex); // narrow infill area
+            split_parts[idx].second = diff_ex(expolys, inner_ex);         // narrow infill area
+            split_parts[idx].first  = intersection_ex(expolys, inner_ex); // normal infill area
+        });
+        for (auto &[normal_ex, narrow_ex] : split_parts) {
+            append(normal_infill, std::move(normal_ex));
+            append(narrow_infill, std::move(narrow_ex));
         }
 
         return;
@@ -669,7 +675,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
     }
     const double aligning_angle = -base_angle + PI;
 
-	for (const ExPolygon &expolygon : fill.expolygons) {
+    // Each expolygon is reconstructed on its own, so they run in parallel and are collected in their original order.
+    std::vector<Polygons> split_reconstructed(fill.expolygons.size());
+    tbb::parallel_for(size_t(0), fill.expolygons.size(), [&](size_t expolygon_idx) {
+        const ExPolygon &expolygon = fill.expolygons[expolygon_idx];
         Polygons filled_area = to_polygons(expolygon);
         polygons_rotate(filled_area, aligning_angle);
         BoundingBox bb = get_extents(filled_area);
@@ -800,8 +809,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
             }
         }
 
-        polygons_append(normal_fill_areas, reconstructed_area);
-    }
+        split_reconstructed[expolygon_idx] = std::move(reconstructed_area);
+    });
+    for (Polygons &reconstructed_area : split_reconstructed)
+        polygons_append(normal_fill_areas, std::move(reconstructed_area));
 
     polygons_rotate(normal_fill_areas, -aligning_angle);
 

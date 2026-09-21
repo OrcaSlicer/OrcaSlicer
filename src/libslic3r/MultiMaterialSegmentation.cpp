@@ -1448,22 +1448,25 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                                                                   &shell_triangles_by_color_top, &shell_triangles_by_color_bottom](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
             throw_on_cancel_callback();
-            ExPolygons painted_exploys;
-            for (size_t color_idx = 0; color_idx < triangles_by_color_merged.size(); ++color_idx) {
+            // The per-colour unions below are independent of each other, so they run in parallel (a painted top or
+            // bottom face puts all of its colours on one layer); whatever combines the colours stays in colour order.
+            const auto merge_colour_union = [&](size_t color_idx) {
                 auto &self = triangles_by_color_merged[color_idx][layer_idx];
                 append(self, std::move(triangles_by_color_bottom[color_idx][layer_idx]));
                 append(self, std::move(triangles_by_color_bottom[color_idx][layer_idx + num_layers]));
                 append(self, std::move(triangles_by_color_top[color_idx][layer_idx]));
                 append(self, std::move(triangles_by_color_top[color_idx][layer_idx + num_layers]));
                 self = union_ex(self);
+            };
+            tbb::parallel_for(size_t(0), triangles_by_color_merged.size(), merge_colour_union);
 
-                append(painted_exploys, self);
-            }
-
+            ExPolygons painted_exploys;
+            for (size_t color_idx = 0; color_idx < triangles_by_color_merged.size(); ++color_idx)
+                append(painted_exploys, triangles_by_color_merged[color_idx][layer_idx]);
             painted_exploys = union_ex(painted_exploys);
 
             //BBS: merge the top and bottom shell layers
-            for (size_t color_idx = 0; color_idx < triangles_by_color_merged.size(); ++color_idx) {
+            tbb::parallel_for(size_t(0), triangles_by_color_merged.size(), [&](size_t color_idx) {
                 auto &self = triangles_by_color_merged[color_idx][layer_idx];
 
                 auto top_area = diff_ex(union_ex(shell_triangles_by_color_top[color_idx][layer_idx],
@@ -1477,7 +1480,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                 append(self, top_area);
                 append(self, bottom_area);
                 self = union_ex(self);
-            }
+            });
             // Trim one region by the other if some of the regions overlap.
             ExPolygons painted_regions;
             for (size_t color_idx = 1; color_idx < triangles_by_color_merged.size(); ++color_idx) {
