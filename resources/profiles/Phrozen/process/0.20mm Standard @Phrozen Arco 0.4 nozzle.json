@@ -127,8 +127,6 @@
 	"overhang_reverse": "0",
 	"overhang_reverse_internal_only": "0",
 	"overhang_reverse_threshold": "50%",
-	"overhang_speed_classic": "1",
-	"overhang_totally_speed": "10",
 	"post_process": [],
 	"precise_outer_wall": "1",
 	"precise_z_height": "0",

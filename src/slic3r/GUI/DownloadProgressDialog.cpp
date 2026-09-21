@@ -26,8 +26,6 @@
 
 #include "Widgets/HyperLink.hpp" // ORCA
 
-#define DESIGN_INPUT_SIZE wxSize(FromDIP(100), -1)
-
 namespace Slic3r {
 namespace GUI {
 

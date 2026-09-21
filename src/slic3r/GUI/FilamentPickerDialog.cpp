@@ -426,11 +426,11 @@ wxScrolledWindow* FilamentPickerDialog::CreateColorGrid()
                 });
 
                 // Hover highlight
-                btn->Bind(wxEVT_ENTER_WINDOW, [btn](wxMouseEvent& evt) {
+                btn->Bind(wxEVT_ENTER_WINDOW, [](wxMouseEvent& evt) {
                     evt.Skip();
                 });
 
-                btn->Bind(wxEVT_LEAVE_WINDOW, [btn](wxMouseEvent& evt) {
+                btn->Bind(wxEVT_LEAVE_WINDOW, [](wxMouseEvent& evt) {
                     evt.Skip();
                 });
 

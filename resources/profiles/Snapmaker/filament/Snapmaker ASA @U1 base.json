@@ -3,13 +3,13 @@
 	"name": "Snapmaker ASA @U1 base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "12471727060",
+	"filament_id": "OF1d7c3A",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""
 	],
 	"hot_plate_temp": [
-		"110"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
 		"100"
@@ -31,12 +31,6 @@
 	],
 	"filament_unloading_speed": [
 		"35"
-	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
 	],
 	"filament_cooling_moves": [
 		"2"

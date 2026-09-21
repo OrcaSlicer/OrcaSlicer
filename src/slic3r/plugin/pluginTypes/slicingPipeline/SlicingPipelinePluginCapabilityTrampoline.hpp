@@ -10,7 +10,6 @@ public:
     using PyPluginCommonTrampoline<SlicingPipelinePluginCapability>::PyPluginCommonTrampoline;
     ExecutionResult execute(SlicingPipelineContext& ctx) override {
         ORCA_PY_OVERRIDE_AUDITED(
-            ::Slic3r::PluginAuditManager::AuditMode::Loading,
             [&]{
                 // At Step.psGCodePostProcess the plugin edits the exported G-code file, which lives
                 // outside data_dir() (a temp/output folder), so writing to it would otherwise be

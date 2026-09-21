@@ -33,6 +33,8 @@ using namespace nlohmann;
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
+#define SETTING_OPENGL_SCENE_CACHE "opengl_scene_cache"
+#define SETTING_OPENGL_SKIP_IDENTICAL_FRAMES "opengl_skip_identical_frames"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
@@ -40,6 +42,16 @@ using namespace nlohmann;
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
+
+#define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
+#define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
+#define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
+#define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
+
+#define SETTING_SPEED_DIAL_RECENT_COUNT "speed_dial_recent_count"
+#define SPEED_DIAL_RECENT_COUNT_MIN 0
+#define SPEED_DIAL_RECENT_COUNT_DEFAULT 5
+#define SPEED_DIAL_RECENT_COUNT_MAX 10
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
@@ -61,10 +73,19 @@ struct BBLocalMachine
     std::string dev_ip;
     std::string dev_id; /* serial number */
     std::string printer_type; /* model_id */
+    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for entries persisted before this field existed */
+    // Access code, scoped to printer_agent_id above - so a code saved while bound under one
+    // printer agent isn't treated as valid for a different, independent agent talking to the
+    // same physical dev_id. Empty for entries persisted before this field existed; those fall
+    // back to the legacy flat "access_code"/"user_access_code" AppConfig sections (BBL-only,
+    // since BBL was the only agent when they were saved) - see
+    // get_access_code_with_legacy_fallback() in DevManager.cpp.
+    std::string access_code;
 
     bool operator==(const BBLocalMachine& other) const
     {
-        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type;
+        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type &&
+               printer_agent_id == other.printer_agent_id && access_code == other.access_code;
     }
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };
@@ -99,8 +120,10 @@ public:
 	void 			   	set_defaults();
 
 	// Load the slic3r.ini from a user profile directory (or a datadir, if configured).
-	// return error string or empty strinf
+	// Return an error string, or an empty string on success.
 	std::string         load();
+	// Treat a missing config as default state; otherwise load it normally.
+	std::string         load_if_exists();
 	// Store the slic3r.ini into a user profile directory (or a datadir, if configured).
 	void 			   	save();
 
@@ -373,6 +396,13 @@ public:
 
     std::string get_network_plugin_version() const;
     void set_network_plugin_version(const std::string& version);
+
+    // Number of plugin pages shown as fixed tabs before the rest are collapsed into a
+    // dropdown on the last tab.
+    int get_plugin_pages_visible_count() const;
+
+    // Number of recently launched actions shown at the top of the Speed Dial; 0 hides them.
+    int get_speed_dial_recent_count() const;
 
     std::vector<std::string> get_skipped_network_versions() const;
     void add_skipped_network_version(const std::string& version);

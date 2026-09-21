@@ -158,7 +158,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             ctrl_line.height = size.y;
     };
 
-    auto add_buttons_width = [&h_pos, this] (int blinking_button_width) {
+    auto add_buttons_width = [&h_pos] (int blinking_button_width) {
 #ifndef DISABLE_BLINKING
 #  ifndef DISABLE_UNDO_SYS
         h_pos += 3 * blinking_button_width;

@@ -3,7 +3,7 @@
 	"name": "Bambu ASA-CF @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OGFB51",
+	"filament_id": "OF0wBGNx",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"100"

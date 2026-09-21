@@ -22,9 +22,58 @@
 #include <algorithm>
 #include <fstream>
 #include <iterator>
+#include <string_view>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
+
+TEST_CASE("Timelapse g-code is emitted once per layer for Bambu and non-Bambu printers", "[Print][Regression]")
+{
+    struct PrinterCase {
+        std::string name;
+        std::string structure;
+        bool        is_bbl;
+    };
+    const PrinterCase printer = GENERATE(from_range(std::vector<PrinterCase>{
+        { "non-BBL undefined", "undefine", false },
+        { "non-BBL CoreXY",    "corexy",   false },
+        { "non-BBL i3",        "i3",       false },
+        { "non-BBL H-Bot",     "hbot",     false },
+        { "non-BBL Delta",     "delta",    false },
+        { "Bambu CoreXY",      "corexy",   true },
+        { "Bambu i3",          "i3",       true },
+    }));
+    INFO("printer: " << printer.name);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode",          ";TEST_LAYER_CHANGE" },
+        { "layer_height",                0.2 },
+        { "printer_structure",           printer.structure },
+        { "spiral_mode",                 false },
+        { "time_lapse_gcode",            "TIMELAPSE_TAKE_FRAME" },
+    });
+    Print print;
+    print.is_BBL_printer() = printer.is_bbl;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    const auto count = [&gcode](std::string_view token) {
+        size_t occurrences = 0;
+        size_t pos = 0;
+        while ((pos = gcode.find(token, pos)) != std::string::npos) {
+            ++occurrences;
+            pos += token.size();
+        }
+        return occurrences;
+    };
+
+    const size_t layer_changes = count("\n;TEST_LAYER_CHANGE\n");
+    REQUIRE(layer_changes > 0);
+    CHECK(count("\nTIMELAPSE_TAKE_FRAME\n") == layer_changes);
+}
 
 SCENARIO("Changing the number of solid shell layers does not make all surfaces internal", "[Print]") {
     GIVEN("sliced 20mm cube and config with top_shell_layers = 2 and bottom_shell_layers = 1") {
@@ -336,6 +385,22 @@ TEST_CASE("G-code lists the resolved extrusion-width settings", "[Print]")
 
     const std::string with_first_layer = slice({ cube(20) }, { { "initial_layer_line_width", "0.5" } });
     CHECK(with_first_layer.find("; first layer extrusion width") != std::string::npos);
+}
+
+// gcode_skip_config_block suppresses the resolved-settings block while leaving the
+// header and executable blocks intact.
+TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "gcode_skip_config_block", true },
+        { "gcode_comments",         true },
+    });
+    CHECK(gcode.find("; CONFIG_BLOCK_START")     == std::string::npos);
+    CHECK(gcode.find("; CONFIG_BLOCK_END")       == std::string::npos);
+    CHECK(gcode.find("; layer_height =")         == std::string::npos);
+    CHECK(gcode.find("; fill_density =")         == std::string::npos);
+    CHECK(gcode.find("; HEADER_BLOCK_START")     != std::string::npos);
+    CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
 }
 
 // Custom G-code templates substitute placeholders during export.

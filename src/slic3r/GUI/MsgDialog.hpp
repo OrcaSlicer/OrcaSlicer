@@ -106,9 +106,9 @@ protected:
 class ErrorDialog : public MsgDialog
 {
 public:
-	// If monospaced_font is true, the error message is displayed using html <code><pre></pre></code> tags,
-	// so that the code formatting will be preserved. This is useful for reporting errors from the placeholder parser.
-	ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool courier_font);
+	// If has_code_excerpts is true, code excerpts (a source line and the caret line below it) render
+	// monospaced so the caret aligns. Used for placeholder-parser errors.
+	ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool has_code_excerpts);
 	ErrorDialog(ErrorDialog &&) = delete;
 	ErrorDialog(const ErrorDialog &) = delete;
 	ErrorDialog &operator=(ErrorDialog &&) = delete;
@@ -177,7 +177,6 @@ public:
 // Generic rich message dialog, used intead of wxRichMessageDialog
 class RichMessageDialog : public MsgDialog
 {
-	wxCheckBox* m_checkBox{ nullptr };
 	wxString	m_checkBoxText;
 	bool		m_checkBoxValue{ false };
 
@@ -416,7 +415,6 @@ private:
     wxString      m_new_keys;
     Button *      m_update_btn = nullptr;
     Button *      m_later_btn  = nullptr;
-    wxStaticText *m_msg_text   = nullptr;
 };
 
 

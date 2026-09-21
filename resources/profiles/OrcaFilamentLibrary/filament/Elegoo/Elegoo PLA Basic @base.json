@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Basic @base",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"filament_id": "OFm06H6V",
+	"instantiation": "false"
+}

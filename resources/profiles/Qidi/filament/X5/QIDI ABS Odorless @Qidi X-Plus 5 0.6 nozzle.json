@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"setting_id": "YLOcbaCppSmQ1twv",
+	"name": "QIDI ABS Odorless @Qidi X-Plus 5 0.6 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI ABS Odorless@X-Plus 5-Series",
+	"filament_max_volumetric_speed": [
+		"24.5"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.6 nozzle"
+	]
+}

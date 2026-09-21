@@ -64,6 +64,7 @@ protected:
 
 private:
     void on_bootstrap_event(wxWebViewEvent& event);
+    void on_navigated(wxWebViewEvent& event);
     void load_plugin_content();
     void on_close_window(wxCloseEvent& event);
     void fire_submit(const nlohmann::json& data);
@@ -72,6 +73,8 @@ private:
 
     std::string                   m_html;
     bool                          m_content_loaded{false};
+    bool                          m_own_page_load{false};   // a SetPage of the plugin HTML is in flight
+    bool                          m_content_navigated{false}; // a navigation to the base URL has committed
     bool                          m_open{true};
     bool                          m_close_fired{false};
     std::optional<nlohmann::json> m_result;

@@ -117,14 +117,13 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "1",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"wipe": [
 		"1"
 	],
 	"default_filament_profile": [
-		"DeltaMaker Generic PLA"
+		"Generic PLA @DeltaMaker"
 	],
 	"default_print_profile": "0.20mm Standard @DeltaMaker 2 0.35 nozzle",
 	"bed_exclude_area": [
