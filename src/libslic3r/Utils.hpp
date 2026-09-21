@@ -70,6 +70,7 @@
 #define CLI_FILAMENT_CAN_NOT_MAP      -66
 #define CLI_ONLY_ONE_TPU_SUPPORTED      -67
 #define CLI_FILAMENTS_NOT_SUPPORTED_BY_EXTRUDER  -68
+#define CLI_MIXED_FILAMENT_INVALID      -69
 
 #define CLI_SLICING_ERROR                  -100
 #define CLI_GCODE_PATH_CONFLICTS           -101
@@ -313,6 +314,9 @@ extern unsigned get_current_pid();
 std::string per_user_temp_id();
 // Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
 std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
+// Completes a relative command line input path against the current working directory. Absolute
+// paths and custom open protocol URLs are returned unchanged.
+std::string resolve_cli_input_path(const std::string &path);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 

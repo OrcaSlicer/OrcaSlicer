@@ -1,5 +1,7 @@
 #include <regex>
 #include "CalibrationWizardPresetPage.hpp"
+#include "GUI.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"

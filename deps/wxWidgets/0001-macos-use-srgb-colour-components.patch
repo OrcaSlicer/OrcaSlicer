@@ -1,0 +1,29 @@
+diff --git a/src/osx/cocoa/colour.mm b/src/osx/cocoa/colour.mm
+index 31515d146f..86b33e94a2 100644
+--- a/src/osx/cocoa/colour.mm
++++ b/src/osx/cocoa/colour.mm
+@@ -125,3 +125,3 @@
+     wxOSXEffectiveAppearanceSetter helper;
+-    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
++    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] )
+         return [colRGBA redComponent];
+@@ -134,3 +134,3 @@
+     wxOSXEffectiveAppearanceSetter helper;
+-    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
++    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] )
+         return [colRGBA greenComponent];
+@@ -143,3 +143,3 @@
+     wxOSXEffectiveAppearanceSetter helper;
+-    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
++    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] )
+         return [colRGBA blueComponent];
+@@ -152,3 +152,3 @@
+     wxOSXEffectiveAppearanceSetter helper;
+-    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] )
++    if ( NSColor* colRGBA = [m_nsColour colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] )
+         return [colRGBA alphaComponent];
+@@ -160,3 +160,3 @@
+ {
+-    return [m_nsColour colorUsingColorSpaceName:NSCalibratedRGBColorSpace] != nil;
++    return [m_nsColour colorUsingColorSpace:[NSColorSpace sRGBColorSpace]] != nil;
+ }
