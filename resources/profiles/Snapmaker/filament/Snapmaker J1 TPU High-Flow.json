@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker J1 TPU @base",
 	"from": "system",
 	"setting_id": "wdN8j0Zv2bJ29XHA",
+	"filament_id": "OFlBoEfL",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

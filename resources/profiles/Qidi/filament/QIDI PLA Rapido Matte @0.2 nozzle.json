@@ -4,7 +4,7 @@
 	"inherits": "QIDI PLA Rapido Matte",
 	"from": "system",
 	"setting_id": "HK2fT6TYIIS94MZD",
-	"filament_id": "GFL99",
+	"filament_id": "OF3IKafc",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
@@ -22,9 +22,6 @@
 		"2"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.2 nozzle",
-		"Qidi X-Max 0.2 nozzle",
-		"Qidi X-CF Pro 0.2 nozzle",
 		"Qidi X-Smart 3 0.2 nozzle",
 		"Qidi X-Plus 3 0.2 nozzle",
 		"Qidi X-Max 3 0.2 nozzle"

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "BvoaoxjqBQLvupeM",
 	"name": "Bambu ABS @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Bambu ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "BvoaoxjqBQLvupeM",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],

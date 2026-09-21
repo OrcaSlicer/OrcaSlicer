@@ -259,8 +259,8 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 		//	ImVec2 view_dailytips_text_pos = m_window_pos + ImVec2(text_left_margin_x, m_window_height / 2.0f + m_line_height * 0.2f);
 
 		//	bbl_render_left_sign(imgui, m_window_width, m_window_height, m_window_pos.x + m_window_width, m_window_pos.y);
-		//	render_text(text_pos);
-		//	render_close_button(button_pos, button_size);
+		//	render_progress_text(text_pos);
+		//	render_progress_close_button(button_pos, button_size);
 		//	render_show_dailytips(view_dailytips_text_pos);
 		//}
 
@@ -278,8 +278,8 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 				ImVec2 button_pos = child_window_pos + ImVec2(progress_panel_width - button_size.x, progress_panel_height - text_bottom - button_size.y / 2.0f);
 				ImVec2 text_pos = ImVec2(progress_bar_pos.x, progress_bar_pos.y - m_line_height * (1.2f + m_lines_count - 1));
 
-				render_text(text_pos);
-				render_close_button(button_pos, button_size);
+				render_progress_text(text_pos);
+				render_progress_close_button(button_pos, button_size);
 				if (m_sp_state == SlicingProgressState::SP_PROGRESS) {
 					render_bar(progress_bar_pos, progress_bar_size);
 					render_cancel_button(button_pos, button_size);
@@ -319,7 +319,7 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 		ImGui::PopStyleColor(3);
 }
 
-void Slic3r::GUI::NotificationManager::SlicingProgressNotification::render_text(const ImVec2& pos)
+void Slic3r::GUI::NotificationManager::SlicingProgressNotification::render_progress_text(const ImVec2& pos)
 {
 	ImGuiWrapper& imgui = *wxGetApp().imgui();
 	float scale = imgui.get_font_size() / 15.0f;
@@ -462,7 +462,7 @@ void Slic3r::GUI::NotificationManager::SlicingProgressNotification::render_cance
 	}
 }
 
-void NotificationManager::SlicingProgressNotification::render_close_button(const ImVec2& pos, const ImVec2& size)
+void NotificationManager::SlicingProgressNotification::render_progress_close_button(const ImVec2& pos, const ImVec2& size)
 {
 	if (m_sp_state == SlicingProgressState::SP_CANCELLED || m_sp_state == SlicingProgressState::SP_COMPLETED) {
 		ImGuiWrapper& imgui = *wxGetApp().imgui();

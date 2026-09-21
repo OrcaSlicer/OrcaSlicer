@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "s5YLcZKFAILv0wjd",
 	"name": "QIDI ASA-CF @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA-CF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "s5YLcZKFAILv0wjd",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"13"
 	],

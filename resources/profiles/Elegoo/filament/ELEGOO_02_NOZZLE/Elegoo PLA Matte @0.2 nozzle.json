@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Matte @0.2 nozzle",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Matte @base",
 	"from": "system",
 	"setting_id": "TyHg4K4ZNiYKgaso",
 	"instantiation": "true",

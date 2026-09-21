@@ -4,7 +4,7 @@
 	"inherits": "QIDI PPS-CF",
 	"from": "system",
 	"setting_id": "E30t78jBGCkTztFC",
-	"filament_id": "GFB99",
+	"filament_id": "OFZOuWrO",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"5"
@@ -43,8 +43,6 @@
 		"300"
 	],
 	"compatible_printers": [
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
 		"Qidi X-Smart 3 0.6 nozzle",
 		"Qidi X-Plus 3 0.6 nozzle",
 		"Qidi X-Max 3 0.6 nozzle"

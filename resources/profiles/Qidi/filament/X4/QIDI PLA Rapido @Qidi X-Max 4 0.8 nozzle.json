@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "CiU7D3vAVnI4xrwj",
 	"name": "QIDI PLA Rapido @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "CiU7D3vAVnI4xrwj",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.008"
 	],

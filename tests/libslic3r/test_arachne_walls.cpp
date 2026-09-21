@@ -18,9 +18,12 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Arachne/WallToolPaths.hpp"
+#include "libslic3r/Arachne/SkeletalTrapezoidation.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategyFactory.hpp"
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
+#include "libslic3r/Feature/FuzzySkin/FuzzySkin.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -264,4 +267,115 @@ TEST_CASE("Arachne widening keeps two beads in transition band (#14376)", "[Arac
     // thickness), well above the configured wall widths.
     for (const coord_t w : beading.bead_widths)
         CHECK(w <= inner_width);
+}
+
+namespace {
+// Exposes the protected static interpolate() for a focused unit test.
+struct InterpolateProbe : SkeletalTrapezoidation {
+    using SkeletalTrapezoidation::interpolate;
+};
+} // anonymous namespace
+
+// interpolate() indexes the merged beading with an index derived from `left`. The merged beading
+// follows the thicker of left/right, so when the thicker side has fewer insets the index runs past
+// its end.
+TEST_CASE("Beading interpolation tolerates a thicker side with fewer insets", "[Arachne][Regression]") {
+    using Beading = BeadingStrategy::Beading;
+
+    // Thicker side (right) has fewer insets, so the merged beading holds only 2 toolpath locations.
+    const coord_t w = scaled<coord_t>(0.42);
+    Beading left;
+    left.total_thickness = scaled<coord_t>(1.0);
+    left.bead_widths = { w, w, w, w };
+    left.toolpath_locations = { scaled<coord_t>(0.1), scaled<coord_t>(0.3), scaled<coord_t>(0.5), scaled<coord_t>(0.7) };
+    left.left_over = 0;
+
+    Beading right;
+    right.total_thickness = scaled<coord_t>(2.0);
+    right.bead_widths = { w, w };
+    right.toolpath_locations = { scaled<coord_t>(0.1), scaled<coord_t>(0.3) };
+    right.left_over = 0;
+
+    // Just past left's location [2] (0.5), so the derived index is 2, past the end of the 2-inset merged beading.
+    const coord_t switching_radius = scaled<coord_t>(0.6);
+
+    Beading result;
+    REQUIRE_NOTHROW(result = InterpolateProbe::interpolate(left, 0.5, right, switching_radius));
+
+    // With the guard the adjustment is skipped, so the result is the plain interpolation.
+    const Beading expected = InterpolateProbe::interpolate(left, 0.5, right);
+    REQUIRE(result.toolpath_locations.size() == expected.toolpath_locations.size());
+    REQUIRE(result.bead_widths.size() == expected.bead_widths.size());
+    for (size_t i = 0; i < expected.toolpath_locations.size(); ++i) {
+        CHECK(result.toolpath_locations[i] == expected.toolpath_locations[i]);
+        CHECK(result.bead_widths[i] == expected.bead_widths[i]);
+    }
+}
+
+namespace {
+
+// Closed 20 mm square loop at a uniform width.
+Arachne::ExtrusionJunctions square_loop(coord_t width)
+{
+    const coord_t s = scaled<coord_t>(20.);
+    return {{Point(0, 0), width, 0}, {Point(s, 0), width, 0}, {Point(s, s), width, 0}, {Point(0, s), width, 0}, {Point(0, 0), width, 0}};
+}
+
+FuzzySkinConfig thick_fuzzy_config(FuzzySkinMode mode, NoiseType noise_type, double thickness_mm)
+{
+    FuzzySkinConfig cfg{};
+    cfg.type              = FuzzySkinType::All;
+    cfg.thickness         = scaled<coord_t>(thickness_mm);
+    cfg.point_distance    = scaled<coord_t>(0.3);
+    cfg.fuzzy_first_layer = true;
+    cfg.noise_type        = noise_type;
+    cfg.noise_scale       = 1.0;
+    cfg.noise_octaves     = 4;
+    cfg.noise_persistence = 0.5;
+    cfg.mode              = mode;
+    cfg.layer_id          = 5;
+    return cfg;
+}
+
+} // namespace
+
+// Extrusion and Combined mode add noise to each junction's width. A junction narrower than
+// height * (1 - PI/4) makes Flow::rounded_rectangle_extrusion_spacing() throw and fails the slice.
+// The fuzz thickness is 3x the line width so the clamp is hit on every run regardless of RNG seed.
+// Ridged multifractal is covered because its output is not bounded to [-1, 1], so it scales past
+// the configured thickness; the floor has to hold for any noise value, not just an in-range one.
+TEST_CASE("Fuzzy skin extrusion width is floored at the minimum the flow accepts", "[Arachne][FuzzySkin]") {
+    using namespace Slic3r::Feature::FuzzySkin;
+
+    const double layer_height = GENERATE(0.08, 0.2, 0.28);
+    const auto   mode         = GENERATE(FuzzySkinMode::Extrusion, FuzzySkinMode::Combined);
+    const auto   noise_type   = GENERATE(NoiseType::Classic, NoiseType::Perlin, NoiseType::Billow, NoiseType::RidgedMulti, NoiseType::Voronoi);
+    CAPTURE(layer_height, int(mode), int(noise_type));
+
+    const double line_width_mm = 0.42;
+    auto         loop          = square_loop(scaled<coord_t>(line_width_mm));
+    fuzzy_extrusion_line(loop, /*slice_z*/ 1.0, layer_height, thick_fuzzy_config(mode, noise_type, 3 * line_width_mm));
+
+    REQUIRE(loop.size() > 100);
+
+    const auto   narrowest    = std::min_element(loop.begin(), loop.end(), [](const auto& a, const auto& b) { return a.w < b.w; });
+    const double narrowest_mm = unscaled<double>(narrowest->w);
+    const double floor_mm     = layer_height * (1. - 0.25 * PI);
+    CAPTURE(narrowest_mm, floor_mm);
+
+    CHECK(narrowest_mm < line_width_mm); // the clamp was exercised
+    CHECK(narrowest_mm > floor_mm);
+    CHECK_NOTHROW(Flow::rounded_rectangle_extrusion_spacing(float(narrowest_mm), float(layer_height)));
+}
+
+// Displacement mode only moves points; widths must pass through unchanged.
+TEST_CASE("Fuzzy skin displacement mode leaves widths untouched", "[Arachne][FuzzySkin]") {
+    using namespace Slic3r::Feature::FuzzySkin;
+
+    const coord_t width = scaled<coord_t>(0.42);
+    auto          loop  = square_loop(width);
+    fuzzy_extrusion_line(loop, /*slice_z*/ 1.0, /*layer_height*/ 0.2, thick_fuzzy_config(FuzzySkinMode::Displacement, NoiseType::Classic, 1.26));
+
+    REQUIRE(loop.size() > 100);
+    CHECK(std::all_of(loop.begin(), loop.end(), [width](const auto& j) { return j.w == width; }));
 }

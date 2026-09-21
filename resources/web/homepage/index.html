@@ -23,56 +23,65 @@
 <div id="LeftBoard">
 	<div id="LoginArea">
 
-	<!-- Orca Login Section -->
-	<div id="OrcaSectionLabel" class="AccountSectionLabel">
-		<img class="AccountSectionIcon" src="../../images/OrcaSlicer_gradient_circle.svg" alt="" />
-		<span class="trans OrcaAccountText" tid="orca7">Orca Cloud</span>
-	</div>
-
-		<div id="OrcaLoginSection">
-			<div id="OrcaLogin1">
-				<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
-				<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
-				<div id="OrcaStatusText" class="AccountStatusText trans" tid="orca8">Not signed in</div>
-			</div>
-
-		<div id="OrcaLogin2">
-			<div>
-				<img id="UserAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
-			</div>
-			<div id="UserName" class="TextS1"></div>
-			<div id="LogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnLogOut()">log out</div>
-		</div>
-	</div>
-
-	<!-- Bambu Cloud Section -->
-	<div id="BambuCloudSection">
-		<div id="BambuCloudHeader" onClick="ToggleBambuSection()">
-			<svg class="bambu-chevron" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+		<!-- Orca Cloud account -->
+		<div id="OrcaAccount" class="AccountRow" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
+			 onClick="OnAccountRowClick('orca')">
+			<span class="AccountAvatar">
+				<img id="UserAvatarIcon" class="AccountAvatarImg" alt="" onerror="OnAvatarLoadError(this)" />
+			</span>
+			<span class="AccountText">
+				<span id="UserName" class="AccountName"></span>
+				<span class="AccountSecondary">Orca Cloud</span>
+			</span>
+			<span class="AccountSignIn trans" tid="t26">Login</span>
+			<svg class="AccountChevron" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+				<path d="M3 4.75L6 7.75L9 4.75" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
-			<span class="trans" tid="orca6">Bambu Cloud</span>
-			<span class="bambu-status-dot"></span>
 		</div>
 
-		<div id="BambuCloudBody">
-			<div id="BambuLogin1">
-				<div id="BambuLoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnBambuLoginOrRegister()"><span class="trans" tid="t26">login</span></div>
+		<!-- Bambu Cloud, a secondary provider folded away under the main account -->
+		<div id="BambuCloudSection">
+			<div id="BambuCloudHeader" tabindex="0" role="button" aria-expanded="false" aria-controls="BambuCloudBody"
+				 onClick="ToggleBambuSection()">
+				<svg class="SectionChevron" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+					<path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+				<span class="SectionLabel trans" tid="orca6">Bambu Cloud</span>
+				<span id="BambuStatusDot"></span>
 			</div>
 
-			<div id="BambuLogin2">
-				<div>
-					<img id="BambuAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
+			<div id="BambuCloudBody">
+				<div id="BambuAccount" class="AccountRow AccountRowCompact" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
+					 onClick="OnAccountRowClick('bambu')">
+					<span class="AccountAvatar">
+						<img id="BambuAvatarIcon" class="AccountAvatarImg" alt="" onerror="OnAvatarLoadError(this)" />
+					</span>
+					<span class="AccountText">
+						<span id="BambuUserName" class="AccountName"></span>
+						<span class="AccountSecondary trans" tid="orca8">Not signed in</span>
+					</span>
+					<span class="AccountSignIn trans" tid="t26">Login</span>
+					<svg class="AccountChevron" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+						<path d="M3 4.75L6 7.75L9 4.75" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
 				</div>
-				<div id="BambuUserName" class="TextS1"></div>
-				<div id="BambuLogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnBambuLogOut()">log out</div>
-			</div>
 
-			<div id="NoPluginTip">
-				<div id="NoPluginText"><a class="RedFont trans" tid="t76">Network plugin not detected. Click </a><a Class="LinkBtn trans" onClick="BeginDownloadNetworkPlugin()" tid="t77">here</a><a class="RedFont trans" tid="t78"> to install it.</a></div>
+				<div id="NoPluginTip">
+					<div id="NoPluginText"><a class="RedFont trans" tid="t76">Network plugin not detected. Click </a><a Class="LinkBtn trans" onClick="BeginDownloadNetworkPlugin()" tid="t77">here</a><a class="RedFont trans" tid="t78"> to install it.</a></div>
+				</div>
 			</div>
 		</div>
-	</div>
+
+		<!-- Shared account menu, anchored under the row it was opened from.
+		     The row already carries the avatar, name and provider, so the menu only
+		     adds the account handle. -->
+		<div id="AccountMenu" role="menu">
+			<div id="AccountMenuHandle" role="presentation"></div>
+			<div id="AccountMenuLogout" role="menuitem" tabindex="0" onClick="OnAccountMenuLogout()">
+				<span id="AccountMenuLogoutIcon"></span>
+				<span class="trans" tid="t50">Log out</span>
+			</div>
+		</div>
 
 	</div>
 

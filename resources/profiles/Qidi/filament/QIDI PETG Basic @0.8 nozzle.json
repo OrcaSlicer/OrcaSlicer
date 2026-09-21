@@ -4,15 +4,12 @@
 	"inherits": "QIDI PETG Basic",
 	"from": "system",
 	"setting_id": "eqwWKpJur2oPzaig",
-	"filament_id": "GFG99",
+	"filament_id": "OFuJ49uH",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

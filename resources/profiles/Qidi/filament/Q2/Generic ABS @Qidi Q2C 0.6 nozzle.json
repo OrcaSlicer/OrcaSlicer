@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "7wsHMKJwQfUfZ3za",
 	"name": "Generic ABS @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "7wsHMKJwQfUfZ3za",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"24.5"
 	],

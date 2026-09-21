@@ -4,7 +4,7 @@
 	"inherits": "QIDI PLA Basic",
 	"from": "system",
 	"setting_id": "CyXcxvEKE6gnCRm9",
-	"filament_id": "GFL99",
+	"filament_id": "OF4nQ62r",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
@@ -22,9 +22,6 @@
 		"20"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

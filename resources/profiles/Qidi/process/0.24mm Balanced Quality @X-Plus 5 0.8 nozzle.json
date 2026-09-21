@@ -1,0 +1,63 @@
+{
+	"type": "process",
+	"setting_id": "TdXf6dJK5dAiFtIW",
+	"name": "0.24mm Balanced Quality @X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_process_n_common",
+	"bridge_flow": "1",
+	"bridge_speed": [
+		"30"
+	],
+	"default_acceleration": [
+		"10000"
+	],
+	"elefant_foot_compensation": "0.15",
+	"enable_arc_fitting": "0",
+	"gap_infill_speed": [
+		"50"
+	],
+	"initial_layer_line_width": "0.82",
+	"initial_layer_print_height": "0.4",
+	"initial_layer_speed": [
+		"50"
+	],
+	"inner_wall_acceleration": [
+		"0"
+	],
+	"inner_wall_line_width": "0.82",
+	"inner_wall_speed": [
+		"300"
+	],
+	"internal_solid_infill_line_width": "0.82",
+	"internal_solid_infill_speed": [
+		"250"
+	],
+	"layer_height": "0.24",
+	"line_width": "0.82",
+	"outer_wall_acceleration": [
+		"5000"
+	],
+	"outer_wall_line_width": "0.82",
+	"outer_wall_speed": [
+		"200"
+	],
+	"prime_tower_width": "60",
+	"prime_tower_brim_width": "-1",
+	"prime_tower_flat_ironing": "1",
+	"skin_infill_line_width": "0.82",
+	"skeleton_infill_line_width": "0.82",
+	"sparse_infill_line_width": "0.82",
+	"sparse_infill_speed": [
+		"350"
+	],
+	"support_line_width": "0.82",
+	"top_surface_line_width": "0.82",
+	"top_surface_pattern": "monotonic",
+	"travel_speed": [
+		"500"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

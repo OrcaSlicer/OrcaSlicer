@@ -69,6 +69,8 @@ CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std
     HANDLE handlesrc = nullptr;
     HANDLE handledst = nullptr;
     CopyFileResult ret = SUCCESS;
+    DWORD size = 0;
+    DWORD dwRead = 0, dwWrite = 0;
 
     handlesrc = CreateFile(src.wc_str(),
         GENERIC_READ,
@@ -96,13 +98,12 @@ CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std
         goto __finished;
     }
 
-    DWORD size=GetFileSize(handlesrc,NULL);
+    size = GetFileSize(handlesrc,NULL);
     buff = new char[size+1];
-    DWORD dwRead=0,dwWrite;
     result = ReadFile(handlesrc, buff, size, &dwRead, NULL);
     if (!result) {
         DWORD errCode = GetLastError();
-        error_message = "Error: " + errCode;
+        error_message = "Error: " + std::to_string(errCode);
         ret = FAIL_COPY_FILE;
         goto __finished;
     }
@@ -110,7 +111,7 @@ CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std
     result = WriteFile(handledst,buff,size,&dwWrite,NULL);
     if (!result) {
         DWORD errCode = GetLastError();
-        error_message = "Error: " + errCode;
+        error_message = "Error: " + std::to_string(errCode);
         ret = FAIL_COPY_FILE;
         goto __finished;
     }
@@ -548,7 +549,7 @@ void RemoveButtonBorder(wxWindow* win)
     GtkCssProvider* provider = gtk_css_provider_new();
 
     const char* css =
-        "button {"
+        "button, button:hover, button:active, button:focus {"
         "  border: none;"
         "  outline: none;"
         "  box-shadow: none;"
@@ -586,6 +587,58 @@ void RemoveButtonBorder(wxWindow* win)
         "  ythickness = 0"
         "}"
         "widget \"*.GtkBitmapToggleButton\" style \"no-border\""
+    );
+#endif
+}
+
+void RemoveInputBorder(wxWindow* win)
+{
+    GtkWidget* widget = win->GetHandle();
+    if (!widget) return;
+
+#if GTK_CHECK_VERSION(3, 0, 0)
+    // GTK3+: use CSS provider
+    GtkCssProvider* provider = gtk_css_provider_new();
+
+    // Target 'entry' and its inner subnodes (like text selection areas)
+    const char* css =
+        "entry, entry text, entry undershoot {"
+        "  border: none;"
+        "  outline: none;"
+        "  box-shadow: none;"
+        "  padding: 0px;"
+        "  margin: 0px;"
+        "  min-height: 0px;"
+        "  min-width: 0px;"
+        "  background: none;"
+        "}";
+
+#if GTK_CHECK_VERSION(4, 0, 0)
+    // GTK4
+    gtk_css_provider_load_from_data(provider, css, -1);
+#else
+    // GTK3
+    gtk_css_provider_load_from_data(provider, css, -1, nullptr);
+#endif
+
+    GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_provider(
+        ctx,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(provider);
+
+#else
+    // GTK2: Target the x/y thickness of the entry widget
+    gtk_rc_parse_string(
+        "style \"no-padding-entry\" {"
+        "  xthickness = 0"
+        "  ythickness = 0"
+        "  GtkEntry::inner-border = { 0, 0, 0, 0 }"
+        "  GtkEntry::focus-line-width = 0"
+        "}"
+        "class \"GtkEntry\" style \"no-padding-entry\""
     );
 #endif
 }

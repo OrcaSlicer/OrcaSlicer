@@ -1,8 +1,13 @@
 #include "DragDropPanel.hpp"
+#include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/StateColor.hpp"
 #include <slic3r/GUI/wxExtensions.hpp>
 
 namespace Slic3r { namespace GUI {
+
+wxDEFINE_EVENT(wxEVT_DRAG_DROP_COMPLETED, wxCommandEvent);
 
 struct CustomData
 {
@@ -201,7 +206,7 @@ wxDragResult ColorDropTarget::OnData(wxCoord x, wxCoord y, wxDragResult def)
 ///////////////   ColorDropTarget  end ////////////////////////
 
 
-DragDropPanel::DragDropPanel(wxWindow *parent, const wxString &label, bool is_auto)
+DragDropPanel::DragDropPanel(wxWindow *parent, const wxString &label, bool is_auto, bool has_title, bool is_sub)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     , m_is_auto(is_auto)
 {
@@ -209,22 +214,31 @@ DragDropPanel::DragDropPanel(wxWindow *parent, const wxString &label, bool is_au
 
     m_sizer    = new wxBoxSizer(wxVERTICAL);
 
-    auto title_panel = new wxPanel(this);
-    title_panel->SetBackgroundColour(0xEEEEEE);
-    auto title_sizer = new wxBoxSizer(wxHORIZONTAL);
-    title_panel->SetSizer(title_sizer);
+    if (has_title) {
+        auto title_panel = new wxPanel(this);
+        title_panel->SetBackgroundColour(is_sub ? wxColour(0xF8F8F8) : wxColour(0xEEEEEE));
+        auto title_sizer = new wxBoxSizer(wxHORIZONTAL);
+        title_panel->SetSizer(title_sizer);
 
-    Label* static_text = new Label(this, label);
-    static_text->SetFont(Label::Head_13);
-    static_text->SetBackgroundColour(0xEEEEEE);
+        m_title_label = new Label(this, label);
+        m_title_label->SetFont(is_sub ? Label::Body_12 : Label::Head_13);
+        if (is_sub)
+            m_title_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        m_title_label->SetBackgroundColour(is_sub ? wxColour(0xF8F8F8) : wxColour(0xEEEEEE));
 
-    title_sizer->Add(static_text, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
+        title_sizer->Add(m_title_label, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_sizer->Add(title_panel, 0, wxEXPAND);
-    m_sizer->AddSpacer(10);
+        m_sizer->Add(title_panel, 0, wxEXPAND);
+        m_sizer->AddSpacer(10);
+    }
 
-    m_grid_item_sizer = new wxGridSizer(0, 6, FromDIP(8), FromDIP(8));   // row = 0, col = 3,  10 10 is space
-    m_sizer->Add(m_grid_item_sizer, 1, wxEXPAND | wxALL, FromDIP(8));
+    if (is_sub) {
+        m_grid_item_sizer = new wxGridSizer(0, 3, FromDIP(6), FromDIP(6));
+        m_sizer->Add(m_grid_item_sizer, 0, wxEXPAND);
+    } else {
+        m_grid_item_sizer = new wxGridSizer(0, 6, FromDIP(8), FromDIP(8));   // row = 0, col = 3,  10 10 is space
+        m_sizer->Add(m_grid_item_sizer, 1, wxEXPAND | wxALL, FromDIP(8));
+    }
 
     // set droptarget
     auto drop_target = new ColorDropTarget(this);
@@ -242,20 +256,35 @@ void DragDropPanel::AddColorBlock(const wxColour &color, const std::string &type
     m_grid_item_sizer->Add(panel, 0);
     m_filament_blocks.push_back(panel);
     if (update_ui) {
-        m_filament_blocks.front()->Refresh();  // FIX BUG: STUDIO-8467
+        Freeze();
+
+        m_grid_item_sizer->Layout();
+        Layout();
+        Fit();
         GetParent()->GetParent()->Layout();
         GetParent()->GetParent()->Fit();
+        m_filament_blocks.front()->Refresh();  // FIX BUG: STUDIO-8467
+
+        Thaw();
+        NotifyDragDropCompleted();
     }
 }
 
 void DragDropPanel::RemoveColorBlock(ColorPanel *panel, bool update_ui)
 {
-    m_sizer->Detach(panel);
+    m_grid_item_sizer->Detach(panel);
     panel->Destroy();
     m_filament_blocks.erase(std::remove(m_filament_blocks.begin(), m_filament_blocks.end(), panel), m_filament_blocks.end());
     if (update_ui) {
+        Freeze();
+
+        Layout();
+        Fit();
         GetParent()->GetParent()->Layout();
         GetParent()->GetParent()->Fit();
+
+        Thaw();
+        NotifyDragDropCompleted();
     }
 }
 
@@ -267,6 +296,15 @@ void DragDropPanel::DoDragDrop(ColorPanel *panel, const wxColour &color, const s
     ColorDropSource source(this, panel, color, type, filament_id);
     if (source.DoDragDrop(wxDrag_CopyOnly) == wxDragResult::wxDragCopy) {
         this->RemoveColorBlock(panel);
+    }
+}
+
+void DragDropPanel::UpdateLabel(const wxString &label)
+{
+    if (m_title_label) {
+        m_title_label->SetLabel(label);
+        m_title_label->Refresh();
+        Layout();
     }
 }
 
@@ -285,6 +323,329 @@ std::vector<int> DragDropPanel::GetAllFilaments() const
     }
 
     return filaments;
+}
+
+void DragDropPanel::NotifyDragDropCompleted()
+{
+    wxCommandEvent event(wxEVT_DRAG_DROP_COMPLETED);
+    event.SetEventObject(this);
+
+    wxWindow *parent = GetParent();
+    while (parent) {
+        auto name = parent->GetName();
+        if (name == wxT("FilamentMapManualPanel")) {
+            parent->GetEventHandler()->ProcessEvent(event);
+            break;
+        }
+        parent = parent->GetParent();
+    }
+}
+
+class SeparatedColorDropTarget : public wxDropTarget
+{
+public:
+    SeparatedColorDropTarget(SeparatedDragDropPanel *panel) : wxDropTarget(), m_panel(panel)
+    {
+        m_data = new ColorDataObject();
+        SetDataObject(m_data);
+    }
+
+    virtual wxDragResult OnData(wxCoord x, wxCoord y, wxDragResult def) override;
+    virtual bool         OnDrop(wxCoord x, wxCoord y) override { return true; }
+
+private:
+    SeparatedDragDropPanel *m_panel;
+    ColorDataObject        *m_data;
+};
+
+wxDragResult SeparatedColorDropTarget::OnData(wxCoord x, wxCoord y, wxDragResult def)
+{
+    if (!GetData()) return wxDragNone;
+
+    m_panel->AddColorBlock(m_data->GetColor(), m_data->GetType(), m_data->GetFilament(), false);
+    return wxDragCopy;
+}
+
+SeparatedDragDropPanel::SeparatedDragDropPanel(wxWindow *parent, const wxString &label, bool use_separation) : wxPanel(parent), m_use_separation(use_separation)
+{
+    SetBackgroundColour(0xF8F8F8);
+
+    m_main_sizer = new wxBoxSizer(wxVERTICAL);
+
+    auto title_panel = new wxPanel(this);
+    title_panel->SetBackgroundColour(0xEEEEEE);
+    auto title_sizer = new wxBoxSizer(wxHORIZONTAL);
+    title_panel->SetSizer(title_sizer);
+
+    m_label = new Label(title_panel, label);
+    m_label->SetFont(Label::Head_13);
+    m_label->SetBackgroundColour(0xEEEEEE);
+
+    title_sizer->Add(m_label, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
+
+    m_main_sizer->Add(title_panel, 0, wxEXPAND);
+    m_main_sizer->AddSpacer(10);
+
+    m_content_panel = new wxPanel(this);
+    m_content_panel->SetBackgroundColour(0xF8F8F8);
+    m_content_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_content_panel->SetSizer(m_content_sizer);
+
+    m_high_flow_panel = new DragDropPanel(m_content_panel, _L("High Flow"), false, true, true);
+    m_standard_panel  = new DragDropPanel(m_content_panel, _L("Standard"), false, true, true);
+    m_unified_panel   = new DragDropPanel(m_content_panel, wxEmptyString, false, false);
+
+    m_high_flow_panel->SetBackgroundColour(0xF8F8F8);
+    m_standard_panel->SetBackgroundColour(0xF8F8F8);
+    m_unified_panel->SetBackgroundColour(0xF8F8F8);
+    m_unified_panel->SetMinSize({FromDIP(260), -1});
+
+    m_main_sizer->Add(m_content_panel, 1, wxEXPAND);
+
+    UpdateLayout();
+
+    auto drop_target = new SeparatedColorDropTarget(this);
+    SetDropTarget(drop_target);
+
+    SetSizer(m_main_sizer);
+    Layout();
+    wxGetApp().UpdateDarkUIWin(this);
+}
+
+void SeparatedDragDropPanel::UpdateLayout()
+{
+    m_content_sizer->Clear(false);
+
+    if (m_use_separation) {
+        m_unified_panel->Hide();
+        m_high_flow_panel->Show();
+        m_standard_panel->Show();
+
+        wxSize content_size = m_content_panel->GetSize();
+        int panel_width = (content_size.GetWidth() - FromDIP(1) - FromDIP(8)) / 2;
+        if (panel_width > 0) {
+            m_high_flow_panel->SetMinSize(wxSize(panel_width, -1));
+            m_standard_panel->SetMinSize(wxSize(panel_width, -1));
+        }
+
+        m_content_sizer->Add(m_high_flow_panel, 1, wxEXPAND | wxLEFT, FromDIP(8));
+
+        // Create the separator once and re-attach it on relayout; Clear(false) above only
+        // detaches, so allocating here would leak a window per relayout.
+        if (!m_separator) {
+            m_separator = new wxPanel(m_content_panel, wxID_ANY);
+            m_separator->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(0xCE, 0xCE, 0xCE)));
+            m_separator->SetMinSize(wxSize(FromDIP(1), -1));
+        }
+        m_separator->Show();
+        m_content_sizer->Add(m_separator, 0, wxEXPAND | wxALL, FromDIP(4));
+
+        m_content_sizer->Add(m_standard_panel, 1, wxEXPAND | wxRIGHT, FromDIP(8));
+    } else {
+        m_high_flow_panel->Hide();
+        m_standard_panel->Hide();
+        if (m_separator)
+            m_separator->Hide();
+        m_unified_panel->Show();
+
+        m_content_sizer->Add(m_unified_panel, 1, wxEXPAND);
+    }
+    m_content_sizer->Layout();
+    Layout();
+    Fit();
+    if (GetParent()) {
+        GetParent()->Layout();
+        if (GetParent()->GetParent()) {
+            GetParent()->GetParent()->Layout();
+        }
+    }
+}
+
+void SeparatedDragDropPanel::UpdateLabel(const wxString &label)
+{
+    if (m_label) {
+        m_label->SetLabel(label);
+        m_label->Refresh();
+        Layout();
+    }
+}
+
+void SeparatedDragDropPanel::SetUseSeparation(bool use_separation)
+{
+    if (m_use_separation != use_separation) {
+        m_use_separation = use_separation;
+
+        if (use_separation) {
+            auto blocks = m_unified_panel->get_filament_blocks();
+            for (auto &block : blocks) {
+                m_standard_panel->AddColorBlock(block->GetColor(), block->GetType(), block->GetFilamentId(), false);
+                m_unified_panel->RemoveColorBlock(block, false);
+            }
+        } else {
+            auto high_flow_blocks = m_high_flow_panel->get_filament_blocks();
+            auto standard_blocks  = m_standard_panel->get_filament_blocks();
+
+            for (auto &block : high_flow_blocks) {
+                m_unified_panel->AddColorBlock(block->GetColor(), block->GetType(), block->GetFilamentId(), false);
+                m_high_flow_panel->RemoveColorBlock(block, false);
+            }
+
+            for (auto &block : standard_blocks) {
+                m_unified_panel->AddColorBlock(block->GetColor(), block->GetType(), block->GetFilamentId(), false);
+                m_standard_panel->RemoveColorBlock(block, false);
+            }
+        }
+
+        UpdateLayout();
+    }
+}
+
+void SeparatedDragDropPanel::AddColorBlock(const wxColour &color, const std::string &type, int filament_id, bool is_high_flow, bool update_ui)
+{
+    if (m_use_separation) {
+        if (is_high_flow) {
+            m_high_flow_panel->AddColorBlock(color, type, filament_id, update_ui);
+        } else {
+            m_standard_panel->AddColorBlock(color, type, filament_id, update_ui);
+        }
+
+        if (update_ui) {
+            CallAfter([this]() {
+                Layout();
+                GetParent()->Layout();
+            });
+        }
+    } else {
+        m_unified_panel->AddColorBlock(color, type, filament_id, update_ui);
+    }
+}
+
+void SeparatedDragDropPanel::RemoveColorBlock(ColorPanel *panel, bool update_ui)
+{
+    auto high_flow_blocks = m_high_flow_panel->get_filament_blocks();
+    auto standard_blocks  = m_standard_panel->get_filament_blocks();
+    auto unified_blocks   = m_unified_panel->get_filament_blocks();
+
+    if (std::find(high_flow_blocks.begin(), high_flow_blocks.end(), panel) != high_flow_blocks.end()) {
+        m_high_flow_panel->RemoveColorBlock(panel, update_ui);
+    } else if (std::find(standard_blocks.begin(), standard_blocks.end(), panel) != standard_blocks.end()) {
+        m_standard_panel->RemoveColorBlock(panel, update_ui);
+    } else if (std::find(unified_blocks.begin(), unified_blocks.end(), panel) != unified_blocks.end()) {
+        m_unified_panel->RemoveColorBlock(panel, update_ui);
+    }
+
+    if (update_ui && m_use_separation) {
+        CallAfter([this]() {
+            Layout();
+            GetParent()->Layout();
+        });
+    }
+}
+
+std::vector<int> SeparatedDragDropPanel::GetAllFilaments() const
+{
+    if (m_use_separation) {
+        auto high_flow = m_high_flow_panel->GetAllFilaments();
+        auto standard  = m_standard_panel->GetAllFilaments();
+
+        std::vector<int> result;
+        result.insert(result.end(), high_flow.begin(), high_flow.end());
+        result.insert(result.end(), standard.begin(), standard.end());
+        return result;
+    } else {
+        return m_unified_panel->GetAllFilaments();
+    }
+}
+
+std::vector<int> SeparatedDragDropPanel::GetHighFlowFilaments() const
+{
+    if (m_use_separation) {
+        return m_high_flow_panel->GetAllFilaments();
+    }
+    auto nozzle_volumes = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    const int right_eid = 1;
+    if (nozzle_volumes->values.size() > right_eid) {
+        int volume_type = nozzle_volumes->values[right_eid];
+        if (volume_type == static_cast<int>(NozzleVolumeType::nvtHighFlow)) {
+            return m_unified_panel->GetAllFilaments();
+        }
+    }
+    return {};
+}
+
+std::vector<int> SeparatedDragDropPanel::GetStandardFilaments() const
+{
+    if (m_use_separation) {
+        return m_standard_panel->GetAllFilaments();
+    }
+    auto nozzle_volumes = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    const int right_eid = 1;
+    if (nozzle_volumes->values.size() > right_eid) {
+        int volume_type = nozzle_volumes->values[right_eid];
+        if (volume_type == static_cast<int>(NozzleVolumeType::nvtStandard)) {
+            return m_unified_panel->GetAllFilaments();
+        }
+    }
+    return {};
+}
+
+std::vector<int> SeparatedDragDropPanel::GetTPUHighFlowFilaments() const
+{
+    if (m_use_separation) {
+        return {};
+    }
+    auto nozzle_volumes = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    const int right_eid = 1;
+    if (nozzle_volumes->values.size() > right_eid) {
+        int volume_type = nozzle_volumes->values[right_eid];
+        if (volume_type == static_cast<int>(NozzleVolumeType::nvtTPUHighFlow)) {
+            return m_unified_panel->GetAllFilaments();
+        }
+    }
+    return {};
+}
+
+std::vector<ColorPanel *> SeparatedDragDropPanel::get_filament_blocks() const
+{
+    if (m_use_separation) {
+        auto high_flow = m_high_flow_panel->get_filament_blocks();
+        auto standard  = m_standard_panel->get_filament_blocks();
+
+        std::vector<ColorPanel *> result;
+        result.insert(result.end(), high_flow.begin(), high_flow.end());
+        result.insert(result.end(), standard.begin(), standard.end());
+        return result;
+    } else {
+        return m_unified_panel->get_filament_blocks();
+    }
+}
+
+std::vector<ColorPanel *> SeparatedDragDropPanel::get_high_flow_blocks() const
+{
+    return m_high_flow_panel->get_filament_blocks();
+}
+
+std::vector<ColorPanel *> SeparatedDragDropPanel::get_standard_blocks() const
+{
+    return m_standard_panel->get_filament_blocks();
+}
+
+void SeparatedDragDropPanel::ClearAllBlocks()
+{
+    auto high_flow_blocks = m_high_flow_panel->get_filament_blocks();
+    for (auto &block : high_flow_blocks) {
+        m_high_flow_panel->RemoveColorBlock(block, false);
+    }
+
+    auto standard_blocks = m_standard_panel->get_filament_blocks();
+    for (auto &block : standard_blocks) {
+        m_standard_panel->RemoveColorBlock(block, false);
+    }
+
+    auto unified_blocks = m_unified_panel->get_filament_blocks();
+    for (auto &block : unified_blocks) {
+        m_unified_panel->RemoveColorBlock(block, false);
+    }
 }
 
 }} // namespace Slic3r::GUI

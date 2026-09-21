@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "cP5qtEGISpluvrXW",
 	"name": "Generic PLA+ @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PLA+@Q2C-Series",
+	"from": "system",
+	"setting_id": "cP5qtEGISpluvrXW",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

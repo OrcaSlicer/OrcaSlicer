@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "6pOI4AUFTKKOtmdi",
 	"name": "QIDI PPS-GF @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PPS-GF@Q2C-Series",
+	"from": "system",
+	"setting_id": "6pOI4AUFTKKOtmdi",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.008"
 	],

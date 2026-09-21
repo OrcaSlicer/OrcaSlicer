@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "a7EgUbRW0oiTv2h6",
 	"name": "QIDI PAHT-GF @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PAHT-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "a7EgUbRW0oiTv2h6",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.015"
 	],

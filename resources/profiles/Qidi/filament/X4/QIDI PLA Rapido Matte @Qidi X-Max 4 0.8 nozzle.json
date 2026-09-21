@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "ZlwpCyFIbmdKAFNg",
 	"name": "QIDI PLA Rapido Matte @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido Matte@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "ZlwpCyFIbmdKAFNg",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.008"
 	],

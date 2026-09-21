@@ -3,7 +3,7 @@
 	"name": "Bambu Support for ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "GFS06",
+	"filament_id": "OFf6mfQO",
 	"instantiation": "false",
 	"description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
 	"fan_max_speed": [
@@ -27,11 +27,14 @@
 	"filament_vendor": [
 		"Bambu Lab"
 	],
-	"filament_scarf_seam_type": [
-		"none"
-	],
 	"filament_adhesiveness_category": [
 		"706"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "4",
+        "12",
+        "4"
 	],
 	"nozzle_temperature_range_high": [
 		"270"

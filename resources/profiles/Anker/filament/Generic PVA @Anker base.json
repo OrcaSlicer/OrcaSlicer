@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Generic PVA @Anker base",
+	"inherits": "fdm_filament_pva",
+	"from": "system",
+	"filament_id": "OFDvXujf",
+	"instantiation": "false"
+}
