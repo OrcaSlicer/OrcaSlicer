@@ -141,9 +141,11 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
     const PrintRegionConfig& config       = a.config();
     const PrintRegionConfig& other_config = b.config();
 
+    const bool wall_loops_compatible = config.wall_loops == other_config.wall_loops || config.wall_loops == 0 || other_config.wall_loops == 0;
+
         return config.outer_wall_filament_id       == other_config.outer_wall_filament_id
-		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id
-		&& config.wall_loops                  == other_config.wall_loops
+		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id 
+        && wall_loops_compatible
 		&& config.wall_sequence               == other_config.wall_sequence
 		&& config.is_infill_first             == other_config.is_infill_first
 		&& config.inner_wall_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.inner_wall_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
@@ -242,19 +244,24 @@ void Layer::make_perimeters()
 	            SurfaceCollection new_slices;
 	            // Use the region with highest infill rate, as the make_perimeters() function below decides on the gap fill based on the infill existence.
 	            LayerRegion *layerm_config = layerms.front();
-	            {
+                {
 	                // group slices (surfaces) according to number of extra perimeters
 	                std::map<unsigned short, Surfaces> slices;  // extra_perimeters => [ surface, surface... ]
-	                for (LayerRegion *layerm : layerms) {
-	                    for (const Surface &surface : layerm->slices.surfaces)
-	                        slices[surface.extra_perimeters].emplace_back(surface);
-	                    if (layerm->region().config().sparse_infill_density > layerm_config->region().config().sparse_infill_density)
-	                    	layerm_config = layerm;
-	                }
-	                // merge the surfaces assigned to each group
-	                for (std::pair<const unsigned short,Surfaces> &surfaces_with_extra_perimeters : slices)
-	                    new_slices.append(offset_ex(surfaces_with_extra_perimeters.second, ClipperSafetyOffset), surfaces_with_extra_perimeters.second.front());
-	            }
+                    for (LayerRegion *layerm : layerms) {
+                        for (const Surface &surface : layerm->slices.surfaces)
+                            slices[surface.extra_perimeters].emplace_back(surface);
+                        // Prefer the region with the most wall loops; break ties by highest infill density.
+                        const auto& cfg      = layerm->region().config();
+                        const auto& best_cfg = layerm_config->region().config();
+                        if (cfg.wall_loops > best_cfg.wall_loops || (cfg.wall_loops == best_cfg.wall_loops && cfg.wall_loops > 0 &&
+                                                                     cfg.sparse_infill_density > best_cfg.sparse_infill_density))
+                            layerm_config = layerm;
+                    }
+                    // Merge surfaces in each extra-perimeter group using union_safety_offset_ex to close seams.
+                    for (auto& [extra_perimeters, surfaces] : slices) {
+                        new_slices.append(union_safety_offset_ex(to_polygons(surfaces)), surfaces.front());
+                    }
+                }
 
 	            // make perimeters
 	            SurfaceCollection fill_surfaces;
