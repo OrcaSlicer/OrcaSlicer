@@ -5576,14 +5576,15 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             m_erase_mode = true;
     }
 
-    // ---- Tools: brush / face / connected area on the left, the whole-model actions on the right, and the
-    // active tool's own control on the line below ----
+    // ---- Tools: brush / face / connected area, then the whole-model actions, then the active tool's own
+    // control filling the rest of the row ----
     // "Face" and "Connected area" reuse the exact same selection machinery every other paint gizmo has
     // (single-facet click, and angle-limited flood fill respectively).
     {
         const bool is_brush_mode = m_tool_type == ToolType::BRUSH && m_cursor_type != TriangleSelector::CursorType::POINTER;
         const bool is_face_mode  = m_tool_type == ToolType::BRUSH && m_cursor_type == TriangleSelector::CursorType::POINTER;
         const bool is_area_mode  = m_tool_type == ToolType::SMART_FILL;
+        const float row_y        = ImGui::GetCursorPosY();
         if (icon_toggle(801, "texture_displacement_brush.svg", is_brush_mode, icon_md, _L("Brush"),
                         _L("Brush - paint over the surface by dragging"))) {
             m_tool_type = ToolType::BRUSH;
@@ -5603,16 +5604,14 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             m_cursor_type = TriangleSelector::CursorType::POINTER;
         }
 
-        // Whole model: paint every face with the active layer, or clear its paint from all of them. Actions
-        // rather than tools, so they sit apart at the right end of the row.
+        // Whole model: paint every face with the active layer, or clear its paint from all of them.
         const wxString whole_na = busy               ? _L("Wait for the bake to finish.") :
                                   active == nullptr  ? _L("Add a layer first.") :
                                                        wxString();
         const wxString erase_na = !whole_na.empty()                     ? whole_na :
                                   !slot_painted(m_active_layer_slot) ? _L("The active layer has no paint yet.") :
                                                                           wxString();
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowContentRegionMax().x - (2.f * icon_md + gap_s)));
+        ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(806, "texture_displacement_select_all.svg", false, icon_md, _L("Select whole model"),
                         _L("Select whole model - paint every face of the model with the active layer"), whole_na))
             select_whole_model();
@@ -5632,28 +5631,38 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             m_parent.set_as_dirty();
         }
 
+        // The active tool's control fills the rest of the row, each part centred on the (taller) tool icons.
+        const float row_end       = ImGui::GetWindowContentRegionMax().x;
+        const auto  centre_on_row = [&](float h) { ImGui::SetCursorPosY(row_y + std::round((icon_md - h) * 0.5f)); };
+        vsep(icon_md);
         if (is_brush_mode) {
-            ImGui::SetNextItemWidth(-(3.f * gap_s + 1.f + 2.f * icon_sm));
+            ImGui::SetNextItemWidth(std::max(1.f, row_end - ImGui::GetCursorPosX() - (3.f * gap_s + 1.f + 2.f * icon_sm)));
+            centre_on_row(frame_h);
             ImGui::SliderFloat("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f mm",
                                ImGuiSliderFlags_AlwaysClamp);
             hover_tip(m_desc.at("cursor_size"));
             vsep(icon_sm);
             const bool is_circle = m_cursor_type == TriangleSelector::CursorType::CIRCLE;
+            centre_on_row(icon_sm);
             if (icon_toggle(804, "circle_paint.svg", is_circle, icon_sm, m_desc.at("circle"),
                             _L("Circle - paints everything under the brush as seen from the camera")))
                 m_cursor_type = TriangleSelector::CursorType::CIRCLE;
             ImGui::SameLine(0.f, gap_s);
+            centre_on_row(icon_sm);
             if (icon_toggle(805, "menu_obj_sphere.svg", !is_circle, icon_sm, m_desc.at("sphere"),
                             _L("Sphere - paints only within a ball around the point under the cursor")))
                 m_cursor_type = TriangleSelector::CursorType::SPHERE;
         } else if (is_area_mode) {
-            ImGui::SetNextItemWidth(-1.f);
+            ImGui::SetNextItemWidth(std::max(1.f, row_end - ImGui::GetCursorPosX()));
+            centre_on_row(frame_h);
             ImGui::SliderFloat("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax, "%.0f°",
                                ImGuiSliderFlags_AlwaysClamp);
             hover_tip(_u8L("Angle threshold - the fill stops at edges sharper than this"));
         } else {
+            centre_on_row(frame_h);
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s", _u8L("Click a triangle to paint it").c_str());
+            ImGui::TextDisabled("%s", ellipsize(_u8L("Click a triangle to paint it"),
+                                                std::max(0.f, row_end - ImGui::GetCursorPosX())).c_str());
         }
     }
 

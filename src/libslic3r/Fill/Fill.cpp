@@ -1409,7 +1409,15 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
             // Orca: Reuse the body origin used for bridge anchoring, resetting it for each surface.
             f->set_bounding_box(infill_bounding_box(*this, surface_fill, expoly, bbox));
 
-            f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
+            // Only the part of the layer-wide no-overlap area under this expolygon matters, so clip it to the
+            // expolygon's box first (padded past the safety offset, which grows the clip side). The result is
+            // identical; the cost is not: a layer split into many small fills, e.g. by colour painting,
+            // otherwise intersects every one of them with the whole layer.
+            BoundingBox no_overlap_bbox = get_extents(expoly);
+            no_overlap_bbox.offset(SCALED_EPSILON);
+            f->no_overlap_expolygons = intersection_ex(
+                ClipperUtils::clip_clipper_polygons_with_subject_bbox(surface_fill.no_overlap_expolygons, no_overlap_bbox),
+                ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
             if (params.symmetric_infill_y_axis) {
                 params.symmetric_y_axis = f->extended_object_bounding_box().center().x();
                 expoly.symmetric_y(params.symmetric_y_axis);

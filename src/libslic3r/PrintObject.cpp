@@ -2580,15 +2580,34 @@ void PrintObject::discover_vertical_shells()
                         //      the in-model condition is there due to small sloping surfaces, e.g. top of the hull of the benchy
                         //   2. the area does not fully cover an internal polygon
                         //         This is there mainly for a very thin parts, where the solid layers would be missing if the part area is quite small
+                        // Both tests below compare a small piece against the whole layer. Done literally, that is
+                        // quadratic in the number of pieces, which is what a layer split up by colour painting has,
+                        // so each is restricted to the part of the layer near the piece with an identical result:
+                        // object_volume is clipped to the piece's box, and only the internal polygons whose box meets
+                        // the expanded piece take part in the count, since the others pass through the difference
+                        // unchanged and add the same number to both sides of it.
+                        std::vector<BoundingBox> internal_bboxes;
+                        internal_bboxes.reserve(internal_volume.size());
+                        for (const Polygon &poly : internal_volume)
+                            internal_bboxes.emplace_back(get_extents(poly));
                         regularized_shell.erase(std::remove_if(regularized_shell.begin(), regularized_shell.end(),
-                                                               [&internal_volume, &min_perimeter_infill_spacing,
+                                                               [&internal_volume, &internal_bboxes, &min_perimeter_infill_spacing,
                                                                 &object_volume](const ExPolygon &p) {
-                                                                   return (p.area() < min_perimeter_infill_spacing * scaled(1.5) ||
-                                                                           (p.area() < min_perimeter_infill_spacing * scaled(8.0) &&
-                                                                            diff(to_polygons(p), object_volume).empty())) &&
-                                                                          diff(internal_volume,
-                                                                               expand(to_polygons(p), min_perimeter_infill_spacing))
-                                                                                  .size() >= internal_volume.size();
+                                                                   const bool small = p.area() < min_perimeter_infill_spacing * scaled(1.5) ||
+                                                                                      (p.area() < min_perimeter_infill_spacing * scaled(8.0) &&
+                                                                                       diff(to_polygons(p),
+                                                                                            ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                                                                                                object_volume, get_extents(p).inflated(SCALED_EPSILON)))
+                                                                                           .empty());
+                                                                   if (!small)
+                                                                       return false;
+                                                                   const Polygons    expanded = expand(to_polygons(p), min_perimeter_infill_spacing);
+                                                                   const BoundingBox bbox     = get_extents(expanded);
+                                                                   Polygons          nearby;
+                                                                   for (size_t i = 0; i < internal_volume.size(); ++i)
+                                                                       if (internal_bboxes[i].overlap(bbox))
+                                                                           nearby.emplace_back(internal_volume[i]);
+                                                                   return diff(nearby, expanded).size() >= nearby.size();
                                                                }),
                                                 regularized_shell.end());
                     }
@@ -3159,6 +3178,16 @@ void PrintObject::bridge_over_infill()
                 vertical_lines[i].b = Point{x, y_max};
             }
 
+            // The vertical lines only span the bridged area's x range, so anchors entirely outside it can never be
+            // hit. Leaving them out gives the same intersections without building a tree over the whole layer's
+            // boundary for every bridge.
+            const coord_t scan_x_min = bb_x.min.x();
+            const coord_t scan_x_max = bb_x.min.x() + coord_t(n_vlines) * scan_spacing;
+            anchors.erase(std::remove_if(anchors.begin(), anchors.end(),
+                                         [scan_x_min, scan_x_max](const Line &l) {
+                                             return std::max(l.a.x(), l.b.x()) < scan_x_min || std::min(l.a.x(), l.b.x()) > scan_x_max;
+                                         }),
+                          anchors.end());
             auto anchors_and_walls_tree = AABBTreeLines::LinesDistancer<Line>{std::move(anchors)};
             auto bridged_area_tree      = AABBTreeLines::LinesDistancer<Line>{to_lines(bridged_area)};
 
@@ -3403,28 +3432,61 @@ void PrintObject::bridge_over_infill()
 
                 std::vector<CandidateSurface> expanded_surfaces;
                 expanded_surfaces.reserve(surfaces_by_layer[lidx].size());
+                // The expanded fill boundary depends only on the bridging flow, and total_fill_area is not
+                // modified below, so build it once per spacing rather than once per candidate. A layer split
+                // into many candidates (e.g. by colour painting) otherwise repeats a layer-wide offset for each.
+                std::map<coord_t, Polylines> boundary_by_spacing;
+                // expansion_area is a clean, non-overlapping set, so uniting it with a bridge or cutting a bridge
+                // out of it only changes the polygons near that bridge. The rest are passed through untouched
+                // instead of being fed to ClipperLib with the whole layer again for every candidate.
+                const auto split_near = [](const Polygons &polys, const BoundingBox &bbox, Polygons &far) {
+                    Polygons near;
+                    for (const Polygon &p : polys)
+                        (get_extents(p).overlap(bbox) ? near : far).emplace_back(p);
+                    return near;
+                };
                 for (const CandidateSurface &candidate : surfaces_by_layer[lidx]) {
                     const auto &region_config = candidate.region->region().config();
                     const bool turning_pattern = region_config.sparse_infill_pattern == ipHilbertCurve ||
                                                  region_config.sparse_infill_pattern == ipOctagramSpiral;
                     const Flow &flow              = candidate.region->bridging_flow(frSolidInfill, true);
                     Polygons    area_to_be_bridge = expand(candidate.new_polys, flow.scaled_spacing());
-                    area_to_be_bridge             = intersection(area_to_be_bridge, deep_infill_area);
+                    // deep_infill_area and internal_unsupported_area cover the whole layer; only their part under
+                    // this candidate can change the results, so they are clipped to its box first.
+                    if (!area_to_be_bridge.empty())
+                        area_to_be_bridge = intersection(area_to_be_bridge,
+                                                         ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                                                             deep_infill_area, get_extents(area_to_be_bridge).inflated(SCALED_EPSILON)));
 
                     area_to_be_bridge.erase(std::remove_if(area_to_be_bridge.begin(), area_to_be_bridge.end(),
-                                                           [internal_unsupported_area](const Polygon &p) {
-                                                               return intersection({p}, internal_unsupported_area).empty();
+                                                           [&internal_unsupported_area](const Polygon &p) {
+                                                               return intersection({p}, ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                                                                                            internal_unsupported_area,
+                                                                                            get_extents(p).inflated(SCALED_EPSILON)))
+                                                                   .empty();
                                                            }),
                                             area_to_be_bridge.end());
-
-                    Polygons limiting_area = union_(area_to_be_bridge, expansion_area);
 
                     if (area_to_be_bridge.empty())
                         continue;
 
-                    Polylines boundary_plines = to_polylines(expand(total_fill_area, 1.3 * flow.scaled_spacing()));
+                    Polygons       limiting_area;
+                    const Polygons near_expansion = split_near(expansion_area, get_extents(area_to_be_bridge).inflated(SCALED_EPSILON),
+                                                               limiting_area);
+                    append(limiting_area, union_(area_to_be_bridge, near_expansion));
+
+                    auto boundary_it = boundary_by_spacing.find(flow.scaled_spacing());
+                    if (boundary_it == boundary_by_spacing.end())
+                        boundary_it = boundary_by_spacing
+                                          .emplace(flow.scaled_spacing(), to_polylines(expand(total_fill_area, 1.3 * flow.scaled_spacing())))
+                                          .first;
+                    Polylines boundary_plines = boundary_it->second;
                     {
-                        Polylines limiting_plines = to_polylines(expand(limiting_area, 0.3*flow.spacing()));
+                        // No offset here: flow.spacing() is in mm, so the expand(limiting_area, 0.3 * flow.spacing())
+                        // this used to be moved the outline by 0.135 scaled units - nothing beyond rounding - while
+                        // costing a whole-layer ClipperLib pass for every candidate. limiting_area is already a clean
+                        // union, so its own outline is the same boundary.
+                        Polylines limiting_plines = to_polylines(limiting_area);
                         boundary_plines.insert(boundary_plines.end(), limiting_plines.begin(), limiting_plines.end());
                     }
 
@@ -3498,9 +3560,12 @@ void PrintObject::bridge_over_infill()
                     // Check collision with other expanded surfaces
                     {
                         bool     reconstruct       = false;
-                        Polygons tmp_expanded_area = expand(bridging_area, 3.0 * flow.scaled_spacing());
+                        Polygons          tmp_expanded_area = expand(bridging_area, 3.0 * flow.scaled_spacing());
+                        const BoundingBox tmp_expanded_bbox = get_extents(tmp_expanded_area);
                         for (const CandidateSurface &s : expanded_surfaces) {
-                            if (!intersection(s.new_polys, tmp_expanded_area).empty()) {
+                            // Surfaces whose boxes miss each other cannot intersect, which is most pairs on a busy layer.
+                            if (get_extents(s.new_polys).overlap(tmp_expanded_bbox) &&
+                                !intersection(s.new_polys, tmp_expanded_area).empty()) {
                                 bridging_angle = s.bridge_angle;
                                 reconstruct    = true;
                                 break;
@@ -3524,10 +3589,20 @@ void PrintObject::bridge_over_infill()
                         bridging_area = union_(bridging_area, construct_anchored_polygon(bridging_area, to_lines(boundary_plines), flow,
                                                                                        bridging_angle, scan_spacing, true));
                     }
-                    bridging_area          = intersection(bridging_area, limiting_area);
-                    bridging_area          = intersection(bridging_area, total_fill_area);
-                    bridging_area          = diff(bridging_area, total_top_area);
-                    expansion_area         = diff(expansion_area, bridging_area);
+                    // Each of these meets one bridge with the whole layer, so the layer side is first cut down to the
+                    // bridge's box (and expansion_area split as above); the result is the same.
+                    if (!bridging_area.empty()) {
+                        const BoundingBox bridging_bbox = get_extents(bridging_area).inflated(SCALED_EPSILON);
+                        bridging_area = intersection(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(limiting_area, bridging_bbox));
+                        bridging_area = intersection(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(total_fill_area, bridging_bbox));
+                        bridging_area = diff(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(total_top_area, bridging_bbox));
+                    }
+                    if (!bridging_area.empty()) {
+                        Polygons       kept;
+                        const Polygons cut = split_near(expansion_area, get_extents(bridging_area).inflated(SCALED_EPSILON), kept);
+                        append(kept, diff(cut, bridging_area));
+                        expansion_area = std::move(kept);
+                    }
 
 #ifdef DEBUG_BRIDGE_OVER_INFILL
                     debug_draw(std::to_string(lidx) + "_" + std::to_string(cluster_idx) + "_" + std::to_string(job_idx) + "_" + "_expanded_bridging" +  std::to_string(r),
