@@ -94,7 +94,6 @@ class GLGizmoCut3D : public GLGizmoBase
     GLModel m_reference_radius;
     GLModel m_angle_arc;
 
-    Vec3d   m_old_center;
     Vec3d   m_cut_normal;
 
     struct InvalidConnectorsStatistics

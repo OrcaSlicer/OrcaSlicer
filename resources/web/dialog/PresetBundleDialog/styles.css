@@ -1,26 +1,3 @@
-:root {
-  --bg: #ffffff;
-  --panel: #ffffff;
-  --border: #d8d8d8;
-  --border-strong: #e6e6e6;
-  --border-soft: #f0f0f0;
-  --col-sep: #e1e1e1;
-
-  --text: #1f2328;
-  --row-hover: #f7f9fb;
-  --row-selected: #eaf2ff;
-  --row-selected-outline: #b7d0ff;
-
-  --footer-bg: #fafafa;
-  --btn-bg: #ffffff;
-  --btn-border: #cccccc;
-  --btn-hover: #f0f0f0;
-
-  --ctx-bg: #ffffff;
-  --ctx-border: #cccccc;
-  --ctx-hover: #efefef;
-}
-
 html, body {
   height: 100%;
   margin: 0;

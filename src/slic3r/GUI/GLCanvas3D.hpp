@@ -5,6 +5,7 @@
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <optional>
 
 #include "GLToolbar.hpp"
 #include "Event.hpp"
@@ -17,6 +18,7 @@
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
+#include "SceneCache.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -33,6 +35,7 @@ class wxTimerEvent;
 class wxPaintEvent;
 class wxGLCanvas;
 class wxGLContext;
+struct ImDrawData;
 
 // Support for Retina OpenGL on Mac OS.
 // wxGTK3 seems to simulate OSX behavior in regard to HiDPI scaling support, enable it as well.
@@ -57,6 +60,9 @@ namespace GUI {
 
 class Bed3D;
 class PartPlateList;
+#ifdef SLIC3R_CAD
+class DesignSketchTool;   // Design tab: interactive 2D sketch tool
+#endif
 
 #if ENABLE_RETINA_GL
 class RetinaHelper;
@@ -336,7 +342,6 @@ class GLCanvas3D
 
         bool dragging{ false };
         Vec2d position{ DBL_MAX, DBL_MAX };
-        Vec3d scene_position{ DBL_MAX, DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
         bool ignore_right_up;
@@ -390,6 +395,7 @@ class GLCanvas3D
         PrimeTowerOutside,
         NozzleFilamentIncompatible,
         MixtureFilamentIncompatible,
+        SingleExtruderMixedFilament,
         FlushingVolumeZero
     };
 
@@ -399,16 +405,23 @@ class GLCanvas3D
         std::chrono::time_point<std::chrono::high_resolution_clock> m_measuring_start;
         int m_fps_out = -1;
         int m_fps_running = 0;
+        // Frames that redrew the 3D scene rather than reusing the cached one.
+        int m_scene_fps_out = 0;
+        int m_scene_fps_running = 0;
     public:
         void increment_fps_counter() { ++m_fps_running; }
+        void increment_scene_fps_counter() { ++m_scene_fps_running; }
         int get_fps() { return m_fps_out; }
+        int get_scene_fps() const { return m_scene_fps_out; }
         int get_fps_and_reset_if_needed() {
             auto cur_time = std::chrono::high_resolution_clock::now();
             int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(cur_time-m_measuring_start).count();
             if (elapsed_ms > 1000  || m_fps_out == -1) {
                 m_measuring_start = cur_time;
                 m_fps_out = int (1000. * m_fps_running / elapsed_ms);
+                m_scene_fps_out = int (1000. * m_scene_fps_running / elapsed_ms);
                 m_fps_running = 0;
+                m_scene_fps_running = 0;
             }
             return m_fps_out;
         }
@@ -530,6 +543,10 @@ private:
     bool m_in_render;
     wxTimer m_timer;
     wxTimer m_timer_set_color;
+    // Armed by each frame that draws the FPS overlay; its tick requests an overlay-only frame.
+    wxTimer m_fps_overlay_timer;
+    // True during the frame the timer requested, which is not counted.
+    bool m_fps_overlay_tick{ false };
     LayersEditing m_layers_editing;
     Mouse m_mouse;
     GLGizmosManager m_gizmos;
@@ -542,6 +559,27 @@ private:
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
+    bool m_collapse_toolbar_enabled{true};
+    bool m_plate_chrome_enabled{true};
+    // Design tab: render the world-axis triad at the bed centre (= modeling origin) instead of
+    // the bed corner. Default false preserves the main editor's corner triad.
+    bool m_axes_at_bed_center{false};
+    // Design tab: draw the printer bed and its plate grid at all. Default true, so the
+    // main editor is untouched; the Design tab lets the user hide it to model without a bed.
+    bool m_show_bed{true};
+    // Design tab: CAD grid drawn on the bed plane in place of the plate's corner-origin grid.
+    // Two GLModels (10 mm minor / 50 mm major) generated from the bed centre so a line passes
+    // exactly through the modeling origin; built once and rebuilt only when the bed shape changes.
+    GLModel m_cad_grid_minor;
+    GLModel m_cad_grid_major;
+    // Geometry the CAD grid models were last built from, so they are rebuilt on bed-shape change
+    // rather than every frame.
+    BoundingBoxf m_cad_grid_bb;
+    Vec2d        m_cad_grid_center;
+    bool         m_cad_grid_valid{false};
+#ifdef SLIC3R_CAD
+    DesignSketchTool* m_design_sketch_tool{nullptr};
+#endif
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
@@ -569,9 +607,15 @@ private:
     std::array<unsigned int, 2> m_old_size{ 0, 0 };
 
     bool m_is_touchpad_navigation{ false };
+    // CAD navigation (Design tab only): left-drag is a selection rubber band, so orbit moves
+    // to middle-drag and pan to right-drag — the Onshape/SolidWorks mapping. Off everywhere
+    // else, so Prepare/Preview keep the mouse the user already learned.
+    bool m_cad_navigation{ false };
 
     // Screen is only refreshed from the OnIdle handler if it is dirty.
     bool m_dirty;
+    // A frame is needed, and only for the overlay.
+    bool m_overlay_dirty{ false };
     bool m_initialized;
     //BBS: add flag to controll rendering
     bool m_render_preview{ true };
@@ -588,6 +632,7 @@ private:
     bool m_toolpath_outside{ false };
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
+    bool m_navigator_dragging{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -653,11 +698,7 @@ public:
     }
 
     void load_arrange_settings();
-    ArrangeSettings& get_arrange_settings();// { return get_arrange_settings(this); }
-    ArrangeSettings& get_arrange_settings(PrintSequence print_seq) {
-        return (print_seq == PrintSequence::ByObject) ? m_arrange_settings_fff_seq_print
-            : m_arrange_settings_fff;
-    }
+    ArrangeSettings& get_arrange_settings();
 
     class SequentialPrintClearance
     {
@@ -730,8 +771,19 @@ public:
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
+    // The last scene pass, for frames that only rebuild the overlay.
+    SceneCache m_scene_cache;
+    // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
+    // not shown, so the next frame is presented regardless.
+    std::optional<size_t> m_presented_signature;
     GLModel m_plate_shadow_mask;
     std::string m_plate_shadow_mask_key;
+    // Depth-based shadow map used to cast object shadows onto other objects and themselves.
+    unsigned int m_shadow_map_fbo{ 0 };
+    unsigned int m_shadow_map_texture_id{ 0 };
+    unsigned int m_shadow_map_size{ 0 };
+    Transform3d  m_shadow_light_vp{ Transform3d::Identity() };
+    bool         m_shadow_map_valid{ false };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -879,6 +931,15 @@ public:
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
     void enable_separator_toolbar(bool enable);
+    void enable_collapse_toolbar(bool enable);
+    void enable_plate_chrome(bool enable);
+    void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
+    void set_show_bed(bool b) { m_show_bed = b; }
+    bool get_show_bed() const { return m_show_bed; }
+#ifdef SLIC3R_CAD
+    void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
+    DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
+#endif
     void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }
     void enable_labels(bool enable) { m_labels.enable(enable); }
     void enable_slope(bool enable) { m_slope.enable(enable); }
@@ -909,6 +970,7 @@ public:
     void update_volumes_colors_by_extruder();
 
     bool is_dragging() const { return m_gizmos.is_dragging() || m_moving; }
+    bool has_mouse_capture() const;
 
     void render(bool only_init = false);
     bool is_rendering_enabled()
@@ -991,7 +1053,6 @@ public:
     void select_curr_plate_all();
     void select_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate_all();
-    void update_plate_thumbnails();
 
     void select_all();
     void deselect_all();
@@ -1037,6 +1098,7 @@ public:
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);
     void on_set_color_timer(wxTimerEvent& evt);
+    void on_fps_overlay_timer(wxTimerEvent& evt);
     void on_mouse(wxMouseEvent& evt);
     void on_gesture(wxGestureEvent& evt);
     void on_paint(wxPaintEvent& evt);
@@ -1048,6 +1110,7 @@ public:
     bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
+    void set_cad_navigation(bool b) { m_cad_navigation = b; }
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
@@ -1111,6 +1174,10 @@ public:
 
     void set_mouse_as_dragging() { m_mouse.dragging = true; }
     bool is_mouse_dragging() const { return m_mouse.dragging; }
+    // True when the current left up event comes from an ImGui window and was not processed by it
+    // (e.g. a drag that started on a gizmo floating window and was released over the 3D scene).
+    // Such a release is the end of an ImGui interaction, not a click on the scene.
+    bool is_mouse_left_up_ignored() const { return m_mouse.ignore_left_up; }
 
     double get_size_proportional_to_max_bed_size(double factor) const;
 
@@ -1150,17 +1217,6 @@ public:
     void highlight_toolbar_item(const std::string& item_name);
     void highlight_gizmo(const std::string& gizmo_name);
 
-    ArrangeSettings get_arrange_settings() const {
-        const ArrangeSettings &settings = get_arrange_settings();
-        ArrangeSettings ret = settings;
-        if (&settings == &m_arrange_settings_fff_seq_print) {
-            ret.distance = std::max(ret.distance,
-                                    float(min_object_distance(*m_config)));
-        }
-
-        return ret;
-    }
-
     // Timestamp for FPS calculation and notification fade-outs.
     static int64_t timestamp_now() {
 #ifdef _WIN32
@@ -1194,6 +1250,8 @@ public:
 
     bool can_sequential_clearance_show_in_gizmo();
     void update_sequential_clearance();
+    // Orca: by-layer counterpart, for a prime tower compacted by "No sparse layers".
+    void update_compacted_wipe_tower_clearance();
 
     const Print* fff_print() const;
     const SLAPrint* sla_print() const;
@@ -1238,7 +1296,7 @@ private:
     void _zoom_to_box(const BoundingBoxf3& box, double margin_factor = DefaultCameraZoomToBoxMarginFactor);
     void _update_camera_zoom(double zoom);
 
-    void _refresh_if_shown_on_screen();
+    void _refresh_if_shown_on_screen(bool scene_dirty = true);
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
@@ -1246,18 +1304,38 @@ private:
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
+    bool _is_scene_cache_enabled() const;
+    bool _is_scene_cacheable() const;
+    bool _is_frame_skipping_enabled() const;
     void _render_fps_overlay(int fps) const;
     void _render_fxaa_pass(unsigned int width, unsigned int height);
     void _render_ssao_pass(unsigned int width, unsigned int height);
+    // scene_dirty is false only for a frame that its requester knows to be overlay-only.
+    void _render_frame(bool scene_dirty, bool only_init = false);
+    void _render_scene(const Camera& camera, const Size& cnv_size);
+    // Request a frame that only rebuilds the overlay.
+    void _set_overlay_as_dirty() { m_overlay_dirty = true; }
+    // These read the hover state _picking_pass() sets.
+    SceneCache::Key _scene_cache_key(const Camera& camera) const;
+    bool _can_reuse_cached_scene(const Camera& camera) const;
+    void _capture_scene_cache(const Camera& camera);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
-    void _render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    // Build the light-space depth shadow map (consumed by gouraud/phong for object & self shadows)
+    // and cast it onto the build plate. Realistic view only.
+    void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    // Design tab: draw the CAD grid (minor 10 mm + major 50 mm) in place of the plate's
+    // corner-origin grid when the axes sit at the bed centre (modeling origin). Rebuilds its
+    // GLModels lazily, only when the bed shape changed.
+    void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    void _render_wireframe_overlay();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
+    void _render_gcode_overlay(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();
@@ -1267,6 +1345,8 @@ private:
 #endif // ENABLE_RENDER_SELECTION_CENTER
     void _check_and_update_toolbar_icon_scale();
     void _render_overlays();
+    void _render_overlay_toolbars();
+    size_t _overlay_signature(const ImDrawData* draw_data) const;
     void _render_style_editor();
     void _render_volumes_for_picking(const Camera& camera) const;
     void _render_current_gizmo() const;
@@ -1292,7 +1372,7 @@ private:
     void _render_selection_sidebar_hints() { m_selection.render_sidebar_hints(m_sidebar_field, m_gizmos.get_uniform_scaling()); }
     //BBS: GUI refactor: adjust main toolbar position
     bool _render_orient_menu(float left, float right, float bottom, float top);
-    bool _render_arrange_menu(float left, float right, float bottom, float top);
+    void _render_arrange_menu(float left, float right, float bottom, float top);
     void _render_3d_navigator();
 
     void _update_volumes_hover_state();

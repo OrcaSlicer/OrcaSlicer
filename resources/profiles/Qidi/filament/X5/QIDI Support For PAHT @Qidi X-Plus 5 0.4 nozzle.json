@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "oMvDD9rKJGcezwpq",
+	"name": "QIDI Support For PAHT @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI Support For PAHT@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

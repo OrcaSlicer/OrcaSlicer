@@ -3,7 +3,7 @@
 	"name": "COEX NYLEX PA6-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "CXPACB23",
+	"filament_id": "OF0NgY1y",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"
@@ -22,12 +22,6 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"285"
-	],
-	"bed_temperature": [
-		"100"
-	],
-	"bed_temperature_initial_layer": [
-		"100"
 	],
 	"temperature_vitrification": [
 		"170"
