@@ -30,6 +30,7 @@
 
 #include <cstddef>
 #include <float.h>
+#include <array>
 #include <iterator>
 #include <mutex>
 #include <string>
@@ -2304,6 +2305,18 @@ void PrintObject::discover_vertical_shells()
         BOOST_LOG_TRIVIAL(debug) << "Discovering vertical shells in parallel - end : cache top / bottom";
     }
 
+    // With one top/bottom cache for all regions, the shell and hole accumulation in the loop below depends on nothing
+    // region-specific but the shell settings and the external perimeter spacing, so a region sharing them with an earlier
+    // one reuses its result instead of repeating it: that accumulation is a union over several layers of top/bottom
+    // surfaces, and a multi-material print has a region per filament.
+    struct ShellAccumulation
+    {
+        std::array<double, 5> key;
+        Polygons              shell;
+        Polygons              holes;
+    };
+    std::vector<std::vector<ShellAccumulation>> shell_accumulations(top_bottom_surfaces_all_regions ? num_layers : 0);
+
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
         const PrintRegion &region = this->printing_region(region_id);
         if (region.config().ensure_vertical_shell_thickness.value != evstAll )
@@ -2348,7 +2361,7 @@ void PrintObject::discover_vertical_shells()
         grain_size = 1;
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
-            [this, region_id, &cache_top_botom_regions]
+            [this, region_id, &cache_top_botom_regions, &shell_accumulations]
             (const tbb::blocked_range<size_t>& range) {
                 // printf("discover_vertical_shells from %d to %d\n", range.begin(), range.end());
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
@@ -2398,6 +2411,21 @@ void PrintObject::discover_vertical_shells()
                         }
                     }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
+                    const std::array<double, 5> accumulation_key{ double(region_config.top_shell_layers.value), region_config.top_shell_thickness.value,
+                                                                  double(region_config.bottom_shell_layers.value), region_config.bottom_shell_thickness.value,
+                                                                  double(layerm->flow(frExternalPerimeter).scaled_spacing()) };
+                    std::vector<ShellAccumulation> *accumulations = shell_accumulations.empty() ? nullptr : &shell_accumulations[idx_layer];
+                    const auto reused = accumulations == nullptr ? nullptr :
+                        [&]() -> const ShellAccumulation * {
+                            for (const ShellAccumulation &a : *accumulations)
+                                if (a.key == accumulation_key)
+                                    return &a;
+                            return nullptr;
+                        }();
+                    if (reused != nullptr) {
+                        shell = reused->shell;
+                        holes = reused->holes;
+                    } else {
 			        polygons_append(holes, cache_top_botom_regions[idx_layer].holes);
                     auto combine_holes = [&holes](const Polygons &holes2) {
                         if (holes.empty() || holes2.empty())
@@ -2472,6 +2500,9 @@ void PrintObject::discover_vertical_shells()
                                 (i > ibottom || bottom_z - m_layers[i]->print_z < region_config.bottom_shell_thickness - EPSILON))
                                 combine_holes(cache_top_botom_regions[i].holes);
 	                }
+                    if (accumulations != nullptr)
+                        accumulations->push_back({ accumulation_key, shell, holes });
+                    }
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
                     {
         				Slic3r::SVG svg(debug_out_path("discover_vertical_shells-perimeters-before-union-%d.svg", debug_idx), get_extents(shell));
