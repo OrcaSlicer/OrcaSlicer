@@ -13,6 +13,7 @@
 
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/CameraUtils.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
 
 using namespace Slic3r;
@@ -112,6 +113,36 @@ TEST_CASE("Navigation skips bed raycasters when the bed is hidden", "[SceneRayca
     scene.remove_raycasters(SceneRaycaster::EType::Volume);
     CHECK(scene_hit(scene, camera, {0.0, 100.0, 10.0}, mode).is_valid() ==
         (mode == SceneRaycaster::EHitMode::SceneOnly));
+}
+
+TEST_CASE("Navigation ignores plate controls while retaining plate surfaces and volumes", "[SceneRaycaster][Regression]")
+{
+    const int plate_index = GENERATE(0, 2);
+    const int component = GENERATE(range(1, int(PartPlate::GRABBER_COUNT)));
+    const int bed_id = plate_index * PartPlate::GRABBER_COUNT;
+    const MeshRaycaster cube(make_cube(20.0, 20.0, 20.0));
+    SceneRaycaster scene;
+    scene.add_raycaster(SceneRaycaster::EType::Bed, bed_id + component, cube,
+        Geometry::translation_transform({-10.0, 40.0, 0.0}));
+    scene.add_raycaster(SceneRaycaster::EType::Bed, bed_id, cube,
+        Geometry::translation_transform({-10.0, 100.0, 0.0}));
+    scene.add_raycaster(SceneRaycaster::EType::Volume, 0, cube,
+        Geometry::translation_transform({-10.0, 150.0, 0.0}));
+    const Camera camera = horizontal_camera();
+
+    auto hit = scene_hit(scene, camera, {0.0, 100.0, 10.0});
+    REQUIRE(hit.is_valid());
+    CHECK(hit.type == SceneRaycaster::EType::Bed);
+    CHECK(hit.raycaster_id == bed_id);
+
+    scene.remove_raycasters(SceneRaycaster::EType::Bed, bed_id);
+    hit = scene_hit(scene, camera, {0.0, 100.0, 10.0});
+    REQUIRE(hit.is_valid());
+    CHECK(hit.type == SceneRaycaster::EType::Volume);
+
+    // A control alone must leave navigation free to choose its fallback anchor.
+    scene.remove_raycasters(SceneRaycaster::EType::Volume);
+    CHECK_FALSE(scene_hit(scene, camera, {0.0, 100.0, 10.0}).is_valid());
 }
 
 TEST_CASE("Navigation respects the back-face policy away from the perspective view center", "[SceneRaycaster]")

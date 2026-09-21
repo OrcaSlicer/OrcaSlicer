@@ -170,6 +170,12 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
             if (!item->is_active())
                 continue;
 
+            // Each plate's component 0 is its surface; the remaining Bed IDs are controls.
+            // Keep controls clickable, but do not use them as camera-pan anchors.
+            if (mode != EHitMode::Picking && type == EType::Bed &&
+                decode_id(type, item->get_id()) % PartPlate::GRABBER_COUNT != 0)
+                continue;
+
             current_hit.raycaster_id = item->get_id();
             const Transform3d& trafo = item->get_transform();
             if (item->get_raycaster()->closest_hit(mouse_pos, trafo, camera, current_hit.position, current_hit.normal, clip_plane)) {
