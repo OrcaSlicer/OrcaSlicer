@@ -553,6 +553,107 @@ TEST_CASE("Profile validator flags dangling and renamed preset references", "[Pr
     }
 }
 
+TEST_CASE("Every printer variant has a compatible default material", "[Preset][Validate][DefaultMaterials]")
+{
+    PresetBundle bundle;
+    auto &vendor = bundle.vendors["Acme"];
+    vendor.id = vendor.name = "Acme";
+    vendor.models.emplace_back();
+    auto &model = vendor.models.back();
+    model.id = model.name = "Acme Printer";
+    model.default_materials = {"Acme PLA @0.4", "Acme PLA @0.6"};
+
+    for (const std::string variant : {"0.4", "0.6"}) {
+        model.variants.emplace_back(variant);
+        const std::string printer_name = "Acme Printer " + variant;
+        Preset &printer = add_inmemory_preset(bundle.printers, printer_name);
+        printer.is_system = true;
+        printer.is_visible = false; // Validation covers uninstalled variants too.
+        printer.vendor = &vendor;
+        printer.config.option<ConfigOptionString>("printer_model")->value = model.id;
+        printer.config.option<ConfigOptionString>("printer_variant")->value = variant;
+        printer.config.option<ConfigOptionFloats>("nozzle_diameter")->values = {std::stod(variant)};
+
+        Preset &filament = add_inmemory_preset(bundle.filaments, "Acme PLA @" + variant);
+        filament.is_system = true;
+        filament.vendor = &vendor;
+        filament.alias = "Acme PLA";
+        filament.config.option<ConfigOptionStrings>("compatible_printers")->values = {printer_name};
+    }
+
+    // A second system filament, compatible with a user printer this model does not have, so a
+    // section can list a known-but-incompatible name without tripping the existence check.
+    Preset &other_printer = add_inmemory_preset(bundle.printers, "Acme Printer 0.2");
+    other_printer.vendor = &vendor;
+    Preset &other_filament = add_inmemory_preset(bundle.filaments, "Acme PLA @0.2");
+    other_filament.is_system = true;
+    other_filament.vendor = &vendor;
+    other_filament.alias = "Acme PLA";
+    other_filament.config.option<ConfigOptionStrings>("compatible_printers")->values = {"Acme Printer 0.2"};
+
+    CHECK_FALSE(bundle.has_errors());
+    bool expected_errors = true;
+
+    SECTION("A model default for one nozzle does not cover another nozzle") {
+        model.default_materials = {"Acme PLA @0.4"};
+    }
+    SECTION("An empty default list leaves every variant uncovered") {
+        model.default_materials.clear();
+    }
+    SECTION("An unknown filament cannot be a default") {
+        model.default_materials = {"Missing PLA"};
+    }
+    SECTION("An unknown name is an error even when a compatible default covers the variant") {
+        model.default_materials.insert(model.default_materials.begin(), "Missing PLA");
+    }
+    SECTION("An unknown default_filament_profile name is an error") {
+        bundle.printers.find_preset("Acme Printer 0.6", false, true)
+            ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Missing PLA"};
+    }
+    SECTION("A known default_filament_profile name is not an error") {
+        bundle.printers.find_preset("Acme Printer 0.6", false, true)
+            ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Acme PLA @0.6"};
+        expected_errors = false;
+    }
+    SECTION("A short alias does not resolve as an installed default") {
+        model.default_materials = {"Acme PLA"};
+    }
+    SECTION("A user filament cannot satisfy a shipped default") {
+        bundle.filaments.find_preset("Acme PLA @0.6", false, true)->is_system = false;
+    }
+    SECTION("One compatible default per variant is sufficient") {
+        model.default_materials.insert(model.default_materials.begin(), "Acme PLA @0.2");
+        expected_errors = false;
+    }
+    SECTION("Compatibility conditions apply to each nozzle") {
+        model.default_materials = {"Acme PLA @0.4"};
+        Preset *filament = bundle.filaments.find_preset("Acme PLA @0.4", false, true);
+        auto &library = bundle.vendors[PresetBundle::ORCA_FILAMENT_LIBRARY];
+        library.id = library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+        filament->vendor = &library;
+        filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
+        filament->config.option<ConfigOptionString>("compatible_printers_condition")->value = "nozzle_diameter[0] == 0.4";
+    }
+    SECTION("Library defaults respect printer exclusions") {
+        model.default_materials = {"Acme PLA @0.4"};
+        Preset *filament = bundle.filaments.find_preset("Acme PLA @0.4", false, true);
+        auto &library = bundle.vendors[PresetBundle::ORCA_FILAMENT_LIBRARY];
+        library.id = library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+        filament->vendor = &library;
+        filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
+        CHECK_FALSE(bundle.check_printer_default_materials());
+        filament->m_excluded_from.insert("Acme Printer 0.6");
+    }
+    SECTION("User printers do not need model defaults") {
+        model.default_materials = {"Acme PLA @0.4"};
+        bundle.printers.find_preset("Acme Printer 0.6", false, true)->is_system = false;
+        expected_errors = false;
+    }
+
+    CHECK(bundle.check_printer_default_materials() == expected_errors);
+    CHECK(bundle.has_errors() == expected_errors);
+}
+
 // Under a shared override key, the last preset merged into the full config overwrote the others', so an
 // edited slicing-pipeline override never reached Print::apply's diff and re-configuring a plugin never
 // re-sliced. Per-type keys make that collision impossible; guard the scoping here.
@@ -985,6 +1086,193 @@ TEST_CASE("Resolution terminates when no vendor manifest exists", "[Preset][Bund
     CHECK_FALSE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, detached_file.string(),
                                              ForwardCompatibilitySubstitutionRule::EnableSilent, error));
     CHECK(error == "Preset was not found in the loaded bundle");
+}
+
+TEST_CASE("Manifest-backed resolution reuses the vendor tree it already loaded", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      process_dir = dir.path() / "Acme" / "process";
+    fs::create_directories(process_dir);
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[)"
+        << R"({"name":"fdm_process_common","sub_path":"process/base.json"},)"
+        << R"({"name":"Acme First","sub_path":"process/first.json"},)"
+        << R"({"name":"Acme Second","sub_path":"process/second.json"}]})";
+    auto write_base = [&](double travel_speed) {
+        std::ofstream((process_dir / "base.json").string())
+            << R"({"type":"process","name":"fdm_process_common","from":"system",)"
+            << R"("instantiation":"false","travel_speed":[")" << travel_speed << R"("]})";
+    };
+    auto write_child = [&](const std::string &file, const std::string &name) {
+        std::ofstream((process_dir / file).string())
+            << R"({"type":"process","name":")" << name << R"(","from":"system",)"
+            << R"("instantiation":"true","inherits":"fdm_process_common"})";
+    };
+    write_base(111.0);
+    write_child("first.json", "Acme First");
+    write_child("second.json", "Acme Second");
+
+    auto travel_speed = [&](PresetBundle &bundle, const std::string &file) {
+        DynamicPrintConfig raw;
+        raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_process_common";
+        std::string error;
+        REQUIRE(bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, (process_dir / file).string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+        return raw.option<ConfigOptionFloats>("travel_speed")->values.front();
+    };
+
+    PresetBundle bundle;
+    CHECK_THAT(travel_speed(bundle, "first.json"), Catch::Matchers::WithinAbs(111.0, 1e-6));
+
+    // Only a reload would see this change.
+    write_base(222.0);
+    CHECK_THAT(travel_speed(bundle, "second.json"), Catch::Matchers::WithinAbs(111.0, 1e-6));
+
+    PresetBundle fresh;
+    CHECK_THAT(travel_speed(fresh, "second.json"), Catch::Matchers::WithinAbs(222.0, 1e-6));
+}
+
+TEST_CASE("Manifest-backed resolution does not keep a vendor tree that failed to load", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      child_file = dir.path() / "Acme" / "process" / "child.json";
+    auto write_manifest = [&](const std::string &leading_entry) {
+        std::ofstream((dir.path() / "Acme.json").string())
+            << R"({"version":"1.0.0","name":"Acme","process_list":[)" << leading_entry
+            << R"({"name":"Acme Process","sub_path":"process/child.json"}]})";
+    };
+    write_manifest("123,");
+    fs::create_directories(child_file.parent_path());
+    std::ofstream(child_file.string())
+        << R"({"type":"process","name":"Acme Process","from":"system",)"
+        << R"("instantiation":"true","layer_height":"0.2"})";
+
+    PresetBundle bundle;
+    auto resolve = [&](std::string &error) {
+        DynamicPrintConfig raw;
+        raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_process_common";
+        return bundle.resolve_preset_config(raw, Preset::TYPE_PRINT, child_file.string(),
+                                            ForwardCompatibilitySubstitutionRule::EnableSilent, error);
+    };
+
+    std::string error;
+    CHECK_FALSE(resolve(error));
+    CHECK_FALSE(error.empty());
+
+    write_manifest("");
+    error.clear();
+    CHECK(resolve(error));
+    CHECK(error.empty());
+}
+
+TEST_CASE("Manifest-backed resolution reuses the library base for type-probed files", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      library_pet  = dir.path() / PresetBundle::ORCA_FILAMENT_LIBRARY / "filament" / "pet.json";
+    const fs::path      filament_dir = dir.path() / "Acme" / "filament";
+
+    std::ofstream((dir.path() / (std::string(PresetBundle::ORCA_FILAMENT_LIBRARY) + ".json")).string())
+        << R"({"version":"1.0.0","name":"OrcaFilamentLibrary","filament_list":[)"
+        << R"({"name":"fdm_filament_pet","sub_path":"filament/pet.json","filament_id":"GFL99"}]})";
+    fs::create_directories(library_pet.parent_path());
+    auto write_library_pet = [&](double density) {
+        std::ofstream(library_pet.string())
+            << R"({"type":"filament","name":"fdm_filament_pet","from":"system",)"
+            << R"("filament_id":"GFL99","instantiation":"false",)"
+            << R"("filament_type":["PETG"],"filament_density":[")" << density << R"("]})";
+    };
+    write_library_pet(1.27);
+
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","filament_list":[)"
+        << R"({"name":"Acme PETG","sub_path":"filament/petg.json","filament_id":"GFA00"},)"
+        << R"({"name":"Acme PETG Matte","sub_path":"filament/petg_matte.json","filament_id":"GFA01"}]})";
+    fs::create_directories(filament_dir);
+    auto write_child = [&](const std::string &file, const std::string &name, const std::string &filament_id) {
+        std::ofstream((filament_dir / file).string())
+            << R"({"type":"filament","name":")" << name << R"(","from":"system",)"
+            << R"("filament_id":")" << filament_id << R"(","instantiation":"true","inherits":"fdm_filament_pet"})";
+    };
+    write_child("petg.json", "Acme PETG", "GFA00");
+    write_child("petg_matte.json", "Acme PETG Matte", "GFA01");
+
+    auto density = [](const DynamicPrintConfig &config) {
+        return config.option<ConfigOptionFloats>("filament_density")->values.front();
+    };
+
+    PresetBundle       bundle;
+    DynamicPrintConfig first;
+    first.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_filament_pet";
+    std::string error;
+    REQUIRE(bundle.resolve_preset_config(first, Preset::TYPE_FILAMENT, (filament_dir / "petg.json").string(),
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_THAT(density(first), Catch::Matchers::WithinAbs(1.27, 1e-6));
+
+    // Only a reload would see this change.
+    write_library_pet(1.5);
+
+    DynamicPrintConfig second;
+    Preset::Type       type = Preset::TYPE_INVALID;
+    REQUIRE(bundle.resolve_preset_config_type(second, type, (filament_dir / "petg_matte.json").string(),
+                                              ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(type == Preset::TYPE_FILAMENT);
+    CHECK_THAT(density(second), Catch::Matchers::WithinAbs(1.27, 1e-6));
+}
+
+TEST_CASE("Manifest-backed resolution shares the library between vendors under one root", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      library_dir = dir.path() / PresetBundle::ORCA_FILAMENT_LIBRARY / "filament";
+
+    std::ofstream((dir.path() / (std::string(PresetBundle::ORCA_FILAMENT_LIBRARY) + ".json")).string())
+        << R"({"version":"1.0.0","name":"OrcaFilamentLibrary","filament_list":[)"
+        << R"({"name":"fdm_filament_pet","sub_path":"filament/pet.json","filament_id":"GFL99"},)"
+        << R"({"name":"Generic PETG","sub_path":"filament/generic_petg.json","filament_id":"GFL98"}]})";
+    fs::create_directories(library_dir);
+    auto write_library_pet = [&](double density) {
+        std::ofstream((library_dir / "pet.json").string())
+            << R"({"type":"filament","name":"fdm_filament_pet","from":"system",)"
+            << R"("filament_id":"GFL99","instantiation":"false",)"
+            << R"("filament_type":["PETG"],"filament_density":[")" << density << R"("]})";
+    };
+    write_library_pet(1.27);
+    std::ofstream((library_dir / "generic_petg.json").string())
+        << R"({"type":"filament","name":"Generic PETG","from":"system",)"
+        << R"("filament_id":"GFL98","instantiation":"true","inherits":"fdm_filament_pet"})";
+
+    auto write_vendor = [&](const std::string &vendor, const std::string &filament_id) {
+        const fs::path filament_dir = dir.path() / vendor / "filament";
+        fs::create_directories(filament_dir);
+        std::ofstream((dir.path() / (vendor + ".json")).string())
+            << R"({"version":"1.0.0","name":")" << vendor << R"(","filament_list":[)"
+            << R"({"name":")" << vendor << R"( PETG","sub_path":"filament/petg.json","filament_id":")" << filament_id << R"("}]})";
+        std::ofstream((filament_dir / "petg.json").string())
+            << R"({"type":"filament","name":")" << vendor << R"( PETG","from":"system",)"
+            << R"("filament_id":")" << filament_id << R"(","instantiation":"true","inherits":"fdm_filament_pet"})";
+        return filament_dir / "petg.json";
+    };
+    const fs::path acme_petg = write_vendor("Acme", "GFA00");
+    const fs::path beta_petg = write_vendor("Beta", "GFB00");
+
+    auto density = [&](PresetBundle &bundle, const fs::path &file) {
+        DynamicPrintConfig raw;
+        raw.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "fdm_filament_pet";
+        std::string error;
+        REQUIRE(bundle.resolve_preset_config(raw, Preset::TYPE_FILAMENT, file.string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+        return raw.option<ConfigOptionFloats>("filament_density")->values.front();
+    };
+
+    PresetBundle bundle;
+    CHECK_THAT(density(bundle, acme_petg), Catch::Matchers::WithinAbs(1.27, 1e-6));
+
+    // Only a reload would see this change.
+    write_library_pet(1.5);
+    CHECK_THAT(density(bundle, beta_petg), Catch::Matchers::WithinAbs(1.27, 1e-6));
+    CHECK_THAT(density(bundle, library_dir / "generic_petg.json"), Catch::Matchers::WithinAbs(1.27, 1e-6));
+
+    PresetBundle fresh;
+    CHECK_THAT(density(fresh, beta_petg), Catch::Matchers::WithinAbs(1.5, 1e-6));
 }
 
 // Orca: a filament in the Orca Filament Library that names its compatible printers has to hide the generic

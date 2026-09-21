@@ -11,6 +11,7 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <regex>
 #include <utility>
 #include <cstdint>
@@ -540,51 +541,95 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
     case coStrings:
     case coFloatOrPercent:
     case coFloatsOrPercents: {
-        if ((m_opt.type == coFloatOrPercent || m_opt.type == coFloatsOrPercents) && !str.IsEmpty() &&  str.Last() != '%')
-        {
+        if ((m_opt.type == coFloatOrPercent || m_opt.type == coFloatsOrPercents) && !str.IsEmpty() &&
+            !(m_opt.nullable && str == m_na_value)) {
+            bool update_control = false;
+            wxString numeric_str = str;
             double val = 0.;
+
             const char dec_sep = is_decimal_separator_point() ? '.' : ',';
             const char dec_sep_alt = dec_sep == '.' ? ',' : '.';
-            // Replace the first incorrect separator in decimal number.
-            if (str.Replace(dec_sep_alt, dec_sep, false) != 0)
-                set_value(str, false);
+            // Orca: normalize the decimal separator and optional unit before
+            // detecting the percentage suffix and parsing the numeric part.
+            update_control |= numeric_str.Replace(dec_sep_alt, dec_sep, false) != 0;
+            update_control |= numeric_str.Replace(" ", "", true) != 0;
+            const bool has_literal_unit = numeric_str.EndsWith("mm");
+            if (has_literal_unit) {
+                numeric_str.RemoveLast(2);
+                update_control = true;
+            }
+            bool is_percent = !numeric_str.IsEmpty() && numeric_str.Last() == '%';
+            if (is_percent)
+                numeric_str.RemoveLast();
 
-
-            // remove space and "mm" substring, if any exists
-            str.Replace(" ", "", true);
-            str.Replace("m", "", true);
-
-            if (!str.ToDouble(&val))
-            {
+            if ((has_literal_unit && is_percent) || !numeric_str.ToDouble(&val) || !std::isfinite(val)) {
                 if (!check_value) {
                     m_value.clear();
                     break;
                 }
                 show_error(m_parent, _L("Invalid numeric."));
-                set_value(double_to_string(val), true);
-            }
-            else if (((m_opt.sidetext.rfind("mm/s") != std::string::npos && val > m_opt.max) ||
-                     (m_opt.sidetext.rfind("mm ") != std::string::npos && val > /*1*/m_opt.max_literal)) &&
-                     (m_value.empty() || into_u8(str) != boost::any_cast<std::string>(m_value)))
-            {
-                if (!check_value) {
-                    m_value.clear();
-                    break;
+                numeric_str = double_to_string(std::clamp(0., double(m_opt.min), double(m_opt.max)));
+                is_percent = false;
+                update_control = true;
+            } else {
+                const bool looks_like_missing_percent = !is_percent && !has_literal_unit &&
+                    ((m_opt.sidetext.rfind("mm/s") != std::string::npos && val > m_opt.max) ||
+                     (m_opt.sidetext.rfind("mm ") != std::string::npos && val > m_opt.max_literal));
+                // Orca: validate explicit percentages and literal values before
+                // asking whether an otherwise valid literal was meant as a percentage.
+                const bool out_of_range = !m_opt.is_value_valid(val);
+                if (out_of_range) {
+                    if (!check_value) {
+                        m_value.clear();
+                        break;
+                    }
+                    show_error(m_parent, _L("Value is out of range."));
+                    val = std::clamp(val, double(m_opt.min), double(m_opt.max));
+                    // Orca: retain the inferred percent unit when clamping a
+                    // suspicious unitless value, so 2000 becomes 100%, not 100 mm.
+                    is_percent |= looks_like_missing_percent;
+                    numeric_str = double_to_string(val);
+                    update_control = true;
+                } else {
+                    const bool value_changed = m_value.empty() || into_u8(str) != boost::any_cast<std::string>(m_value);
+                    if (looks_like_missing_percent && value_changed) {
+                        if (!check_value) {
+                            m_value.clear();
+                            break;
+                        }
+
+                        const std::string sidetext = m_opt.sidetext.rfind("mm/s") != std::string::npos ? "mm/s" : "mm";
+                        const wxString stVal       = numeric_str;
+                        const wxString msg_text    = from_u8((boost::format(_utf8(L("Is it %s%% or %s %s?"))) %
+                                                              stVal % stVal % sidetext).str());
+                        WarningDialog dialog(m_parent, msg_text, _L("Parameter validation") + ": " + m_opt_id, wxYES | wxNO);
+                        dialog.SetButtonLabel(wxID_YES, stVal + _L("%"));
+                        dialog.SetButtonLabel(wxID_NO, stVal + " " + _L(sidetext));
+                        dialog.GetSizer()->SetSizeHints(&dialog);
+                        dialog.Fit();
+                        dialog.CenterOnParent();
+                        is_percent = dialog.ShowModal() == wxID_YES;
+                        update_control = true;
+                    }
                 }
 
-                const std::string sidetext = m_opt.sidetext.rfind("mm/s") != std::string::npos ? "mm/s" : "mm";
-                const wxString stVal       = double_to_string(val, 2);
-                const wxString msg_text    = from_u8((boost::format(_utf8(L("Is it %s%% or %s %s?\n"
-                                                                            "YES for %s%%, \n"
-                                                                            "NO for %s %s."))) %
-                                                      stVal % stVal % sidetext % stVal % stVal % sidetext)
-                                                         .str());
-                WarningDialog dialog(m_parent, msg_text, _L("Parameter validation") + ": " + m_opt_id, wxYES | wxNO);
-                if ((val > 100) && dialog.ShowModal() == wxID_YES) {
-                    set_value(from_u8((boost::format("%s%%") % stVal).str()), false /*true*/);
-                    str += "%%";
-                } else
-                    set_value(stVal, false); // it's no needed but can be helpful, when inputted value contained "," instead of "."
+                // Orca: also enforce the literal limit after clamping an explicit mm input.
+                if (!is_percent && m_opt.sidetext.rfind("mm ") != std::string::npos && val > m_opt.max_literal) {
+                    if (!check_value) {
+                        m_value.clear();
+                        break;
+                    }
+                    if (!out_of_range)
+                        show_error(m_parent, _L("Value is out of range."));
+                    val = m_opt.max_literal;
+                    numeric_str = double_to_string(val);
+                    update_control = true;
+                }
+            }
+
+            if (update_control) {
+                str = numeric_str + (is_percent ? "%" : "");
+                set_value(str, true);
             }
         }
         if (m_opt.opt_key == "thumbnails") {
@@ -2805,11 +2850,11 @@ void PointCtrl::BUILD()
 	//temp->Add(static_text_y, 0, wxALIGN_CENTER_VERTICAL, 0);
 	temp->Add(y_input);
 
-    x_textctrl->Bind(wxEVT_TEXT_ENTER, ([this](wxCommandEvent e) { propagate_value(x_textctrl); }), x_textctrl->GetId());
-	y_textctrl->Bind(wxEVT_TEXT_ENTER, ([this](wxCommandEvent e) { propagate_value(y_textctrl); }), y_textctrl->GetId());
+	x_textctrl->Bind(wxEVT_TEXT_ENTER, ([this](wxCommandEvent e) { propagate_input_value(x_textctrl); }), x_textctrl->GetId());
+	y_textctrl->Bind(wxEVT_TEXT_ENTER, ([this](wxCommandEvent e) { propagate_input_value(y_textctrl); }), y_textctrl->GetId());
 
-    x_textctrl->Bind(wxEVT_KILL_FOCUS, ([this](wxEvent& e) { e.Skip(); propagate_value(x_textctrl); }), x_textctrl->GetId());
-    y_textctrl->Bind(wxEVT_KILL_FOCUS, ([this](wxEvent& e) { e.Skip(); propagate_value(y_textctrl); }), y_textctrl->GetId());
+	x_textctrl->Bind(wxEVT_KILL_FOCUS, ([this](wxEvent& e) { e.Skip(); propagate_input_value(x_textctrl); }), x_textctrl->GetId());
+	y_textctrl->Bind(wxEVT_KILL_FOCUS, ([this](wxEvent& e) { e.Skip(); propagate_input_value(y_textctrl); }), y_textctrl->GetId());
 
 	// 	// recast as a wxWindow to fit the calling convention
     window = dynamic_cast<wxWindow*>(x_input);
@@ -2858,7 +2903,7 @@ bool PointCtrl::value_was_changed(wxTextCtrl* win)
 	return boost::any_cast<Vec2d>(m_value) != boost::any_cast<Vec2d>(val);
 }
 
-void PointCtrl::propagate_value(wxTextCtrl* win)
+void PointCtrl::propagate_input_value(wxTextCtrl* win)
 {
     if (win->GetValue().empty())
         on_kill_focus();

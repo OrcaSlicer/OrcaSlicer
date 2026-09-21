@@ -1,6 +1,7 @@
 #include "GLGizmoBrimEars.hpp"
 #include <glad/gl.h>
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include "slic3r/GUI/GUI_App.hpp"

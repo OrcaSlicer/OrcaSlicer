@@ -11,6 +11,7 @@
 #include <map>
 #include <set>
 #include <shared_mutex>
+#include <tuple>
 #include <unordered_map>
 #include <optional>
 #include <array>
@@ -616,6 +617,11 @@ public:
     // compatible_prints references a deleted (unknown) or renamed (old) preset name.
     bool check_preset_references() const;
 
+    // Validator-only: every system FFF printer variant needs a compatible system filament
+    // named in its model's default_materials, every name there and in the printer's
+    // default_filament_profile must resolve to a system filament.
+    bool check_printer_default_materials() const;
+
     // Merge one vendor's presets with the other vendor's presets, report duplicates.
     // Public so per-vendor-cache consumers (e.g. the setup wizard) can assemble a
     // bundle out of several per-vendor caches loaded into separate PresetBundle instances.
@@ -651,6 +657,17 @@ private:
     // Whether to (re)write a per-vendor cache after a JSON parse.
     bool m_generate_vendor_caches { false };
     bool m_preserve_vendor_source_paths { false };
+
+    // Vendor trees loaded by resolve_preset_config's manifest path, so every preset
+    // resolved through this bundle shares one load per source root and vendor. The
+    // filament library is one such tree, shared by every vendor under its root.
+    std::map<std::tuple<std::string, std::string, ForwardCompatibilitySubstitutionRule>, std::unique_ptr<PresetBundle>>
+        m_source_vendor_bundles;
+
+    const PresetBundle *load_source_vendor(const boost::filesystem::path &root_dir,
+                                           const std::string &vendor_id,
+                                           ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                           std::string &error);
 
     // Orca: validation only - flag any printer with two or more compatible
     // filament presets sharing one filament_id (ambiguous AMS subtype match).

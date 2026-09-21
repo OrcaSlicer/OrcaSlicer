@@ -33,7 +33,6 @@
 	"slowdown_start_speed": [
 		"500"
 	],
-	"smooth_coefficient": "4",
 	"travel_acceleration": [
 		"8000"
 	],

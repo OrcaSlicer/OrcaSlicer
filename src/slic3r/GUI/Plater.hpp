@@ -42,6 +42,7 @@ class Button;
 namespace Slic3r {
 
 class BuildVolume;
+class MachineObject;
 enum class BuildVolume_Type : char;
 class Model;
 class ModelObject;
@@ -282,6 +283,7 @@ public:
                                         std::vector<std::string>& types,
                                         std::vector<size_t>* config_indices = nullptr);
     Search::OptionsSearcher&        get_searcher();
+    Search::SettingsIndex&          settings_index();
     std::string&                    get_search_line();
     void                            update_printer_thumbnail();
 
@@ -780,6 +782,9 @@ public:
     void apply_background_progress();
     //BBS: select the plate by hover_id
     int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false);
+    //BBS: add an empty plate and switch to it (the toolbar's Add Plate). Returns the new
+    // plate index, or -1 when the plate cap is reached.
+    int add_plate();
     //BBS: delete the plate, index= -1 means the current plate
     int delete_plate(int plate_index = -1);
     int duplicate_plate(int plate_index = -1);

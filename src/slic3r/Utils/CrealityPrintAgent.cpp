@@ -12,6 +12,8 @@
 #include <map>
 #include <set>
 
+using json = nlohmann::json;
+
 namespace Slic3r {
 
 namespace {

@@ -1,23 +1,17 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <functional>
 #include <memory>
 #include <string>
 #include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
 #include "OpenGLManager.hpp"
-#include "PresetBundleDialog.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/UserNotification.hpp"
-#include "slic3r/Utils/NetworkAgent.hpp"
-#include "slic3r/Utils/BBLCloudServiceAgent.hpp"
-#include "slic3r/GUI/WebViewDialog.hpp"
-#include "slic3r/GUI/WebUserLoginDialog.hpp"
-#include "slic3r/GUI/BindDialog.hpp"
-#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/Utils/CloudProvider.hpp"
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "../Utils/PrintHost.hpp"
@@ -64,8 +58,13 @@ class ModelObject;
 class Model;
 class UserManager;
 class DeviceManager;
+class MachineObject;
 class NetworkAgent;
+class IPrinterAgent;
 class TaskManager;
+
+// Same typedef as in bambu_networking.hpp, so this header need not include it.
+typedef std::function<bool()> WasCancelledFn;
 
 namespace GUI{
 
@@ -85,6 +84,8 @@ class ParamsDialog;
 class HMSQuery;
 class ModelMallDialog;
 class PingCodeBindDialog;
+class PresetBundleDialog;
+class ZUserLogin;
 class NetworkErrorDialog;
 class PluginsDialog;
 class SpeedDialWebDialog;
@@ -349,6 +350,11 @@ public:
     int             OnExit() override;
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
+#ifdef SLIC3R_CAD
+    inline bool     is_enable_cad_feature() { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+    inline bool     is_auto_close_sketch_loops() { return !this->app_config
+        || this->app_config->get_bool("auto_close_sketch_loops"); }
+#endif
 
     std::map<std::string, bool> test_url_state;
 
@@ -593,6 +599,11 @@ public:
     std::string     get_saved_mode_str();
     std::string     get_mode_str();
     void            save_mode(const /*ConfigOptionMode*/int mode) ;
+    // Switch to `mode` from the Speed Dial: a developer-mode override hides the saved mode
+    // (get_mode returns comDevelop), so clear it first and persist the choice.
+    void            set_mode(ConfigOptionMode mode);
+    // Turn the developer-mode override on and refresh the UI (used before jumping to a Developer setting).
+    void            enable_developer_mode();
     void            update_mode();
     void            update_internal_development();
     void            show_ip_address_enter_dialog(wxString title = wxEmptyString);
@@ -631,6 +642,9 @@ public:
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
+    void            refresh_plugins();
+    void            install_local_plugin();
     void            open_terminal_dialog();
     void            open_speed_dial();
     ActionRegistry& action_registry() { return m_action_registry; }
@@ -829,7 +843,7 @@ wxDECLARE_EVENT(EVT_UPDATE_BUNDLE_COMPLETE, wxCommandEvent);
 bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);
 // check if the filament for model is in the list
-bool has_filaments(const std::vector<string>& model_filaments);
+bool has_filaments(const std::vector<std::string>& model_filaments);
 } // namespace GUI
 } // Slic3r
 
