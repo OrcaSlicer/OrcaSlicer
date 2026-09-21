@@ -2786,12 +2786,14 @@ void WipeTower::toolchange_Wipe(
 	float wipe_length)
 {
 	// Increase flow on first layer, slow down print.
-    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? m_first_layer_flow_ratio : 1.f))
+    const float first_layer_flow_ratio = m_first_layer_flow_ratios[
+        m_current_tool < m_first_layer_flow_ratios.size() ? m_current_tool : 0];
+    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? first_layer_flow_ratio : 1.f))
 		  .append("; CP TOOLCHANGE WIPE\n");
 
     // BBS: add the note for gcode-check, when the flow changed, the width should follow the change
     if (is_first_layer()) {
-        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + Slic3r::float_to_string_decimal_point(m_first_layer_flow_ratio * m_perimeter_width, 6) + "\n");
+        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + Slic3r::float_to_string_decimal_point(first_layer_flow_ratio * m_perimeter_width, 6) + "\n");
     }
 
 	const float& xl = cleaning_box.ld.x();
@@ -4230,7 +4232,9 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
 
 void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinates &cleaning_box, float wipe_length,bool solid_tool_toolchange)
 {
-    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? m_first_layer_flow_ratio : 1.f))
+    const float first_layer_flow_ratio = m_first_layer_flow_ratios[
+        m_current_tool < m_first_layer_flow_ratios.size() ? m_current_tool : 0];
+    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? first_layer_flow_ratio : 1.f))
           // Orca: CP_TOOLCHANGE_WIPE is a standalone tag constant, not an ETags entry
           .append(";" + GCodeProcessor::Toolchange_Wipe_Tag + " CT" + std::to_string(solid_tool_toolchange) + " FL" + std::to_string(is_first_layer()) + "\n");
     if (!m_nozzle_change_result.gcode.empty())
@@ -4238,7 +4242,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
 
     // BBS: add the note for gcode-check, when the flow changed, the width should follow the change
     if (is_first_layer()) {
-        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + Slic3r::float_to_string_decimal_point(m_first_layer_flow_ratio * m_perimeter_width, 6) + "\n");
+        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + Slic3r::float_to_string_decimal_point(first_layer_flow_ratio * m_perimeter_width, 6) + "\n");
     }
 
     //if (solid_tool_toolchange && m_filpar[m_current_tool].filament_tower_interface_print_temp != m_filpar[m_current_tool].nozzle_temperature)
@@ -4505,9 +4509,9 @@ void WipeTower::set_nozzle_last_layer_id()
     }
 }
 
-void WipeTower::set_first_layer_flow_ratio(const float flow_ratio)
+void WipeTower::set_first_layer_flow_ratios(std::vector<float> flow_ratios)
 {
-    m_first_layer_flow_ratio = flow_ratio;
+    m_first_layer_flow_ratios = flow_ratios.empty() ? std::vector<float>{1.f} : std::move(flow_ratios);
 }
 
 // Orca: default/initial-layer/travel acceleration are object-scope options here (PrintConfig

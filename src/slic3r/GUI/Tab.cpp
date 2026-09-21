@@ -4458,40 +4458,7 @@ void TabFilament::set_custom_gcode(const t_config_option_key& opt_key, const std
     load_config(new_conf);
 }
 
-// Options hidden when the effective filament/process gate is off.
-// Order matters — the sequence below is the display order within the group.
 namespace {
-const std::array<std::string_view, 9> gated_by_set_other_flow_ratios = {
-    "filament_first_layer_flow_ratio",
-    "filament_outer_wall_flow_ratio",
-    "filament_inner_wall_flow_ratio",
-    "filament_overhang_flow_ratio",
-    "filament_sparse_infill_flow_ratio",
-    "filament_internal_solid_infill_flow_ratio",
-    "filament_gap_fill_flow_ratio",
-    "filament_support_flow_ratio",
-    "filament_support_interface_flow_ratio"
-};
-
-// Orca: Build the ordered list of all filament flow-ratio override keys.
-// The 4 ungated options come first (top/bottom/brim + the gate toggle),
-// then the 9 gated options are appended from gated_by_set_other_flow_ratios.
-std::vector<std::string> build_flow_opt_keys()
-{
-    std::vector<std::string> keys = {
-        "filament_top_solid_infill_flow_ratio",
-        "filament_bottom_solid_infill_flow_ratio",
-        "filament_brim_flow_ratio",
-        "filament_set_other_flow_ratios"
-    };
-
-    keys.reserve(keys.size() + gated_by_set_other_flow_ratios.size());
-    for (const auto opt_key : gated_by_set_other_flow_ratios)
-        keys.emplace_back(opt_key);
-
-    return keys;
-}
-
 // Orca: Filament override option keys, grouped by their optgroup title.
 // Shared between add_filament_overrides_page (UI build) and
 // update_filament_overrides_page (state refresh) so both functions
@@ -4533,8 +4500,6 @@ const std::vector<std::string> toolchange_opt_keys = {
     "filament_retract_restart_extra_toolchange"
 };
 
-// Orca: Shared key lists for flow ratios (built once, reused).
-const std::vector<std::string> flow_opt_keys = build_flow_opt_keys();
 } // namespace
 
 void TabFilament::add_filament_overrides_page()
@@ -4562,7 +4527,7 @@ void TabFilament::add_filament_overrides_page()
                             field->set_last_meaningful_value();
                         } else {
                             const std::string printer_opt_key = opt_key.substr(strlen("filament_"));
-                            const auto printer_config = m_preset_bundle->printers.get_edited_preset().config;
+                            const auto& printer_config = m_preset_bundle->printers.get_edited_preset().config;
                             const boost::any printer_config_value = optgroup_sh->get_config_value(printer_config, printer_opt_key, opt_index);
                             field->update_na_value(printer_config_value);
                             field->set_na_value();
@@ -4602,6 +4567,15 @@ void TabFilament::add_filament_overrides_page()
 
                         const std::string process_opt_key = opt_key.substr(strlen("filament_"));
                         const auto& process_config = m_preset_bundle->prints.get_edited_preset().config;
+                        if (!process_config.has(process_opt_key)) {
+                            field->update_na_value(_(L("N/A")));
+                            if (is_checked)
+                                field->set_last_meaningful_value();
+                            else
+                                field->set_na_value();
+                            evt.Skip();
+                            return;
+                        }
                         const boost::any process_value = optgroup_sh->get_config_value(process_config, process_opt_key, 0);
 
                         if (is_checked) {
@@ -4632,20 +4606,9 @@ void TabFilament::add_filament_overrides_page()
     }
 
     ConfigOptionsGroupShp flow_ratios_optgroup = page->new_optgroup(L("Flow ratios"), L"param_wall_surface");
-    for (const std::string& opt_key : flow_opt_keys) {
+    for (const auto &override : flow_ratio_overrides) {
+        const std::string opt_key = std::string("filament_") + override.key;
         append_option(flow_ratios_optgroup, opt_key, extruder_idx);
-    }
-
-    // Orca: Apply initial visibility for flow-ratio options gated by filament_set_other_flow_ratios.
-    // The gate is resolved the same way as in update_filament_overrides_page: if the
-    // filament override is nil, fall back to the process-level setting.
-    const auto* flow_gate = m_config->option<ConfigOptionBoolsNullable>("filament_set_other_flow_ratios");
-    const bool set_other_flow_ratios = flow_gate->is_nil(extruder_idx)
-        ? m_preset_bundle->prints.get_edited_preset().config.opt_bool("set_other_flow_ratios")
-        : flow_gate->get_at(extruder_idx);
-
-    for (const std::string_view& opt_key : gated_by_set_other_flow_ratios) {
-        toggle_line(std::string(opt_key), set_other_flow_ratios, extruder_idx + 256);
     }
 }
 
@@ -4665,27 +4628,22 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
         return;
     ConfigOptionsGroupShp optgroup = *og_it;
 
-    std::vector<std::string> opt_keys = retraction_opt_keys;
-
-    opt_keys.reserve(opt_keys.size() + toolchange_opt_keys.size());
-    for (const std::string& opt_key : toolchange_opt_keys)
-        opt_keys.emplace_back(opt_key);
-
     const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
     auto opt = dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retraction_length"));
-    const int extruder_idx = selection < 0 || selection >= static_cast<int>(opt->size()) ? 0 : selection;
+    const int extruder_idx = std::max(selection, 0);
 
-    const bool have_retract_length = dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retraction_length"))->is_nil(extruder_idx) ||
+    const bool have_retract_length = !has_filament_override(opt, extruder_idx) ||
                                      m_config->opt_float("filament_retraction_length", extruder_idx) > 0;
     const wxString retraction_reason = _L("Set the filament retraction length above zero, or use the printer's value, to edit this setting.");
 
-    for (const std::string& opt_key : opt_keys)
+    for (const auto *keys : {&retraction_opt_keys, &toolchange_opt_keys})
+    for (const std::string& opt_key : *keys)
     {
         const bool dependency_enabled = opt_key == "filament_retraction_length" || have_retract_length;
         bool is_checked = dependency_enabled;
         m_overrides_options[opt_key]->Enable(is_checked);
 
-        is_checked &= !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
+        is_checked &= has_filament_override(dynamic_cast<const ConfigOptionVectorBase*>(m_config->option(opt_key)), extruder_idx);
         m_overrides_options[opt_key]->SetValue(is_checked);
 
         // the toolchange overrides live in their own optgroup, so search the whole page
@@ -4703,7 +4661,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
             int machine_enabled_level = printers_config->option<ConfigOptionInt>(
                 "enable_long_retraction_when_cut")->value;
             bool machine_enabled = machine_enabled_level == LongRectrationLevel::EnableFilament;
-            bool filament_enabled = m_config->option<ConfigOptionBools>("filament_long_retractions_when_cut")->values[extruder_idx] == 1;
+            bool filament_enabled = resolve_filament_override(*m_config->option<ConfigOptionBoolsNullable>("filament_long_retractions_when_cut"), extruder_idx, false);
             toggle_line(opt_key, filament_enabled && machine_enabled, extruder_idx + 256,
                 _L("Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."));
             field->toggle(is_checked && filament_enabled && machine_enabled);
@@ -4734,7 +4692,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
             if (m_overrides_options.find(opt_key) == m_overrides_options.end())
                 continue;
 
-            bool is_checked = !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
+            bool is_checked = has_filament_override(dynamic_cast<const ConfigOptionVectorBase*>(m_config->option(opt_key)), extruder_idx);
             m_overrides_options[opt_key]->Enable(true);
             m_overrides_options[opt_key]->SetValue(is_checked);
 
@@ -4744,11 +4702,12 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
             if (!is_checked) {
                 // Get the default value from the process config (ironing_* without filament_ prefix)
                 const std::string process_opt_key = opt_key.substr(strlen("filament_"));
-                const auto process_config = m_preset_bundle->prints.get_edited_preset().config;
+                const auto& process_config = m_preset_bundle->prints.get_edited_preset().config;
                 const boost::any process_config_value = ironing_optgroup->get_config_value(process_config, process_opt_key, 0);
                 field->update_na_value(process_config_value);
                 field->set_value(process_config_value, false);
-            }
+            } else
+                field->update_na_value(_(L("N/A")));
 
             field->toggle(is_checked);
         }
@@ -4765,21 +4724,22 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
         // process-level setting so the UI matches the GCode path (RESOLVE_OPTION).
         const auto* flow_gate = m_config->option<ConfigOptionBoolsNullable>("filament_set_other_flow_ratios");
         const auto& process_config = m_preset_bundle->prints.get_edited_preset().config;
-        const bool set_other_flow_ratios = flow_gate->is_nil(extruder_idx)
-            ? process_config.opt_bool("set_other_flow_ratios")
-            : flow_gate->get_at(extruder_idx);
+        const bool set_other_flow_ratios = has_filament_override(flow_gate, extruder_idx)
+            ? flow_gate->get_at(extruder_idx)
+            : process_config.opt_bool("set_other_flow_ratios");
 
-        for (const std::string& opt_key : flow_opt_keys)
+        for (const auto &override : flow_ratio_overrides)
         {
+            const std::string opt_key = std::string("filament_") + override.key;
             if (m_overrides_options.find(opt_key) == m_overrides_options.end())
                 continue;
 
-            const bool is_gated = std::find(gated_by_set_other_flow_ratios.begin(), gated_by_set_other_flow_ratios.end(), opt_key) != gated_by_set_other_flow_ratios.end();
+            const bool is_gated = override.gated;
             // Orca: Hide gated lines entirely when the gate is off (mirrors ConfigManipulation).
             if (is_gated)
                 toggle_line(opt_key, set_other_flow_ratios, extruder_idx + 256);
 
-            bool is_checked = !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
+            bool is_checked = has_filament_override(dynamic_cast<const ConfigOptionVectorBase*>(m_config->option(opt_key)), extruder_idx);
             m_overrides_options[opt_key]->Enable(is_gated ? set_other_flow_ratios : true);
             m_overrides_options[opt_key]->SetValue(is_checked);
 

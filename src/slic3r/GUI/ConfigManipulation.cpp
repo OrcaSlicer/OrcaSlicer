@@ -1230,8 +1230,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("max_travel_detour_distance", have_avoid_crossing_perimeters, -1, _L("Enable avoiding crossing walls to edit the maximum travel detour distance."));
 
     bool has_set_other_flow_ratios = config->opt_bool("set_other_flow_ratios");
-    for (auto el : {"first_layer_flow_ratio", "outer_wall_flow_ratio", "inner_wall_flow_ratio", "overhang_flow_ratio", "sparse_infill_flow_ratio", "internal_solid_infill_flow_ratio", "gap_fill_flow_ratio", "support_flow_ratio", "support_interface_flow_ratio"})
-        toggle_line(el, has_set_other_flow_ratios, -1, _L("Enable setting other flow ratios to use this setting."));
+    for (const auto &override : flow_ratio_overrides)
+        if (override.gated)
+            toggle_line(override.key, has_set_other_flow_ratios, -1, _L("Enable setting other flow ratios to use this setting."));
 
     bool has_overhang_speed = config->opt_bool_nullable("enable_overhang_speed", variant_index);
     const wxString overhang_speed_reason = _L("Enable slowing down for overhangs to use this setting.");
