@@ -7,6 +7,8 @@
         #define NOMINMAX
     #endif
     #include <Windows.h>
+    // Match the GUI precompiled header: wx/msw/wrapcctl.h needs HDITEM from CommCtrl.h.
+    #include <CommCtrl.h>
 #endif
 
 #include <catch2/catch_all.hpp>
