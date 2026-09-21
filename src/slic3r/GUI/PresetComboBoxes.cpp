@@ -706,117 +706,76 @@ wxBitmap* PresetComboBox::get_bmp(  std::string bitmap_key, bool wide_icons, con
 #endif
 }
 
-static wxImage make_source_dot_image(const wxColour& colour, int diameter, int scale)
-{
-    const int hw   = diameter * scale;
-    const double r = hw / 2.0;
-
-    wxImage hi(hw, hw);
-    hi.InitAlpha();
-    for (int y = 0; y < hw; ++y) {
-        for (int x = 0; x < hw; ++x) {
-            const double dx           = x - r + 0.5;
-            const double dy           = y - r + 0.5;
-            const double dist         = std::sqrt(dx * dx + dy * dy);
-            const unsigned char alpha = dist <= r ? 255 : dist <= r + 1.0 ? static_cast<unsigned char>((r + 1.0 - dist) * 255.0) : 0;
-            hi.SetRGB(x, y, colour.Red(), colour.Green(), colour.Blue());
-            hi.SetAlpha(x, y, alpha);
-        }
-    }
-    return hi.Scale(diameter, diameter, wxIMAGE_QUALITY_HIGH);
-}
-
 wxBitmap* PresetComboBox::get_bmp(Preset const& preset)
 {
-    bool show_indicators = wxGetApp().app_config->get_bool("show_preset_source_indicators");
+    const bool show_indicators = wxGetApp().app_config->get_bool("show_preset_source_indicators");
+    const bool dark_mode       = wxGetApp().dark_mode();
 
-    static constexpr int kDot    = 10;
-    static constexpr int kScale  = 3;
-    static constexpr int kH      = 16;
-    static constexpr int kSwatch = 16;
-    static constexpr int kStrip  = kDot + 4;
-    static constexpr int kTotal  = kSwatch + kStrip;
+    static constexpr int kCanvasW       = 18;
+    static constexpr int kCanvasH       = 18;
+    static constexpr int kSvgRenderSize = 15;
 
-    // Cache the three dot bitmaps as statics — built once, never looked up again
-    static const wxImage s_dot_sys  = make_source_dot_image(wxColour(0, 120, 212), kDot, kScale);
-    static const wxImage s_dot_proj = make_source_dot_image(wxColour(40, 167, 69), kDot, kScale);
-    static const wxImage s_dot_usr  = make_source_dot_image(wxColour(230, 126, 34), kDot, kScale);
+    // Fast return for disabled state: cached 18x18 transparent placeholder
+    if (!show_indicators) {
+        static const std::string empty_key = "empty_18x18";
+        wxBitmap* empty_bmp                = bitmap_cache().find(empty_key);
+        if (!empty_bmp) {
+            wxImage empty_img(kCanvasW, kCanvasH);
+            empty_img.InitAlpha();
+            std::memset(empty_img.GetAlpha(), 0, kCanvasW * kCanvasH);
+            empty_bmp = bitmap_cache().insert(empty_key, wxBitmap(empty_img));
+        }
+        return empty_bmp;
+    }
 
+    // Identify preset origin SVG asset
     const bool is_system  = preset.is_default || preset.is_system;
     const bool is_project = preset.is_project_embedded;
 
-    const wxImage& dot_img    = is_system ? s_dot_sys : is_project ? s_dot_proj : s_dot_usr;
-    const std::string dot_key = is_system ? "sys" : is_project ? "proj" : "usr";
+    const char* svg_name = is_system ? "preset_source_system" : is_project ? "preset_source_project" : "preset_source_user";
 
-    // Non-filament: return dot bitmap directly
-    if (m_type != Preset::TYPE_FILAMENT) {
-        if (!show_indicators) {
-            static const std::string empty_key = "empty_16x16";
-            wxBitmap* empty_bmp                = bitmap_cache().find(empty_key);
-            if (!empty_bmp) {
-                wxImage empty_img(kSwatch, kH);
-                empty_img.InitAlpha();
-                for (int y = 0; y < kH; ++y)
-                    for (int x = 0; x < kSwatch; ++x)
-                        empty_img.SetAlpha(x, y, 0);
-                empty_bmp = bitmap_cache().insert(empty_key, wxBitmap(empty_img));
-            }
-            return empty_bmp;
-        }
+    // Check Cache
+    const std::string key = std::string("svg_src_") + svg_name + (dark_mode ? "_dark" : "_light");
+    if (wxBitmap* cached_bmp = bitmap_cache().find(key))
+        return cached_bmp;
 
-        const std::string key = "dot_" + dot_key + "_t" + std::to_string(static_cast<int>(m_type));
-        wxBitmap* bmp         = bitmap_cache().find(key);
-        if (!bmp)
-            bmp = bitmap_cache().insert(key, wxBitmap(dot_img));
-        return bmp;
-    }
+    // Render SVG
+    wxBitmap svg_bmp = create_scaled_bitmap(svg_name, nullptr, kSvgRenderSize);
+    if (!svg_bmp.IsOk())
+        return bitmap_cache().insert(key, wxBitmap(kCanvasW, kCanvasH));
 
-    // Filament: swatch + dot
-    const Preset& dp      = (&m_collection->get_selected_preset() == &preset) ? m_collection->get_edited_preset() : preset;
-    const wxString color  = dp.config.opt_string("default_filament_colour", 0);
-    const std::string key = (show_indicators ? "fil_" + dot_key + "_" : "fil_nodot_") + color.ToStdString();
+    wxImage svg_img = svg_bmp.ConvertToImage();
+    wxImage canvas(kCanvasW, kCanvasH);
+    canvas.InitAlpha();
+    std::memset(canvas.GetAlpha(), 0, kCanvasW * kCanvasH);
 
-    wxBitmap* bmp = bitmap_cache().find(key);
-    if (bmp)
-        return bmp;
+    // Direct Buffer Copy (Centering the 15px SVG into the 18x18 canvas)
+    const int ox         = (kCanvasW - svg_img.GetWidth()) / 2;
+    const int oy         = (kCanvasH - svg_img.GetHeight()) / 2;
+    const int copy_w     = std::min(svg_img.GetWidth(), kCanvasW - ox);
+    const int copy_h     = std::min(svg_img.GetHeight(), kCanvasH - oy);
+    const bool has_alpha = svg_img.HasAlpha();
 
-    wxImage img(show_indicators ? kTotal : kSwatch, kH);
-    img.InitAlpha();
+    const unsigned char* src_rgb   = svg_img.GetData();
+    const unsigned char* src_alpha = has_alpha ? svg_img.GetAlpha() : nullptr;
+    unsigned char* dst_rgb         = canvas.GetData();
+    unsigned char* dst_alpha       = canvas.GetAlpha();
 
-    // Left: colour swatch
-    const wxColour clr(color);
-    if (clr.IsOk()) {
-        const bool light = clr.Red() > 224 && clr.Green() > 224 && clr.Blue() > 224;
-        if (light) {
-            img.SetRGB(wxRect(0, 0, kSwatch, kH), 128, 128, 128);
-            img.SetRGB(wxRect(1, 1, kSwatch - 2, kH - 2), clr.Red(), clr.Green(), clr.Blue());
-        } else {
-            img.SetRGB(wxRect(0, 0, kSwatch, kH), clr.Red(), clr.Green(), clr.Blue());
-        }
-        for (int x = 0; x < kSwatch; ++x)
-            for (int y = 0; y < kH; ++y)
-                img.SetAlpha(x, y, 255);
-    } else {
-        for (int x = 0; x < kSwatch; ++x)
-            for (int y = 0; y < kH; ++y)
-                img.SetAlpha(x, y, 0);
-    }
-    
-    // Right: dot centred in strip, transparent padding around it
-    if (show_indicators) {
-        const int ox = (kStrip - kDot) / 2;
-        const int oy = (kH - kDot) / 2;
-        for (int y = 0; y < kH; ++y) {
-            for (int x = 0; x < kStrip; ++x) {
-                const int ix = x - ox, iy = y - oy;
-                const bool inside = ix >= 0 && ix < kDot && iy >= 0 && iy < kDot;
-                img.SetRGB(kSwatch + x, y, inside ? dot_img.GetRed(ix, iy) : 0, inside ? dot_img.GetGreen(ix, iy) : 0,
-                           inside ? dot_img.GetBlue(ix, iy) : 0);
-                img.SetAlpha(kSwatch + x, y, inside ? dot_img.GetAlpha(ix, iy) : 0);
-            }
+    for (int y = 0; y < copy_h; ++y) {
+        const int src_row = y * svg_img.GetWidth();
+        const int dst_row = (oy + y) * kCanvasW + ox;
+
+        for (int x = 0; x < copy_w; ++x) {
+            const int src_idx = (src_row + x);
+            const int dst_idx = (dst_row + x);
+
+            dst_rgb[dst_idx * 3 + 0] = src_rgb[src_idx * 3 + 0];
+            dst_rgb[dst_idx * 3 + 1] = src_rgb[src_idx * 3 + 1];
+            dst_rgb[dst_idx * 3 + 2] = src_rgb[src_idx * 3 + 2];
+            dst_alpha[dst_idx]       = src_alpha ? src_alpha[src_idx] : 255;
         }
     }
-    return bitmap_cache().insert(key, wxBitmap(img));
+    return bitmap_cache().insert(key, wxBitmap(canvas));
 }
 
 wxBitmap *PresetComboBox::get_bmp(std::string        bitmap_key,
