@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "pTxBir6QC9KhWrLU",
+	"name": "QIDI TPU 95A-HF @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI TPU 95A-HF@X-Plus 5-Series",
+	"nozzle_temperature": [
+		"220"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

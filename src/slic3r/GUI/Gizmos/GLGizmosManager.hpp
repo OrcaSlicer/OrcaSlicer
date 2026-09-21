@@ -90,6 +90,12 @@ public:
         Assembly,
         Simplify,
         BrimEars,
+#ifdef SLIC3R_CAD
+        // Both need the CAD kernel (GeometryEngine); keep them last so that with
+        // SLIC3R_CAD off the enum matches upstream's numbering exactly.
+        Primitive,
+        Sketch,
+#endif
         //SlaSupports,
         // BBS
         //FaceRecognition,
@@ -144,6 +150,8 @@ private:
 
     //When there are more than 9 colors, shortcut key coloring
     wxTimer m_timer_set_color;
+    // Leading digit of a two-digit color shortcut still waiting for its second digit.
+    int m_pending_color_shortcut_tens = 0;
     void on_set_color_timer(wxTimerEvent& evt);
 
     // key MENU_ICON_NAME, value = ImtextureID
@@ -288,6 +296,9 @@ public:
     void render_painter_assemble_view() const;
 
     void render_overlay();
+    void render_overlay_input_window();
+    // Hash of the state render_overlay() draws from: enabled, hover, current and highlight.
+    size_t get_overlay_state_hash() const;
 
     void render_arrow(const GLCanvas3D& parent, EType highlighted_type) const;
 
@@ -321,7 +332,7 @@ private:
     
     void render_background(float left, float top, float right, float bottom, float border_w, float border_h) const;
     
-    void do_render_overlay() const;
+    void do_render_overlay(bool draw_icons) const;
 
     bool generate_icons_texture();
 

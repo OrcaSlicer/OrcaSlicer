@@ -3,7 +3,7 @@
 	"name": "Bambu PAHT-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFN04",
+	"filament_id": "OF2VFe4J",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"fan_cooling_layer_time": [
@@ -33,6 +33,9 @@
 	"full_fan_speed_layer": [
 		"2"
 	],
+    "filament_dev_chamber_drying_time": [
+        "16"
+    ],
 	"impact_strength_z": [
 		"13.3"
 	],

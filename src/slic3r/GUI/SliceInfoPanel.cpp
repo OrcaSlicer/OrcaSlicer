@@ -115,7 +115,7 @@ SliceInfoPopup::SliceInfoPopup(wxWindow *parent, wxBitmap bmp, BBLSliceInfo *inf
             f_sizer->Add(f_type, 0, wxEXPAND | wxALL, FromDIP(5));
             f_sizer->Add(f_used_g, 0, wxEXPAND | wxALL, FromDIP(5));
             grid_sizer->Add(f_sizer, 0, wxEXPAND, 0);
-            f_type->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {});
+            f_type->Bind(wxEVT_LEFT_DOWN, [](auto &e) {});
         }
     }
     topSizer->Add(grid_sizer, 0, wxALL, FromDIP(5));

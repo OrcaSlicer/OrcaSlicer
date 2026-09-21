@@ -4,7 +4,7 @@
 	"inherits": "Generic TPU @base",
 	"from": "system",
 	"setting_id": "GF_ANTA_00",
-	"filament_id": "GF_ANTA",
+	"filament_id": "OFvcIGee",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"0"
@@ -58,7 +58,15 @@
 		"Bambu Lab X2D 0.2 nozzle",
 		"Bambu Lab X2D 0.4 nozzle",
 		"Bambu Lab X2D 0.6 nozzle",
-		"Bambu Lab X2D 0.8 nozzle"
+		"Bambu Lab X2D 0.8 nozzle",
+		"Bambu Lab H2C 0.2 nozzle",
+		"Bambu Lab H2C 0.4 nozzle",
+		"Bambu Lab H2C 0.6 nozzle",
+		"Bambu Lab H2C 0.8 nozzle",
+		"Bambu Lab A2L 0.2 nozzle",
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
 	],
 	"compatible_printers_condition": "",
 	"compatible_prints": [],
@@ -334,6 +342,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"35"
-	],
-	"version": "2.0.0.77"
+	]
 }

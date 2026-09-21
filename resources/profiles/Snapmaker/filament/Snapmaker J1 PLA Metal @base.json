@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PLA Metal @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "4012961186",
+	"filament_id": "OFt0JbR7",
 	"instantiation": "false",
 	"filament_cost": [
 		"90"

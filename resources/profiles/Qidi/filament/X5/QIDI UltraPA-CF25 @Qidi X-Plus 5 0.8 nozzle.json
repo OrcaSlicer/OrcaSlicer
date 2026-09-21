@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "53sirpAAiDOx0c8P",
+	"name": "QIDI UltraPA-CF25 @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI UltraPA-CF25@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

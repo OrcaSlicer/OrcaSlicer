@@ -19,7 +19,7 @@ MultiMachineItem::MultiMachineItem(wxWindow* parent, MachineObject* obj)
     Bind(wxEVT_LEAVE_WINDOW, &MultiMachineItem::OnLeaveWindow, this);
     Bind(wxEVT_LEFT_DOWN, &MultiMachineItem::OnLeftDown, this);
     Bind(wxEVT_MOTION, &MultiMachineItem::OnMove, this);
-    Bind(EVT_MULTI_DEVICE_VIEW, [this, obj](auto& e) {
+    Bind(EVT_MULTI_DEVICE_VIEW, [obj](auto& e) {
         wxGetApp().mainframe->jump_to_monitor(obj->get_dev_id());
         if (wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()) {
             wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()->jump_to_play();

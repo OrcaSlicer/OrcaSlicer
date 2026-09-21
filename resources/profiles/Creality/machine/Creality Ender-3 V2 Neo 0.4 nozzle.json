@@ -8,7 +8,7 @@
 	"printer_model": "Creality Ender-3 V2 Neo",
 	"printer_structure": "i3",
 	"default_filament_profile": [
-		"Creality Generic PLA"
+		"CR-PLA @Ender-3 V2-all"
 	],
 	"default_print_profile": "0.20mm Standard @Creality Ender3V2 Neo",
 	"nozzle_diameter": [

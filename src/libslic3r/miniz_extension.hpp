@@ -10,6 +10,7 @@ bool open_zip_reader(mz_zip_archive *zip, const std::string &fname_utf8);
 bool open_zip_writer(mz_zip_archive *zip, const std::string &fname_utf8);
 bool close_zip_reader(mz_zip_archive *zip);
 bool close_zip_writer(mz_zip_archive *zip);
+std::string decode_archive_entry_path(mz_zip_archive *zip, const mz_zip_archive_file_stat &stat);
 
 class MZ_Archive {
 public:

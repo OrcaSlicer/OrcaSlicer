@@ -1,0 +1,107 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PVA @U1 0.8 nozzle",
+	"inherits": "Snapmaker PVA @U1 base",
+	"from": "system",
+	"setting_id": "WxtuvwWxy73Gi0IK",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.8 nozzle)"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"70"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"70"
+	],
+	"during_print_exhaust_fan_speed": [
+		"70"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"filament_cost": [
+		"79.98"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_retract_length_toolchange": [
+		"10"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_soluble": [
+		"1"
+	],
+	"hot_plate_temp_initial_layer": [
+		"65"
+	],
+	"nozzle_temperature": [
+		"225"
+	],
+	"nozzle_temperature_initial_layer": [
+		"225"
+	],
+	"nozzle_temperature_range_low": [
+		"205"
+	],
+	"pressure_advance": [
+		"0.03"
+	],
+	"slow_down_layer_time": [
+		"7"
+	],
+	"textured_plate_temp": [
+		"65"
+	],
+	"textured_plate_temp_initial_layer": [
+		"65"
+	],
+	"filament_cooling_final_speed": [
+		"3.4"
+	],
+	"filament_cooling_initial_speed": [
+		"2.2"
+	],
+	"filament_cooling_moves": [
+		"4"
+	],
+	"filament_loading_speed": [
+		"28"
+	],
+	"filament_loading_speed_start": [
+		"3"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"20"
+	],
+	"filament_multitool_ramming_volume": [
+		"5"
+	],
+	"filament_unloading_speed": [
+		"90"
+	],
+	"filament_unloading_speed_start": [
+		"100"
+	]
+}

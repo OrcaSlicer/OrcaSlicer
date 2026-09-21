@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Wood @System",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Wood @base",
 	"from": "system",
 	"setting_id": "pMgazYJG8tyTpAVE",
 	"instantiation": "true",
@@ -10,6 +10,9 @@
 		"80"
 	],
 	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"filament_multitool_ramming_flow": [
 		"10"
 	],
 	"nozzle_temperature": [

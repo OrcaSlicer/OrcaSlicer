@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Anker 0.2 nozzle",
+	"inherits": "Generic PLA Silk @Anker base",
+	"renamed_from": "Anker Generic PLA Silk 0.2 nozzle",
+	"from": "system",
+	"setting_id": "NWGiPWYmLVktDMJt",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"compatible_printers": [
+		"Anker M5 0.2 nozzle",
+		"Anker M5 All-Metal 0.2 nozzle",
+		"Anker M5C 0.2 nozzle"
+	]
+}

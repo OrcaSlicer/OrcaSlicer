@@ -2,7 +2,9 @@
 #define _WIN32_WINNT 0x0502
 // The standard Windows includes.
 #define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 #include <shellapi.h>
 #include <wchar.h>
@@ -263,6 +265,14 @@ int wmain(int argc, wchar_t **argv)
     _wsplitpath(path_to_exe, drive, dir, fname, ext);
     _wmakepath(path_to_exe, drive, dir, nullptr, nullptr);
 
+    wchar_t path_to_python[MAX_PATH + 1] = { 0 };
+    wcscpy(path_to_python, path_to_exe);
+    wcscat(path_to_python, L"python");
+    DWORD python_attrs = GetFileAttributesW(path_to_python);
+    if (python_attrs != INVALID_FILE_ATTRIBUTES && (python_attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+        SetDllDirectoryW(path_to_python);
+    }
+
 #ifdef SLIC3R_GUI
 // https://wiki.qt.io/Cross_compiling_Mesa_for_Windows
 // http://download.qt.io/development_releases/prebuilt/llvmpipe/windows/
@@ -287,7 +297,7 @@ int wmain(int argc, wchar_t **argv)
 //	printf("Loading Slic3r library: %S\n", path_to_slic3r);
     HINSTANCE hInstance_Slic3r = LoadLibraryExW(path_to_slic3r, nullptr, 0);
     if (hInstance_Slic3r == nullptr) {
-        printf("OrcaSlicer.dll was not loaded, error=%d\n", GetLastError());
+        printf("OrcaSlicer.dll was not loaded, error=%lu\n", GetLastError());
         return -1;
     }
 
