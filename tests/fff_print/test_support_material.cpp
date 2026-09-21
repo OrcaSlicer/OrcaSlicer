@@ -241,6 +241,93 @@ TEST_CASE("Support G-code emission survives a second slice in the same process",
     REQUIRE(! layers_with_role(second, "support").empty());
 }
 
+// True when any support extrusion anywhere in the object is an ironing pass.
+static bool has_support_ironing(const Print &print)
+{
+    for (const SupportLayer *layer : print.objects().front()->support_layers())
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            if (entity->role() == erIroning)
+                return true;
+    return false;
+}
+
+// print_z of the highest support layer that carries an extrusion of the given role, or -1.
+static double top_support_z(const Print &print, ExtrusionRole role)
+{
+    double z = -1.;
+    for (const SupportLayer *layer : print.objects().front()->support_layers())
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            if (entity->role() == role)
+                z = std::max(z, layer->print_z);
+    return z;
+}
+
+TEST_CASE("Support interface ironing irons the top interface layer of normal tree styles", "[SupportMaterial]")
+{
+    const std::string style = GENERATE("tree_slim", "tree_strong", "tree_hybrid");
+    const int top_layers = GENERATE(1, 2, 3);
+    CAPTURE(style, top_layers);
+
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+        { "enable_support",               1 },
+        { "support_type",                 "tree(auto)" },
+        { "support_style",                style },
+        { "support_interface_top_layers", top_layers },
+        { "support_ironing",              1 }
+    });
+
+    REQUIRE(has_support_ironing(print));
+    // The ironed surface is the one that touches the model, so no interface layer may sit above it.
+    REQUIRE_THAT(top_support_z(print, erIroning),
+                 Catch::Matchers::WithinAbs(top_support_z(print, erSupportMaterialInterface), 1e-6));
+}
+
+TEST_CASE("Support interface ironing off produces no ironing for normal tree styles", "[SupportMaterial]")
+{
+    const std::string style = GENERATE("tree_slim", "tree_strong", "tree_hybrid");
+    CAPTURE(style);
+
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+        { "enable_support",               1 },
+        { "support_type",                 "tree(auto)" },
+        { "support_style",                style },
+        { "support_interface_top_layers", 2 },
+        { "support_ironing",              0 }
+    });
+
+    REQUIRE_FALSE(has_support_ironing(print));
+}
+
+// Regression guard: Organic already ironed its roof before this change; must keep doing so.
+TEST_CASE("Support interface ironing still irons the roof of organic tree support", "[SupportMaterial][Regression]")
+{
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+        { "enable_support",               1 },
+        { "support_type",                 "tree(auto)" },
+        { "support_style",                "organic" },
+        { "support_interface_top_layers", 2 },
+        { "support_ironing",              1 }
+    });
+
+    REQUIRE(has_support_ironing(print));
+}
+
+TEST_CASE("Support interface ironing reaches the g-code for tree slim support", "[SupportMaterial]")
+{
+    const std::string gcode = Slic3r::Test::slice({ TestMesh::overhang }, {
+        { "enable_support",               1 },
+        { "support_type",                 "tree(auto)" },
+        { "support_style",                "tree_slim" },
+        { "support_interface_top_layers", 2 },
+        { "support_ironing",              1 }
+    });
+
+    REQUIRE(! Slic3r::Test::layers_with_role(gcode, "support ironing").empty());
+}
+
 // The contact layer counts toward the configured interface layer count, so N configured top
 // interface layers produce exactly N interface layers, not N+1.
 TEST_CASE("Support top interface layer count matches the configured value", "[SupportMaterial]")
