@@ -1,5 +1,6 @@
 #include "AmsPayload.hpp"
 
+#include "Http.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -20,6 +21,7 @@
 #include <map>
 #include <mutex>
 #include <sstream>
+#include <utility>
 
 namespace Slic3r {
 
@@ -203,6 +205,69 @@ bool parse_moonraker_lane_data(const nlohmann::json& body,
     return true;
 }
 
+LaneDataFetch read_moonraker_lane_data(const std::string& origin,
+                                       const std::string& api_key,
+                                       std::vector<AmsTrayData>& trays,
+                                       int& max_lane_index)
+{
+    trays.clear();
+    max_lane_index = 0;
+    std::string base = origin;
+    while (!base.empty() && base.back() == '/')
+        base.pop_back();
+    if (base.empty())
+        return LaneDataFetch::unknown;
+
+    unsigned    http_status = 0;
+    std::string response_body;
+    std::string http_error;
+    auto http = Http::get(base + "/server/database/item?namespace=lane_data");
+    if (!api_key.empty())
+        http.header("X-Api-Key", api_key);
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            http_status = status;
+            if (status == 200)
+                response_body = std::move(body);
+            else
+                http_error = "HTTP error: " + std::to_string(status);
+        })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            // Http routes every >=400 response through here, so a 404 arrives as
+            // a real HTTP status, not a transport failure (REQ-STS-007 §7.7).
+            http_status = status;
+            http_error  = err;
+            if (status > 0)
+                http_error += " (HTTP " + std::to_string(status) + ")";
+        })
+        .perform_sync();
+
+    if (http_status == 404) {
+        BOOST_LOG_TRIVIAL(info) << "AmsPayload: lane_data not served yet (unknown topology)";
+        return LaneDataFetch::unknown;
+    }
+    if (http_status != 200) {
+        BOOST_LOG_TRIVIAL(info) << "AmsPayload: lane_data fetch failed: " << http_error;
+        return LaneDataFetch::error;
+    }
+
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        BOOST_LOG_TRIVIAL(warning) << "AmsPayload: invalid lane_data JSON";
+        return LaneDataFetch::error;
+    }
+    const bool empty_value = json.is_object() && json.contains("result") && json["result"].is_object() &&
+                             json["result"].contains("value") && json["result"]["value"].is_object() &&
+                             json["result"]["value"].empty();
+    if (empty_value)
+        return LaneDataFetch::none;
+
+    if (!parse_moonraker_lane_data(json, trays, max_lane_index))
+        return LaneDataFetch::error;
+    return LaneDataFetch::synced;
+}
+
 void resolve_tray_info_idx(std::vector<AmsTrayData>& trays)
 {
     auto* bundle = GUI::wxGetApp().preset_bundle;
@@ -315,10 +380,18 @@ nlohmann::json build_bbl_ams_json(const std::vector<AmsTrayData>& trays,
 
 // Last ams_count rendered per device: clear_ams_payload_for_device walks the
 // same unit set to mark them all absent.
-static std::mutex              g_ams_state_mutex;
-static std::map<std::string, int>             g_ams_last_count;
-static std::map<std::string, std::vector<std::string>> g_ams_ops;
-static std::map<std::string, bool>            g_ams_capability;
+static std::mutex                         g_ams_state_mutex;
+static std::map<std::string, int>         g_ams_last_count;
+
+// One device's declaration from its get_capabilities reply. ops_known separates
+// "no reply yet" (never gate) from "answered without ops" (gate every write).
+struct AmsDeviceCaps
+{
+    std::vector<std::string> ops;
+    bool                     ops_known = false;
+    bool                     has_ams   = false;
+};
+static std::map<std::string, AmsDeviceCaps> g_ams_caps;
 
 static void remember_ams_count(const std::string& dev_id, int ams_count)
 {
@@ -333,16 +406,18 @@ void register_ams_ops(const std::string& dev_id, const std::vector<std::string>&
     if (dev_id.empty())
         return;
     std::lock_guard<std::mutex> lock(g_ams_state_mutex);
-    g_ams_ops[dev_id] = ops;
+    AmsDeviceCaps& caps = g_ams_caps[dev_id];
+    caps.ops            = ops;
+    caps.ops_known      = true;
 }
 
 bool ams_op_supported(const std::string& dev_id, const std::string& op)
 {
     std::lock_guard<std::mutex> lock(g_ams_state_mutex);
-    auto it = g_ams_ops.find(dev_id);
-    if (it == g_ams_ops.end())
-        return true; // no OrcaSonar capabilities seen: never gate
-    return std::find(it->second.begin(), it->second.end(), op) != it->second.end();
+    auto it = g_ams_caps.find(dev_id);
+    if (it == g_ams_caps.end() || !it->second.ops_known)
+        return true; // no capability reply yet: never gate
+    return std::find(it->second.ops.begin(), it->second.ops.end(), op) != it->second.ops.end();
 }
 
 void register_ams_capability(const std::string& dev_id, bool has_ams)
@@ -350,14 +425,14 @@ void register_ams_capability(const std::string& dev_id, bool has_ams)
     if (dev_id.empty())
         return;
     std::lock_guard<std::mutex> lock(g_ams_state_mutex);
-    g_ams_capability[dev_id] = has_ams;
+    g_ams_caps[dev_id].has_ams = has_ams;
 }
 
 bool has_ams_capability(const std::string& dev_id)
 {
     std::lock_guard<std::mutex> lock(g_ams_state_mutex);
-    auto it = g_ams_capability.find(dev_id);
-    return it != g_ams_capability.end() && it->second;
+    auto it = g_ams_caps.find(dev_id);
+    return it != g_ams_caps.end() && it->second.has_ams;
 }
 
 void build_ams_payload_for_device(const std::string& dev_id,

@@ -39,6 +39,26 @@ bool parse_moonraker_lane_data(const nlohmann::json& body,
                                std::vector<AmsTrayData>& trays,
                                int& max_lane_index);
 
+// Outcome of one lane_data read. synced/none/unknown mirror OrcaSonar's
+// REQ-STS-007 tri-state; error covers transport failure and unparsable bodies.
+enum class LaneDataFetch { synced, none, unknown, error };
+
+// Read and parse the Moonraker `lane_data` namespace from origin (OrcaSonar's
+// façade or a real Moonraker — both emit the same shape). A non-empty api_key is
+// sent as X-Api-Key. trays/max_lane_index are only populated on synced. The
+// tri-state is preserved: 404 is unknown, an empty value object is none.
+LaneDataFetch read_moonraker_lane_data(const std::string& origin,
+                                       const std::string& api_key,
+                                       std::vector<AmsTrayData>& trays,
+                                       int& max_lane_index);
+
+// AMS units a flat lane range renders into (4 lanes per unit, rounding up);
+// 0 when there are no lanes. max_lane_index is the highest index, or -1.
+inline int ams_count_for_lanes(int max_lane_index)
+{
+    return max_lane_index < 0 ? 0 : (max_lane_index + 4) / 4;
+}
+
 // Fill each tray's tray_info_idx from the loaded preset bundle (falling back to
 // the generic family map). Reads GUI preset state, so it MUST run on the main
 // thread. Ids already set by a vendor-aware resolver are left untouched.
@@ -76,9 +96,10 @@ void build_ams_payload_for_device(const std::string& dev_id,
 void clear_ams_payload_for_device(const std::string& dev_id, const QueueOnMainFn& queue_fn);
 
 // Process-wide canonical AMS write capability (OrcaSonar REQ-STS-008), parsed
-// from the info.get_capabilities reply. Devices with no record (Bambu, cloud
-// profiles) report every op supported: gating only ever applies to OrcaSonar
-// printers that answered.
+// from the info.get_capabilities reply. A device with no record (no reply yet;
+// non-OrcaSonar agents never register) reports every op supported: gating only
+// applies to OrcaSonar printers that answered. An answer without ams_ops
+// registers an empty op set, so it gates every write.
 void   register_ams_ops(const std::string& dev_id, const std::vector<std::string>& ops);
 bool   ams_op_supported(const std::string& dev_id, const std::string& op);
 

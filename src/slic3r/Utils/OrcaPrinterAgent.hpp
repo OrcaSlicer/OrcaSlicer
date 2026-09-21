@@ -80,12 +80,7 @@ public:
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
     int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
-    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
-    int command_start_camera(std::string dev_id) override;
-    int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode) override;
-    int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode) override;
-    int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode) override;
     int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode) override;
     int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode) override;
     int command_axis_control(std::string dev_id,
@@ -104,7 +99,6 @@ public:
     // topology_state doorbell that keep DevFilaSystem fresh are LAN-only, and
     // cloud printers get their AMS view from the mirrored push_status.
     FilamentSyncMode get_filament_sync_mode() const override;
-    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
     // Test-only: drive emit_connect_sequence directly (no socket).
     void run_connect_sequence_for_test(const std::string& dev_id)
@@ -114,8 +108,6 @@ public:
 
     // Test-only: advance the LAN connection epoch without a connect/disconnect cycle.
     void bump_lan_generation_for_test() { ++m_lan_generation; }
-    // Test-only: the same for the (independent) cloud selection epoch.
-    void bump_cloud_generation_for_test() { ++m_cloud_generation; }
 
     // Test-only: observe the subscription doorbell policy without spawning the refresh worker.
     bool filament_doorbell_needed_for_test(const std::string& dev_id, const std::string& payload)
@@ -148,6 +140,12 @@ protected:
     // once parse_json reads the Orca dialect natively. See the definition for the
     // per-rule detail. Returns the payload unchanged when no rule applies.
     std::string merge_capabilities(const std::string& dev_id, const std::string& payload);
+
+    // Register one get_capabilities reply's AMS declaration: ams_ops (empty when
+    // the reply omits it, so "answered without ops" gates every write) and
+    // protocol.features.fms. Kept separate from merge_capabilities so dropping
+    // that shim cannot silently drop the capability registry.
+    void register_ams_capabilities(const std::string& dev_id, const std::string& payload);
 
     // Report the asynchronous LAN connection state using the same callback contract as
     // the other printer agents. The transport result cannot be returned by

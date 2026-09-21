@@ -184,6 +184,19 @@ TEST_CASE("unit: AMS payload sets exist bits beyond 31 lanes", "[unit][moonraker
     CHECK_FALSE(u8[1].contains("tray_slot_placeholder")); // slot 33 present
 }
 
+// why: a flat lane range renders into 4-slot AMS units; both agents and the
+// builder share this one formula so they cannot drift.
+TEST_CASE("unit: AMS unit count rounds lane ranges up to 4-slot units", "[unit][moonraker]")
+{
+    CHECK(ams_count_for_lanes(-1) == 0);
+    CHECK(ams_count_for_lanes(0) == 1);
+    CHECK(ams_count_for_lanes(3) == 1);
+    CHECK(ams_count_for_lanes(4) == 2);
+    CHECK(ams_count_for_lanes(6) == 2);
+    CHECK(ams_count_for_lanes(7) == 2);
+    CHECK(ams_count_for_lanes(8) == 3);
+}
+
 // why: the sync mode keys off the printer's declared material system; a device
 // with no capability record must never read as AMS-capable.
 TEST_CASE("unit: AMS capability registry reports only declared material systems", "[unit][moonraker]")

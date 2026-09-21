@@ -595,42 +595,6 @@ std::string OrcaPrinterAgent::merge_capabilities(const std::string& dev_id, cons
             std::lock_guard<std::mutex> l(nozzle_diameter_cache_mutex);
             nozzle_diameter_cache[dev_id] = nozzle_dia;
         }
-        // The capabilities reply itself is forwarded unchanged. Its declared
-        // ams_ops (OPCP §7.8) gate every AMS control, and protocol.features.fms
-        // declares whether a material system actually exists.
-        {
-            const auto caps_it = info_it->find("capabilities");
-            if (caps_it != info_it->end() && caps_it->is_object()) {
-                const auto proto_it = caps_it->find("protocol");
-                if (proto_it != caps_it->end() && proto_it->is_object()) {
-                    const auto ops_it = proto_it->find("ams_ops");
-                    std::vector<std::string> ops;
-                    if (ops_it != proto_it->end() && ops_it->is_array()) {
-                        for (const auto& op : *ops_it)
-                            if (op.is_string())
-                                ops.push_back(op.get<std::string>());
-                        register_ams_ops(dev_id, ops);
-                    }
-
-                    // features.fms is the authoritative "has a material system"
-                    // flag (topology.material_units non-empty). Payloads without
-                    // it fall back to a non-empty ams_ops.
-                    bool has_ams           = false;
-                    bool fms_known         = false;
-                    const auto features_it = proto_it->find("features");
-                    if (features_it != proto_it->end() && features_it->is_object()) {
-                        const auto fms_it = features_it->find("fms");
-                        if (fms_it != features_it->end() && fms_it->is_boolean()) {
-                            has_ams   = fms_it->get<bool>();
-                            fms_known = true;
-                        }
-                    }
-                    if (!fms_known)
-                        has_ams = !ops.empty();
-                    register_ams_capability(dev_id, has_ams);
-                }
-            }
-        }
     } else {
         const auto print_it = envelope.find("print");
         if (print_it != envelope.end() && print_it->is_object() && print_it->value("command", "") == "push_status" &&
@@ -654,6 +618,57 @@ std::string OrcaPrinterAgent::merge_capabilities(const std::string& dev_id, cons
     return modified ? envelope.dump() : payload;
 }
 
+// One get_capabilities reply's AMS declaration. Not a dialect shim: it feeds
+// get_filament_sync_mode() and the ams_ops write gate, so it must outlive
+// merge_capabilities.
+void OrcaPrinterAgent::register_ams_capabilities(const std::string& dev_id, const std::string& payload)
+{
+    if (dev_id.empty() || payload.find("get_capabilities") == std::string::npos)
+        return;
+
+    const nlohmann::json envelope = nlohmann::json::parse(payload, nullptr, false);
+    if (!envelope.is_object())
+        return;
+    const auto info_it = envelope.find("info");
+    if (info_it == envelope.end() || !info_it->is_object() || info_it->value("command", "") != "get_capabilities")
+        return;
+    const auto caps_it = info_it->find("capabilities");
+    if (caps_it == info_it->end() || !caps_it->is_object())
+        return;
+    const auto proto_it = caps_it->find("protocol");
+    if (proto_it == caps_it->end() || !proto_it->is_object())
+        return;
+
+    // ams_ops is the write-op union the resolved drivers implement. Register it
+    // on every reply — empty when the key is absent — so "answered without ops"
+    // gates every AMS write (OPCP §7.8) and a later reply clears stale ops.
+    std::vector<std::string> ops;
+    const auto ops_it = proto_it->find("ams_ops");
+    if (ops_it != proto_it->end() && ops_it->is_array()) {
+        for (const auto& op : *ops_it)
+            if (op.is_string())
+                ops.push_back(op.get<std::string>());
+    }
+    register_ams_ops(dev_id, ops);
+
+    // features.fms is the authoritative "has a material system" flag
+    // (topology.material_units non-empty). Payloads without it fall back to a
+    // non-empty ams_ops.
+    bool has_ams           = false;
+    bool fms_known         = false;
+    const auto features_it = proto_it->find("features");
+    if (features_it != proto_it->end() && features_it->is_object()) {
+        const auto fms_it = features_it->find("fms");
+        if (fms_it != features_it->end() && fms_it->is_boolean()) {
+            has_ams   = fms_it->get<bool>();
+            fms_known = true;
+        }
+    }
+    if (!fms_known)
+        has_ams = !ops.empty();
+    register_ams_capability(dev_id, has_ams);
+}
+
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
 {
     // Subscription doorbell, on the raw payload before the UI marshal so the
@@ -662,6 +677,7 @@ void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::str
         request_filament_refresh(dev_id);
 
     parse_ipcam_info(dev_id, payload);
+    register_ams_capabilities(dev_id, payload);
     std::string merged_payload = merge_capabilities(dev_id, payload);
 
     OnMessageFn fn;
@@ -776,14 +792,6 @@ int OrcaPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string t
     return route_send(lan_mode, dev_id, j.dump());
 }
 
-int OrcaPrinterAgent::command_ams_calibrate(std::string /*dev_id*/, int /*ams_id*/, int /*sequence_id*/, bool /*lan_mode*/)
-{
-    // OrcaSonar has no ams_calibrate command. Do not send the Bambu M620 C
-    // dialect through the vendor-neutral OrcaSonar gcode_line command.
-    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: AMS calibration is not part of the OrcaSonar API";
-    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
-}
-
 int OrcaPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
 {
     int tray_number = 0;
@@ -798,46 +806,6 @@ int OrcaPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tr
     // tray_id here is the flat global lane (DevFilaSystem slot index).
     j["print"]["selector"] = "lane";
     j["print"]["lane"]     = tray_number;
-    return route_send(lan_mode, dev_id, j.dump());
-}
-
-int OrcaPrinterAgent::command_start_camera(std::string /*dev_id*/)
-{
-    // OrcaSonar exposes camera.ipcam_* controls, not the legacy start_camera
-    // operation used by the Bambu agent.
-    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: camera start is not part of the OrcaSonar API";
-    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
-}
-
-int OrcaPrinterAgent::command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["command"]     = "gcode_line";
-    j["print"]["param"]       = "G90\n";
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    return route_send(lan_mode, dev_id, j.dump());
-}
-
-int OrcaPrinterAgent::command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["command"]     = "gcode_line";
-    j["print"]["param"]       = "G29\n";
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    return route_send(lan_mode, dev_id, j.dump());
-}
-
-int OrcaPrinterAgent::command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    if (supports_mqtt_homing) {
-        j["print"]["command"] = "back_to_center";
-    } else {
-        // Preserve the existing safety behavior: never home Z/Y during a print.
-        j["print"]["command"] = "gcode_line";
-        j["print"]["param"]   = is_printing ? "G28 X\n" : "G28\n";
-    }
     return route_send(lan_mode, dev_id, j.dump());
 }
 
@@ -908,13 +876,6 @@ FilamentSyncMode OrcaPrinterAgent::get_filament_sync_mode() const
     return FilamentSyncMode::none;
 }
 
-bool OrcaPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
-{
-    if (sync_mode != get_filament_sync_mode())
-        return false;
-    return fetch_lane_data(dev_id) == LaneDataState::synced;
-}
-
 // Read the lane_data projection once and apply the REQ-STS-007 tri-state to
 // DevFilaSystem. Only LaneDataState::error arms the retry latch: 404 means
 // "not knowable yet" (pre-bootstrap or acknowledged-unknown topology) and {}
@@ -939,69 +900,28 @@ OrcaPrinterAgent::LaneDataState OrcaPrinterAgent::fetch_lane_data(const std::str
     // Moonraker-compatible façade. Called on the refresh worker (subscription
     // mode), so the payload mutation is marshalled onto the main thread through
     // queue_fn; a GUI-thread caller reads DevFilaSystem inline.
-    const std::string url = origin + "/server/database/item?namespace=lane_data";
-
-    std::string response_body;
-    unsigned http_status = 0;
-    std::string http_error;
-    auto http = Http::get(url);
-    if (!api_key.empty())
-        http.header("X-Api-Key", api_key);
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_complete([&](std::string body, unsigned status) {
-            http_status = status;
-            if (status == 200) {
-                response_body = std::move(body);
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string, std::string err, unsigned status) {
-            http_status = status;
-            http_error  = err;
-            if (status > 0)
-                http_error += " (HTTP " + std::to_string(status) + ")";
-        })
-        .perform_sync();
-
-    // Http routes every >=400 response through on_error(), so a 404 arrives here
-    // with an empty err and the status in http_status. It is a real HTTP
-    // response, not a transport failure: the namespace is not served / topology
-    // unknown (REQ-STS-007 §7.7). Never latch a retry for it.
-    if (http_status == 404) {
-        BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::fetch_lane_data: lane_data not served yet (unknown topology)";
-        return LaneDataState::unknown;
-    }
-    if (http_status != 200) {
-        BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::fetch_lane_data: lane_data fetch failed: " << http_error;
-        return LaneDataState::error;
-    }
-
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent::fetch_lane_data: invalid lane_data JSON";
-        return LaneDataState::error;
-    }
-    const bool empty_value = json.is_object() && json.contains("result") && json["result"].is_object() &&
-                             json["result"].contains("value") && json["result"]["value"].is_object() && json["result"]["value"].empty();
-    if (empty_value) {
+    std::vector<AmsTrayData> trays;
+    int max_lane_index = 0;
+    switch (read_moonraker_lane_data(origin, api_key, trays, max_lane_index)) {
+    case LaneDataFetch::synced:
+        break;
+    case LaneDataFetch::none:
         // Authoritative empty: flush stale trays so a removed AMS does not
         // linger in the device panel.
         clear_ams_payload_for_device(dev_id, queue_fn);
         return LaneDataState::none;
+    case LaneDataFetch::unknown:
+        // 404: not knowable yet (pre-bootstrap or acknowledged-unknown topology).
+        // Never latched; the next doorbell or reconnect retries.
+        return LaneDataState::unknown;
+    case LaneDataFetch::error:
+        return LaneDataState::error;
     }
 
-    std::vector<AmsTrayData> trays;
-    int max_lane_index = 0;
-    if (!parse_moonraker_lane_data(json, trays, max_lane_index))
-        return LaneDataState::error;
-
-    const int ams_count = (max_lane_index + 4) / 4;
     // printer_type stays unset: push_status already carries the OrcaSonar printer
     // type, and overwriting it here would clear it. build_ams_payload_for_device
     // marshals the DevFilaSystem mutation through queue_fn when set.
-    build_ams_payload_for_device(dev_id, std::nullopt, ams_count, max_lane_index, trays, queue_fn);
+    build_ams_payload_for_device(dev_id, std::nullopt, ams_count_for_lanes(max_lane_index), max_lane_index, trays, queue_fn);
     return LaneDataState::synced;
 }
 

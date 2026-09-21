@@ -564,29 +564,20 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
-    // Try Moonraker filament data (more generic, supports any filament changer
-    // software that reports lane data to Moonraker like AFC and recent Happy
-    // Hare as of Feb 15, 2026)
-    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
-                                << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
+    // Try Moonraker lane data first (generic; covers AFC and recent Happy Hare),
+    // then the Happy Hare object query.
+    const bool moonraker_lanes = fetch_moonraker_filament_data(trays, max_lane_index);
+    const bool happy_hare      = !moonraker_lanes && fetch_hh_filament_info(trays, max_lane_index);
+    if (!moonraker_lanes && !happy_hare) {
+        // No MMU detected - normal for printers without one, not an error.
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
+        return false;
     }
-
-    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
-    if (fetch_hh_filament_info(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
-                                << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
-    // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
-    return false;
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected "
+                            << (moonraker_lanes ? "Moonraker filament system" : "Happy Hare MMU") << " with "
+                            << (max_lane_index + 1) << (moonraker_lanes ? " lanes" : " gates");
+    build_ams_payload(ams_count_for_lanes(max_lane_index), max_lane_index, trays);
+    return true;
 }
 
 CameraStreamMode MoonrakerPrinterAgent::get_camera_stream_mode() const
@@ -667,54 +658,12 @@ int MoonrakerPrinterAgent::safe_array_int(const nlohmann::json& arr, int idx)
 // Fetch filament info from moonraker database
 bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
 {
-    // Fetch lane data from Moonraker database
-    std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
-
-    std::string response_body;
-    bool success = false;
-    std::string http_error;
-
-    auto http = Http::get(url);
-    if (!device_info.api_key.empty()) {
-        http.header("X-Api-Key", device_info.api_key);
-    }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_complete([&](std::string body, unsigned status) {
-            if (status == 200) {
-                response_body = body;
-                success = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            http_error = err;
-            if (status > 0) {
-                http_error += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
-
-    if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: " << http_error;
-        return false;
-    }
-
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Invalid JSON response";
-        return false;
-    }
-
-    // Expected structure: { "result": { "namespace": "lane_data", "value": { "lane1": {...}, ... } } }
-    if (!parse_moonraker_lane_data(json, trays, max_lane_index)) {
-        return false;
-    }
-    // tray_info_idx is resolved later, on the main thread, inside
-    // build_ams_payload_for_device.
-
-    return true;
+    // Shared with OrcaPrinterAgent's lane_data read; only the synced outcome
+    // matters here, since a missing namespace or an empty one both fall through
+    // to the Happy Hare query. tray_info_idx is resolved later, on the main
+    // thread, inside build_ams_payload_for_device.
+    return read_moonraker_lane_data(device_info.base_url, device_info.api_key, trays, max_lane_index) ==
+           LaneDataFetch::synced;
 }
 
 // Fetch filament info from Happy Hare MMU

@@ -133,14 +133,26 @@ TEST_CASE("filament sync follows the printer's AMS capability", "[OrcaPrinterAge
         /*local=*/true);
     CHECK(agent.get_filament_sync_mode() == Slic3r::FilamentSyncMode::subscription);
 
-    // The pull contract (Sidebar's blocking path) is gone: a pull-mode fetch is
-    // refused by the mode guard, and a subscription fetch for a device that is
-    // not the active printer is refused before any HTTP.
-    CHECK_FALSE(agent.fetch_filament_info("dev-ams-1", Slic3r::FilamentSyncMode::pull));
-    CHECK_FALSE(agent.fetch_filament_info("dev-ams-2", Slic3r::FilamentSyncMode::subscription));
-
     agent.disconnect_printer();
     CHECK(agent.get_filament_sync_mode() == Slic3r::FilamentSyncMode::none);
+}
+
+// OrcaSonar's contract: an absent ams_ops key means "no AMS controls" (app.go
+// omits it when no driver declares a write op; Qidi is the shipped example).
+// Answering get_capabilities without it must gate every AMS write client-side,
+// not fall back to the base default's "no record -> never gate".
+TEST_CASE("a capability reply without ams_ops gates AMS writes", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("dev-noops",
+        R"({"info":{"command":"get_capabilities","capabilities":{"protocol":{"features":{"fms":true}}}}})",
+        /*local=*/true);
+
+    bool unsupported = false;
+    OrcaPrinterAgent::canonicalize_ams_payload(
+        "dev-noops",
+        R"({"print":{"command":"ams_change_filament","target":0,"slot_id":0,"ams_id":0}})",
+        &unsupported);
+    CHECK(unsupported);
 }
 
 // The subscription refresh is self-triggered: a pushed frame whose print block
