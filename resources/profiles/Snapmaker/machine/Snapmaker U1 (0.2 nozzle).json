@@ -187,5 +187,11 @@
 	"machine_pause_gcode": "M600",
 	"nozzle_volume": "143",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\nSET_PRINT_STATS_INFO TOTAL_LAYER={total_layer_count} CURRENT_LAYER={layer_num+1}",
-	"default_print_profile": "0.10 Standard @Snapmaker U1 (0.2 nozzle)"
+	"default_print_profile": "0.10 Standard @Snapmaker U1 (0.2 nozzle)",
+	"default_filament_profile": [
+		"Snapmaker PLA SnapSpeed @U1 0.2 nozzle",
+		"Snapmaker PLA SnapSpeed @U1 0.2 nozzle",
+		"Snapmaker PLA SnapSpeed @U1 0.2 nozzle",
+		"Snapmaker PLA SnapSpeed @U1 0.2 nozzle"
+	]
 }

@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"printer_model": "Snapmaker U1",
 	"printer_variant": "0.8 High Flow",
-	"printer_notes": "High-flow nozzle preset for all four U1 tools. Uses the existing 0.8 mm geometry, motion limits and G-code. Matching High Flow filament presets set the volumetric speed ceiling to 3x the matching non-HF filament at this diameter. This ceiling is not a measured flow capability. Calibrate for your nozzle and filament.",
+	"printer_notes": "High-flow nozzle preset for all four U1 tools. Uses the existing 0.8 mm geometry, motion limits and G-code. Matching High Flow filament presets use the source-specific volumetric speed ceilings documented in their filament notes. Calibrate for your nozzle and filament.",
 	"default_filament_profile": [
 		"Snapmaker PLA SnapSpeed @U1 0.8 High Flow nozzle",
 		"Snapmaker PLA SnapSpeed @U1 0.8 High Flow nozzle",

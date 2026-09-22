@@ -190,5 +190,11 @@
 	"nozzle_volume": "143",
 	"resonance_avoidance": "1",
 	"min_resonance_avoidance_speed": "40",
-	"max_resonance_avoidance_speed": "90"
+	"max_resonance_avoidance_speed": "90",
+	"default_filament_profile": [
+		"Snapmaker PLA SnapSpeed @U1",
+		"Snapmaker PLA SnapSpeed @U1",
+		"Snapmaker PLA SnapSpeed @U1",
+		"Snapmaker PLA SnapSpeed @U1"
+	]
 }

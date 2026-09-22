@@ -26,5 +26,11 @@
 		"0.6",
 		"0.6"
 	],
-	"nozzle_type": "stainless_steel"
+	"nozzle_type": "stainless_steel",
+	"default_filament_profile": [
+		"Generic PLA @System",
+		"Generic PLA @System",
+		"Generic PLA @System",
+		"Generic PLA @System"
+	]
 }
