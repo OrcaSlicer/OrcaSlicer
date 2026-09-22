@@ -162,10 +162,10 @@ inline void append(std::vector<T, Alloc> &dest, std::vector<T, Alloc> &&src)
 {
     if (dest.empty())
         dest = std::move(src);
-    else {
-        dest.reserve(dest.size() + src.size());
-        std::move(std::begin(src), std::end(src), std::back_inserter(dest));
-    }
+    else
+        // insert() grows the capacity geometrically; reserving exactly the new size reallocated on every call, which
+        // made appending piece by piece quadratic.
+        dest.insert(dest.end(), std::make_move_iterator(src.begin()), std::make_move_iterator(src.end()));
     src.clear();
     src.shrink_to_fit();
 }
