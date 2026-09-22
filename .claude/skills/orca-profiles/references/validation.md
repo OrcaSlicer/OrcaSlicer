@@ -20,8 +20,11 @@ default Windows client refuses to run a checked-out `.ps1` at all. The `.ps1` fi
 probing `py -3`, then `python`, then `python3`; run the tool by hand with `py -3` for the same reason.
 
 Every check in the run happens even after an earlier one fails; the script exits non-zero if any did, and writes
-`.test/check_profiles/logs/<check>.log` plus, on failure, `.test/check_profiles/pr_comment.md` — the same
-report CI posts on the PR. A stale `.test/check_profiles/.lock` after a crash must be removed by hand.
+`logs/<check>.log` plus, on failure, `pr_comment.md` under a per-user cache dir — the same report CI posts on the PR.
+That dir is `~/Library/Caches/orca-profile-check` on macOS, `${XDG_CACHE_HOME:-~/.cache}/orca-profile-check` on Linux
+and `%LOCALAPPDATA%\orca-profile-check` on Windows; it is named apart from OrcaSlicer's own per-user dirs and sits
+outside the checkout, so every worktree shares one copy. `--work-dir` / `-WorkDir` overrides it. A stale `.lock`
+there after a crash must be removed by hand.
 
 ## The five checks
 
@@ -150,9 +153,10 @@ Two things it therefore does **not** enforce:
 
 Built from `src/dev-utils/OrcaSlicer_profile_validator.cpp` (`-DORCA_TOOLS=ON`).
 Both scripts find a local build under `build*/` — `check_profile.sh` tries Release, RelWithDebInfo, then
-Debug, and `check_profile.ps1` adds MinSizeRel — else they download the nightly into
-`.test/check_profiles/validator`. Pass `--download` / `-Download` to match CI exactly, since a stale
-local build is used silently. Windows looks for `OrcaSlicer_profile_validator.exe`.
+Debug, and `check_profile.ps1` adds MinSizeRel — else they download the nightly into the
+`validator` subdirectory of the per-user cache dir (see above). Pass `--download` / `-Download` to
+match CI exactly, since a stale local build is used silently. Windows looks for
+`OrcaSlicer_profile_validator.exe`.
 
 If your build lives somewhere else entirely, point at it with `--validator` / `-Validator`, or set
 `ORCA_PROFILE_VALIDATOR` (`$env:ORCA_PROFILE_VALIDATOR` in PowerShell).
@@ -223,7 +227,7 @@ Keep stems tidy too, but a space immediately before `.json` is not a trailing pa
 | `references unknown compatible_printers "<p>"` | the printer was renamed or deleted; fix the reference |
 | `references renamed compatible_printers "<old>" (now "<new>")` | in-tree references must name the current preset; `renamed_from` does not excuse them |
 | `Filament preset "<f>" is missing compatible_printers setting` | non-library filaments need a non-empty list in their **own** file — the flattened-vs-own-key trap is in [filament-profiles.md](filament-profiles.md#compatible_printers) |
-| `Ambiguous AMS filament match: N presets share filament_id "X" … printer "Y"` | make the lists disjoint, or fix an `inherits` pointing at another material's `@base` |
+| `Ambiguous AMS filament match: N presets share filament_id "X" … printer "Y"` | make the lists disjoint by [specificity](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product) — the specialized profile keeps the variant, the general ones drop it; prefer this over deleting a profile — or fix an `inherits` pointing at another material's `@base`. `orca_profile_tool.py check` does not catch this; only `validate_system` here does |
 | `Layer height cannot exceed nozzle diameter.` / `Line width too small` | `Print::validate()` flow rules |
 | `[ERROR] … no <V>.json list references it, so it never loads` | `update-index`, or delete the file |
 | `[ERROR] … references it and it declares no profile type` | set the correct `type` explicitly, then `normalize` and `update-index` |

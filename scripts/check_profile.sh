@@ -7,8 +7,9 @@
 # continue-on-error), then the script exits non-zero once at the end.
 #
 # Everything that has to be downloaded - the profile validator and the custom-preset fixture
-# archives - lands under <repo>/.test/check_profiles/ and is reused on the next run. That
-# directory also holds one log per check plus a copy of the comment CI would post on the PR.
+# archives - lands under a per-user cache directory and is reused on the next run. Being outside
+# the checkout, that directory is shared by every worktree on the machine. It also holds one log
+# per check plus a copy of the comment CI would post on the PR.
 #
 # resources/profiles/user, which the validator creates as its data dir but a CI checkout never
 # has, is moved aside for the duration of the run and restored on exit. Only one run per work
@@ -33,9 +34,20 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 HOST_ARCH="$(uname -m)"
+HOST_OS="$(uname -s)"
+case "${HOST_OS}" in
+    Darwin*) HOST_OS=Darwin ;;
+    MINGW*|MSYS*|CYGWIN*) HOST_OS=Windows ;;
+    Linux*) HOST_OS=Linux ;;
+esac
 
 PROFILES_DIR="${REPO_ROOT}/resources/profiles"
-WORK_DIR="${REPO_ROOT}/.test/check_profiles"
+case "${HOST_OS}" in
+    Darwin) DEFAULT_WORK_DIR="${HOME}/Library/Caches/orca-profile-check" ;;
+    Windows) DEFAULT_WORK_DIR="${LOCALAPPDATA:-${HOME}/AppData/Local}/orca-profile-check" ;;
+    *) DEFAULT_WORK_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/orca-profile-check" ;;
+esac
+WORK_DIR="${DEFAULT_WORK_DIR}"
 VALIDATOR="${ORCA_PROFILE_VALIDATOR:-}"
 # Vendor to check, named after its <Vendor>.json - empty means every vendor, which is exactly what
 # both the validator's -v and orca_profile_tool.py check's --vendor take an empty value to mean.
@@ -75,7 +87,7 @@ Options:
                        downloaded for this platform
       --download       ignore local builds and use the downloaded nightly validator
       --refresh        re-download the validator and fixtures instead of using the cache
-      --work-dir DIR   downloads, logs and fixture trees (default: .test/check_profiles)
+      --work-dir DIR   downloads, logs and fixture trees (default: ${DEFAULT_WORK_DIR})
   -l, --log-level N    validator log level (default: ${LOG_LEVEL}, as in CI)
   -h, --help           show this help
 
@@ -304,8 +316,8 @@ EOF
 # holding the signed .app, Windows an .exe.
 download_validator() {
     local dest="${WORK_DIR}/validator" binary dmg app mounted app_src
-    case "$(uname -s)" in
-        Linux*)
+    case "${HOST_OS}" in
+        Linux)
             case "${HOST_ARCH}" in
                 arm64|aarch64) msg "the nightly Linux validator is x86_64; build it locally for ${HOST_ARCH}" ;;
             esac
@@ -313,7 +325,7 @@ download_validator() {
             fetch "${VALIDATOR_RELEASE_URL}/OrcaSlicer_profile_validator_Linux_Ubuntu2404_nightly" "${binary}" || return 1
             chmod +x "${binary}" || return 1
             ;;
-        Darwin*)
+        Darwin)
             dmg="${dest}/OrcaSlicer_profile_validator.dmg"
             app="${dest}/OrcaSlicer_profile_validator.app"
             binary="${app}/Contents/MacOS/OrcaSlicer_profile_validator"
@@ -332,13 +344,13 @@ download_validator() {
                 [ -x "${binary}" ] || { msg "no validator app inside ${dmg}"; return 1; }
             fi
             ;;
-        MINGW*|MSYS*|CYGWIN*)
+        Windows)
             binary="${dest}/OrcaSlicer_profile_validator.exe"
             fetch "${VALIDATOR_RELEASE_URL}/OrcaSlicer_profile_validator_Windows_nightly.exe" "${binary}" || return 1
             chmod +x "${binary}" || return 1
             ;;
         *)
-            msg "no nightly validator published for $(uname -s); build it (-DORCA_TOOLS=ON) and pass --validator"
+            msg "no nightly validator published for ${HOST_OS}; build it (-DORCA_TOOLS=ON) and pass --validator"
             return 1
             ;;
     esac
