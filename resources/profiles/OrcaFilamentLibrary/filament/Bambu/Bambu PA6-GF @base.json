@@ -3,7 +3,7 @@
 	"name": "Bambu PA6-GF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OGFN08",
+	"filament_id": "OFNk8bxk",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"fan_cooling_layer_time": [

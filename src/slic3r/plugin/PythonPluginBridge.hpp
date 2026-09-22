@@ -31,7 +31,7 @@ public:
     // Returns one CapturedCapability per capability, or an empty vector on failure
     // (error message populated).
     std::vector<CapturedCapability> finalize_plugin_capture(
-        const std::string& plugin_key, std::string& error);
+        const std::string& capture_key, const std::string& plugin_key, std::string& error);
 
     // Clear any pending registrations for the key. Safe to call when import fails.
     void cancel_plugin_capture(const std::string& plugin_key);

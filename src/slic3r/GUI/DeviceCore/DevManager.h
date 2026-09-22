@@ -74,7 +74,10 @@ public:
     void erase_user_machine(std::string dev_id) { userMachineList.erase(dev_id); }
     void clean_user_info(bool keep_local_selection = false);
 
-    void clear_other_devices();
+    // target_agent_id: id of the agent being swapped to (empty = no agent-mismatch check,
+    // just the original "drop Other Devices" behavior). Pass the incoming agent's id, not the
+    // live one - this runs before the live agent is repointed.
+    void clear_other_devices(const std::string& target_agent_id = "");
 
     void load_last_machine();
     void update_user_machine_list_info(const std::string& provider);
@@ -90,9 +93,14 @@ public:
 
     /* my machine*/
     MachineObject* get_my_machine(std::string dev_id);
-    std::map<std::string, MachineObject*> get_my_machine_list();
-    std::map<std::string, MachineObject*> get_my_cloud_machine_list();
+    std::map<std::string, MachineObject*> get_my_machine_list(const std::string& agent_id = "");
+    std::map<std::string, MachineObject*> get_my_cloud_machine_list(const std::string& agent_id = "");
     void modify_device_name(std::string dev_id, std::string dev_name, const std::string& provider);
+
+    // id of the currently live IPrinterAgent (IPrinterAgent::get_agent_info().id), or empty if
+    // m_agent has no printer agent set yet. Pass to get_my_machine_list()/get_my_cloud_machine_list()
+    // to scope results to the active agent.
+    std::string get_current_printer_agent_id() const;
 
     /* create machine or update machine properties */
     void on_machine_alive(std::string json_str);

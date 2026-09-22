@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -2424,15 +2424,6 @@ msgstr "Доступне оновлення. Відкрийте вікно на�
 msgid "%s has been removed."
 msgstr "%s вилучено."
 
-msgid "Switching application language"
-msgstr "Зміна мови програми"
-
-msgid "Select the language"
-msgstr "Вибрати мову"
-
-msgid "Language"
-msgstr "Мова"
-
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "Не вдалося перемкнути Orca Slicer на мову %s."
@@ -2466,6 +2457,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Не вдалося відкрити діалогове вікно плагінів (невідома помилка)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -2906,6 +2910,10 @@ msgstr "Змінити"
 msgid "Merge with"
 msgstr "Обʼєднати з"
 
+# AI Translated
+msgid "Decompose Color"
+msgstr "Розкласти колір"
+
 msgid "Delete this filament"
 msgstr "Видалити цей філамент"
 
@@ -3196,6 +3204,10 @@ msgstr "Збірка"
 
 msgid "Merge parts to an object"
 msgstr "Обʼєднати частини в обʼєкт"
+
+# AI Translated
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr "Використання змінної висоти шару разом із підшаром змішаного кольору може погіршити якість змішування кольорів."
 
 msgid "Add layers"
 msgstr "Додати шари"
@@ -3660,11 +3672,15 @@ msgstr "Відвести назад поточний філамент на Filam
 msgid "Switch track at Filament Track Switch"
 msgstr "Перемкнути доріжку на Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Максимальна температура не повинна перевищувати "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Максимальна температура не повинна перевищувати %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Мінімальна температура не повинна бути нижчою ніж "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Мінімальна температура не повинна бути нижчою ніж %d"
 
 msgid "Type to filter..."
 msgstr "Вводьте для фільтру..."
@@ -4109,6 +4125,21 @@ msgstr "OrcaSlicer народився в тому ж дусі, спираючи�
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Сьогодні OrcaSlicer — це найпоширеніший і найактивніше розвинений слайсер з відкритим кодом у спільноті 3D-друку. Багато його нововведень перейняли інші слайсери, що робить його рушійною силою для всієї галузі."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Принтер"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "Налаштування матеріалів AMS"
 
@@ -4142,10 +4173,10 @@ msgid "PA Profile"
 msgstr "Профіль PA"
 
 msgid "Factor K"
-msgstr "Коэф. K"
+msgstr "Коеф. K"
 
 msgid "Factor N"
-msgstr "Коэф. N"
+msgstr "Коеф. N"
 
 msgid "Setting AMS slot information while printing is not supported"
 msgstr "Зміна інформації про слоти AMS під час друку не підтримується"
@@ -4571,6 +4602,15 @@ msgstr ""
 "Не вдалося скопіювати тимчасовий G-код у місцезнаходження вихідного файлу G-коду. Чи може ваша SD карта захищена від запису?\n"
 "Повідомлення про помилку: %1%"
 
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"Не вдалося скопіювати тимчасовий G-код у вихідний G-код.\n"
+"Повідомлення про помилку: %1%"
+
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
 msgstr "Не вдалося скопіювати тимчасовий G-код у вихідний G-код. Можливо, проблема з цільовим пристроєм, спробуйте експортувати ще раз або використати інший пристрій. Пошкоджений вихідний G-код - %1% .tmp."
@@ -4716,6 +4756,23 @@ msgstr "Поточна температура камери вища, ніж бе
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Мінімальна температура камери (%d℃) вища за цільову температуру камери (%d℃). Мінімальне значення — це поріг, за якого починається друк, поки камера продовжує нагріватися до цільової температури, тому воно не повинно її перевищувати. Значення буде обмежено цільовим."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Висота шару занадто мала. Буде встановлено мінімальне значення (%g мм)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Висота шару виходить за межі, задані в Налаштуваннях принтера -> Екструдер -> Ліміти висоти шару, це може призвести до проблем з якістю друку."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Автоматично налаштувати до межі (%g мм)?"
+
+msgid "Adjust"
+msgstr "Налаштувати"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4764,7 +4821,7 @@ msgstr ""
 "\n"
 "Значення буде скинуто на 0."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "Чергування додаткової стінки не працює добре, якщо для параметра \"Забезпечити товщину вертикальної оболонки\" встановлено значення \"Всі\"."
 
 msgid ""
@@ -4810,7 +4867,7 @@ msgstr ""
 "НІ - Залишити незалежну висоту шарів підтримки"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height має бути менше висоти шару.\n"
@@ -4819,7 +4876,7 @@ msgstr ""
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "Глибина зчеплення має бути меншою за глибину оболонки.\n"
@@ -4840,6 +4897,13 @@ msgstr ""
 "Ні  - Вимкнути генератор стінок Arachne і встановити режим [Зміщення] для шорсткої поверхні"
 
 # AI Translated
+msgid "Brim ear radius"
+msgstr "Радіус вушка кайми"
+
+msgid "Brim width"
+msgstr "Ширина кайми"
+
+# AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Спіральний режим працює лише тоді, коли кількість стінок дорівнює 1, підтримки вимкнено, виявлення налипання зондуванням вимкнено, кількість верхніх шарів оболонки дорівнює 0, щільність часткового заповнення дорівнює 0, а тип таймлапсу — традиційний."
 
@@ -4854,6 +4918,9 @@ msgstr ""
 "Змінити ці налаштування автоматично?\n"
 "Так – змінити ці налаштування та автоматично включити режим спіральна ваза\n"
 "Ні - цього разу відмовитися від використання режиму спіральна ваза"
+
+msgid "N/A"
+msgstr "Н/Д"
 
 msgid "Printing"
 msgstr "Друк"
@@ -5105,6 +5172,14 @@ msgid "Calibration error"
 msgstr "Помилка калібрування"
 
 # AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "На цьому принтері не налаштовано обладнання, потрібне для цього елемента керування."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Цей елемент керування не підтримується на цьому принтері."
+
+# AI Translated
 msgid "Network unavailable"
 msgstr "Мережа недоступна"
 
@@ -5288,14 +5363,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Значення %s знаходиться за межами діапазону. Дійсний діапазон від %d до %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?\n"
-"YES for %s%%, \n"
-"NO for %s %s."
-msgstr ""
-"Це %s%% або %s %s?\n"
-"ТАК для %s%%, \n"
-"НІ для %s %s."
+msgid "Is it %s%% or %s %s?"
+msgstr "Це %s%% або %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5318,28 +5390,21 @@ msgstr "Некоректний шаблон. Використовуйте N, N#K
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Невірний формат. Очікуваний векторний формат: \"%1%\""
 
-msgid "N/A"
-msgstr "Н/Д"
-
 # AI Translated
 msgid "System agents"
 msgstr "Системні агенти"
-
-# AI Translated
-msgid "No plugin selected"
-msgstr "Плагін не вибрано"
 
 # AI Translated
 msgid "Add plugin"
 msgstr "Додати плагін"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Вибрати плагін"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Вилучити плагін"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Плагін не вибрано"
 
 # AI Translated
 msgid "Configure"
@@ -5606,14 +5671,20 @@ msgstr "Встановити до оптимального"
 msgid "Regroup filament"
 msgstr "Перегрупувати філамент"
 
-msgid "up to"
-msgstr "аж до"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "до %1% мм"
 
-msgid "above"
-msgstr "вище"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "вище %1% мм"
 
-msgid "from"
-msgstr "від"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "від %1% до %2% мм"
 
 msgid "Usage"
 msgstr "Використання"
@@ -5672,9 +5743,6 @@ msgstr "Зміна кольору"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Друк"
-
-msgid "Printer"
-msgstr "Принтер"
 
 msgid "Time Estimation"
 msgstr "Оцінка часу"
@@ -5858,11 +5926,14 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr "Право"
 
-msgid "Add"
-msgstr "Додати"
-
 msgid "Add plate"
 msgstr "Додати пластину"
+
+msgid "Split to objects"
+msgstr "Розділити на обʼєкти"
+
+msgid "Add"
+msgstr "Додати"
 
 msgid "Auto orient all/selected objects"
 msgstr "Автоорієнтація всі/вибрані обʼєкти"
@@ -5875,9 +5946,6 @@ msgstr "Впорядкувати всі обʼєкти"
 
 msgid "Arrange objects on selected plates"
 msgstr "Впорядкувати обʼєкти на вибраних пластинах"
-
-msgid "Split to objects"
-msgstr "Розділити на обʼєкти"
 
 msgid "Assembly View"
 msgstr "Вигляд збирання"
@@ -5934,6 +6002,9 @@ msgstr "Контур"
 msgid "Wireframe"
 msgstr "Каркас"
 
+msgid "X-Ray"
+msgstr ""
+
 msgid "Realistic View"
 msgstr "Реалістичний вигляд"
 
@@ -5978,7 +6049,7 @@ msgid "Size:"
 msgstr "Розмір:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Виявлено конфлікти шляхів G-коду на шарі %d, Z = %.2lf мм. Будь ласка, рознесіть конфліктуючі обʼєкти далі один від одного (%s <-> %s)."
 
@@ -6155,6 +6226,9 @@ msgstr "Закриття програми під чвс зміни деяких 
 msgid "Logging"
 msgstr "Ведення журналу"
 
+msgid "Design"
+msgstr ""
+
 msgid "Prepare"
 msgstr "Підготовка"
 
@@ -6169,6 +6243,10 @@ msgstr "Багато пристроїв"
 
 msgid "Project"
 msgstr "Проєкт"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Пристрій (Веб)"
 
 msgid "Yes"
 msgstr "Так"
@@ -6297,16 +6375,24 @@ msgstr "Зберегти проєкт як"
 msgid "Save current project as"
 msgstr "Зберегти поточний проєкт як"
 
+# AI Translated
+msgid "Publish 3MF"
+msgstr "Публікувати 3MF"
+
+# AI Translated
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr "Експортувати файл 3MF із вбудованими вибраними налаштуваннями"
+
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Імпорт 3MF/STL/STEP/SVG/OBJ/AMF"
 
 msgid "Load a model"
 msgstr "Завантажте модель"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Імпорт Zip-архіву"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Завантажити моделі, що містяться в zip-архіві"
 
 msgid "Import Configs"
@@ -6478,6 +6564,9 @@ msgstr "Редагування"
 
 msgid "View"
 msgstr "Вигляд"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Набір пресетів"
@@ -7415,6 +7504,232 @@ msgstr "Більше не показувати це діалогове вікн�
 msgid "Please refer to Wiki before use->"
 msgstr "Зверніться до Вікі перед використанням->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "Експортувати STL"
+
+msgid "Export 3MF"
+msgstr "Експортувати 3MF"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Максимальна калібрування об’ємної швидкості"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+# AI Translated
+msgid "Flow Ratio Calibration"
+msgstr "Калібрування коефіцієнта потоку"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr "Видалити всі обʼєкти"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+msgid "Split to Objects"
+msgstr "Розділити по обʼєктах"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D-миша відʼєднана."
 
@@ -7586,6 +7901,14 @@ msgstr "Верх"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Низ"
+
+# AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "Це налаштування не вказує тип можливості плагіна."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "Це налаштування вказує нерозпізнаний тип можливості плагіна: "
 
 # AI Translated
 msgid "Plugin Selection"
@@ -7855,6 +8178,10 @@ msgstr "Пристосувати поточну пластину"
 msgid "The %s nozzle can not print %s."
 msgstr "Сопло %s не може друкувати %s."
 
+# AI Translated
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr "Друк філаменту змішаного кольору на принтері з одним екструдером потребує частої зміни філаменту та промивок, що може суттєво збільшити кількість відходів і ризик засмічення сопла або жолоба для відходів."
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Змішування %1% з %2% в друці не рекомендується.\n"
@@ -7983,11 +8310,43 @@ msgstr "Синхронізувати список ниток з AMS"
 msgid "Set filaments to use"
 msgstr "Встановити філаменти для використання"
 
+# AI Translated
+msgid "Add Mixed Filament"
+msgstr "Додати змішаний філамент"
+
+# AI Translated
+msgid "Mixed Filament"
+msgstr "Змішаний філамент"
+
+# AI Translated
+msgid "Remove last mixed filament"
+msgstr "Вилучити останній змішаний філамент"
+
+# AI Translated
+msgid "Add mixed filament"
+msgstr "Додати змішаний філамент"
+
+# AI Translated
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr "У змішаного філаменту недійсні або невідповідні компоненти. Будь ласка, відредагуйте відповідні записи ще раз."
+
 msgid "Search plate, object and part."
 msgstr "Пошук пластини, об’єкта і деталі."
 
 msgid "Pellets"
 msgstr "Гранули"
+
+# AI Translated
+msgid "Mixed filament has broken component references"
+msgstr "У змішаного філаменту пошкоджені посилання на компоненти"
+
+# AI Translated
+msgid "Edit / Delete / Merge"
+msgstr "Редагувати / Видалити / Обʼєднати"
+
+# AI Translated
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr "Цільовий змішаний філамент використовує цей фізичний філамент як компонент. Обʼєднання вилучить цей фізичний філамент і може зробити змішаний філамент недійсним. Продовжити?"
 
 # AI Translated
 #, c-format, boost-format
@@ -8054,9 +8413,6 @@ msgstr "Розгорнути бічну панель"
 
 msgid "Collapse sidebar"
 msgstr "Згорнути бічну панель"
-
-msgid "Tab"
-msgstr "Табуляції"
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -8144,8 +8500,16 @@ msgid "Customized Preset"
 msgstr "Пристосований пресет"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Назви компонентів усередині файлу STEP не у форматі UTF8!"
+msgid "Some published settings could not be applied:"
+msgstr "Деякі опубліковані налаштування не вдалося застосувати:"
+
+# AI Translated
+msgid "Some filament slots were changed:"
+msgstr "Деякі слоти філаменту було змінено:"
+
+# AI Translated
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Назви компонентів усередині файлу STEP не у форматі UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Через непідтримуване кодування тексту можуть зʼявлятися непотрібні символи!"
@@ -8166,7 +8530,7 @@ msgstr "Обʼєм обʼєкта дорівнює нулю"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Обʼєкт із файлу %s занадто малий, можливо, в метрах або дюймах.\n"
 "Ви хочете масштабувати до міліметрів?"
@@ -8186,6 +8550,14 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Виявлено обʼєкт, що складається з кількох частин"
+
+# AI Translated
+msgid "Matching textures to filaments"
+msgstr "Зіставлення текстур із філаментами"
+
+# AI Translated
+msgid "Texture Import Warning"
+msgstr "Попередження під час імпорту текстури"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Завантажити ці файли як єдиний обʼєкт з кількома частинами?\n"
@@ -8258,17 +8630,11 @@ msgstr ""
 msgid "Delete Object"
 msgstr "Видалити обʼєкт"
 
-msgid "Delete All Objects"
-msgstr "Видалити всі обʼєкти"
-
 msgid "Reset Project"
 msgstr "Скинути проєкт"
 
 msgid "The selected object couldn't be split."
 msgstr "Вибраний обʼєкт не може бути поділений."
-
-msgid "Split to Objects"
-msgstr "Розділити по обʼєктах"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Вимкнути авто-кидання, щоб зберегти розташування по осі Z?\n"
@@ -8306,19 +8672,19 @@ msgstr "Каталог для заміни не вибрано"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Замінено 3D-файлами з каталогу:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Пропущено %s: той самий файл.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Пропущено %s: файл не існує.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Пропущено %s: не вдалося замінити.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Замінено %s.\n"
 
@@ -8396,6 +8762,22 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Синхронізувати зараз"
+
+# AI Translated
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr "Не вдалося імпортувати текстуру. Схоже, модель містить дані текстури, але завершити процес імпорту не вдалося. Модель буде імпортовано лише як геометрію."
+
+# AI Translated
+msgid "Applying texture colors..."
+msgstr "Застосування кольорів текстури..."
+
+# AI Translated
+msgid "Updating 3D view..."
+msgstr "Оновлення 3D-вигляду..."
+
+# AI Translated
+msgid "Texture colors applied."
+msgstr "Кольори текстури застосовано."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Ви можете зберегти змінені пресети у новому проекті або відмовитися від них"
@@ -8530,6 +8912,21 @@ msgstr "Зберегти нарізаний файл як:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Файл %s надіслано до памʼяті принтера та доступний для перегляду на принтері."
+
+# AI Translated
+msgid "Publish 3MF file as:"
+msgstr "Публікувати файл 3MF як:"
+
+# AI Translated
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+"Не вдалося експортувати опублікований файл 3MF.\n"
+"Перевірте, чи доступна тека онлайн і чи не відкрито файл в інших програмах."
+
+msgid "Publish"
+msgstr "Публікувати"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Тип сопла не встановлений. Будь ласка, оберіть сопло та спробуйте ще раз."
@@ -8747,9 +9144,6 @@ msgstr "Ви хочете продовжувати?"
 msgid "Language selection"
 msgstr "Вибір мови"
 
-msgid "Switching application language while some presets are modified."
-msgstr "Зміна мови програми при зміні деяких профілів."
-
 msgid "Asia-Pacific"
 msgstr "Азіатсько-Тихоокеанський регіон"
 
@@ -8856,6 +9250,9 @@ msgstr "Шлях Поточної Інсталяції: "
 
 msgid "General"
 msgstr "Загальні"
+
+msgid "Language"
+msgstr "Мова"
 
 msgid "Metric"
 msgstr "Метрика"
@@ -9065,9 +9462,48 @@ msgstr "Керування кількома пристроями"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "З цією опцією ввімкненою, ви можете відправляти завдання на кілька пристроїв одночасно та керувати декількома пристроями."
 
+msgid "Open the Speed Dial from the keyboard"
+msgstr ""
+
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
+
+msgid "CAD feature (experimental)"
+msgstr ""
+
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr ""
+
+msgid "Auto-close sketch loops"
+msgstr ""
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+msgstr ""
+
 # AI Translated
 msgid "Pop up to select filament grouping mode"
 msgstr "Показувати вікно вибору режиму групування філаментів"
+
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Видимі сторінки плагінів"
+
+# AI Translated
+msgid "pages"
+msgstr "стор."
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Кількість сторінок плагінів, що показуються як закріплені вкладки, перш ніж решта сторінок згорнеться у випадний список на останній вкладці."
 
 msgid "Behaviour"
 msgstr "Поведінка"
@@ -9142,6 +9578,12 @@ msgstr "Зворотне масштабування мишкою"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Якщо увімкнено, змінює напрямок масштабування за допомогою коліщатка миші."
 
+msgid "Draw mate connectors as a face"
+msgstr ""
+
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+msgstr ""
+
 # AI Translated
 msgid "Pan"
 msgstr "Панорамування"
@@ -9166,6 +9608,15 @@ msgstr "Перетягування правою кнопкою миші"
 # AI Translated
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Задає дію, яку має виконувати перетягування правою кнопкою миші."
+
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
 
 # AI Translated
 msgid "Clear my choice on..."
@@ -9281,13 +9732,40 @@ msgstr ""
 "Обмежує частоту кадрів вікна перегляду, щоб зменшити навантаження на GPU та енергоспоживання.\n"
 "Встановіть 0 для необмеженої частоти кадрів."
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 # AI Translated
 msgid "Show FPS overlay"
 msgstr "Показувати накладку FPS"
 
-# AI Translated
-msgid "Displays current viewport FPS in the top-right corner."
-msgstr "Показує поточний FPS вікна перегляду у верхньому правому куті."
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
+msgstr ""
 
 # AI Translated
 msgid "G-code Preview"
@@ -9304,9 +9782,6 @@ msgstr "Під час прокручування повзунка шарів у 
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Яскравість затемнених шарів"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9445,6 +9920,18 @@ msgstr "Показати непідтримувані пресети"
 
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Показати несумісні/непідтримувані пресети у випадаючому списку принтера і філаменту. Ці пресети не можна вибрати."
+
+# AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Експериментально) Використовувати агентів принтера замість хостів друку"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Спрямовує завдання друку для принтерів, відмінних від Bambu, через агентів плагінів принтера замість класичного завантаження на хост друку.\n"
+"Коли вимкнено, OrcaSlicer використовує попередню поведінку хоста друку."
 
 msgid "Experimental Features"
 msgstr "Експериментальні функції"
@@ -9654,6 +10141,10 @@ msgstr "Спіральна ваза"
 msgid "First layer filament sequence"
 msgstr "Послідовність філаменту першого шару"
 
+# AI Translated
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr "Список філаментів містить змішані філаменти. Власна послідовність філаментів не діятиме."
+
 msgid "By Layer"
 msgstr "По шарах"
 
@@ -9682,9 +10173,6 @@ msgstr "Перейти на веб-сторінку публікації мод�
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Примітка. Підготовка може тривати кілька хвилин. Будь ласка, будьте терплячі."
 
-msgid "Publish"
-msgstr "Публікувати"
-
 msgid "Publish was canceled"
 msgstr "Публікація скасована"
 
@@ -9700,6 +10188,76 @@ msgstr "Відвантаження даних"
 msgid "Jump to webpage"
 msgstr "Перейти на вебсторінку"
 
+# AI Translated
+msgid "Material"
+msgstr "Матеріал"
+
+# AI Translated
+msgid "Mixed filament"
+msgstr "Змішаний філамент"
+
+# AI Translated
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr "Деякі змішані філаменти залежать від філаментів, які не будуть опубліковані:"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr "Філамент %d (змішаний)"
+
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% потребує %2%, але його не ввімкнено."
+
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% потребує %2%, але його матеріал не буде опубліковано."
+
+# AI Translated
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr "Щоб опублікувати змішаний філамент, увімкніть кожен філамент, який він використовує, і виберіть «Повна публікація» або виконайте його вимогу «Тип»."
+
+# AI Translated
+msgid "Publish anyway"
+msgstr "Опублікувати попри це"
+
+# AI Translated
+msgid "Publish 3MF..."
+msgstr "Публікувати 3MF..."
+
+# AI Translated
+msgid "Select which settings to be published in the 3MF file"
+msgstr "Виберіть, які налаштування буде опубліковано у файлі 3MF"
+
+msgid "Video Guide"
+msgstr ""
+
+# AI Translated
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr "Змішаний філамент — публікується цілком, коли вище вибрано «Увімкнути»"
+
+# AI Translated
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr "Опублікувати цей змішаний філамент та увімкнути + повністю опублікувати його складові філаменти"
+
+# AI Translated
+msgid "Publish this filament slot in the 3MF file"
+msgstr "Опублікувати цей слот філаменту у файлі 3MF"
+
+# AI Translated
+msgid "Full Publish"
+msgstr "Повна публікація"
+
+# AI Translated
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr "Вбудувати весь філамент цього слота у файл 3MF"
+
+# AI Translated
+msgid "Filter non-selected"
+msgstr "Фільтрувати невибрані"
+
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "Зберегти %s як"
@@ -9711,8 +10269,28 @@ msgid "Preset Inside Project"
 msgstr "Налаштування проекту всередині"
 
 # AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Копіює в цей пресет усі значення, успадковані від батьківського пресета, і видаляє звʼязок успадкування. Пресети, сумісні лише з батьківським, можуть стати непідтримуваними."
+
+# AI Translated
 msgid "Detach from parent"
 msgstr "Відʼєднати від батьківського"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "Зберегти без батьківського"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Незалежний пресет"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Батьківський пресет"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Цей пресет не успадковується від іншого пресета."
 
 msgid "Name is unavailable."
 msgstr "Назва недоступна."
@@ -9760,6 +10338,133 @@ msgstr "Для \"%1%\" додайте \"%2%\" як новий пресет"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Просто перейдіть на \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Інший"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+msgid "Show details"
+msgstr "Показати подробиці"
+
+# AI Translated
+msgid "Hide details"
+msgstr "Сховати подробиці"
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Завдання скасовано"
@@ -10442,8 +11147,16 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "Одночасне увімкнення точної висоти Z та підготовчої вежі може спричинити помилки нарізки. Ви все одно хочете увімкнути точну висоту Z?"
 
 # AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "Плавний таймлапс потребує підготовчої вежі на кожному шарі, що несумісно з параметром «Без розріджених шарів». Параметр «Без розріджених шарів» вимкнено."
+
+# AI Translated
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Для плавного таймлапсу потрібна підготовча вежа. Без підготовчої вежі на моделі можуть виникати дефекти. Ви хочете увімкнути підготовчу вежу?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "Параметр «Без розріджених шарів» несумісний із плавним таймлапсом, який потребує підготовчої вежі на кожному шарі. Таймлапс перемкнено в традиційний режим."
 
 msgid "Still print by object?"
 msgstr "Все одно друкувати кожен обʼєкт окремо?"
@@ -10491,22 +11204,6 @@ msgstr "Ви впевнені, що хочете ввімкнути цю опц�
 # AI Translated
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Шаблони заповнення зазвичай розроблені так, щоб автоматично враховувати обертання, забезпечувати належний друк і досягати задуманого ефекту (наприклад, Гіроїд, Кубічний). Обертання поточного шаблону часткового заповнення може призвести до недостатньої підтримки. Дійте обережно та ретельно перевіряйте можливі проблеми друку. Ви впевнені, що хочете увімкнути цю опцію?"
-
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Висота шару занадто мала.\n"
-"Буде встановлено значення min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Висота шару перевищує ліміт у Налаштуваннях принтера -> Екструдер -> Ліміти висоти шару, це може призвести до проблем з якістю друку."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Автоматично налаштувати на встановлений діапазон?\n"
-
-msgid "Adjust"
-msgstr "Налаштувати"
 
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Експериментальна функція: Втягування та відрізання філаменту на більшій відстані під час зміни філаменту для мінімізації промивання. Хоча це може помітно зменшити промивання, це також може підвищити ризик засмічення сопла або інших ускладнень друку."
@@ -10711,6 +11408,9 @@ msgstr "Знайдено зарезервовані ключові слова"
 msgid "Setting Overrides"
 msgstr "Налаштування перевизначень"
 
+msgid "Retraction when switching material"
+msgstr "Втягування під час зміни матеріалу"
+
 msgid "Basic information"
 msgstr "Базова інформація"
 
@@ -10848,6 +11548,10 @@ msgstr "Сумісні профілі процесів"
 msgid "Printable space"
 msgstr "Місце для друку"
 
+# AI Translated
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Виберіть реалізацію мережевого агента для звʼязку з принтером. Доступні агенти реєструються під час запуску."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10978,9 +11682,6 @@ msgstr "Обмеження висоти шару"
 msgid "Z-Hop"
 msgstr "Стрибок-Z"
 
-msgid "Retraction when switching material"
-msgstr "Втягування під час зміни матеріалу"
-
 # AI Translated
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -11106,12 +11807,12 @@ msgstr "%s: %s"
 msgid "No modifications need to be copied."
 msgstr "Немає змін для копіювання."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Параметри копіювання"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Змінити параметри %s"
 
 # AI Translated
@@ -11269,12 +11970,6 @@ msgstr "Кількість екструдерів"
 
 msgid "Capabilities"
 msgstr "Можливості"
-
-msgid "Left: "
-msgstr "Лівий: "
-
-msgid "Right: "
-msgstr "Правий: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "Показувати всі профілі (включаючи несумісні)"
@@ -11651,30 +12346,6 @@ msgid "Please choose the filament colour"
 msgstr "Будь ласка, виберіть колір філаменту"
 
 # AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Нативний перегляд у Wayland потребує відеоприймача GStreamer GTK. Встановіть плагін gtksink для GStreamer, а потім перезапустіть OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Не вдалося ініціалізувати нативний відеоприймач GStreamer для Wayland. Перевірте встановлення плагіна GStreamer GTK."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Для виконання цього завдання потрібен Windows Media Player! Бажаєте увімкнути 'Windows Media Player' для вашої операційної системи?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource не було правильно зареєстровано для відтворення медіафайлів! Натисніть \"Так\", щоб зареєструвати його повторно. Вас буде сповіщено двічі"
-
-# AI Translated
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Відсутній компонент BambuSource, зареєстрований для відтворення медіа! Перевстановіть OrcaSlicer або зверніться по допомогу до спільноти."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Використовується BambuSource з іншої інсталяції, відтворення відео може працювати неправильно! Натисніть \"Так\", щоб виправити це."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Вашій системі бракує кодеків H.264 для GStreamer, які необхідні для відтворення відео. (Спробуйте встановити пакети gstreamer1.0-plugins-bad або gstreamer1.0-libav, а потім перезапустіть Orca Slicer?)"
-
-# AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "Хмарний агент недоступний. Перезапустіть OrcaSlicer і спробуйте ще раз."
 
@@ -11705,57 +12376,39 @@ msgstr "Пакет конфігурації змінено в попереднь
 msgid "Configuration package changed"
 msgstr "Змінено пакет конфігурації"
 
-msgid "Toolbar"
-msgstr "Панель інструментів"
-
-msgid "Objects list"
-msgstr "Список обʼєктів"
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "Імпорт геометричних даних із файлів STL/STEP/3MF/OBJ/AMF"
-
-msgid "Paste from clipboard"
-msgstr "Вставити з буфера обміну"
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "Показати/приховати діалог налаштувань пристроїв 3Dconnexion"
-
-msgid "Switch table page"
-msgstr "Перемкнути сторінку таблиці"
-
-msgid "Show keyboard shortcuts list"
-msgstr "Показати список клавіш"
-
-msgid "Global shortcuts"
-msgstr "Глобальні ярлики"
-
 msgid "Pan View"
 msgstr "Панорамний вигляд"
 
 msgid "Rotate View"
 msgstr "Повернути вигляд"
 
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Key"
+msgstr ""
+
+msgid "Left mouse"
+msgstr ""
+
+msgid "Available anywhere in the window, even while typing in a text field."
+msgstr ""
+
+msgid "Run a speed dial favorite while the dial is open"
+msgstr ""
+
 # AI Translated
-msgid "Middle mouse button"
-msgstr "Середня кнопка миші"
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
 
-msgid "Zoom View"
-msgstr "Перегляд масштабу"
+msgid "Switch to the next main tab"
+msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-msgstr "Автоматично орієнтує вибрані обʼєкти або всі обʼєкти. Якщо вибрано обʼєкти, він просто орієнтує обрані. В іншому випадку він будеОрієнтувати всі обʼєкти на поточному проєкт."
-
-msgid "Auto orients all objects on the active plate."
-msgstr "Автоматично орієнтує всі обʼєкти на поточному диску."
-
-msgid "Collapse/Expand the sidebar"
-msgstr "Згорнути/розгорнути бічну панель"
-
-msgid "Any arrow"
-msgstr "Будь-яка стрілка"
-
-msgid "Movement in camera space"
-msgstr "Рух у просторі камери"
+msgid "Available while the 3D view on the Prepare tab has focus."
+msgstr ""
 
 msgid "Select a part"
 msgstr "Виберіть частину"
@@ -11766,136 +12419,29 @@ msgstr "Вибрати кілька обʼєктів"
 msgid "Select objects by rectangle"
 msgstr "Виділити обʼєкти прямокутником"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr "Стрілка вгору"
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr "Перемістити виділення на 10 мм у позитивному напрямку Y"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr "Стрілка вниз"
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr "Перемістити виділення на 10 мм у негативному напрямку Y"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr "Стрілка вліво"
-
-msgid "Move selection 10mm in negative X direction"
-msgstr "Перемістити виділення на 10 мм у негативному напрямку по осі X"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr "Стрілка вправо"
-
-msgid "Move selection 10mm in positive X direction"
-msgstr "Перемістити виділення на 10 мм у позитивному напрямку X"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "клавіатура 1-9: встановити філамент для обʼєкта/деталі"
 
 msgid "Movement step set to 1mm"
 msgstr "Крок переміщення встановлено на 1 мм"
 
-msgid "Keyboard 1-9: set filament for object/part"
-msgstr "клавіатура 1-9: встановити філамент для обʼєкта/деталі"
+msgid "Movement in camera space"
+msgstr "Рух у просторі камери"
 
-msgid "Camera view - Default"
-msgstr "Вигляд камери - Типовий"
+msgid "Middle mouse"
+msgstr ""
 
-msgid "Camera view - Top"
-msgstr "Вигляд камери - Верх"
+msgid "Right mouse"
+msgstr ""
 
-msgid "Camera view - Bottom"
-msgstr "Вигляд камери - Низ"
+msgid "Zoom View"
+msgstr "Перегляд масштабу"
 
-msgid "Camera view - Front"
-msgstr "Вигляд камери - Перед"
+msgid "Painting"
+msgstr ""
 
-msgid "Camera view - Behind"
-msgstr "Вигляд камери - Зад"
-
-msgid "Camera Angle - Left side"
-msgstr "Кут камери – Лівий бік"
-
-msgid "Camera Angle - Right side"
-msgstr "Кут камери - Правий бік"
-
-msgid "Select all objects"
-msgstr "Вибрати всі обʼєкти"
-
-msgid "Gizmo move"
-msgstr "Рух Gizmo"
-
-msgid "Gizmo rotate"
-msgstr "Поворот Gizmo"
-
-msgid "Gizmo scale"
-msgstr "Шкала Gizmo"
-
-msgid "Gizmo place face on bed"
-msgstr "Покласти грань на стіл Gizmo"
-
-msgid "Gizmo cut"
-msgstr "Виріз Gizmo"
-
-msgid "Gizmo mesh boolean"
-msgstr "Булеві операції Gizmo"
-
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Gizmo Малювання шорсткої поверхні"
-
-msgid "Gizmo SLA support points"
-msgstr "Точки підтримки Gizmo SL"
-
-msgid "Gizmo FDM paint-on seam"
-msgstr "Швид, що фарбується Gizmo FDM"
-
-msgid "Gizmo text emboss/engrave"
-msgstr "Текстове тиснення/гравіювання Gizmo"
-
-msgid "Gizmo measure"
-msgstr "виміряти Gizmo"
-
-msgid "Gizmo assemble"
-msgstr "Зібрати Gizmo"
-
-msgid "Gizmo brim ears"
-msgstr "Краєчки Gizmo"
-
-msgid "Zoom in"
-msgstr "Приблизити"
-
-msgid "Zoom out"
-msgstr "Віддалити"
-
-# AI Translated
-msgid "Toggle printable for object/part"
-msgstr "Перемкнути можливість друку для обʼєкта/частини"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr "Tab"
-
-msgid "Switch between Prepare/Preview"
-msgstr "Переключення між Підготовка/Попередній перегляд"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Пробіл"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Відкрити панель швидких дій"
-
-msgid "Plater"
-msgstr "Тарілка"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "Переміщення: натисніть для переміщення на 1 мм"
@@ -11906,14 +12452,19 @@ msgstr "Підтримка/Фарбування: регулювання раді
 msgid "Support/Color Painting: adjust section position"
 msgstr "Підтримка/Фарбування: регулювання положення секцій"
 
-msgid "Gizmo"
-msgstr "Gizmo"
+msgid "Objects list"
+msgstr "Список обʼєктів"
+
+msgid "Available while the object list has focus."
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Встановіть номер екструдера для обʼєктів та деталей"
 
-msgid "Delete objects, parts, modifiers"
-msgstr "Видалення обʼєктів, частин, модифікаторів"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Пробіл"
 
 msgid "Select the object/part and press space to change the name"
 msgstr "Виберіть обʼєкт/деталь і натисніть пробіл, щоб змінити назву"
@@ -11924,45 +12475,48 @@ msgstr "Клацання миші"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Виберіть обʼєкт/деталь і клацніть, щоб змінити назву"
 
-msgid "Objects List"
-msgstr "Список обʼєктів"
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr "Вертикальний повзунок - рух активного великого пальця вгору"
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr "Вертикальний повзунок - Перемістити активний палець вниз"
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr "Горизонтальний повзунок - Перемістити активний палець вліво"
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr "Горизонтальний повзунок - Перемістити активний палець праворуч"
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr "Увімкнення/вимкнення одношарового режиму вертикального повзунка"
-
-msgid "On/Off G-code window"
-msgstr "Увімкнення/вимкнення вікна G-коду"
+msgid "Available while the 3D view on the Preview tab has focus."
+msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr "Переміщення повзунка в 5 разів швидше"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Home"
-msgstr "Home"
+msgid "Scroll slider 5x faster"
+msgstr ""
 
-msgid "Horizontal slider - Move to start position"
-msgstr "Горизонтальний повзунок - Перемістити в початкове положення"
+msgid "Not customizable"
+msgstr ""
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "End"
-msgstr "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
+msgstr ""
 
-msgid "Horizontal slider - Move to last position"
-msgstr "Горизонтальний повзунок - Перемістити в останню позицію"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
+msgstr ""
 
 msgid "Release Note"
 msgstr "Примітка до випуску"
@@ -12165,14 +12719,21 @@ msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Копіювання %1% у %2% не вдалося: %3%"
 
 # AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "Завантаження нових профілів виробників: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Пакет конфігурації: %1% оновлено до %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "Не вдалося завантажити профілі виробників: "
+
+# AI Translated
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Будь ласка, перевірте незбережені зміни перед оновленням конфігурації."
-
-msgid "Configuration package: "
-msgstr "Пакет конфігурації: "
-
-msgid " updated to "
-msgstr " оновлено до "
 
 msgid "Open G-code file:"
 msgstr "Відкрити файл G-коду:"
@@ -12238,11 +12799,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "Input Shaping підтримується лише Klipper, RepRapFirmware і Marlin 2."
 
-msgid "Grouping error: "
-msgstr "Помилка групування: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Помилка групування: %1% не можна розмістити в лівому соплі"
 
-msgid " can not be placed in the "
-msgstr " не можливо помістити у "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Помилка групування: %1% не можна розмістити в правому соплі"
 
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Помилка групування в ручному режимі. Перевірте кількість сопел або перегрупуйте."
@@ -12356,6 +12921,10 @@ msgstr "%1% знаходиться надто близько до інших, щ
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% занадто високий, і можуть виникнути зіткнення."
 
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "Взаємне розташування моделі та підготовчої вежі не відповідає вимогам функції «Без розріджених шарів». Змініть їхнє взаємне розташування, зменште висоту моделі або вимкніть параметр «Без розріджених шарів»."
+
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " знаходиться надто близько до зони відчуження, при друку можуть виникати колізії."
 
@@ -12377,6 +12946,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " розташовано занадто близько до зони виявлення налипання, і це спричинить зіткнення.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " частково знаходиться за межами області друку, і його неможливо надрукувати.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Вибрані температури сопла несумісні. Температура сопла кожного філаменту має входити в рекомендований діапазон температур сопла інших філаментів. Інакше можливе засмічення сопла або пошкодження принтера."
 
@@ -12390,6 +12963,10 @@ msgstr "Якщо ви все одно хочете друкувати, може�
 
 msgid "No extrusions under current settings."
 msgstr "Немає екструзій під час поточних налаштувань."
+
+# AI Translated
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr "Використовується змішаний філамент із градієнтом, але параметр «Підшар змішаного кольору» вимкнено. Градієнт не буде надруковано."
 
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Плавний режим таймлапсу не підтримується, коли послідовність \"по обʼєкт\" увімкнено."
@@ -12430,6 +13007,10 @@ msgstr "Можливо, ви захочете зменшити розмір мо
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Змінна висота шару не підтримується з Органічними підтримками."
+
+# AI Translated
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr "Філамент вежі протирання не може бути змішаним філаментом."
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Різні діаметри сопел та різні діаметри філаменту можуть працювати некоректно коли ввімкнена підготовча вежа. Це експериментальна функція, тому використовуйте її з обережністю."
@@ -12813,8 +13394,7 @@ msgstr "мм або %"
 msgid "Other layers"
 msgstr "Інші шари"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Cool Plate SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -13438,9 +14018,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Швидкість внутрішніх мостів. Якщо значення вказано у відсотках, воно буде розраховане на основі bridge_speed. Значення за замовчуванням: 150%."
 
-msgid "Brim width"
-msgstr "Ширина кайми"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Відстань від моделі до останньої зовнішньої лінії кайми"
 
@@ -13524,6 +14101,14 @@ msgid ""
 msgstr ""
 "Геометрія буде оброблена перед детектуванням гострих кутів. Цей параметр вказує мінімальну довжину відхилення для обробки.\n"
 "0 для вимкнення"
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Вушка кайми лише ззовні"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Створювати мишачі вушка лише на зовнішньому контурі моделі, за винятком отворів і замкнених ділянок."
 
 msgid "upward compatible machine"
 msgstr "висхідна сумісна машина"
@@ -13816,6 +14401,10 @@ msgstr "Вирівняний прямолінійний"
 msgid "Concentric"
 msgstr "Концентричний"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "Спіральний відступ"
+
 msgid "Hilbert Curve"
 msgstr "Крива Гільберта"
 
@@ -13906,13 +14495,13 @@ msgstr "Порядок заповнення верхньої поверхні"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Напрямок, у якому заповнюються верхні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
-"Назовні починає з центру поверхні, тож надлишок матеріалу виштовхується до краю, де він найменш помітний. Усередину починає з краю та завершується щільними кривими в центрі.\n"
-"Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
+"Напрямок заповнення верхніх поверхонь під час використання шаблону, що йде від центру (Концентричний, Спіральний відступ, Хорди Архімеда, Спіральна октограма).\n"
+"Назовні починає від центру поверхні, тож надлишок матеріалу виштовхується до краю, де він найменш помітний. Всередину починає від краю й завершується тісними вигинами в центрі.\n"
+"Типово використовується порядок за найкоротшим шляхом, який може йти в будь-якому напрямку."
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -13920,13 +14509,13 @@ msgstr "Порядок заповнення нижньої поверхні"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Напрямок, у якому заповнюються нижні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
-"Усередину починає кожну поверхню з ширших зовнішніх кривих, що покращує зчеплення першого шару на столах, де щільні криві в центрі можуть не прилипати. Назовні починає з центру, виштовхуючи надлишок матеріалу до краю.\n"
-"Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
+"Напрямок заповнення нижніх поверхонь під час використання шаблону, що йде від центру (Концентричний, Спіральний відступ, Хорди Архімеда, Спіральна октограма).\n"
+"Всередину починає кожну поверхню з ширших зовнішніх вигинів, що поліпшує прилипання першого шару до столів, до яких тісні вигини в центрі можуть не приставати. Назовні починає від центру, виштовхуючи надлишок матеріалу до краю.\n"
+"Типово використовується порядок за найкоротшим шляхом, який може йти в будь-якому напрямку."
 
 msgid "Internal solid infill pattern"
 msgstr "Шаблон внутрішнього суцільного заповнення"
@@ -14030,6 +14619,14 @@ msgstr "Проти годинникової стрілки"
 
 msgid "Clockwise"
 msgstr "За годинниковою стрілкою"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "Відстань до штанги"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "Горизонтальна відстань від кінчика сопла до дальшого краю штанги. Використовується для уникнення зіткнень під час друку по обʼєктах."
 
 msgid "Height to rod"
 msgstr "Висота до сопла"
@@ -14223,8 +14820,10 @@ msgstr "Час шару"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Вентилятор охолодження деталей вмикається для шарів, розрахунковий час яких менший за це значення. Швидкість вентилятора інтерполюється між мінімальною та максимальною швидкістю вентилятора відповідно до часу друку шару"
 
+# AI Translated
+msgctxt "second"
 msgid "s"
-msgstr "c"
+msgstr "с"
 
 msgid "Default color"
 msgstr "Типовий колір"
@@ -14554,6 +15153,62 @@ msgstr "Матеріал підтримки"
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Допоміжний матеріал зазвичай використовується для друку підтримки"
 
+# AI Translated
+msgid "Is mixed filament"
+msgstr "Є змішаним філаментом"
+
+# AI Translated
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr "Визначає, чи є цей слот філаменту змішаним філаментом, складеним з кількох фізичних філаментів"
+
+# AI Translated
+msgid "Mixed filament components"
+msgstr "Компоненти змішаного філаменту"
+
+# AI Translated
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr "Розділені комами індекси філаментів-компонентів, починаючи з 1, наприклад \"1,3\""
+
+# AI Translated
+msgid "Mixed filament sublayer ratios"
+msgstr "Частки підшарів змішаного філаменту"
+
+# AI Translated
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr "Розділені комами значення часток, сума яких дорівнює 1.0, наприклад \"0.7,0.3\""
+
+# AI Translated
+msgid "Mixed filament gradient"
+msgstr "Градієнт змішаного філаменту"
+
+# AI Translated
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr "Вмикає режим градієнта за віссю Z для підшарів змішаного філаменту. Коли увімкнено, частки підшарів змінюються лінійно від шару до шару."
+
+# AI Translated
+msgid "Mixed filament gradient range"
+msgstr "Діапазон градієнта змішаного філаменту"
+
+# AI Translated
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr "Початкова та кінцева частки першого компонента в режимі градієнта. Пара значень через кому, наприклад \"0.10,0.90\" означає від 10% до 90%."
+
+# AI Translated
+msgid "Mixed filament gradient curve"
+msgstr "Крива градієнта змішаного філаменту"
+
+# AI Translated
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr "Необовʼязкова власна крива у стилі Photoshop, що зіставляє поступ за віссю Z із часткою першого компонента. Записується як контрольні точки, розділені вертикальними рисками, у вигляді \"x,y\" (застарілий формат) або \"x,y,m_in,m_out\", коли потрібно перевизначити дотичну (порожнє значення або \"nan\" означає типове значення PCHIP). x належить до [0,1]; y обмежується налаштованим діапазоном часток, наприклад \"0,0.15|0.5,0.50|1,0.85\". Якщо поле порожнє, замість цього використовується лінійний gradient_range."
+
+# AI Translated
+msgid "Mixed filament per-part gradient"
+msgstr "Градієнт змішаного філаменту для кожної частини"
+
+# AI Translated
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr "Коли режим градієнта увімкнено, градієнт застосовується до кожної частини збірки окремо, а не до всієї збірки як до єдиного діапазону Z."
+
 msgid "Filament printable"
 msgstr "Філамент придатний для друку"
 
@@ -14733,6 +15388,14 @@ msgstr "TPMS-FK"
 
 msgid "Gyroid"
 msgstr "Гіроїд"
+
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Коефіцієнт згладжування часткового заповнення"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Визначає, наскільки сильно заокруглюються кути часткового заповнення. 0% зберігає початкову траєкторію з гострими кутами, а 100% створює максимально можливі заокруглення між сусідніми лініями заповнення."
 
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Прискорення заповнення верхньої поверхні. Використання меншого значенняможе покращити якість верхньої поверхні"
@@ -15299,6 +15962,14 @@ msgstr "З яким gcode сумісний принтер"
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Пропустити блок конфігурації G-code"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Не записувати CONFIG_BLOCK (пари ключ/значення з конфігурацією слайсера) у файл G-code. Це може допомогти з принтерами, прошивка яких аварійно завершується під час розбору цих рядків коментарів (напр. Anycubic go-klipper). Примітка: файл G-code більше не міститиме налаштувань слайсера, тож зворотний імпорт до OrcaSlicer не відновить конфігурацію."
 
 msgid "Pellet Modded Printer"
 msgstr "Принтер модифікований гранулами"
@@ -15884,8 +16555,9 @@ msgid "The allowed maximum output force of Y axis"
 msgstr "Максимальна дозволена вихідна сила осі Y"
 
 # AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr "Н"
 
 msgid "Bed mass of the Y axis"
 msgstr "Маса столу осі Y"
@@ -15893,6 +16565,8 @@ msgstr "Маса столу осі Y"
 msgid "The machine bed mass load of Y axis"
 msgstr "Маса навантаження столу машини на вісь Y"
 
+# AI Translated
+msgctxt "gram"
 msgid "g"
 msgstr "г"
 
@@ -16224,8 +16898,8 @@ msgid "Reduce infill retraction"
 msgstr "Зменшити втягування заповнення"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Не втягувати, коли переміщення повністю проходить у зоні заповнення. Це означає, що витікання не буде видно. Це може зменшити кількість втягувань для складних моделей і заощадити час друку, але сповільнює нарізку та генерацію G-коду. Зверніть увагу, що z-hop також не виконується в зонах, де втягування пропускається."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Не втягувати, коли переміщення повністю проходить у зоні заповнення. Це означає, що витікання не буде видно. Це може зменшити кількість втягувань для складних моделей і заощадити час друку, але сповільнює нарізку та генерацію G-коду. Зверніть увагу, що Z-hop також не виконується в зонах, де втягування пропускається."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Цей параметр знижує температуру неактивних екструдерів, щоб запобігти підтіканням."
@@ -16260,6 +16934,20 @@ msgstr "Виявлення стінок що нависають"
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Визначити відсоток нависання відносно до ширини лінії та використовувати для друку іншу швидкість. Для 100%%-вого нависання використовується швидкість моста."
+
+# AI Translated
+msgid "Print unsupported walls last"
+msgstr "Друкувати неопорні стінки останніми"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"Контури стінок, що повністю висять у повітрі, друкуються лише тоді, коли їх є чим утримати:\n"
+"вони екструдуються після інших стінок свого острова, починаючи з найвнутрішнішої, незалежно від порядку стінок.\n"
+"Контур, який можуть закріпити лише мости цього шару, чекає, доки ці мости буде надруковано, тоді як контур, що йде вздовж опертої стінки, зберігає своє місце перед заповненням, якому він потрібен як якір."
 
 # AI Translated
 msgid "Outer walls"
@@ -16400,7 +17088,7 @@ msgstr "Величина втягування після протирання"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Довжина швидкого втягування після протирання, відносно довжини втягування.\n"
@@ -16438,10 +17126,18 @@ msgstr "Довге втягування при зміні екструдера"
 msgid "Retraction distance when extruder change"
 msgstr "Відстань втягування при зміні екструдера"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Довжина втягування (Зміна інструменту)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Коли втягування спрацьовує перед зміною інструменту, філамент відтягується на вказану величину (довжина вимірюється на необробленому філаменті, до його входу в екструдер)."
+
 msgid "Z-hop height"
 msgstr "Висота Z-підйому"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Під час кожного втягування сопло трохи піднімається, щоб створити зазор між соплом та об’єктом друку. Це запобігає зіткненню сопла з об’єктом друку під час переміщення. Використання спіральної лінії підняття по осі Z може запобігти появі ниток"
 
 msgid "Z-hop lower boundary"
@@ -16533,6 +17229,10 @@ msgstr "Додаткова довжина під час перезавантаж
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Коли втягування компенсується після переміщення, екструдер проштовхуєЦе додаткова кількість нитки. Ця установка рідко потрібна."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Додаткова довжина під час перезавантаження (Зміна інструменту)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Коли втягування компенсується після заміни інструменту, екструдерпроштовхує цю додаткову кількість нитки."
@@ -16694,6 +17394,39 @@ msgstr "Протирати на контурах"
 
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "Щоб звести до мінімуму видимість шва при екструзії із замкнутим контуром,Невеликий рух усередину виконується до виходу екструдера з контуру."
+
+# AI Translated
+msgid "Wipe inward"
+msgstr "Протирання всередину"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"Застосовується лише до зовнішніх стінок, зокрема до контурів отворів. Під час протирання переміщує гаряче сопло до вже надрукованих внутрішніх стінок, щоб зменшити повторне нагрівання щойно надрукованого пластику та сліди шва.\n"
+"\n"
+"Особливо корисно за висоти шару менше 0,1 мм, де сліди протирання помітніші.\n"
+"\n"
+"Використовує звичайне протирання, якщо поруч немає вже надрукованої внутрішньої стінки (ділянки з однією стінкою або порядок стінок Зовнішня/Внутрішня) або якщо не вдається знайти опертий шлях усередину, наприклад у тісних кутах чи розривах шва."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "Відстань протирання всередину"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"Відстань, на яку шлях протирання зміщується від зовнішнього контуру, задається в міліметрах або у відсотках від фактичної ширини екструзії зовнішньої стінки.\n"
+"\n"
+"Наприклад, 50% зміщує шлях на половину ширини зовнішньої стінки. Фактичне зміщення обмежується як реальною шириною зовнішньої стінки, так і доступним проміжком до сусідньої стінки, тому значення понад 100% або еквівалентна абсолютна відстань не дають додаткового ефекту. Задайте 0, щоб вимкнути зміщення."
 
 msgid "Wipe before external loop"
 msgstr "Протирати перед зовнішнім контуром"
@@ -16903,9 +17636,8 @@ msgstr "Кроки підігріву"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "Вставляє кілька команд попереднього нагріву (наприклад, M104.1). Корисно лише для Prusa XL. Для інших принтерів слід встановити значення 1."
 
-# AI Translated
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "G-код, що записується на самому початку вихідного файлу, перед будь-яким іншим вмістом. Корисно для додавання метаданих, які прошивка принтера читає з перших рядків файлу (наприклад, орієнтовний час друку, витрата філаменту). Підтримує підстановки на кшталт {print_time_sec} та {used_filament_length}."
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "Початковий G-код"
@@ -16960,11 +17692,20 @@ msgstr "Зміна інструмента на вежі протирання"
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Примусово переміщати головку до вежі протирання перед видачею команди зміни інструмента (Tx). Стосується лише багатоекструдерних (багатоінструментальних) принтерів з вежею протирання типу 2. Типово Orca пропускає це переміщення на багатоінструментальних машинах, оскільки заміну головки виконує прошивка, через що команда Tx може бути видана над надрукованою деталлю. Увімкніть цю опцію, якщо хочете, щоб зміна інструмента завжди відбувалася над вежею протирання."
 
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Очікувати температуру на вежі протирання"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Бере новий інструмент, не чекаючи, доки він досягне температури друку, переміщується до вежі протирання й чекає на температуру там, безпосередньо перед промивкою. Матеріал, що витікає під час нагрівання, потрапляє на вежу, а не на модель, а переміщення збігається з нагріванням. Актуально лише для принтерів із кількома екструдерами (кількома головками), які використовують вежу протирання типу 2. Прошивка або макрос зміни інструменту не повинні самі чекати на температуру. Коли вимкнено, команда очікування температури видається одразу після команди зміни інструменту."
+
 msgid "No sparse layers (beta)"
 msgstr "Без розріджених шарів (бета)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Якщо увімкнено, вежа витирання не друкується на шарах без змін інструментів. На шарах із зміною інструменту екструдер рухатиметься вниз, щоб надрукувати вежу витирання. Користувач несе відповідальність за те, щоб не було зіткнення з друком."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "Якщо увімкнено, вежу протирання не буде надруковано на шарах без змін інструменту. На шарах зі зміною інструменту екструдер опуститься вниз, щоб надрукувати вежу протирання, тож вежа опиняється нижче моделі, і головці доводиться тягнутися до неї вниз. Компонування, за яких це призвело б до зіткнення з уже надрукованим обʼєктом, відхиляються. Не діє за плавного таймлапсу чи виявлення налипань на соплі, яким потрібна вежа на кожному шарі."
 
 msgid "Prime all printing extruders"
 msgstr "Підготовка всіх друкуючих екструдерів"
@@ -16989,6 +17730,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Циклічно"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "Циклічний порядок"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"Власна послідовність філаментів, яку використовує циклічний порядок змін інструменту, у вигляді номерів філаментів через кому (напр. «3,2,1,4»).\n"
+"Кожен шар друкує свої філаменти за цією послідовністю; філаменти, яких немає в переліку, друкуються останніми, за зростанням.\n"
+"Залиште порожнім, щоб перебирати філаменти за зростанням."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "Застосовувати циклічний порядок до першого шару"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"Застосовує циклічний порядок змін інструменту також і до першого шару.\n"
+"Типово це вимкнено, оскільки перший шар натомість упорядковується для найкращого прилипання до столу: філаменти, якими друкуються дрібні крихкі елементи першого шару, друкуються останніми, тож наступні зміни інструменту та переміщення рідше зривають ці слабко закріплені частини. Цей порядок першого шару враховує також власну послідовність філаментів для першого шару, якщо її задано. Перевага циклічного порядку (додаткові зміни інструменту дають кожному шару більше часу на охолодження) до першого шару не стосується, бо він друкується повільно й гарячим задля прилипання.\n"
+"Вмикайте це, лише якщо вам потрібна точно та сама послідовність інструментів на кожному шарі, зокрема на першому, ціною цієї оптимізації прилипання."
+
 msgid "Slice gap closing radius"
 msgstr "Радіус закриття пробілів під час нарізування"
 
@@ -16997,9 +17766,6 @@ msgstr "Під час розрізання тріщини на трикутну 
 
 msgid "Slicing Mode"
 msgstr "Режим нарізки"
-
-msgid "Other"
-msgstr "Інший"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Використовуйте «парний-непарний» для моделей літаків 3DLabPrint. Використовуйте «Закрити отвори», щоб закрити всі отвори в моделі."
@@ -17514,6 +18280,14 @@ msgstr ""
 "Якщо встановити значення у параметрі \"Кількість втягування перед витиранням\" нижче, надлишкове втягування буде виконано перед витиранням, інакше воно буде виконано після нього."
 
 # AI Translated
+msgid "Mixed color sublayer"
+msgstr "Підшар змішаного кольору"
+
+# AI Translated
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr "Вмикає розбиття на підшари змішаного кольору. Коли увімкнено, шари, що містять філаменти змішаного кольору, розбиваються на підшари для отримання ефекту змішування кольорів."
+
+# AI Translated
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Вежа протирання може використовуватися для очищення залишків на соплі та стабілізації тиску в камері всередині сопла, щоб уникнути дефектів зовнішнього вигляду під час друку обʼєктів."
 
@@ -17955,9 +18729,6 @@ msgstr "надто велика ширина лінії "
 msgid " not in range "
 msgstr " не в зоні "
 
-msgid "Export 3MF"
-msgstr "Експортувати 3MF"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Експортувати проєкт як 3MF."
 
@@ -17972,9 +18743,6 @@ msgstr "Завантажити дані про нарізку"
 
 msgid "Load cached slicing data from directory."
 msgstr "Завантажити кешовані дані нарізки з каталогу"
-
-msgid "Export STL"
-msgstr "Експортувати STL"
 
 msgid "Export the objects as single STL."
 msgstr "Експортувати обʼєкти як єдиний STL."
@@ -18028,6 +18796,14 @@ msgstr "Без перевірки"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Не виконувати жодних перевірок дійсності, наприклад перевірку конфліктів шляхів G-коду."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "Суворий режим"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "Завершує роботу з ненульовим кодом, коли нарізка видає некритичне попередження, яке інакше лише записується в журнал, наприклад модель, що потребує підтримок, коли підтримки вимкнено. Використовуйте це в CI або скриптових конвеєрах, які ніколи не мають видавати непомітно зіпсовану нарізку. Кожне таке попередження також наводиться зі сталим класом у масиві `warnings` файлу result.json, який створюється лише в Linux. Не можна поєднувати з --no-check, який пропускає перевірку підтримок."
+
 msgid "Normative check"
 msgstr "Нормативна перевірка"
 
@@ -18040,11 +18816,28 @@ msgstr "Вихідна інформація про модель"
 msgid "This outputs the model’s information."
 msgstr "Виведіть інформацію про модель."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "Перевірити сітку (JSON у stdout)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "Виводить у stdout зведення JSON щодо кожного завантаженого обʼєкта й завершує роботу: його обмежувальні паралелепіпеди та грані опуклої оболонки, на які його можна покласти, з їхніми нормалями, площами й центрами. Саме з цих граней вибирають параметри --ground-*. Машиночитна альтернатива --info."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "Перевірити малювання (JSON у stdout)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "Виводить структуроване зведення JSON щодо кожного намальованого шару (підтримки, шов, колір MMU, шорстка поверхня), уже збереженого в завантаженій моделі, — кількість граней, площу поверхні та обмежувальний паралелепіпед у координатах сітки для кожного стану — і завершує роботу. Машиночитна альтернатива відкриттю інструментів малювання в інтерфейсі."
+
 msgid "Export Settings"
 msgstr "Експортувати налаштування"
 
-msgid "This exports settings to a file."
-msgstr "Експортувати налаштування у файл."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "Це експортує налаштування у файл. Використовуйте -, щоб записати їх у stdout."
 
 msgid "Send progress to pipe"
 msgstr "Надіслати прогрес до каналу"
@@ -18099,6 +18892,30 @@ msgstr "Обертати навколо осі Y"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Кут обертання навколо осі Y у градусах."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "Покласти на найбільшу грань"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Кладе кожен обʼєкт на найбільшу грань його опуклої оболонки й опускає його на стіл. З однакових за площею граней зберігається та, що вже обернена донизу. Обʼєкти без достатньо великої грані для опори лишаються без змін. Перетворення виконуються в порядку командного рядка, тож повороти, задані до цього параметра, враховуються. --orient 1 виконується після всіх перетворень і замінює орієнтацію."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "Покласти на грань за нормаллю"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Кладе кожен обʼєкт на ту грань опуклої оболонки, зовнішня нормаль якої найближча до напрямку NX,NY,NZ, і опускає його на стіл. Напрямок задається в координатах обʼєкта, які включають повороти, задані до цього параметра, і збігаються з осями столу, якщо вхідний файл не повертає обʼєкт. Наприклад, 1,0,0 ставить обʼєкт на його бік +X. --orient 1 виконується після всіх перетворень і замінює орієнтацію."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "Покласти на грань у точці"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Кладе кожен обʼєкт на ту грань опуклої оболонки, що містить точку X,Y,Z, і опускає його на стіл. Точка задається в координатах обʼєкта, які включають повороти, задані до цього параметра; --inspect-mesh подає центри граней саме в них. Обʼєкти без такої грані лишаються без змін, а запуск завершується помилкою, якщо такої грані немає в жодного обʼєкта. --orient 1 виконується після всіх перетворень і замінює орієнтацію."
 
 msgid "Scale the model by a float factor."
 msgstr "Масштабуйте модель за допомогою плаваючого коефіцієнта"
@@ -18408,12 +19225,36 @@ msgstr "Філамент, що використовується"
 msgid "Total length of filament used in the print."
 msgstr "Загальна довжина філаменту, використаної під час друку."
 
-msgid "Print time (seconds)"
-msgstr "Час друку (в секундах)"
+msgid "Print time (total seconds)"
+msgstr ""
 
 # AI Translated
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Загальний орієнтовний час друку в секундах. Замінюється фактичним значенням під час постобробки."
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
 
 msgid "Filament length (meters)"
 msgstr "Довжина філаменту (в метрах)"
@@ -18619,6 +19460,10 @@ msgstr "Не вдалося побудувати сітку файлу моде�
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Наданий файл не вдалося прочитати, оскільки він порожній"
 
+# AI Translated
+msgid "The file format is incompatible and cannot be parsed."
+msgstr "Формат файлу несумісний, і його не вдається прочитати."
+
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Невідомий формат файлу: вхідний файл повинен мати розширення .stl, .obj або .amf (.xml)."
 
@@ -18642,9 +19487,6 @@ msgstr "У файлі містяться недійсний індекс вер�
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Цей файл формату OBJ не може бути прочитаний через те, що він порожній."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Максимальна калібрування об’ємної швидкості"
 
 msgid "Manage Result"
 msgstr "Керування результатом"
@@ -19531,10 +20373,6 @@ msgstr ""
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "ПРИМІТКА: високі значення можуть спричинити зсув шарів (>%s)"
 
-# AI Translated
-msgid "Flow Ratio Calibration"
-msgstr "Калібрування коефіцієнта потоку"
-
 msgid "Calibration Test Type"
 msgstr "Тип тесту калібрування"
 
@@ -20135,12 +20973,12 @@ msgstr "Показувати лише назви принтерів зі змі�
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Показувати лише назви філаментів зі змінами у пресетах філаменту."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Будуть відображатися лише назви принтерів з пресетами принтера користувача, і кожен обраний пресет буде експортовано у форматі ZIP."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Будуть відображатися лише назви філаментів з налаштуваннями філаменту користувача, \n"
 "і всі налаштування філаменту користувача для кожної вибраної назви філаменту \n"
@@ -20148,7 +20986,7 @@ msgstr ""
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Будуть відображатися лише назви принтерів зі зміненими налаштуваннями процесу, \n"
 "і всі налаштування процесу користувача для кожної вибраної назви принтера будуть \n"
@@ -20304,10 +21142,6 @@ msgstr "Фізичний принтер"
 msgid "Print Host upload"
 msgstr "Завантаження хоста друку"
 
-# AI Translated
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Виберіть реалізацію мережевого агента для звʼязку з принтером. Доступні агенти реєструються під час запуску."
-
 msgid "Select a Flashforge printer"
 msgstr "Вибрати принтер Flashforge"
 
@@ -20323,6 +21157,9 @@ msgstr "Дійсний сеанс не виявлено. Продовжити в
 
 msgid "Success!"
 msgstr "Успішно!"
+
+msgid "Generate API Key"
+msgstr ""
 
 msgid "Are you sure to log out?"
 msgstr "Ви впевнені, що вийшли?"
@@ -20394,7 +21231,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Нам потрібна інформація для встановлення джерела проблеми. Докладний посібник дивіться на сторінці wiki."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Кнопка «Пакувати» збирає файл проєкту та журнали поточного сеансу в один zip-файл."
 
 # AI Translated
@@ -20438,7 +21275,7 @@ msgstr "Рівень журналу"
 msgid "Stored logs"
 msgstr "Збережені логи"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Запаковує всі збережені логи у файл zip."
 
 msgid "Profiles"
@@ -20505,7 +21342,7 @@ msgstr "Тип принтера не знайдено, будь ласка ви�
 msgid "Authorizing..."
 msgstr "Авторизування..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Помилка. Не вдалося отримати api-токен для авторизування"
 
 msgid "Could not parse server response."
@@ -20969,8 +21806,9 @@ msgstr "Вилучено"
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr "Дозволити розумне призначення філаменту: Призначте одну нитку до кількох сопел, щоб максимально заощадити"
 
-msgid "Fila Saving"
-msgstr "Збереження філаменту"
+# AI Translated
+msgid "File Saving"
+msgstr "Збереження файлу"
 
 msgid "Don't remind me again"
 msgstr "Не нагадувати мені більше"
@@ -21181,9 +22019,6 @@ msgstr "Під час спроби входу трапилося щось нес
 msgid "User canceled."
 msgstr "Користувача скасовано."
 
-msgid "Head diameter"
-msgstr "Діаметр голови"
-
 msgid "Max angle"
 msgstr "Максимальний кут"
 
@@ -21264,6 +22099,18 @@ msgstr "Дію не можливо завершити. Продовжити?"
 msgid "Skipping objects."
 msgstr "Пропускання обʼєктів."
 
+# AI Translated
+msgid "Material Ratio"
+msgstr "Частка матеріалу"
+
+# AI Translated
+msgid "Model Height"
+msgstr "Висота моделі"
+
+# AI Translated
+msgid "Ratio"
+msgstr "Частка"
+
 msgid "Select Filament"
 msgstr "Вибрати філамент"
 
@@ -21294,13 +22141,6 @@ msgstr "Мережевий плагін Bambu потрібен для можли
 #, c-format, boost-format
 msgid "Error: %s"
 msgstr "Помилка: %s"
-
-msgid "Show details"
-msgstr "Показати подробиці"
-
-# AI Translated
-msgid "Hide details"
-msgstr "Сховати подробиці"
 
 msgid "Version to install:"
 msgstr "Версія для встановлення:"
@@ -21342,6 +22182,9 @@ msgstr "Перезапустити зараз"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ВЗАГАЛІ БЕЗ УТРАМБУВАННЯ"
+
+msgid "s"
+msgstr "c"
 
 msgid "Volumetric speed"
 msgstr "Обʼємна швидкість"
@@ -21524,12 +22367,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Сушіння — осушення"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " максимальна температура сушіння — "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Максимальна температура сушіння для %s — %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " мінімальна температура сушіння — "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Мінімальна температура сушіння для %s — %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21673,6 +22518,2495 @@ msgstr "Цей філамент може бути несумісним з пот
 
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Модель філамента невідома. Буде використаний випадковий пресет філамента"
+
+msgid "Construction"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  ·  on %s"
+msgstr ""
+
+msgid "Line — click start, then end"
+msgstr ""
+
+msgid "Rectangle — click two opposite corners"
+msgstr ""
+
+msgid "Circle — click center, then radius"
+msgstr ""
+
+msgid "Arc — click start, end, then a point"
+msgstr ""
+
+msgid "Slot — two centerline ends, then end radius"
+msgstr ""
+
+msgid "Ellipse — center, major end, minor point"
+msgstr ""
+
+msgid "Spline — click control points"
+msgstr ""
+
+msgid "Point — click to place"
+msgstr ""
+
+msgid "Dimension — click 2 points or an entity"
+msgstr ""
+
+msgid "Trim — click a segment to trim it"
+msgstr ""
+
+msgid "Extend — click a line/arc to extend it"
+msgstr ""
+
+msgid "Offset — pick an entity, drag the distance"
+msgstr ""
+
+msgid "Mirror — pick axis, then entities"
+msgstr ""
+
+msgid "Fillet — pick two lines, set the radius"
+msgstr ""
+
+msgid "Chamfer — pick two lines, set the distance"
+msgstr ""
+
+msgid "Polygon — click center, then a vertex"
+msgstr ""
+
+msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
+msgstr ""
+
+msgid "Normal to the sketch plane"
+msgstr ""
+
+msgid "Converted the selection between construction and real geometry"
+msgstr ""
+
+msgid "Origin planes shown"
+msgstr ""
+
+msgid "Origin planes hidden"
+msgstr ""
+
+msgid "World axes shown"
+msgstr ""
+
+msgid "World axes hidden"
+msgstr ""
+
+msgid "Isometric view, fitted"
+msgstr ""
+
+msgid "Bed shown"
+msgstr ""
+
+msgid "Bed hidden"
+msgstr ""
+
+msgid "FEATURES"
+msgstr ""
+
+msgid "Sketch"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketching on %s — pick a tool"
+msgstr ""
+
+msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Drawing on %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
+msgid "Click a face or a reference plane, then a sketch tool."
+msgstr ""
+
+msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
+msgstr ""
+
+msgid "Extrude a sketch profile, or push/pull a picked face"
+msgstr ""
+
+msgid "Create a sketch, or pick a solid face, first"
+msgstr ""
+
+msgid "Revolve"
+msgstr ""
+
+msgid "Revolve a profile about an axis"
+msgstr ""
+
+msgid "Create a sketch profile to revolve first"
+msgstr ""
+
+msgid "Sweep"
+msgstr ""
+
+msgid "Sweep a profile along a path"
+msgstr ""
+
+msgid "Create a profile sketch to sweep first"
+msgstr ""
+
+msgid "Loft"
+msgstr ""
+
+msgid "Loft (skin) between two or more profiles"
+msgstr ""
+
+msgid "Create at least two profile sketches to loft"
+msgstr ""
+
+msgid "Thicken"
+msgstr ""
+
+msgid "Offset a solid face into a thin plate (new body)"
+msgstr ""
+
+msgid "Thicken needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format
+msgid "Body %zu"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch line, fused to a body"
+msgstr ""
+
+msgid "Rib needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Create a sketch with an open line first"
+msgstr ""
+
+msgid "Create a solid body to pattern first"
+msgstr ""
+
+msgid "Pattern — needs a solid body to replicate"
+msgstr ""
+
+msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
+msgstr ""
+
+msgid "Surface Extrude"
+msgstr ""
+
+msgid "Extrude a sketch into a sheet body (no end caps)"
+msgstr ""
+
+msgid "Create a sketch first"
+msgstr ""
+
+msgid "Surface Revolve"
+msgstr ""
+
+msgid "Revolve a sketch profile into a sheet body"
+msgstr ""
+
+msgid "Surface Loft"
+msgstr ""
+
+msgid "Loft (skin) between 2+ profiles, open (no end caps)"
+msgstr ""
+
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Fill a sketch boundary with a smooth face"
+msgstr ""
+
+msgid "Create a sketch profile to fill first"
+msgstr ""
+
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Offset a sheet body's shell by a signed distance"
+msgstr ""
+
+msgid "No sheet body to offset — create a surface feature first"
+msgstr ""
+
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Thicken a sheet body into a solid"
+msgstr ""
+
+msgid "No sheet body to thicken — create a surface feature first"
+msgstr ""
+
+msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
+msgstr ""
+
+msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
+msgstr ""
+
+msgid "Coord Sys"
+msgstr ""
+
+msgid "Datum coordinate system (world point, or face + direction edge)"
+msgstr ""
+
+msgid "Helix"
+msgstr ""
+
+msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
+msgstr ""
+
+msgid "Project body edges onto a plane as sketch entities"
+msgstr ""
+
+msgid "Project needs a body — add or import one first"
+msgstr ""
+
+msgid "(all edges)"
+msgstr ""
+
+msgid "Placement (transform / mirror / mate)"
+msgstr ""
+
+msgid "Transform"
+msgstr ""
+
+msgid "Move and/or rotate an existing body"
+msgstr ""
+
+msgid "Transform needs a body — add or import one first"
+msgstr ""
+
+msgid "Reflect a body about a plane"
+msgstr ""
+
+msgid "Mirror needs a body — add or import one first"
+msgstr ""
+
+msgid "Mate"
+msgstr ""
+
+msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
+
+msgid "Boolean (combine bodies)"
+msgstr ""
+
+msgid "Boolean — needs two solid bodies to combine"
+msgstr ""
+
+msgid "Cut (split a body with a plane)"
+msgstr ""
+
+msgid "Create a solid body to cut first"
+msgstr ""
+
+msgid "Cut — needs a solid body to slice"
+msgstr ""
+
+msgid "Color — set the selected body's display colour"
+msgstr ""
+
+msgid "Select a feature, or a body, first — then rename it"
+msgstr ""
+
+msgid "Fillet / chamfer / draft / shell / delete face"
+msgstr ""
+
+msgid "Fillet / Chamfer"
+msgstr ""
+
+msgid "Round or bevel a picked edge"
+msgstr ""
+
+msgid "Draft (taper a face)"
+msgstr ""
+
+msgid "Tilt a picked face by a draft angle"
+msgstr ""
+
+msgid "Hollow the body to a wall thickness, opening a picked face"
+msgstr ""
+
+msgid "Delete Face"
+msgstr ""
+
+msgid "Remove faces from a body and heal the solid"
+msgstr ""
+
+msgid "Delete Face needs a body — add or import one first"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Hole / thread"
+msgstr ""
+
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr ""
+
+msgid "Thread"
+msgstr ""
+
+msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
+msgstr ""
+
+msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
+msgstr ""
+
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
+msgid "Constrain selected sketch"
+msgstr ""
+
+msgid "SKETCH"
+msgstr ""
+
+msgid "Click to select; Shift to add; double-click for a whole loop"
+msgstr ""
+
+msgid "Dimension"
+msgstr ""
+
+msgid "Click 2 points or a line / circle / arc to place a dimension"
+msgstr ""
+
+msgid "Line / polyline"
+msgstr ""
+
+msgid "Click start, then end — then set the exact length"
+msgstr ""
+
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click first / right-click to close the loop"
+msgstr ""
+
+msgid "Corner rectangle"
+msgstr ""
+
+msgid "Click two opposite corners"
+msgstr ""
+
+msgid "Center rectangle"
+msgstr ""
+
+msgid "Click center, then a corner"
+msgstr ""
+
+msgid "Oblique rectangle"
+msgstr ""
+
+msgid "Click two corners of one edge, then a point for the width"
+msgstr ""
+
+msgid "Rounded rectangle"
+msgstr ""
+
+msgid "Click two opposite corners, then a point for the corner radius"
+msgstr ""
+
+msgid "Center circle"
+msgstr ""
+
+msgid "Click center, then radius"
+msgstr ""
+
+msgid "2-point circle"
+msgstr ""
+
+msgid "Click two ends of the diameter"
+msgstr ""
+
+msgid "3-point circle"
+msgstr ""
+
+msgid "Click three points on the circle"
+msgstr ""
+
+msgid "Arc"
+msgstr ""
+
+msgid "3-point arc"
+msgstr ""
+
+msgid "Click start, end, then a point on the arc"
+msgstr ""
+
+msgid "Tangent arc"
+msgstr ""
+
+msgid "Click start (on the last entity) then end"
+msgstr ""
+
+msgid "Center-point arc"
+msgstr ""
+
+msgid "Click center, then start, then a point for the end angle"
+msgstr ""
+
+msgid "Slot"
+msgstr ""
+
+msgid "Click two centerline ends, then a point for the end radius"
+msgstr ""
+
+msgid "Arc slot"
+msgstr ""
+
+msgid "Click center, start, end, then a point for the width"
+msgstr ""
+
+msgid "Ellipse"
+msgstr ""
+
+msgid "Click center, a major-axis end, then a point for the minor axis"
+msgstr ""
+
+msgid "Elliptical arc"
+msgstr ""
+
+msgid "Click center, major-axis end, minor point, then arc start and end"
+msgstr ""
+
+msgid "Spline"
+msgstr ""
+
+msgid "Click control points; double-click or right-click to finish"
+msgstr ""
+
+msgid "Click to place a point"
+msgstr ""
+
+msgid "Select — click to select; Shift to add"
+msgstr ""
+
+msgid "Text — emboss text as a profile"
+msgstr ""
+
+msgid "SVG — import an outline as a profile"
+msgstr ""
+
+msgid "Fillet / chamfer"
+msgstr ""
+
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the radius to set it"
+msgstr ""
+
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the distance to set it"
+msgstr ""
+
+msgid "Offset"
+msgstr ""
+
+msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
+msgstr ""
+
+msgid "Trim"
+msgstr ""
+
+msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+msgstr ""
+
+msgid "Extend"
+msgstr ""
+
+msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+msgstr ""
+
+msgid "Constrain — add geometric/dimensional relations"
+msgstr ""
+
+msgid "Move / rotate / scale"
+msgstr ""
+
+msgid "Move (translate)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Rotate (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+msgstr ""
+
+msgid "Scale (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
+msgstr ""
+
+msgid "Linear / polar array"
+msgstr ""
+
+msgid "Linear array"
+msgstr ""
+
+msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
+msgstr ""
+
+msgid "Polar array (about centroid)"
+msgstr ""
+
+msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Click center then a vertex — %d sides, %s"
+msgstr ""
+
+msgid "circumscribed"
+msgstr ""
+
+msgid "inscribed"
+msgstr ""
+
+msgid "Polygon"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Converted %d entit%s between construction and real geometry"
+msgstr ""
+
+msgid "CONSTRAIN"
+msgstr ""
+
+msgid "Perpendicular"
+msgstr ""
+
+msgid "Coincident"
+msgstr ""
+
+msgid "Equal length"
+msgstr ""
+
+msgid "Equal radius"
+msgstr ""
+
+msgid "Collinear"
+msgstr ""
+
+msgid "Tangent"
+msgstr ""
+
+msgid "Midpoint"
+msgstr ""
+
+msgid "Symmetric"
+msgstr ""
+
+msgid "Symmetric about the vertical axis"
+msgstr ""
+
+msgid "Symmetric about the horizontal axis"
+msgstr ""
+
+msgid "Fix point (anchor in place)"
+msgstr ""
+
+msgid "Horizontal distance"
+msgstr ""
+
+msgid "Vertical distance"
+msgstr ""
+
+msgid "✓ Confirm"
+msgstr ""
+
+msgid "✗ Cancel"
+msgstr ""
+
+msgid "Undo (Ctrl+Z)"
+msgstr ""
+
+msgid "Redo (Ctrl+Shift+Z)"
+msgstr ""
+
+msgid "New Design — clear the feature tree"
+msgstr ""
+
+msgid "Export STEP…"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Place on Face (F) — lay the picked face on the bed"
+msgstr ""
+
+msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
+msgstr ""
+
+msgid "Flip Section — show the opposite half"
+msgstr ""
+
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr ""
+
+msgid "Width / X"
+msgstr ""
+
+msgid "Height / Y"
+msgstr ""
+
+msgid "Distance X"
+msgstr ""
+
+msgid "Distance Y"
+msgstr ""
+
+msgid "Distance Z"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Rotation axis"
+msgstr ""
+
+msgid "Angle °"
+msgstr ""
+
+msgid "Move / Rotate"
+msgstr ""
+
+msgid "Sketch: —"
+msgstr ""
+
+msgid "Extrude dist"
+msgstr ""
+
+msgid "End"
+msgstr "Кінець"
+
+msgid "2nd dist"
+msgstr ""
+
+msgid "Taper °"
+msgstr ""
+
+msgid "New body"
+msgstr ""
+
+msgid "Intersect"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Flip direction"
+msgstr ""
+
+msgid "(no edge picked — group below)"
+msgstr ""
+
+msgid "Bottom"
+msgstr "Низ"
+
+msgid "Lateral"
+msgstr ""
+
+msgid "Edges"
+msgstr ""
+
+msgid "Size (r/dist)"
+msgstr ""
+
+msgid "XY"
+msgstr ""
+
+msgid "XZ"
+msgstr ""
+
+msgid "YZ"
+msgstr ""
+
+msgid "Hole plane"
+msgstr ""
+
+msgid "Depth (blind)"
+msgstr ""
+
+msgid "Pos X"
+msgstr ""
+
+msgid "Pos Y"
+msgstr ""
+
+msgid "Through"
+msgstr ""
+
+msgid "(none — uses Hole plane)"
+msgstr ""
+
+msgid "On face"
+msgstr ""
+
+msgid "Thread plane"
+msgstr ""
+
+msgid "Pitch"
+msgstr ""
+
+msgid "Thread depth"
+msgstr ""
+
+msgid "(none — uses Thread plane)"
+msgstr ""
+
+msgid "Plane X"
+msgstr ""
+
+msgid "Plane Y"
+msgstr ""
+
+msgid "Profile: —"
+msgstr ""
+
+msgid "Path"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Total angle°"
+msgstr ""
+
+msgid "Boolean"
+msgstr ""
+
+msgid "Union (join)"
+msgstr ""
+
+msgid "Subtract (cut)"
+msgstr ""
+
+msgid "Target (kept)"
+msgstr ""
+
+msgid "Keep tool body"
+msgstr ""
+
+msgid "Body"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid ""
+"Drag a corner to size, the centre to move.\n"
+"Confirm or Cancel in the toolbar above."
+msgstr ""
+
+msgid "Midplane"
+msgstr ""
+
+msgid "Two edges"
+msgstr ""
+
+msgid "Plane type"
+msgstr ""
+
+msgid "Base"
+msgstr ""
+
+msgid "Angle°"
+msgstr ""
+
+msgid "Base X"
+msgstr ""
+
+msgid "Base Y"
+msgstr ""
+
+msgid "Tilt axis"
+msgstr ""
+
+msgid "Pick Face A"
+msgstr ""
+
+msgid "Pick Face B"
+msgstr ""
+
+msgid "Pick Edge A"
+msgstr ""
+
+msgid "Pick Edge B"
+msgstr ""
+
+msgid "Size U"
+msgstr ""
+
+msgid "Size V"
+msgstr ""
+
+msgid "Profiles (check 2+, in order):"
+msgstr ""
+
+msgid "Ruled (straight) sections"
+msgstr ""
+
+msgid "Fills the sketch's closed boundary with a smooth face."
+msgstr ""
+
+msgid "Sheet body"
+msgstr ""
+
+msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
+msgstr ""
+
+msgid "Thickens a sheet body into a solid. Flip reverses the direction."
+msgstr ""
+
+msgid "(all faces — closed hollow)"
+msgstr ""
+
+msgid "Open face"
+msgstr ""
+
+msgid "Pick a solid face to open it, then set the wall thickness."
+msgstr ""
+
+msgid "Angle (°)"
+msgstr ""
+
+msgid "(pick a side face)"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
+msgstr ""
+
+msgid "Translate X"
+msgstr ""
+
+msgid "Translate Y"
+msgstr ""
+
+msgid "Translate Z"
+msgstr ""
+
+msgid "Rotate axis"
+msgstr ""
+
+msgid "Pivot X"
+msgstr ""
+
+msgid "Pivot Y"
+msgstr ""
+
+msgid "Pivot Z"
+msgstr ""
+
+msgid "Keep original (make a copy)"
+msgstr ""
+
+msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
+msgstr ""
+
+msgid "Mirror plane"
+msgstr ""
+
+msgid "Keep original"
+msgstr ""
+
+msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
+msgstr ""
+
+msgid "(pick a solid face)"
+msgstr ""
+
+msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
+msgstr ""
+
+msgid "Target body"
+msgstr ""
+
+msgid "Entity index"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
+msgstr ""
+
+msgid "Source body"
+msgstr ""
+
+msgid "Target plane"
+msgstr ""
+
+msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
+msgstr ""
+
+msgid "Add picked face"
+msgstr ""
+
+msgid "Click a face on the body first, then Add picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d is already in the list"
+msgstr ""
+
+msgid "Faces to delete"
+msgstr ""
+
+msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
+msgstr ""
+
+msgid "Left-handed"
+msgstr ""
+
+msgid "Taper (°)"
+msgstr ""
+
+msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
+msgstr ""
+
+msgid "Two points"
+msgstr ""
+
+msgid "Face normal"
+msgstr ""
+
+msgid "Cylinder centerline"
+msgstr ""
+
+msgid "Plane intersection"
+msgstr ""
+
+msgid "Along edge"
+msgstr ""
+
+msgid "Axis type"
+msgstr ""
+
+msgid "Pick Face"
+msgstr ""
+
+msgid "Pick Edge"
+msgstr ""
+
+msgid "Plane A"
+msgstr ""
+
+msgid "Plane B"
+msgstr ""
+
+msgid "Point 1 X"
+msgstr ""
+
+msgid "Point 1 Y"
+msgstr ""
+
+msgid "Point 1 Z"
+msgstr ""
+
+msgid "Point 2 X"
+msgstr ""
+
+msgid "Point 2 Y"
+msgstr ""
+
+msgid "Point 2 Z"
+msgstr ""
+
+msgid "Point (world)"
+msgstr ""
+
+msgid "Face + direction"
+msgstr ""
+
+msgid "(all)"
+msgstr ""
+
+msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
+msgstr ""
+
+msgid "Edge (sets in-plane direction)"
+msgstr ""
+
+msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
+msgstr ""
+
+msgid "X hint X"
+msgstr ""
+
+msgid "X hint Y"
+msgstr ""
+
+msgid "X hint Z"
+msgstr ""
+
+msgid "Fastened — 6 DOF locked, B driven onto A exactly"
+msgstr ""
+
+msgid "Planar — z aligned, offset distance; free in-plane slide"
+msgstr ""
+
+msgid "Revolute — axes collinear; free rotation about z"
+msgstr ""
+
+msgid "Slider — orientation locked; free axial slide"
+msgstr ""
+
+msgid "Cylindrical — axes collinear; free spin + axial slide"
+msgstr ""
+
+msgid "Kind"
+msgstr ""
+
+msgid "CS A (fixed)"
+msgstr ""
+
+msgid "CS B (moves)"
+msgstr ""
+
+msgid "Flip (oppose z axes)"
+msgstr ""
+
+msgid "Plane distance"
+msgstr ""
+
+msgid "Axial position"
+msgstr ""
+
+msgid "Expression"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Expr"
+msgstr ""
+
+msgid "(no bindings)"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Constraints"
+msgstr ""
+
+msgid "Feature tree"
+msgstr ""
+
+msgid " — the eye suppresses this mate"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s selected — F2 or right-click renames it, double-click edits it"
+msgstr ""
+
+msgid "Rename\tF2"
+msgstr ""
+
+msgid "Scale artwork"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Show / hide"
+msgstr ""
+
+msgid "Check interference — find overlapping bodies"
+msgstr ""
+
+msgid "Bodies"
+msgstr ""
+
+msgid "Move body"
+msgstr ""
+
+msgid "Select a body row first, then move it"
+msgstr ""
+
+msgid "Boolean — join, subtract or intersect with another body"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d selected — right-click for what applies to it"
+msgstr ""
+
+msgid "Variables"
+msgstr ""
+
+msgid "+"
+msgstr ""
+
+msgid "Del"
+msgstr "Видалити"
+
+msgid "Sketch created — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Sketch empty — nothing committed"
+msgstr ""
+
+msgid "Sketch updated"
+msgstr ""
+
+#, c-format
+msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Could not resolve the sketch to extrude"
+msgstr ""
+
+msgid "Face selected — set the depth and Confirm"
+msgstr ""
+
+msgid "Region selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+msgid "Sketch selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d "
+msgstr ""
+
+msgid "vertex selected — click again for the whole body"
+msgstr ""
+
+msgid "selected (whole body) — right-click for what applies to it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click for the drawing tools"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr ""
+
+msgid "Tool exited"
+msgstr ""
+
+msgid "Sketch kept — Finish to commit it, Cancel to discard"
+msgstr ""
+
+msgid "✗ Conflicting constraints"
+msgstr ""
+
+msgid "✓ Fully constrained"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d degrees of freedom"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+msgstr ""
+
+#, c-format
+msgid "OK — %zu triangles"
+msgstr ""
+
+msgid "Text to insert:"
+msgstr ""
+
+msgid "Import SVG"
+msgstr ""
+
+msgid "Import STEP"
+msgstr ""
+
+msgid "Reading STEP…"
+msgstr ""
+
+msgid "No solids found in STEP"
+msgstr ""
+
+msgid "STEP import failed: "
+msgstr ""
+
+msgid "Rebuilding model…"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+msgid "Import mesh"
+msgstr ""
+
+msgid "Could not read the STL file"
+msgstr ""
+
+msgid "Could not read the OBJ file: "
+msgstr ""
+
+msgid "Unsupported mesh format (STL and OBJ are supported)"
+msgstr ""
+
+msgid "The mesh contains no triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
+"\n"
+"Import anyway?"
+msgstr ""
+
+msgid "Large mesh"
+msgstr ""
+
+msgid "Mesh conversion failed: "
+msgstr ""
+
+msgid "Mesh conversion produced no geometry"
+msgstr ""
+
+msgid "Mesh import failed: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr ""
+
+msgid "No importable geometry found"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s added to the sketch — Confirm to commit it"
+msgstr ""
+
+msgid " — drag to place/size, then Confirm"
+msgstr ""
+
+msgid "Insert cancelled"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch added on %s — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Recompute error: "
+msgstr ""
+
+msgid "Add a solid (sketch + extrude) first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Thread standard: %s  (pitch %.3g mm)"
+msgstr ""
+
+msgid "Thread needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to revolve first"
+msgstr ""
+
+msgid "Revolve needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a profile sketch to sweep first"
+msgstr ""
+
+msgid "Pick a path sketch for the sweep"
+msgstr ""
+
+msgid "Sweep needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Check at least two profile sketches to loft"
+msgstr ""
+
+msgid "Loft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to extrude first"
+msgstr ""
+
+msgid "Pick a sketch to fill first"
+msgstr ""
+
+msgid "Select a sheet body first"
+msgstr ""
+
+msgid "Pick a solid face to thicken first"
+msgstr ""
+
+msgid "Pick a sketch with an open line first"
+msgstr ""
+
+msgid "Add at least one face to delete first"
+msgstr ""
+
+msgid "Mate needs two CoordSys features — create them first"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different CoordSys features"
+msgstr ""
+
+msgid "Mate rejected"
+msgstr ""
+
+msgid "No interference — need at least two solid bodies to check"
+msgstr ""
+
+msgid "No interference found"
+msgstr ""
+
+#, c-format
+msgid "%zu interference pairs, worst %.2f mm³"
+msgstr ""
+
+msgid ""
+"Interference pairs:\n"
+"\n"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d"
+msgstr ""
+
+msgid "Interference"
+msgstr ""
+
+msgid "Select a solid body first — its mass properties are what is reported"
+msgstr ""
+
+msgid "Mass properties could not be computed for this body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body — %.2f cm² of surface, no volume"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Sheet body (open shell)\n"
+"Surface area: %.2f cm²\n"
+"\n"
+"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgstr ""
+
+msgid "Mass properties"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: %.3f cm³, %.2f cm²"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Volume: %.3f cm³\n"
+"Surface area: %.2f cm²"
+msgstr ""
+
+msgid "Pattern needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Boolean needs two solid bodies — add or import a second one"
+msgstr ""
+
+msgid "Cut needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "the picked face of Body %d"
+msgstr ""
+
+msgid "the picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "  ·  %d picked"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr ""
+
+msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
+msgstr ""
+
+msgid "Constrain — click one or two entities, then choose a constraint"
+msgstr ""
+
+msgid "Dimension — click an entity, or the first of two points"
+msgstr ""
+
+msgid "Dimension — click the second point"
+msgstr ""
+
+msgid "Line — click the start point"
+msgstr ""
+
+msgid "Line — click the end point, or type the length"
+msgstr ""
+
+msgid "Polyline — click the first point"
+msgstr ""
+
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+msgstr ""
+
+msgid "Rectangle — click one corner"
+msgstr ""
+
+msgid "Rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Centre rectangle — click the centre"
+msgstr ""
+
+msgid "Centre rectangle — click a corner"
+msgstr ""
+
+msgid "Oblique rectangle — click the start of the base edge"
+msgstr ""
+
+msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
+msgstr ""
+
+msgid "Oblique rectangle — click to set the width"
+msgstr ""
+
+msgid "Rounded rectangle — click one corner"
+msgstr ""
+
+msgid "Rounded rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Rounded rectangle — click to set the corner radius"
+msgstr ""
+
+msgid "Circle — click the centre"
+msgstr ""
+
+msgid "Circle — click to set the radius, or type it"
+msgstr ""
+
+msgid "Circle (2 points) — click one end of the diameter"
+msgstr ""
+
+msgid "Circle (2 points) — click the other end of the diameter"
+msgstr ""
+
+msgid "Circle (3 points) — click the first point on the circle"
+msgstr ""
+
+msgid "Circle (3 points) — click the second point"
+msgstr ""
+
+msgid "Circle (3 points) — click the third point"
+msgstr ""
+
+msgid "Arc — click the start point"
+msgstr ""
+
+msgid "Arc — click the end point"
+msgstr ""
+
+msgid "Arc — click a point the arc passes through"
+msgstr ""
+
+msgid "Tangent arc — click the endpoint it leaves from"
+msgstr ""
+
+msgid "Tangent arc — click its far end"
+msgstr ""
+
+msgid "Centre arc — click the centre"
+msgstr ""
+
+msgid "Centre arc — click the start point (this sets the radius)"
+msgstr ""
+
+msgid "Centre arc — click the end point"
+msgstr ""
+
+msgid "Slot — click one end of the centreline"
+msgstr ""
+
+msgid "Slot — click the other end of the centreline"
+msgstr ""
+
+msgid "Slot — click to set the width"
+msgstr ""
+
+msgid "Arc slot — click the centre the slot curves about"
+msgstr ""
+
+msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgstr ""
+
+msgid "Arc slot — click the end of the centreline"
+msgstr ""
+
+msgid "Arc slot — click to set the width"
+msgstr ""
+
+msgid "Polygon — click the centre"
+msgstr ""
+
+msgid "Polygon — click a vertex (this sets size and orientation)"
+msgstr ""
+
+msgid "Ellipse — click the centre"
+msgstr ""
+
+msgid "Ellipse — click the end of the major axis"
+msgstr ""
+
+msgid "Ellipse — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click the centre"
+msgstr ""
+
+msgid "Elliptical arc — click the end of the major axis"
+msgstr ""
+
+msgid "Elliptical arc — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc starts"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc ends"
+msgstr ""
+
+msgid "Spline — click the first control point"
+msgstr ""
+
+msgid "Spline — click the next control point  ·  right-click to finish the curve"
+msgstr ""
+
+msgid "Point — click to place one; the tool stays armed for more"
+msgstr ""
+
+msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Fillet — click the first of two lines that meet"
+msgstr ""
+
+msgid "Fillet — click the second line"
+msgstr ""
+
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Chamfer — click the first of two lines that meet"
+msgstr ""
+
+msgid "Chamfer — click the second line"
+msgstr ""
+
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Offset — click the entity to offset"
+msgstr ""
+
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Mirror — first click the LINE to mirror about (a construction line works)"
+msgstr ""
+
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Move — click the entities to move"
+msgstr ""
+
+msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+msgstr ""
+
+msgid "Rotate — click the entities to rotate"
+msgstr ""
+
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+msgstr ""
+
+msgid "Scale — click the entities to scale"
+msgstr ""
+
+msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+msgstr ""
+
+msgid "Array — click the entities to repeat"
+msgstr ""
+
+msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Polar array — click the entities to repeat"
+msgstr ""
+
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgstr ""
+
+msgid "  ·  Esc goes back to Select"
+msgstr ""
+
+msgid "  ·  click a constraint badge to remove it"
+msgstr ""
+
+msgid "select something first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mate: %s  →  %s"
+msgstr ""
+
+msgid "Fastened"
+msgstr ""
+
+msgid "Revolute"
+msgstr ""
+
+msgid "Slider"
+msgstr ""
+
+msgid "Cylindrical"
+msgstr ""
+
+msgid "Click a solid FACE in the viewport"
+msgstr ""
+
+msgid "Click a solid EDGE in the viewport"
+msgstr ""
+
+msgid "An angled plane needs an edge to tilt about — pick Edge A"
+msgstr ""
+
+msgid "A midplane needs two faces — pick Face A and Face B"
+msgstr ""
+
+msgid "Face A and Face B are the same face — a midplane needs two different faces"
+msgstr ""
+
+msgid "A tangent plane needs a cylindrical face — pick Face A"
+msgstr ""
+
+msgid "This plane needs two edges — pick Edge A and Edge B"
+msgstr ""
+
+msgid "Plane added — pick it as a sketch plane"
+msgstr ""
+
+msgid "Axis added"
+msgstr ""
+
+msgid "Coord Sys added"
+msgstr ""
+
+msgid "Shell needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a picked face — click a side face first"
+msgstr ""
+
+msgid ""
+"Nothing yet — import a STEP or a mesh from the toolbar,\n"
+"or click a reference plane and right-click it to start a sketch."
+msgstr ""
+
+msgid "No solid yet — select a sketch and right-click it to Extrude."
+msgstr ""
+
+msgid "Could not restore the CAD model from this project"
+msgstr ""
+
+msgid "Could not restore the CAD model: "
+msgstr ""
+
+#, c-format
+msgid "Body %zu — %s"
+msgstr ""
+
+msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
+msgstr ""
+
+msgid "Section view off"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Section view — showing the %s half"
+msgstr ""
+
+msgid "upper"
+msgstr ""
+
+msgid "lower"
+msgstr ""
+
+msgid "Boolean needs two bodies — create or import a second solid"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr ""
+
+msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
+msgstr ""
+
+msgid "Select a body first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d colour set"
+msgstr ""
+
+msgid "Click a face on the solid, then press F"
+msgstr ""
+
+msgid "Placed on face — body laid flat on the bed"
+msgstr ""
+
+msgid "Edit rejected: "
+msgstr ""
+
+msgid "Erase all features and bodies and start a new design? This cannot be undone."
+msgstr ""
+
+msgid "New Design"
+msgstr ""
+
+msgid "This body has no feature to delete — use New Design to start over"
+msgstr ""
+
+#, c-format, boost-format
+msgid "feature %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete %s?\n"
+"\n"
+"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgstr ""
+
+msgid "Delete body"
+msgstr ""
+
+msgid "Select the FEATURE that created this body (or use New Design)"
+msgstr ""
+
+msgid "Select a feature in the tree first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d shown"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d hidden"
+msgstr ""
+
+msgid "Feature shown"
+msgstr ""
+
+msgid "Feature hidden"
+msgstr ""
+
+msgid "Draw a sketch first, then Constrain"
+msgstr ""
+
+msgid "Select a sketch in the tree first"
+msgstr ""
+
+msgid "Selected feature is not a sketch"
+msgstr ""
+
+msgid "Pick 1-2 lines, then a constraint; right-click exits"
+msgstr ""
+
+msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
+msgstr ""
+
+msgid "Pick an entity first"
+msgstr ""
+
+msgid "Pick two entities first"
+msgstr ""
+
+msgid "Horizontal and Vertical apply to a line"
+msgstr ""
+
+msgid "Angle applies between two lines"
+msgstr ""
+
+msgid "Collinear needs two lines"
+msgstr ""
+
+msgid "Parallel, perpendicular and equal length apply to two lines"
+msgstr ""
+
+msgid "Equal radius needs two circles or arcs"
+msgstr ""
+
+msgid "Concentric needs two circles or arcs"
+msgstr ""
+
+msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
+msgstr ""
+
+msgid "This constraint needs two entities with a point to join"
+msgstr ""
+
+msgid "This dimension needs two entities with a point to measure between"
+msgstr ""
+
+msgid "Midpoint needs a point and a line"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines + an axis"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines"
+msgstr ""
+
+msgid "Symmetric: pick two entities, then an axis line"
+msgstr ""
+
+msgid "Radius/Diameter needs a circle or arc"
+msgstr ""
+
+msgid "Unsupported constraint"
+msgstr ""
+
+msgid "Constraint rejected (over-constrained)"
+msgstr ""
+
+msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr ""
+
+msgid "Applied constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Fix %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock X %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock Y %s"
+msgstr ""
+
+msgid "Equal"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric %s — %s / %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about Y axis %s — %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about X axis %s — %s"
+msgstr ""
+
+msgid "On line"
+msgstr ""
+
+msgid "On edge"
+msgstr ""
+
+msgid "Constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Constraints (%d)"
+msgstr ""
+
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
+msgid "Constraint deleted"
+msgstr ""
+
+msgid "Press Constrain on a sketch first"
+msgstr ""
+
+msgid "Pick the entity, then a mirror-axis line"
+msgstr ""
+
+msgid "Mirror axis must be a line"
+msgstr ""
+
+msgid "Mirror produced nothing"
+msgstr ""
+
+msgid "Offset distance (+left / -right of direction)"
+msgstr ""
+
+msgid "Offset collapsed the entity"
+msgstr ""
+
+msgid "Pick two lines to fillet"
+msgstr ""
+
+msgid "Fillet needs two lines"
+msgstr ""
+
+msgid "Fillet radius"
+msgstr ""
+
+msgid "Fillet failed (parallel lines or radius too large)"
+msgstr ""
+
+msgid "Pick two lines to chamfer"
+msgstr ""
+
+msgid "Chamfer needs two lines"
+msgstr ""
+
+msgid "Chamfer distance"
+msgstr ""
+
+msgid "Chamfer failed (parallel lines or distance too large)"
+msgstr ""
+
+msgid "Trim works on lines, arcs and circles"
+msgstr ""
+
+msgid "Extend works on lines and arcs"
+msgstr ""
+
+msgid "Pick the edge to trim/extend"
+msgstr ""
+
+msgid "Nothing to trim at the pick"
+msgstr ""
+
+msgid "No edge to extend to"
+msgstr ""
+
+msgid "Array count (incl. original)"
+msgstr ""
+
+msgid "Spacing (mm)"
+msgstr ""
+
+msgid "Array produced nothing"
+msgstr ""
+
+msgid "Move dX (mm)"
+msgstr ""
+
+msgid "Move dY (mm)"
+msgstr ""
+
+msgid "Move produced nothing"
+msgstr ""
+
+msgid "Rotate angle (deg)"
+msgstr ""
+
+msgid "Rotate produced nothing"
+msgstr ""
+
+msgid "Scale factor"
+msgstr ""
+
+msgid "Scale produced nothing"
+msgstr ""
+
+msgid "Polar count (incl. original)"
+msgstr ""
+
+msgid "Total sweep (deg)"
+msgstr ""
+
+msgid "Polar array produced nothing"
+msgstr ""
+
+msgid "Applied edit"
+msgstr ""
+
+msgid " — type a value, press Enter (or Confirm)"
+msgstr ""
+
+msgid "Pick a segment in the viewport first"
+msgstr ""
+
+msgid "Applied Horizontal"
+msgstr ""
+
+msgid "Applied Vertical"
+msgstr ""
+
+msgid "Sketch: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "On a face of Body %d"
+msgstr ""
+
+msgid "On a stored face"
+msgstr ""
+
+msgid "Editing sketch — drag a handle or click a quote to edit"
+msgstr ""
+
+msgid "An imported solid has no parameters — use Transform to move or rotate it"
+msgstr ""
+
+msgid "This feature type can't be edited yet"
+msgstr ""
+
+msgid "Nothing to export — add a feature first"
+msgstr ""
+
+msgid "Export STEP"
+msgstr ""
+
+msgid "Exported STEP"
+msgstr ""
+
+msgid "STEP export failed: "
+msgstr ""
+
+msgid "Nothing to commit — add a feature first"
+msgstr ""
+
+msgid "All bodies hidden — show one before committing"
+msgstr ""
+
+msgid "Plane ready"
+msgstr ""
+
+msgid "Axis ready"
+msgstr ""
+
+msgid "Coord Sys ready"
+msgstr ""
+
+msgid "Helix ready"
+msgstr ""
+
+msgid "Project ready"
+msgstr ""
+
+msgid "Sketch ready"
+msgstr ""
+
+msgid "Mate needs at least two CoordSys features"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different"
+msgstr ""
+
+msgid "Mate ready"
+msgstr ""
+
+msgid "Invalid: "
+msgstr ""
+
+#, c-format
+msgid "Preview — %zu triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
+msgstr ""
+
+msgid "Profile: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d (push/pull)"
+msgstr ""
+
+msgid "Move cancelled"
+msgstr ""
+
+msgid "Discard this sketch and everything drawn in it?"
+msgstr ""
+
+msgid "Discard sketch"
+msgstr ""
+
+msgid "Keep drawing"
+msgstr ""
+
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr ""
+
+msgid "Nothing to redo"
+msgstr ""
+
+msgid "Nothing to undo"
+msgstr ""
+
+#, c-format
+msgid "Redo  (%zu more)"
+msgstr ""
+
+#, c-format
+msgid "Undo  (%zu more)"
+msgstr ""
+
+msgid "Variable name:"
+msgstr ""
+
+msgid "Add Variable"
+msgstr ""
+
+msgid "Variable name must not contain spaces"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Expression for '%s':"
+msgstr ""
+
+msgid "Select a variable first"
+msgstr ""
+
+msgid "Edit Variable"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
+msgstr ""
+
+msgid "No binding for that field"
+msgstr ""
+
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
+msgid "Primitive"
+msgstr ""
+
+msgid "Empty mesh generated"
+msgstr ""
+
+msgid "Pocket (Cut)"
+msgstr ""
+
+msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "End"
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr "Стрілка вліво"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr "Стрілка вправо"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr "Стрілка вгору"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr "Стрілка вниз"
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr "Імпорт геометричних даних із файлів STL/STEP/3MF/OBJ/AMF"
+
+msgid "Select all objects"
+msgstr "Вибрати всі обʼєкти"
+
+msgid "Paste from clipboard"
+msgstr "Вставити з буфера обміну"
+
+# AI Translated
+msgid "Toggle printable for object/part"
+msgstr "Перемкнути можливість друку для обʼєкта/частини"
+
+msgid "Move selection 10mm in negative X direction"
+msgstr "Перемістити виділення на 10 мм у негативному напрямку по осі X"
+
+msgid "Move selection 10mm in positive X direction"
+msgstr "Перемістити виділення на 10 мм у позитивному напрямку X"
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr "Перемістити виділення на 10 мм у позитивному напрямку Y"
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr "Перемістити виділення на 10 мм у негативному напрямку Y"
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr "Рух Gizmo"
+
+msgid "Gizmo rotate"
+msgstr "Поворот Gizmo"
+
+msgid "Gizmo scale"
+msgstr "Шкала Gizmo"
+
+msgid "Gizmo place face on bed"
+msgstr "Покласти грань на стіл Gizmo"
+
+msgid "Gizmo cut"
+msgstr "Виріз Gizmo"
+
+msgid "Gizmo mesh boolean"
+msgstr "Булеві операції Gizmo"
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "Швид, що фарбується Gizmo FDM"
+
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr "Gizmo Малювання шорсткої поверхні"
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr "Текстове тиснення/гравіювання Gizmo"
+
+msgid "Gizmo measure"
+msgstr "виміряти Gizmo"
+
+msgid "Gizmo assemble"
+msgstr "Зібрати Gizmo"
+
+msgid "Gizmo brim ears"
+msgstr "Краєчки Gizmo"
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr "Вертикальний повзунок - рух активного великого пальця вгору"
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr "Вертикальний повзунок - Перемістити активний палець вниз"
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr "Горизонтальний повзунок - Перемістити активний палець вліво"
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr "Горизонтальний повзунок - Перемістити активний палець праворуч"
+
+msgid "Horizontal slider - Move to start position"
+msgstr "Горизонтальний повзунок - Перемістити в початкове положення"
+
+msgid "Horizontal slider - Move to last position"
+msgstr "Горизонтальний повзунок - Перемістити в останню позицію"
+
+msgid "Camera view - Default"
+msgstr "Вигляд камери - Типовий"
+
+msgid "Camera view - Top"
+msgstr "Вигляд камери - Верх"
+
+msgid "Camera view - Bottom"
+msgstr "Вигляд камери - Низ"
+
+msgid "Camera view - Front"
+msgstr "Вигляд камери - Перед"
+
+msgid "Camera view - Behind"
+msgstr "Вигляд камери - Зад"
+
+msgid "Camera Angle - Left side"
+msgstr "Кут камери – Лівий бік"
+
+msgid "Camera Angle - Right side"
+msgstr "Кут камери - Правий бік"
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr "Приблизити"
+
+msgid "Zoom out"
+msgstr "Віддалити"
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "Показати/приховати діалог налаштувань пристроїв 3Dconnexion"
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr "Увімкнення/вимкнення вікна G-коду"
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr "Увімкнення/вимкнення одношарового режиму вертикального повзунка"
+
+msgid "Switch between Prepare/Preview"
+msgstr "Переключення між Підготовка/Попередній перегляд"
+
+msgid "Collapse/Expand the sidebar"
+msgstr "Згорнути/розгорнути бічну панель"
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr "Показати список клавіш"
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
+msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -21979,11 +25313,207 @@ msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
 
+#~ msgid "Tab"
+#~ msgstr "Табуляції"
+
+# AI Translated
+#~ msgid "Displays current viewport FPS in the top-right corner."
+#~ msgstr "Показує поточний FPS вікна перегляду у верхньому правому куті."
+
+# AI Translated
+#~ msgid "Publish 3MF Wiki"
+#~ msgstr "Енциклопедія з публікації 3MF"
+
+# AI Translated
+#~ msgid "Publish 3MF Video Guide"
+#~ msgstr "Відеопосібник з публікації 3MF"
+
+#~ msgid "Toolbar"
+#~ msgstr "Панель інструментів"
+
+#~ msgid "Switch table page"
+#~ msgstr "Перемкнути сторінку таблиці"
+
+#~ msgid "Global shortcuts"
+#~ msgstr "Глобальні ярлики"
+
+# AI Translated
+#~ msgid "Middle mouse button"
+#~ msgstr "Середня кнопка миші"
+
+#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+#~ msgstr "Автоматично орієнтує вибрані обʼєкти або всі обʼєкти. Якщо вибрано обʼєкти, він просто орієнтує обрані. В іншому випадку він будеОрієнтувати всі обʼєкти на поточному проєкт."
+
+#~ msgid "Auto orients all objects on the active plate."
+#~ msgstr "Автоматично орієнтує всі обʼєкти на поточному диску."
+
+#~ msgid "Any arrow"
+#~ msgstr "Будь-яка стрілка"
+
+#~ msgid "Gizmo SLA support points"
+#~ msgstr "Точки підтримки Gizmo SL"
+
+#~ msgid "Plater"
+#~ msgstr "Тарілка"
+
+#~ msgid "Gizmo"
+#~ msgstr "Gizmo"
+
+#~ msgid "Delete objects, parts, modifiers"
+#~ msgstr "Видалення обʼєктів, частин, модифікаторів"
+
+#~ msgid "Objects List"
+#~ msgstr "Список обʼєктів"
+
+# AI Translated
+#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+#~ msgstr "G-код, що записується на самому початку вихідного файлу, перед будь-яким іншим вмістом. Корисно для додавання метаданих, які прошивка принтера читає з перших рядків файлу (наприклад, орієнтовний час друку, витрата філаменту). Підтримує підстановки на кшталт {print_time_sec} та {used_filament_length}."
+
+#~ msgid "Print time (seconds)"
+#~ msgstr "Час друку (в секундах)"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Відкрити панель швидких дій"
+
+#~ msgid "Left: "
+#~ msgstr "Лівий: "
+
+#~ msgid "Right: "
+#~ msgstr "Правий: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Максимальна температура не повинна перевищувати "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Мінімальна температура не повинна бути нижчою ніж "
+
+#~ msgid "up to"
+#~ msgstr "аж до"
+
+#~ msgid "above"
+#~ msgstr "вище"
+
+#~ msgid "from"
+#~ msgstr "від"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Пакет конфігурації: "
+
+#~ msgid " updated to "
+#~ msgstr " оновлено до "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Помилка групування: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr " не можливо помістити у "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " максимальна температура сушіння — "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " мінімальна температура сушіння — "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "потребує"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "не увімкнено"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "матеріал не опубліковано"
+
+#~ msgid "Select the language"
+#~ msgstr "Вибрати мову"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Вибрати плагін"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Напрямок, у якому заповнюються верхні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
+#~ "Назовні починає з центру поверхні, тож надлишок матеріалу виштовхується до краю, де він найменш помітний. Усередину починає з краю та завершується щільними кривими в центрі.\n"
+#~ "Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Напрямок, у якому заповнюються нижні поверхні при використанні шаблону з центром (Концентричний, Хорди Архімеда, Спіральна октограма).\n"
+#~ "Усередину починає кожну поверхню з ширших зовнішніх кривих, що покращує зчеплення першого шару на столах, де щільні криві в центрі можуть не прилипати. Назовні починає з центру, виштовхуючи надлишок матеріалу до краю.\n"
+#~ "Типово використовується впорядкування за найкоротшим шляхом, яке може йти в будь-якому напрямку."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Якщо увімкнено, вежа витирання не друкується на шарах без змін інструментів. На шарах із зміною інструменту екструдер рухатиметься вниз, щоб надрукувати вежу витирання. Користувач несе відповідальність за те, щоб не було зіткнення з друком."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Експортувати налаштування у файл."
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Нативний перегляд у Wayland потребує відеоприймача GStreamer GTK. Встановіть плагін gtksink для GStreamer, а потім перезапустіть OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Не вдалося ініціалізувати нативний відеоприймач GStreamer для Wayland. Перевірте встановлення плагіна GStreamer GTK."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Для виконання цього завдання потрібен Windows Media Player! Бажаєте увімкнути 'Windows Media Player' для вашої операційної системи?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource не було правильно зареєстровано для відтворення медіафайлів! Натисніть \"Так\", щоб зареєструвати його повторно. Вас буде сповіщено двічі"
+
+# AI Translated
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Відсутній компонент BambuSource, зареєстрований для відтворення медіа! Перевстановіть OrcaSlicer або зверніться по допомогу до спільноти."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Використовується BambuSource з іншої інсталяції, відтворення відео може працювати неправильно! Натисніть \"Так\", щоб виправити це."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Вашій системі бракує кодеків H.264 для GStreamer, які необхідні для відтворення відео. (Спробуйте встановити пакети gstreamer1.0-plugins-bad або gstreamer1.0-libav, а потім перезапустіть Orca Slicer?)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+#~ msgid "g"
+#~ msgstr "г"
+
+#~ msgid "Fila Saving"
+#~ msgstr "Збереження філаменту"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Висота шару занадто мала.\n"
+#~ "Буде встановлено значення min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Висота шару перевищує ліміт у Налаштуваннях принтера -> Екструдер -> Ліміти висоти шару, це може призвести до проблем з якістю друку."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Автоматично налаштувати на встановлений діапазон?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Діаметр голови"
+
 #~ msgid "Print order within a single layer."
 #~ msgstr "Друк замовлення в один шар"
-
-#~ msgid "Bottom"
-#~ msgstr "Низ"
 
 #~ msgid "Front"
 #~ msgstr "Перед"
@@ -21996,9 +25526,6 @@ msgstr ""
 
 #~ msgid "Esc"
 #~ msgstr "Esc"
-
-#~ msgid "Del"
-#~ msgstr "Видалити"
 
 #~ msgid "Backspace"
 #~ msgstr "Назад"
@@ -22014,9 +25541,6 @@ msgstr ""
 
 #~ msgid "Arrow Right"
 #~ msgstr "Стрілка праворуч"
-
-#~ msgid "End"
-#~ msgstr "Кінець"
 
 #~ msgid "Hotend"
 #~ msgstr "Хотенд"

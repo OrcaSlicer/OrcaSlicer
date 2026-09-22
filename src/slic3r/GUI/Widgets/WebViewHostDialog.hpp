@@ -49,6 +49,12 @@ public:
                                                const std::string& prelude   = {},
                                                const std::string& on_inject = {});
 
+    // Shared by WebPanel hosts and WebDialog.
+    static std::string theme_user_script();
+    static std::string element_defaults_user_script();
+    // Re-themes an already-loaded page in place, for web views hosted outside a dialog.
+    static std::string theme_apply_script();
+
 protected:
     wxWebView* browser() const { return m_browser; }
 

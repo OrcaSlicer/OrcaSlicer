@@ -27,6 +27,7 @@ void DevStatus::ParseStatus(const nlohmann::json& print_jj)
 #else
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": get exception=" << e.what();
 #endif
+        (void)e; // suppress C4101 when BBL_RELEASE_TO_PUBLIC
     }
 }
 

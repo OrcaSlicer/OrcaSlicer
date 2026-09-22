@@ -14,6 +14,7 @@
 
 //Previous defintions
 class wxGrid;
+class ProgressBar;
 
 namespace Slic3r {
 
@@ -55,7 +56,6 @@ private:
 
     Label* m_text_label;
     wxStaticBitmap* m_icon_bitmap;
-    int m_target_size;
     std::string m_icon_name;
     ScalableBitmap m_icon;
 };
@@ -98,12 +98,6 @@ private:
     wxSimplebook* m_main_simplebook{nullptr};
     wxPanel* m_original_page{nullptr};
 
-    wxWindow* m_amswin{nullptr};
-    wxBoxSizer* m_sizer_ams_items{nullptr};
-    wxScrolledWindow* m_panel_prv_left {nullptr};
-    wxScrolledWindow* m_panel_prv_right{nullptr};
-    wxBoxSizer* m_sizer_prv_left{nullptr};
-    wxBoxSizer* m_sizer_prv_right{nullptr};
 
     // left panel related members
     ScalableBitmap m_humidity_image;

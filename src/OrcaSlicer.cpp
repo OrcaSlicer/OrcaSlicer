@@ -3,7 +3,9 @@
     #define _WIN32_WINNT 0x0502
     // The standard Windows includes.
     #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
     #define NOMINMAX
+    #endif
     #include <Windows.h>
     #include <wchar.h>
     #include <commctrl.h>
@@ -51,6 +53,8 @@ using namespace nlohmann;
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
@@ -69,17 +73,21 @@ using namespace nlohmann;
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/BlacklistedLibraryCheck.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
+#include "libslic3r/LayOnFace.hpp"
 
 #include "libslic3r/Orient.hpp"
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
 
 #include "OrcaSlicer.hpp"
-//BBS: add exception handler for win32
+#include <wx/filename.h>
 #include <wx/stdpaths.h>
+//BBS: add exception handler for win32
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
+#include "slic3r/Utils/MeshInspect.hpp"
+#include "slic3r/Utils/PaintCLI.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
@@ -98,6 +106,10 @@ using namespace nlohmann;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+    // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
+    // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
+    // in CMakeLists).
+    #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #endif /* SLIC3R_GUI */
 
 using namespace Slic3r;
@@ -154,6 +166,7 @@ std::map<int, std::string> cli_errors = {
     {CLI_FILAMENT_CAN_NOT_MAP, "Some filaments cannot be mapped to correct extruders for multi-extruder Printer."},
     {CLI_ONLY_ONE_TPU_SUPPORTED, "Not support printing 2 or more TPU filaments."},
     {CLI_FILAMENTS_NOT_SUPPORTED_BY_EXTRUDER, "Some filaments cannot be printed on the extruder mapped to."},
+    {CLI_MIXED_FILAMENT_INVALID, "A mixed filament is invalid: its components are different filament types, or it has no filament of its own."},
     {CLI_SLICING_ERROR, "Failed slicing the model. Please verify the slicing of all plates on Orca Slicer before uploading."},
     {CLI_GCODE_PATH_CONFLICTS, " G-code conflicts detected after slicing. Please make sure the 3mf file can be successfully sliced in the latest Orca Slicer. If the file slices normally in Orca Slicer, try moving the wipe tower further from other models, as we use more conservative parameters for it during upload."},
     {CLI_GCODE_PATH_IN_UNPRINTABLE_AREA, "Found G-code in unprintable area of multi-extruder printers after slicing. Please make sure the 3mf file can be successfully sliced in the latest Orca Slicer."}
@@ -179,6 +192,9 @@ typedef struct _sliced_info {
     int    wall_loops{0};
     std::vector<std::string> upward_machines;
     std::vector<std::string> downward_machines;
+    // Structured slicing warnings for result.json, and whether --strict was on.
+    nlohmann::json      warnings = nlohmann::json::array();
+    bool                strict_mode {false};
 }sliced_info_t;
 std::vector<PrintBase::SlicingStatus> g_slicing_warnings;
 
@@ -414,6 +430,21 @@ static PrinterTechnology get_printer_technology(const DynamicConfig &config)
     return(ret);}
 #endif
 
+// Records a structured slicing warning so a CI or scripted consumer can branch on
+// a stable `class` string instead of matching stderr. Warnings are kept on the
+// run's sliced_info and emitted as the top-level "warnings" array of result.json;
+// a non-empty array does not by itself mean the run failed. Under --strict a
+// NON_CRITICAL warning additionally ends the run non-zero.
+//
+// result.json is written on Linux only (see the guard in record_exit_reson), so
+// neither "warnings" nor "strict_mode" reaches Windows or macOS.
+static void cli_record_warning(sliced_info_t &sliced_info, const std::string &cls,
+                               nlohmann::json details = nlohmann::json::object())
+{
+    details["class"] = cls;
+    sliced_info.warnings.push_back(std::move(details));
+}
+
 void record_exit_reson(std::string outputdir, int code, int plate_id, std::string error_message, sliced_info_t& sliced_info, std::map<std::string, std::string> key_values = std::map<std::string, std::string>())
 {
 #if defined(__linux__) || defined(__LINUX__)
@@ -451,6 +482,9 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
         }
         for (auto& iter: key_values)
             j[iter.first] = iter.second;
+
+        j["warnings"]    = sliced_info.warnings;
+        j["strict_mode"] = sliced_info.strict_mode;
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
@@ -1371,11 +1405,86 @@ int CLI::run(int argc, char **argv)
     bool   need_skip      = (skip_objects.size() > 0)?true:false;
     long long global_begin_time = 0, global_current_time;
     sliced_info_t sliced_info;
+    // Read up front so result.json reports it for early failures too.
+    sliced_info.strict_mode = m_config.opt_bool("strict");
+    // --no-check skips the check behind the only NON_CRITICAL warning --strict acts on
+    // (support needed but disabled), from the point it appears among the actions. The pair
+    // would make --strict a no-op or depend on argument order, so refuse it.
+    if (sliced_info.strict_mode && m_config.opt_bool("no_check")) {
+        boost::nowide::cerr << "--strict cannot be combined with --no-check" << std::endl;
+        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+        flush_and_exit(CLI_INVALID_PARAMS);
+    }
     std::map<std::string, std::string> record_key_values;
 
     ConfigOptionBool* downward_check_option = m_config.option<ConfigOptionBool>("downward_check");
     if (downward_check_option)
         downward_check = downward_check_option->value;
+
+    // --inspect-mesh prints its JSON and exits, so any action that does work of its
+    // own (slicing, exporting) would be skipped without notice. Reject those up front;
+    // only options that merely tune how the input is loaded may come along.
+    if (std::find(m_actions.begin(), m_actions.end(), "inspect_mesh") != m_actions.end()) {
+        static const std::set<std::string> inspect_compatible = { "inspect_mesh", "uptodate", "load_defaultfila", "min_save",
+                                                                  "mtcpp", "mstpp", "no_check", "normative_check", "pipe" };
+        for (const std::string &action : m_actions) {
+            if (inspect_compatible.count(action) == 0) {
+                std::string flag = action;
+                std::replace(flag.begin(), flag.end(), '_', '-');
+                boost::nowide::cerr << "--inspect-mesh cannot be combined with --" << flag << std::endl;
+                record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                flush_and_exit(CLI_INVALID_PARAMS);
+            }
+        }
+        // Without input there is nothing to inspect; fail rather than print nothing and exit 0.
+        if (m_input_files.empty() && m_config.opt_string("load_assemble_list").empty()) {
+            boost::nowide::cerr << "--inspect-mesh needs an input file or --load-assemble-list" << std::endl;
+            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+            flush_and_exit(CLI_INVALID_PARAMS);
+        }
+    }
+
+    // --inspect-paint prints its JSON and exits, so any action that does work of its
+    // own (slicing, exporting) would be skipped without notice. Reject those up front;
+    // only options that merely tune how the input is loaded may come along.
+    if (std::find(m_actions.begin(), m_actions.end(), "inspect_paint") != m_actions.end()) {
+        static const std::set<std::string> inspect_compatible = { "inspect_paint", "uptodate", "load_defaultfila", "min_save",
+                                                                  "mtcpp", "mstpp", "no_check", "normative_check", "pipe" };
+        for (const std::string &action : m_actions) {
+            if (inspect_compatible.count(action) == 0) {
+                std::string flag = action;
+                std::replace(flag.begin(), flag.end(), '_', '-');
+                boost::nowide::cerr << "--inspect-paint cannot be combined with --" << flag << std::endl;
+                record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                flush_and_exit(CLI_INVALID_PARAMS);
+            }
+        }
+        // Without input there is nothing to inspect; fail rather than print nothing and exit 0.
+        if (m_input_files.empty() && m_config.opt_string("load_assemble_list").empty()) {
+            boost::nowide::cerr << "--inspect-paint needs an input file or --load-assemble-list" << std::endl;
+            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+            flush_and_exit(CLI_INVALID_PARAMS);
+        }
+    }
+
+    // --export-settings - writes its JSON to stdout, so reject every action or transform that may write there
+    // too (--info, --help, --orient, slicing and exporting). The allowed ones do nothing when nothing is
+    // sliced or exported.
+    if (std::find(m_actions.begin(), m_actions.end(), "export_settings") != m_actions.end() && m_config.opt_string("export_settings") == "-") {
+        static const std::set<std::string> stdout_compatible = { "export_settings", "uptodate", "load_defaultfila", "min_save",
+                                                                 "mtcpp", "mstpp", "no_check", "normative_check", "pipe" };
+        for (const std::vector<std::string> *opt_keys : { &m_actions, &m_transforms }) {
+            for (const std::string &opt_key : *opt_keys) {
+                if (stdout_compatible.count(opt_key) == 0) {
+                    std::string flag = opt_key;
+                    std::replace(flag.begin(), flag.end(), '_', '-');
+                    boost::nowide::cerr << "--export-settings - cannot be combined with --" << flag << std::endl;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+            }
+        }
+    }
 
     bool start_gui = m_actions.empty() && !downward_check;
     if (start_gui) {
@@ -1460,6 +1569,10 @@ int CLI::run(int argc, char **argv)
     std::vector<std::string> upward_compatible_printers, new_print_compatible_printers, current_print_compatible_printers, current_different_settings;
     std::vector<std::string> current_filaments_name, current_filaments_system_name, current_inherits_group, current_extruder_variants, new_extruder_variants, current_print_extruder_variants, new_printer_extruder_variants;
     DynamicPrintConfig load_process_config, load_machine_config;
+    //ORCA: full configs of the "current" (3MF-embedded) process/printer presets, kept so that
+    //      compatible_printers_condition can be evaluated for them below. Previously only the
+    //      literal compatible_printers list was extracted.
+    DynamicPrintConfig current_process_full_config, current_printer_full_config;
     bool new_process_config_is_system = true, new_printer_config_is_system = true;
     std::string pipe_name, makerlab_name, makerlab_version, different_process_setting;
     const std::vector<std::string>              &metadata_name               = m_config.option<ConfigOptionStrings>("metadata_name", true)->values;
@@ -1791,8 +1904,9 @@ int CLI::run(int argc, char **argv)
                     old_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
                     old_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
                     if (old_printable_area.size() >= 4) {
-                        old_printable_width = (int)(old_printable_area[2].x() - old_printable_area[0].x());
-                        old_printable_depth = (int)(old_printable_area[2].y() - old_printable_area[0].y());
+                        BoundingBoxf old_printable_bbox(old_printable_area);
+                        old_printable_width = static_cast<int>(old_printable_bbox.size().x());
+                        old_printable_depth = static_cast<int>(old_printable_bbox.size().y());
                     }
                     old_printable_height = (int)(config.opt_float("printable_height"));
 
@@ -1918,7 +2032,7 @@ int CLI::run(int argc, char **argv)
             }
         }
         catch (std::exception& e) {
-            boost::nowide::cerr << construct_assemble_list << ": " << e.what() << std::endl;
+            boost::nowide::cerr << "construct_assemble_list: " << e.what() << std::endl;
             record_exit_reson(outfile_dir, CLI_DATA_FILE_ERROR, 0, cli_errors[CLI_DATA_FILE_ERROR], sliced_info);
             flush_and_exit(CLI_DATA_FILE_ERROR);
         }
@@ -1967,7 +2081,126 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [config_substitution_rule](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    std::unique_ptr<PresetBundle> cli_preset_bundle;
+    auto ensure_cli_preset_bundle = [&cli_preset_bundle](std::string &error) -> PresetBundle * {
+        if (cli_preset_bundle)
+            return cli_preset_bundle.get();
+        try {
+            AppConfig app_config;
+            const std::string app_config_error = app_config.load_if_exists();
+            if (!app_config_error.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI preset resolution: " << app_config_error;
+                app_config.reset();
+            }
+
+            auto bundle = std::make_unique<PresetBundle>();
+            std::string load_error;
+            bundle->load_presets(app_config, config_substitution_rule,
+                                 PresetBundle::PresetPreferences(), &load_error, true);
+            if (!load_error.empty()) {
+                error = "Failed to load presets for inheritance resolution: " + load_error;
+                return nullptr;
+            }
+            cli_preset_bundle = std::move(bundle);
+            return cli_preset_bundle.get();
+        } catch (const std::exception &ex) {
+            error = ex.what();
+            return nullptr;
+        }
+    };
+
+    // One resolver for the whole run, so presets from the same vendor tree share its load.
+    std::unique_ptr<PresetBundle> system_preset_resolver;
+    auto resolve_preset = [&ensure_cli_preset_bundle, &system_preset_resolver](const std::string &file, DynamicPrintConfig &config,
+                                                                               std::string &config_type, const std::string &config_from,
+                                                                               bool probe_type, std::string &error) {
+        const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
+        if (!probe_type && (inherits == nullptr || inherits->value.empty()))
+            return true;
+
+        PresetBundle                 *bundle = nullptr;
+        bool                          allow_source_manifest = false;
+        if (config_from == "system") {
+            if (!system_preset_resolver)
+                system_preset_resolver = std::make_unique<PresetBundle>();
+            bundle                = system_preset_resolver.get();
+            allow_source_manifest = true;
+        } else {
+            bundle = ensure_cli_preset_bundle(error);
+            if (bundle == nullptr)
+                return false;
+        }
+
+        if (probe_type) {
+            Preset::Type preset_type;
+            if (!bundle->resolve_preset_config_type(config, preset_type, file, config_substitution_rule,
+                                                    error, allow_source_manifest))
+                return false;
+            config_type = Preset::get_type_string(preset_type);
+            return true;
+        }
+
+        Preset::Type preset_type;
+        if (config_type == "process")
+            preset_type = Preset::TYPE_PRINT;
+        else if (config_type == "filament")
+            preset_type = Preset::TYPE_FILAMENT;
+        else if (config_type == "machine")
+            preset_type = Preset::TYPE_PRINTER;
+        else {
+            error = "Unsupported preset type: " + config_type;
+            return false;
+        }
+        return bundle->resolve_preset_config(config, preset_type, file, config_substitution_rule,
+                                             error, allow_source_manifest);
+    };
+
+    //ORCA: list the keys a user preset overrides relative to its system parent, for the
+    //      `different_settings_to_system` column of an exported 3MF. Without it the CLI
+    //      writes an empty column, so re-opening a CLI-exported project in the GUI shows
+    //      spurious "unsaved changes" and can revert inherited process/filament/machine
+    //      values to system defaults.
+    //
+    //      The parent comes from the preset bundle that inherits resolution already builds,
+    //      so this adds no extra loading. Returns "" whenever the parent cannot be resolved,
+    //      which is exactly the previous behaviour.
+    auto cli_different_settings = [&ensure_cli_preset_bundle](const DynamicPrintConfig &resolved,
+                                                              const std::string        &parent_name,
+                                                              Preset::Type              type) -> std::string {
+        if (parent_name.empty())
+            return std::string();
+        std::string   error;
+        PresetBundle *bundle = ensure_cli_preset_bundle(error);
+        if (bundle == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << "CLI: no preset bundle for different_settings_to_system: " << error;
+            return std::string();
+        }
+        const PresetCollection *collection = nullptr;
+        switch (type) {
+        case Preset::TYPE_PRINT:    collection = &bundle->prints;    break;
+        case Preset::TYPE_FILAMENT: collection = &bundle->filaments; break;
+        case Preset::TYPE_PRINTER:  collection = &bundle->printers;  break;
+        default:                    return std::string();
+        }
+        const Preset *parent = collection->find_preset2(parent_name, true);
+        if (parent == nullptr) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: parent preset '%1%' not found; leaving different_settings_to_system empty")%parent_name;
+            return std::string();
+        }
+        std::vector<std::string> keys = resolved.diff(parent->config);
+        //ORCA: preset metadata, not user-tunable settings. compatible_printers /
+        //      compatible_prints have their own tracking columns and would double-count.
+        keys.erase(std::remove_if(keys.begin(), keys.end(), [](const std::string &k) {
+                       return k == "inherits" || k == "compatible_printers" || k == "compatible_prints"
+                           || k == "compatible_printers_condition" || k == "compatible_prints_condition"
+                           || k == "print_settings_id" || k == "filament_settings_id" || k == "printer_settings_id";
+                   }),
+                   keys.end());
+        BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% overrides vs parent '%2%'")%keys.size()%parent_name;
+        return Slic3r::escape_strings_cstyle(keys);
+    };
+
+    auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -1996,9 +2229,15 @@ int CLI::run(int argc, char **argv)
             }
 
             auto type_iter = key_values.find(BBL_JSON_KEY_TYPE);
-            if (type_iter != key_values.end()) {
+            const bool probe_type = type_iter == key_values.end();
+            if (!probe_type)
                 config_type = type_iter->second;
+
+            if (!resolve_preset(file, config, config_type, config_from, probe_type, reason)) {
+                boost::nowide::cerr << __FUNCTION__ << boost::format(": can not resolve preset %1%: %2%") % file % reason << std::endl;
+                return CLI_CONFIG_FILE_ERROR;
             }
+
             if (config_type == "machine") {
                 //config.set("printer_settings_id", config_name, true);
                 //printer_inherits = config.option<ConfigOptionString>("inherits", true)->value;
@@ -2341,8 +2580,9 @@ int CLI::run(int argc, char **argv)
                         Pointfs orig_printable_area;
                         orig_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
                         if (orig_printable_area.size() >= 4) {
-                            orig_printable_width = (int)(orig_printable_area[2].x() - orig_printable_area[0].x());
-                            orig_printable_depth = (int)(orig_printable_area[2].y() - orig_printable_area[0].y());
+                            BoundingBoxf orig_printable_bbox(orig_printable_area);
+                            orig_printable_width = static_cast<int>(orig_printable_bbox.size().x());
+                            orig_printable_depth = static_cast<int>(orig_printable_bbox.size().y());
                         }
                         orig_printable_height = (int)(config.opt_float("printable_height"));
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(":%1%, check printable size: old_printable_width=%2%, orig_printable_width=%3%, old_printable_depth=%4%, orig_printable_depth=%5%, old_printable_height=%6%, orig_printable_height=%7%")
@@ -2549,6 +2789,8 @@ int CLI::run(int argc, char **argv)
                     flush_and_exit(ret);
                 }
                 upward_compatible_printers = config.option<ConfigOptionStrings>("upward_compatible_machine", true)->values;
+                //ORCA: keep the full config so compatible_printers_condition can be evaluated against it below
+                current_printer_full_config = std::move(config);
             }
         }
     }
@@ -2571,6 +2813,8 @@ int CLI::run(int argc, char **argv)
                     flush_and_exit(ret);
                 }
                 current_print_compatible_printers  = config.option<ConfigOptionStrings>("compatible_printers", true)->values;
+                //ORCA: keep the full config so compatible_printers_condition can be evaluated against it below
+                current_process_full_config = std::move(config);
             }
         }
     }
@@ -2589,46 +2833,88 @@ int CLI::run(int argc, char **argv)
     for (int index = 0; index < upward_compatible_printers.size(); index++) {
         BOOST_LOG_TRIVIAL(info) << boost::format("index %1%, upward_compatible_printers %2%")%index %upward_compatible_printers[index];
     }
+    //ORCA: Replace the four manual equality-loop checks below with is_compatible_with_printer(), the
+    //      same helper the GUI uses, which also evaluates compatible_printers_condition. Process
+    //      profiles that declare compatibility via condition only -- leaving compatible_printers
+    //      empty -- were always reported incompatible by the literal-name match, so a CLI slice with
+    //      such a preset exited with CLI_PROCESS_NOT_COMPATIBLE (-17) even though the GUI accepts the
+    //      same pair. Behaviour is unchanged where an explicit list exists: is_compatible_with_printer
+    //      does the same name match, and returns true when both list and condition are empty (which
+    //      matches the "old 3mf, no compatible printers" path below).
+    auto check_compat = [](const DynamicPrintConfig &process_cfg,
+                           const DynamicPrintConfig &printer_cfg,
+                           const std::string        &printer_name) -> bool {
+        return is_compatible_with_printer(process_cfg, Preset::TYPE_PRINT, printer_cfg, printer_name);
+    };
+
+    //ORCA: a 3MF's project config does not carry compatible_printers / compatible_printers_condition.
+    //      PresetBundle::construct_full_config() erases both and re-emits them as
+    //      print_compatible_printers and compatible_machine_expression_group; they are renamed back
+    //      only on the PresetBundle load path, which the CLI does not take. Feeding the project config
+    //      to the check as-is therefore presents no list and no condition, and
+    //      is_compatible_with_printer() reads that as "no constraint" and accepts every printer.
+    //      Translate the two keys back. Index 0 of the expression group is the print preset -- the
+    //      group is filled print, filaments, printer (PresetBundle.cpp).
+    //      The raw keys win whenever they carry something. A project the CLI exported itself has the
+    //      real compatible_printers_condition AND an all-empty compatible_machine_expression_group,
+    //      so copying the group's first entry unconditionally would overwrite a valid condition with
+    //      "" and accept every printer. The renamed keys are only a fallback, and an empty value is
+    //      never written over a real one.
+    auto cli_process_compat_config = [](const DynamicPrintConfig &project_cfg) -> DynamicPrintConfig {
+        DynamicPrintConfig cfg = project_cfg;
+        const auto *raw_list = project_cfg.option<ConfigOptionStrings>("compatible_printers");
+        const auto *list     = project_cfg.option<ConfigOptionStrings>("print_compatible_printers");
+        if ((raw_list == nullptr || raw_list->values.empty()) && list != nullptr && !list->values.empty())
+            cfg.set_key_value("compatible_printers", new ConfigOptionStrings(list->values));
+        const auto *raw_cond = project_cfg.option<ConfigOptionString>("compatible_printers_condition");
+        const auto *group    = project_cfg.option<ConfigOptionStrings>("compatible_machine_expression_group");
+        if ((raw_cond == nullptr || raw_cond->value.empty()) && group != nullptr && !group->values.empty() &&
+            !group->values.front().empty())
+            cfg.set_key_value("compatible_printers_condition", new ConfigOptionString(group->values.front()));
+        return cfg;
+    };
     if (!new_printer_name.empty()) {
         if (!new_process_name.empty()) {
-            for (int index = 0; index < new_print_compatible_printers.size(); index++) {
-                if (new_print_compatible_printers[index] == new_printer_system_name) {
-                    process_compatible = true;
-                    break;
-                }
-            }
+            //new process + new printer: both configs came from --load-settings
+            process_compatible = check_compat(load_process_config, load_machine_config, new_printer_system_name);
             BOOST_LOG_TRIVIAL(info) << boost::format("new printer %1%, inherited from %2%, new process %3%, inherited from %4% ,compatible %5%")
                 %new_printer_name %new_printer_system_name %new_process_name %new_process_system_name %process_compatible;
         }
         else {
-            for (int index = 0; index < current_print_compatible_printers.size(); index++) {
-                if (current_print_compatible_printers[index] == new_printer_system_name) {
-                    process_compatible = true;
-                    break;
-                }
+            //3MF-embedded process vs new printer. current_process_full_config is only populated from
+            //profiles/BBL/process_full/, so for every other vendor fall back to the 3MF's own project
+            //config in m_print_config, with its renamed compatibility keys translated back (see
+            //cli_process_compat_config above). Without this a 3MF built from a condition-only process
+            //is rejected when re-sliced with the very printer it was made for.
+            {
+                //ORCA: profiles/BBL/{process,machine}_full/ are gitignored and not generated in-tree,
+                //      so current_*_full_config is always empty and this fallback is the only live path.
+                const DynamicPrintConfig process_cfg = current_process_full_config.empty()
+                                                           ? cli_process_compat_config(m_print_config)
+                                                           : current_process_full_config;
+                process_compatible = check_compat(process_cfg, load_machine_config, new_printer_system_name);
             }
             BOOST_LOG_TRIVIAL(info) << boost::format("new printer %1%, inherited from %2%, old process %3%, inherited from %4% ,compatible %5%")
                 %new_printer_name %new_printer_system_name %current_process_name %current_process_system_name %process_compatible;
         }
     }
     else if (!new_process_name.empty()) {
-        for (int index = 0; index < new_print_compatible_printers.size(); index++) {
-            if (new_print_compatible_printers[index] == current_printer_system_name) {
-                process_compatible = true;
-                break;
-            }
+        //new process vs 3MF-embedded printer. As above, current_printer_full_config only resolves for
+        //BBL profiles; otherwise evaluate against the 3MF's own project config in m_print_config, which
+        //holds the embedded printer's printer_notes / nozzle_diameter.
+        {
+            const DynamicPrintConfig &printer_cfg = current_printer_full_config.empty() ? m_print_config : current_printer_full_config;
+            process_compatible = check_compat(load_process_config, printer_cfg, current_printer_system_name);
         }
         BOOST_LOG_TRIVIAL(info) << boost::format("old printer %1%, inherited from %2%, new process %3%, inherited from %4% ,compatible %5%")
             %current_printer_name %current_printer_system_name %new_process_name %new_process_system_name %process_compatible;
     }
     else {
-        //check the compatible of old printer&&process
-        for (int index = 0; index < current_print_compatible_printers.size(); index++) {
-            if (current_print_compatible_printers[index] == current_printer_system_name) {
-                process_compatible = true;
-                break;
-            }
-        }
+        //both sides 3MF-embedded (pure reprocess)
+        if (!current_process_full_config.empty() && !current_printer_full_config.empty())
+            process_compatible = check_compat(current_process_full_config, current_printer_full_config, current_printer_system_name);
+        else
+            process_compatible = std::find(current_print_compatible_printers.begin(), current_print_compatible_printers.end(), current_printer_system_name) != current_print_compatible_printers.end();
         if (!process_compatible && current_print_compatible_printers.empty())
         {
             BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf, no compatible printers, set to compatible");
@@ -2851,8 +3137,10 @@ int CLI::run(int argc, char **argv)
             }
         }
         else {
-            //todo: support user machine preset's different settings
-            different_settings[filament_count+1] = "";
+            //ORCA: was a //todo — compute the user's overrides instead of writing an empty column.
+            different_settings[filament_count+1] = new_printer_config_is_system
+                ? std::string()
+                : cli_different_settings(load_machine_config, new_printer_system_name, Preset::TYPE_PRINTER);
             if (new_printer_config_is_system)
                 inherits_group[filament_count+1] = "";
             else
@@ -2994,8 +3282,14 @@ int CLI::run(int argc, char **argv)
             print_compatible_printers = std::move(current_print_compatible_printers);
         }
         else {
-            //todo: support system process preset
-            different_settings[0] = "";
+            //ORCA: was a //todo. Prefer a value the loaded JSON already carried, otherwise
+            //      compute the overrides against the system parent.
+            if (!different_process_setting.empty())
+                different_settings[0] = different_process_setting;
+            else
+                different_settings[0] = new_process_config_is_system
+                    ? std::string()
+                    : cli_different_settings(load_process_config, new_process_system_name, Preset::TYPE_PRINT);
             if (new_process_config_is_system)
                 inherits_group[0] = "";
             else
@@ -3136,7 +3430,25 @@ int CLI::run(int argc, char **argv)
         std::vector<int> old_variant_counts(filament_count, 1), new_variant_counts;
 
         ConfigOptionInts* filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index");
-        if (!filament_self_index_opt) {
+        bool need_regenerate_self_index = !filament_self_index_opt;
+        if (filament_self_index_opt) {
+            // a filament_self_index carried over from a stale project can disagree with the
+            // current filament_count. old_start_indice/old_variant_counts below are sized to
+            // filament_count and walked with 1-based group indices, so an index above
+            // filament_count overruns old_start_indice[++k], and a non-positive first index
+            // writes old_variant_counts[-1] - both heap corruption.
+            int max_self_index = 0, min_self_index = 1;
+            for (int v : filament_self_index_opt->values) {
+                max_self_index = std::max(max_self_index, v);
+                min_self_index = std::min(min_self_index, v);
+            }
+            if (max_self_index > filament_count || min_self_index < 1) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] is invalid for filament_count %3%, regenerating")
+                        % min_self_index % max_self_index % filament_count;
+                need_regenerate_self_index = true;
+            }
+        }
+        if (need_regenerate_self_index) {
             filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index", true);
             std::vector<int>& filament_self_indice = filament_self_index_opt->values;
             filament_self_indice.resize(filament_count);
@@ -3164,6 +3476,16 @@ int CLI::run(int argc, char **argv)
             int filament_index = load_filaments_index[index];
             std::vector<std::string> different_keys;
 
+            //ORCA: diff before load_default_gcodes_to_config, the way the process and machine
+            //      slots above already do. That call materialises absent gcode keys via
+            //      option(..., true), and DynamicConfig::diff only compares keys present in
+            //      both configs -- so a gcode key the leaf did not carry would go from "not
+            //      compared" to "compared as empty against the parent" and land in the column
+            //      as an override the user never made.
+            std::string filament_different_settings;
+            if (load_filament_count > 0)
+                filament_different_settings = cli_different_settings(config, load_filaments_inherit[index], Preset::TYPE_FILAMENT);
+
             load_default_gcodes_to_config(config, Preset::TYPE_FILAMENT);
 
             if (load_filament_count > 0) {
@@ -3175,8 +3497,8 @@ int CLI::run(int argc, char **argv)
                 opt_filament_settings->set_at(filament_name_setting, filament_index-1, 0);
                 config.erase("filament_settings_id");
 
-                //todo: update different settings of filaments
-                different_settings[filament_index] = "";
+                //ORCA: was a //todo — same treatment as process/machine above.
+                different_settings[filament_index] = filament_different_settings;
                 inherits_group[filament_index] = load_filaments_inherit[index];
             }
             else {
@@ -3481,6 +3803,15 @@ int CLI::run(int argc, char **argv)
                 }
             }
 
+            // A mixed slot never reaches a nozzle, so its row and column stay empty, as in the GUI.
+            // Command line options are not merged into m_print_config yet, so they win here.
+            const ConfigOptionBools *is_mixed_opt = m_extra_config.option<ConfigOptionBools>("filament_is_mixed");
+            if (!is_mixed_opt)
+                is_mixed_opt = m_print_config.option<ConfigOptionBools>("filament_is_mixed");
+            auto is_mixed_slot = [is_mixed_opt](int idx) {
+                return is_mixed_opt && idx < static_cast<int>(is_mixed_opt->values.size()) && is_mixed_opt->values[idx];
+            };
+
             for (size_t nozzle_id = 0; nozzle_id < new_extruder_count; ++nozzle_id) {
             std::vector<double> flush_vol_mtx = get_flush_volumes_matrix(flush_vol_matrix, nozzle_id, new_extruder_count);
                 for (int from_idx = 0; from_idx < project_filament_count; from_idx++) {
@@ -3490,7 +3821,7 @@ int CLI::run(int argc, char **argv)
                     bool is_from_support = filament_is_support->get_at(from_idx);
                     for (int to_idx = 0; to_idx < project_filament_count; to_idx++) {
                         bool is_to_support = filament_is_support->get_at(to_idx);
-                        if (from_idx == to_idx) {
+                        if (from_idx == to_idx || is_mixed_slot(from_idx) || is_mixed_slot(to_idx)) {
                             flush_vol_mtx[project_filament_count * from_idx + to_idx] = 0.f;
                         } else {
                             int flushing_volume = 0;
@@ -3627,11 +3958,112 @@ int CLI::run(int argc, char **argv)
         }
     }
 
+    //ORCA: settings passed on the command line (--sparse-infill-density 25% ...) override the loaded
+    //      presets right here, so they belong in different_settings_to_system just as a preset
+    //      override does. Without them re-opening the exported project in the GUI shows nothing
+    //      modified and reverts those values to the system presets'.
+    //
+    //      The keys come from m_config, not m_extra_config: read_cli() puts only what the user typed
+    //      into m_config (setup() adds nothing but CLI-own defaults), whereas the CLI writes its own
+    //      values into m_extra_config. Only keys whose value the override actually changed are
+    //      recorded -- a typed value equal to the loaded one modifies nothing -- and each lands in
+    //      the column(s) whose preset type owns it: [0] process, [1..n-2] filaments, [n-1] printer.
+    //
+    //      "Changed" is judged the way the value is read: a list is compared entry by entry with a
+    //      missing entry read as the first, as get_at() does -- so --nozzle-temperature 245 against
+    //      245,245,245 is no change, although the two serialize differently.
+    //
+    //      A key the loaded config does not carry at all is always recorded, even if the typed value
+    //      equals the built-in default. On reopen the GUI restores an unlisted key from the SYSTEM
+    //      preset, which need not match that default: a 3MF written before an option existed leaves
+    //      it absent here, and --sparse-infill-density 20% (the default) against a Prusa system 15%
+    //      would otherwise go unrecorded and be reverted. Over-recording is cosmetic; under-recording
+    //      loses the value.
+    std::map<std::string, std::unique_ptr<ConfigOption>> cli_override_before;
+    for (const std::string &key : m_config.keys()) {
+        if (!m_extra_config.has(key))
+            continue;
+        const ConfigOption *loaded = m_print_config.option(key);
+        cli_override_before[key].reset(loaded != nullptr ? loaded->clone() : nullptr); // null: always recorded
+    }
+
     // Apply command line options to a more specific DynamicPrintConfig which provides normalize()
     // (command line options override --load files)
     m_print_config.apply(m_extra_config, true);
+
+    if (!cli_override_before.empty()) {
+        std::vector<std::string> &columns = m_print_config.option<ConfigOptionStrings>("different_settings_to_system", true)->values;
+        auto owned_by = [](const std::vector<std::string> &options, const std::string &key) {
+            return std::find(options.begin(), options.end(), key) != options.end();
+        };
+        auto add_to_column = [&columns](size_t index, const std::string &key) {
+            std::vector<std::string> keys;
+            Slic3r::unescape_strings_cstyle(columns[index], keys);
+            if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+                keys.push_back(key);
+                columns[index] = Slic3r::escape_strings_cstyle(keys);
+            }
+        };
+        auto same_value = [](const ConfigOption *a, const ConfigOption *b) {
+            if (a == nullptr || b == nullptr)
+                return false;
+            const auto *va = dynamic_cast<const ConfigOptionVectorBase *>(a);
+            const auto *vb = dynamic_cast<const ConfigOptionVectorBase *>(b);
+            if (va == nullptr || vb == nullptr)
+                return va == vb && a->serialize() == b->serialize();
+            const std::vector<std::string> ea = va->vserialize(), eb = vb->vserialize();
+            if (ea.empty() || eb.empty())
+                return ea.empty() && eb.empty();
+            for (size_t i = 0; i < std::max(ea.size(), eb.size()); ++i)
+                if (ea[i < ea.size() ? i : 0] != eb[i < eb.size() ? i : 0])
+                    return false;
+            return true;
+        };
+        //ORCA: always true after the resize to filament_count + 2 above, and nothing in between can
+        //      shrink the column vector -- different_settings_to_system is not a CLI option. Kept as
+        //      a check rather than an assert: release builds compile asserts out, so an assert would
+        //      protect nothing, while a build with _GLIBCXX_ASSERTIONS would abort on columns[0].
+        if (columns.size() >= 2) {
+            for (const auto &[key, before] : cli_override_before) {
+                if (same_value(before.get(), m_print_config.option(key)))
+                    continue;
+                bool recorded = false;
+                if (owned_by(Preset::print_options(), key)) {
+                    add_to_column(0, key);
+                    recorded = true;
+                }
+                if (owned_by(Preset::filament_options(), key)) {
+                    for (size_t i = 1; i + 1 < columns.size(); ++i)
+                        add_to_column(i, key);
+                    recorded = true;
+                }
+                if (owned_by(Preset::printer_options(), key)) {
+                    add_to_column(columns.size() - 1, key);
+                    recorded = true;
+                }
+                if (recorded)
+                    BOOST_LOG_TRIVIAL(info) << boost::format("CLI: override %1% recorded in different_settings_to_system") % key;
+            }
+        }
+    }
     // Normalizing after importing the 3MFs / AMFs
     m_print_config.normalize_fdm();
+
+    // A mixed slot is virtual but still needs a filament entry of its own. Without one, feature
+    // filament ids aimed at it fall outside the filament count, are reset to the first filament
+    // and the model silently prints in a single colour.
+    if (const auto *is_mixed_opt = m_print_config.option<ConfigOptionBools>("filament_is_mixed")) {
+        const auto &is_mixed = is_mixed_opt->values;
+        for (size_t slot = static_cast<size_t>(std::max(filament_count, 0)); slot < is_mixed.size(); ++slot) {
+            if (!is_mixed[slot])
+                continue;
+            BOOST_LOG_TRIVIAL(error) << boost::format("mixed filament slot %1% has no filament of its own, only %2% filaments are loaded; "
+                                                      "load one filament per slot, including each mixed one")
+                                            % (slot + 1) % filament_count;
+            record_exit_reson(outfile_dir, CLI_MIXED_FILAMENT_INVALID, 0, cli_errors[CLI_MIXED_FILAMENT_INVALID], sliced_info);
+            flush_and_exit(CLI_MIXED_FILAMENT_INVALID);
+        }
+    }
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 
@@ -3687,6 +4119,15 @@ int CLI::run(int argc, char **argv)
     bool is_smooth_timelapse = false;
     if (enable_timelapse && timelapse_type_opt && (timelapse_type_opt->getInt() == TimelapseType::tlSmooth))
         is_smooth_timelapse = true;
+    // A mixed filament swaps between its components every layer, so it needs the tower even when
+    // every loaded preset is the same.
+    if (disable_wipe_tower_after_mapping) {
+        if (const auto *is_mixed_opt = m_print_config.option<ConfigOptionBools>("filament_is_mixed");
+            is_mixed_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+            disable_wipe_tower_after_mapping = false;
+            BOOST_LOG_TRIVIAL(info) << boost::format("%1%, set disable_wipe_tower_after_mapping back to false due to a mixed filament")%__LINE__;
+        }
+    }
     if (disable_wipe_tower_after_mapping) {
         if (is_smooth_timelapse)
         {
@@ -3730,6 +4171,8 @@ int CLI::run(int argc, char **argv)
     double height_to_lid = m_print_config.opt_float("extruder_clearance_height_to_lid");
     double height_to_rod = m_print_config.opt_float("extruder_clearance_height_to_rod");
     double clearance_radius = m_print_config.opt_float("extruder_clearance_radius");
+    double nozzle_height = m_print_config.opt_float("nozzle_height");
+    Vec2d align_center = m_print_config.option<ConfigOptionPoint>("best_object_pos")->value;
     int shared_printable_width = 0, shared_printable_depth = 0, shared_printable_height = 0, shared_center_x = 0, shared_center_y = 0;
     //double plate_stride;
     std::string bed_texture;
@@ -3740,8 +4183,11 @@ int CLI::run(int argc, char **argv)
     if (m_print_config.opt<ConfigOptionFloatsNullable>("extruder_printable_height")) {
         current_extruder_print_heights = m_print_config.opt<ConfigOptionFloatsNullable>("extruder_printable_height")->values;
     }
-    current_printable_width = current_printable_area[2].x() - current_printable_area[0].x();
-    current_printable_depth = current_printable_area[2].y() - current_printable_area[0].y();
+    {
+        BoundingBoxf current_printable_bbox(current_printable_area);
+        current_printable_width = static_cast<int>(current_printable_bbox.size().x());
+        current_printable_depth = static_cast<int>(current_printable_bbox.size().y());
+    }
     current_printable_height = print_height;
     if (old_printable_width == 0)
         old_printable_width = current_printable_width;
@@ -3906,7 +4352,7 @@ int CLI::run(int argc, char **argv)
         }
     };
 
-    auto check_plate_wipe_tower = [get_print_sequence, is_smooth_timelapse, new_extruder_count](Slic3r::GUI::PartPlate* plate, int plate_index, DynamicPrintConfig& print_config, plate_obj_size_info_t &plate_obj_size_info) {
+    auto check_plate_wipe_tower = [get_print_sequence, is_smooth_timelapse](Slic3r::GUI::PartPlate* plate, int plate_index, DynamicPrintConfig& print_config, plate_obj_size_info_t &plate_obj_size_info) {
         plate_obj_size_info.obj_bbox= plate->get_objects_bounding_box();
         BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, object bbox: min {%2%, %3%, %4%} - max {%5%, %6%, %7%}")
                     %(plate_index+1) %plate_obj_size_info.obj_bbox.min.x() % plate_obj_size_info.obj_bbox.min.y() % plate_obj_size_info.obj_bbox.min.z() %plate_obj_size_info.obj_bbox.max.x() % plate_obj_size_info.obj_bbox.max.y() % plate_obj_size_info.obj_bbox.max.z();
@@ -3942,25 +4388,21 @@ int CLI::run(int argc, char **argv)
         ConfigOptionFloats *wipe_x_option = dynamic_cast<ConfigOptionFloats *>(print_config.option("wipe_tower_x"));
         ConfigOptionFloats *wipe_y_option = dynamic_cast<ConfigOptionFloats *>(print_config.option("wipe_tower_y"));
 
+        // get_at() silently clamps an out-of-range index to entry 0 - make the reuse visible
+        if (static_cast<size_t>(plate_index) >= wipe_x_option->values.size() || static_cast<size_t>(plate_index) >= wipe_y_option->values.size()) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: wipe_tower_x/y only has %2%/%3% entries, reusing entry 0's position")
+                    %(plate_index+1) %wipe_x_option->values.size() %wipe_y_option->values.size();
+        }
         plate_obj_size_info.wipe_x = wipe_x_option->get_at(plate_index);
         plate_obj_size_info.wipe_y = wipe_y_option->get_at(plate_index);
 
-        ConfigOptionFloat* width_option = print_config.option<ConfigOptionFloat>("prime_tower_width", true);
-        plate_obj_size_info.wipe_width = width_option->value;
+        // Body and brim from one estimate: resolving an auto (-1) brim against a different
+        // height would size the two halves of the same tower from two different objects.
+        const WipeTowerFootprint footprint = plate->estimate_wipe_tower_footprint(print_config, filaments_cnt);
+        float brim_width = float(footprint.brim_width);
 
-        ConfigOptionFloat* brim_width_option = print_config.option<ConfigOptionFloat>("prime_tower_brim_width", true);
-        float brim_width = brim_width_option->value;
-        if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float)plate_obj_size_info.obj_bbox.max.z());
-
-        ConfigOptionFloat* volume_option = print_config.option<ConfigOptionFloat>("prime_volume", true);
-        float wipe_volume = volume_option->value;
-
-        const ConfigOptionBool * wrapping_detection = print_config.option<ConfigOptionBool>("enable_wrapping_detection");
-        bool enable_wrapping = (wrapping_detection != nullptr) && wrapping_detection->value;
-
-        Vec3d wipe_tower_size = plate->estimate_wipe_tower_size(print_config, plate_obj_size_info.wipe_width, wipe_volume, new_extruder_count, filaments_cnt, false, enable_wrapping);
-        plate_obj_size_info.wipe_width = wipe_tower_size(0);
-        plate_obj_size_info.wipe_depth = wipe_tower_size(1);
+        plate_obj_size_info.wipe_width = footprint.width;
+        plate_obj_size_info.wipe_depth = footprint.depth;
 
         Vec3d origin = plate->get_origin();
         Vec3d start(origin(0) + plate_obj_size_info.wipe_x - brim_width, origin(1) + plate_obj_size_info.wipe_y, 0.f);
@@ -4137,8 +4579,9 @@ int CLI::run(int argc, char **argv)
             temp_extruder_print_heights = config.option<ConfigOptionFloatsNullable>("extruder_printable_height", true)->values;
 
             if (temp_printable_area.size() >= 4) {
-                printer_plate.printable_width = (int)(temp_printable_area[2].x() - temp_printable_area[0].x());
-                printer_plate.printable_depth = (int)(temp_printable_area[2].y() - temp_printable_area[0].y());
+                BoundingBoxf temp_printable_bbox(temp_printable_area);
+                printer_plate.printable_width = static_cast<int>(temp_printable_bbox.size().x());
+                printer_plate.printable_depth = static_cast<int>(temp_printable_bbox.size().y());
                 printer_plate.printable_height = (int)(config.opt_float("printable_height"));
             }
             if (temp_exclude_area.size() >= 4) {
@@ -4447,6 +4890,64 @@ int CLI::run(int argc, char **argv)
                 for (auto &o : model.objects)
                     // this affects volumes:
                     o->rotate(Geometry::deg2rad(m_config.opt_float(opt_key)), Y);
+        } else if (opt_key == "ground_largest_face" || opt_key == "ground_face_normal" || opt_key == "ground_face_point") {
+            // Each instance is laid on one of its lay-on-face planes, which are computed from the current part
+            // transformations, so the rotations given before this option are respected. A direction or point is in
+            // object coordinates, so it names the same face for every instance of an object.
+            std::function<int(const std::vector<LayOnFacePlane>&, const Transform3d&)> pick;
+            if (opt_key == "ground_largest_face") {
+                if (m_config.opt_bool(opt_key))
+                    pick = [](const std::vector<LayOnFacePlane>& planes, const Transform3d&) { return find_largest_plane(planes); };
+            } else {
+                // Only options given on the command line reach this loop, so an empty value is malformed input too.
+                const std::string& value = m_config.opt_string(opt_key);
+                Vec3d v;
+                int   consumed = 0;
+                if (sscanf(value.c_str(), "%lf,%lf,%lf%n", &v.x(), &v.y(), &v.z(), &consumed) != 3 || consumed != int(value.size()) ||
+                    !v.allFinite() || (opt_key == "ground_face_normal" && v.norm() < EPSILON)) {
+                    BOOST_LOG_TRIVIAL(error) << boost::format("Invalid params: %1% expects three comma-separated numbers, got \"%2%\"") % opt_key % value;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+                if (opt_key == "ground_face_normal")
+                    pick = [v](const std::vector<LayOnFacePlane>& planes, const Transform3d&) { return find_plane_by_normal(planes, v); };
+                else
+                    pick = [v](const std::vector<LayOnFacePlane>& planes, const Transform3d& inst_matrix) {
+                        return find_plane_at_point(planes, inst_matrix, v, 0.01);
+                    };
+            }
+            if (pick) {
+                size_t laid = 0, missed = 0;
+                for (auto& model : m_models) {
+                    model.add_default_instances();
+                    for (ModelObject* o : model.objects)
+                        for (size_t i = 0; i < o->instances.size(); ++i) {
+                            const Transform3d                 inst_matrix = o->instances[i]->get_matrix_no_offset();
+                            const std::vector<LayOnFacePlane> planes      = lay_on_face_planes(*o, inst_matrix);
+                            if (planes.empty()) {
+                                // Small or smooth parts (e.g. a sphere) have no face to rest on; the gizmo offers none either.
+                                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: object %2% has no face large enough to lay on, left as it is") % opt_key % o->name;
+                                continue;
+                            }
+                            const int idx = pick(planes, inst_matrix);
+                            if (idx < 0) {
+                                // Only a point can miss: with several objects it usually belongs to one of them.
+                                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: no face of object %2% contains the point, left as it is") % opt_key % o->name;
+                                ++missed;
+                                continue;
+                            }
+                            BOOST_LOG_TRIVIAL(info) << boost::format("%1%: object %2% instance %3% laid on the %4% mm2 face with normal %5%")
+                                                        % opt_key % o->name % i % planes[idx].area % planes[idx].normal.transpose();
+                            lay_on_face(*o, i, planes[idx].normal);
+                            ++laid;
+                        }
+                }
+                if (laid == 0 && missed > 0) {
+                    BOOST_LOG_TRIVIAL(error) << boost::format("Invalid params: %1%: no face of any object contains the point") % opt_key;
+                    record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                    flush_and_exit(CLI_INVALID_PARAMS);
+                }
+            }
         } else if (opt_key == "scale") {
             float ratio = m_config.opt_float(opt_key);
             if (ratio <= 0.f) {
@@ -4720,13 +5221,16 @@ int CLI::run(int argc, char **argv)
                     }
                 }
 
-                if (!arrange_cfg.is_seq_print && (assemble_plate.filaments_count > 1)||(enable_wrapping_detect && !current_wrapping_exclude_area.empty()))
+                if ((!arrange_cfg.is_seq_print && (assemble_plate.filaments_count > 1))||(enable_wrapping_detect && !current_wrapping_exclude_area.empty()))
                 {
                     //prepare the wipe tower
                     int plate_count = partplate_list.get_plate_count();
 
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
-                    const float tower_brim_width = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true)->value;
+                    // This margin only pre-adjusts the default away from the near edges;
+                    // estimate_wipe_tower_polygon below computes the real clamped position.
+                    float tower_brim_width = m_print_config.option<ConfigOptionFloat>("prime_tower_brim_width", true)->value;
+                    if (tower_brim_width < 0.f) tower_brim_width = 8.f; // auto: object heights unknown here, 8 mm is the auto cap
                     const float tower_margin = WIPE_TOWER_MARGIN + tower_brim_width;
 
                     // set the default position, the same with print config(left top)
@@ -4760,7 +5264,7 @@ int CLI::run(int argc, char **argv)
                     wipe_y_option->set_at(&wt_y_opt, i, 0);
 
                     Vec3d wipe_tower_size, wipe_tower_pos;
-                    ArrangePolygon wipe_tower_ap = cur_plate->estimate_wipe_tower_polygon(m_print_config, i, wipe_tower_pos, wipe_tower_size, new_extruder_count, assemble_plate.filaments_count, true);
+                    ArrangePolygon wipe_tower_ap = cur_plate->estimate_wipe_tower_polygon(m_print_config, i, wipe_tower_pos, wipe_tower_size, assemble_plate.filaments_count, true);
 
                     //update the new wp position
                     wt_x_opt.value = wipe_tower_pos(0);
@@ -4786,6 +5290,8 @@ int CLI::run(int argc, char **argv)
                 arrange_cfg.clearance_height_to_rod = height_to_rod;
                 arrange_cfg.clearance_height_to_lid = height_to_lid;
                 arrange_cfg.clearance_radius = clearance_radius;
+                arrange_cfg.nozzle_height = nozzle_height;
+                arrange_cfg.align_center = align_center;
                 arrange_cfg.printable_height = print_height;
                 arrange_cfg.min_obj_distance = 0;
                 if (arrange_cfg.is_seq_print) {
@@ -5001,7 +5507,7 @@ int CLI::run(int argc, char **argv)
                                 //skip this object due to be locked in plate
                                 ap.itemid = locked_aps.size();
                                 locked_aps.emplace_back(ap);
-                                boost::nowide::cout <<__FUNCTION__ << boost::format(": skip locked instance, obj_id %1%, instance_id %2%") % oidx % inst_idx;
+                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": skip locked instance, obj_id %1%, instance_id %2%") % oidx % inst_idx;
                             }
                         }
                     }
@@ -5021,7 +5527,10 @@ int CLI::run(int argc, char **argv)
                         int extruder_size = used_filament_set.size();
 
                         auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
-                        const float tower_brim_width      = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true)->value;
+                        // This margin only pre-adjusts the default away from the near edges;
+                        // estimate_wipe_tower_polygon below computes the real clamped position.
+                        float tower_brim_width = m_print_config.option<ConfigOptionFloat>("prime_tower_brim_width", true)->value;
+                        if (tower_brim_width < 0.f) tower_brim_width = 8.f; // auto: object heights unknown here, 8 mm is the auto cap
                         const float tower_margin          = WIPE_TOWER_MARGIN + tower_brim_width;
                         // set the default position, the same with print config(left top)
                         float x = WIPE_TOWER_DEFAULT_X_POS;
@@ -5058,7 +5567,7 @@ int CLI::run(int argc, char **argv)
                             }
 
                             Vec3d wipe_tower_size, wipe_tower_pos;
-                            ArrangePolygon wipe_tower_ap = partplate_list.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(m_print_config, plate_index_valid, wipe_tower_pos, wipe_tower_size, new_extruder_count, extruder_size, true);
+                            ArrangePolygon wipe_tower_ap = partplate_list.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(m_print_config, plate_index_valid, wipe_tower_pos, wipe_tower_size, extruder_size, true);
 
                             //update the new wp position
                             if (bedid < plate_count) {
@@ -5159,21 +5668,16 @@ int CLI::run(int argc, char **argv)
 
                             //float depth = v * (filaments_cnt - 1) / (layer_height * w);
 
-                            const ConfigOptionBool *wrapping_detection = m_print_config.option<ConfigOptionBool>("enable_wrapping_detection");
-                            bool   enable_wrapping    = (wrapping_detection != nullptr) && wrapping_detection->value;
-
-                            Vec3d wipe_tower_size = cur_plate->estimate_wipe_tower_size(m_print_config, w, v, new_extruder_count, filaments_cnt, false, enable_wrapping);
+                            const WipeTowerFootprint footprint = cur_plate->estimate_wipe_tower_footprint(m_print_config, filaments_cnt);
+                            Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
                             Vec3d plate_origin = cur_plate->get_origin();
-                            int plate_width, plate_depth, plate_height;
+                            int plate_width, plate_depth;
+                            double plate_height;
                             partplate_list.get_plate_size(plate_width, plate_depth, plate_height);
                             float depth = wipe_tower_size(1);
-                            float margin = 15.f, wp_brim_width = 0.f;
-                            ConfigOption *wipe_tower_brim_width_opt = m_print_config.option("prime_tower_brim_width");
-                            if (wipe_tower_brim_width_opt ) {
-                                wp_brim_width = wipe_tower_brim_width_opt->getFloat();
-                                if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%")%wp_brim_width;
-                            }
+                            // Brim already resolved against the height the body was sized from.
+                            float margin = 15.f, wp_brim_width = float(footprint.brim_width);
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%")%wp_brim_width;
                             w = wipe_tower_size(0);
 
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: x=%1%, y=%2%, width=%3%, depth=%4%, angle=%5%, prime_volume=%6%, filaments_cnt=%7%, layer_height=%8%, plate_width=%9%, plate_depth=%10%")
@@ -5236,6 +5740,8 @@ int CLI::run(int argc, char **argv)
                 arrange_cfg.clearance_height_to_rod             = height_to_rod;
                 arrange_cfg.clearance_height_to_lid             = height_to_lid;
                 arrange_cfg.clearance_radius                   = clearance_radius;
+                arrange_cfg.nozzle_height                       = nozzle_height;
+                arrange_cfg.align_center                        = align_center;
                 arrange_cfg.printable_height                    = print_height;
                 arrange_cfg.min_obj_distance = 0;
                 if (arrange_cfg.is_seq_print) {
@@ -5590,13 +6096,64 @@ int CLI::run(int argc, char **argv)
             //FIXME check for mixing the FFF / SLA parameters.
             // or better save fff_print_config vs. sla_print_config
             //m_print_config.save(m_config.opt_string("save"));
-            m_print_config.save_to_json(m_config.opt_string(opt_key), std::string("project_settings"), std::string("project"), std::string(SoftFever_VERSION));
+            const std::string &settings_file = m_config.opt_string(opt_key);
+            if (settings_file == "-")
+                m_print_config.save_to_json(boost::nowide::cout, "project_settings", "project", SoftFever_VERSION, /*replace_invalid_utf8=*/true);
+            else
+                m_print_config.save_to_json(settings_file, std::string("project_settings"), std::string("project"), std::string(SoftFever_VERSION));
         } else if (opt_key == "info") {
             // --info works on unrepaired model
             for (Model &model : m_models) {
                 model.add_default_instances();
                 model.print_info();
             }
+        } else if (opt_key == "inspect_mesh") {
+            // Machine-readable alternative to --info. Registered as an action so it satisfies the
+            // "needs an action" check and bypasses the GUI fallback, then exits once the JSON is out.
+            for (Model &model : m_models) {
+                model.add_default_instances();
+                Slic3r::MeshInspect::inspect_to_json(model, m_input_files, boost::nowide::cout);
+            }
+            boost::nowide::cout.flush();
+            // Conflicting actions were rejected before loading. Finish like the end of run().
+            // flush_and_exit() is not usable here: it prints "found error ..." to stdout,
+            // which would corrupt the JSON.
+#if defined(__linux__) || defined(__LINUX__)
+            if (g_cli_callback_mgr.is_started()) {
+                PrintBase::SlicingStatus slicing_status{100, "All done, Success"};
+                cli_status_callback(slicing_status);
+            }
+            g_cli_callback_mgr.stop();
+#endif
+            for (Model &m : m_models)
+                m.remove_backup_path_if_exist();
+            record_exit_reson(outfile_dir, CLI_SUCCESS, plate_to_slice, cli_errors[CLI_SUCCESS], sliced_info);
+            boost::nowide::cerr.flush();
+            return CLI_SUCCESS;
+        } else if (opt_key == "inspect_paint") {
+            // --inspect-paint — read the per-facet enforcer/blocker/extruder/
+            // fuzzy state from the loaded model and emit a JSON summary.
+            // Machine-readable alternative to opening the paint gizmos.
+            for (Model &model : m_models) {
+                model.add_default_instances();
+                Slic3r::PaintCLI::inspect_to_json(model, m_input_files, boost::nowide::cout);
+            }
+            boost::nowide::cout.flush();
+            // The tooltip promises "then exit"; conflicting actions were rejected before
+            // loading. Finish like the end of run(). flush_and_exit() is not usable here:
+            // it prints "found error ..." to stdout, which would corrupt the JSON.
+#if defined(__linux__) || defined(__LINUX__)
+            if (g_cli_callback_mgr.is_started()) {
+                PrintBase::SlicingStatus slicing_status{100, "All done, Success"};
+                cli_status_callback(slicing_status);
+            }
+            g_cli_callback_mgr.stop();
+#endif
+            for (Model &m : m_models)
+                m.remove_backup_path_if_exist();
+            record_exit_reson(outfile_dir, CLI_SUCCESS, plate_to_slice, cli_errors[CLI_SUCCESS], sliced_info);
+            boost::nowide::cerr.flush();
+            return CLI_SUCCESS;
         } else if (opt_key == "uptodate") {
             //already processed before
         } else if (opt_key == "min_save") {
@@ -5637,6 +6194,8 @@ int CLI::run(int argc, char **argv)
             export_3mf_file = m_config.opt_string(opt_key);
         }else if(opt_key=="no_check"){
             no_check = m_config.opt_bool(opt_key);
+        }else if(opt_key=="strict"){
+            //already read into sliced_info at the start of run()
         //} else if (opt_key == "export_gcode" || opt_key == "export_sla" || opt_key == "slice") {
         } else if (opt_key == "normative_check") {
             //already processed before
@@ -5686,6 +6245,34 @@ int CLI::run(int argc, char **argv)
                 std::string outfile;
                 //Print       fff_print;
                 std::vector<size_t> plate_triangle_counts(partplate_list.get_plate_count(), 0);
+
+                // The stored (or default) tower position may not fit the tower these plates
+                // need, and no CLI placement site runs on a plain slice - mirror the GUI's
+                // reload clamp and fit every plate's tower into the printable area first.
+                if (m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value) {
+                    for (int index = 0; index < partplate_list.get_plate_count(); index++) {
+                        if ((plate_to_slice != 0) && (plate_to_slice != (index + 1)))
+                            continue;
+                        Slic3r::GUI::PartPlate *plate = partplate_list.get_plate(index);
+                        // Printing by object disables the tower only with more than one instance.
+                        bool is_seq_print = false;
+                        get_print_sequence(plate, m_print_config, is_seq_print);
+                        if (is_seq_print && plate->printable_instance_size() > 1)
+                            continue;
+                        // An empty estimate is a plate that prints no tower (one filament and
+                        // neither smooth timelapse, wrapping detection nor a raft).
+                        Vec3d wt_pos, wt_size;
+                        plate->estimate_wipe_tower_polygon(m_print_config, index, wt_pos, wt_size);
+                        if (wt_size(0) < EPSILON || wt_size(1) < EPSILON)
+                            continue;
+                        ConfigOptionFloat wt_x_opt((float) wt_pos(0));
+                        ConfigOptionFloat wt_y_opt((float) wt_pos(1));
+                        m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true)->set_at(&wt_x_opt, index, 0);
+                        m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true)->set_at(&wt_y_opt, index, 0);
+                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%: wipe tower clamped to {%2%, %3%}, size {%4%, %5%}")
+                            % (index + 1) % wt_pos(0) % wt_pos(1) % wt_size(0) % wt_size(1);
+                    }
+                }
 
                 while(!finished)
                 {
@@ -5856,6 +6443,36 @@ int CLI::run(int argc, char **argv)
                                 BOOST_LOG_TRIVIAL(error) << boost::format("plate %1% : Found 2 or more tpu filaments on plate ") % (index + 1);
                                 record_exit_reson(outfile_dir, CLI_ONLY_ONE_TPU_SUPPORTED, index + 1, cli_errors[CLI_ONLY_ONE_TPU_SUPPORTED], sliced_info);
                                 flush_and_exit(CLI_ONLY_ONE_TPU_SUPPORTED);
+                            }
+
+                            // Same type gate as the GUI's Sidebar::has_broken_mixed_filament: refuse a plate that uses a
+                            // mixed slot whose components are different filament types. Missing or out-of-range
+                            // components never get here, validate() already rejects them for the whole project.
+                            const auto *is_mixed_opt   = m_print_config.option<ConfigOptionBools>("filament_is_mixed");
+                            const auto *components_opt = m_print_config.option<ConfigOptionStrings>("filament_mixed_components");
+                            if (is_mixed_opt && components_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+                                const auto &is_mixed   = is_mixed_opt->values;
+                                const auto &components = components_opt->values;
+                                const size_t num_physical = static_cast<size_t>(filament_count) - static_cast<size_t>(std::count(is_mixed.begin(), is_mixed.end(), true));
+                                std::vector<std::string> physical_types(num_physical);
+                                for (size_t f_index = 0; f_index < num_physical; ++f_index) {
+                                    std::string displayed_type;
+                                    physical_types[f_index] = m_print_config.get_filament_type(displayed_type, static_cast<int>(f_index));
+                                    if (physical_types[f_index].empty())
+                                        physical_types[f_index] = "PLA";
+                                }
+                                const std::vector<size_t> mismatched_slots = check_mixed_filament_type_consistency(is_mixed, components, physical_types);
+                                // plate_filaments has mixed slots expanded to their components; the gate needs the slots.
+                                const std::vector<int> plate_slots = mismatched_slots.empty() ? std::vector<int>() :
+                                                                     part_plate->get_extruders_under_cli(true, m_print_config, false);
+                                for (size_t slot : mismatched_slots) {
+                                    if (std::find(plate_slots.begin(), plate_slots.end(), static_cast<int>(slot) + 1) == plate_slots.end())
+                                        continue;
+                                    BOOST_LOG_TRIVIAL(error) << boost::format("plate %1%: mixed filament %2% mixes components of different filament types")
+                                                                    % (index + 1) % (slot + 1);
+                                    record_exit_reson(outfile_dir, CLI_MIXED_FILAMENT_INVALID, index + 1, cli_errors[CLI_MIXED_FILAMENT_INVALID], sliced_info);
+                                    flush_and_exit(CLI_MIXED_FILAMENT_INVALID);
+                                }
                             }
 
                             if (new_extruder_count > 1) {
@@ -6287,6 +6904,15 @@ int CLI::run(int argc, char **argv)
 
                                                 if (status.warning_level == PrintStateBase::WarningLevel::NON_CRITICAL) {
                                                     BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": found NON_CRITICAL slicing warnings: "<<status.text <<std::endl;
+                                                    // Always record for AI/CI consumers; under --strict, elevate to a
+                                                    // non-zero exit so scripted pipelines don't ship a "warning OK" slice.
+                                                    cli_record_warning(sliced_info, "slicing_warning_non_critical",
+                                                                       nlohmann::json{{"plate_id", index+1}, {"text", status.text}});
+                                                    if (sliced_info.strict_mode) {
+                                                        sliced_info.sliced_plates.push_back(sliced_plate_info);
+                                                        record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index+1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                                        flush_and_exit(CLI_SLICING_ERROR);
+                                                    }
                                                 }
                                                 else {
                                                     BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: found slicing warnings: %2%, no_check=%3%")%(index+1) %status.text %no_check;
@@ -6495,13 +7121,26 @@ int CLI::run(int argc, char **argv)
         bool need_create_thumbnail_group = false, need_create_no_light_group = false, need_create_top_group = false;
 
         // get type and color for platedata
-        auto* filament_types = dynamic_cast<const ConfigOptionStrings*>(m_print_config.option("filament_type"));
         const ConfigOptionStrings* filament_color = dynamic_cast<const ConfigOptionStrings *>(m_print_config.option("filament_colour"));
         auto* filament_id = dynamic_cast<const ConfigOptionStrings*>(m_print_config.option("filament_ids"));
         const ConfigOptionFloats* nozzle_diameter_option = dynamic_cast<const ConfigOptionFloats *>(m_print_config.option("nozzle_diameter"));
         std::string nozzle_diameter_str;
         if (nozzle_diameter_option)
             nozzle_diameter_str = nozzle_diameter_option->serialize();
+#ifdef SLIC3R_GUI
+        // A Bambu printer reads slice_info.config and knows only its own catalog ids. The GUI
+        // gates the same translation on PresetBundle::is_bbl_vendor(); the CLI has no
+        // PresetBundle, so reuse the printer_model prefix that already decides
+        // Print::is_BBL_printer() for this same run.
+        auto* printer_model_option = dynamic_cast<const ConfigOptionString*>(m_print_config.option("printer_model"));
+        const bool is_bbl_printer = printer_model_option && printer_model_option->value.compare(0, 9, "Bambu Lab") == 0;
+        // No wxApp on the CLI path, so there is no live agent to ask; the translator is stateless
+        // over a lazily loaded map, so one instance serves every plate and filament below.
+        // ORCA TODO: this assumes Bambu's is the only agent with a catalog of its own. Once another
+        // agent carries one, resolve the agent from the selected printer the way
+        // GUI_App::resolve_printer_agent_id does, rather than hard-coding BBLPrinterAgent here.
+        const BBLPrinterAgent bbl_agent;
+#endif /* SLIC3R_GUI */
 
         for (int i = 0; i < plate_data_list.size(); i++) {
             PlateData *plate_data = plate_data_list[i];
@@ -6514,10 +7153,15 @@ int CLI::run(int argc, char **argv)
                 plate_data->nozzle_diameters = nozzle_diameter_str;
 
             for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+                // get_at() on an empty vector option is UB - these can be unpopulated on a from-scratch slice
                 std::string display_filament_type;
                 it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
-                it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-                it->filament_id = filament_id?filament_id->get_at(it->id):"";
+                it->color = (filament_color && !filament_color->values.empty()) ? filament_color->get_at(it->id) : "#FFFFFF";
+                it->filament_id = (filament_id && !filament_id->values.empty()) ? filament_id->get_at(it->id) : "";
+#ifdef SLIC3R_GUI
+                if (is_bbl_printer)
+                    it->filament_id = bbl_agent.from_orca_filament_id(it->filament_id);
+#endif /* SLIC3R_GUI */
             }
 
             if (!plate_data->plate_thumbnail.is_valid()) {
@@ -7292,6 +7936,13 @@ bool CLI::setup(int argc, char **argv)
         this->print_help();
         return false;
     }
+
+    // Orca: resolve here, while the process is still in the directory the user invoked it from.
+    // GUI_App's constructor moves the working directory to <data_dir>/log, long before the GUI
+    // opens these files in post_init(), and a relative path would then resolve against that.
+    for (std::string &input_file : m_input_files)
+        input_file = resolve_cli_input_path(input_file);
+
     // Parse actions and transform options.
     for (auto const &opt_key : opt_order) {
         if (cli_actions_config_def.has(opt_key))
@@ -7309,6 +7960,10 @@ bool CLI::setup(int argc, char **argv)
             m_config.option(optdef.first, true);
 
     set_data_dir(m_config.opt_string("datadir"));
+    if (!data_dir().empty() && !boost::filesystem::exists(data_dir())) {
+        boost::nowide::cerr << "Could not create data directory: " << data_dir() << std::endl;
+        return false;
+    }
 
     //FIXME Validating at this stage most likely does not make sense, as the config is not fully initialized yet.
     if (!validity.empty()) {
@@ -7382,7 +8037,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
         << std::endl
         << "Print setting priorities:" << std::endl
         << "\t1) setting values from the command line (highest priority)"<< std::endl
-        << "\t2) setting values loaded with --load_settings and --load_filaments" << std::endl
+        << "\t2) setting values loaded with --load-settings and --load-filaments" << std::endl
 	    << "\t3) setting values loaded from 3mf(lowest priority)" << std::endl;
 
     /*if (include_print_options) {
@@ -7421,6 +8076,10 @@ bool CLI::export_models(IO::ExportFormat format, std::string path_dir)
                 for (ModelObject* model_object : model.objects)
                 {
                     const std::string path = this->output_filepath(*model_object, index++, format, path_dir);
+                    if (path.empty()) {
+                        boost::nowide::cerr << "Could not create output directory for STL export" << std::endl;
+                        return false;
+                    }
                     success = Slic3r::store_stl(path.c_str(), model_object, true);
                     if (success)
                         BOOST_LOG_TRIVIAL(info) << "Model successfully exported to " << path << std::endl;
@@ -7546,8 +8205,19 @@ std::string CLI::output_filepath(const ModelObject &object, unsigned int index, 
     output_path = subdir + "/"+file_name;
 
     boost::filesystem::path subdir_path(subdir);
-    if (!boost::filesystem::exists(subdir_path))
-        boost::filesystem::create_directory(subdir_path);
+    if (!boost::filesystem::exists(subdir_path)) {
+        try {
+            boost::filesystem::create_directories(subdir_path);
+        } catch (const boost::filesystem::filesystem_error &ex) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create output directory " << subdir_path.string() << ": " << ex.what();
+        }
+        if (!boost::filesystem::exists(subdir_path)) {
+            // Directory creation failed and won't succeed on a retry (same path, same cause) -
+            // signal failure now instead of letting every object in the model repeat the same
+            // doomed attempt and fail with a less specific "export failed" error later.
+            return std::string();
+        }
+    }
     return output_path;
 }
 
