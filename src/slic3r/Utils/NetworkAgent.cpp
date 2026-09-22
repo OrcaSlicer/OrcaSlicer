@@ -953,11 +953,11 @@ std::string NetworkAgent::get_user_selected_machine()
 
 int NetworkAgent::set_user_selected_machine(std::string dev_id)
 {
-    BOOST_LOG_TRIVIAL(info) << "NetworkAgent::set_user_selected_machine: dev_id=" << dev_id
+    BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::set_user_selected_machine: dev_id=" << dev_id
                             << " printer_agent=" << (m_printer_agent ? m_printer_agent->get_agent_info().id : "<null>");
     if (m_printer_agent) {
         const int result = m_printer_agent->set_user_selected_machine(dev_id);
-        BOOST_LOG_TRIVIAL(info) << "NetworkAgent::set_user_selected_machine: result=" << result;
+        BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::set_user_selected_machine: result=" << result;
         return result;
     }
     BOOST_LOG_TRIVIAL(warning) << "NetworkAgent::set_user_selected_machine: no printer agent";
@@ -980,11 +980,11 @@ int NetworkAgent::stop_subscribe(std::string module)
 
 int NetworkAgent::add_subscribe(std::vector<std::string> dev_list)
 {
-    BOOST_LOG_TRIVIAL(info) << "NetworkAgent::add_subscribe: count=" << dev_list.size()
+    BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::add_subscribe: count=" << dev_list.size()
                             << " printer_agent=" << (m_printer_agent ? m_printer_agent->get_agent_info().id : "<null>");
     if (m_printer_agent) {
         const int result = m_printer_agent->add_subscribe(std::move(dev_list));
-        BOOST_LOG_TRIVIAL(info) << "NetworkAgent::add_subscribe: result=" << result;
+        BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::add_subscribe: result=" << result;
         return result;
     }
     BOOST_LOG_TRIVIAL(warning) << "NetworkAgent::add_subscribe: no printer agent";
@@ -993,11 +993,11 @@ int NetworkAgent::add_subscribe(std::vector<std::string> dev_list)
 
 int NetworkAgent::del_subscribe(std::vector<std::string> dev_list)
 {
-    BOOST_LOG_TRIVIAL(info) << "NetworkAgent::del_subscribe: count=" << dev_list.size()
+    BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::del_subscribe: count=" << dev_list.size()
                             << " printer_agent=" << (m_printer_agent ? m_printer_agent->get_agent_info().id : "<null>");
     if (m_printer_agent) {
         const int result = m_printer_agent->del_subscribe(std::move(dev_list));
-        BOOST_LOG_TRIVIAL(info) << "NetworkAgent::del_subscribe: result=" << result;
+        BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::del_subscribe: result=" << result;
         return result;
     }
     BOOST_LOG_TRIVIAL(warning) << "NetworkAgent::del_subscribe: no printer agent";
