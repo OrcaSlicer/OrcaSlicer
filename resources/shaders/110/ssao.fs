@@ -87,8 +87,11 @@ void main()
         float sample_depth = -view_pos(uv).z;
         float depth_diff = max(0.0, depth_center - sample_depth);
         
-        float threshold = 0.015 * (0.5 + depth_center / z_far);
-        float contribution = smoothstep(0.001, threshold, depth_diff);
+        // A view-space distance, so it has to scale with how far away the surface is. Held fixed
+        // it means a fraction of a millimetre, which every extrusion ridge clears - the term then
+        // saturates over the whole print and the AO reads as a flat dimming.
+        float threshold = 0.006 * depth_center;
+        float contribution = smoothstep(0.0015 * depth_center, threshold, depth_diff);
         
         float diagonal_weight = 1.0 - abs(offsets[i].x * offsets[i].y) * 0.5;
         occlusion += contribution * diagonal_weight;
@@ -108,8 +111,7 @@ void main()
     
     // Boost brightness on top surfaces (optional)
     float brightness_boost = 1.0 + up_factor * 0.15;  // 15% extra brightness on top
-    ambient_occlusion = pow(ambient_occlusion, 2.2) * brightness_boost;
-    ambient_occlusion = clamp(ambient_occlusion, 0.45, 1.05);
+    ambient_occlusion = clamp(ambient_occlusion * brightness_boost, 0.45, 1.05);
     
     gl_FragColor = vec4(base * ambient_occlusion, 1.0);
 }

@@ -77,9 +77,11 @@ void main()
         ivec2(2, 0),  ivec2(-2, 0),  ivec2(0, 2),  ivec2(0, -2)
     );
 
-    // Minimum depth difference to consider occlusion (ignores small variations)
-    float threshold_min = 0.008;  // Higher = only deep valleys get darkened
-    float threshold_max = 0.04;   // Transition range for full occlusion
+    // The thresholds below are view-space distances, so they have to scale with how far away the
+    // surface is. Held fixed they mean a fraction of a millimetre, which every extrusion ridge
+    // clears - the term then saturates over the whole print and the AO reads as a flat dimming.
+    float threshold_min = 0.0015 * center_depth;
+    float threshold_max = 0.0075 * center_depth;
 
     float occlusion = 0.0;
     int valid_samples = 0;
