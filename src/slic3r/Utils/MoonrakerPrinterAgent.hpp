@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -18,6 +19,35 @@
 namespace Slic3r {
 
 bool moonraker_is_light_name(const std::string& name);
+
+class MoonrakerWebsocket
+{
+public:
+    enum class ReadResult
+    {
+        message,
+        timeout,
+        closed,
+        error,
+    };
+
+    MoonrakerWebsocket(bool secure, std::string api_key);
+    ~MoonrakerWebsocket();
+
+    void connect(const std::string& host, const std::string& port, std::chrono::seconds timeout);
+    void tls_handshake(const std::string& host);
+    void handshake(const std::string& host, const std::string& target);
+    void text(bool enabled);
+    void write(const std::string& body);
+    ReadResult read(std::string& payload, std::string& error_message);
+    void close();
+    void expires_after(std::chrono::seconds timeout);
+    void abort();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
