@@ -175,9 +175,10 @@ static const char* Segments_Fragment_Shader_ES =
 "uniform float shadow_map_texel;\n"
 // ORCA: the lighting term peaks near 0.9 and every later multiplier - the shadow, then the SSAO
 // post pass - only takes more light away, so the print reads dimmer and duller than the legend
-// colours. These pay that back. Keep them in step with Shaders.hpp.
-"const float EXPOSURE = 1.15;\n"
-"const float SATURATION = 1.15;\n"
+// colours. Realistic view pays that back through these; both are 1.0 outside it, where the
+// pair is algebraically the identity and the shading is left exactly as it was.
+"uniform float exposure;\n"
+"uniform float saturation;\n"
 "const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);\n"
 "in vec3 color;\n"
 "in vec3 color_direct;\n"
@@ -206,8 +207,8 @@ static const char* Segments_Fragment_Shader_ES =
 "  return 1.0 - shadow_intensity * (sum / 25.0);\n"
 "}\n"
 "void main() {\n"
-"  vec3 c = (color + color_direct * shadow_shade()) * EXPOSURE;\n"
-"  c = mix(vec3(dot(c, LUMA)), c, SATURATION);\n"
+"  vec3 c = (color + color_direct * shadow_shade()) * exposure;\n"
+"  c = mix(vec3(dot(c, LUMA)), c, saturation);\n"
 "  fragment_color = vec4(clamp(c, 0.0, 1.0), 1.0);\n"
 "}\n";
 

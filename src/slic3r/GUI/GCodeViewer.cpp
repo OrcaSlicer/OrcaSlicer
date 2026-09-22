@@ -1659,6 +1659,11 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
         intensity, texel_size);
 }
 
+void GCodeViewer::set_tone(float exposure, float saturation)
+{
+    m_viewer.set_tone(exposure, saturation);
+}
+
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
 {
     if (m_viewer.get_extrusion_roles().empty())

@@ -70,6 +70,12 @@ public:
     // intensity == 0, the default, turns the lookup off and restores the plain shading.
     //
     void set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size);
+    //
+    // ORCA: realistic view. Tone applied to the shaded toolpaths, to pay back the light the
+    // lighting term, the shadow and the SSAO pass each take off. 1.0/1.0, the default, is a
+    // no-op and leaves the shading exactly as it is outside realistic view.
+    //
+    void set_tone(float exposure, float saturation);
 
     //
     // ************************************************************************

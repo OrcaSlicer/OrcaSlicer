@@ -8169,12 +8169,12 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
     // The preview canvas holds no volumes of its own for FFF. Once slicing has run its printed
     // geometry is the G-code toolpaths, which both cast into the map here and sample it back in
-    // _render_gcode; before slicing there are only shells. View3D and SLA preview use m_volumes.
-    // The shells never cast: they are a translucent ghost of the whole object, so at any layer
-    // below the last they would drop the shadow of a print that is not there yet.
+    // _render_gcode; before slicing there are only shells, and nothing casts at all. View3D and
+    // SLA preview use m_volumes. The shells are deliberately never casters: they are a
+    // translucent ghost of the whole object, so they would drop the solid shadow of a print that
+    // has not been sliced, and at any layer below the last, one that is not there yet.
     const bool toolpath_casters = m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data();
-    const GLVolumeCollection& casters = m_volumes.empty() ? m_gcode_viewer.m_shells.volumes : m_volumes;
-    if (!toolpath_casters && casters.empty())
+    if (!toolpath_casters && m_volumes.empty())
         return;
 
     GLShaderProgram* shader = wxGetApp().get_shader("flat");
@@ -8193,7 +8193,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
         if (toolpath_casters)
             obj_bb = m_gcode_viewer.get_paths_bounding_box();
         else {
-            for (const GLVolume* volume : casters.volumes) {
+            for (const GLVolume* volume : m_volumes.volumes) {
                 if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
                     continue;
                 obj_bb.merge(volume->transformed_bounding_box());
@@ -8324,7 +8324,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             else {
                 shader->start_using();
                 shader->set_uniform("projection_matrix", Transform3d(light_proj));
-                for (GLVolume* volume : casters.volumes) {
+                for (GLVolume* volume : m_volumes.volumes) {
                     if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
                         continue;
                     const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
@@ -8777,6 +8777,14 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     }
     else
         m_gcode_viewer.set_shadow_map(4, Transform3d::Identity(), 0.0f, 0.0f);
+
+    // The segments shader's lighting term leaves the print dimmer and duller than the legend
+    // colours it is drawn from. Saturation pays back the duller half in both modes, the toolpath
+    // colours being the same print either way. Brightness is only lifted under realistic view,
+    // which takes more light off again through the shadow above and the SSAO pass below; plain
+    // Preview has neither of those losses, so lifting it there would overshoot.
+    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+    m_gcode_viewer.set_tone(realistic_mode ? 1.1f : 1.0f, 1.15f);
 
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
 
