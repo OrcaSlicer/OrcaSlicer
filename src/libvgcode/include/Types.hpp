@@ -182,6 +182,8 @@ enum class EReducedDetailMode : uint8_t
     LayersOnly,
     // one layer in every stride, outer walls only
     OuterWallsOnly,
+    // every layer, every role but the infill under the skins and the gap fill: what can be seen from outside
+    ShellOnly,
     COUNT
 };
 

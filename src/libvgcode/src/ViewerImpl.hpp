@@ -589,7 +589,7 @@ private:
 
     // The set the next draw reads from: the reduced one while dragging, if one is built.
     bool use_reduced_set() const { return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off; }
-    // Whether an extrusion segment belongs to the reduced set under the current mode
+    // Whether the extrusion segment starting at vertex v belongs to the reduced set under the current mode
     bool reduced_set_keeps(const PathVertex& v) const;
     struct ActiveSet
     {

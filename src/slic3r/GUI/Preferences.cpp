@@ -2188,10 +2188,12 @@ void PreferencesDialog::create_items()
            "with its bottom and top layers drawn as toolpaths. Supports are not shown, and negative volumes are not cut out.\n"
            "Skip layers: the toolpaths of one layer in every N, set below.\n"
            "Outer walls: only the outer walls of one layer in every N. The prime tower and supports are left out.\n"
+           "Shell only: every layer without its sparse infill, internal solid infill and gap fill, which lie under the walls and skins. "
+           "Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so the print looks the same from outside.\n"
            "The bottom and top of the visible layer range are always drawn whole."),
         "preview_reduced_detail_mode",
-        {_L("Off"), _L("Solid model"), _L("Skip layers"), _L("Outer walls")},
-        {"off", "solid", "layers", "outer_walls"},
+        {_L("Off"), _L("Solid model"), _L("Skip layers"), _L("Outer walls"), _L("Shell only")},
+        {"off", "solid", "layers", "outer_walls", "shell"},
         // apply the new mode immediately to the currently loaded preview
         [this](std::string value) {
             if (m_reduced_detail_layer_stride_input)

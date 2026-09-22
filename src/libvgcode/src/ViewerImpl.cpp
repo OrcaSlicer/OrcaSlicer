@@ -1318,16 +1318,33 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 }
 
 #ifndef ENABLE_OPENGL_ES
+static bool is_outer_wall(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::ExternalPerimeter || role == EGCodeExtrusionRole::OverhangPerimeter;
+}
+
+// the roles that lie under a skin or between walls, never seen from outside the print
+static bool is_hidden_in_shell(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::InternalInfill ||
+           role == EGCodeExtrusionRole::SolidInfill ||
+           role == EGCodeExtrusionRole::InternalBridgeInfill ||
+           role == EGCodeExtrusionRole::GapFill;
+}
+
 bool ViewerImpl::reduced_set_keeps(const PathVertex& v) const
 {
     switch (m_settings.reduced_detail_mode) {
     case EReducedDetailMode::OuterWallsOnly:
-        return v.role == EGCodeExtrusionRole::ExternalPerimeter || v.role == EGCodeExtrusionRole::OverhangPerimeter;
+        return is_outer_wall(v.role);
+    case EReducedDetailMode::ShellOnly:
+        return !is_hidden_in_shell(v.role);
     default:
         return true;
     }
 }
 #endif // ENABLE_OPENGL_ES
+
 
 void ViewerImpl::update_enabled_entities()
 {
@@ -1346,6 +1363,8 @@ void ViewerImpl::update_enabled_entities()
     std::vector<uint32_t> enabled_segments_reduced;
     std::vector<uint32_t> enabled_options_reduced;
     const Interval& layers_range = m_layers.get_view_range();
+    // the shell mode draws every layer, the other toolpath modes one in every stride
+    const bool shell_reduced = reduced_mode == EReducedDetailMode::ShellOnly;
 #endif // ENABLE_OPENGL_ES
     Interval range = m_view_range.get_visible();
 
@@ -1400,7 +1419,7 @@ void ViewerImpl::update_enabled_entities()
             const bool end_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
             if (end_layer)
                 (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
-            else if (reduced_mode != EReducedDetailMode::EndLayersOnly && (v.layer_id % layer_stride) == 0) {
+            else if (reduced_mode != EReducedDetailMode::EndLayersOnly && (shell_reduced || (v.layer_id % layer_stride) == 0)) {
                 if (v.is_option())
                     enabled_options_reduced.push_back(static_cast<uint32_t>(i));
                 else if (!v.is_extrusion() || reduced_set_keeps(v))
