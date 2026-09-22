@@ -1487,16 +1487,19 @@ int MachineObject::command_upgrade_module(std::string url, std::string module_ty
 
 int MachineObject::command_xyz_abs()
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_xyz_abs(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_auto_leveling()
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_auto_leveling(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_go_home()
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_go_home(get_dev_id(), this->is_in_printing(), m_support_mqtt_homing, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1619,11 +1622,13 @@ int MachineObject::command_stop_buzzer()
 
 int MachineObject::command_set_bed(int temp)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_set_bed(get_dev_id(), temp, m_support_mqtt_bet_ctrl, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_set_nozzle(int temp)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_set_nozzle(get_dev_id(), temp, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1729,6 +1734,7 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1767,6 +1773,7 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 
 int MachineObject::command_ams_refresh_rfid(std::string tray_id)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1789,6 +1796,7 @@ int MachineObject::command_start_camera()
 
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1948,6 +1956,7 @@ int MachineObject::command_ams_air_print_detect(bool air_print_detect)
 
 int MachineObject::command_axis_control(std::string axis, double unit, double input_val, int speed)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_axis_control(get_dev_id(), axis, unit, input_val, speed, is_core_xy(),
                                                              m_support_mqtt_axis_control, MachineObject::m_sequence_id++,
                                                              is_lan_mode_printer()));
