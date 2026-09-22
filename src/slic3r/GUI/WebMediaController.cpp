@@ -71,6 +71,8 @@ void WebMediaController::Stop()
     if (m_webview) {
         m_webview->RunScript("if(typeof stopCameraRefresh==='function') stopCameraRefresh();");
         m_webview->Stop();
+        m_webview->SetPage("", "about:blank");
+        m_webview->ClearHistory();
     }
     m_url.clear();
 }
