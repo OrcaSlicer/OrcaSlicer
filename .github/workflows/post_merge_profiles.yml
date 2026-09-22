@@ -75,8 +75,6 @@ jobs:
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
             base="$head^"
           fi
-          echo "Diffing $base..$head"
-
           mapfile -t candidates < <(
             git diff --name-only "$base" "$head" -- resources/profiles \
               | sed -nE 's#^resources/profiles/([^/]+)/.*#\1#p; s#^resources/profiles/([^/]+)\.json$#\1#p' \
@@ -95,7 +93,6 @@ jobs:
           done
 
           if [ "${#vendors[@]}" -eq 0 ]; then
-            echo "No changed vendor profiles in this push; nothing to publish."
             echo "vendors=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -138,13 +135,10 @@ jobs:
           done
 
           if [ "${#unauthorized[@]}" -ne 0 ]; then
-            echo "Changed vendor profiles are not covered by FOLDER_MERGERS: ${unauthorized[*]}"
-            echo "No profile caches will be published for this push."
             echo "vendors=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          printf 'Changed vendors: %s\n' "${vendors[*]}"
           echo "vendors=${vendors[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Resolve Orca version
@@ -163,7 +157,6 @@ jobs:
           # OrcaCloud keys R2 on; orca_ver (X.Y.Z) is the asset-name prefix.
           echo "release_tag=$raw" >> "$GITHUB_OUTPUT"
           echo "orca_ver=$orca_ver" >> "$GITHUB_OUTPUT"
-          echo "Orca version: release_tag=$raw asset_prefix=$orca_ver"
 
       - name: Validate profile versions
         id: pver
@@ -179,7 +172,6 @@ jobs:
               exit 1
             fi
             printf '%s\t%s\n' "$v" "$pv" >> "$RUNNER_TEMP/pver.tsv"
-            echo "$v -> $pv"
           done
 
       - name: Download generate_system_cache
@@ -214,7 +206,6 @@ jobs:
             pv="$(awk -F'\t' -v v="$v" '$1==v{print $2}' "$RUNNER_TEMP/pver.tsv")"
             name="${orca_ver}_${v}_${pv}_${ts}.zip"
             ( cd resources/profiles && zip -q -j "$out/$name" "$v.opc" )
-            echo "packaged $name"
           done
           echo "dir=$out" >> "$GITHUB_OUTPUT"
 

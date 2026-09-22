@@ -261,7 +261,6 @@ bool GLGizmoText::on_init()
     //m_avail_font_names = init_occt_fonts();
     update_font_texture();
     m_scale = m_imgui->get_font_size();
-    m_shortcut_key = WXK_CONTROL_T;
 
     m_grabbers.push_back(Grabber());
 
