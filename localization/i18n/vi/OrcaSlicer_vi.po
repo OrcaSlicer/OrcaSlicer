@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -6907,9 +6907,6 @@ msgstr "Hiện đường viền xung quanh vật thể đã chọn trong cảnh 
 msgid "Preferences"
 msgstr "Tùy chọn"
 
-msgid "Open speed dial"
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6917,6 +6914,9 @@ msgstr "Chỉnh sửa"
 
 msgid "View"
 msgstr "Xem"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 # AI Translated
 msgid "Preset Bundle"

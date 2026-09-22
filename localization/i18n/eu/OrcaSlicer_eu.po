@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -6392,9 +6392,6 @@ msgstr "Erakutsi hautatutako objektuaren inguruko ingerada 3D eszenan."
 msgid "Preferences"
 msgstr "Hobespenak"
 
-msgid "Open speed dial"
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6402,6 +6399,9 @@ msgstr "Editatu"
 
 msgid "View"
 msgstr "Bista"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Aurrezarpen-paketea"

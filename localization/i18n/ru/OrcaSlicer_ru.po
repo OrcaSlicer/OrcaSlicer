@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -6597,15 +6597,15 @@ msgstr "Отображение контура вокруг выбранных м
 msgid "Preferences"
 msgstr "Настройки"
 
-msgid "Open speed dial"
-msgstr ""
-
 msgctxt "Menu"
 msgid "Edit"
 msgstr "Правка"
 
 msgid "View"
 msgstr "Вид"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Пакет профилей"

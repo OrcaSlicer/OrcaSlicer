@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -7122,9 +7122,6 @@ msgstr "Toon een omtrek rond het geselecteerde object in de 3D-scène."
 msgid "Preferences"
 msgstr "Voorkeuren"
 
-msgid "Open speed dial"
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -7132,6 +7129,9 @@ msgstr "Bewerken"
 
 msgid "View"
 msgstr "Weergave"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 # AI Translated
 msgid "Preset Bundle"

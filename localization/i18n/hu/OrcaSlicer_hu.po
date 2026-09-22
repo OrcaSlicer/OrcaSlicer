@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -6541,9 +6541,6 @@ msgstr "Körvonal megjelenítése a kijelölt objektum körül a 3D nézetben."
 msgid "Preferences"
 msgstr "Beállítások"
 
-msgid "Open speed dial"
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6551,6 +6548,9 @@ msgstr "Szerkesztés"
 
 msgid "View"
 msgstr "Nézet"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Beállításcsomag"

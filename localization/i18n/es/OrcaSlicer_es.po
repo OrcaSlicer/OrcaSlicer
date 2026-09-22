@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -6346,15 +6346,15 @@ msgstr "Mostrar el contorno alrededor del objeto seleccionado en la escena 3D."
 msgid "Preferences"
 msgstr "Preferencias"
 
-msgid "Open speed dial"
-msgstr ""
-
 msgctxt "Menu"
 msgid "Edit"
 msgstr "Edición"
 
 msgid "View"
 msgstr "Vista"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Paquete de perfiles"

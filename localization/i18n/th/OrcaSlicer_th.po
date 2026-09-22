@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-22 12:39+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -6520,9 +6520,6 @@ msgstr "แสดงเค้าร่างรอบๆ วัตถุที�
 msgid "Preferences"
 msgstr "การตั้งค่า"
 
-msgid "Open speed dial"
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6530,6 +6527,9 @@ msgstr "แก้ไข"
 
 msgid "View"
 msgstr "มุมมอง"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "ชุดที่ตั้งไว้ล่วงหน้า"
