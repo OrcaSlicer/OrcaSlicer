@@ -1,80 +1,23 @@
-#include "PluginWebDialog.hpp"
+#include "WebDialog.hpp"
 
-#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-
-#include <libslic3r/Utils.hpp>
-
-#include <boost/filesystem.hpp>
+#include "slic3r/GUI/Widgets/WebHosting.hpp"
 
 #include <wx/event.h>
-#include <wx/uri.h>
 
 #include <utility>
 
 namespace Slic3r { namespace GUI {
 
-namespace {
-
-// Injected into the top-level page at document start (before the plugin's own
-// scripts). Defines window.orca as the only host surface the page may use. It
-// references window.wx lazily (at call time) so it never races the backend's
-// deferred registration of the "wx" message handler. Guarded against
-// double-injection so it is harmless if also prepended.
-constexpr char ORCA_BRIDGE_JS[] = R"JS(
-(function () {
-  if (window.top !== window.self) return;
-  if (window.orca) return;
-  var handlers = [];
-  function send(kind, data) {
-    try {
-      window.wx.postMessage(JSON.stringify({
-        channel: 'orca', kind: kind, data: (data === undefined ? null : data)
-      }));
-    } catch (e) { /* bridge not ready yet */ }
-  }
-  window.orca = {
-    postMessage: function (d) { send('message', d); },
-    submit:      function (d) { send('submit', d); },
-    close:       function ()  { send('close'); },
-    onMessage:   function (cb) { if (typeof cb === 'function') handlers.push(cb); }
-  };
-  window.__orcaDispatch = function (payload) {
-    var data = payload ? payload.data : null;
-    for (var i = 0; i < handlers.length; i++) {
-      try { handlers[i](data); } catch (e) {}
-    }
-  };
-})();
-)JS";
-
-// file:// base URL for plugin HTML loaded via SetPage, so self-referencing
-// relative URLs resolve against the bundled web resources directory.
-wxString web_base_url()
-{
-    const std::string dir = (boost::filesystem::path(resources_dir()) / "web").make_preferred().string();
-    return wxString("file://") + from_u8(dir) + "/";
-}
-
-// Whether a loaded document is the plugin HTML's own base URL. The web view reports the URL it
-// parsed, so any fragment the page navigated to is ignored and the escaping it applies to what the
-// resources path holds (a space, a non-ASCII character) is undone first.
-bool is_content_url(const wxString& url)
-{
-    return wxURI::Unescape(url.BeforeFirst('#')) == web_base_url();
-}
-
-} // namespace
-
-PluginWebDialog::PluginWebDialog(wxWindow*          parent,
-                                 const wxString&    title,
-                                 const std::string& html,
-                                 const wxSize&      size,
-                                 MessageHandler     on_message,
-                                 SubmitHandler      on_submit,
-                                 CloseHandler       on_close,
-                                 CloseHandler       on_destroyed,
-                                 long               wx_style)
+WebDialog::WebDialog(wxWindow*          parent,
+                     const wxString&    title,
+                     const std::string& html,
+                     const wxSize&      size,
+                     MessageHandler     on_message,
+                     SubmitHandler      on_submit,
+                     CloseHandler       on_close,
+                     CloseHandler       on_destroyed,
+                     long               wx_style)
     : WebViewHostDialog(parent, wxID_ANY, title, wxDefaultPosition, size, wx_style)
     , m_html(html)
     , m_on_message(std::move(on_message))
@@ -84,7 +27,7 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
 {
     // A tiny bundled bootstrap page brings the webview up; the real plugin HTML
     // is swapped in via SetPage once the bootstrap finishes loading.
-    create_webview("web/dialog/PluginWebDialog/blank.html", title, size, wxSize(320, 240));
+    create_webview(web_hosting::BOOTSTRAP_PAGE, title, size, wxSize(320, 240));
 
     // Paint the window/webview in the themed background so there is no white
     // flash before the (transparent) bootstrap page and plugin HTML render.
@@ -96,22 +39,22 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
         // create_webview() via add_user_scripts(); nothing to add here.
         // Swap in the plugin HTML once the bootstrap page settles. Bind ERROR too so a
         // missing/blocked bootstrap resource (e.g. a packaged build) still triggers it.
-        Bind(wxEVT_WEBVIEW_LOADED, &PluginWebDialog::on_bootstrap_event, this, wv->GetId());
-        Bind(wxEVT_WEBVIEW_ERROR, &PluginWebDialog::on_bootstrap_event, this, wv->GetId());
-        Bind(wxEVT_WEBVIEW_NAVIGATED, &PluginWebDialog::on_navigated, this, wv->GetId());
+        Bind(wxEVT_WEBVIEW_LOADED, &WebDialog::on_bootstrap_event, this, wv->GetId());
+        Bind(wxEVT_WEBVIEW_ERROR, &WebDialog::on_bootstrap_event, this, wv->GetId());
+        Bind(wxEVT_WEBVIEW_NAVIGATED, &WebDialog::on_navigated, this, wv->GetId());
     }
-    Bind(wxEVT_CLOSE_WINDOW, &PluginWebDialog::on_close_window, this);
+    Bind(wxEVT_CLOSE_WINDOW, &WebDialog::on_close_window, this);
 }
 
-void PluginWebDialog::add_user_scripts()
+void WebDialog::add_user_scripts()
 {
     if (wxWebView* wv = browser()) {
-        wv->AddUserScript(wxString::FromUTF8(WebViewHostDialog::plugin_defaults_user_script()));
-        wv->AddUserScript(ORCA_BRIDGE_JS);
+        wv->AddUserScript(wxString::FromUTF8(WebViewHostDialog::element_defaults_user_script()));
+        wv->AddUserScript(wxString::FromUTF8(web_hosting::orca_bridge_script()));
     }
 }
 
-PluginWebDialog::~PluginWebDialog()
+WebDialog::~WebDialog()
 {
     // Runs on every destruction path. Deliberately NOT a wxEVT_DESTROY handler:
     // that event is sent from the base ~wxDialog(), after this subclass's members
@@ -121,19 +64,19 @@ PluginWebDialog::~PluginWebDialog()
         m_on_destroyed();
 }
 
-void PluginWebDialog::post_message(PluginWebDialog* dialog, const nlohmann::json& data)
+void WebDialog::post_message(WebDialog* dialog, const nlohmann::json& data)
 {
     if (dialog != nullptr && dialog->is_open())
         dialog->push_message(data);
 }
 
-void PluginWebDialog::request_close(PluginWebDialog* dialog)
+void WebDialog::request_close(WebDialog* dialog)
 {
     if (dialog != nullptr)
         dialog->Close();
 }
 
-void PluginWebDialog::destroy_for_plugin(PluginWebDialog* dialog)
+void WebDialog::destroy_silently(WebDialog* dialog)
 {
     if (dialog == nullptr)
         return;
@@ -147,42 +90,42 @@ void PluginWebDialog::destroy_for_plugin(PluginWebDialog* dialog)
     dialog->Destroy();
 }
 
-void PluginWebDialog::on_bootstrap_event(wxWebViewEvent& event)
+void WebDialog::on_bootstrap_event(wxWebViewEvent& event)
 {
     const bool loaded = event.GetEventType() == wxEVT_WEBVIEW_LOADED;
     // The first bootstrap load (or its error) triggers the swap to plugin HTML.
     if (!m_content_loaded)
-        load_plugin_content();
+        load_page_html();
     // WebKit reloads the SetPage base URL, so a committed load of it that we did not start is a reload.
     // A failed navigation is reported against the page that stayed but never commits. Edge ignores the
     // base URL and restores SetPage content itself, so nothing matches there.
-    else if (is_content_url(event.GetURL())) {
+    else if (web_hosting::is_content_url(event.GetURL())) {
         if (m_own_page_load)
             m_own_page_load = false;
         else if (loaded && m_content_navigated)
-            load_plugin_content();
+            load_page_html();
     }
     if (loaded)
         m_content_navigated = false;
     event.Skip();
 }
 
-void PluginWebDialog::on_navigated(wxWebViewEvent& event)
+void WebDialog::on_navigated(wxWebViewEvent& event)
 {
-    m_content_navigated = is_content_url(event.GetURL());
+    m_content_navigated = web_hosting::is_content_url(event.GetURL());
     event.Skip();
 }
 
-void PluginWebDialog::load_plugin_content()
+void WebDialog::load_page_html()
 {
     m_content_loaded = true;
     if (wxWebView* wv = browser()) {
         m_own_page_load = true;
-        wv->SetPage(wxString::FromUTF8(m_html), web_base_url());
+        wv->SetPage(wxString::FromUTF8(m_html), web_hosting::content_base_url());
     }
 }
 
-void PluginWebDialog::on_script_message(const nlohmann::json& payload)
+void WebDialog::on_script_message(const nlohmann::json& payload)
 {
     if (payload.value("channel", std::string()) == "orca") {
         const std::string    kind = payload.value("kind", std::string());
@@ -202,7 +145,7 @@ void PluginWebDialog::on_script_message(const nlohmann::json& payload)
     handle_common_script_command(payload);
 }
 
-void PluginWebDialog::push_message(const nlohmann::json& data)
+void WebDialog::push_message(const nlohmann::json& data)
 {
     if (!m_open)
         return;
@@ -211,7 +154,7 @@ void PluginWebDialog::push_message(const nlohmann::json& data)
     call_web_handler(envelope, wxT("__orcaDispatch"));
 }
 
-void PluginWebDialog::finish(bool submitted, const nlohmann::json& data)
+void WebDialog::finish(bool submitted, const nlohmann::json& data)
 {
     if (!m_open)
         return;
@@ -230,7 +173,7 @@ void PluginWebDialog::finish(bool submitted, const nlohmann::json& data)
         Close();
 }
 
-void PluginWebDialog::on_close_window(wxCloseEvent&)
+void WebDialog::on_close_window(wxCloseEvent&)
 {
     if (!m_open) {
         // finish() already dispatched submit/close and requested the close.
@@ -250,7 +193,7 @@ void PluginWebDialog::on_close_window(wxCloseEvent&)
     Destroy();
 }
 
-void PluginWebDialog::fire_submit(const nlohmann::json& data)
+void WebDialog::fire_submit(const nlohmann::json& data)
 {
     if (m_on_submit) {
         SubmitHandler cb = std::move(m_on_submit);
@@ -258,7 +201,7 @@ void PluginWebDialog::fire_submit(const nlohmann::json& data)
     }
 }
 
-void PluginWebDialog::fire_close()
+void WebDialog::fire_close()
 {
     if (m_close_fired)
         return;

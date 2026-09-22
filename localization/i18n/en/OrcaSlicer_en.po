@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 15:50+0800\n"
+"POT-Creation-Date: 2026-09-22 12:39+0800\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -5550,10 +5550,13 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr ""
 
-msgid "Add"
+msgid "Add plate"
 msgstr ""
 
-msgid "Add plate"
+msgid "Split to objects"
+msgstr ""
+
+msgid "Add"
 msgstr ""
 
 msgid "Auto orient all/selected objects"
@@ -5566,9 +5569,6 @@ msgid "Arrange all objects"
 msgstr ""
 
 msgid "Arrange objects on selected plates"
-msgstr ""
-
-msgid "Split to objects"
 msgstr ""
 
 msgid "Assembly View"
@@ -5623,6 +5623,9 @@ msgid "Outline"
 msgstr ""
 
 msgid "Wireframe"
+msgstr ""
+
+msgid "X-Ray"
 msgstr ""
 
 msgid "Realistic View"
@@ -6154,7 +6157,7 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
-msgid "Open speed dial..."
+msgid "Open speed dial"
 msgstr ""
 
 msgctxt "Menu"
@@ -7882,9 +7885,6 @@ msgstr ""
 msgid "Collapse sidebar"
 msgstr ""
 
-msgid "Tab"
-msgstr ""
-
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr ""
@@ -8823,10 +8823,10 @@ msgstr ""
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr ""
 
-msgid "Open the Speed Dial with the Space key"
+msgid "Open the Speed Dial from the keyboard"
 msgstr ""
 
-msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
 msgstr ""
 
 msgid "Recent actions"
@@ -8952,6 +8952,15 @@ msgstr ""
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr ""
 
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
+
 msgid "Clear my choice on..."
 msgstr ""
 
@@ -9045,10 +9054,38 @@ msgid ""
 "Set to 0 for unlimited frame rate."
 msgstr ""
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 msgid "Show FPS overlay"
 msgstr ""
 
-msgid "Displays current viewport FPS in the top-right corner."
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
 msgstr ""
 
 msgid "G-code Preview"
@@ -9476,10 +9513,7 @@ msgstr ""
 msgid "Select which settings to be published in the 3MF file"
 msgstr ""
 
-msgid "Publish 3MF Wiki"
-msgstr ""
-
-msgid "Publish 3MF Video Guide"
+msgid "Video Guide"
 msgstr ""
 
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -9669,6 +9703,12 @@ msgid "Wiki (F1)"
 msgstr ""
 
 msgid "No wiki page for this action"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Hide details"
 msgstr ""
 
 #, c-format, boost-format
@@ -11369,65 +11409,37 @@ msgstr ""
 msgid "Configuration package changed"
 msgstr ""
 
-msgid "Toolbar"
-msgstr ""
-
-msgid "Objects list"
-msgstr ""
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr ""
-
-msgid "Paste from clipboard"
-msgstr ""
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr ""
-
-msgid "Switch table page"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr ""
-
-msgid "Open speed dial"
-msgstr ""
-
-msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
-msgstr ""
-
-msgid "Show keyboard shortcuts list"
-msgstr ""
-
-msgid "Global shortcuts"
-msgstr ""
-
 msgid "Pan View"
 msgstr ""
 
 msgid "Rotate View"
 msgstr ""
 
-msgid "Middle mouse button"
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
 msgstr ""
 
-msgid "Zoom View"
+msgctxt "Keyboard Shortcut"
+msgid "Key"
 msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+msgid "Left mouse"
 msgstr ""
 
-msgid "Auto orients all objects on the active plate."
+msgid "Available anywhere in the window, even while typing in a text field."
 msgstr ""
 
-msgid "Collapse/Expand the sidebar"
+msgid "Run a speed dial favorite while the dial is open"
 msgstr ""
 
-msgid "Any arrow"
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
 msgstr ""
 
-msgid "Movement in camera space"
+msgid "Switch to the next main tab"
+msgstr ""
+
+msgid "Available while the 3D view on the Prepare tab has focus."
 msgstr ""
 
 msgid "Select a part"
@@ -11439,120 +11451,28 @@ msgstr ""
 msgid "Select objects by rectangle"
 msgstr ""
 
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr ""
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr ""
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr ""
-
-msgid "Move selection 10mm in negative X direction"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr ""
-
-msgid "Move selection 10mm in positive X direction"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr ""
 
 msgid "Movement step set to 1mm"
 msgstr ""
 
-msgid "Keyboard 1-9: set filament for object/part"
+msgid "Movement in camera space"
 msgstr ""
 
-msgid "Camera view - Default"
+msgid "Middle mouse"
 msgstr ""
 
-msgid "Camera view - Top"
+msgid "Right mouse"
 msgstr ""
 
-msgid "Camera view - Bottom"
+msgid "Zoom View"
 msgstr ""
 
-msgid "Camera view - Front"
+msgid "Painting"
 msgstr ""
 
-msgid "Camera view - Behind"
-msgstr ""
-
-msgid "Camera Angle - Left side"
-msgstr ""
-
-msgid "Camera Angle - Right side"
-msgstr ""
-
-msgid "Select all objects"
-msgstr ""
-
-msgid "Gizmo move"
-msgstr ""
-
-msgid "Gizmo rotate"
-msgstr ""
-
-msgid "Gizmo scale"
-msgstr ""
-
-msgid "Gizmo place face on bed"
-msgstr ""
-
-msgid "Gizmo cut"
-msgstr ""
-
-msgid "Gizmo mesh boolean"
-msgstr ""
-
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr ""
-
-msgid "Gizmo SLA support points"
-msgstr ""
-
-msgid "Gizmo FDM paint-on seam"
-msgstr ""
-
-msgid "Gizmo text emboss/engrave"
-msgstr ""
-
-msgid "Gizmo measure"
-msgstr ""
-
-msgid "Gizmo assemble"
-msgstr ""
-
-msgid "Gizmo brim ears"
-msgstr ""
-
-msgid "Zoom in"
-msgstr ""
-
-msgid "Zoom out"
-msgstr ""
-
-msgid "Toggle printable for object/part"
-msgstr ""
-
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr ""
-
-msgid "Switch between Prepare/Preview"
-msgstr ""
-
-msgid "Plater"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
 msgstr ""
 
 msgid "Move: press to snap by 1mm"
@@ -11564,13 +11484,17 @@ msgstr ""
 msgid "Support/Color Painting: adjust section position"
 msgstr ""
 
-msgid "Gizmo"
+msgid "Objects list"
+msgstr ""
+
+msgid "Available while the object list has focus."
 msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr ""
 
-msgid "Delete objects, parts, modifiers"
+msgctxt "Keyboard Shortcut"
+msgid "Space"
 msgstr ""
 
 msgid "Select the object/part and press space to change the name"
@@ -11582,42 +11506,47 @@ msgstr ""
 msgid "Select the object/part and mouse click to change the name"
 msgstr ""
 
-msgid "Objects List"
-msgstr ""
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr ""
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr ""
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr ""
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr ""
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr ""
-
-msgid "On/Off G-code window"
+msgid "Available while the 3D view on the Preview tab has focus."
 msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr ""
 
-msgctxt "Keyboard Shortcut"
-msgid "Home"
+msgid "Scroll slider 5x faster"
 msgstr ""
 
-msgid "Horizontal slider - Move to start position"
+msgid "Not customizable"
 msgstr ""
 
-msgctxt "Keyboard Shortcut"
-msgid "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
 msgstr ""
 
-msgid "Horizontal slider - Move to last position"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
 msgstr ""
 
 msgid "Release Note"
@@ -15917,7 +15846,7 @@ msgstr ""
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr ""
 
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
 msgstr ""
 
 msgid "Start G-code"
@@ -17326,10 +17255,34 @@ msgstr ""
 msgid "Total length of filament used in the print."
 msgstr ""
 
-msgid "Print time (seconds)"
+msgid "Print time (total seconds)"
 msgstr ""
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
 msgstr ""
 
 msgid "Filament length (meters)"
@@ -19012,6 +18965,9 @@ msgstr ""
 msgid "Success!"
 msgstr ""
 
+msgid "Generate API Key"
+msgstr ""
+
 msgid "Are you sure to log out?"
 msgstr ""
 
@@ -19946,12 +19902,6 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr ""
-
-msgid "Show details"
-msgstr ""
-
-msgid "Hide details"
 msgstr ""
 
 msgid "Version to install:"
@@ -22532,6 +22482,12 @@ msgstr ""
 msgid "No binding for that field"
 msgstr ""
 
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
 msgid "Primitive"
 msgstr ""
 
@@ -22542,6 +22498,210 @@ msgid "Pocket (Cut)"
 msgstr ""
 
 msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr ""
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr ""
+
+msgid "Select all objects"
+msgstr ""
+
+msgid "Paste from clipboard"
+msgstr ""
+
+msgid "Toggle printable for object/part"
+msgstr ""
+
+msgid "Move selection 10mm in negative X direction"
+msgstr ""
+
+msgid "Move selection 10mm in positive X direction"
+msgstr ""
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr ""
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr ""
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr ""
+
+msgid "Gizmo rotate"
+msgstr ""
+
+msgid "Gizmo scale"
+msgstr ""
+
+msgid "Gizmo place face on bed"
+msgstr ""
+
+msgid "Gizmo cut"
+msgstr ""
+
+msgid "Gizmo mesh boolean"
+msgstr ""
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr ""
+
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr ""
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr ""
+
+msgid "Gizmo measure"
+msgstr ""
+
+msgid "Gizmo assemble"
+msgstr ""
+
+msgid "Gizmo brim ears"
+msgstr ""
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr ""
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr ""
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr ""
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr ""
+
+msgid "Horizontal slider - Move to start position"
+msgstr ""
+
+msgid "Horizontal slider - Move to last position"
+msgstr ""
+
+msgid "Camera view - Default"
+msgstr ""
+
+msgid "Camera view - Top"
+msgstr ""
+
+msgid "Camera view - Bottom"
+msgstr ""
+
+msgid "Camera view - Front"
+msgstr ""
+
+msgid "Camera view - Behind"
+msgstr ""
+
+msgid "Camera Angle - Left side"
+msgstr ""
+
+msgid "Camera Angle - Right side"
+msgstr ""
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr ""
+
+msgid "Zoom out"
+msgstr ""
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr ""
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr ""
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr ""
+
+msgid "Switch between Prepare/Preview"
+msgstr ""
+
+msgid "Collapse/Expand the sidebar"
+msgstr ""
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr ""
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

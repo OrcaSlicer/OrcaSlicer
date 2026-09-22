@@ -123,6 +123,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginPickerDialog.hpp
     GUI/PluginsDialog.cpp
     GUI/PluginsDialog.hpp
+    GUI/Shortcuts.cpp
+    GUI/Shortcuts.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
     GUI/ActionRegistry.cpp
@@ -137,8 +139,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/TerminalDialog.hpp
     GUI/PluginProgressDialog.cpp
     GUI/PluginProgressDialog.hpp
-    GUI/PluginWebDialog.cpp
-    GUI/PluginWebDialog.hpp
+    GUI/WebDialog.cpp
+    GUI/WebDialog.hpp
+    GUI/DockPanel.cpp
+    GUI/DockPanel.hpp
+    GUI/WebPanel.cpp
+    GUI/WebPanel.hpp
+    GUI/Widgets/WebHosting.cpp
+    GUI/Widgets/WebHosting.hpp
+    GUI/AuiPaneLayout.cpp
+    GUI/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
@@ -335,6 +345,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/KeyChord.cpp
+    GUI/KeyChord.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/LinuxDisplayBackend.cpp
