@@ -2068,6 +2068,10 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
                 // Prusa: Fixing crashes with invalid tip diameter or branch diameter
                 // https://github.com/prusa3d/PrusaSlicer/commit/96b3ae85013ac363cd1c3e98ec6b7938aeacf46d
+                // Orca: fins stand on the bed; there is no raft path for them.
+                if (object->config().enable_support && object->config().support_type.value == stFins && object->config().raft_layers.value > 0)
+                    return { L("Fin support cannot be combined with a raft. Set raft layers to 0 or choose another support type."), object, "raft_layers" };
+
                 if (is_tree(object->config().support_type.value)) {
                     if (object->config().support_style == smsTreeOrganic ||
                         // Orca: use organic as default
@@ -2093,6 +2097,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
                             return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
                     }
+                } else if (object->config().support_type.value == stFins) {
+                    // Fins do not use the base pattern.
                 } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning) {
                     // Orca: check if the Lightning base pattern selected
                     warn(L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead."), "support_base_pattern");

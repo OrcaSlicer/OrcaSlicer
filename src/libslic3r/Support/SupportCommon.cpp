@@ -1583,7 +1583,9 @@ void generate_support_toolpaths(
         // Filler for the base interface (to be used for soluble interface / non soluble base, to produce non soluble interface layer below soluble interface layer).
         auto filler_base_interface  = std::unique_ptr<Fill>(base_interface_layers.empty() ? nullptr :
             Fill::new_from_type(base_interface_density > 0.95 || support_params.with_sheath ? ipRectilinear : ipSupportBase));
-        auto filler_support         = std::unique_ptr<Fill>(Fill::new_from_type(support_params.base_fill_pattern));
+        // Fins are printed solid with concentric loops, so each fin and its tines are one continuous bead.
+        const bool fins             = support_params.fins;
+        auto filler_support         = std::unique_ptr<Fill>(Fill::new_from_type(fins ? ipConcentric : support_params.base_fill_pattern));
         filler_interface->set_bounding_box(bbox_object);
         if (filler_first_layer_ptr)
             filler_first_layer_ptr->set_bounding_box(bbox_object);
@@ -1798,8 +1800,8 @@ void generate_support_toolpaths(
                 auto flow = support_params.support_material_flow.with_height(float(base_layer.layer->height));
                 filler->spacing = support_params.support_material_flow.spacing();
                 filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / support_params.support_density));
-                float density = float(support_params.support_density);
-                bool  sheath  = support_params.with_sheath;
+                float density = fins ? 1.f : float(support_params.support_density);
+                bool  sheath  = support_params.with_sheath && ! fins;
                 bool  no_sort = false;
                 bool  done    = false;
                 if (base_layer.layer->bottom_z < EPSILON) {

@@ -383,7 +383,8 @@ static t_config_enum_values s_keys_map_SupportType{
     { "normal(auto)",   stNormalAuto },
     { "tree(auto)", stTreeAuto },
     { "normal(manual)", stNormal },
-    { "tree(manual)", stTree }
+    { "tree(manual)", stTree },
+    { "fins",         stFins }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportType)
 
@@ -6799,16 +6800,20 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Type");
     def->category = L("Support");
     def->tooltip = L("Normal (auto) and Tree (auto) are used to generate support automatically. "
-                     "If Normal (manual) or Tree (manual) is selected, only support enforcers are generated.");
+                     "If Normal (manual) or Tree (manual) is selected, only support enforcers are generated.\n"
+                     "Fins are thin breakaway walls standing beside the object wherever the object hangs over the bed, "
+                     "fused to it by single-layer tines. They hold parts printed tilted onto an edge and do not use the overhang threshold.");
     def->enum_keys_map = &ConfigOptionEnum<SupportType>::get_enum_values();
     def->enum_values.push_back("normal(auto)");
     def->enum_values.push_back("tree(auto)");
     def->enum_values.push_back("normal(manual)");
     def->enum_values.push_back("tree(manual)");
+    def->enum_values.push_back("fins");
     def->enum_labels.push_back(L("Normal (auto)"));
     def->enum_labels.push_back(L("Tree (auto)"));
     def->enum_labels.push_back(L("Normal (manual)"));
     def->enum_labels.push_back(L("Tree (manual)"));
+    def->enum_labels.push_back(L("Fins"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
@@ -7116,6 +7121,93 @@ void PrintConfigDef::init_fff_params()
 
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));
+
+    def = this->add("support_fin_spacing", coFloat);
+    def->label = L("Fin spacing");
+    def->category = L("Support");
+    def->tooltip = L("Distance between neighboring fins. Fins are oriented automatically to cross the edge the object leans over.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(8));
+
+    def = this->add("support_fin_thickness", coFloat);
+    def->label = L("Fin thickness");
+    def->category = L("Support");
+    def->tooltip = L("Wall thickness of each fin. Fins are printed solid with loops of two lines each, so the thickness is rounded to whole loops.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0.4;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1.6));
+
+    def = this->add("support_fin_tine_spacing", coFloat);
+    def->label = L("Tine spacing");
+    def->category = L("Support");
+    def->tooltip = L("Vertical distance between tines. A tine is a one-layer bead that fuses a fin to the object so the object "
+                     "cannot lean away from it; each one leaves a small mark. Tines only bond when the fins and the object use "
+                     "the same filament. Set to 0 to disable tines.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(5));
+
+    def = this->add("support_fin_tine_base_rows", coBool);
+    def->label = L("Extra tines near the bed");
+    def->category = L("Support");
+    def->tooltip = L("Adds tines close together just above the fin foot, where the object is least stable, "
+                     "with gaps that widen going up until they reach the tine spacing.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("support_fin_tine_depth", coFloat);
+    def->label = L("Tine depth");
+    def->category = L("Support");
+    def->tooltip = L("How far a tine reaches into the object. Deeper tines hold better but leave a larger mark after removal.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.3));
+
+    def = this->add("support_fin_height", coFloat);
+    def->label = L("Fin height");
+    def->category = L("Support");
+    def->tooltip = L("Fins are generated up to this height above the bed. Set to 0 to generate them as high as the object needs.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_fin_lean_side_only", coBool);
+    def->label = L("Lean side only");
+    def->category = L("Support");
+    def->tooltip = L("Only generate fins on the side the object leans toward (where its center of mass lies beyond its bed contact), "
+                     "which is the side that holds it up. A balanced object gets fins on its larger side. "
+                     "Leave this off for objects that hang over the bed on several sides, such as a T shape, "
+                     "or the other sides are left without support.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("support_fin_cross_spacing", coFloat);
+    def->label = L("Cross fin spacing");
+    def->category = L("Support");
+    def->tooltip = L("Adds fins across the main fins every this distance, tying them into a scaffold. "
+                     "A braced fin is much stiffer than a single wall, which matters for tall fins. Set to 0 to disable.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_fin_interface_layers", coInt);
+    def->label = L("Interface layers");
+    def->category = L("Support");
+    def->tooltip = L("Number of solid layers printed across the tops of the fins where the object rests on them, "
+                     "so an overhang sits on a flat deck instead of the fin edges. They use the support interface "
+                     "filament, pattern and spacing. Set to 0 to disable.");
+    def->sidetext = L("layers");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");

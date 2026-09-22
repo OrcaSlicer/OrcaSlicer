@@ -963,6 +963,24 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("bridge_no_support", !support_is_tree);
     toggle_line("support_critical_regions_only", is_auto(support_type) && support_is_tree);
 
+    // Fin support: fins are placed from the object shape, not from overhang detection or support patterns.
+    bool support_is_fins = config->opt_bool("enable_support") && support_type == stFins;
+    for (auto el : { "support_fin_spacing", "support_fin_thickness", "support_fin_tine_spacing", "support_fin_height", "support_fin_lean_side_only",
+                     "support_fin_cross_spacing", "support_fin_interface_layers" })
+        toggle_line(el, support_is_fins);
+    const bool fin_tines = support_is_fins && config->opt_float("support_fin_tine_spacing") > 0.;
+    for (auto el : { "support_fin_tine_depth", "support_fin_tine_base_rows" })
+        toggle_line(el, fin_tines);
+    for (auto el : { "support_style", "support_threshold_angle", "support_on_build_plate_only", "support_base_pattern", "support_base_pattern_spacing", "support_expansion", "support_angle", "support_interface_top_layers", "support_interface_bottom_layers", "support_bottom_interface_spacing", "tree_support_wall_count" })
+        toggle_line(el, !support_is_fins);
+    // Fin interface layers use the normal support interface filament, pattern and spacing.
+    for (auto el : { "support_interface_filament", "support_interface_pattern", "support_interface_spacing" })
+        toggle_line(el, !support_is_fins || config->opt_int("support_fin_interface_layers") > 0);
+    // These are shown or hidden above by other rules; fins only hide them.
+    if (support_is_fins)
+        for (auto el : { "support_threshold_overlap", "support_critical_regions_only", "bridge_no_support", "max_bridge_length" })
+            toggle_line(el, false);
+
     for (auto el : { "support_interface_filament",
         "support_interface_loop_pattern", "support_bottom_interface_spacing" })
         toggle_field(el, have_support_material && have_support_interface);
