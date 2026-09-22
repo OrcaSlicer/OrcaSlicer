@@ -901,6 +901,8 @@ void ViewerImpl::reset()
     m_enabled_options_count = 0;
     m_enabled_segments_reduced_count = 0;
     m_enabled_options_reduced_count = 0;
+    m_enabled_segments_reduced_tex_size = 0;
+    m_enabled_options_reduced_tex_size = 0;
 
     m_settings_used_for_ranges = std::nullopt;
 
@@ -1286,18 +1288,20 @@ void ViewerImpl::update_enabled_entities()
 
     m_enabled_segments_reduced_count = enabled_segments_reduced.size();
     m_enabled_options_reduced_count = enabled_options_reduced.size();
+    m_enabled_segments_reduced_tex_size = enabled_segments_reduced.size() * sizeof(uint32_t);
+    m_enabled_options_reduced_tex_size = enabled_options_reduced.size() * sizeof(uint32_t);
 
-    if (build_reduced) {
-        assert(m_enabled_segments_reduced_buf_id > 0);
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_buf_id));
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_segments_reduced.size() * sizeof(uint32_t),
-                            enabled_segments_reduced.empty() ? nullptr : enabled_segments_reduced.data(), GL_STATIC_DRAW));
+    // uploaded even when nothing was built, so that the last reduced set is released as soon as
+    // the preference is switched off
+    assert(m_enabled_segments_reduced_buf_id > 0);
+    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_buf_id));
+    glsafe(glBufferData(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_tex_size,
+                        enabled_segments_reduced.empty() ? nullptr : enabled_segments_reduced.data(), GL_STATIC_DRAW));
 
-        assert(m_enabled_options_reduced_buf_id > 0);
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_reduced_buf_id));
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_options_reduced.size() * sizeof(uint32_t),
-                            enabled_options_reduced.empty() ? nullptr : enabled_options_reduced.data(), GL_STATIC_DRAW));
-    }
+    assert(m_enabled_options_reduced_buf_id > 0);
+    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_reduced_buf_id));
+    glsafe(glBufferData(GL_TEXTURE_BUFFER, m_enabled_options_reduced_tex_size,
+                        enabled_options_reduced.empty() ? nullptr : enabled_options_reduced.data(), GL_STATIC_DRAW));
 
     glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
 #endif // ENABLE_OPENGL_ES
@@ -1907,6 +1911,8 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_colors_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
+    ret += m_enabled_segments_reduced_tex_size;
+    ret += m_enabled_options_reduced_tex_size;
 #endif // ENABLE_OPENGL_ES
     return ret;
 }

@@ -528,6 +528,8 @@ private:
     size_t m_colors_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
+    size_t m_enabled_segments_reduced_tex_size{ 0 };
+    size_t m_enabled_options_reduced_tex_size{ 0 };
 
     // The set the next draw reads from: the reduced one while dragging, if one is built.
     bool use_reduced_set() const { return m_settings.reduced_detail && m_settings.reduced_detail_enabled; }

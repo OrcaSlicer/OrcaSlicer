@@ -372,6 +372,8 @@ public:
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
 
+    // whether the mouse is holding either slider's handle
+    bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }
     // while the user drags the camera or a slider, draw the solid model, if the preference asks for it
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }

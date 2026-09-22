@@ -7737,13 +7737,20 @@ bool GLCanvas3D::_is_scene_cacheable() const
         return false;
 #endif
 
-    // The scene follows the cursor during a drag, under a gizmo that draws at the cursor, and while
-    // the cursor is on the layer height bar, where the object shader draws a band at its height.
+    // The scene follows the cursor while the user drags, under a gizmo that draws at the cursor, and
+    // while the cursor is on the layer height bar, where the object shader draws a band at its height.
     const GLGizmoBase* gizmo = m_gizmos.get_current();
     const bool cursor_on_layers_bar = is_layers_editing_enabled() &&
         m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y());
-    return !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging() &&
-           (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
+    return !is_user_interacting() && (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
+}
+
+// Whether the user is holding something that moves the scene: the camera, the navigator, a gizmo,
+// the rectangle selection or a preview slider.
+bool GLCanvas3D::is_user_interacting() const
+{
+    return m_mouse.dragging || m_navigator_dragging || m_gizmos.is_dragging() || m_rectangle_selection.is_dragging() ||
+           m_gcode_viewer.is_slider_dragging();
 }
 
 bool GLCanvas3D::_is_frame_skipping_enabled() const
@@ -8740,11 +8747,9 @@ void GLCanvas3D::_render_wireframe_overlay()
 // pass draws changed, since a frame that reuses the cached scene would hide the change.
 bool GLCanvas3D::_update_preview_interaction()
 {
-    IMSlider* layers_slider = m_gcode_viewer.get_layers_slider();
-    IMSlider* moves_slider  = m_gcode_viewer.get_moves_slider();
     const auto now = std::chrono::steady_clock::now();
     const bool settling = now < m_preview_interaction_until;
-    const bool dragging = m_mouse.dragging || m_navigator_dragging || layers_slider->is_dragging() || moves_slider->is_dragging();
+    const bool dragging = is_user_interacting();
     const bool was_reduced = m_gcode_viewer.is_reduced_detail();
     m_gcode_viewer.set_interacting(dragging || settling);
     if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {

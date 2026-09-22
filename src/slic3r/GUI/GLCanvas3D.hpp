@@ -1219,6 +1219,8 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
+    bool is_user_interacting() const;
     // a wheel step is over before the next frame, so it holds the preview's solid model for a settle time
     void note_preview_interaction();
 
