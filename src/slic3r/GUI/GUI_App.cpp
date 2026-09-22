@@ -2383,19 +2383,21 @@ GUI_App::~GUI_App()
 
 bool GUI_App::is_blocking_printing(MachineObject *obj_)
 {
-    DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    if (obj_ == nullptr) {
-        obj_ = dev->get_selected_machine();
-    }
-
-    if (!obj_)
-    {
-        return false;
-    }
-
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    std::string    source_model  = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+    const std::string source_model = preset_bundle
+        ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle)
+        : std::string();
+    return is_blocking_printing(obj_, source_model);
+}
+
+bool GUI_App::is_blocking_printing(MachineObject *obj_, const std::string& source_model)
+{
+    DeviceManager *dev = getDeviceManager();
+    if (!dev) return true;
+    if (obj_ == nullptr)
+        obj_ = dev->get_selected_machine();
+    if (!obj_)
+        return false;
 
     return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
 }

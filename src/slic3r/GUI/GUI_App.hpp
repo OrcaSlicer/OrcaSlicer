@@ -368,6 +368,7 @@ public:
     EAppMode get_app_mode() const { return m_app_mode; }
     Slic3r::DeviceManager* getDeviceManager() { return m_device_manager; }
     bool                   is_blocking_printing(MachineObject *obj_ = nullptr);
+    bool                   is_blocking_printing(MachineObject *obj_, const std::string& source_model);
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }

@@ -2518,23 +2518,13 @@ void SelectMachineDialog::on_cancel(wxCloseEvent &event)
 
 bool SelectMachineDialog::is_blocking_printing(MachineObject* obj_)
 {
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    auto target_model = obj_->printer_type;
-    std::string source_model = "";
+    if (m_print_type == PrintFromType::FROM_NORMAL)
+        return wxGetApp().is_blocking_printing(obj_);
 
-    if (m_print_type == PrintFromType::FROM_NORMAL) {
-        PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-        source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-
-
-    }else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW) {
-        if (m_required_data_plate_data_list.size() > 0) {
-            source_model = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id;
-        }
-    }
-
-    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
+    std::string source_model;
+    if (m_print_type == PrintFromType::FROM_SDCARD_VIEW && !m_required_data_plate_data_list.empty())
+        source_model = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id;
+    return wxGetApp().is_blocking_printing(obj_, source_model);
 }
 
 static std::unordered_set<int> _get_used_nozzle_idxes()

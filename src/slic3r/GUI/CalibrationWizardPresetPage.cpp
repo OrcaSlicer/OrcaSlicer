@@ -1640,19 +1640,6 @@ void CalibrationPresetPage::update_combobox_filaments(MachineObject* obj)
     select_default_compatible_filament();
 }
 
-bool CalibrationPresetPage::is_blocking_printing()
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-
-    MachineObject* obj_ = dev->get_selected_machine();
-    if (obj_ == nullptr) return true;
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    const auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
-}
-
 bool CalibrationPresetPage::is_nozzle_info_synced() const
 {
     if (!curr_obj || !curr_obj->is_info_ready())
@@ -1741,11 +1728,6 @@ void CalibrationPresetPage::update_show_status()
                 preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
     }
 
-    //if (is_blocking_printing()) {
-    //    show_status(CaliPresetPageStatus::CaliPresetStatusUnsupportedPrinter);
-    //    return;
-    //}
-    //else
     if (obj_->is_connecting() || !obj_->is_connected()) {
         show_status(CaliPresetPageStatus::CaliPresetStatusInConnecting);
         return;
