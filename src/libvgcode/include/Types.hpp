@@ -172,6 +172,8 @@ enum class EReducedDetailMode : uint8_t
     LayersOnly,
     // one layer in every stride, outer walls only
     OuterWallsOnly,
+    // one layer in every stride, only the segments on the visible surface of the print
+    ShellOnly,
     COUNT
 };
 

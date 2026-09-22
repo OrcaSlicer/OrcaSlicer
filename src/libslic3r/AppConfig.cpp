@@ -208,7 +208,7 @@ void AppConfig::set_defaults()
     // what the preview draws while the user drags it, and one layer in how many the toolpath modes keep
     {
         const std::string mode = get("preview_reduced_detail_mode");
-        if (mode != "off" && mode != "solid" && mode != "layers" && mode != "outer_walls")
+        if (mode != "off" && mode != "solid" && mode != "layers" && mode != "outer_walls" && mode != "shell")
             set("preview_reduced_detail_mode", "off");
         int stride = 4;
         try {

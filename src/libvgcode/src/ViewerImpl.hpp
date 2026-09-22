@@ -335,6 +335,17 @@ private:
     // Variables used for toolpaths visibiliity
     //
     BitSet<> m_valid_lines_bitset;
+#ifndef ENABLE_OPENGL_ES
+    //
+    // Extrusion segments classified by update_shell_bitset() for EReducedDetailMode::ShellOnly: on
+    // the visible surface, the first inner wall beside an outer wall, visible from straight above,
+    // visible from straight below
+    //
+    BitSet<> m_shell_bitset;
+    BitSet<> m_near_shell_bitset;
+    BitSet<> m_top_visible_bitset;
+    BitSet<> m_bottom_visible_bitset;
+#endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring
     //
@@ -535,8 +546,9 @@ private:
 
     // The set the next draw reads from: the reduced one while dragging, if one is built.
     bool use_reduced_set() const { return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off; }
-    // Whether an extrusion segment belongs to the reduced set under the current mode
-    bool reduced_set_keeps(const PathVertex& v) const;
+    // Whether the extrusion segment starting at vertex i belongs to the reduced set under the current mode
+    bool reduced_set_keeps(size_t i, const PathVertex& v) const;
+    void update_shell_bitset();
     struct ActiveSet
     {
         size_t count{ 0 };

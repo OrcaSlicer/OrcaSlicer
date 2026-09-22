@@ -688,7 +688,7 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
 // the reduced-detail modes that keep one layer in every N, so the stride applies
 static bool reduced_detail_mode_skips_layers(const std::string& mode)
 {
-    return mode == "layers" || mode == "outer_walls";
+    return mode == "layers" || mode == "outer_walls" || mode == "shell";
 }
 
 wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange, const wxString wiki_url)
@@ -2066,10 +2066,12 @@ void PreferencesDialog::create_items()
            "with its bottom and top layers drawn as toolpaths. Supports are not shown, and negative volumes are not cut out.\n"
            "Skip layers: the toolpaths of one layer in every N, set below.\n"
            "Outer walls: only the outer walls of one layer in every N. The prime tower and supports are left out.\n"
+           "Shell only: only the toolpaths on the visible surface of the print, including the prime tower, of one layer in every N. "
+           "Removes the most; holes narrower than 5 mm are treated as solid.\n"
            "The bottom and top of the visible layer range are always drawn whole."),
         "preview_reduced_detail_mode",
-        {_L("Off"), _L("Solid model"), _L("Skip layers"), _L("Outer walls")},
-        {"off", "solid", "layers", "outer_walls"},
+        {_L("Off"), _L("Solid model"), _L("Skip layers"), _L("Outer walls"), _L("Shell only")},
+        {"off", "solid", "layers", "outer_walls", "shell"},
         // apply the new mode immediately to the currently loaded preview
         [this](std::string value) {
             if (m_reduced_detail_layer_stride_input)

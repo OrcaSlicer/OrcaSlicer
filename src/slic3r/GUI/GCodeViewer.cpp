@@ -2069,6 +2069,8 @@ libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const
         return libvgcode::EReducedDetailMode::LayersOnly;
     if (mode == "outer_walls")
         return libvgcode::EReducedDetailMode::OuterWallsOnly;
+    if (mode == "shell")
+        return libvgcode::EReducedDetailMode::ShellOnly;
     return libvgcode::EReducedDetailMode::Off;
 }
 

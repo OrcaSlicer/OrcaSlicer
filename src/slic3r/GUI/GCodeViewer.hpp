@@ -382,7 +382,7 @@ public:
     // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
-    // the preference's string value: "off", "solid", "layers" or "outer_walls"
+    // the preference's string value: "off", "solid", "layers", "outer_walls" or "shell"
     void set_reduced_detail_mode(const std::string& mode);
     void set_reduced_detail_layer_stride(unsigned int value);
 

@@ -17,6 +17,10 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <cfloat>
+#include <future>
+#include <thread>
+#include <unordered_map>
 
 namespace libvgcode {
 
@@ -903,6 +907,10 @@ void ViewerImpl::reset()
     m_enabled_options_reduced_count = 0;
     m_enabled_segments_reduced_tex_size = 0;
     m_enabled_options_reduced_tex_size = 0;
+    m_shell_bitset = BitSet<>();
+    m_near_shell_bitset = BitSet<>();
+    m_top_visible_bitset = BitSet<>();
+    m_bottom_visible_bitset = BitSet<>();
 
     m_settings_used_for_ranges = std::nullopt;
 
@@ -1192,16 +1200,493 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 }
 
 #ifndef ENABLE_OPENGL_ES
-bool ViewerImpl::reduced_set_keeps(const PathVertex& v) const
+// what can never be a visible surface whatever the geometry says: short infill segments hugging
+// a wall would otherwise pass the geometric test by the thousand
+static bool is_hidden_in_shell(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::InternalInfill ||
+           role == EGCodeExtrusionRole::SolidInfill ||
+           role == EGCodeExtrusionRole::InternalBridgeInfill ||
+           role == EGCodeExtrusionRole::GapFill;
+}
+
+bool ViewerImpl::reduced_set_keeps(size_t i, const PathVertex& v) const
 {
     switch (m_settings.reduced_detail_mode) {
     case EReducedDetailMode::OuterWallsOnly:
         return v.role == EGCodeExtrusionRole::ExternalPerimeter || v.role == EGCodeExtrusionRole::OverhangPerimeter;
+    case EReducedDetailMode::ShellOnly:
+        // the first inner wall fills the step of a sloped surface between one layer's outer wall
+        // and the next, too narrow for the grid to see; whatever is the visible top or bottom of a
+        // step stays whatever its role
+        return (!is_hidden_in_shell(v.role) && m_shell_bitset[i]) || m_near_shell_bitset[i] ||
+               m_top_visible_bitset[i] || m_bottom_visible_bitset[i];
     default:
         return true;
     }
 }
+
+namespace {
+
+// A 2D occupancy grid over the print's footprint, one byte per cell. Only the rectangle a layer
+// touches is ever cleared or scanned, so a grid the size of the whole print costs no more than
+// the layer needs.
+struct OccupancyGrid
+{
+    int nx{ 0 };
+    int ny{ 0 };
+    std::vector<uint8_t> cells;
+    // bounding rectangle of the set cells, inclusive; empty while min > max
+    int min_x{ 0 };
+    int min_y{ 0 };
+    int max_x{ -1 };
+    int max_y{ -1 };
+
+    OccupancyGrid(int nx, int ny) : nx(nx), ny(ny), cells(static_cast<size_t>(nx) * static_cast<size_t>(ny), 0) {}
+
+    bool empty() const { return min_x > max_x; }
+    uint8_t at(int x, int y) const { return cells[static_cast<size_t>(y) * nx + x]; }
+    uint8_t& at(int x, int y) { return cells[static_cast<size_t>(y) * nx + x]; }
+
+    void set(int x, int y) {
+        at(x, y) = 1;
+        if (empty()) {
+            min_x = max_x = x;
+            min_y = max_y = y;
+        }
+        else {
+            min_x = std::min(min_x, x);
+            max_x = std::max(max_x, x);
+            min_y = std::min(min_y, y);
+            max_y = std::max(max_y, y);
+        }
+    }
+
+    void clear() {
+        for (int y = min_y; y <= max_y; ++y)
+            std::fill_n(&at(min_x, y), max_x - min_x + 1, static_cast<uint8_t>(0));
+        min_x = min_y = 0;
+        max_x = max_y = -1;
+    }
+
+    // grow the bounding rectangle by r cells, staying inside the grid
+    void grow(int r) {
+        if (empty())
+            return;
+        min_x = std::max(0, min_x - r);
+        min_y = std::max(0, min_y - r);
+        max_x = std::min(nx - 1, max_x + r);
+        max_y = std::min(ny - 1, max_y + r);
+    }
+};
+
+// Scratch space for close_gaps(), one per worker
+struct ClosingScratch
+{
+    // component label per cell: 0 empty, > 0 a component, WILD a tiny fragment, CONTESTED a cell
+    // reached by two components' dilations
+    std::vector<int32_t> labels;
+    std::vector<std::pair<int, int>> frontier;
+    std::vector<std::pair<int, int>> next;
+    std::vector<int> window_sum;
+    std::vector<uint8_t> raw;
+    static constexpr int32_t WILD = -1;
+    static constexpr int32_t CONTESTED = -2;
+};
+
+// Morphological closing with a square window of the given radius, so that sparse infill reads as
+// the solid area it is part of. The dilation is done per connected component and a cell two
+// components both reach stays empty, so the gap between two close objects is never bridged.
+static void close_gaps(OccupancyGrid& grid, int radius, ClosingScratch& scratch)
+{
+    if (grid.empty() || radius <= 0)
+        return;
+    // the dilated area needs room to grow
+    grid.grow(radius);
+    const int nx = grid.nx;
+    const auto idx = [nx](int x, int y) { return static_cast<size_t>(y) * nx + x; };
+    const auto in_rect = [&](int x, int y) { return x >= grid.min_x && x <= grid.max_x && y >= grid.min_y && y <= grid.max_y; };
+    std::vector<int32_t>& labels = scratch.labels;
+    labels.resize(grid.cells.size());
+    for (int y = grid.min_y; y <= grid.max_y; ++y)
+        std::fill_n(&labels[idx(grid.min_x, y)], grid.max_x - grid.min_x + 1, 0);
+    // the raw cells come back at the end: a closing must never lose one, and the erosion below
+    // would eat into a wall that faces a contested gap
+    std::vector<uint8_t>& raw = scratch.raw;
+    raw.resize(grid.cells.size());
+    for (int y = grid.min_y; y <= grid.max_y; ++y)
+        std::copy_n(&grid.at(grid.min_x, y), grid.max_x - grid.min_x + 1, &raw[idx(grid.min_x, y)]);
+
+    // label the 8-connected components of the raw cells; a fragment too small to be a wall does
+    // not spread and is absorbed by whichever component reaches it
+    static constexpr size_t TINY = 8;
+    int32_t next_label = 1;
+    std::vector<std::pair<int, int>>& frontier = scratch.frontier;
+    frontier.clear();
+    for (int y = grid.min_y; y <= grid.max_y; ++y) {
+        for (int x = grid.min_x; x <= grid.max_x; ++x) {
+            if (!grid.at(x, y) || labels[idx(x, y)] != 0)
+                continue;
+            std::vector<std::pair<int, int>>& component = scratch.next;
+            component.clear();
+            component.emplace_back(x, y);
+            labels[idx(x, y)] = next_label;
+            for (size_t head = 0; head < component.size(); ++head) {
+                const auto [cx, cy] = component[head];
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int px = cx + dx;
+                        const int py = cy + dy;
+                        if ((dx == 0 && dy == 0) || !in_rect(px, py) || !grid.at(px, py) || labels[idx(px, py)] != 0)
+                            continue;
+                        labels[idx(px, py)] = next_label;
+                        component.emplace_back(px, py);
+                    }
+                }
+            }
+            if (component.size() < TINY) {
+                for (const auto& [cx, cy] : component)
+                    labels[idx(cx, cy)] = ClosingScratch::WILD;
+            }
+            else {
+                frontier.insert(frontier.end(), component.begin(), component.end());
+                ++next_label;
+            }
+        }
+    }
+
+    // dilate: each component claims the cells within radius of it, breadth first; a cell already
+    // claimed by another component is contested and stays empty
+    for (int step = 0; step < radius; ++step) {
+        std::vector<std::pair<int, int>>& next = scratch.next;
+        next.clear();
+        for (const auto& [cx, cy] : frontier) {
+            const int32_t label = labels[idx(cx, cy)];
+            if (label <= 0)
+                continue;
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int px = cx + dx;
+                    const int py = cy + dy;
+                    if ((dx == 0 && dy == 0) || !in_rect(px, py))
+                        continue;
+                    int32_t& other = labels[idx(px, py)];
+                    if (other == 0 || other == ClosingScratch::WILD) {
+                        other = label;
+                        next.emplace_back(px, py);
+                    }
+                    else if (other != label && other != ClosingScratch::CONTESTED && !grid.at(px, py))
+                        other = ClosingScratch::CONTESTED;
+                }
+            }
+        }
+        std::swap(frontier, next);
+    }
+    for (int y = grid.min_y; y <= grid.max_y; ++y) {
+        for (int x = grid.min_x; x <= grid.max_x; ++x) {
+            if (labels[idx(x, y)] > 0)
+                grid.at(x, y) = 1;
+        }
+    }
+
+    // erode by the same radius, separably; cells outside the rectangle are empty, which is what a
+    // shrinking erosion has to see
+    std::vector<int>& window_sum = scratch.window_sum;
+    const auto erode = [&](bool horizontal) {
+        const int outer_n = horizontal ? grid.max_y - grid.min_y + 1 : grid.max_x - grid.min_x + 1;
+        const int inner_n = horizontal ? grid.max_x - grid.min_x + 1 : grid.max_y - grid.min_y + 1;
+        window_sum.assign(inner_n + 1, 0);
+        for (int o = 0; o < outer_n; ++o) {
+            const auto cell = [&](int i) -> uint8_t& {
+                return horizontal ? grid.at(grid.min_x + i, grid.min_y + o) : grid.at(grid.min_x + o, grid.min_y + i);
+            };
+            for (int i = 0; i < inner_n; ++i)
+                window_sum[i + 1] = window_sum[i] + cell(i);
+            for (int i = 0; i < inner_n; ++i) {
+                const int count = window_sum[std::min(inner_n, i + radius + 1)] - window_sum[std::max(0, i - radius)];
+                cell(i) = (count == 2 * radius + 1);
+            }
+        }
+    };
+    erode(true);
+    erode(false);
+    for (int y = grid.min_y; y <= grid.max_y; ++y) {
+        for (int x = grid.min_x; x <= grid.max_x; ++x)
+            grid.at(x, y) |= raw[idx(x, y)];
+    }
+}
+
+} // namespace
+
+// Classifies the extrusion segments for EReducedDetailMode::ShellOnly from a coarse occupancy grid
+// per layer: a closed footprint cell is on the shell when any of its six neighbours is empty, and a
+// segment is kept when at least half of the cells it crosses are. Purely geometric, so the wipe
+// tower works as well as the objects. The same pass records the highest and lowest layer occupying
+// each cell, which tells what a view from above or below sees; see docs/HLSD/gcode-preview-dragging.md.
+void ViewerImpl::update_shell_bitset()
+{
+    m_shell_bitset = BitSet<>(m_vertices.size());
+    m_near_shell_bitset = BitSet<>(m_vertices.size());
+    m_top_visible_bitset = BitSet<>(m_vertices.size());
+    m_bottom_visible_bitset = BitSet<>(m_vertices.size());
+    if (m_vertices.size() < 2 || m_layers.empty())
+        return;
+
+    float min_x = FLT_MAX;
+    float min_y = FLT_MAX;
+    float max_x = -FLT_MAX;
+    float max_y = -FLT_MAX;
+    for (const PathVertex& v : m_vertices) {
+        if (!v.is_extrusion())
+            continue;
+        min_x = std::min(min_x, v.position[0]);
+        min_y = std::min(min_y, v.position[1]);
+        max_x = std::max(max_x, v.position[0]);
+        max_y = std::max(max_y, v.position[1]);
+    }
+    if (min_x > max_x)
+        return;
+
+    // Half a millimetre separates a wall from the wall behind it; a print too large for that at
+    // 1024 cells across gets coarser cells rather than a bigger grid. Gaps of up to 5 mm read as
+    // solid: wide enough to swallow sparse infill, narrow enough to leave real holes open.
+    static constexpr int MAX_CELLS = 1024;
+    const float cell = std::max(0.5f, std::max(max_x - min_x, max_y - min_y) / static_cast<float>(MAX_CELLS));
+    const int radius = static_cast<int>(std::ceil(2.5f / cell));
+    // room for the closing to grow into, plus the neighbour lookups
+    const int margin = radius + 2;
+    const float origin_x = min_x - static_cast<float>(margin) * cell;
+    const float origin_y = min_y - static_cast<float>(margin) * cell;
+    const int nx = static_cast<int>((max_x - min_x) / cell) + 1 + 2 * margin;
+    const int ny = static_cast<int>((max_y - min_y) / cell) + 1 + 2 * margin;
+
+    const auto cell_index = [nx](int x, int y) { return static_cast<size_t>(y) * nx + x; };
+    const auto cell_of = [&](float x, float y) {
+        const int cx = std::clamp(static_cast<int>((x - origin_x) / cell), margin, nx - 1 - margin);
+        const int cy = std::clamp(static_cast<int>((y - origin_y) / cell), margin, ny - 1 - margin);
+        return std::make_pair(cx, cy);
+    };
+
+    // calls f(cx, cy) once per cell the segment starting at vertex i passes through
+    const auto for_each_cell = [&](size_t i, auto&& f) {
+        const Vec3& a = m_vertices[i].position;
+        const Vec3& b = m_vertices[i + 1].position;
+        const float dx = b[0] - a[0];
+        const float dy = b[1] - a[1];
+        const int steps = static_cast<int>(std::sqrt(dx * dx + dy * dy) / (0.5f * cell)) + 1;
+        int last_x = -1;
+        int last_y = -1;
+        for (int s = 0; s <= steps; ++s) {
+            const float t = static_cast<float>(s) / static_cast<float>(steps);
+            const auto [cx, cy] = cell_of(a[0] + t * dx, a[1] + t * dy);
+            if (cx != last_x || cy != last_y) {
+                f(cx, cy);
+                last_x = cx;
+                last_y = cy;
+            }
+        }
+    };
+
+    const size_t layers_count = m_layers.count();
+    // the segments of a layer: [first, last), where segment i runs from vertex i to vertex i + 1
+    const auto layer_segments = [&](size_t layer) {
+        const size_t first = m_layer_first_vertex[layer];
+        const size_t last = (layer + 1 < layers_count) ? m_layer_first_vertex[layer + 1] : m_vertices.size() - 1;
+        return std::make_pair(first, std::min(last, m_vertices.size() - 1));
+    };
+    const auto is_drawn_extrusion = [&](size_t i) { return m_vertices[i].is_extrusion() && m_valid_lines_bitset[i]; };
+
+    const OccupancyGrid nothing(nx, ny);
+
+    // Classifies the layers in [first_layer, last_layer) and returns the segments kept, plus the
+    // highest and lowest of these layers occupying each cell. Each call owns its grids, so the layer
+    // range can be split across threads.
+    static constexpr int32_t NO_LAYER = -1;
+    struct Kept {
+        std::vector<uint32_t> shell;
+        std::vector<uint32_t> near_shell;
+        std::vector<int32_t> top;
+        std::vector<int32_t> bottom;
+        // the rectangle of cells these layers touched, inclusive; empty while min > max
+        int min_x{ 0 };
+        int min_y{ 0 };
+        int max_x{ -1 };
+        int max_y{ -1 };
+    };
+    const size_t cells_count = static_cast<size_t>(nx) * static_cast<size_t>(ny);
+    const auto classify_layers = [&](size_t first_layer, size_t last_layer) {
+        Kept kept;
+        kept.top.assign(cells_count, NO_LAYER);
+        kept.bottom.assign(cells_count, NO_LAYER);
+        std::vector<OccupancyGrid> footprints(3, OccupancyGrid(nx, ny));
+        OccupancyGrid shell_cells(nx, ny);
+        // the outer wall segments of the layer, by every cell they cross
+        std::unordered_map<size_t, std::vector<uint32_t>> outer_walls_by_cell;
+        ClosingScratch scratch;
+        const auto footprint = [&](size_t layer) -> OccupancyGrid& { return footprints[layer % 3]; };
+        const auto prepare = [&](size_t layer) {
+            OccupancyGrid& g = footprint(layer);
+            g.clear();
+            const auto [first, last] = layer_segments(layer);
+            for (size_t i = first; i < last; ++i) {
+                if (is_drawn_extrusion(i))
+                    for_each_cell(i, [&](int x, int y) { g.set(x, y); });
+            }
+            close_gaps(g, radius, scratch);
+        };
+
+        if (first_layer > 0)
+            prepare(first_layer - 1);
+        prepare(first_layer);
+        for (size_t layer = first_layer; layer < last_layer; ++layer) {
+            if (layer + 1 < layers_count)
+                prepare(layer + 1);
+            const OccupancyGrid& below = (layer > 0) ? footprint(layer - 1) : nothing;
+            const OccupancyGrid& cur = footprint(layer);
+            const OccupancyGrid& above = (layer + 1 < layers_count) ? footprint(layer + 1) : nothing;
+
+            shell_cells.clear();
+            if (!cur.empty()) {
+                kept.min_x = (kept.max_x < kept.min_x) ? cur.min_x : std::min(kept.min_x, cur.min_x);
+                kept.min_y = (kept.max_y < kept.min_y) ? cur.min_y : std::min(kept.min_y, cur.min_y);
+                kept.max_x = std::max(kept.max_x, cur.max_x);
+                kept.max_y = std::max(kept.max_y, cur.max_y);
+            }
+            for (int y = cur.min_y; y <= cur.max_y; ++y) {
+                for (int x = cur.min_x; x <= cur.max_x; ++x) {
+                    if (!cur.at(x, y))
+                        continue;
+                    // layers come in ascending order, so the first occupant is the lowest
+                    int32_t& top = kept.top[cell_index(x, y)];
+                    int32_t& bottom = kept.bottom[cell_index(x, y)];
+                    top = static_cast<int32_t>(layer);
+                    if (bottom == NO_LAYER)
+                        bottom = static_cast<int32_t>(layer);
+                    if (!below.at(x, y) || !above.at(x, y) ||
+                        !cur.at(x - 1, y) || !cur.at(x + 1, y) || !cur.at(x, y - 1) || !cur.at(x, y + 1))
+                        shell_cells.set(x, y);
+                }
+            }
+            const auto [first, last] = layer_segments(layer);
+            outer_walls_by_cell.clear();
+            for (size_t i = first; i < last; ++i) {
+                const EGCodeExtrusionRole role = m_vertices[i].role;
+                if (is_drawn_extrusion(i) && (role == EGCodeExtrusionRole::ExternalPerimeter || role == EGCodeExtrusionRole::OverhangPerimeter))
+                    for_each_cell(i, [&](int x, int y) { outer_walls_by_cell[cell_index(x, y)].push_back(static_cast<uint32_t>(i)); });
+            }
+            // an inner wall segment is the first inner wall when its midpoint lies within a line
+            // and a half of an outer wall segment of the same layer
+            const auto beside_outer_wall = [&](size_t i) {
+                const Vec3& a = m_vertices[i].position;
+                const Vec3& b = m_vertices[i + 1].position;
+                const float mx = 0.5f * (a[0] + b[0]);
+                const float my = 0.5f * (a[1] + b[1]);
+                const float reach = 1.5f * m_vertices[i].width;
+                const auto [cx, cy] = cell_of(mx, my);
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const auto it = outer_walls_by_cell.find(cell_index(cx + dx, cy + dy));
+                        if (it == outer_walls_by_cell.end())
+                            continue;
+                        for (uint32_t o : it->second) {
+                            const Vec3& p = m_vertices[o].position;
+                            const Vec3& q = m_vertices[o + 1].position;
+                            const float ex = q[0] - p[0];
+                            const float ey = q[1] - p[1];
+                            const float len2 = ex * ex + ey * ey;
+                            const float t = (len2 > 0.0f) ? std::clamp(((mx - p[0]) * ex + (my - p[1]) * ey) / len2, 0.0f, 1.0f) : 0.0f;
+                            const float ddx = mx - (p[0] + t * ex);
+                            const float ddy = my - (p[1] + t * ey);
+                            if (ddx * ddx + ddy * ddy <= reach * reach)
+                                return true;
+                        }
+                    }
+                }
+                return false;
+            };
+
+            for (size_t i = first; i < last; ++i) {
+                if (!is_drawn_extrusion(i))
+                    continue;
+                int total = 0;
+                int on_shell = 0;
+                for_each_cell(i, [&](int x, int y) {
+                    ++total;
+                    on_shell += shell_cells.at(x, y);
+                });
+                if (2 * on_shell >= total)
+                    kept.shell.push_back(static_cast<uint32_t>(i));
+                if (m_vertices[i].role == EGCodeExtrusionRole::Perimeter && beside_outer_wall(i))
+                    kept.near_shell.push_back(static_cast<uint32_t>(i));
+            }
+        }
+        return kept;
+    };
+
+    const size_t workers = std::clamp<size_t>(std::thread::hardware_concurrency(), 1, 8);
+    const size_t chunk = std::max<size_t>(16, (layers_count + workers - 1) / workers);
+    std::vector<std::future<Kept>> futures;
+    for (size_t first = 0; first < layers_count; first += chunk)
+        futures.emplace_back(std::async(std::launch::async, classify_layers, first, std::min(layers_count, first + chunk)));
+    std::vector<int32_t> top_layer(cells_count, NO_LAYER);
+    std::vector<int32_t> bottom_layer(cells_count, NO_LAYER);
+    for (auto& f : futures) {
+        const Kept kept = f.get();
+        for (uint32_t i : kept.shell)
+            m_shell_bitset.set(i);
+        for (uint32_t i : kept.near_shell)
+            m_near_shell_bitset.set(i);
+        for (int y = kept.min_y; y <= kept.max_y; ++y) {
+            for (int x = kept.min_x; x <= kept.max_x; ++x) {
+                const size_t c = cell_index(x, y);
+                if (kept.top[c] == NO_LAYER)
+                    continue;
+                top_layer[c] = std::max(top_layer[c], kept.top[c]);
+                bottom_layer[c] = (bottom_layer[c] == NO_LAYER) ? kept.bottom[c] : std::min(bottom_layer[c], kept.bottom[c]);
+            }
+        }
+    }
+
+    // A segment is visible from straight above when its layer is the topmost occupant of any of its
+    // cells, and from below likewise with the bottommost: the exposed band of a sloped surface is
+    // narrower than the infill chords that fill it, so touching it is what counts.
+    struct Visible { std::vector<uint32_t> top; std::vector<uint32_t> bottom; };
+    const auto find_visible = [&](size_t first_layer, size_t last_layer) {
+        Visible visible;
+        for (size_t layer = first_layer; layer < last_layer; ++layer) {
+            const auto [first, last] = layer_segments(layer);
+            for (size_t i = first; i < last; ++i) {
+                if (!is_drawn_extrusion(i))
+                    continue;
+                int total = 0;
+                int on_top = 0;
+                int on_bottom = 0;
+                for_each_cell(i, [&](int x, int y) {
+                    ++total;
+                    on_top += top_layer[cell_index(x, y)] == static_cast<int32_t>(layer);
+                    on_bottom += bottom_layer[cell_index(x, y)] == static_cast<int32_t>(layer);
+                });
+                if (on_top > 0)
+                    visible.top.push_back(static_cast<uint32_t>(i));
+                if (on_bottom > 0)
+                    visible.bottom.push_back(static_cast<uint32_t>(i));
+            }
+        }
+        return visible;
+    };
+    std::vector<std::future<Visible>> visible_futures;
+    for (size_t first = 0; first < layers_count; first += chunk)
+        visible_futures.emplace_back(std::async(std::launch::async, find_visible, first, std::min(layers_count, first + chunk)));
+    for (auto& f : visible_futures) {
+        const Visible visible = f.get();
+        for (uint32_t i : visible.top)
+            m_top_visible_bitset.set(i);
+        for (uint32_t i : visible.bottom)
+            m_bottom_visible_bitset.set(i);
+    }
+}
 #endif // ENABLE_OPENGL_ES
+
 
 void ViewerImpl::update_enabled_entities()
 {
@@ -1220,6 +1705,21 @@ void ViewerImpl::update_enabled_entities()
     std::vector<uint32_t> enabled_segments_reduced;
     std::vector<uint32_t> enabled_options_reduced;
     const Interval& layers_range = m_layers.get_view_range();
+    // the shell is classified once per load, the first time it is needed
+    const bool shell_reduced = reduced_mode == EReducedDetailMode::ShellOnly;
+    if (shell_reduced && m_shell_bitset.size != m_vertices.size()) {
+        try {
+            update_shell_bitset();
+        }
+        catch (...) {
+            // out of memory on a huge print: take everything for shell, which leaves out only the hidden infill
+            m_shell_bitset = BitSet<>(m_vertices.size());
+            m_shell_bitset.setAll();
+            m_near_shell_bitset = BitSet<>(m_vertices.size());
+            m_top_visible_bitset = BitSet<>(m_vertices.size());
+            m_bottom_visible_bitset = BitSet<>(m_vertices.size());
+        }
+    }
 #endif // ENABLE_OPENGL_ES
     Interval range = m_view_range.get_visible();
 
@@ -1274,10 +1774,15 @@ void ViewerImpl::update_enabled_entities()
             const bool end_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
             if (end_layer)
                 (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
-            else if (reduced_mode != EReducedDetailMode::EndLayersOnly && (v.layer_id % layer_stride) == 0) {
-                if (v.is_option())
-                    enabled_options_reduced.push_back(static_cast<uint32_t>(i));
-                else if (!v.is_extrusion() || reduced_set_keeps(v))
+            else if (reduced_mode != EReducedDetailMode::EndLayersOnly) {
+                if ((v.layer_id % layer_stride) == 0) {
+                    if (v.is_option())
+                        enabled_options_reduced.push_back(static_cast<uint32_t>(i));
+                    else if (!v.is_extrusion() || reduced_set_keeps(i, v))
+                        enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
+                }
+                // the surfaces of a skipped layer that either side can see stay, so that a step does not vanish
+                else if (shell_reduced && v.is_extrusion() && (m_top_visible_bitset[i] || m_bottom_visible_bitset[i]))
                     enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
             }
         }
@@ -1906,6 +2411,12 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);
     ret += STDVEC_MEMSIZE(m_colors_scratch, float);
     ret += m_valid_lines_bitset.size_in_bytes_cpu();
+#ifndef ENABLE_OPENGL_ES
+    ret += m_shell_bitset.size_in_bytes_cpu();
+    ret += m_near_shell_bitset.size_in_bytes_cpu();
+    ret += m_top_visible_bitset.size_in_bytes_cpu();
+    ret += m_bottom_visible_bitset.size_in_bytes_cpu();
+#endif // ENABLE_OPENGL_ES
     ret += m_height_range.size_in_bytes_cpu();
     ret += m_width_range.size_in_bytes_cpu();
     ret += m_speed_range.size_in_bytes_cpu();
