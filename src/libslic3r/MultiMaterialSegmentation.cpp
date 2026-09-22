@@ -1311,10 +1311,15 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     }
 #endif // MM_SEGMENTATION_DEBUG_TOP_BOTTOM
 
-    // When the upper surface of an object is occluded, it should no longer be considered the upper surface
+    // When the upper surface of an object is occluded, it should no longer be considered the upper surface.
+    // Every (colour, layer) pair is trimmed on its own, so they all run at once: the painted faces of a finely
+    // textured part project hundreds of thousands of triangles onto one layer, which used to be trimmed serially.
     {
-        for (size_t extruder_idx = 0; extruder_idx < num_facets_states; ++extruder_idx) {
-            for (size_t layer_idx = 0; layer_idx < layers.size(); ++layer_idx) {
+        const size_t occluded_pairs = num_facets_states * layers.size();
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, occluded_pairs), [&](const tbb::blocked_range<size_t> &range) {
+            for (size_t pair_idx = range.begin(); pair_idx < range.end(); ++pair_idx) {
+                const size_t extruder_idx = pair_idx / layers.size();
+                const size_t layer_idx    = pair_idx % layers.size();
                 if (!top_raw[extruder_idx].empty() && !top_raw[extruder_idx][layer_idx].empty() && layer_idx + 1 < layers.size()) {
                     top_raw[extruder_idx][layer_idx] = diff(top_raw[extruder_idx][layer_idx], input_expolygons[layer_idx + 1]);
                 }
@@ -1322,7 +1327,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                     bottom_raw[extruder_idx][layer_idx] = diff(bottom_raw[extruder_idx][layer_idx], input_expolygons[layer_idx - 1]);
                 }
             }
-        }
+        });
     }
 
     std::vector<std::vector<ExPolygons>> triangles_by_color_bottom(num_facets_states);
@@ -1847,6 +1852,54 @@ static void remove_multiple_edges_in_vertices(MMU_Graph &graph, const std::vecto
     }
 }
 
+// diff_ex(subject, clip), one subject ExPolygon at a time against the part of `clip` in its box. The pieces are disjoint,
+// so the result is the same; but ClipperLib never gets a whole finely painted layer at once, where re-linking the holes
+// of its PolyTree (FixupFirstLefts) is quadratic in the thousands of regions.
+static ExPolygons diff_ex_by_piece(const ExPolygons &subject, const ExPolygons &clip)
+{
+    // A coarse grid over the clip's boxes, so each piece only looks at the clip regions near it.
+    std::vector<BoundingBox> clip_bboxes;
+    clip_bboxes.reserve(clip.size());
+    BoundingBox extent;
+    for (const ExPolygon &expoly : clip) {
+        clip_bboxes.emplace_back(get_extents(expoly));
+        extent.merge(clip_bboxes.back());
+    }
+    constexpr int GRID = 64;
+    const Point   size = extent.defined ? extent.size() : Point(1, 1);
+    const coord_t cell_w = std::max<coord_t>(1, size.x() / GRID + 1), cell_h = std::max<coord_t>(1, size.y() / GRID + 1);
+    const auto    cells  = [&](const BoundingBox &bb, auto &&fn) {
+        const int x0 = std::clamp(int((bb.min.x() - extent.min.x()) / cell_w), 0, GRID - 1), x1 = std::clamp(int((bb.max.x() - extent.min.x()) / cell_w), 0, GRID - 1);
+        const int y0 = std::clamp(int((bb.min.y() - extent.min.y()) / cell_h), 0, GRID - 1), y1 = std::clamp(int((bb.max.y() - extent.min.y()) / cell_h), 0, GRID - 1);
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                fn(y * GRID + x);
+    };
+    std::vector<std::vector<size_t>> grid(GRID * GRID);
+    if (extent.defined)
+        for (size_t i = 0; i < clip.size(); ++i)
+            cells(clip_bboxes[i], [&](int cell) { grid[cell].emplace_back(i); });
+
+    std::vector<ExPolygons> pieces(subject.size());
+    tbb::parallel_for(size_t(0), subject.size(), [&](size_t idx) {
+        const BoundingBox bbox = get_extents(subject[idx]).inflated(SCALED_EPSILON);
+        std::vector<size_t> near;
+        if (extent.defined && bbox.overlap(extent)) {
+            cells(bbox, [&](int cell) { append(near, grid[cell]); });
+            sort_remove_duplicates(near);
+        }
+        Polygons nearby_clip;
+        for (size_t i : near)
+            if (clip_bboxes[i].overlap(bbox))
+                polygons_append(nearby_clip, ClipperUtils::clip_clipper_polygons_with_subject_bbox(clip[i], bbox));
+        pieces[idx] = nearby_clip.empty() ? ExPolygons{ subject[idx] } : diff_ex(subject[idx], nearby_clip);
+    });
+    ExPolygons out;
+    for (ExPolygons &piece : pieces)
+        append(out, std::move(piece));
+    return out;
+}
+
 static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::vector<std::vector<ExPolygons>> &segmented_regions,
                                                                    std::vector<std::vector<ExPolygons>>      &&top_and_bottom_layers,
                                                                    const size_t                                num_facets_states,
@@ -1861,18 +1914,18 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
     tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&segmented_regions, &top_and_bottom_layers, &segmented_regions_merged, &num_facets_states, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
             assert(segmented_regions[layer_idx].size() == num_facets_states);
+            ExPolygons top_and_bottom_all_colours;
+            for (const std::vector<ExPolygons> &top_and_bottom_by_extruder : top_and_bottom_layers)
+                append(top_and_bottom_all_colours, top_and_bottom_by_extruder[layer_idx]);
             // Zero is skipped because it is the default color of the volume
             for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id) {
                 throw_on_cancel_callback();
                 if (!segmented_regions[layer_idx][extruder_id].empty()) {
                     ExPolygons segmented_regions_trimmed = segmented_regions[layer_idx][extruder_id];
-                    if (!top_and_bottom_layers.empty()) {
-                        for (const std::vector<ExPolygons> &top_and_bottom_by_extruder : top_and_bottom_layers) {
-                            if (!top_and_bottom_by_extruder[layer_idx].empty() && !segmented_regions_trimmed.empty()) {
-                                segmented_regions_trimmed = diff_ex(segmented_regions_trimmed, top_and_bottom_by_extruder[layer_idx]);
-                            }
-                        }
-                    }
+                    // All colours at once: taking them one after another made every piece go through ClipperLib once per
+                    // colour, and it is the same area either way.
+                    if (!top_and_bottom_all_colours.empty() && !segmented_regions_trimmed.empty())
+                        segmented_regions_trimmed = diff_ex_by_piece(segmented_regions_trimmed, top_and_bottom_all_colours);
 
                     segmented_regions_merged[layer_idx][extruder_id - 1] = std::move(segmented_regions_trimmed);
                 }
@@ -2171,16 +2224,53 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 
                 assert(!color_poly.empty());
                 assert(!color_poly.front().empty());
-                if (has_layer_only_one_color(color_poly)) {
-                    // If the whole layer is painted using the same color, it is not needed to construct a Voronoi diagram for the segmentation of this layer.
-                    segmented_regions[layer_idx][size_t(color_poly.front().front().color)] = input_expolygons[layer_idx];
-                } else {
-                    MMU_Graph graph = build_graph(layer_idx, color_poly);
-                    remove_multiple_edges_in_vertices(graph, color_poly);
-                    graph.remove_nodes_with_one_arc();
-                    segmented_regions[layer_idx] = extract_colored_segments(graph, num_facets_states);
-                    //segmented_regions[layer_idx] = extract_colored_segments(color_poly, num_extruders, layer_idx);
+                // Each island (an ExPolygon with its holes) is segmented on its own. Any point of an island is closer to
+                // that island's contours than to any other island's - the way out crosses its own boundary first - so its
+                // Voronoi cells, and with them its colour regions, depend on nothing else. A layer cut through a fine relief
+                // has thousands of islands, and one Voronoi diagram over all of them degenerated into overlapping regions
+                // that every boolean afterwards had to untangle. Per island the diagrams stay small and the islands run in
+                // parallel; an island in a single colour needs no diagram at all.
+                const ExPolygons                      &islands = input_expolygons[layer_idx];
+                std::vector<std::pair<size_t, size_t>> island_contours(islands.size()); // [first, last) into color_poly
+                {
+                    // The same order EdgeGrid::Grid::create() lists the contours in, and so colorize_contours().
+                    size_t idx = 0;
+                    for (size_t island_idx = 0; island_idx < islands.size(); ++island_idx) {
+                        const size_t first = idx;
+                        if (!islands[island_idx].contour.empty())
+                            ++idx;
+                        for (const Polygon &hole : islands[island_idx].holes)
+                            if (!hole.empty())
+                                ++idx;
+                        island_contours[island_idx] = {first, idx};
+                    }
+                    assert(idx == color_poly.size());
                 }
+                std::vector<std::vector<ExPolygons>> island_regions(islands.size());
+                tbb::parallel_for(size_t(0), islands.size(), [&](size_t island_idx) {
+                    const auto [first, last] = island_contours[island_idx];
+                    if (first == last)
+                        return;
+                    const std::vector<ColoredLines> island_poly(color_poly.begin() + first, color_poly.begin() + last);
+                    std::vector<ExPolygons>        &regions = island_regions[island_idx];
+                    if (has_layer_only_one_color(island_poly)) {
+                        regions.assign(num_facets_states, ExPolygons());
+                        regions[size_t(island_poly.front().front().color)].emplace_back(islands[island_idx]);
+                    } else {
+                        MMU_Graph graph = build_graph(layer_idx, island_poly);
+                        remove_multiple_edges_in_vertices(graph, island_poly);
+                        graph.remove_nodes_with_one_arc();
+                        regions = extract_colored_segments(graph, num_facets_states);
+                        // The faces of one colour tile it without overlapping; merged here, where an island is small,
+                        // every later boolean gets a few regions instead of thousands of faces sharing their edges.
+                        for (ExPolygons &faces : regions)
+                            if (faces.size() > 1)
+                                faces = union_ex(faces);
+                    }
+                });
+                for (std::vector<ExPolygons> &regions : island_regions)
+                    for (size_t color_idx = 0; color_idx < regions.size(); ++color_idx)
+                        append(segmented_regions[layer_idx][color_idx], std::move(regions[color_idx]));
 
 #ifdef MM_SEGMENTATION_DEBUG_REGIONS
                 export_regions_to_svg(debug_out_path("3-mm-regions-sides-%d-%d.svg", layer_idx, iRun), segmented_regions[layer_idx], input_expolygons[layer_idx]);
