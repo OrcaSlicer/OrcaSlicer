@@ -330,12 +330,13 @@ jobs:
     # sources are unchanged, so a re-run of the same commit would skip the
     # OrcaSlicer module and ship no test asset. A per-run value in that module's
     # env keeps it rebuilding; orca_deps stays cached, and the compiler cache
-    # still serves the rebuild.
-    - name: Inject commit hash and flatpak-builder cache buster into Flatpak manifest
+    # still serves the rebuild. run-tests on the same module builds the test
+    # binaries.
+    - name: Inject commit hash, run-tests and cache buster into Flatpak manifest
       env:
         flatpak_builder_cache_buster: ${{ github.run_id }}-${{ github.run_attempt }}
       run: |
-        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        flatpak_builder_cache_buster: \"$flatpak_builder_cache_buster\"\n        git_commit_hash: \"$git_commit_hash\"|}" \
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    run-tests: true\n    build-options:\n      env:\n        flatpak_builder_cache_buster: \"$flatpak_builder_cache_buster\"\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
     # flatpak-builder's --ccache only wraps cc and gcc, and the manifest builds
@@ -381,9 +382,6 @@ jobs:
         save-cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
-        # run-tests fires the module's build-only test-commands; keep-build-dirs
-        # retains the binaries for the packaging step below.
-        run-tests: true
         keep-build-dirs: true
     # The build has just touched everything it can use, so an object untouched
     # for a week is dead, usually orphaned by a flag change.
@@ -449,10 +447,13 @@ jobs:
         # the bounds checks are compiled in, so a stripped exe still catches them.
         find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
         # At runtime the tests read tests/ (TEST_DATA_DIR), scripts/, and under
-        # resources/ the shipped profiles (PROFILES_DIR) and the printers/ maps.
+        # resources/ the shipped profiles (PROFILES_DIR), the printers/ maps, and
+        # the icon SVGs (NativeCommands icon names are checked against them).
         find "$d" -mindepth 1 -maxdepth 1 -type d \
           ! -name tests ! -name build_flatpak ! -name scripts ! -name resources -exec rm -rf {} +
-        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers -exec rm -rf {} +
+        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers ! -name images -exec rm -rf {} +
+        # Only the SVGs are read; the png/ico/icns/gif assets are ~35MB of dead weight.
+        find "$d/resources/images" -mindepth 1 -maxdepth 1 ! -name '*.svg' -exec rm -rf {} + 2>/dev/null || true
         tar -cf flatpak-test-asset.tar flatpak_app "$d"
     - name: Upload flatpak test asset
       uses: actions/upload-artifact@v7
