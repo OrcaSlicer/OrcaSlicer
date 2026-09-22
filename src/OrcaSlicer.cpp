@@ -7015,6 +7015,12 @@ int CLI::run(int argc, char **argv)
                                     }
                                 }
                                 sliced_info.sliced_plates.push_back(sliced_plate_info);
+                            } catch (const Slic3r::SlicingErrors &exs) {
+                                const std::string message = print_fff ? print_fff->slicing_errors_message(exs) : std::string(exs.what());
+                                BOOST_LOG_TRIVIAL(error) << "found slicing or export error for partplate " << index+1 << ": " << message;
+                                boost::nowide::cerr << message << std::endl;
+                                record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index+1, message, sliced_info);
+                                flush_and_exit(CLI_SLICING_ERROR);
                             } catch (const std::exception &ex) {
                                 BOOST_LOG_TRIVIAL(error) << "found slicing or export error for partplate "<<index+1 << std::endl;
                                 boost::nowide::cerr << ex.what() << std::endl;
