@@ -1044,6 +1044,12 @@ int OrcaCloudServiceAgent::configure_selected_printer_mqtt(const std::string& de
                                                            OrcaMqttConnection::StateHandler state_handler)
 {
     (void) dev_id;
+    if (!ensure_token_fresh("configure_selected_printer_mqtt"))
+    {
+        BOOST_LOG_TRIVIAL(warning) << "ensure_token_fresh returned false";
+        return BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
+    }
+
     OrcaMqttConnection::Config cfg;
     cfg.url               = "wss://" + api_base_url + "/api/v1/printers/mqtt";
     cfg.use_tls           = true;
