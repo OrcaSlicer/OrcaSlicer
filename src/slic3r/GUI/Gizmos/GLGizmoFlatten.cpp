@@ -1,6 +1,7 @@
 #include "GLGizmoFlatten.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
@@ -54,7 +55,7 @@ void GLGizmoFlatten::data_changed(bool is_serializing)
 
 bool GLGizmoFlatten::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_F;
+    m_shortcut = Shortcut::GizmoFlatten;
     return true;
 }
 

@@ -31,12 +31,12 @@
 #include <unordered_map>
 #include <vector>
 
-class wxChoice;
 class wxStaticText;
 class wxStaticBitmap;
 class Button; // global widget (src/slic3r/GUI/Widgets/Button.hpp), not in the Slic3r::GUI namespace
 class Label;  // global widget (src/slic3r/GUI/Widgets/Label.hpp)
 class StaticBox;
+class ComboBox;
 
 namespace Slic3r {
 class PresetBundle;
@@ -70,8 +70,8 @@ public:
     int  GetNozzleCount(NozzleVolumeType volume_type) const;
 
 private:
-    wxChoice        *m_standard_choice{nullptr};
-    wxChoice        *m_highflow_choice{nullptr};
+    ComboBox        *m_standard_choice{nullptr};
+    ComboBox        *m_highflow_choice{nullptr};
     Button          *m_confirm_btn{nullptr};
     wxStaticText    *m_error_label{nullptr};
 };

@@ -52,6 +52,15 @@ a brand means adding a folder here; the folder name is a directory label only �
   collection, so there is no duplicate-name error.
 - You may inherit from an instantiated preset as well as from a base; it is common.
 
+## Color is a runtime property
+
+`filament_id` identifies a product, not a color; filament sync/AMS reads the color from the spool at
+runtime. A product ships one all-printer preset and the color is chosen at runtime — never a sibling
+preset that differs only by color. A material family (PLA vs PLA Matte vs PLA Silk) is a new product; a
+color is not. A printer tune keeps the product alias and does not multiply per color either.
+
+CI does not catch this — per-color presets pass `check` — so it is a review call.
+
 ## The two most common contributions
 
 **A printer vendor tuning a generic.** Keep the `Generic X` base name so the alias shadows the library
@@ -102,6 +111,57 @@ name.
   collision against the library generic on every printer.
 - Copying a base's full printer list onto a nozzle-specific variant produces duplicate combobox entries —
   a real shipped bug twice over.
+
+## Overlapping coverage: one variant, one profile per product
+
+`filament_id` is the **product** key, not the preset key — every variant of one product shares it
+(`<filament_vendor>/<filament_type>/<name-before-@>`). So if one printer variant appears in the
+`compatible_printers` of two presets of that product, the slicer cannot tell them apart at AMS match time.
+The C++ validator reports `Ambiguous AMS filament match: N presets share filament_id "X" … printer "Y"`.
+`orca_profile_tool.py check` does **not** see it and passes. Resolve the overlap by **specificity**: keep
+the variant on the most specific profile and remove it from every more general one. Deleting a profile is
+the least preferred fix — moving coverage keeps the tune that users rely on.
+
+Judge specificity from the profile's `compatible_printers` — how many variants it actually covers — and
+use the name only as a secondary, easily-vague hint; decide by the lists, with a best judgement call on
+the name. Naming conventions differ by vendor: BBL's is the reference (`@<Vendor> <Model>` for a whole
+model, `@<Vendor> <Model> <nozzle> nozzle` for one variant, `@<Vendor>` for a vendor-wide generic), but
+others vary (`@<printer model>`, a printer serial, or Creality's `@<Model>-all`). A name never overrides
+the list — see [preset naming](naming.md) for the shapes.
+
+Specificity, most to least:
+
+1. **Variant-specialized** — lists a single printer variant (BBL-style
+   `... @<Vendor> <Model> <nozzle> nozzle`).
+2. **Model-specialized** — lists the variants of one printer model (BBL-style `... @<Vendor> <Model>`).
+   It should cover every variant of its model, not only the nozzle it was authored for.
+3. **Family / series** — lists variants spanning a printer family or series.
+4. **Generic / catch-all** — vendor-wide, covering many unrelated models (often the bare
+   `Generic <mat> @<Vendor>`).
+
+Rules:
+
+- A model-specialized profile is extended to **all** variants of its model, and each variant it thereby
+  starts covering is removed from the family and generic profiles that also listed it — including variants
+  that had no overlap before. Apply it per nozzle, not just 0.4.
+- Apply it **per product**: trim only the material that has a specialized profile from the generic; a
+  material whose product has no specialized profile keeps the variant in the generic.
+- Never strip coverage a variant has nowhere else to get. If a variant has no variant-level specialized
+  profile, the next level down keeps it; when the model has specialized profiles, the model-level one wins
+  over the family/generic.
+- Moving coverage is preferred over deleting. If a profile must be deleted, remove the more general
+  one, not the specialized profile that carries the tune.
+- After moving coverage, repoint the affected `default_filament_profile` (machine) and clean the model's
+  `default_materials`: they should name the most specific profile that covers the variant, and should not
+  keep generic entries that no longer cover the model. This rule applies equally when adding or fixing
+  defaults.
+
+Multiple profiles of one product with **disjoint** `compatible_printers` is the intended end state.
+Adding coverage to the specialized profile and removing it from the generic is the preferred direction.
+
+**Detection caveat:** `orca_profile_tool.py check` is blind to this; only the C++ validator behind the full
+`./scripts/check_profile.sh` reports it (`validate_system`). Always confirm with that, not the vendor-scoped
+loop.
 
 ## Alias shadowing
 

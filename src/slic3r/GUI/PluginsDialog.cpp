@@ -126,15 +126,6 @@ PluginCapabilityType primary_capability_type_of(PluginManager& manager, const st
     return capabilities.empty() ? PluginCapabilityType::Unknown : capabilities.front()->type();
 }
 
-std::vector<PluginDescriptor> current_cloud_metadata_snapshot()
-{
-    std::vector<PluginDescriptor> cloud_entries;
-    for (const PluginDescriptor& entry : PluginManager::instance().get_plugin_descriptors(/*include_invalid=*/true))
-        if (entry.is_cloud_plugin())
-            cloud_entries.push_back(entry);
-    return cloud_entries;
-}
-
 PluginDescriptor as_cloud_only_descriptor(PluginDescriptor descriptor)
 {
     descriptor.plugin_root.clear();
@@ -148,41 +139,6 @@ PluginDescriptor as_cloud_only_descriptor(PluginDescriptor descriptor)
         descriptor.cloud->update_available = false;
     }
     return descriptor;
-}
-
-void refresh_plugin_metadata_blocking(bool fetch_cloud)
-{
-    PluginManager& manager = PluginManager::instance();
-
-    std::vector<std::string> not_found, unauthorized;
-    const std::vector<PluginDescriptor> current_cloud_metadata = fetch_cloud ? std::vector<PluginDescriptor>{} :
-                                                                             current_cloud_metadata_snapshot();
-
-    manager.rescan_plugins();
-
-    if (!fetch_cloud) {
-        manager.update_cloud_metadata(current_cloud_metadata);
-        return;
-    }
-
-    manager.fetch_plugins_from_cloud(&not_found, &unauthorized);
-
-    wxGetApp().CallAfter([not_found = std::move(not_found), unauthorized = std::move(unauthorized)]() {
-        if (wxGetApp().is_closing())
-            return;
-        Plater* plater = wxGetApp().plater();
-        if (plater == nullptr)
-            return;
-
-        for (const auto& uuid : not_found)
-            plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
-                                                                  NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                                                  format(_L("Plugin %s is no longer available."), uuid));
-        for (const auto& uuid : unauthorized)
-            plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
-                                                                  NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                                                  format(_L("Plugin %s access is unauthorized."), uuid));
-    });
 }
 
 std::string to_string(PluginUpdateStatus status);
@@ -447,6 +403,176 @@ bool take_plugin_operation_result(const std::shared_ptr<PluginOperationState>& s
     return state->succeeded;
 }
 } // namespace
+
+// ── Dialog-independent plugin actions (also used by the speed dial) ───────────────────────────
+
+namespace {
+
+// Snapshot of the currently-known cloud plugin descriptors, used to refresh metadata without a
+// network round-trip (kUseCurrentCloudMeta).
+std::vector<PluginDescriptor> current_cloud_metadata_snapshot()
+{
+    std::vector<PluginDescriptor> cloud_entries;
+    for (const PluginDescriptor& entry : PluginManager::instance().get_plugin_descriptors(/*include_invalid=*/true))
+        if (entry.is_cloud_plugin())
+            cloud_entries.push_back(entry);
+    return cloud_entries;
+}
+
+} // namespace
+
+void refresh_plugin_metadata_blocking(bool fetch_cloud)
+{
+    PluginManager& manager = PluginManager::instance();
+
+    std::vector<std::string> not_found, unauthorized;
+    const std::vector<PluginDescriptor> current_cloud_metadata = fetch_cloud ? std::vector<PluginDescriptor>{} :
+                                                                             current_cloud_metadata_snapshot();
+
+    manager.rescan_plugins();
+
+    if (!fetch_cloud) {
+        manager.update_cloud_metadata(current_cloud_metadata);
+        return;
+    }
+
+    manager.fetch_plugins_from_cloud(&not_found, &unauthorized);
+
+    wxGetApp().CallAfter([not_found = std::move(not_found), unauthorized = std::move(unauthorized)]() {
+        if (wxGetApp().is_closing())
+            return;
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return;
+
+        for (const auto& uuid : not_found)
+            plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                                  NotificationManager::NotificationLevel::RegularNotificationLevel,
+                                                                  format(_L("Plugin %s is no longer available."), uuid));
+        for (const auto& uuid : unauthorized)
+            plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                                  NotificationManager::NotificationLevel::RegularNotificationLevel,
+                                                                  format(_L("Plugin %s access is unauthorized."), uuid));
+    });
+}
+
+void open_plugin_hub()
+{
+    std::string cloud_base_url = "https://cloud.orcaslicer.com";
+
+    if (wxGetApp().getAgent()) {
+        auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(wxGetApp().getAgent()->get_cloud_agent());
+        if (orca_agent && !orca_agent->get_cloud_base_url().empty())
+            cloud_base_url = orca_agent->get_cloud_base_url();
+    }
+
+    while (!cloud_base_url.empty() && cloud_base_url.back() == '/')
+        cloud_base_url.pop_back();
+    if (cloud_base_url.empty())
+        cloud_base_url = "https://cloud.orcaslicer.com";
+
+    wxLaunchDefaultBrowser(wxString::FromUTF8(cloud_base_url + "/app/plugins/plugin-hub"));
+}
+
+bool install_local_plugin_package(const boost::filesystem::path& package_file, wxWindow* parent, wxString& message)
+{
+    message.clear();
+    if (package_file.empty())
+        return false;
+
+    // ---- pre-flight (main thread): validate + inspect + overwrite prompt ----
+    const wxString package_name = from_u8(package_file.filename().string());
+
+    std::string extension = package_file.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    if (extension != ".py" && extension != ".whl") {
+        message = _L("Select a .py or .whl plugin package.");
+        return false;
+    }
+
+    PluginDescriptor plugin_descriptor;
+    bool             existing_installation = false;
+    std::string      error;
+    try {
+        if (!PluginManager::instance().inspect_local_plugin_package(package_file, plugin_descriptor, existing_installation, error)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package inspection failed for " << package_file << " error=" << error;
+            message = _L("Failed to install plugin package. See the log for details.");
+            return false;
+        }
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package inspection failed for " << package_file << " error=" << ex.what();
+        message = _L("Failed to install plugin package. See the log for details.");
+        return false;
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package inspection failed for " << package_file;
+        message = _L("Failed to install plugin package. See the log for details.");
+        return false;
+    }
+
+    if (existing_installation) {
+        const wxString plugin_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);
+        wxMessageDialog dialog(parent,
+                               wxString::Format(_L("Plugin \"%s\" is already installed.\n\nInstalling this package will overwrite the existing plugin."),
+                                                plugin_name),
+                               kOverwritePluginTitle, wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_WARNING);
+        dialog.SetOKCancelLabels(_L("Overwrite"), _L("Cancel"));
+        if (dialog.ShowModal() != wxID_OK) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin package installation cancelled before overwrite. package=" << package_file
+                                    << " plugin=" << plugin_descriptor.name;
+            return false; // cancelled: message stays empty so callers stay silent
+        }
+    }
+
+    // ---- install + refresh on a worker behind a modal progress dialog (keeps the UI live) ----
+    bool installed = false;
+    {
+        struct Result
+        {
+            std::mutex  mutex;
+            bool        ok = false;
+            std::string error;
+        };
+        auto state = std::make_shared<Result>();
+
+        detail::run_wait_with_progress(
+            [state, package_file]() {
+                std::string error;
+                bool        ok = false;
+                try {
+                    ok = PluginManager::instance().install_plugin(package_file, error);
+                } catch (const std::exception& ex) {
+                    error = ex.what();
+                } catch (...) {
+                    error = "Unknown error";
+                }
+                if (ok) {
+                    // Reflect the new package in discovery/cloud metadata without blocking the caller.
+                    try { refresh_plugin_metadata_blocking(kUseCurrentCloudMeta); } catch (...) {}
+                }
+                std::lock_guard<std::mutex> lock(state->mutex);
+                state->ok    = ok;
+                state->error = std::move(error);
+            },
+            parent, _L("Installing plugin"), _L("Installing plugin") + ": " + package_name, 100,
+            wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME, /*alive=*/nullptr, /*restore=*/{});
+
+        std::lock_guard<std::mutex> lock(state->mutex);
+        installed = state->ok;
+        error     = std::move(state->error);
+    }
+
+    if (!installed) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package installation failed for " << package_file << " error=" << error;
+        message = _L("Failed to install plugin package. See the log for details.");
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin package installed successfully from " << package_file;
+    const wxString installed_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);
+    message = wxString::Format(_L("Installed \"%s\"."), installed_name);
+    return true;
+}
 
 PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, const wxPoint& pos, const wxSize& size, long style)
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
@@ -819,78 +945,31 @@ bool PluginsDialog::install_plugin_package(const std::string& package_path)
 {
     if (package_path.empty())
         return false;
-    BOOST_LOG_TRIVIAL(info) << "Installing local plugin package from path: " << package_path;
-    std::string error;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Installing local plugin package from path: " << package_path;
+
     const boost::filesystem::path package_file(package_path);
-    const wxString package_name = from_u8(package_file.filename().string());
+    wxString message;
+    const bool installed = install_local_plugin_package(package_file, this, message);
+    // The helper's overwrite prompt and progress dialog can push this webview behind; re-raise it
+    // once, after both have closed (the speed-dial path parents to the mainframe instead).
+    restore_z_order();
 
-    std::string extension = package_file.extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-    if (extension != ".py" && extension != ".whl") {
-        show_status(_L("Select a .py or .whl plugin package."), "info");
-        return false;
-    }
-
-    PluginDescriptor plugin_descriptor;
-    bool existing_installation     = false;
-    auto report_inspection_failure = [&]() {
-        BOOST_LOG_TRIVIAL(error) << "Plugin package inspection failed for " << package_path << " error=" << error;
-        show_status(_L("Failed to install plugin package. See the log for details."), "warn");
+    // The shared helper reports a user-cancelled overwrite with an empty message: stay silent.
+    if (message.IsEmpty()) {
         send_plugins();
         return false;
-    };
-
-    try {
-        if (!PluginManager::instance().inspect_local_plugin_package(package_file, plugin_descriptor, existing_installation, error))
-            return report_inspection_failure();
-    } catch (const std::exception& ex) {
-        error = ex.what();
-        return report_inspection_failure();
-    } catch (...) {
-        error = "Unknown error";
-        return report_inspection_failure();
-    }
-
-    if (existing_installation) {
-        const wxString plugin_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);
-        wxMessageDialog dialog(
-            this,
-            wxString::Format(_L("Plugin \"%s\" is already installed.\n\nInstalling this package will overwrite the existing plugin."),
-                             plugin_name),
-            kOverwritePluginTitle, wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_WARNING);
-        dialog.SetOKCancelLabels(_L("Overwrite"), _L("Cancel"));
-        const int overwrite_rc = dialog.ShowModal();
-        restore_z_order();
-        if (overwrite_rc != wxID_OK) {
-            BOOST_LOG_TRIVIAL(info) << "Plugin package installation cancelled before overwrite. package=" << package_path
-                                    << " plugin=" << plugin_descriptor.name;
-            return false;
-        }
-    }
-
-    bool installed = false;
-    try {
-        installed = run_with_dialog_wait([package_file, &error]() { return PluginManager::instance().install_plugin(package_file, error); },
-                                         _L("Installing plugin"), _L("Installing plugin") + ": " + package_name, 100,
-                                         wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME);
-    } catch (const std::exception& ex) {
-        error = ex.what();
-    } catch (...) {
-        error = "Unknown error";
     }
 
     if (!installed) {
-        BOOST_LOG_TRIVIAL(error) << "Plugin package installation failed for " << package_path << " error=" << error;
-        show_status(_L("Failed to install plugin package. See the log for details."), "warn");
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to install plugin package.";
+        show_status(message, "warn");
         send_plugins();
         return false;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Plugin package installed successfully from " << package_path;
-    const wxString installed_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);
-    show_status(wxString::Format(_L("Installed \"%s\"."), installed_name), "success");
-    refresh_plugin_metadata_async(_L("Refreshing"), _L("Refreshing plugins data"), kUseCurrentCloudMeta);
+    show_status(message, "success");
+    prompt_for_missing_plugins();
+    send_plugins();
     return true;
 }
 
@@ -1086,23 +1165,7 @@ void PluginsDialog::open_plugin_on_cloud(const std::string& sharing_token)
     wxLaunchDefaultBrowser(wxString::FromUTF8(orca_agent->get_cloud_base_url() + "/p/" + sharing_token));
 }
 
-void PluginsDialog::open_plugin_hub()
-{
-    std::string cloud_base_url = "https://cloud.orcaslicer.com";
-
-    if (wxGetApp().getAgent()) {
-        auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(wxGetApp().getAgent()->get_cloud_agent());
-        if (orca_agent && !orca_agent->get_cloud_base_url().empty())
-            cloud_base_url = orca_agent->get_cloud_base_url();
-    }
-
-    while (!cloud_base_url.empty() && cloud_base_url.back() == '/')
-        cloud_base_url.pop_back();
-    if (cloud_base_url.empty())
-        cloud_base_url = "https://cloud.orcaslicer.com";
-
-    wxLaunchDefaultBrowser(wxString::FromUTF8(cloud_base_url + "/app/plugins/plugin-hub"));
-}
+void PluginsDialog::open_plugin_hub() { Slic3r::GUI::open_plugin_hub(); }
 
 void PluginsDialog::delete_local_plugin(const PluginDescriptor& plugin)
 {
