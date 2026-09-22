@@ -2,6 +2,7 @@
 #include "ConfigManipulation.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "DeviceCore/DevConfigUtil.h"
 #include "format.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
@@ -453,7 +454,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->opt_bool("alternate_extra_wall") &&
         (config->opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == evstAll)) {
-        wxString msg_text = _(L("Alternate extra wall does't work well when ensure vertical shell thickness is set to All."));
+        wxString msg_text = _(L("Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."));
 
         if (is_global_config)
             msg_text += "\n\n" + _(L("Change these settings automatically?\n"
@@ -642,7 +643,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->opt_enum<SeamScarfType>("seam_slope_type") != SeamScarfType::None &&
         config->get_abs_value("seam_slope_start_height") >= layer_height) {
-        const wxString     msg_text = _(L("seam_slope_start_height need to be smaller than layer_height.\nReset to 0."));
+        const wxString     msg_text = _(L("seam_slope_start_height needs to be smaller than layer_height.\nReset to 0."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -656,7 +657,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     float skin_depth = config->opt_float("skin_infill_depth");
     if (config->opt_float("infill_lock_depth") > skin_depth) {
         // xgettext:no-c-format, no-boost-format
-        const wxString     msg_text = _(L("Lock depth should smaller than skin depth.\nReset to 50% of skin depth."));
+        const wxString     msg_text = _(L("Lock depth should be smaller than skin depth.\nReset to 50% of skin depth."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -741,14 +742,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
-        "minimum_sparse_infill_area", "sparse_infill_filament_id", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
+        "minimum_sparse_infill_area", "sparse_infill_filament_id","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
+
+    InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
+
+    // Orca: the concentric patterns follow the surface outline instead of crossing it, so there is
+    // nothing for an infill anchor to attach to. Hide the anchor settings for them.
+    bool have_infill_anchor = have_infill && pattern != ipConcentric && pattern != ipSpiralInset;
+    toggle_line("infill_anchor", have_infill_anchor);
+    toggle_line("infill_anchor_max", have_infill_anchor);
 
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
     toggle_line("infill_combination_max_layer_height", have_combined_infill);
 
     // Infill patterns that support multiline infill.
-    InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
     bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
@@ -831,7 +839,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("separated_infills", is_internal_infill_separable);
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
-    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
+    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };
     toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
 
@@ -1033,9 +1041,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
                     "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
-                    "wipe_tower_bridging", "wipe_tower_extra_flow",
-                    "wipe_tower_no_sparse_layers"})
+                    "wipe_tower_bridging", "wipe_tower_extra_flow"})
             toggle_line(el, have_prime_tower && supports_wipe_tower_2);
+
+    // Orca: both tower generators skip sparse layers, so this is not a wipe tower 2 exclusive.
+    toggle_line("wipe_tower_no_sparse_layers", have_prime_tower);
 
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
     bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower;
@@ -1046,6 +1056,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
+
+    bool use_cyclic_ordering = config->opt_enum<ToolChangeOrderingType>("toolchange_ordering") == ToolChangeOrderingType::Cyclic;
+    toggle_line("toolchange_cyclic_order", use_cyclic_ordering);
+    toggle_line("toolchange_cyclic_first_layer", use_cyclic_ordering);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 
@@ -1096,6 +1110,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     auto is_role_based_wipe_speed = config->opt_bool("role_based_wipe_speed");
     toggle_field("wipe_speed",!is_role_based_wipe_speed);
 
+    const bool have_wipe_inward = config->opt_bool("wipe_inward");
+    toggle_line("wipe_inward_distance", have_wipe_inward);
+
     for (auto el : {"accel_to_decel_enable", "accel_to_decel_factor"})
         toggle_line(el, gcf_is_klipper);
     if(gcf_is_klipper)
@@ -1117,6 +1134,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
     bool allow_overhang_reverse   = !has_spiral_vase;
+    toggle_line("unsupported_wall_last", has_detect_overhang_wall);
     toggle_line("overhang_reverse", allow_overhang_reverse);
     toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse);
     bool has_overhang_reverse_internal_only = config->opt_bool("overhang_reverse_internal_only");

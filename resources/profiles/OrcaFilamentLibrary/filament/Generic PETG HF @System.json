@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PETG HF @System",
-	"inherits": "fdm_filament_pet",
+	"inherits": "Generic PETG HF @base",
 	"from": "system",
 	"setting_id": "wNH8CohYIh9y6ayx",
 	"instantiation": "true",

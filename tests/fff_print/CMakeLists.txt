@@ -9,6 +9,7 @@ add_executable(${_TEST_NAME}_tests
 	test_fill.cpp
 	test_flow.cpp
 	test_gcode_timing.cpp
+	test_gcodeprocessor.cpp
 	test_gcodewriter.cpp
 	test_model.cpp
 	test_multifilament.cpp
@@ -19,7 +20,9 @@ add_executable(${_TEST_NAME}_tests
 	test_skirt_brim.cpp
 	test_slicing_pipeline_hook.cpp
 	test_support_material.cpp
+	test_tree_support.cpp
 	test_trianglemesh.cpp
+	test_wipe.cpp
 	test_wipe_tower.cpp
 	)
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)

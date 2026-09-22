@@ -1,0 +1,28 @@
+{
+	"type": "filament",
+	"name": "Generic PPA-CF @Tiertime",
+	"inherits": "fdm_filament_ppa",
+	"renamed_from": "Tiertime Generic PPA-CF",
+	"from": "system",
+	"setting_id": "C3VjtPXIQ9CikaQH",
+	"filament_id": "OF8tPByX",
+	"instantiation": "true",
+	"filament_type": [
+		"PPA-CF"
+	],
+	"fan_max_speed": [
+		"35"
+	],
+	"filament_max_volumetric_speed": [
+		"6.5"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"compatible_printers": [
+		"Tiertime UP400 Pro 0.4 nozzle",
+		"Tiertime UP400 Pro 0.6 nozzle",
+		"Tiertime UP400 Pro 0.8 nozzle",
+		"Tiertime UP310 Pro 0.4 nozzle"
+	]
+}

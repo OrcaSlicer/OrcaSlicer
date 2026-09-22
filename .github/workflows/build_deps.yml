@@ -16,6 +16,10 @@ on:
       arch:
         required: false
         type: string
+      compiler:
+        required: false
+        type: string
+        default: msvc
       build-deps-only:
         required: false
         type: boolean
@@ -134,14 +138,11 @@ jobs:
             if (-not "${{ vars.SELF_HOSTED }}") {
               choco install strawberryperl
             }
-            $arch = "${{ inputs.arch }}"
-            if ($arch -eq "arm64") {
-              .\build_release_vs.bat deps arm64
-              .\build_release_vs.bat pack arm64
-            } else {
-              .\build_release_vs.bat deps
-              .\build_release_vs.bat pack
-            }
+            # cache-path is the install directory inside the deps build directory.
+            $deps = (Split-Path "${{ inputs.cache-path }}").Replace('\', '/')
+            # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
+            $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
+            .\build_win.bat -d --arch ${{ inputs.arch }} --deps-dir $deps @flags
         shell: pwsh
 
       - name: Build on Mac ${{ inputs.arch }}
@@ -204,4 +205,5 @@ jobs:
       cache-path: ${{ inputs.cache-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
     secrets: inherit

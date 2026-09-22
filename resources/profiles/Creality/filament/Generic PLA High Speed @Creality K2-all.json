@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic PLA High Speed @Creality K2-all",
+	"inherits": "Generic PLA @Creality K2-all",
+	"renamed_from": "Creality Generic PLA High Speed @K2-all;Creality Generic PLA High Speed K2-all",
+	"from": "system",
+	"setting_id": "Lxp4EwuEZKFHZXWR",
+	"filament_id": "OFmpMwxS",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"23"
+	],
+	"compatible_printers": [
+		"Creality K2 0.2 nozzle",
+		"Creality K2 0.4 nozzle",
+		"Creality K2 0.6 nozzle",
+		"Creality K2 0.8 nozzle",
+		"Creality K2 Plus 0.2 nozzle",
+		"Creality K2 Plus 0.4 nozzle",
+		"Creality K2 Plus 0.6 nozzle",
+		"Creality K2 Plus 0.8 nozzle",
+		"Creality K2 Pro 0.2 nozzle",
+		"Creality K2 Pro 0.4 nozzle",
+		"Creality K2 Pro 0.6 nozzle",
+		"Creality K2 Pro 0.8 nozzle"
+	]
+}

@@ -1,4 +1,5 @@
 #include <functional>
+#include <numeric>
 #include <optional>
 
 #include <libslic3r/OpenVDBUtils.hpp>
