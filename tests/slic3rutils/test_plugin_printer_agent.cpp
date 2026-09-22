@@ -115,6 +115,22 @@ TEST_CASE("A printer agent that omits its operations answers like a missing agen
     check_answers_like_no_agent(*agent);
 }
 
+TEST_CASE("A printer agent uses IPrinterAgent defaults for omitted commands", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent("    def send_message(self, dev_id, json_str, qos, flag): return 7\n"
+                            "    def send_message_to_printer(self, dev_id, json_str, qos, flag): return 8\n");
+    REQUIRE(agent.agent);
+
+    CHECK(agent->command_xyz_abs("dev", 1, false) == 7);
+    CHECK(agent->command_set_nozzle("dev", 200, 2, true) == 8);
+    CHECK(agent->command_ams_refresh_rfid("dev", "tray", 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+}
+
 TEST_CASE("A printer agent operation returning the wrong type answers like a missing agent", "[PluginPrinterAgent][Python]")
 {
     ScopedPluginManager plugin_system;
