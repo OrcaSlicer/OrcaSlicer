@@ -31,6 +31,9 @@ static const char* Segments_Vertex_Shader =
 "uniform samplerBuffer height_width_angle_tex;\n"
 "uniform samplerBuffer color_tex;\n"
 "uniform usamplerBuffer segment_index_tex;\n"
+// ORCA: 0 during the shadow caster pass - the bias below shifts eye_position but not
+// world_position, so the caster would write a depth the receiver never looks up.
+"uniform float bias_scale;\n"
 "in int vertex_id;\n"
 "out vec3 color;\n"
 "// ORCA: realistic view - the light the shadow map is able to block, kept apart from the\n"
@@ -144,7 +147,7 @@ static const char* Segments_Vertex_Shader =
 "  }\n"
 "  vec3 eye_position = (view_matrix * vec4(pos, 1.0)).xyz;\n"
 "  // ORCA: Apply bias to z-position to avoid z-fighting\n"
-"  eye_position.z += bias;\n"
+"  eye_position.z += bias * bias_scale;\n"
 "  vec3 eye_normal = (view_matrix * vec4(normalize(pos - endpoint_pos), 0.0)).xyz;\n"
 "  vec3 color_base = decode_color(texelFetch(color_tex, id).r);\n"
 "  color = color_base * (ambient + emission);\n"
@@ -166,8 +169,8 @@ static const char* Segments_Fragment_Shader =
 "uniform float shadow_map_texel;\n"
 // ORCA: the lighting term peaks near 0.9 and every later multiplier - the shadow, then the SSAO
 // post pass - only takes more light away, so the print reads dimmer and duller than the legend
-// colours. Realistic view pays that back through these; both are 1.0 outside it, where the
-// pair is algebraically the identity and the shading is left exactly as it was.
+// colours. These pay that back. Both are 1.0 for an untouched image; what the caller actually
+// passes in each mode is decided in GLCanvas3D::_render_gcode, not here.
 "uniform float exposure;\n"
 "uniform float saturation;\n"
 "const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);\n"

@@ -175,8 +175,8 @@ static const char* Segments_Fragment_Shader_ES =
 "uniform float shadow_map_texel;\n"
 // ORCA: the lighting term peaks near 0.9 and every later multiplier - the shadow, then the SSAO
 // post pass - only takes more light away, so the print reads dimmer and duller than the legend
-// colours. Realistic view pays that back through these; both are 1.0 outside it, where the
-// pair is algebraically the identity and the shading is left exactly as it was.
+// colours. These pay that back. Both are 1.0 for an untouched image; what the caller actually
+// passes in each mode is decided in GLCanvas3D::_render_gcode, not here.
 "uniform float exposure;\n"
 "uniform float saturation;\n"
 "const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);\n"

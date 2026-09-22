@@ -283,8 +283,8 @@ public:
     // the shadow map the caller has bound, and the map they sample back in render_scene.
     void render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position);
     void set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size);
-    // ORCA: realistic view. Tone applied to the shaded toolpaths, paying back the light the
-    // lighting term, the shadow and the SSAO pass each take off. 1.0/1.0 is a no-op.
+    // ORCA: tone applied to the shaded toolpaths, paying back the light the lighting term,
+    // the shadow and the SSAO pass each take off. 1.0/1.0 is a no-op.
     void set_tone(float exposure, float saturation);
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);

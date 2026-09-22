@@ -8177,10 +8177,6 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
     if (!toolpath_casters && m_volumes.empty())
         return;
 
-    GLShaderProgram* shader = wxGetApp().get_shader("flat");
-    if (shader == nullptr)
-        return;
-
     if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb) {
 
         // Light direction (same as used in shading and plate shading)
@@ -8190,8 +8186,24 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
         // Bounding box of the printable objects (the shadow casters).
         BoundingBoxf3 obj_bb;
-        if (toolpath_casters)
-            obj_bb = m_gcode_viewer.get_paths_bounding_box();
+        if (toolpath_casters) {
+            // Merged corner by corner: BoundingBoxf3(min, max) marks itself undefined at zero
+            // Z extent, which a single layer print gives, and the check below would then drop
+            // every shadow in the frame.
+            const BoundingBoxf3& paths_bb = m_gcode_viewer.get_paths_bounding_box();
+            if ((paths_bb.min.array() <= paths_bb.max.array()).all()) {
+                obj_bb.merge(paths_bb.min);
+                obj_bb.merge(paths_bb.max);
+            }
+            // Only the enabled layers are drawn, so fitting the map to the whole print wastes
+            // its depth range and makes contact shadows shift as the slider moves. The z = 0
+            // shadow is enclosed separately below, so the plate shadow is unaffected.
+            const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
+            if (!layer_zs.empty()) {
+                const size_t top = std::min<size_t>(m_gcode_viewer.get_layers_z_range()[1], layer_zs.size() - 1);
+                obj_bb.max.z() = std::max(obj_bb.min.z(), std::min(obj_bb.max.z(), layer_zs[top]));
+            }
+        }
         else {
             for (const GLVolume* volume : m_volumes.volumes) {
                 if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
@@ -8321,7 +8333,8 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
             if (toolpath_casters)
                 m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
-            else {
+            // Only this branch draws through "flat"; the toolpaths bring their own program.
+            else if (GLShaderProgram* shader = wxGetApp().get_shader("flat"); shader != nullptr) {
                 shader->start_using();
                 shader->set_uniform("projection_matrix", Transform3d(light_proj));
                 for (GLVolume* volume : m_volumes.volumes) {
@@ -8778,13 +8791,13 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     else
         m_gcode_viewer.set_shadow_map(4, Transform3d::Identity(), 0.0f, 0.0f);
 
-    // The segments shader's lighting term leaves the print dimmer and duller than the legend
-    // colours it is drawn from. Saturation pays back the duller half in both modes, the toolpath
-    // colours being the same print either way. Brightness is only lifted under realistic view,
-    // which takes more light off again through the shadow above and the SSAO pass below; plain
-    // Preview has neither of those losses, so lifting it there would overshoot.
-    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
-    m_gcode_viewer.set_tone(realistic_mode ? 1.1f : 1.0f, 1.15f);
+    // The lighting term leaves the print dimmer and duller than the legend colours. Saturation
+    // pays back the duller half in both modes; brightness only where something takes light off
+    // again - realistic view with at least one lossy pass on - else the lift would just clip.
+    const AppConfig* cfg = wxGetApp().app_config;
+    const bool lossy_passes = cfg != nullptr && cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
+                              (cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) || cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
+    m_gcode_viewer.set_tone(lossy_passes ? 1.1f : 1.0f, 1.15f);
 
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
 

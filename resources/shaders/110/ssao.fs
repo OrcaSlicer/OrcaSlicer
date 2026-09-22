@@ -32,9 +32,8 @@ vec3 view_pos(vec2 uv)
 // Surface normal at the given pixel, from the forward differences of the reconstructed view
 // position. It rings by a pixel across a depth discontinuity, which is acceptable here: the
 // normal only weights the occlusion, nothing is shaded with it.
-vec3 view_normal(vec2 uv)
+vec3 view_normal(vec2 uv, vec3 p)
 {
-    vec3 p  = view_pos(uv);
     vec3 px = view_pos(uv + vec2(inv_tex_size.x, 0.0));
     vec3 py = view_pos(uv + vec2(0.0, inv_tex_size.y));
     vec3 n = cross(px - p, py - p);
@@ -59,7 +58,7 @@ void main()
 
     vec3 center_pos = view_pos(tex_coord);
     float depth_center = -center_pos.z;
-    vec3 normal_center = view_normal(tex_coord);
+    vec3 normal_center = view_normal(tex_coord, center_pos);
     
     // Calculate how much the surface faces upward
     // up_factor = 1.0 for surfaces pointing straight up, 0.0 for walls and downward faces
@@ -78,15 +77,14 @@ void main()
     offsets[6] = vec2( 0.0, -1.0);
     offsets[7] = vec2( 0.707,-0.707);
     
-    // Occlusion is measured as a slope, not as a depth difference: how far a neighbour rises
-    // towards the viewer out of the centre's tangent plane, over how far away it is. A raw
-    // difference depends on the camera distance and the zoom, so the same crease reads
-    // differently from one view to the next; this sine of the subtended angle does not.
+    // Occlusion is a slope, not a depth difference: how far a neighbour rises out of the
+    // centre's tangent plane over how far away it is. Unlike a raw difference, that sine is
+    // free of camera distance and zoom, so a crease reads the same from any view.
     const float SLOPE_MIN = 0.08;   // ~5 degrees, above the depth-buffer noise of a flat surface
     const float SLOPE_MAX = 0.60;   // ~37 degrees, a full crease
 
+    const float SAMPLE_COUNT = 8.0;
     float occlusion = 0.0;
-    int valid_samples = 0;
     
     for (int i = 0; i < 8; ++i) {
         vec2 uv = tex_coord + offsets[i] * inv_tex_size * radius;
@@ -98,11 +96,9 @@ void main()
         
         float diagonal_weight = 1.0 - abs(offsets[i].x * offsets[i].y) * 0.5;
         occlusion += contribution * diagonal_weight;
-        valid_samples++;
     }
     
-    if (valid_samples > 0)
-        occlusion /= float(valid_samples);
+    occlusion /= SAMPLE_COUNT;
     
     // flatter/top-like surfaces get less darkening
     float ao_intensity = 0.55;
