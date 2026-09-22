@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Goofoo Velo+ PE@System",
-	"from": "system",
-	"setting_id": "to4GZFlTJi6Eapk2",
-	"instantiation": "true",
-	"inherits": "Goofoo Velo+ PE@base",
-	"compatible_printers": []
-}

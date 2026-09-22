@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Goofoo Velo+ 90A TPU@System",
-	"from": "system",
-	"setting_id": "RyksF5KKydQy8mtM",
-	"instantiation": "true",
-	"inherits": "Goofoo Velo+ 90A TPU@base",
-	"compatible_printers": []
-}

@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Goofoo Velo+ PLA@System",
-	"from": "system",
-	"setting_id": "UYisBXYA0fb6hszd",
-	"instantiation": "true",
-	"inherits": "Goofoo Velo+ PLA@base",
-	"compatible_printers": []
-}

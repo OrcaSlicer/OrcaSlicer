@@ -12,7 +12,7 @@
   "printer_model": "Goofoo TurboM",
   "printer_variant": "0.4",
   "default_filament_profile": [
-    "Goofoo TurboM ABS"
+    "Goofoo TurboM ABS @System"
   ],
   "default_print_profile": "0.20mm TurboM @Goofoo",
   "printable_area": [

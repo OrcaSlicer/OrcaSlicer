@@ -2,9 +2,9 @@
 	"type": "filament",
 	"name": "Goofoo TurboM PA-GF10 @base",
 	"from": "system",
-	"filament_id": "TBM009",
+	"filament_id": "OFXacJFW",
 	"filament_type": [
-		"PA-CF"
+		"PA-GF"
 	],
 	"instantiation": "false",
 	"inherits": "Generic PA-CF @System",
