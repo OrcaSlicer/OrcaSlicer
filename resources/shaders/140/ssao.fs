@@ -1,7 +1,7 @@
 #version 140
 
 /**
- * SSAO Shader - GLSL 140 version with sharp depth threshold
+ * SSAO Shader - GLSL 140 version with a slope-based occlusion test
  * Only darkens valleys/concave areas, ignores smooth variations
  */
 
@@ -60,7 +60,8 @@ void main()
         return;
     }
 
-    float center_depth = -view_pos(pixel).z;
+    vec3 center_pos = view_pos(pixel);
+    float center_depth = -center_pos.z;
     vec3 normal_center = view_normal(pixel);
 
     // Calculate upward-facing factor (Z-up coordinate system)
@@ -76,11 +77,13 @@ void main()
         ivec2(2, 0),  ivec2(-2, 0),  ivec2(0, 2),  ivec2(0, -2)
     );
 
-    // The thresholds below are view-space distances, so they have to scale with how far away the
-    // surface is. Held fixed they mean a fraction of a millimetre, which every extrusion ridge
-    // clears - the term then saturates over the whole print and the AO reads as a flat dimming.
-    float threshold_min = 0.0015 * center_depth;
-    float threshold_max = 0.0075 * center_depth;
+    // Occlusion is measured as a slope, not as a depth difference. A raw difference depends on
+    // both the camera distance and the zoom, so the same crease reads differently from one view
+    // to the next, and no fixed pair of thresholds can suit a 0.2 mm layer step and a 5 mm
+    // overhang at once. The sine of the angle the neighbour subtends above the centre's tangent
+    // plane is free of both: SLOPE_MIN is where occlusion starts, SLOPE_MAX where it saturates.
+    const float SLOPE_MIN = 0.08;   // ~5 degrees, above the depth-buffer noise of a flat surface
+    const float SLOPE_MAX = 0.60;   // ~37 degrees, a full crease
 
     float occlusion = 0.0;
     int valid_samples = 0;
@@ -91,24 +94,20 @@ void main()
         if (sample_pixel.x < 0 || sample_pixel.y < 0) 
             continue;
         
-        float sample_depth = -view_pos(sample_pixel).z;
-        vec3 normal_sample = view_normal(sample_pixel);
-        
-        // Depth difference (positive if neighbor is closer to camera)
-        float depth_diff = center_depth - sample_depth;
+        vec3 delta = view_pos(sample_pixel) - center_pos;
+        float dist = length(delta);
+        // How far the neighbour rises towards the viewer out of the centre's tangent plane. A
+        // flat surface gives ~0 whatever its orientation, so this also subsumes the separate
+        // planar test the normals were compared for.
+        float rise = (dist > 1e-6) ? dot(delta, normal_center) / dist : 0.0;
         
         float contribution = 0.0;
-        if (depth_diff > threshold_min) {
+        if (rise > SLOPE_MIN) {
             // Abrupt mapping with power curve
-            contribution = (depth_diff - threshold_min) / (threshold_max - threshold_min);
+            contribution = (rise - SLOPE_MIN) / (SLOPE_MAX - SLOPE_MIN);
             contribution = clamp(contribution, 0.0, 1.0);
             contribution = pow(contribution, 2.0);  // Steeper curve for sharper transition
         }
-        
-        // Reduce occlusion on planar surfaces (similar normals)
-        float normal_similarity = dot(normal_center, normal_sample);
-        float planar_factor = smoothstep(0.75, 0.95, normal_similarity);
-        contribution *= (1.0 - planar_factor * 0.6);
         
         occlusion += contribution;
         valid_samples++;
@@ -118,15 +117,13 @@ void main()
         // Calculate ambient occlusion factor with higher base intensity
         float ao_factor = 1.0 - (occlusion / float(valid_samples)) * 0.6;
         
-        // Keep bright areas clean (higher minimum for upward-facing surfaces)
-        float ao_min = mix(0.55, 0.85, up_factor);
-        ao_factor = clamp(ao_factor, ao_min, 1.0);
-        
-        // Slight brightness boost for upward-facing surfaces
-        float brightness_boost = 1.0 + up_factor * 0.15;
-        ao_factor = ao_factor * brightness_boost;
-        
-        occlusion = ao_factor;
+        // Keep bright areas clean (higher minimum for upward-facing surfaces). These were set
+        // when up_factor came from the colour buffer and so read ~0 for every saturated toolpath
+        // colour, leaving the floor at 0.55 everywhere. Now that the normal is real, a top
+        // surface reaches up_factor 1, and the old 0.85 floor times the old 1.15 boost capped
+        // the darkening there at 2%: the AO vanished from the very faces a print is seen by.
+        float ao_min = mix(0.45, 0.70, up_factor);
+        occlusion = clamp(ao_factor, ao_min, 1.0);
     } else {
         occlusion = 1.0;
     }

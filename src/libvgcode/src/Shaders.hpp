@@ -167,8 +167,8 @@ static const char* Segments_Fragment_Shader =
 // ORCA: the lighting term peaks near 0.9 and every later multiplier - the shadow, then the SSAO
 // post pass - only takes more light away, so the print reads dimmer and duller than the legend
 // colours. These pay that back. Keep them in step with ShadersES.hpp.
-"const float EXPOSURE = 1.2;\n"
-"const float SATURATION = 1.2;\n"
+"const float EXPOSURE = 1.15;\n"
+"const float SATURATION = 1.15;\n"
 "const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);\n"
 "in vec3 color;\n"
 "in vec3 color_direct;\n"

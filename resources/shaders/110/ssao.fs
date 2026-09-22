@@ -57,7 +57,8 @@ void main()
         return;
     }
 
-    float depth_center = -view_pos(tex_coord).z;
+    vec3 center_pos = view_pos(tex_coord);
+    float depth_center = -center_pos.z;
     vec3 normal_center = view_normal(tex_coord);
     
     // Calculate how much the surface faces upward
@@ -77,20 +78,23 @@ void main()
     offsets[6] = vec2( 0.0, -1.0);
     offsets[7] = vec2( 0.707,-0.707);
     
+    // Occlusion is measured as a slope, not as a depth difference: how far a neighbour rises
+    // towards the viewer out of the centre's tangent plane, over how far away it is. A raw
+    // difference depends on the camera distance and the zoom, so the same crease reads
+    // differently from one view to the next; this sine of the subtended angle does not.
+    const float SLOPE_MIN = 0.08;   // ~5 degrees, above the depth-buffer noise of a flat surface
+    const float SLOPE_MAX = 0.60;   // ~37 degrees, a full crease
+
     float occlusion = 0.0;
     int valid_samples = 0;
     
     for (int i = 0; i < 8; ++i) {
         vec2 uv = tex_coord + offsets[i] * inv_tex_size * radius;
         
-        float sample_depth = -view_pos(uv).z;
-        float depth_diff = max(0.0, depth_center - sample_depth);
-        
-        // A view-space distance, so it has to scale with how far away the surface is. Held fixed
-        // it means a fraction of a millimetre, which every extrusion ridge clears - the term then
-        // saturates over the whole print and the AO reads as a flat dimming.
-        float threshold = 0.006 * depth_center;
-        float contribution = smoothstep(0.0015 * depth_center, threshold, depth_diff);
+        vec3 delta = view_pos(uv) - center_pos;
+        float dist = length(delta);
+        float rise = (dist > 1e-6) ? dot(delta, normal_center) / dist : 0.0;
+        float contribution = smoothstep(SLOPE_MIN, SLOPE_MAX, rise);
         
         float diagonal_weight = 1.0 - abs(offsets[i].x * offsets[i].y) * 0.5;
         occlusion += contribution * diagonal_weight;
@@ -104,13 +108,11 @@ void main()
     float ao_intensity = 0.55;
     float ambient_occlusion = 1.0 - occlusion * ao_intensity;
     
-    // Different min values for top vs bottom surfaces
+    // Different min values for top vs bottom surfaces. The boost that used to follow lifted a
+    // top surface back to within 2% of unoccluded once up_factor became a real normal rather
+    // than a colour, which is where the AO went; the floors alone shape the effect now.
     float ao_min = mix(0.45, 0.70, up_factor);  // Bottom: 0.45, Top: 0.70
     ambient_occlusion = clamp(ambient_occlusion, ao_min, 1.0);
-    
-    // Boost brightness on top surfaces (optional)
-    float brightness_boost = 1.0 + up_factor * 0.15;  // 15% extra brightness on top
-    ambient_occlusion = clamp(ambient_occlusion * brightness_boost, 0.45, 1.05);
     
     gl_FragColor = vec4(base * ambient_occlusion, 1.0);
 }
