@@ -264,8 +264,8 @@ public:
     // request_bind_ticket returns its ticket through a std::string* out-param, which pybind11
     // cannot marshal back through a plain override. We dispatch manually: the Python plugin
     // returns a (result, ticket) tuple, which we unpack into the int result and the out-param.
-    // Not required to be implemented, so a missing override falls back to the base default
-    // instead of failing, mirroring what PYBIND11_OVERRIDE does for the other optional methods.
+    // Not required to be implemented, so a missing override answers with the same failure value
+    // as the other printer-agent operations. Leave the out-param untouched on failure.
     int request_bind_ticket(std::string* ticket) override
     {
         try {
@@ -277,7 +277,7 @@ public:
             pybind11::function override =
                 pybind11::get_override(static_cast<const PrinterAgentPluginCapability*>(this), "request_bind_ticket");
             if (!override)
-                return PrinterAgentPluginCapability::request_bind_ticket(ticket);
+                return printer_agent_failure<int>();
             try {
                 pybind11::tuple result = override().cast<pybind11::tuple>();
                 if (ticket)
