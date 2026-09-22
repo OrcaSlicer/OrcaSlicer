@@ -152,7 +152,8 @@ enum CaliPresetPageStatus
     CaliPresetStatusInConnecting, 
     CaliPresetStatusFilamentIncompatible,
     CaliPresetStatusLanModeSDcardNotAvailable,
-    CaliPresetStatusDifferentNozzleDiameters
+    CaliPresetStatusDifferentNozzleDiameters,
+    CaliPresetStatusOptionalPrinterModel
 };
 
 class CalibrationPresetPage : public CalibrationWizardPage

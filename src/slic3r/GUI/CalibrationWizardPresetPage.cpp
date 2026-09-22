@@ -6,6 +6,7 @@
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Print.hpp"
+#include "PrePrintChecker.hpp"
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevConfigUtil.h"
@@ -1733,6 +1734,13 @@ void CalibrationPresetPage::update_show_status()
         }
     }
 
+    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
+        has_optional_printer_model = has_optional_printer_model ||
+            DevPrinterConfigUtil::is_optional_printer_model_id(
+                preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
+    }
+
     //if (is_blocking_printing()) {
     //    show_status(CaliPresetPageStatus::CaliPresetStatusUnsupportedPrinter);
     //    return;
@@ -1789,7 +1797,9 @@ void CalibrationPresetPage::update_show_status()
         return;
     }
 
-    show_status(CaliPresetPageStatus::CaliPresetStatusNormal);
+    show_status(has_optional_printer_model ?
+        CaliPresetPageStatus::CaliPresetStatusOptionalPrinterModel :
+        CaliPresetPageStatus::CaliPresetStatusNormal);
 }
 
 
@@ -1842,6 +1852,10 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(true);
         Layout();
         Fit();
+    }
+    else if (status == CaliPresetPageStatus::CaliPresetStatusOptionalPrinterModel) {
+        update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusOptionalPrinterModel), true);
+        Enable_Send_Button(true);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNoUserLogin) {
         wxString msg_text = _L("No login account, only printers in LAN mode are displayed.");
