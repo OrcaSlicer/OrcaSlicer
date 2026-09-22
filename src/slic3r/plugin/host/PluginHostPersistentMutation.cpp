@@ -38,6 +38,9 @@ void register_persistent_mutation(py::module_& host)
     host.def("create_process_preset_mutation_transaction",
              &PersistentPresetMutationTransaction::capture_live_process,
              "Create an opaque, UI-thread-only, one-shot persistent Process preset transaction.");
+    host.def("create_printer_preset_mutation_transaction",
+             &PersistentPresetMutationTransaction::capture_live_printer,
+             "Create an opaque, UI-thread-only, one-shot persistent Printer preset transaction.");
 }
 
 } // namespace Slic3r::host_bindings

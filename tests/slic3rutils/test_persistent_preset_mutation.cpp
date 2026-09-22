@@ -21,6 +21,19 @@ Slic3r::PresetBundle process_bundle(const boost::filesystem::path& root)
     return bundle;
 }
 
+Slic3r::PresetBundle printer_bundle(const boost::filesystem::path& root)
+{
+    Slic3r::PresetBundle bundle;
+    Slic3r::Preset& selected = bundle.printers.get_selected_preset();
+    selected.name = "G4 Printer Test";
+    selected.file = (root / "g4-printer-test.json").string();
+    selected.is_default = false;
+    selected.is_system = false;
+    selected.is_external = false;
+    bundle.printers.get_edited_preset() = selected;
+    return bundle;
+}
+
 } // namespace
 
 TEST_CASE("Process persistent mutation commits copied canonical settings", "[PluginHost][PersistentMutation]")
@@ -118,4 +131,82 @@ TEST_CASE("Process persistent mutation blocks further execution after failed rec
     CHECK(transaction->execute({ { "outer_wall_speed", "123" } }, false).state ==
           Slic3r::PersistentPresetMutationState::FailedRecovery);
     CHECK_THROWS(transaction->execute({ { "outer_wall_speed", "124" } }, false));
+}
+
+TEST_CASE("Printer persistent mutation commits copied canonical settings", "[PluginHost][PersistentMutation]")
+{
+    ScopedTemporaryDir root("orca-printer-mutation");
+    Slic3r::PresetBundle bundle = printer_bundle(root.path());
+    auto transaction = Slic3r::PersistentPresetMutationTransaction::create_printer_for_testing(bundle);
+
+    const auto result = transaction->execute({ { "time_cost", "1" } }, false);
+
+    CHECK(result.committed);
+    CHECK(result.persisted.at("time_cost") == "1");
+    CHECK(bundle.printers.get_selected_preset_name() == "G4 Printer Test");
+    CHECK_FALSE(result.selection_changed);
+    CHECK(result.dirty_before == result.dirty_after);
+    CHECK(result.side_effects == std::vector<std::string>{
+        "printer_preset_persisted", "printer_compatibility_recalculated" });
+}
+
+TEST_CASE("Printer persistent mutation rejects strict, validation, and protected policy failures", "[PluginHost][PersistentMutation]")
+{
+    ScopedTemporaryDir root("orca-printer-mutation-reject");
+    for (const auto& patch : {
+             std::map<std::string, std::string>{ { "time_cost", "not-a-number" } },
+             std::map<std::string, std::string>{ { "machine_max_speed_x", "100" } },
+             std::map<std::string, std::string>{ { "printhost_apikey", "never-returned" } } }) {
+        Slic3r::PresetBundle bundle = printer_bundle(root.path());
+        auto transaction = Slic3r::PersistentPresetMutationTransaction::create_printer_for_testing(bundle);
+        const auto result = transaction->execute(patch, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.rollback_verified);
+        CHECK(result.applied.empty());
+        CHECK(result.persisted.empty());
+    }
+
+    Slic3r::PresetBundle validation_bundle = printer_bundle(root.path());
+    auto validation = Slic3r::PersistentPresetMutationTransaction::create_printer_for_testing(validation_bundle);
+    const auto validation_result = validation->execute({ { "nozzle_diameter", "0" } }, false);
+    CHECK_FALSE(validation_result.committed);
+    CHECK(validation_result.error_code == "staged_config_validation_failed");
+}
+
+TEST_CASE("Printer persistent mutation preserves unsaved edits and rolls back failures", "[PluginHost][PersistentMutation]")
+{
+    ScopedTemporaryDir root("orca-printer-mutation-rollback");
+    for (const auto hooks : { Slic3r::PersistentPresetMutationTransaction::TestingHooks{true, false, false},
+                              Slic3r::PersistentPresetMutationTransaction::TestingHooks{false, true, false} }) {
+        Slic3r::PresetBundle bundle = printer_bundle(root.path());
+        bundle.printers.get_edited_preset().config.set_deserialize_strict("printer_notes", "dirty");
+        bundle.printers.update_dirty();
+        auto transaction = Slic3r::PersistentPresetMutationTransaction::create_printer_for_testing(bundle, hooks);
+        const auto result = transaction->execute({ { "time_cost", "1" } }, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.rollback_attempted);
+        CHECK(result.rollback_verified);
+        CHECK(result.dirty_before == result.dirty_after);
+        CHECK(bundle.printers.get_edited_preset().config.opt_serialize("printer_notes") == "dirty");
+        CHECK(bundle.printers.get_selected_preset_name() == "G4 Printer Test");
+    }
+}
+
+TEST_CASE("Printer approved protected mutation stays native and failed recovery blocks reuse", "[PluginHost][PersistentMutation]")
+{
+    ScopedTemporaryDir root("orca-printer-mutation-policy");
+    Slic3r::PresetBundle approved_bundle = printer_bundle(root.path());
+    auto approved = Slic3r::PersistentPresetMutationTransaction::create_printer_for_testing(approved_bundle);
+    const auto approved_result = approved->execute({ { "machine_max_speed_x", "100" } }, true);
+    CHECK(approved_result.committed);
+    CHECK(approved_result.persisted.at("machine_max_speed_x") == "100");
+
+    Slic3r::PresetBundle failed_bundle = printer_bundle(root.path());
+    Slic3r::PersistentPresetMutationTransaction::TestingHooks hooks;
+    hooks.force_save_failure = true;
+    hooks.force_rollback_failure = true;
+    auto failed = Slic3r::PersistentPresetMutationTransaction::create_printer_for_testing(failed_bundle, hooks);
+    CHECK(failed->execute({ { "time_cost", "1" } }, false).state ==
+          Slic3r::PersistentPresetMutationState::FailedRecovery);
+    CHECK_THROWS(failed->execute({ { "time_cost", "2" } }, false));
 }

@@ -31,8 +31,8 @@ struct PersistentPresetMutationResult {
     std::string error_code;
 };
 
-// Opaque, UI-thread-only, one-shot native transaction. It is deliberately Process
-// only: no mutable Preset, PresetCollection, or DynamicPrintConfig crosses Python.
+// Opaque, UI-thread-only, one-shot native transaction for Process or Printer.
+// No mutable Preset, PresetCollection, or DynamicPrintConfig crosses Python.
 class PersistentPresetMutationTransaction {
 public:
     struct TestingHooks {
@@ -42,8 +42,11 @@ public:
     };
 
     static std::shared_ptr<PersistentPresetMutationTransaction> capture_live_process();
+    static std::shared_ptr<PersistentPresetMutationTransaction> capture_live_printer();
     // Native test seam only; never registered with pybind.
     static std::shared_ptr<PersistentPresetMutationTransaction> create_for_testing(
+        PresetBundle& bundle, TestingHooks hooks = {});
+    static std::shared_ptr<PersistentPresetMutationTransaction> create_printer_for_testing(
         PresetBundle& bundle, TestingHooks hooks = {});
     ~PersistentPresetMutationTransaction() = default;
 
@@ -67,16 +70,22 @@ private:
         bool edited_dirty { false };
     };
 
-    explicit PersistentPresetMutationTransaction(PresetBundle& bundle, Snapshot before,
+    explicit PersistentPresetMutationTransaction(PresetBundle& bundle, Preset::Type type, Snapshot before,
                                                  bool test_mode = false,
                                                  TestingHooks hooks = {});
+
+    static std::shared_ptr<PersistentPresetMutationTransaction> capture_live(Preset::Type type);
+    static std::shared_ptr<PersistentPresetMutationTransaction> create_for_testing(
+        PresetBundle& bundle, Preset::Type type, TestingHooks hooks);
 
     PersistentPresetMutationResult rollback(const std::map<std::string, std::string>& requested,
                                              const std::string& error_code);
     void restore_before_state();
-    void refresh_process_lifecycle();
+    void refresh_lifecycle();
+    PresetCollection& collection() const;
 
     PresetBundle* m_bundle;
+    Preset::Type m_type;
     Snapshot m_before;
     PersistentPresetMutationState m_state { PersistentPresetMutationState::Ready };
     bool m_test_mode { false };
