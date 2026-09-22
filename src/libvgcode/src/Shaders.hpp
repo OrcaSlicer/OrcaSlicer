@@ -16,7 +16,8 @@ static const char* Segments_Vertex_Shader =
 "#define FIX_TWISTING\n"
 "const vec3  light_top_dir = vec3(-0.4574957, 0.4574957, 0.7624929);\n"
 "const float light_top_diffuse = 0.6 * 0.8;\n"
-"const float light_top_specular = 0.6 * 0.125;\n"
+// ORCA: the specular was 0.6 * 0.125, too faint to give the filament any sheen.
+"const float light_top_specular = 0.6 * 0.25;\n"
 "const float light_top_shininess = 20.0;\n"
 "const vec3  light_front_dir = vec3(0.6985074, 0.1397015, 0.6985074);\n"
 "const float light_front_diffuse = 0.6 * 0.2;\n"
@@ -30,9 +31,6 @@ static const char* Segments_Vertex_Shader =
 "uniform samplerBuffer height_width_angle_tex;\n"
 "uniform samplerBuffer color_tex;\n"
 "uniform usamplerBuffer segment_index_tex;\n"
-"// ORCA: realistic view - scales the specular highlight only. 1.0, the default, leaves the\n"
-"// shading exactly as it was.\n"
-"uniform float specular_gain;\n"
 "in int vertex_id;\n"
 "out vec3 color;\n"
 "// ORCA: realistic view - the light the shadow map is able to block, kept apart from the\n"
@@ -54,7 +52,7 @@ static const char* Segments_Vertex_Shader =
 "float direct_lighting(vec3 eye_position, vec3 eye_normal) {\n"
 "  float top_diffuse = light_top_diffuse * max(dot(eye_normal, light_top_dir), 0.0);\n"
 "  float front_diffuse = light_front_diffuse * max(dot(eye_normal, light_front_dir), 0.0);\n"
-"  float top_specular = specular_gain * light_top_specular * pow(max(dot(-normalize(eye_position), reflect(-light_top_dir, eye_normal)), 0.0), light_top_shininess);\n"
+"  float top_specular = light_top_specular * pow(max(dot(-normalize(eye_position), reflect(-light_top_dir, eye_normal)), 0.0), light_top_shininess);\n"
 "  return top_diffuse + front_diffuse + top_specular;\n"
 "}\n"
 "void main() {\n"
@@ -166,11 +164,12 @@ static const char* Segments_Fragment_Shader =
 "uniform mat4 shadow_light_vp;\n"
 "uniform float shadow_intensity;\n"
 "uniform float shadow_map_texel;\n"
-"// ORCA: realistic view - the toolpath shading never reaches 1.0, so every later multiplier\n"
-"// (shadow, then the SSAO post pass) only takes light away and the print reads dull. Both\n"
-"// default to 1.0, which leaves the result bit for bit what it was.\n"
-"uniform float exposure;\n"
-"uniform float saturation;\n"
+// ORCA: the lighting term peaks near 0.9 and every later multiplier - the shadow, then the SSAO
+// post pass - only takes more light away, so the print reads dimmer and duller than the legend
+// colours. These pay that back. Keep them in step with ShadersES.hpp.
+"const float EXPOSURE = 1.2;\n"
+"const float SATURATION = 1.2;\n"
+"const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);\n"
 "in vec3 color;\n"
 "in vec3 color_direct;\n"
 "in vec3 world_position;\n"
@@ -198,8 +197,8 @@ static const char* Segments_Fragment_Shader =
 "  return 1.0 - shadow_intensity * (sum / 25.0);\n"
 "}\n"
 "void main() {\n"
-"  vec3 c = (color + color_direct * shadow_shade()) * exposure;\n"
-"  c = mix(vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))), c, saturation);\n"
+"  vec3 c = (color + color_direct * shadow_shade()) * EXPOSURE;\n"
+"  c = mix(vec3(dot(c, LUMA)), c, SATURATION);\n"
 "  fragment_color = vec4(clamp(c, 0.0, 1.0), 1.0);\n"
 "}\n";
 

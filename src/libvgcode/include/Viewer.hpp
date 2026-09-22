@@ -70,11 +70,6 @@ public:
     // intensity == 0, the default, turns the lookup off and restores the plain shading.
     //
     void set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size);
-    //
-    // ORCA: realistic view. Tone applied to the shaded toolpaths: exposure and saturation scale
-    // the final colour, specular_gain the highlight alone. All 1.0, the default, is a no-op.
-    //
-    void set_tone(float exposure, float saturation, float specular_gain);
 
     //
     // ************************************************************************

@@ -768,9 +768,6 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_shadow_light_vp_id        = glGetUniformLocation(m_segments_shader_id, "shadow_light_vp");
     m_uni_segments_shadow_intensity_id       = glGetUniformLocation(m_segments_shader_id, "shadow_intensity");
     m_uni_segments_shadow_map_texel_id       = glGetUniformLocation(m_segments_shader_id, "shadow_map_texel");
-    m_uni_segments_exposure_id               = glGetUniformLocation(m_segments_shader_id, "exposure");
-    m_uni_segments_saturation_id             = glGetUniformLocation(m_segments_shader_id, "saturation");
-    m_uni_segments_specular_gain_id          = glGetUniformLocation(m_segments_shader_id, "specular_gain");
     glcheck();
     assert(m_uni_segments_view_matrix_id != -1 &&
            m_uni_segments_projection_matrix_id != -1 &&
@@ -1374,13 +1371,6 @@ void ViewerImpl::set_shadow_map(int texture_unit, const Mat4x4& light_view_proje
     m_shadow_light_vp = light_view_projection;
     m_shadow_intensity = intensity;
     m_shadow_map_texel = texel_size;
-}
-
-void ViewerImpl::set_tone(float exposure, float saturation, float specular_gain)
-{
-    m_exposure = exposure;
-    m_saturation = saturation;
-    m_specular_gain = specular_gain;
 }
 
 void ViewerImpl::set_view_type(EViewType type)
@@ -2038,9 +2028,6 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniformMatrix4fv(m_uni_segments_shadow_light_vp_id, 1, GL_FALSE, m_shadow_light_vp.data()));
     glsafe(glUniform1f(m_uni_segments_shadow_intensity_id, m_rendering_shadow_casters ? 0.0f : m_shadow_intensity));
     glsafe(glUniform1f(m_uni_segments_shadow_map_texel_id, m_shadow_map_texel));
-    glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
-    glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
-    glsafe(glUniform1f(m_uni_segments_specular_gain_id, m_specular_gain));
 
     glsafe(glDisable(GL_CULL_FACE));
 

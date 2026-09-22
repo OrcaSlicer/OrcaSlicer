@@ -8,7 +8,6 @@
 uniform sampler2D color_texture;
 uniform sampler2D depth_texture;
 uniform vec2 inv_tex_size;
-uniform float z_near;
 uniform float z_far;
 uniform bool is_outline;
 // The pass has no normal target to read, so the surface normal is reconstructed from the depth

@@ -52,11 +52,6 @@ void Viewer::set_shadow_map(int texture_unit, const Mat4x4& light_view_projectio
     m_impl->set_shadow_map(texture_unit, light_view_projection, intensity, texel_size);
 }
 
-void Viewer::set_tone(float exposure, float saturation, float specular_gain)
-{
-    m_impl->set_tone(exposure, saturation, specular_gain);
-}
-
 EViewType Viewer::get_view_type() const
 {
     return m_impl->get_view_type();

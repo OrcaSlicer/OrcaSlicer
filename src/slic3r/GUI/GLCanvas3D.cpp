@@ -7892,7 +7892,6 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     shader->set_uniform("color_texture", 0);
     shader->set_uniform("depth_texture", 1);
     shader->set_uniform("inv_tex_size", Vec2f(1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height)));
-    shader->set_uniform("z_near", camera.get_near_z());
     shader->set_uniform("z_far", camera.get_far_z());
     // The shader reconstructs the surface normal from the depth buffer, there being no normal
     // target to read: it unprojects a pixel back into view space, then measures the result
@@ -8778,11 +8777,6 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     }
     else
         m_gcode_viewer.set_shadow_map(4, Transform3d::Identity(), 0.0f, 0.0f);
-
-    // The segments shader's lighting term peaks near 0.9 and drops to 0.35 on faces turned away,
-    // so the print reads dimmer than the legend colours. The tone pays that back in both modes:
-    // only the losses on top of it, the shadow above and the SSAO pass below, are realistic view.
-    m_gcode_viewer.set_tone(1.2f, 1.2f, 2.0f);
 
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
 

@@ -83,11 +83,6 @@ public:
     // intensity == 0, the default, turns the lookup off and restores the plain shading.
     //
     void set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size);
-    //
-    // ORCA: realistic view. Tone applied to the shaded toolpaths: exposure and saturation scale
-    // the final colour, specular_gain the highlight alone. All 1.0, the default, is a no-op.
-    //
-    void set_tone(float exposure, float saturation, float specular_gain);
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -351,9 +346,6 @@ private:
     int m_uni_segments_shadow_light_vp_id{ -1 };
     int m_uni_segments_shadow_intensity_id{ -1 };
     int m_uni_segments_shadow_map_texel_id{ -1 };
-    int m_uni_segments_exposure_id{ -1 };
-    int m_uni_segments_saturation_id{ -1 };
-    int m_uni_segments_specular_gain_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -505,14 +497,6 @@ private:
     float  m_shadow_intensity{ 0.0f };
     float  m_shadow_map_texel{ 0.0f };
     bool   m_rendering_shadow_casters{ false };
-
-    //
-    // ORCA: realistic view. Tone set by set_tone(), consumed by the segments shader. The
-    // identity values leave the shading as it is outside realistic view.
-    //
-    float m_exposure{ 1.0f };
-    float m_saturation{ 1.0f };
-    float m_specular_gain{ 1.0f };
 
     void apply_pending_updates();
     void update_view_full_range();
