@@ -1386,27 +1386,49 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
 
     // Projects a painted top or bottom face `ex` of layer `layer_idx` onto the shell layers below or above it (in
     // `shell_layers`, nearest first), one more perimeter in on each, stopping at the first layer where nothing is left.
-    // The per-layer ClipperLib work is independent once the trimmed slices and the offsets have been walked in order,
-    // so it runs in parallel; the offsets are accumulated exactly as the sequential walk did.
+    // Only the slices within the deepest offset of `ex` (three times that with the miter joins) decide the result, so the
+    // work is done per tile of `ex`'s ExPolygons on the slices cut to the tile's box grown by that much: the same result, but
+    // each ClipperLib call stays the size of a tile rather than of a layer cut through a fine relief, and the tiles run in
+    // parallel.
     const auto project_to_shells = [&input_expolygons](const ExPolygons &ex, size_t layer_idx, const std::vector<size_t> &shell_layers,
                                                        const LayerColorStat &stat, std::vector<ExPolygons> &dst, size_t dst_offset) {
-        std::vector<ExPolygons> trimmed(shell_layers.size());
-        std::vector<float>      offsets(shell_layers.size());
-        ExPolygons              layer_slices_trimmed = input_expolygons[layer_idx];
-        float                   offset               = 0.f;
+        std::vector<float> offsets(shell_layers.size());
+        float              offset = 0.f;
         for (size_t i = 0; i < shell_layers.size(); ++i) {
             //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
             offset -= (stat.extrusion_spacing + stat.extrusion_width);
-            offsets[i]           = offset;
-            layer_slices_trimmed = intersection_ex(layer_slices_trimmed, input_expolygons[shell_layers[i]]);
-            trimmed[i]           = layer_slices_trimmed;
+            offsets[i] = offset;
         }
-        std::vector<ExPolygons> shells(shell_layers.size());
-        tbb::parallel_for(size_t(0), shell_layers.size(), [&](size_t i) {
-            shells[i] = opening_ex(intersection_ex(ex, offset_ex(trimmed[i], offsets[i])), stat.small_region_threshold);
+        if (offsets.empty())
+            return;
+        const coord_t reach = coord_t(std::ceil(DefaultMiterLimit * std::abs(offsets.back()))) + 10 * SCALED_EPSILON;
+        const std::vector<ClipperUtils::ExPolygonsTile> tiles = ClipperUtils::tile_expolygons(ex, 16);
+        // [shell layer][tile]
+        std::vector<std::vector<ExPolygons>> shells(shell_layers.size(), std::vector<ExPolygons>(tiles.size()));
+        tbb::parallel_for(size_t(0), tiles.size(), [&](size_t tile_idx) {
+            const ClipperUtils::ExPolygonsTile &tile = tiles[tile_idx];
+            const BoundingBox                   bbox = tile.bbox.inflated(reach);
+            ExPolygons                          tile_ex;
+            tile_ex.reserve(tile.members.size());
+            for (size_t i : tile.members)
+                tile_ex.emplace_back(ex[i]);
+            Polygons layer_slices_trimmed = ClipperUtils::clip_clipper_polygons_with_subject_bbox(input_expolygons[layer_idx], bbox);
+            for (size_t i = 0; i < shell_layers.size() && ! layer_slices_trimmed.empty(); ++i) {
+                const ExPolygons trimmed = intersection_ex(layer_slices_trimmed, ClipperUtils::clip_clipper_polygons_with_subject_bbox(input_expolygons[shell_layers[i]], bbox));
+                shells[i][tile_idx]  = opening_ex(intersection_ex(tile_ex, offset_ex(trimmed, offsets[i])), stat.small_region_threshold);
+                layer_slices_trimmed = to_polygons(trimmed);
+            }
         });
-        for (size_t i = 0; i < shell_layers.size() && !shells[i].empty(); ++i)
-            append(dst[shell_layers[i] + dst_offset], std::move(shells[i]));
+        for (size_t i = 0; i < shell_layers.size(); ++i) {
+            bool empty = true;
+            for (ExPolygons &shell : shells[i])
+                if (! shell.empty()) {
+                    append(dst[shell_layers[i] + dst_offset], std::move(shell));
+                    empty = false;
+                }
+            if (empty)
+                break;
+        }
     };
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers, granularity), [&granularity, &num_layers, &num_facets_states, &layer_color_stat, &top_raw, &triangles_by_color_top,

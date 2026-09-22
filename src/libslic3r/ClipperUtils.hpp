@@ -2,6 +2,7 @@
 #define slic3r_ClipperUtils_hpp_
 
 #include "libslic3r.h"
+#include "BoundingBox.hpp"
 #include "clipper.hpp"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
@@ -320,6 +321,15 @@ namespace ClipperUtils {
     [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const Polygons &src, const BoundingBox &bbox);
     [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const ExPolygon &src, const BoundingBox &bbox, const bool get_entire_polygons = false);
     [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const ExPolygons &src, const BoundingBox &bbox, const bool get_entire_polygons = false);
+
+    // Splits ExPolygons into tiles by the centres of their boxes, about `per_tile` of them to a tile, to run ClipperLib on a
+    // layer of many pieces tile by tile. Returns the non-empty tiles, each with the indices of its ExPolygons and their box.
+    struct ExPolygonsTile
+    {
+        BoundingBox         bbox;
+        std::vector<size_t> members;
+    };
+    [[nodiscard]] std::vector<ExPolygonsTile> tile_expolygons(const ExPolygons &expolygons, size_t per_tile);
 
     }
 
