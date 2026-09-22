@@ -303,6 +303,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
         set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
 
+    if (get(SETTING_OPENGL_REALISTIC_PREVIEW).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PREVIEW, false);
+
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 

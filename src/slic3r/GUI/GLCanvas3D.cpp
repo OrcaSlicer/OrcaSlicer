@@ -7646,11 +7646,20 @@ bool GLCanvas3D::_is_fxaa_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_FXAA_ENABLED);
 }
 
+bool GLCanvas3D::_is_realistic_view_enabled() const
+{
+    const AppConfig* cfg = wxGetApp().app_config;
+    if (cfg == nullptr || !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE))
+        return false;
+    // Prepare and Assemble follow the umbrella toggle alone; Preview needs its own opt-in.
+    return m_canvas_type != ECanvasType::CanvasPreview || cfg->get_bool(SETTING_OPENGL_REALISTIC_PREVIEW);
+}
+
 bool GLCanvas3D::_is_ssao_enabled() const
 {
     if (wxGetApp().app_config == nullptr)
         return false;
-    return wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
+    return _is_realistic_view_enabled() &&
            wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
 }
 
@@ -8077,7 +8086,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 {
     if (wxGetApp().app_config == nullptr)
         return;
-    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE))
+    if (!_is_realistic_view_enabled())
         return;
     if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
         return;
@@ -8469,7 +8478,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         return;
     }
 
-    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+    const bool realistic_mode = _is_realistic_view_enabled();
     const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
     const std::string shader_name = (realistic_mode && realistic_phong) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
@@ -8710,7 +8719,7 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     // pays back the duller half in both modes; brightness only where something takes light off
     // again - realistic view with at least one lossy pass on - else the lift would just clip.
     const AppConfig* cfg = wxGetApp().app_config;
-    const bool lossy_passes = cfg != nullptr && cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
+    const bool lossy_passes = cfg != nullptr && _is_realistic_view_enabled() &&
                               (cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) || cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
     m_gcode_viewer.set_tone(lossy_passes ? 1.1f : 1.0f, 1.15f);
 

@@ -1932,6 +1932,15 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_phong);
 
+    auto item_realistic_preview = create_item_checkbox(
+        _L("Enable in Preview"),
+        _L("Also applies realistic view to the Preview canvas, not just Prepare.\n"
+           "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably"
+           " more there than on a plain model."),
+        SETTING_OPENGL_REALISTIC_PREVIEW
+    );
+    g_sizer->Add(item_realistic_preview);
+
     auto item_realistic_ssao = create_item_checkbox(
         _L("SSAO ambient occlusion"),
         _L("Applies SSAO in realistic view."),
