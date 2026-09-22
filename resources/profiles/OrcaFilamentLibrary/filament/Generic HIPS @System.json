@@ -4,6 +4,7 @@
 	"inherits": "fdm_filament_hips",
 	"from": "system",
 	"setting_id": "A7gedcxip65DXKuf",
+	"filament_id": "OFsFon5l",
 	"instantiation": "true",
 	"compatible_printers": []
 }

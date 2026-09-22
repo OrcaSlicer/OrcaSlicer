@@ -3,7 +3,7 @@
 	"name": "Arena PETG Basic @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GFG00",
+	"filament_id": "OFNBlAPT",
 	"instantiation": "false",
 	"filament_flow_ratio": [
 		"0.95"

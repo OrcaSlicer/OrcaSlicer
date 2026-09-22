@@ -1,6 +1,10 @@
 if (APPLE)
     # Only disable NEON extension for Apple ARM builds, leave it enabled for Raspberry PI.
     set(_disable_neon_extension "-DPNG_ARM_NEON=off")
+elseif ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    # libpng's CMake ignores PNG_ARM_NEON on Windows ARM64 and skips the NEON
+    # sources, but pngpriv.h enables NEON anyway.
+    set(_disable_neon_extension "-DCMAKE_C_FLAGS=/DWIN32 /D_WINDOWS /DPNG_ARM_NEON_OPT=0")
 else ()
     set(_disable_neon_extension "")
 endif ()

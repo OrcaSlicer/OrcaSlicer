@@ -3,7 +3,7 @@
 	"name": "Generic TPU 95A@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_0_50",
+	"filament_id": "OFjiXpyf",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"600"

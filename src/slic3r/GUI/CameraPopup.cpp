@@ -82,7 +82,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     top_sizer->Add(m_text_liveview_retry, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(m_switch_liveview_retry, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
 
-    m_switch_liveview_retry->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
+    m_switch_liveview_retry->Bind(wxEVT_TOGGLEBUTTON, [](wxCommandEvent &e) {
         wxGetApp().app_config->set("liveview", "auto_retry", e.IsChecked());
         e.Skip();
     });
@@ -140,7 +140,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     vcamera_guide_link->Wrap(-1);
     vcamera_guide_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
     auto text_size = vcamera_guide_link->GetTextExtent(text);
-    vcamera_guide_link->Bind(wxEVT_LEFT_DOWN, [this, url](wxMouseEvent& e) {wxLaunchDefaultBrowser(url); });
+    vcamera_guide_link->Bind(wxEVT_LEFT_DOWN, [url](wxMouseEvent& e) {wxLaunchDefaultBrowser(url); });
 
     link_underline = new wxPanel(m_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     link_underline->SetBackgroundColour(wxColour(0x1F, 0x8E, 0xEA));

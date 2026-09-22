@@ -292,7 +292,7 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
 
     update_ams_img(obj);
 
-    m_ams_type->Update(obj);
+    m_ams_type->UpdateInfo(obj);
     //m_ams_arrange_order->Update(obj);
     update_insert_material_read_mode(obj);
     m_sizer_remain_block->Show(obj->is_support_update_remain);
@@ -624,7 +624,7 @@ void AMSSettingTypePanel::CreateGui()
     Fit();
 }
 
-void AMSSettingTypePanel::Update(const MachineObject* obj)
+void AMSSettingTypePanel::UpdateInfo(const MachineObject* obj)
 {
     if (!obj) {
         Show(false);

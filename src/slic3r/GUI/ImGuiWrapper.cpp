@@ -505,6 +505,23 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
     if (evt.GetEventType() == wxEVT_CHAR) {
         // Char event
         const auto key = evt.GetUnicodeKey();
+        // THE MEASUREMENT THAT CANNOT LIE. This is the ONLY place in the application where ImGui
+        // is ever handed a character, so an ImGui text field that stays empty while reporting
+        // itself active has exactly two possible causes, and this line separates them: no output
+        // at all means the wxEVT_CHAR never reached the GL canvas (a focus problem, upstream of
+        // ImGui entirely), while output with unicode=0 means the character arrived empty and is
+        // being dropped right here.
+        //
+        // It lives here rather than on the canvas because a probe bound on the canvas CANNOT
+        // answer this: GLCanvas3D::on_char is bound later than any constructor-time probe, wx
+        // runs handlers in reverse bind order, and on_char returns without Skip() whenever this
+        // function returns true — so such a probe stays silent whether or not the key arrived.
+        // A day was lost to reading that silence as evidence.
+        if (std::getenv("ORCA_CAD_UXTRACE")) {
+            fprintf(stderr, "[UX] imgui_char unicode=%d keycode=%d want_text=%d\n",
+                    (int) key, evt.GetKeyCode(), (int) io.WantTextInput);
+            fflush(stderr);
+        }
         if (key != 0) {
             io.AddInputCharacter(key);
         }
@@ -573,11 +590,39 @@ void ImGuiWrapper::new_frame()
     // BBL: end copy & paste
 }
 
-void ImGuiWrapper::render()
+ImDrawData* ImGuiWrapper::end_frame()
 {
     ImGui::Render();
-    render_draw_data(ImGui::GetDrawData());
     m_new_frame_open = false;
+    return ImGui::GetDrawData();
+}
+
+void ImGuiWrapper::render(ImDrawData* draw_data)
+{
+    render_draw_data(draw_data);
+}
+
+ImGuiID ImGuiWrapper::draw_data_signature(const ImDrawData* draw_data)
+{
+    ImGuiID hash = 0;
+    if (draw_data == nullptr)
+        return hash;
+
+    for (int i = 0; i < draw_data->CmdListsCount; ++i) {
+        const ImDrawList* list = draw_data->CmdLists[i];
+        hash = ImHashData(list->VtxBuffer.Data, list->VtxBuffer.Size * sizeof(ImDrawVert), hash);
+        hash = ImHashData(list->IdxBuffer.Data, list->IdxBuffer.Size * sizeof(ImDrawIdx), hash);
+        // ImDrawCmd has padding, and a hovered ImageButton3() differs only in TextureId.
+        for (const ImDrawCmd& cmd : list->CmdBuffer) {
+            hash = ImHashData(&cmd.ClipRect, sizeof(cmd.ClipRect), hash);
+            hash = ImHashData(&cmd.TextureId, sizeof(cmd.TextureId), hash);
+            hash = ImHashData(&cmd.VtxOffset, sizeof(cmd.VtxOffset), hash);
+            hash = ImHashData(&cmd.IdxOffset, sizeof(cmd.IdxOffset), hash);
+            hash = ImHashData(&cmd.ElemCount, sizeof(cmd.ElemCount), hash);
+            hash = ImHashData(&cmd.UserCallback, sizeof(cmd.UserCallback), hash);
+        }
+    }
+    return hash;
 }
 
 ImVec2 ImGuiWrapper::calc_text_size(std::string_view text,
@@ -2482,6 +2527,19 @@ static const ImWchar ranges_keyboard_shortcuts[] =
 };
 #endif // __APPLE__
 
+// Names drawn through the atlas come from file names and CAD data, not from the UI language.
+// GetGlyphRangesDefault() already gives every language the CJK ideographs, which is why a
+// Chinese file name renders under an English UI; these are the alphabetic scripts it omits.
+// Codepoints the font lacks are skipped at build time, so only existing glyphs cost anything.
+static const ImWchar ranges_language_independent[] =
+{
+    0x0100, 0x024F, // Latin Extended-A and Extended-B
+    0x0370, 0x03FF, // Greek and Coptic
+    0x0400, 0x04FF, // Cyrillic
+    0x1E00, 0x1EFF, // Latin Extended Additional (Vietnamese)
+    0,
+};
+
 
 std::vector<unsigned char> ImGuiWrapper::load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight)
 {
@@ -2792,6 +2850,7 @@ void ImGuiWrapper::init_font(bool compress)
     ImFontAtlas::GlyphRangesBuilder builder;
     builder.AddRanges(m_glyph_ranges);
     builder.AddRanges(ImGui::GetIO().Fonts->GetGlyphRangesDefault());
+    builder.AddRanges(ranges_language_independent);
 #ifdef __APPLE__
     if (m_font_cjk)
         // Apple keyboard shortcuts are only contained in the CJK fonts.
@@ -2813,12 +2872,17 @@ void ImGuiWrapper::init_font(bool compress)
     // Orca: temp fix for Korean font
     auto font_name_regular = "HarmonyOS_Sans_SC_Regular.ttf";
     auto font_name_bold = "HarmonyOS_Sans_SC_Bold.ttf";
+    // The Korean and Thai fonts cover their own script and little else, so they need the
+    // default font merged in behind them to reach the full range.
+    bool needs_glyph_fallback = false;
     if(m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesKorean()) {
         font_name_regular = "NanumGothic-Regular.ttf";
         font_name_bold = "NanumGothic-Bold.ttf";
+        needs_glyph_fallback = true;
     } else if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
         font_name_regular = "Sarabun-Medium.ttf";
         font_name_bold = "Sarabun-SemiBold.ttf";
+        needs_glyph_fallback = true;
     }
     default_font = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_regular).c_str(), m_font_size, &cfg, ranges.Data);
     if (default_font == nullptr) {
@@ -2828,11 +2892,12 @@ void ImGuiWrapper::init_font(bool compress)
         }
     }
 
-    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+    // A merged font only supplies glyphs the font ahead of it lacks, so this fills the gaps
+    // without restyling anything the script font already covers.
+    if (needs_glyph_fallback) {
         ImFontConfig fallback_cfg = cfg;
         fallback_cfg.MergeMode = true;
-        static constexpr ImWchar celsius_range[] = { 0x2103, 0x2103, 0 };
-        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, celsius_range);
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
     }
 
     bold_font        = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), m_font_size, &cfg, ranges.Data);
@@ -2841,11 +2906,10 @@ void ImGuiWrapper::init_font(bool compress)
         if (bold_font == nullptr) { throw Slic3r::RuntimeError("ImGui: Could not load deafult font"); }
     }
 
-    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+    if (needs_glyph_fallback) {
         ImFontConfig fallback_cfg = cfg;
         fallback_cfg.MergeMode = true;
-        static constexpr ImWchar celsius_range[] = { 0x2103, 0x2103, 0 };
-        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, celsius_range);
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
     }
 
     if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
@@ -2897,13 +2961,18 @@ void ImGuiWrapper::init_font(bool compress)
     glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
     constexpr int max_retries = 6;
     for (int attempt = 0; attempt < max_retries && io.Fonts->TexHeight > gl_max_tex_size; ++attempt) {
-        io.Fonts->TexDesiredWidth = (io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth) * 2;
+        const int width = io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth;
+        // Both dimensions share the same limit, so widening past it would only trade an
+        // illegal height for an illegal width.
+        if (width * 2 > gl_max_tex_size)
+            break;
+        io.Fonts->TexDesiredWidth = width * 2;
         io.Fonts->Build();
     }
     if (io.Fonts->TexHeight > gl_max_tex_size) {
-        // Shouldn't really happen
-        BOOST_LOG_TRIVIAL(error) << "Font atlas height " << io.Fonts->TexHeight
-            << " still exceeds GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
+        // Needs both a very large glyph set and a small GL_MAX_TEXTURE_SIZE.
+        BOOST_LOG_TRIVIAL(error) << "Font atlas " << io.Fonts->TexWidth << "x" << io.Fonts->TexHeight
+            << " does not fit GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
             << " after " << max_retries << " attempts; rendering may be incomplete";
     }
 

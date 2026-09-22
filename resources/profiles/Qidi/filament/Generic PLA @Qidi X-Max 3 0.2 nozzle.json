@@ -1,0 +1,28 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Qidi X-Max 3 0.2 nozzle",
+	"inherits": "Generic PLA @Qidi",
+	"renamed_from": "Qidi Generic PLA @Qidi X-Max 3 0.2 nozzle;Qidi Generic PLA Qidi X-Max 3 0.2 nozzle",
+	"from": "system",
+	"setting_id": "VhP4JYzAah2X1Kr3",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.031"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 3 0.2 nozzle"
+	]
+}

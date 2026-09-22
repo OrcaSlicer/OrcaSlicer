@@ -4,7 +4,7 @@
 	"inherits": "QIDI ASA-CF",
 	"from": "system",
 	"setting_id": "T6U1oaEsA0T3ogMM",
-	"filament_id": "GFB99",
+	"filament_id": "OF1W7c76",
 	"instantiation": "true",
 	"during_print_exhaust_fan_speed": [
 		"40"

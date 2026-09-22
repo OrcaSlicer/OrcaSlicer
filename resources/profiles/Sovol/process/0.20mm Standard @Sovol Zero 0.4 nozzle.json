@@ -5,7 +5,6 @@
 	"from": "system",
 	"setting_id": "ShJTVnJ492No1j2j",
 	"instantiation": "true",
-	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "1",
 	"max_travel_detour_distance": "100%",
 	"layer_height": "0.20",

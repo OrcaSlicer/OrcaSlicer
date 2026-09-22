@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -1310,7 +1311,7 @@ void GLGizmoCut3D::render_cut_line()
 bool GLGizmoCut3D::on_init()
 {
     m_grabbers.emplace_back();
-    m_shortcut_key = WXK_CONTROL_C;
+    m_shortcut = Shortcut::GizmoCut;
 
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
@@ -3596,7 +3597,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [this, plater, keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";

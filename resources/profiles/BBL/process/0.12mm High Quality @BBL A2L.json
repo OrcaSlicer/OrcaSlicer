@@ -48,7 +48,6 @@
 	"slowdown_start_speed": [
 		"500"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_pattern": "gyroid",
 	"sparse_infill_speed": [
 		"180"
