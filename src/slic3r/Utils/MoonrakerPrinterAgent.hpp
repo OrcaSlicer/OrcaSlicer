@@ -28,7 +28,7 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
+    int connect_printer(const PrinterConnectionParams& params) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
 
@@ -94,7 +94,7 @@ protected:
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
 
     // Methods that derived classes may need to override or access
-    virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
+    virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
 
     // State access for derived classes

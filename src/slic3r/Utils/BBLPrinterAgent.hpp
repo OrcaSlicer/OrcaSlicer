@@ -35,7 +35,7 @@ public:
     int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
                               bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode) override;
     std::string default_lan_username() const override { return "bblp"; }
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
+    int connect_printer(const PrinterConnectionParams& params) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
 

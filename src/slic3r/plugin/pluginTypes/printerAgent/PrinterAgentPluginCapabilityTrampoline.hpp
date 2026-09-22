@@ -45,9 +45,9 @@ public:
         ORCA_PY_AGENT_OVERRIDE(AgentInfo, get_agent_info);
     }
 
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override
+    int connect_printer(const PrinterConnectionParams& params) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, connect_printer, dev_id, dev_ip, username, password, use_ssl);
+        ORCA_PY_AGENT_OVERRIDE(int, connect_printer, params);
     }
 
     int disconnect_printer() override

@@ -5,7 +5,6 @@
 
 #include "IPrinterAgent.hpp"
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -30,7 +29,7 @@ public:
 
     AgentInfo get_agent_info() override = 0;
 
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override      = 0;
+    int connect_printer(const PrinterConnectionParams& params) override                                                                 = 0;
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override                                              = 0;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override                                   = 0;
     bool start_discovery(bool start, bool sending) override                                                                             = 0;
