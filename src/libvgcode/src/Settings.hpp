@@ -29,6 +29,10 @@ struct Settings
 		// ORCA: when disabled, the filaments are drawn opaque whatever their color's opacity
 		bool translucent_filaments{ true };
 		bool spiral_vase_mode{ false };
+		// whether the reduced set (the visible range's end layers) is built, and whether it is drawn.
+		// Ignored on the OpenGL ES path.
+		bool reduced_detail_enabled{ false };
+		bool reduced_detail{ false };
 		//
 		// Required update flags
 		//
