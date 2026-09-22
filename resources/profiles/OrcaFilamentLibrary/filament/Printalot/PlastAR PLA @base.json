@@ -3,7 +3,7 @@
 	"name": "PlastAR PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "PLSTAR00",
+	"filament_id": "OFCTqYGM",
 	"instantiation": "false",
 	"filament_vendor": [
 		"PlastAR"

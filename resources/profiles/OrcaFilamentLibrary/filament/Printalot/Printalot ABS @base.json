@@ -3,7 +3,7 @@
 	"name": "Printalot ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "PRTABS00",
+	"filament_id": "OFgq39c2",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Printalot"
