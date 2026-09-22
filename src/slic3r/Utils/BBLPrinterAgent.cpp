@@ -148,6 +148,96 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // Communication
 // ============================================================================
 
+std::string BBLPrinterAgent::ams_refresh_rfid_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 R%1% \n") % tray_id).str();
+}
+
+std::string BBLPrinterAgent::ams_calibrate_gcode(int ams_id)
+{
+    return (boost::format("M620 C%1% \n") % ams_id).str();
+}
+
+std::string BBLPrinterAgent::ams_select_tray_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 P%1% \n") % tray_id).str();
+}
+
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_refresh_rfid_gcode(tray_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_calibrate_gcode(ams_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_select_tray_gcode(tray_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                                           bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+
+    if (supports_mqtt_axis_control) {
+        int dir = input_val > 0 ? 1 : -1;
+        // i3-arch printers move the bed for Y/Z, so the on-screen direction is
+        // reversed -- same negation the g-code fallback below applies.
+        if (!is_core_xy && (axis == "Y" || axis == "Z")) {
+            dir = -dir;
+        }
+
+        j["print"]["command"] = "xyz_ctrl";
+        j["print"]["axis"] = axis;
+        j["print"]["dir"] = dir;
+        j["print"]["mode"] = (std::abs(input_val) >= 10) ? 1 : 0;
+        return publish(dev_id, j, lan_mode);
+    }
+
+    double value = input_val;
+    if (!is_core_xy && (axis == "Y" || axis == "Z")) {
+        value = -1.0 * input_val;
+    }
+
+    std::string value_str = (boost::format("%.1f") % (value * unit)).str();
+    std::string gcode;
+    if (axis == "X" || axis == "Y" || axis == "Z") {
+        gcode = (boost::format("M211 S \nM211 X1 Y1 Z1\nM1002 push_ref_mode\nG91 \nG1 %1%%2% F%3%\nM1002 pop_ref_mode\nM211 R\n")
+                 % axis % value_str % speed).str();
+    } else if (axis == "E") {
+        gcode = (boost::format("M83 \nG0 %1%%2% F%3%\n") % axis % value_str % speed).str();
+    } else {
+        return -1;
+    }
+
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    return publish(dev_id, j, lan_mode);
+}
+
 int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode)
 {
     const int rtn = lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0) : send_message(dev_id, j.dump(), 0, 0);
