@@ -520,6 +520,28 @@ jobs:
             } catch (error) {
               core.warning(`Merged successfully, but dispatching build_all.yml failed: ${error.message}`);
             }
+            // ---- re-kick the profile publish ----
+            // Same reason as above: post_merge_profiles.yml is push-triggered, so a
+            // GITHUB_TOKEN merge never starts it. workflow_dispatch skips the paths:
+            // filter, so only dispatch when the PR actually touched profiles.
+            const touchesProfiles = files.some((file) =>
+              [file.filename, file.previous_filename]
+                .filter(Boolean)
+                .some((p) => p.startsWith('resources/profiles/'))
+            );
+            if (touchesProfiles) {
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner,
+                  repo,
+                  workflow_id: 'post_merge_profiles.yml',
+                  ref: pr.base.ref
+                });
+                core.info(`Dispatched post_merge_profiles.yml on ${pr.base.ref}.`);
+              } catch (error) {
+                core.warning(`Merged successfully, but dispatching post_merge_profiles.yml failed: ${error.message}`);
+              }
+            }
 
   label-profile:
     # Independent of the merge rules: any PR that changes only files inside
@@ -529,7 +551,7 @@ jobs:
       && github.event_name == 'pull_request_target'
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -636,7 +658,7 @@ jobs:
       && github.event_name == 'pull_request_target'
     permissions:
       contents: read        # delegatable subtree, for file modes
-      pull-requests: read
+      pull-requests: write
       issues: write         # label + comment
     runs-on: ubuntu-latest
     timeout-minutes: 10

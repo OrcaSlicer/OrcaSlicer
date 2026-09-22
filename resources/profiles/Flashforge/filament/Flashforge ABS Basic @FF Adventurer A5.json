@@ -1,0 +1,50 @@
+{
+	"type": "filament",
+	"name": "Flashforge ABS Basic @FF Adventurer A5",
+	"inherits": "Generic ABS @Flashforge",
+	"from": "system",
+	"setting_id": "rDW4AwKc7SD7WIxN",
+	"filament_id": "OFibWuBd",
+	"filament_vendor": [
+		"Flashforge"
+	],
+	"instantiation": "true",
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"105"
+	],
+	"eng_plate_temp_initial_layer": [
+		"105"
+	],
+	"filament_settings_id": [
+		"Flashforge ABS Basic @FF Adventurer A5"
+	],
+	"compatible_printers": [
+		"Flashforge Adventurer A5 0.4 nozzle",
+		"Flashforge Adventurer A5 0.6 nozzle",
+		"Flashforge Adventurer A5 0.8 nozzle"
+	],
+	"supertack_plate_temp": [
+		"0"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_plate_temp": [
+		"105"
+	],
+	"textured_plate_temp_initial_layer": [
+		"105"
+	]
+}

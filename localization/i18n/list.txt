@@ -250,6 +250,7 @@ src/slic3r/GUI/TroubleshootDialog.cpp
 src/slic3r/Utils/3DPrinterOS.cpp
 src/slic3r/Utils/AstroBox.cpp
 src/slic3r/Utils/Duet.cpp
+src/slic3r/Utils/UltiMaker.cpp
 src/slic3r/Utils/FlashAir.cpp
 src/slic3r/Utils/MKS.cpp
 src/slic3r/Utils/Moonraker.cpp
@@ -299,3 +300,5 @@ src/slic3r/GUI/CAD/DesignPanel.cpp
 src/slic3r/GUI/CAD/SketchInlineEditor.cpp
 src/slic3r/GUI/Gizmos/GLGizmoPrimitive.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSketch.cpp
+src/slic3r/GUI/KeyChord.cpp
+src/slic3r/GUI/Shortcuts.cpp
