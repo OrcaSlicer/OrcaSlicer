@@ -31,8 +31,8 @@
 # Keep this in lockstep with:
 #   - GUI_App::ensure_oss_network_plugin()  (src/slic3r/GUI/GUI_App.cpp)
 #   - the CI plugin-build jobs (--with-version / -WithVersion)
-set(ORCA_OSS_NETWORK_PLUGIN_VERSION "02.07.01.51" CACHE STRING
-    "Version the OSS network plugin reports + filename suffix (modern ABI 02.07.01, the Bambu Studio 2.7 networking version; must match GUI_App::ensure_oss_network_plugin() and CI build).")
+set(ORCA_OSS_NETWORK_PLUGIN_VERSION "02.08.01.99" CACHE STRING
+    "Version the OSS network plugin reports + filename suffix (modern ABI 02.08.01, the Bambu Studio 2.8 networking version; must match GUI_App::ensure_oss_network_plugin() and CI build).")
 
 # Propagate the version into the C++ build so GUI_App.cpp uses the same string.
 add_compile_definitions(ORCA_OSS_NETWORK_PLUGIN_VERSION="${ORCA_OSS_NETWORK_PLUGIN_VERSION}")

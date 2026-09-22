@@ -1952,6 +1952,9 @@ bool GUI_App::has_network_update_available() const
     if (current.empty() || current == "00.00.00.00")
         return false;
 
+    if (is_oss_plugin_version(current))
+        return false;
+
     return current.substr(0, 8) != latest.substr(0, 8);
 }
 
@@ -3587,7 +3590,7 @@ void GUI_App::copy_network_if_available()
 void GUI_App::ensure_oss_network_plugin()
 {
     namespace fs = boost::filesystem;
-    const std::string ver = "02.07.01";
+    const std::string ver = "02.08.01";
     // The OSS plugin is a single bundled build, so it is provisioned under the
     // plain unversioned name rather than a synthetic bambu_networking_<ver>.dll.
     // BBLNetworkPlugin::initialize() loads this name when the versioned file is
@@ -3708,6 +3711,7 @@ void GUI_App::ensure_oss_network_plugin()
 
     app_config->set_bool("installed_networking", true);
     app_config->set_network_plugin_version(ver);
+    app_config->set_network_update_prompt_disabled(true);
     app_config->set("update_network_plugin", "false");
     app_config->save();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": provisioned OSS network plugin into " << dst_dir;
