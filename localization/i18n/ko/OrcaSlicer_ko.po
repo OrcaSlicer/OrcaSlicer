@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2481,13 +2481,6 @@ msgstr "사용 가능한 업데이트가 있습니다. 사전 설정 번들 대�
 msgid "%s has been removed."
 msgstr "%s이(가) 제거되었습니다."
 
-
-msgid "Select the language"
-msgstr "언어 선택"
-
-msgid "Language"
-msgstr "언어"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2524,6 +2517,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "플러그인 대화 상자를 열지 못했습니다(알 수 없는 오류)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -3727,11 +3733,15 @@ msgstr "Filament Track Switch에서 현재 필라멘트 되감기"
 msgid "Switch track at Filament Track Switch"
 msgstr "Filament Track Switch에서 트랙 전환"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "최대 온도는 다음 값을 초과할 수 없습니다 "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "최대 온도는 %d을(를) 초과할 수 없습니다"
 
-msgid "The minmum temperature should not be less than "
-msgstr "최소 온도는 다음 값보다 낮아서는 안 됩니다 "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "최소 온도는 %d보다 낮을 수 없습니다"
 
 # AI Translated
 msgid "Type to filter..."
@@ -4179,6 +4189,21 @@ msgstr "OrcaSlicer도 같은 정신으로 시작하여 PrusaSlicer, BambuStudio,
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "오늘날 OrcaSlicer는 3D 프린팅 커뮤니티에서 가장 널리 사용되고 가장 활발하게 개발되는 오픈 소스 슬라이서입니다. 그 혁신 가운데 다수가 다른 슬라이서에도 채택되어 업계 전체를 이끄는 원동력이 되고 있습니다."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "프린터"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS 재료 설정"
 
@@ -4624,6 +4649,15 @@ msgid ""
 msgstr ""
 "임시 Gcode를 출력 Gcode로 복사하지 못했습니다. SD 카드가 쓰기 잠겨 있나요?\n"
 "오류 메시지입니다: %1%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"임시 G-code를 출력 G-code로 복사하지 못했습니다.\n"
+"오류 메시지: %1%"
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
@@ -5363,10 +5397,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "값 %s이 범위를 벗어났습니다. 유효한 범위는 %d에서 %d까지입니다."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"%s%% 또는 %s %s입니까?"
+msgid "Is it %s%% or %s %s?"
+msgstr "%s%% 또는 %s %s입니까?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5393,20 +5428,16 @@ msgid "System agents"
 msgstr "시스템 에이전트"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "선택된 플러그인 없음"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "플러그인 추가"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "플러그인 선택"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "플러그인 제거"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "선택된 플러그인 없음"
 
 # AI Translated
 msgid "Configure"
@@ -5664,14 +5695,20 @@ msgstr "최적으로 설정"
 msgid "Regroup filament"
 msgstr "필라멘트 재그룹핑"
 
-msgid "up to"
-msgstr "까지"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "%1% mm까지"
 
-msgid "above"
-msgstr "위에"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "%1% mm 이상"
 
-msgid "from"
-msgstr "부터"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "%1% mm에서 %2% mm까지"
 
 msgid "Usage"
 msgstr "사용량"
@@ -5732,9 +5769,6 @@ msgstr "색 변경"
 msgctxt "Noun"
 msgid "Print"
 msgstr "출력"
-
-msgid "Printer"
-msgstr "프린터"
 
 msgid "Time Estimation"
 msgstr "추정 시간"
@@ -5915,11 +5949,14 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr "오른쪽"
 
-msgid "Add"
-msgstr "추가"
-
 msgid "Add plate"
 msgstr "플레이트 추가"
+
+msgid "Split to objects"
+msgstr "객체로 분할"
+
+msgid "Add"
+msgstr "추가"
 
 msgid "Auto orient all/selected objects"
 msgstr "모든/선택한 객체 자동 방향 지정"
@@ -5932,9 +5969,6 @@ msgstr "모든 객체 정렬"
 
 msgid "Arrange objects on selected plates"
 msgstr "선택한 플레이트의 객체 정렬"
-
-msgid "Split to objects"
-msgstr "객체로 분할"
 
 msgid "Assembly View"
 msgstr "조립 보기"
@@ -5991,6 +6025,9 @@ msgstr "외곽선"
 # AI Translated
 msgid "Wireframe"
 msgstr "와이어프레임"
+
+msgid "X-Ray"
+msgstr ""
 
 # AI Translated
 msgid "Realistic View"
@@ -6197,6 +6234,9 @@ msgstr "일부 사전 설정을 수정하는 동안 응용 프로그램을 닫�
 msgid "Logging"
 msgstr "로깅"
 
+msgid "Design"
+msgstr ""
+
 msgid "Prepare"
 msgstr "준비 하기"
 
@@ -6344,11 +6384,13 @@ msgstr "프로젝트 다른 이름으로 저장"
 msgid "Save current project as"
 msgstr "현재 프로젝트 다른 이름으로 저장"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "3MF 게시"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "선택한 설정이 포함된 3MF 파일을 내보냅니다"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "3MF/STL/STEP/SVG/OBJ/AMF 가져오기"
@@ -6531,6 +6573,9 @@ msgstr "편집"
 
 msgid "View"
 msgstr "시점"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 # AI Translated
 msgid "Preset Bundle"
@@ -7462,6 +7507,234 @@ msgstr "이 대화 상자를 다시 표시하지 마세요."
 msgid "Please refer to Wiki before use->"
 msgstr "사용하기 전에 Wiki를 참조하십시오->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "STL 내보내기"
+
+msgid "Export 3MF"
+msgstr "3MF 내보내기"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "최대 압출 속도 교정"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+# AI Translated
+msgid "Flow Ratio Calibration"
+msgstr "압출량 비율 교정"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "모든 객체 삭제"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "객체로 분할"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D 마우스가 분리됨."
 
@@ -7620,6 +7893,14 @@ msgstr "상부"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "하부"
+
+# AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "이 설정은 플러그인 기능 유형을 지정하지 않습니다."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "이 설정은 인식할 수 없는 플러그인 기능 유형을 지정합니다: "
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8109,10 +8390,6 @@ msgstr "사이드바 확장"
 msgid "Collapse sidebar"
 msgstr "사이드바 접기"
 
-# AI Translated
-msgid "Tab"
-msgstr "탭"
-
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "파일 로드 중: %s"
@@ -8195,11 +8472,13 @@ msgstr "이러한 사전 설정 내의 Gcode가 기계 손상을 방지할 수 �
 msgid "Customized Preset"
 msgstr "사용자 정의 프리셋"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "일부 게시된 설정을 적용할 수 없습니다:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "일부 필라멘트 슬롯이 변경되었습니다:"
 
 # AI Translated
 msgid "Component name(s) inside step file not in UTF-8 format!"
@@ -8325,19 +8604,11 @@ msgid "Delete Object"
 msgstr "객체 삭제"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "모든 객체 삭제"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "프로젝트 초기화"
 
 msgid "The selected object couldn't be split."
 msgstr "선택한 객체를 분할할 수 없습니다."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "객체로 분할"
 
 # AI Translated
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
@@ -8628,13 +8899,17 @@ msgstr "슬라이스 파일을 다음으로 저장:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "%s 파일이 프린터의 저장 공간으로 전송되었으며 프린터에서 볼 수 있습니다."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "3MF 파일을 다음 이름으로 게시:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"게시할 3MF 파일을 내보내지 못했습니다.\n"
+"폴더가 온라인에 있는지, 또는 다른 프로그램이 해당 파일을 열어 두었는지 확인하세요."
 
 msgid "Publish"
 msgstr "게시"
@@ -8854,7 +9129,6 @@ msgstr "계속하시겠습니까?"
 msgid "Language selection"
 msgstr "언어 선택"
 
-
 msgid "Asia-Pacific"
 msgstr "아시아 태평양"
 
@@ -8967,6 +9241,9 @@ msgstr "현재 인스턴스 경로: "
 
 msgid "General"
 msgstr "일반"
+
+msgid "Language"
+msgstr "언어"
 
 msgid "Metric"
 msgstr "미터법"
@@ -9193,6 +9470,33 @@ msgstr "다중 장치 관리"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "활성화하면 여러 장치에 동시에 작업을 보내고 여러 장치를 관리할 수 있습니다."
 
+msgid "Open the Speed Dial from the keyboard"
+msgstr ""
+
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
+
+msgid "CAD feature (experimental)"
+msgstr ""
+
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr ""
+
+msgid "Auto-close sketch loops"
+msgstr ""
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+msgstr ""
+
 msgid "Pop up to select filament grouping mode"
 msgstr "필라멘트 그룹화 모드를 선택하기 위한 팝업"
 
@@ -9283,6 +9587,12 @@ msgstr "역방향 마우스 줌"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "활성화되면 마우스 휠을 사용하여 확대/축소 방향을 반대로 바꿉니다."
 
+msgid "Draw mate connectors as a face"
+msgstr ""
+
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+msgstr ""
+
 # AI Translated
 msgid "Pan"
 msgstr "화면 이동"
@@ -9310,6 +9620,15 @@ msgstr "마우스 오른쪽 버튼 드래그"
 # AI Translated
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "마우스 오른쪽 버튼을 드래그할 때 수행할 동작을 설정합니다."
+
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
 
 # AI Translated
 msgid "Clear my choice on..."
@@ -9439,13 +9758,40 @@ msgstr ""
 "뷰포트의 프레임 속도를 제한하여 GPU 부하와 전력 사용량을 줄입니다.\n"
 "0으로 설정하면 프레임 속도가 무제한이 됩니다."
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 # AI Translated
 msgid "Show FPS overlay"
 msgstr "FPS 오버레이 표시"
 
-# AI Translated
-msgid "Displays current viewport FPS in the top-right corner."
-msgstr "현재 뷰포트의 FPS를 오른쪽 위 모서리에 표시합니다."
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
+msgstr ""
 
 # AI Translated
 msgid "G-code Preview"
@@ -9462,9 +9808,6 @@ msgstr "슬라이스된 미리보기에서 레이어 슬라이더를 움직일 �
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "어둡게 표시된 레이어의 밝기"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9896,63 +10239,75 @@ msgstr "데이터 업로드 중"
 msgid "Jump to webpage"
 msgstr "웹 페이지로 이동"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "재료"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "혼합 필라멘트"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "일부 혼합 필라멘트는 게시되지 않을 필라멘트에 의존합니다:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "필라멘트 %d (혼합)"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1%에는 %2%이(가) 필요하지만 활성화되어 있지 않습니다."
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1%에는 %2%이(가) 필요하지만 해당 재료는 게시되지 않습니다."
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "혼합 필라멘트를 게시하려면 사용하는 모든 필라멘트를 활성화하고 전체 게시를 선택하거나 유형 요구 사항을 충족하세요."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "그래도 게시"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "3MF 게시..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
+msgstr "3MF 파일에 게시할 설정을 선택하세요"
+
+msgid "Video Guide"
 msgstr ""
 
-msgid "Publish 3MF Wiki"
-msgstr ""
-
-msgid "Publish 3MF Video Guide"
-msgstr ""
-
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "혼합 필라멘트 - 위에서 \"활성화\"를 선택하면 전체가 게시됩니다"
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "이 혼합 필라멘트를 게시하고 구성 필라멘트를 활성화 + 전체 게시합니다"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "이 필라멘트 슬롯을 3MF 파일에 게시합니다"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "전체 게시"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "이 슬롯의 필라멘트 전체를 3MF 파일에 포함합니다"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "선택되지 않은 항목 필터링"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9971,6 +10326,10 @@ msgstr "상위 사전 설정에서 상속한 모든 값을 이 사전 설정으�
 # AI Translated
 msgid "Detach from parent"
 msgstr "상위 항목에서 분리"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "상위 항목 없이 저장"
 
 # AI Translated
 msgid "Unique preset"
@@ -10030,6 +10389,134 @@ msgstr "%1%에 대해, %2%를 새 사전 설정으로 추가합니다"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "\"%1%\"로 단순 전환"
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "기타"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+# AI Translated
+msgid "Show details"
+msgstr "세부 정보 표시"
+
+# AI Translated
+msgid "Hide details"
+msgstr "세부 정보 숨기기"
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "작업이 취소됨"
@@ -10687,8 +11174,16 @@ msgid "Enabling both precise Z height and the prime tower may cause slicing erro
 msgstr "정밀 Z 높이와 프라임 타워를 함께 활성화하면 슬라이싱 오류가 발생할 수 있습니다. 그래도 정밀 Z 높이를 활성화하시겠습니까?"
 
 # AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "스무드 타임랩스는 모든 레이어에 프라임 타워가 필요하므로 \"희소 레이어 없음\"과 함께 사용할 수 없습니다. \"희소 레이어 없음\"이 해제되었습니다."
+
+# AI Translated
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "유연 모드 타임랩스를 위해서는 프라임 타워가 필요합니다. 프라임 타워가 없는 모델에는 결함이 있을 수 있습니다. 프라임 타워를 활성화하시겠습니까?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "\"희소 레이어 없음\"은 모든 레이어에 프라임 타워가 필요한 스무드 타임랩스와 함께 사용할 수 없습니다. 타임랩스가 기존 모드로 전환되었습니다."
 
 msgid "Still print by object?"
 msgstr "아직도 객체별로 출력하시나요?"
@@ -11065,10 +11560,6 @@ msgstr "호환 프로세스 사전설정"
 
 msgid "Printable space"
 msgstr "출력 가능 공간"
-
-# AI Translated
-msgid "Printer Agent"
-msgstr "프린터 에이전트"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
@@ -11494,14 +11985,6 @@ msgstr "익스트루더 수"
 msgid "Capabilities"
 msgstr "성능"
 
-# AI Translated
-msgid "Left: "
-msgstr "왼쪽: "
-
-# AI Translated
-msgid "Right: "
-msgstr "오른쪽: "
-
 msgid "Show all presets (including incompatible)"
 msgstr "모든 사전 설정 표시(호환되지 않는 설정 포함)"
 
@@ -11900,57 +12383,39 @@ msgstr "이전 구성 가이드에서 구성 패키지가 변경되었습니다"
 msgid "Configuration package changed"
 msgstr "구성 패키지가 변경됨"
 
-msgid "Toolbar"
-msgstr "도구 모음"
-
-msgid "Objects list"
-msgstr "객체 목록"
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "STL/STEP/3MF/OBJ/AMF 파일에서 형상 데이터 가져오기"
-
-msgid "Paste from clipboard"
-msgstr "클립보드에서 붙여넣기"
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "3D 연결 장치 설정 표시/숨기기 대화상자"
-
-msgid "Switch table page"
-msgstr "테이블 페이지 전환"
-
-msgid "Show keyboard shortcuts list"
-msgstr "키보드 단축키 목록 보기"
-
-msgid "Global shortcuts"
-msgstr "전역 단축키"
-
 msgid "Pan View"
 msgstr "보기 이동"
 
 msgid "Rotate View"
 msgstr "보기 회전"
 
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Key"
+msgstr ""
+
+msgid "Left mouse"
+msgstr ""
+
+msgid "Available anywhere in the window, even while typing in a text field."
+msgstr ""
+
+msgid "Run a speed dial favorite while the dial is open"
+msgstr ""
+
 # AI Translated
-msgid "Middle mouse button"
-msgstr "마우스 가운데 버튼"
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
 
-msgid "Zoom View"
-msgstr "줌 뷰"
+msgid "Switch to the next main tab"
+msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-msgstr "선택한 객체 또는 모든 객체의 방향을 자동으로 조정합니다. 선택한 객체가 있는 경우 선택한 객체만 조정되고, 그렇지 않은 경우 프로젝트의 모든 객체가 조정됩니다."
-
-msgid "Auto orients all objects on the active plate."
-msgstr "현재 플레이트에 있는 모든 객체의 방향을 자동으로 지정합니다."
-
-msgid "Collapse/Expand the sidebar"
-msgstr "사이드바 접기/펼치기"
-
-msgid "Any arrow"
-msgstr "모든 화살표"
-
-msgid "Movement in camera space"
-msgstr "카메라 공간에서 이동"
+msgid "Available while the 3D view on the Prepare tab has focus."
+msgstr ""
 
 msgid "Select a part"
 msgstr "부품 선택"
@@ -11961,138 +12426,30 @@ msgstr "여러 객체 선택"
 msgid "Select objects by rectangle"
 msgstr "사각형으로 객체 선택"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr "↑"
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr "선택 항목을 +Y 방향으로 10mm 이동"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr "↓"
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr "선택 항목을 -Y 방향으로 10mm 이동"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr "←"
-
-msgid "Move selection 10mm in negative X direction"
-msgstr "선택 항목을 -X 방향으로 10mm 이동"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr "→"
-
-msgid "Move selection 10mm in positive X direction"
-msgstr "선택 항목을 +X 방향으로 10mm 이동"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "키보드 1-9: 객체/부품에 필라멘트 할당"
 
 # AI Translated
 msgid "Movement step set to 1mm"
 msgstr "이동 단위를 1mm로 설정"
 
-msgid "Keyboard 1-9: set filament for object/part"
-msgstr "키보드 1-9: 객체/부품에 필라멘트 할당"
+msgid "Movement in camera space"
+msgstr "카메라 공간에서 이동"
 
-msgid "Camera view - Default"
-msgstr "카메라 시점 - 기본"
+msgid "Middle mouse"
+msgstr ""
 
-msgid "Camera view - Top"
-msgstr "카메라 시점 - 위"
+msgid "Right mouse"
+msgstr ""
 
-msgid "Camera view - Bottom"
-msgstr "카메라 시점 - 아래"
+msgid "Zoom View"
+msgstr "줌 뷰"
 
-msgid "Camera view - Front"
-msgstr "카메라 시점 - 앞"
+msgid "Painting"
+msgstr ""
 
-msgid "Camera view - Behind"
-msgstr "카메라 시점 - 뒤"
-
-msgid "Camera Angle - Left side"
-msgstr "카메라 각도 - 좌측"
-
-msgid "Camera Angle - Right side"
-msgstr "카메라 각도 - 우측"
-
-msgid "Select all objects"
-msgstr "모든 객체 선택"
-
-msgid "Gizmo move"
-msgstr "변형도구 이동"
-
-msgid "Gizmo rotate"
-msgstr "변형도구 회전"
-
-msgid "Gizmo scale"
-msgstr "변형도구 배율"
-
-msgid "Gizmo place face on bed"
-msgstr "변형도구 바닥면 선택"
-
-msgid "Gizmo cut"
-msgstr "변형도구 잘라내기"
-
-msgid "Gizmo mesh boolean"
-msgstr "변형도구 합집합/차집합/교집합"
-
-# AI Translated
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "변형도구 FDM 퍼지 스킨 칠하기"
-
-msgid "Gizmo SLA support points"
-msgstr "변형도구 서포트 칠하기"
-
-msgid "Gizmo FDM paint-on seam"
-msgstr "변형도구 재봉선 칠하기"
-
-msgid "Gizmo text emboss/engrave"
-msgstr "변형도구 - 텍스트 엠보싱/인그레이빙"
-
-msgid "Gizmo measure"
-msgstr "변형도구 측정"
-
-msgid "Gizmo assemble"
-msgstr "변형도구 병합"
-
-msgid "Gizmo brim ears"
-msgstr "변형도구 브림 귀"
-
-msgid "Zoom in"
-msgstr "확대"
-
-msgid "Zoom out"
-msgstr "축소"
-
-# AI Translated
-msgid "Toggle printable for object/part"
-msgstr "객체/부품의 출력 가능 여부 전환"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr "Tab"
-
-msgid "Switch between Prepare/Preview"
-msgstr "준비 하기/미리 보기 전환"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "작업 스피드 다이얼 열기"
-
-msgid "Plater"
-msgstr "출력판"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "이동: 눌러서 1mm씩 이동"
@@ -12103,14 +12460,19 @@ msgstr "서포트/색상 칠하기: 펜 반경 조정"
 msgid "Support/Color Painting: adjust section position"
 msgstr "서포트/색상 칠하기: 단면 위치 조정"
 
-msgid "Gizmo"
-msgstr "변형도구"
+msgid "Objects list"
+msgstr "객체 목록"
+
+msgid "Available while the object list has focus."
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "객체 및 부품에 대한 압출기 번호 설정"
 
-msgid "Delete objects, parts, modifiers"
-msgstr "객체, 부품, 수정자 삭제"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
 
 msgid "Select the object/part and press space to change the name"
 msgstr "객체/부품을 선택하고 스페이스바를 눌러 이름을 변경합니다"
@@ -12121,45 +12483,48 @@ msgstr "마우스 클릭"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "객체/부품을 선택하고 마우스를 클릭하여 이름을 변경합니다"
 
-msgid "Objects List"
-msgstr "객체 목록"
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr "수직 슬라이더 - 활성 레이어 위로 이동"
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr "수직 슬라이더 - 활성 레이어 아래로 이동"
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr "수평 슬라이더 - 활성 라인 왼쪽으로 이동"
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr "수평 슬라이더 - 활성 라인 오른쪽으로 이동"
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr "수직 슬라이더의 한 레이어 모드 켜기/끄기"
-
-msgid "On/Off G-code window"
-msgstr "Gcode 창 켜기/끄기"
+msgid "Available while the 3D view on the Preview tab has focus."
+msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr "슬라이더를 5배 빠르게 이동"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Home"
-msgstr "Home"
+msgid "Scroll slider 5x faster"
+msgstr ""
 
-msgid "Horizontal slider - Move to start position"
-msgstr "수평 슬라이더 - 시작 위치로 이동"
+msgid "Not customizable"
+msgstr ""
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "End"
-msgstr "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
+msgstr ""
 
-msgid "Horizontal slider - Move to last position"
-msgstr "수평 슬라이더 - 마지막 위치로 이동"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
+msgstr ""
 
 msgid "Release Note"
 msgstr "릴리스 노트"
@@ -12364,14 +12729,21 @@ msgstr "수리 취소됨"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "파일 %1%를 %2%으로 복사 실패: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "새 제조사 프로파일 다운로드 중: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "구성 패키지: %1%이(가) %2%(으)로 업데이트되었습니다"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "제조사 프로파일을 다운로드하지 못했습니다: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "구성 업데이트 전에 저장되지 않은 변경 사항을 확인해야 합니다."
-
-msgid "Configuration package: "
-msgstr "구성 패키지: "
-
-msgid " updated to "
-msgstr " 로 업데이트되었습니다 "
 
 msgid "Open G-code file:"
 msgstr "Gcode 파일 열기:"
@@ -12437,11 +12809,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "인풋 셰이핑은 Klipper, RepRapFirmware, Marlin 2에서만 지원됩니다."
 
-msgid "Grouping error: "
-msgstr "그룹화 오류입니다:"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "그룹화 오류: %1%은(는) 왼쪽 노즐에 배치할 수 없습니다"
 
-msgid " can not be placed in the "
-msgstr " 에 배치할 수 없습니다"
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "그룹화 오류: %1%은(는) 오른쪽 노즐에 배치할 수 없습니다"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12555,6 +12931,10 @@ msgstr "%1% 이(가) 다른 객체와 너무 가까워 출력 시 충돌이 발�
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% 이(가) 너무 높아서 충돌이 출력 시 발생할 수 있습니다."
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "모델과 프라임 타워의 상대 위치가 \"희소 레이어 없음\" 기능의 요구 사항을 충족하지 않습니다. 상대 위치를 조정하거나 모델 높이를 낮추거나 \"희소 레이어 없음\"을 해제하세요."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " 이(가) 제외 영역에 너무 가깝습니다. 출력 시 충돌이 발생 할 수 있습니다."
@@ -12929,6 +13309,10 @@ msgstr "G-code 대신 3MF 사용"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "프린터가 출력 작업으로 3MF 파일을 허용하는 경우 이 옵션을 활성화하십시오. 활성화하면 Orca Slicer가 슬라이스된 파일을 일반 .gcode 파일 대신 .gcode.3mf로 전송합니다."
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "프린터 에이전트"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -14029,6 +14413,10 @@ msgstr "정렬된 직선"
 msgid "Concentric"
 msgstr "동심"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "나선형 인셋"
+
 msgid "Hilbert Curve"
 msgstr "힐베르트 곡선"
 
@@ -14122,13 +14510,13 @@ msgstr "상단 표면 채우기 순서"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
-"바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작하여 중앙의 좁은 곡선에서 끝납니다.\n"
-"기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
+"중심에서 시작하는 패턴(동심, 나선형 인셋, 아르키메데스 코드, 팔각 나선형)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
+"바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작해 중앙의 좁은 곡선으로 끝납니다.\n"
+"기본값은 최단 경로 순서를 사용하며, 어느 방향으로든 진행될 수 있습니다."
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -14136,13 +14524,13 @@ msgstr "하단 표면 채우기 순서"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
-"안쪽은 각 표면을 더 넓은 바깥쪽 곡선에서 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 빌드 플레이트에서 초기 레이어 접착력이 향상됩니다. 바깥쪽은 중앙에서 시작하여 남는 재료를 가장자리로 밀어냅니다.\n"
-"기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
+"중심에서 시작하는 패턴(동심, 나선형 인셋, 아르키메데스 코드, 팔각 나선형)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
+"안쪽은 각 표면을 더 넓은 바깥쪽 곡선부터 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 베드에서 초기 레이어 안착이 개선됩니다. 바깥쪽은 중앙에서 시작해 남는 재료를 가장자리로 밀어냅니다.\n"
+"기본값은 최단 경로 순서를 사용하며, 어느 방향으로든 진행될 수 있습니다."
 
 msgid "Internal solid infill pattern"
 msgstr "꽉찬 내부 채우기 패턴"
@@ -14245,6 +14633,14 @@ msgstr "시계 반대 방향"
 
 msgid "Clockwise"
 msgstr "시계방향"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "로드까지의 거리"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "노즐 끝에서 로드의 먼 쪽 가장자리까지의 수평 거리입니다. 객체별 출력에서 충돌을 피하는 데 사용됩니다."
 
 msgid "Height to rod"
 msgstr "레일까지의 높이"
@@ -16499,6 +16895,20 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "선 너비에 비례하여 오버행 백분율을 감지하고 다른 속도를 사용하여 출력합니다. 100%% 오버행의 경우 브릿지 속도가 사용됩니다."
 
 # AI Translated
+msgid "Print unsupported walls last"
+msgstr "지지되지 않는 벽을 마지막에 출력"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"완전히 공중에 떠 있는 벽 루프는 이를 받쳐 줄 것이 생긴 뒤에 출력됩니다.\n"
+"벽 순서와 관계없이 같은 섬의 다른 벽들보다 나중에, 가장 안쪽부터 압출됩니다.\n"
+"이 레이어의 브릿지만이 고정할 수 있는 루프는 해당 브릿지가 출력될 때까지 기다리고, 지지되는 벽을 따라 지나가는 루프는 이를 고정점으로 필요로 하는 채우기보다 앞선 자리를 유지합니다."
+
+# AI Translated
 msgid "Outer walls"
 msgstr "외벽"
 
@@ -16949,6 +17359,39 @@ msgstr "루프에서 노즐 청소"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "폐쇄 루프 압출에서 재봉선의 가시성을 최소화하기 위해 압출기가 루프를 떠나기 전에 안쪽으로의 작은 이동이 실행됩니다."
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "안쪽으로 노즐 청소"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"구멍 경계를 포함한 외벽에만 적용됩니다. 노즐 청소 중 뜨거운 노즐을 이미 출력된 내벽 쪽으로 이동시켜, 갓 출력된 플라스틱의 재가열과 재봉선 자국을 줄입니다.\n"
+"\n"
+"청소 자국이 더 잘 보이는 0.1 mm 미만의 레이어 높이에서 특히 유용합니다.\n"
+"\n"
+"인접한 내벽이 아직 출력되지 않았거나(벽이 하나뿐인 영역 또는 외벽/내벽 순서), 좁은 모서리나 재봉선 간격 등에서 지지되는 안쪽 경로를 찾을 수 없는 경우에는 일반 노즐 청소를 사용합니다."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "안쪽 노즐 청소 거리"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"노즐 청소 경로를 외곽 둘레에서 밀어내는 거리로, 밀리미터 또는 실제 외벽 압출 너비에 대한 백분율로 지정합니다.\n"
+"\n"
+"예를 들어 50%는 경로를 외벽 너비의 절반만큼 이동시킵니다. 실제 오프셋은 실제 외벽 너비와 인접한 벽까지의 여유 간격 모두에 의해 제한되므로, 100%를 넘는 값이나 그에 상응하는 절대 거리를 지정해도 추가 효과가 없습니다. 오프셋을 끄려면 0으로 설정하세요."
+
 msgid "Wipe before external loop"
 msgstr "외부 루프 전 닦아내기"
 
@@ -17153,9 +17596,8 @@ msgstr "예열 단계"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "여러 예열 명령(예: M104.1)을 삽입하세요. Prusa XL에만 유용합니다. 다른 프린터의 경우 1로 설정하세요."
 
-# AI Translated
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "출력 파일의 가장 앞부분, 다른 모든 내용보다 먼저 기록되는 G-code입니다. 프린터 펌웨어가 파일의 첫 줄에서 읽는 메타데이터(예: 예상 출력 시간, 필라멘트 사용량)를 추가하는 데 유용합니다. {print_time_sec}, {used_filament_length}와 같은 자리 표시자를 지원합니다."
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "시작 Gcode"
@@ -17219,8 +17661,9 @@ msgstr "출력 온도에 도달할 때까지 기다리지 않고 새 툴을 집�
 msgid "No sparse layers (beta)"
 msgstr "희소 레이어 없음(베타)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "활성화되면 툴 체인지 없이 레이어에 프라임 타워가 출력되지 않습니다. 툴 체인지가 있는 레이어에서는 압출기가 아래쪽으로 이동하여 프라임 타워를 출력합니다. 출력물과의 충돌이 없는지 확인하는 것은 사용자의 책임입니다."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "활성화하면 툴체인지가 없는 레이어에서는 프라임 타워가 출력되지 않습니다. 툴체인지가 있는 레이어에서는 압출기가 아래로 이동해 프라임 타워를 출력하므로, 타워가 모델보다 아래에 놓이고 툴헤드가 거기까지 내려가야 합니다. 이미 출력된 객체와 충돌하게 되는 배치는 거부됩니다. 모든 레이어에 타워가 필요한 스무드 타임랩스나 노즐 클럼핑 감지에서는 효과가 없습니다."
 
 msgid "Prime all printing extruders"
 msgstr "모든 활성화된 압출기 프라이밍"
@@ -17246,6 +17689,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "순환"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "순환 순서"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"순환 툴체인지 순서에서 사용하는 사용자 지정 필라멘트 순서로, 필라멘트 번호를 쉼표로 구분해 지정합니다(예: \"3,2,1,4\").\n"
+"각 레이어는 이 순서에 따라 필라멘트를 출력하며, 목록에 없는 필라멘트는 오름차순으로 마지막에 출력됩니다.\n"
+"비워 두면 필라멘트를 오름차순으로 순환합니다."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "초기 레이어에도 순환 순서 적용"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"순환 툴체인지 순서를 초기 레이어에도 적용합니다.\n"
+"기본적으로 꺼져 있는데, 초기 레이어는 대신 베드 안착이 가장 잘 되도록 정렬되기 때문입니다. 초기 레이어의 작고 약한 형상을 출력하는 필라멘트를 마지막에 출력하면, 이어지는 툴체인지와 이동 동작이 약하게 고정된 부분을 떨어뜨릴 가능성이 줄어듭니다. 이 초기 레이어 순서는 초기 레이어용 사용자 지정 필라멘트 순서가 설정되어 있으면 그것도 따릅니다. 순환 순서의 이점(툴체인지가 늘어나 각 레이어의 냉각 시간이 길어지는 것)은 안착을 위해 느리고 뜨겁게 출력되는 초기 레이어에는 해당하지 않습니다.\n"
+"안착 최적화를 포기하더라도 초기 레이어를 포함한 모든 레이어에서 정확히 같은 툴 순서가 필요한 경우에만 활성화하세요."
+
 msgid "Slice gap closing radius"
 msgstr "슬라이스 간격 폐쇄 반경"
 
@@ -17254,9 +17725,6 @@ msgstr "간격 폐쇄 반경의 2배보다 작은 균열은 삼각형 메시 슬
 
 msgid "Slicing Mode"
 msgstr "슬라이싱 모드"
-
-msgid "Other"
-msgstr "기타"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "3DLabPrint 비행기 모델에는 \"짝수-홀수\"를 사용하세요. \"구멍 닫기\"를 사용하여 모델의 모든 구멍을 닫습니다."
@@ -18207,9 +18675,6 @@ msgstr "너무 넓은 선 너비 "
 msgid " not in range "
 msgstr " 범위를 벗어남 "
 
-msgid "Export 3MF"
-msgstr "3MF 내보내기"
-
 msgid "This exports the project as a 3MF file."
 msgstr "프로젝트를 3MF로 내보내기."
 
@@ -18224,9 +18689,6 @@ msgstr "슬라이싱 데이터 로드"
 
 msgid "Load cached slicing data from directory."
 msgstr "디렉토리에 캐시된 슬라이싱 데이터 로드"
-
-msgid "Export STL"
-msgstr "STL 내보내기"
 
 msgid "Export the objects as single STL."
 msgstr "객체를 단일 STL로 내보냅니다."
@@ -18279,6 +18741,14 @@ msgstr "확인 안 함"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Gcode 경로 충돌 검사와 같은 유효성 검사를 실행하지 마십시오."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "엄격 모드"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "서포트가 꺼져 있는데 서포트가 필요한 모델처럼, 평소에는 로그에만 남는 치명적이지 않은 경고가 슬라이싱 중에 발생하면 0이 아닌 코드로 종료합니다. 미묘하게 잘못된 슬라이싱 결과를 절대 내보내면 안 되는 CI나 스크립트 파이프라인에서 사용하세요. 그러한 경고는 Linux에서만 기록되는 result.json의 `warnings` 배열에도 고정된 분류와 함께 나열됩니다. 서포트 검사를 건너뛰는 --no-check와 함께 사용할 수 없습니다."
+
 msgid "Normative check"
 msgstr "표준 검사"
 
@@ -18291,11 +18761,28 @@ msgstr "모델 정보 출력"
 msgid "This outputs the model’s information."
 msgstr "모델 정보를 출력합니다."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "메시 검사 (JSON을 stdout으로)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "불러온 각 객체의 JSON 요약을 stdout으로 출력한 뒤 종료합니다: 경계 상자와 올려놓을 수 있는 볼록 껍질 면, 그리고 각 면의 법선, 면적, 중심이 포함됩니다. --ground-* 옵션이 선택하는 대상이 바로 이 면들입니다. --info의 기계 판독용 대안입니다."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "페인팅 검사 (JSON을 stdout으로)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "불러온 모델에 이미 저장된 모든 페인팅 레이어(서포트, 재봉선, MMU 색상, 퍼지 스킨)에 대해 상태별 면 개수, 표면적, 메시 기준 경계 상자를 구조화된 JSON으로 출력한 뒤 종료합니다. GUI에서 페인팅 도구를 여는 작업의 기계 판독용 대안입니다."
+
 msgid "Export Settings"
 msgstr "설정 내보내기"
 
-msgid "This exports settings to a file."
-msgstr "설정을 파일로 내보내기."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "설정을 파일로 내보냅니다. -를 사용하면 stdout으로 출력합니다."
 
 msgid "Send progress to pipe"
 msgstr "진행 상황을 파이프로 보내기"
@@ -18350,6 +18837,30 @@ msgstr "Y를 중심으로 회전"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Y축을 중심으로 한 회전 각도입니다."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "가장 큰 면으로 안착"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "각 객체를 볼록 껍질의 가장 큰 면으로 눕히고 베드로 떨어뜨립니다. 크기가 같은 면이 여럿이면 이미 아래를 향한 면이 유지됩니다. 올려놓을 만큼 큰 면이 없는 객체는 그대로 둡니다. 변환은 명령줄 순서대로 실행되므로 이 옵션보다 앞에 지정한 회전은 유지됩니다. --orient 1은 모든 변환 뒤에 실행되어 방향을 대체합니다."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "법선 기준 면으로 안착"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "각 객체를 바깥쪽 법선이 방향 NX,NY,NZ에 가장 가까운 볼록 껍질 면으로 눕히고 베드로 떨어뜨립니다. 방향은 객체 좌표계 기준이며, 이 좌표계는 이 옵션보다 앞에 지정한 회전을 포함하고, 입력 파일이 객체를 회전시키지 않는 한 플레이트 축과 일치합니다. 예를 들어 1,0,0은 객체를 +X 쪽으로 세웁니다. --orient 1은 모든 변환 뒤에 실행되어 방향을 대체합니다."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "지정 지점의 면으로 안착"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "각 객체를 점 X,Y,Z를 포함하는 볼록 껍질 면으로 눕히고 베드로 떨어뜨립니다. 점은 객체 좌표계 기준이며, 이 좌표계는 이 옵션보다 앞에 지정한 회전을 포함합니다. --inspect-mesh는 이 좌표계로 면 중심을 알려줍니다. 그러한 면이 없는 객체는 그대로 두며, 어떤 객체에도 해당 면이 없으면 실행이 실패합니다. --orient 1은 모든 변환 뒤에 실행되어 방향을 대체합니다."
 
 msgid "Scale the model by a float factor."
 msgstr "부동 소수점 계수로 모델 크기 조정"
@@ -18663,13 +19174,36 @@ msgstr "사용된 필라멘트"
 msgid "Total length of filament used in the print."
 msgstr "출력에 사용된 필라멘트의 총 길이입니다."
 
-# AI Translated
-msgid "Print time (seconds)"
-msgstr "출력 시간(초)"
+msgid "Print time (total seconds)"
+msgstr ""
 
 # AI Translated
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "초 단위의 총 예상 출력 시간입니다. 후처리 중에 실제 값으로 대체됩니다."
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
 
 # AI Translated
 msgid "Filament length (meters)"
@@ -18902,9 +19436,6 @@ msgstr "파일에 잘못된 꼭지점 인덱스가 포함되어 있습니다."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "이 OBJ 파일은 비어 있어서 읽을 수 없습니다."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "최대 압출 속도 교정"
 
 msgid "Manage Result"
 msgstr "결과 관리"
@@ -19789,10 +20320,6 @@ msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "참고: 값이 크면 레이어 밀림이 발생할 수 있습니다 (>%s)"
 
 # AI Translated
-msgid "Flow Ratio Calibration"
-msgstr "압출량 비율 교정"
-
-# AI Translated
 msgid "Calibration Test Type"
 msgstr "교정 테스트 유형"
 
@@ -20584,6 +21111,9 @@ msgstr "유효한 세션이 감지되지 않았습니다. 3DPrinterOS에 로그�
 
 msgid "Success!"
 msgstr "성공!"
+
+msgid "Generate API Key"
+msgstr ""
 
 msgid "Are you sure to log out?"
 msgstr "정말 로그아웃하시겠습니까?"
@@ -21606,14 +22136,17 @@ msgstr "이 작업은 취소할 수 없습니다. 계속하시겠습니까?"
 msgid "Skipping objects."
 msgstr "물체 건너뛰기"
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "재료 비율"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "모델 높이"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "비율"
 
 msgid "Select Filament"
 msgstr "필라멘트 선택"
@@ -21650,14 +22183,6 @@ msgstr "클라우드 기능, 프린터 검색, 원격 출력에는 Bambu 네트�
 #, c-format, boost-format
 msgid "Error: %s"
 msgstr "오류: %s"
-
-# AI Translated
-msgid "Show details"
-msgstr "세부 정보 표시"
-
-# AI Translated
-msgid "Hide details"
-msgstr "세부 정보 숨기기"
 
 # AI Translated
 msgid "Version to install:"
@@ -21916,12 +22441,14 @@ msgid "Drying-Dehumidifying"
 msgstr "건조-제습"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " 최대 건조 온도는 "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "%s의 최대 건조 온도는 %d°C입니다."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " 최소 건조 온도는 "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "%s의 최소 건조 온도는 %d°C입니다."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -22065,6 +22592,2496 @@ msgstr "필라멘트가 현재 기기 설정과 호환되지 않을 수 있습�
 
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "미지의 필라멘트 모델. 무작위 필라멘트 사전 설정이 사용됩니다."
+
+msgid "Construction"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  ·  on %s"
+msgstr ""
+
+msgid "Line — click start, then end"
+msgstr ""
+
+msgid "Rectangle — click two opposite corners"
+msgstr ""
+
+msgid "Circle — click center, then radius"
+msgstr ""
+
+msgid "Arc — click start, end, then a point"
+msgstr ""
+
+msgid "Slot — two centerline ends, then end radius"
+msgstr ""
+
+msgid "Ellipse — center, major end, minor point"
+msgstr ""
+
+msgid "Spline — click control points"
+msgstr ""
+
+msgid "Point — click to place"
+msgstr ""
+
+msgid "Dimension — click 2 points or an entity"
+msgstr ""
+
+msgid "Trim — click a segment to trim it"
+msgstr ""
+
+msgid "Extend — click a line/arc to extend it"
+msgstr ""
+
+msgid "Offset — pick an entity, drag the distance"
+msgstr ""
+
+msgid "Mirror — pick axis, then entities"
+msgstr ""
+
+msgid "Fillet — pick two lines, set the radius"
+msgstr ""
+
+msgid "Chamfer — pick two lines, set the distance"
+msgstr ""
+
+msgid "Polygon — click center, then a vertex"
+msgstr ""
+
+msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
+msgstr ""
+
+msgid "Normal to the sketch plane"
+msgstr ""
+
+msgid "Converted the selection between construction and real geometry"
+msgstr ""
+
+msgid "Origin planes shown"
+msgstr ""
+
+msgid "Origin planes hidden"
+msgstr ""
+
+msgid "World axes shown"
+msgstr ""
+
+msgid "World axes hidden"
+msgstr ""
+
+msgid "Isometric view, fitted"
+msgstr ""
+
+msgid "Bed shown"
+msgstr ""
+
+msgid "Bed hidden"
+msgstr ""
+
+msgid "FEATURES"
+msgstr ""
+
+msgid "Sketch"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketching on %s — pick a tool"
+msgstr ""
+
+msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Drawing on %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
+msgid "Click a face or a reference plane, then a sketch tool."
+msgstr ""
+
+msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
+msgstr ""
+
+msgid "Extrude a sketch profile, or push/pull a picked face"
+msgstr ""
+
+msgid "Create a sketch, or pick a solid face, first"
+msgstr ""
+
+msgid "Revolve"
+msgstr ""
+
+msgid "Revolve a profile about an axis"
+msgstr ""
+
+msgid "Create a sketch profile to revolve first"
+msgstr ""
+
+msgid "Sweep"
+msgstr ""
+
+msgid "Sweep a profile along a path"
+msgstr ""
+
+msgid "Create a profile sketch to sweep first"
+msgstr ""
+
+msgid "Loft"
+msgstr ""
+
+msgid "Loft (skin) between two or more profiles"
+msgstr ""
+
+msgid "Create at least two profile sketches to loft"
+msgstr ""
+
+msgid "Thicken"
+msgstr ""
+
+msgid "Offset a solid face into a thin plate (new body)"
+msgstr ""
+
+msgid "Thicken needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format
+msgid "Body %zu"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch line, fused to a body"
+msgstr ""
+
+msgid "Rib needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Create a sketch with an open line first"
+msgstr ""
+
+msgid "Create a solid body to pattern first"
+msgstr ""
+
+msgid "Pattern — needs a solid body to replicate"
+msgstr ""
+
+msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
+msgstr ""
+
+msgid "Surface Extrude"
+msgstr ""
+
+msgid "Extrude a sketch into a sheet body (no end caps)"
+msgstr ""
+
+msgid "Create a sketch first"
+msgstr ""
+
+msgid "Surface Revolve"
+msgstr ""
+
+msgid "Revolve a sketch profile into a sheet body"
+msgstr ""
+
+msgid "Surface Loft"
+msgstr ""
+
+msgid "Loft (skin) between 2+ profiles, open (no end caps)"
+msgstr ""
+
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Fill a sketch boundary with a smooth face"
+msgstr ""
+
+msgid "Create a sketch profile to fill first"
+msgstr ""
+
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Offset a sheet body's shell by a signed distance"
+msgstr ""
+
+msgid "No sheet body to offset — create a surface feature first"
+msgstr ""
+
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Thicken a sheet body into a solid"
+msgstr ""
+
+msgid "No sheet body to thicken — create a surface feature first"
+msgstr ""
+
+msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
+msgstr ""
+
+msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
+msgstr ""
+
+msgid "Coord Sys"
+msgstr ""
+
+msgid "Datum coordinate system (world point, or face + direction edge)"
+msgstr ""
+
+msgid "Helix"
+msgstr ""
+
+msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
+msgstr ""
+
+msgid "Project body edges onto a plane as sketch entities"
+msgstr ""
+
+msgid "Project needs a body — add or import one first"
+msgstr ""
+
+msgid "(all edges)"
+msgstr ""
+
+msgid "Placement (transform / mirror / mate)"
+msgstr ""
+
+msgid "Transform"
+msgstr ""
+
+msgid "Move and/or rotate an existing body"
+msgstr ""
+
+msgid "Transform needs a body — add or import one first"
+msgstr ""
+
+msgid "Reflect a body about a plane"
+msgstr ""
+
+msgid "Mirror needs a body — add or import one first"
+msgstr ""
+
+msgid "Mate"
+msgstr ""
+
+msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
+
+msgid "Boolean (combine bodies)"
+msgstr ""
+
+msgid "Boolean — needs two solid bodies to combine"
+msgstr ""
+
+msgid "Cut (split a body with a plane)"
+msgstr ""
+
+msgid "Create a solid body to cut first"
+msgstr ""
+
+msgid "Cut — needs a solid body to slice"
+msgstr ""
+
+msgid "Color — set the selected body's display colour"
+msgstr ""
+
+msgid "Select a feature, or a body, first — then rename it"
+msgstr ""
+
+msgid "Fillet / chamfer / draft / shell / delete face"
+msgstr ""
+
+msgid "Fillet / Chamfer"
+msgstr ""
+
+msgid "Round or bevel a picked edge"
+msgstr ""
+
+msgid "Draft (taper a face)"
+msgstr ""
+
+msgid "Tilt a picked face by a draft angle"
+msgstr ""
+
+msgid "Hollow the body to a wall thickness, opening a picked face"
+msgstr ""
+
+msgid "Delete Face"
+msgstr ""
+
+msgid "Remove faces from a body and heal the solid"
+msgstr ""
+
+msgid "Delete Face needs a body — add or import one first"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Hole / thread"
+msgstr ""
+
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr ""
+
+msgid "Thread"
+msgstr ""
+
+msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
+msgstr ""
+
+msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
+msgstr ""
+
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
+msgid "Constrain selected sketch"
+msgstr ""
+
+msgid "SKETCH"
+msgstr ""
+
+msgid "Click to select; Shift to add; double-click for a whole loop"
+msgstr ""
+
+msgid "Dimension"
+msgstr ""
+
+msgid "Click 2 points or a line / circle / arc to place a dimension"
+msgstr ""
+
+msgid "Line / polyline"
+msgstr ""
+
+msgid "Click start, then end — then set the exact length"
+msgstr ""
+
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click first / right-click to close the loop"
+msgstr ""
+
+msgid "Corner rectangle"
+msgstr ""
+
+msgid "Click two opposite corners"
+msgstr ""
+
+msgid "Center rectangle"
+msgstr ""
+
+msgid "Click center, then a corner"
+msgstr ""
+
+msgid "Oblique rectangle"
+msgstr ""
+
+msgid "Click two corners of one edge, then a point for the width"
+msgstr ""
+
+msgid "Rounded rectangle"
+msgstr ""
+
+msgid "Click two opposite corners, then a point for the corner radius"
+msgstr ""
+
+msgid "Center circle"
+msgstr ""
+
+msgid "Click center, then radius"
+msgstr ""
+
+msgid "2-point circle"
+msgstr ""
+
+msgid "Click two ends of the diameter"
+msgstr ""
+
+msgid "3-point circle"
+msgstr ""
+
+msgid "Click three points on the circle"
+msgstr ""
+
+msgid "Arc"
+msgstr ""
+
+msgid "3-point arc"
+msgstr ""
+
+msgid "Click start, end, then a point on the arc"
+msgstr ""
+
+msgid "Tangent arc"
+msgstr ""
+
+msgid "Click start (on the last entity) then end"
+msgstr ""
+
+msgid "Center-point arc"
+msgstr ""
+
+msgid "Click center, then start, then a point for the end angle"
+msgstr ""
+
+msgid "Slot"
+msgstr ""
+
+msgid "Click two centerline ends, then a point for the end radius"
+msgstr ""
+
+msgid "Arc slot"
+msgstr ""
+
+msgid "Click center, start, end, then a point for the width"
+msgstr ""
+
+msgid "Ellipse"
+msgstr ""
+
+msgid "Click center, a major-axis end, then a point for the minor axis"
+msgstr ""
+
+msgid "Elliptical arc"
+msgstr ""
+
+msgid "Click center, major-axis end, minor point, then arc start and end"
+msgstr ""
+
+msgid "Spline"
+msgstr ""
+
+msgid "Click control points; double-click or right-click to finish"
+msgstr ""
+
+msgid "Click to place a point"
+msgstr ""
+
+msgid "Select — click to select; Shift to add"
+msgstr ""
+
+msgid "Text — emboss text as a profile"
+msgstr ""
+
+msgid "SVG — import an outline as a profile"
+msgstr ""
+
+msgid "Fillet / chamfer"
+msgstr ""
+
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the radius to set it"
+msgstr ""
+
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the distance to set it"
+msgstr ""
+
+msgid "Offset"
+msgstr ""
+
+msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
+msgstr ""
+
+msgid "Trim"
+msgstr ""
+
+msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+msgstr ""
+
+msgid "Extend"
+msgstr ""
+
+msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+msgstr ""
+
+msgid "Constrain — add geometric/dimensional relations"
+msgstr ""
+
+msgid "Move / rotate / scale"
+msgstr ""
+
+msgid "Move (translate)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Rotate (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+msgstr ""
+
+msgid "Scale (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
+msgstr ""
+
+msgid "Linear / polar array"
+msgstr ""
+
+msgid "Linear array"
+msgstr ""
+
+msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
+msgstr ""
+
+msgid "Polar array (about centroid)"
+msgstr ""
+
+msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Click center then a vertex — %d sides, %s"
+msgstr ""
+
+msgid "circumscribed"
+msgstr ""
+
+msgid "inscribed"
+msgstr ""
+
+msgid "Polygon"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Converted %d entit%s between construction and real geometry"
+msgstr ""
+
+msgid "CONSTRAIN"
+msgstr ""
+
+msgid "Perpendicular"
+msgstr ""
+
+msgid "Coincident"
+msgstr ""
+
+msgid "Equal length"
+msgstr ""
+
+msgid "Equal radius"
+msgstr ""
+
+msgid "Collinear"
+msgstr ""
+
+msgid "Tangent"
+msgstr ""
+
+msgid "Midpoint"
+msgstr ""
+
+msgid "Symmetric"
+msgstr ""
+
+msgid "Symmetric about the vertical axis"
+msgstr ""
+
+msgid "Symmetric about the horizontal axis"
+msgstr ""
+
+msgid "Fix point (anchor in place)"
+msgstr ""
+
+msgid "Horizontal distance"
+msgstr ""
+
+msgid "Vertical distance"
+msgstr ""
+
+msgid "✓ Confirm"
+msgstr ""
+
+msgid "✗ Cancel"
+msgstr ""
+
+msgid "Undo (Ctrl+Z)"
+msgstr ""
+
+msgid "Redo (Ctrl+Shift+Z)"
+msgstr ""
+
+msgid "New Design — clear the feature tree"
+msgstr ""
+
+msgid "Export STEP…"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Place on Face (F) — lay the picked face on the bed"
+msgstr ""
+
+msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
+msgstr ""
+
+msgid "Flip Section — show the opposite half"
+msgstr ""
+
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr ""
+
+msgid "Width / X"
+msgstr ""
+
+msgid "Height / Y"
+msgstr ""
+
+msgid "Distance X"
+msgstr ""
+
+msgid "Distance Y"
+msgstr ""
+
+msgid "Distance Z"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Rotation axis"
+msgstr ""
+
+msgid "Angle °"
+msgstr ""
+
+msgid "Move / Rotate"
+msgstr ""
+
+msgid "Sketch: —"
+msgstr ""
+
+msgid "Extrude dist"
+msgstr ""
+
+msgid "End"
+msgstr "끝"
+
+msgid "2nd dist"
+msgstr ""
+
+msgid "Taper °"
+msgstr ""
+
+msgid "New body"
+msgstr ""
+
+msgid "Intersect"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Flip direction"
+msgstr ""
+
+msgid "(no edge picked — group below)"
+msgstr ""
+
+msgid "Bottom"
+msgstr "아래"
+
+msgid "Lateral"
+msgstr ""
+
+msgid "Edges"
+msgstr ""
+
+msgid "Size (r/dist)"
+msgstr ""
+
+msgid "XY"
+msgstr ""
+
+msgid "XZ"
+msgstr ""
+
+msgid "YZ"
+msgstr ""
+
+msgid "Hole plane"
+msgstr ""
+
+msgid "Depth (blind)"
+msgstr ""
+
+msgid "Pos X"
+msgstr ""
+
+msgid "Pos Y"
+msgstr ""
+
+msgid "Through"
+msgstr ""
+
+msgid "(none — uses Hole plane)"
+msgstr ""
+
+msgid "On face"
+msgstr ""
+
+msgid "Thread plane"
+msgstr ""
+
+msgid "Pitch"
+msgstr ""
+
+msgid "Thread depth"
+msgstr ""
+
+msgid "(none — uses Thread plane)"
+msgstr ""
+
+msgid "Plane X"
+msgstr ""
+
+msgid "Plane Y"
+msgstr ""
+
+msgid "Profile: —"
+msgstr ""
+
+msgid "Path"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Total angle°"
+msgstr ""
+
+msgid "Boolean"
+msgstr ""
+
+msgid "Union (join)"
+msgstr ""
+
+msgid "Subtract (cut)"
+msgstr ""
+
+msgid "Target (kept)"
+msgstr ""
+
+msgid "Keep tool body"
+msgstr ""
+
+msgid "Body"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid ""
+"Drag a corner to size, the centre to move.\n"
+"Confirm or Cancel in the toolbar above."
+msgstr ""
+
+msgid "Midplane"
+msgstr ""
+
+msgid "Two edges"
+msgstr ""
+
+msgid "Plane type"
+msgstr ""
+
+msgid "Base"
+msgstr ""
+
+msgid "Angle°"
+msgstr ""
+
+msgid "Base X"
+msgstr ""
+
+msgid "Base Y"
+msgstr ""
+
+msgid "Tilt axis"
+msgstr ""
+
+msgid "Pick Face A"
+msgstr ""
+
+msgid "Pick Face B"
+msgstr ""
+
+msgid "Pick Edge A"
+msgstr ""
+
+msgid "Pick Edge B"
+msgstr ""
+
+msgid "Size U"
+msgstr ""
+
+msgid "Size V"
+msgstr ""
+
+msgid "Profiles (check 2+, in order):"
+msgstr ""
+
+msgid "Ruled (straight) sections"
+msgstr ""
+
+msgid "Fills the sketch's closed boundary with a smooth face."
+msgstr ""
+
+msgid "Sheet body"
+msgstr ""
+
+msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
+msgstr ""
+
+msgid "Thickens a sheet body into a solid. Flip reverses the direction."
+msgstr ""
+
+msgid "(all faces — closed hollow)"
+msgstr ""
+
+msgid "Open face"
+msgstr ""
+
+msgid "Pick a solid face to open it, then set the wall thickness."
+msgstr ""
+
+msgid "Angle (°)"
+msgstr ""
+
+msgid "(pick a side face)"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
+msgstr ""
+
+msgid "Translate X"
+msgstr ""
+
+msgid "Translate Y"
+msgstr ""
+
+msgid "Translate Z"
+msgstr ""
+
+msgid "Rotate axis"
+msgstr ""
+
+msgid "Pivot X"
+msgstr ""
+
+msgid "Pivot Y"
+msgstr ""
+
+msgid "Pivot Z"
+msgstr ""
+
+msgid "Keep original (make a copy)"
+msgstr ""
+
+msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
+msgstr ""
+
+msgid "Mirror plane"
+msgstr ""
+
+msgid "Keep original"
+msgstr ""
+
+msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
+msgstr ""
+
+msgid "(pick a solid face)"
+msgstr ""
+
+msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
+msgstr ""
+
+msgid "Target body"
+msgstr ""
+
+msgid "Entity index"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
+msgstr ""
+
+msgid "Source body"
+msgstr ""
+
+msgid "Target plane"
+msgstr ""
+
+msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
+msgstr ""
+
+msgid "Add picked face"
+msgstr ""
+
+msgid "Click a face on the body first, then Add picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d is already in the list"
+msgstr ""
+
+msgid "Faces to delete"
+msgstr ""
+
+msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
+msgstr ""
+
+msgid "Left-handed"
+msgstr ""
+
+msgid "Taper (°)"
+msgstr ""
+
+msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
+msgstr ""
+
+msgid "Two points"
+msgstr ""
+
+msgid "Face normal"
+msgstr ""
+
+msgid "Cylinder centerline"
+msgstr ""
+
+msgid "Plane intersection"
+msgstr ""
+
+msgid "Along edge"
+msgstr ""
+
+msgid "Axis type"
+msgstr ""
+
+msgid "Pick Face"
+msgstr ""
+
+msgid "Pick Edge"
+msgstr ""
+
+msgid "Plane A"
+msgstr ""
+
+msgid "Plane B"
+msgstr ""
+
+msgid "Point 1 X"
+msgstr ""
+
+msgid "Point 1 Y"
+msgstr ""
+
+msgid "Point 1 Z"
+msgstr ""
+
+msgid "Point 2 X"
+msgstr ""
+
+msgid "Point 2 Y"
+msgstr ""
+
+msgid "Point 2 Z"
+msgstr ""
+
+msgid "Point (world)"
+msgstr ""
+
+msgid "Face + direction"
+msgstr ""
+
+msgid "(all)"
+msgstr ""
+
+msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
+msgstr ""
+
+msgid "Edge (sets in-plane direction)"
+msgstr ""
+
+msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
+msgstr ""
+
+msgid "X hint X"
+msgstr ""
+
+msgid "X hint Y"
+msgstr ""
+
+msgid "X hint Z"
+msgstr ""
+
+msgid "Fastened — 6 DOF locked, B driven onto A exactly"
+msgstr ""
+
+msgid "Planar — z aligned, offset distance; free in-plane slide"
+msgstr ""
+
+msgid "Revolute — axes collinear; free rotation about z"
+msgstr ""
+
+msgid "Slider — orientation locked; free axial slide"
+msgstr ""
+
+msgid "Cylindrical — axes collinear; free spin + axial slide"
+msgstr ""
+
+msgid "Kind"
+msgstr ""
+
+msgid "CS A (fixed)"
+msgstr ""
+
+msgid "CS B (moves)"
+msgstr ""
+
+msgid "Flip (oppose z axes)"
+msgstr ""
+
+msgid "Plane distance"
+msgstr ""
+
+msgid "Axial position"
+msgstr ""
+
+msgid "Expression"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Expr"
+msgstr ""
+
+msgid "(no bindings)"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Constraints"
+msgstr ""
+
+msgid "Feature tree"
+msgstr ""
+
+msgid " — the eye suppresses this mate"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s selected — F2 or right-click renames it, double-click edits it"
+msgstr ""
+
+msgid "Rename\tF2"
+msgstr ""
+
+msgid "Scale artwork"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Show / hide"
+msgstr ""
+
+msgid "Check interference — find overlapping bodies"
+msgstr ""
+
+msgid "Bodies"
+msgstr ""
+
+msgid "Move body"
+msgstr ""
+
+msgid "Select a body row first, then move it"
+msgstr ""
+
+msgid "Boolean — join, subtract or intersect with another body"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d selected — right-click for what applies to it"
+msgstr ""
+
+msgid "Variables"
+msgstr ""
+
+msgid "+"
+msgstr ""
+
+msgid "Del"
+msgstr ""
+
+msgid "Sketch created — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Sketch empty — nothing committed"
+msgstr ""
+
+msgid "Sketch updated"
+msgstr ""
+
+#, c-format
+msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Could not resolve the sketch to extrude"
+msgstr ""
+
+msgid "Face selected — set the depth and Confirm"
+msgstr ""
+
+msgid "Region selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+msgid "Sketch selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d "
+msgstr ""
+
+msgid "vertex selected — click again for the whole body"
+msgstr ""
+
+msgid "selected (whole body) — right-click for what applies to it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click for the drawing tools"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr ""
+
+msgid "Tool exited"
+msgstr ""
+
+msgid "Sketch kept — Finish to commit it, Cancel to discard"
+msgstr ""
+
+msgid "✗ Conflicting constraints"
+msgstr ""
+
+msgid "✓ Fully constrained"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d degrees of freedom"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+msgstr ""
+
+#, c-format
+msgid "OK — %zu triangles"
+msgstr ""
+
+msgid "Text to insert:"
+msgstr ""
+
+msgid "Import SVG"
+msgstr ""
+
+msgid "Import STEP"
+msgstr ""
+
+msgid "Reading STEP…"
+msgstr ""
+
+msgid "No solids found in STEP"
+msgstr ""
+
+msgid "STEP import failed: "
+msgstr ""
+
+msgid "Rebuilding model…"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+msgid "Import mesh"
+msgstr ""
+
+msgid "Could not read the STL file"
+msgstr ""
+
+msgid "Could not read the OBJ file: "
+msgstr ""
+
+msgid "Unsupported mesh format (STL and OBJ are supported)"
+msgstr ""
+
+msgid "The mesh contains no triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
+"\n"
+"Import anyway?"
+msgstr ""
+
+msgid "Large mesh"
+msgstr ""
+
+msgid "Mesh conversion failed: "
+msgstr ""
+
+msgid "Mesh conversion produced no geometry"
+msgstr ""
+
+msgid "Mesh import failed: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr ""
+
+msgid "No importable geometry found"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s added to the sketch — Confirm to commit it"
+msgstr ""
+
+msgid " — drag to place/size, then Confirm"
+msgstr ""
+
+msgid "Insert cancelled"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch added on %s — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Recompute error: "
+msgstr ""
+
+msgid "Add a solid (sketch + extrude) first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Thread standard: %s  (pitch %.3g mm)"
+msgstr ""
+
+msgid "Thread needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to revolve first"
+msgstr ""
+
+msgid "Revolve needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a profile sketch to sweep first"
+msgstr ""
+
+msgid "Pick a path sketch for the sweep"
+msgstr ""
+
+msgid "Sweep needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Check at least two profile sketches to loft"
+msgstr ""
+
+msgid "Loft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to extrude first"
+msgstr ""
+
+msgid "Pick a sketch to fill first"
+msgstr ""
+
+msgid "Select a sheet body first"
+msgstr ""
+
+msgid "Pick a solid face to thicken first"
+msgstr ""
+
+msgid "Pick a sketch with an open line first"
+msgstr ""
+
+msgid "Add at least one face to delete first"
+msgstr ""
+
+msgid "Mate needs two CoordSys features — create them first"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different CoordSys features"
+msgstr ""
+
+msgid "Mate rejected"
+msgstr ""
+
+msgid "No interference — need at least two solid bodies to check"
+msgstr ""
+
+msgid "No interference found"
+msgstr ""
+
+#, c-format
+msgid "%zu interference pairs, worst %.2f mm³"
+msgstr ""
+
+msgid ""
+"Interference pairs:\n"
+"\n"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d"
+msgstr ""
+
+msgid "Interference"
+msgstr ""
+
+msgid "Select a solid body first — its mass properties are what is reported"
+msgstr ""
+
+msgid "Mass properties could not be computed for this body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body — %.2f cm² of surface, no volume"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Sheet body (open shell)\n"
+"Surface area: %.2f cm²\n"
+"\n"
+"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgstr ""
+
+msgid "Mass properties"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: %.3f cm³, %.2f cm²"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Volume: %.3f cm³\n"
+"Surface area: %.2f cm²"
+msgstr ""
+
+msgid "Pattern needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Boolean needs two solid bodies — add or import a second one"
+msgstr ""
+
+msgid "Cut needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "the picked face of Body %d"
+msgstr ""
+
+msgid "the picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "  ·  %d picked"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr ""
+
+msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
+msgstr ""
+
+msgid "Constrain — click one or two entities, then choose a constraint"
+msgstr ""
+
+msgid "Dimension — click an entity, or the first of two points"
+msgstr ""
+
+msgid "Dimension — click the second point"
+msgstr ""
+
+msgid "Line — click the start point"
+msgstr ""
+
+msgid "Line — click the end point, or type the length"
+msgstr ""
+
+msgid "Polyline — click the first point"
+msgstr ""
+
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+msgstr ""
+
+msgid "Rectangle — click one corner"
+msgstr ""
+
+msgid "Rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Centre rectangle — click the centre"
+msgstr ""
+
+msgid "Centre rectangle — click a corner"
+msgstr ""
+
+msgid "Oblique rectangle — click the start of the base edge"
+msgstr ""
+
+msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
+msgstr ""
+
+msgid "Oblique rectangle — click to set the width"
+msgstr ""
+
+msgid "Rounded rectangle — click one corner"
+msgstr ""
+
+msgid "Rounded rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Rounded rectangle — click to set the corner radius"
+msgstr ""
+
+msgid "Circle — click the centre"
+msgstr ""
+
+msgid "Circle — click to set the radius, or type it"
+msgstr ""
+
+msgid "Circle (2 points) — click one end of the diameter"
+msgstr ""
+
+msgid "Circle (2 points) — click the other end of the diameter"
+msgstr ""
+
+msgid "Circle (3 points) — click the first point on the circle"
+msgstr ""
+
+msgid "Circle (3 points) — click the second point"
+msgstr ""
+
+msgid "Circle (3 points) — click the third point"
+msgstr ""
+
+msgid "Arc — click the start point"
+msgstr ""
+
+msgid "Arc — click the end point"
+msgstr ""
+
+msgid "Arc — click a point the arc passes through"
+msgstr ""
+
+msgid "Tangent arc — click the endpoint it leaves from"
+msgstr ""
+
+msgid "Tangent arc — click its far end"
+msgstr ""
+
+msgid "Centre arc — click the centre"
+msgstr ""
+
+msgid "Centre arc — click the start point (this sets the radius)"
+msgstr ""
+
+msgid "Centre arc — click the end point"
+msgstr ""
+
+msgid "Slot — click one end of the centreline"
+msgstr ""
+
+msgid "Slot — click the other end of the centreline"
+msgstr ""
+
+msgid "Slot — click to set the width"
+msgstr ""
+
+msgid "Arc slot — click the centre the slot curves about"
+msgstr ""
+
+msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgstr ""
+
+msgid "Arc slot — click the end of the centreline"
+msgstr ""
+
+msgid "Arc slot — click to set the width"
+msgstr ""
+
+msgid "Polygon — click the centre"
+msgstr ""
+
+msgid "Polygon — click a vertex (this sets size and orientation)"
+msgstr ""
+
+msgid "Ellipse — click the centre"
+msgstr ""
+
+msgid "Ellipse — click the end of the major axis"
+msgstr ""
+
+msgid "Ellipse — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click the centre"
+msgstr ""
+
+msgid "Elliptical arc — click the end of the major axis"
+msgstr ""
+
+msgid "Elliptical arc — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc starts"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc ends"
+msgstr ""
+
+msgid "Spline — click the first control point"
+msgstr ""
+
+msgid "Spline — click the next control point  ·  right-click to finish the curve"
+msgstr ""
+
+msgid "Point — click to place one; the tool stays armed for more"
+msgstr ""
+
+msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Fillet — click the first of two lines that meet"
+msgstr ""
+
+msgid "Fillet — click the second line"
+msgstr ""
+
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Chamfer — click the first of two lines that meet"
+msgstr ""
+
+msgid "Chamfer — click the second line"
+msgstr ""
+
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Offset — click the entity to offset"
+msgstr ""
+
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Mirror — first click the LINE to mirror about (a construction line works)"
+msgstr ""
+
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Move — click the entities to move"
+msgstr ""
+
+msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+msgstr ""
+
+msgid "Rotate — click the entities to rotate"
+msgstr ""
+
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+msgstr ""
+
+msgid "Scale — click the entities to scale"
+msgstr ""
+
+msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+msgstr ""
+
+msgid "Array — click the entities to repeat"
+msgstr ""
+
+msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Polar array — click the entities to repeat"
+msgstr ""
+
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgstr ""
+
+msgid "  ·  Esc goes back to Select"
+msgstr ""
+
+msgid "  ·  click a constraint badge to remove it"
+msgstr ""
+
+msgid "select something first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mate: %s  →  %s"
+msgstr ""
+
+msgid "Fastened"
+msgstr ""
+
+msgid "Revolute"
+msgstr ""
+
+msgid "Slider"
+msgstr ""
+
+msgid "Cylindrical"
+msgstr ""
+
+msgid "Click a solid FACE in the viewport"
+msgstr ""
+
+msgid "Click a solid EDGE in the viewport"
+msgstr ""
+
+msgid "An angled plane needs an edge to tilt about — pick Edge A"
+msgstr ""
+
+msgid "A midplane needs two faces — pick Face A and Face B"
+msgstr ""
+
+msgid "Face A and Face B are the same face — a midplane needs two different faces"
+msgstr ""
+
+msgid "A tangent plane needs a cylindrical face — pick Face A"
+msgstr ""
+
+msgid "This plane needs two edges — pick Edge A and Edge B"
+msgstr ""
+
+msgid "Plane added — pick it as a sketch plane"
+msgstr ""
+
+msgid "Axis added"
+msgstr ""
+
+msgid "Coord Sys added"
+msgstr ""
+
+msgid "Shell needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a picked face — click a side face first"
+msgstr ""
+
+msgid ""
+"Nothing yet — import a STEP or a mesh from the toolbar,\n"
+"or click a reference plane and right-click it to start a sketch."
+msgstr ""
+
+msgid "No solid yet — select a sketch and right-click it to Extrude."
+msgstr ""
+
+msgid "Could not restore the CAD model from this project"
+msgstr ""
+
+msgid "Could not restore the CAD model: "
+msgstr ""
+
+#, c-format
+msgid "Body %zu — %s"
+msgstr ""
+
+msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
+msgstr ""
+
+msgid "Section view off"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Section view — showing the %s half"
+msgstr ""
+
+msgid "upper"
+msgstr ""
+
+msgid "lower"
+msgstr ""
+
+msgid "Boolean needs two bodies — create or import a second solid"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr ""
+
+msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
+msgstr ""
+
+msgid "Select a body first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d colour set"
+msgstr ""
+
+msgid "Click a face on the solid, then press F"
+msgstr ""
+
+msgid "Placed on face — body laid flat on the bed"
+msgstr ""
+
+msgid "Edit rejected: "
+msgstr ""
+
+msgid "Erase all features and bodies and start a new design? This cannot be undone."
+msgstr ""
+
+msgid "New Design"
+msgstr ""
+
+msgid "This body has no feature to delete — use New Design to start over"
+msgstr ""
+
+#, c-format, boost-format
+msgid "feature %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete %s?\n"
+"\n"
+"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgstr ""
+
+msgid "Delete body"
+msgstr ""
+
+msgid "Select the FEATURE that created this body (or use New Design)"
+msgstr ""
+
+msgid "Select a feature in the tree first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d shown"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d hidden"
+msgstr ""
+
+msgid "Feature shown"
+msgstr ""
+
+msgid "Feature hidden"
+msgstr ""
+
+msgid "Draw a sketch first, then Constrain"
+msgstr ""
+
+msgid "Select a sketch in the tree first"
+msgstr ""
+
+msgid "Selected feature is not a sketch"
+msgstr ""
+
+msgid "Pick 1-2 lines, then a constraint; right-click exits"
+msgstr ""
+
+msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
+msgstr ""
+
+msgid "Pick an entity first"
+msgstr ""
+
+msgid "Pick two entities first"
+msgstr ""
+
+msgid "Horizontal and Vertical apply to a line"
+msgstr ""
+
+msgid "Angle applies between two lines"
+msgstr ""
+
+msgid "Collinear needs two lines"
+msgstr ""
+
+msgid "Parallel, perpendicular and equal length apply to two lines"
+msgstr ""
+
+msgid "Equal radius needs two circles or arcs"
+msgstr ""
+
+msgid "Concentric needs two circles or arcs"
+msgstr ""
+
+msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
+msgstr ""
+
+msgid "This constraint needs two entities with a point to join"
+msgstr ""
+
+msgid "This dimension needs two entities with a point to measure between"
+msgstr ""
+
+msgid "Midpoint needs a point and a line"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines + an axis"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines"
+msgstr ""
+
+msgid "Symmetric: pick two entities, then an axis line"
+msgstr ""
+
+msgid "Radius/Diameter needs a circle or arc"
+msgstr ""
+
+msgid "Unsupported constraint"
+msgstr ""
+
+msgid "Constraint rejected (over-constrained)"
+msgstr ""
+
+msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr ""
+
+msgid "Applied constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Fix %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock X %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock Y %s"
+msgstr ""
+
+msgid "Equal"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric %s — %s / %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about Y axis %s — %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about X axis %s — %s"
+msgstr ""
+
+msgid "On line"
+msgstr ""
+
+msgid "On edge"
+msgstr ""
+
+msgid "Constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Constraints (%d)"
+msgstr ""
+
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
+msgid "Constraint deleted"
+msgstr ""
+
+msgid "Press Constrain on a sketch first"
+msgstr ""
+
+msgid "Pick the entity, then a mirror-axis line"
+msgstr ""
+
+msgid "Mirror axis must be a line"
+msgstr ""
+
+msgid "Mirror produced nothing"
+msgstr ""
+
+msgid "Offset distance (+left / -right of direction)"
+msgstr ""
+
+msgid "Offset collapsed the entity"
+msgstr ""
+
+msgid "Pick two lines to fillet"
+msgstr ""
+
+msgid "Fillet needs two lines"
+msgstr ""
+
+msgid "Fillet radius"
+msgstr ""
+
+msgid "Fillet failed (parallel lines or radius too large)"
+msgstr ""
+
+msgid "Pick two lines to chamfer"
+msgstr ""
+
+msgid "Chamfer needs two lines"
+msgstr ""
+
+msgid "Chamfer distance"
+msgstr ""
+
+msgid "Chamfer failed (parallel lines or distance too large)"
+msgstr ""
+
+msgid "Trim works on lines, arcs and circles"
+msgstr ""
+
+msgid "Extend works on lines and arcs"
+msgstr ""
+
+msgid "Pick the edge to trim/extend"
+msgstr ""
+
+msgid "Nothing to trim at the pick"
+msgstr ""
+
+msgid "No edge to extend to"
+msgstr ""
+
+msgid "Array count (incl. original)"
+msgstr ""
+
+msgid "Spacing (mm)"
+msgstr ""
+
+msgid "Array produced nothing"
+msgstr ""
+
+msgid "Move dX (mm)"
+msgstr ""
+
+msgid "Move dY (mm)"
+msgstr ""
+
+msgid "Move produced nothing"
+msgstr ""
+
+msgid "Rotate angle (deg)"
+msgstr ""
+
+msgid "Rotate produced nothing"
+msgstr ""
+
+msgid "Scale factor"
+msgstr ""
+
+msgid "Scale produced nothing"
+msgstr ""
+
+msgid "Polar count (incl. original)"
+msgstr ""
+
+msgid "Total sweep (deg)"
+msgstr ""
+
+msgid "Polar array produced nothing"
+msgstr ""
+
+msgid "Applied edit"
+msgstr ""
+
+msgid " — type a value, press Enter (or Confirm)"
+msgstr ""
+
+msgid "Pick a segment in the viewport first"
+msgstr ""
+
+msgid "Applied Horizontal"
+msgstr ""
+
+msgid "Applied Vertical"
+msgstr ""
+
+msgid "Sketch: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "On a face of Body %d"
+msgstr ""
+
+msgid "On a stored face"
+msgstr ""
+
+msgid "Editing sketch — drag a handle or click a quote to edit"
+msgstr ""
+
+msgid "An imported solid has no parameters — use Transform to move or rotate it"
+msgstr ""
+
+msgid "This feature type can't be edited yet"
+msgstr ""
+
+msgid "Nothing to export — add a feature first"
+msgstr ""
+
+msgid "Export STEP"
+msgstr ""
+
+msgid "Exported STEP"
+msgstr ""
+
+msgid "STEP export failed: "
+msgstr ""
+
+msgid "Nothing to commit — add a feature first"
+msgstr ""
+
+msgid "All bodies hidden — show one before committing"
+msgstr ""
+
+msgid "Plane ready"
+msgstr ""
+
+msgid "Axis ready"
+msgstr ""
+
+msgid "Coord Sys ready"
+msgstr ""
+
+msgid "Helix ready"
+msgstr ""
+
+msgid "Project ready"
+msgstr ""
+
+msgid "Sketch ready"
+msgstr ""
+
+msgid "Mate needs at least two CoordSys features"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different"
+msgstr ""
+
+msgid "Mate ready"
+msgstr ""
+
+msgid "Invalid: "
+msgstr ""
+
+#, c-format
+msgid "Preview — %zu triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
+msgstr ""
+
+msgid "Profile: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d (push/pull)"
+msgstr ""
+
+msgid "Move cancelled"
+msgstr ""
+
+msgid "Discard this sketch and everything drawn in it?"
+msgstr ""
+
+msgid "Discard sketch"
+msgstr ""
+
+msgid "Keep drawing"
+msgstr ""
+
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr ""
+
+msgid "Nothing to redo"
+msgstr ""
+
+msgid "Nothing to undo"
+msgstr ""
+
+#, c-format
+msgid "Redo  (%zu more)"
+msgstr ""
+
+#, c-format
+msgid "Undo  (%zu more)"
+msgstr ""
+
+msgid "Variable name:"
+msgstr ""
+
+msgid "Add Variable"
+msgstr ""
+
+msgid "Variable name must not contain spaces"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Expression for '%s':"
+msgstr ""
+
+msgid "Select a variable first"
+msgstr ""
+
+msgid "Edit Variable"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
+msgstr ""
+
+msgid "No binding for that field"
+msgstr ""
+
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
+msgid "Primitive"
+msgstr ""
+
+msgid "Empty mesh generated"
+msgstr ""
+
+msgid "Pocket (Cut)"
+msgstr ""
+
+msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "End"
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr "←"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr "→"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr "↑"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr "↓"
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr "STL/STEP/3MF/OBJ/AMF 파일에서 형상 데이터 가져오기"
+
+msgid "Select all objects"
+msgstr "모든 객체 선택"
+
+msgid "Paste from clipboard"
+msgstr "클립보드에서 붙여넣기"
+
+# AI Translated
+msgid "Toggle printable for object/part"
+msgstr "객체/부품의 출력 가능 여부 전환"
+
+msgid "Move selection 10mm in negative X direction"
+msgstr "선택 항목을 -X 방향으로 10mm 이동"
+
+msgid "Move selection 10mm in positive X direction"
+msgstr "선택 항목을 +X 방향으로 10mm 이동"
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr "선택 항목을 +Y 방향으로 10mm 이동"
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr "선택 항목을 -Y 방향으로 10mm 이동"
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr "변형도구 이동"
+
+msgid "Gizmo rotate"
+msgstr "변형도구 회전"
+
+msgid "Gizmo scale"
+msgstr "변형도구 배율"
+
+msgid "Gizmo place face on bed"
+msgstr "변형도구 바닥면 선택"
+
+msgid "Gizmo cut"
+msgstr "변형도구 잘라내기"
+
+msgid "Gizmo mesh boolean"
+msgstr "변형도구 합집합/차집합/교집합"
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "변형도구 재봉선 칠하기"
+
+# AI Translated
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr "변형도구 FDM 퍼지 스킨 칠하기"
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr "변형도구 - 텍스트 엠보싱/인그레이빙"
+
+msgid "Gizmo measure"
+msgstr "변형도구 측정"
+
+msgid "Gizmo assemble"
+msgstr "변형도구 병합"
+
+msgid "Gizmo brim ears"
+msgstr "변형도구 브림 귀"
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr "수직 슬라이더 - 활성 레이어 위로 이동"
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr "수직 슬라이더 - 활성 레이어 아래로 이동"
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr "수평 슬라이더 - 활성 라인 왼쪽으로 이동"
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr "수평 슬라이더 - 활성 라인 오른쪽으로 이동"
+
+msgid "Horizontal slider - Move to start position"
+msgstr "수평 슬라이더 - 시작 위치로 이동"
+
+msgid "Horizontal slider - Move to last position"
+msgstr "수평 슬라이더 - 마지막 위치로 이동"
+
+msgid "Camera view - Default"
+msgstr "카메라 시점 - 기본"
+
+msgid "Camera view - Top"
+msgstr "카메라 시점 - 위"
+
+msgid "Camera view - Bottom"
+msgstr "카메라 시점 - 아래"
+
+msgid "Camera view - Front"
+msgstr "카메라 시점 - 앞"
+
+msgid "Camera view - Behind"
+msgstr "카메라 시점 - 뒤"
+
+msgid "Camera Angle - Left side"
+msgstr "카메라 각도 - 좌측"
+
+msgid "Camera Angle - Right side"
+msgstr "카메라 각도 - 우측"
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr "확대"
+
+msgid "Zoom out"
+msgstr "축소"
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "3D 연결 장치 설정 표시/숨기기 대화상자"
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr "Gcode 창 켜기/끄기"
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr "수직 슬라이더의 한 레이어 모드 켜기/끄기"
+
+msgid "Switch between Prepare/Preview"
+msgstr "준비 하기/미리 보기 전환"
+
+msgid "Collapse/Expand the sidebar"
+msgstr "사이드바 접기/펼치기"
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr "키보드 단축키 목록 보기"
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
+msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -22369,6 +25386,159 @@ msgstr ""
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
 # AI Translated
+#~ msgid "Tab"
+#~ msgstr "탭"
+
+# AI Translated
+#~ msgid "Displays current viewport FPS in the top-right corner."
+#~ msgstr "현재 뷰포트의 FPS를 오른쪽 위 모서리에 표시합니다."
+
+# AI Translated
+#~ msgid "Publish 3MF Wiki"
+#~ msgstr "3MF 게시 위키"
+
+# AI Translated
+#~ msgid "Publish 3MF Video Guide"
+#~ msgstr "3MF 게시 비디오 가이드"
+
+#~ msgid "Toolbar"
+#~ msgstr "도구 모음"
+
+#~ msgid "Switch table page"
+#~ msgstr "테이블 페이지 전환"
+
+#~ msgid "Global shortcuts"
+#~ msgstr "전역 단축키"
+
+# AI Translated
+#~ msgid "Middle mouse button"
+#~ msgstr "마우스 가운데 버튼"
+
+#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+#~ msgstr "선택한 객체 또는 모든 객체의 방향을 자동으로 조정합니다. 선택한 객체가 있는 경우 선택한 객체만 조정되고, 그렇지 않은 경우 프로젝트의 모든 객체가 조정됩니다."
+
+#~ msgid "Auto orients all objects on the active plate."
+#~ msgstr "현재 플레이트에 있는 모든 객체의 방향을 자동으로 지정합니다."
+
+#~ msgid "Any arrow"
+#~ msgstr "모든 화살표"
+
+#~ msgid "Gizmo SLA support points"
+#~ msgstr "변형도구 서포트 칠하기"
+
+#~ msgid "Plater"
+#~ msgstr "출력판"
+
+#~ msgid "Gizmo"
+#~ msgstr "변형도구"
+
+#~ msgid "Delete objects, parts, modifiers"
+#~ msgstr "객체, 부품, 수정자 삭제"
+
+#~ msgid "Objects List"
+#~ msgstr "객체 목록"
+
+# AI Translated
+#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+#~ msgstr "출력 파일의 가장 앞부분, 다른 모든 내용보다 먼저 기록되는 G-code입니다. 프린터 펌웨어가 파일의 첫 줄에서 읽는 메타데이터(예: 예상 출력 시간, 필라멘트 사용량)를 추가하는 데 유용합니다. {print_time_sec}, {used_filament_length}와 같은 자리 표시자를 지원합니다."
+
+# AI Translated
+#~ msgid "Print time (seconds)"
+#~ msgstr "출력 시간(초)"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "작업 스피드 다이얼 열기"
+
+# AI Translated
+#~ msgid "Left: "
+#~ msgstr "왼쪽: "
+
+# AI Translated
+#~ msgid "Right: "
+#~ msgstr "오른쪽: "
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "최대 온도는 다음 값을 초과할 수 없습니다 "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "최소 온도는 다음 값보다 낮아서는 안 됩니다 "
+
+#~ msgid "up to"
+#~ msgstr "까지"
+
+#~ msgid "above"
+#~ msgstr "위에"
+
+#~ msgid "from"
+#~ msgstr "부터"
+
+#~ msgid "Configuration package: "
+#~ msgstr "구성 패키지: "
+
+#~ msgid " updated to "
+#~ msgstr " 로 업데이트되었습니다 "
+
+#~ msgid "Grouping error: "
+#~ msgstr "그룹화 오류입니다:"
+
+#~ msgid " can not be placed in the "
+#~ msgstr " 에 배치할 수 없습니다"
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " 최대 건조 온도는 "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " 최소 건조 온도는 "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "필요"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "활성화되지 않음"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "재료 미게시"
+
+#~ msgid "Select the language"
+#~ msgstr "언어 선택"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "플러그인 선택"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 상단 표면을 채우는 방향입니다.\n"
+#~ "바깥쪽은 표면 중앙에서 시작하므로 남는 재료가 가장 눈에 덜 띄는 가장자리로 밀려납니다. 안쪽은 가장자리에서 시작하여 중앙의 좁은 곡선에서 끝납니다.\n"
+#~ "기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "중심 기반 패턴(동심원, 아르키메데스 현, 팔각별 나선)을 사용할 때 하단 표면을 채우는 방향입니다.\n"
+#~ "안쪽은 각 표면을 더 넓은 바깥쪽 곡선에서 시작하므로, 중앙의 좁은 곡선이 잘 붙지 않는 빌드 플레이트에서 초기 레이어 접착력이 향상됩니다. 바깥쪽은 중앙에서 시작하여 남는 재료를 가장자리로 밀어냅니다.\n"
+#~ "기본값은 최단 경로 순서를 사용하며 어느 방향으로든 진행될 수 있습니다."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "활성화되면 툴 체인지 없이 레이어에 프라임 타워가 출력되지 않습니다. 툴 체인지가 있는 레이어에서는 압출기가 아래쪽으로 이동하여 프라임 타워를 출력합니다. 출력물과의 충돌이 없는지 확인하는 것은 사용자의 책임입니다."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "설정을 파일로 내보내기."
+
+# AI Translated
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "네이티브 Wayland 실시간 보기에는 GStreamer GTK 비디오 싱크가 필요합니다. GStreamer용 gtksink 플러그인을 설치한 후 OrcaSlicer를 다시 시작하십시오."
 
@@ -22423,9 +25593,6 @@ msgstr ""
 #~ msgid "Print order within a single layer."
 #~ msgstr "단일 레이어 내의 출력 순서"
 
-#~ msgid "Bottom"
-#~ msgstr "아래"
-
 #~ msgid "Front"
 #~ msgstr "앞"
 
@@ -22443,9 +25610,6 @@ msgstr ""
 
 #~ msgid "Arrow Right"
 #~ msgstr "화살표 오른쪽으로"
-
-#~ msgid "End"
-#~ msgstr "끝"
 
 #~ msgid "Hotend"
 #~ msgstr "핫엔드"

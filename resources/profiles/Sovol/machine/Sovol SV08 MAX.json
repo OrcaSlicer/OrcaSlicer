@@ -8,5 +8,5 @@
 	"bed_model": "sovol_sv08_max_buildplate_model.stl",
 	"bed_texture": "sovol_sv08_max_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Generic PLA;Generic PLA Silk;Generic ABS;Generic PETG;Polymaker PETG;SUNLU PETG;Generic TPU;Generic PC"
+	"default_materials": "Generic PLA @Sovol SV08 MAX;Generic PLA Silk @Sovol SV08 MAX;Generic ABS @Sovol SV08 MAX;Generic PETG @Sovol SV08 MAX;Polymaker PETG @Sovol SV08 MAX;SUNLU PETG @Sovol SV08 MAX;Generic TPU @Sovol SV08 MAX;Generic PC @Sovol SV08 MAX"
 }

@@ -17,8 +17,6 @@
 	"internal_solid_infill_line_width": "105%",
 	"support_line_width": "105%",
 	"top_surface_line_width": "105%",
-	"smooth_coefficient": "150",
-	"overhang_totally_speed": "50",
 	"ooze_prevention": "1",
 	"prime_tower_width": "30",
 	"slowdown_for_curled_perimeters": "0",

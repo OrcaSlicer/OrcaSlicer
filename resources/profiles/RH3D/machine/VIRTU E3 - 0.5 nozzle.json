@@ -1,0 +1,14 @@
+{
+	"type": "machine",
+	"name": "VIRTU E3 - 0.5 nozzle",
+	"printer_model": "VIRTU E3",
+	"inherits": "fdm_common_VIRTU E3",
+	"from": "system",
+	"setting_id": "iMnENFt2zw6UTcbM",
+	"instantiation": "true",
+	"default_print_profile": "0.20mm Standard @VIRTU E3",
+	"nozzle_diameter": [
+		"0.5"
+	],
+	"printer_variant": "0.5"
+}

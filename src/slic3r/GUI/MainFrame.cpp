@@ -1,6 +1,7 @@
 #include "MainFrame.hpp"
 
 #include <wx/panel.h>
+#include <wx/textentry.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
 #include <wx/simplebook.h>
@@ -37,18 +38,25 @@
 #include "I18N.hpp"
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "slic3r/GUI/CAD/McpControl.hpp"
+#endif
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
 // BBS
 #include "PartPlate.hpp"
 #include "Preferences.hpp"
+#include "Widgets/Button.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include "Widgets/StaticBox.hpp"
 #include "BindDialog.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/NetworkAgentFactory.hpp"
 #include "../Utils/PrintHost.hpp"
 
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
@@ -102,6 +110,31 @@ enum class ERescaleTarget
     Mainframe,
     SettingsDialog
 };
+
+namespace {
+
+// Space opens the speed dial, but it is the activation key for buttons, checkboxes and other
+// controls. CHAR_HOOK runs before the focused child, so only take Space when the focused window has
+// no keyboard-activation meaning of its own. Canvases (GLCanvas3D) and panels are not controls and
+// fall through to "open"; the Notebook itself does too, so Space still opens the dial on any page.
+bool focus_keeps_space(wxWindow* focus)
+{
+    if (!focus)
+        return false;
+    if (dynamic_cast<wxTextEntryBase*>(focus))
+        return true; // typing a space into a text field
+    if (dynamic_cast<wxWebView*>(focus))
+        return true; // web content scrolls and hosts its own text fields
+    if (dynamic_cast<::Button*>(focus))
+        return true; // custom button: Space clicks it (it is a wxWindow, not a wxControl)
+    if (dynamic_cast<StaticBox*>(focus))
+        return true; // custom composites (ComboBox, SpinInput, ...) activate with Space and are wxWindow
+    if (dynamic_cast<wxControl*>(focus) && !dynamic_cast<Notebook*>(focus))
+        return true; // stock button/checkbox/choice/list/etc. keep Space
+    return false;
+}
+
+} // namespace
 
 #ifdef __WXGTK__
 // A thin transparent panel placed at a window edge to handle resize.
@@ -277,17 +310,6 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 #endif
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
-
-#ifdef __APPLE__
-static const wxString ctrl = ("Ctrl+");
-// FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-static const std::string ctrl_t = u8"\u2318+"; // "⌘" (Mac Command)
-#else
-static const wxString ctrl = _L("Ctrl+");
-// FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-static const wxString ctrl_t = ctrl;
-#endif
-static const wxString shift = _L("Shift+");
 
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
@@ -698,53 +720,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             }
             return;}
 #endif
-        if (evt.CmdDown() && evt.GetKeyCode() == 'R') { if (m_slice_enable) { wxGetApp().plater()->update(true, true); wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE)); this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); } return; }
-        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'G') {
-            m_plater->apply_background_progress();
-            m_print_enable = get_enable_print_status();
-            m_print_btn->Enable(m_print_enable);
-            if (m_print_enable) {
-                if (wxGetApp().preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
-                    wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_PLATE));
-                else
-                    wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_GCODE));
-            }
+        if (!handle_global_shortcut(KeyChord::from_event(evt)))
             evt.Skip();
-            return;
-        }
-        else if (evt.CmdDown() && evt.GetKeyCode() == 'G') { if (can_export_gcode()) { wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE)); } evt.Skip(); return; }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'J') { m_printhost_queue_dlg->Show(); return; }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'N') { m_plater->new_project(); return;}
-        if (evt.CmdDown() && evt.GetKeyCode() == 'O') { m_plater->load_project(); return;}
-        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'S') { if (can_save_as()) m_plater->save_project(true); return;}
-        else if (evt.CmdDown() && evt.GetKeyCode() == 'S') { if (can_save()) m_plater->save_project(); return;}
-        if (evt.CmdDown() && evt.GetKeyCode() == 'F') {
-            if (m_plater && is_prepare_or_preview_tab()) {
-                m_plater->sidebar().can_search();
-            }
-        }
-#ifdef __APPLE__
-        if (evt.CmdDown() && evt.GetKeyCode() == ',')
-#else
-        if (evt.CmdDown() && evt.GetKeyCode() == 'P')
-#endif
-        {
-            // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
-            wxGetApp().open_preferences();
-            plater()->get_current_canvas3D()->force_set_focus();
-            return;
-        }
-
-        if (evt.CmdDown() && evt.GetKeyCode() == 'I' && !evt.ShiftDown()) {
-            if (!can_add_models()) return;
-            if (m_plater) { m_plater->add_file(); }
-            return;
-        }
-        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'E') {
-            if (can_export_model()) publish_project();
-            return;
-        }
-        evt.Skip();
     });
 
     Bind(wxEVT_SHOW, [](wxShowEvent &evt) {
@@ -763,6 +740,96 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // bind events from DiffDlg
 
     bind_diff_dialog();
+}
+
+bool MainFrame::handle_global_shortcut(const KeyChord& chord)
+{
+    const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Global, chord);
+    if (!shortcut.has_value())
+        return false;
+
+    switch (*shortcut) {
+    case Shortcut::SlicePlate:
+        if (m_slice_enable) {
+            wxGetApp().plater()->update(true, true);
+            wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+            m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
+        }
+        break;
+    case Shortcut::PrintPlate:
+        m_plater->apply_background_progress();
+        m_print_enable = get_enable_print_status();
+        m_print_btn->Enable(m_print_enable);
+        if (m_print_enable) {
+            if (wxGetApp().preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_PLATE));
+            else
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_GCODE));
+        }
+        return false;
+    case Shortcut::ExportSlicedFile:
+        if (can_export_gcode())
+            wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE));
+        return false;
+    case Shortcut::PrintHostQueue: m_printhost_queue_dlg->Show(); break;
+    case Shortcut::SpeedDial:
+        if (!wxGetApp().app_config->get_bool("enable_speed_dial") || (chord == KeyChord{ WXK_SPACE } && focus_keeps_space(wxWindow::FindFocus())))
+            return false;
+        // Deferred out of the native key-event stack: open_speed_dial() may create a WebView and run script.
+        CallAfter([] { wxGetApp().open_speed_dial(); });
+        break;
+    case Shortcut::NewProject: m_plater->new_project(); break;
+    case Shortcut::OpenProject: m_plater->load_project(); break;
+    case Shortcut::SaveProjectAs:
+        if (can_save_as())
+            m_plater->save_project(true);
+        break;
+    case Shortcut::SaveProject:
+        if (can_save())
+            m_plater->save_project();
+        break;
+    case Shortcut::Search:
+        if (m_plater && is_prepare_or_preview_tab())
+            m_plater->sidebar().can_search();
+        return false;
+    case Shortcut::Preferences:
+        // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
+        wxGetApp().open_preferences();
+        plater()->get_current_canvas3D()->force_set_focus();
+        break;
+    case Shortcut::ImportModel:
+        if (can_add_models() && m_plater)
+            m_plater->add_file();
+        break;
+    case Shortcut::Publish3mf:
+        if (can_export_model())
+            publish_project();
+        break;
+    case Shortcut::ShowLabels:
+        if (m_plater && m_plater->is_view3D_shown()) {
+            m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown());
+            m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+        }
+        break;
+    case Shortcut::ViewDefault:
+        if (m_plater) {
+            select_view("plate");
+            m_plater->get_current_canvas3D()->zoom_to_bed();
+        }
+        break;
+    case Shortcut::ViewTop:    select_view("top"); break;
+    case Shortcut::ViewBottom: select_view("bottom"); break;
+    case Shortcut::ViewFront:  select_view("front"); break;
+    case Shortcut::ViewRear:   select_view("rear"); break;
+    case Shortcut::ViewLeft:   select_view("left"); break;
+    case Shortcut::ViewRight:  select_view("right"); break;
+    case Shortcut::ViewPlate:
+        if (m_plater)
+            m_plater->get_current_canvas3D()->select_plate();
+        break;
+    default: return false;
+    }
+    return true;
 }
 
 void MainFrame::bind_diff_dialog()
@@ -1019,7 +1086,15 @@ void MainFrame::update_layout()
         // Right after Home — or first, when there is no Home tab (PositionAfter() would
         // append instead, and by now the other built-in tabs are already in place).
         const int home_idx = m_tabpanel->FindPageByName(TAB_ID_HOME);
-        const size_t prepare_pos = (home_idx == wxNOT_FOUND) ? 0 : static_cast<size_t>(home_idx) + 1;
+        size_t prepare_pos = (home_idx == wxNOT_FOUND) ? 0 : static_cast<size_t>(home_idx) + 1;
+#ifdef SLIC3R_CAD
+        // Design sits between Home and Prepare, so it goes in first and pushes Prepare along.
+        // The page only exists when the experimental CAD feature is enabled.
+        if (m_design_page != nullptr) {
+            m_design_page->Reparent(m_tabpanel);
+            m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
+        }
+#endif
         m_tabpanel->InsertPage(prepare_pos, TAB_ID_PREPARE, m_plater, _L("Prepare"), "tab_3d_active");
         m_tabpanel->InsertPage(prepare_pos + 1, TAB_ID_PREVIEW, m_plater, _L("Preview"), "tab_preview_active");
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 0);
@@ -1114,6 +1189,8 @@ void MainFrame::shutdown()
     if (m_project != nullptr)
         m_project->shutdown();
     m_plugin_pages.shutdown();
+    if (m_plater != nullptr)
+        m_plater->remove_dock_panes();
 #ifdef __WXGTK__
     // Edge panels are child windows — wxWidgets destroys them automatically.
     m_edge_bottom = nullptr;
@@ -1237,6 +1314,19 @@ void MainFrame::show_option(bool show)
     }
 }
 
+#ifdef SLIC3R_CAD
+DesignPanel* MainFrame::ensure_design_panel()
+{
+    if (m_design_panel == nullptr && m_design_page != nullptr) {
+        wxBusyCursor busy;
+        m_design_panel = new DesignPanel(m_design_page);
+        m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
+        m_design_page->Layout();
+    }
+    return m_design_panel;
+}
+#endif
+
 void MainFrame::init_tabpanel() {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on
     // Windows 10 with multiple high resolution displays connected.
@@ -1277,9 +1367,26 @@ void MainFrame::init_tabpanel() {
         }
         //else if (panel == m_param_panel)
         //    m_param_panel->OnActivate();
+#ifdef SLIC3R_CAD
+        else if (m_design_page != nullptr && panel == m_design_page) {
+            // Built on first activation, never at startup: the panel creates several hundred
+            // controls and its own GL canvas, which a user who does not open the tab should
+            // not pay for.
+            ensure_design_panel();
+            // Re-sync the Design bed to the active printer: the panel is built before the
+            // printer profile is fully applied, so its bed must refresh on activation or the
+            // grid (true bed) spills past the stale default bed quad.
+            m_design_panel->on_tab_shown();
+        }
+#endif
         else if (panel == m_monitor) {
             //monitor
         }
+#ifdef SLIC3R_CAD
+        // Any page that is not Design takes the Design status line down with it — see
+        // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
+        if (m_design_panel != nullptr && panel != m_design_page) m_design_panel->on_tab_hidden();
+#endif
 #ifndef __APPLE__
         if (m_last_selected_tab == TAB_ID_PREPARE) {
             m_topbar->EnableUndoRedoItems();
@@ -1309,6 +1416,20 @@ void MainFrame::init_tabpanel() {
     m_plater->Hide();
 
     wxGetApp().plater_ = m_plater;
+
+#ifdef SLIC3R_CAD
+    // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
+    // the tab is selected (see the page-changed handler above), so nothing it constructs sits
+    // on the startup path. The experimental feature is off by default, and when it is off the
+    // page is never created, so the tab does not appear at all (the preference takes effect on
+    // the next start, like the other feature toggles).
+    if (wxGetApp().is_enable_cad_feature()) {
+        m_design_page = new wxPanel(this);
+        m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
+        m_design_page->Hide();
+        start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
+    }
+#endif
 
     create_preset_tabs();
 
@@ -2666,13 +2787,31 @@ static const wxString sep = " - ";
 static const wxString sep = "\t";
 #endif
 
-static wxMenu* generate_help_menu()
+wxString MainFrame::shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator)
+{
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    if (accelerator) {
+        const std::string accel = shortcuts.accelerator(shortcut);
+        if (!accel.empty())
+            return label + "	" + from_u8(accel);
+    }
+    const std::string text = shortcuts.display(shortcut);
+    return text.empty() ? label : label + sep + from_u8(text);
+}
+
+void MainFrame::update_shortcut_labels()
+{
+    for (const ShortcutMenuItem& entry : m_shortcut_menu_items)
+        entry.item->SetItemLabel(shortcut_label(entry.label, entry.shortcut, entry.accelerator));
+}
+
+wxMenu* MainFrame::generate_help_menu()
 {
     wxMenu* helpMenu = new wxMenu();
 
     // shortcut key
-    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of keyboard shortcuts"),
-        [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(); });
+    append_shortcut_item(helpMenu, Shortcut::KeyboardShortcuts, false, _L("Keyboard Shortcuts"), _L("Show the list of keyboard shortcuts"),
+        [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(ShortcutContext::Global); });
     // Show Beginner's Tutorial
     append_menu_item(helpMenu, wxID_ANY, _L("Setup Wizard"), _L("Setup Wizard"), [](wxCommandEvent &) {wxGetApp().ShowUserGuide();});
 
@@ -2754,29 +2893,28 @@ static void add_common_publish_menu_items(wxMenu* publish_menu, MainFrame* mainF
 #endif
 }
 
-static void add_common_view_menu_items(wxMenu* view_menu, MainFrame* mainFrame, std::function<bool(void)> can_change_view)
+void MainFrame::add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view)
 {
-    // The camera control accelerators are captured by GLCanvas3D::on_char().
-    append_menu_item(view_menu, wxID_ANY, _L("Default View") + "\t" + ctrl + "0", _L("Default View"), [mainFrame](wxCommandEvent&) {
-        mainFrame->select_view("plate");
-        mainFrame->plater()->get_current_canvas3D()->zoom_to_bed();
+    append_shortcut_item(view_menu, Shortcut::ViewDefault, true, _L("Default View"), _L("Default View"), [this](wxCommandEvent&) {
+        select_view("plate");
+        plater()->get_current_canvas3D()->zoom_to_bed();
         },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
     //view_menu->AppendSeparator();
     //TRN To be shown in the main menu View->Top
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Top", "Camera View") + "\t" + ctrl + "1", _L("Top View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("top"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+    append_shortcut_item(view_menu, Shortcut::ViewTop, true, _L_CONTEXT("Top", "Camera View"), _L("Top View"), [this](wxCommandEvent&) { select_view("top"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
     //TRN To be shown in the main menu View->Bottom
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Bottom", "Camera View") + "\t" + ctrl + "2", _L("Bottom View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("bottom"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Front", "Camera View") + "\t" + ctrl + "3", _L("Front View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("front"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Rear", "Camera View") + "\t" + ctrl + "4", _L("Rear View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("rear"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Left", "Camera View") + "\t" + ctrl + "5", _L("Left View"),[mainFrame](wxCommandEvent &) {mainFrame->select_view("left"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Right", "Camera View") + "\t" + ctrl + "6", _L("Right View"),[mainFrame](wxCommandEvent &) { mainFrame->select_view("right"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+    append_shortcut_item(view_menu, Shortcut::ViewBottom, true, _L_CONTEXT("Bottom", "Camera View"), _L("Bottom View"), [this](wxCommandEvent&) { select_view("bottom"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewFront, true, _L_CONTEXT("Front", "Camera View"), _L("Front View"), [this](wxCommandEvent&) { select_view("front"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewRear, true, _L_CONTEXT("Rear", "Camera View"), _L("Rear View"), [this](wxCommandEvent&) { select_view("rear"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewLeft, true, _L_CONTEXT("Left", "Camera View"), _L("Left View"), [this](wxCommandEvent &) { select_view("left"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewRight, true, _L_CONTEXT("Right", "Camera View"), _L("Right View"), [this](wxCommandEvent &) { select_view("right"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
 }
 
 void MainFrame::init_menubar_as_editor()
@@ -2795,17 +2933,17 @@ void MainFrame::init_menubar_as_editor()
                          [this] { return m_plater != nullptr && wxGetApp().app_config->get("app", "single_instance") == "false"; }, this);
 #endif
         // New Project
-        append_menu_item(fileMenu, wxID_ANY, _L("New Project") + "\t" + ctrl + "N", _L("Start a new project"),
+        append_shortcut_item(fileMenu, Shortcut::NewProject, true, _L("New Project"), _L("Start a new project"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->new_project(); }, "", nullptr,
             [this](){return can_start_new_project(); }, this);
         // Open Project
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Open Project") + dots + "\t" + ctrl + "O", _L("Open a project file"),
+        append_shortcut_item(fileMenu, Shortcut::OpenProject, true, _L("Open Project") + dots, _L("Open a project file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->load_project(); }, "menu_open", nullptr,
             [this](){return can_open_project(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Open Project") + dots + "\t" + ctrl + "O", _L("Open a project file"),
+        append_shortcut_item(fileMenu, Shortcut::OpenProject, true, _L("Open Project") + dots, _L("Open a project file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->load_project(); }, "", nullptr,
             [this](){return can_open_project(); }, this);
 #endif
@@ -2832,21 +2970,21 @@ void MainFrame::init_menubar_as_editor()
 
         // BBS: close save project
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project") + "\t" + ctrl + "S", _L("Save current project to file"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProject, true, _L("Save Project"), _L("Save current project to file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(); }, "menu_save", nullptr,
             [this](){return m_plater != nullptr && can_save(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project") + "\t" + ctrl + "S", _L("Save current project to file"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProject, true, _L("Save Project"), _L("Save current project to file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(); }, "", nullptr,
             [this](){return m_plater != nullptr && can_save(); }, this);
 #endif
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project as") + dots + "\t" + ctrl + shift + "S", _L("Save current project as"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProjectAs, true, _L("Save Project as") + dots, _L("Save current project as"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "menu_save", nullptr,
             [this](){return m_plater != nullptr && can_save_as(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project as") + dots + "\t" + ctrl + shift + "S", _L("Save current project as"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProjectAs, true, _L("Save Project as") + dots, _L("Save current project as"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "", nullptr,
             [this](){return m_plater != nullptr && can_save_as(); }, this);
 #endif
@@ -2856,11 +2994,11 @@ void MainFrame::init_menubar_as_editor()
         auto publish_handler = [this](wxCommandEvent&) { publish_project(); };
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+        append_shortcut_item(fileMenu, Shortcut::Publish3mf, true, _L("Publish 3MF") + dots, _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "menu_publish", nullptr,
             [this](){return can_export_model(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+        append_shortcut_item(fileMenu, Shortcut::Publish3mf, true, _L("Publish 3MF") + dots, _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "", nullptr,
             [this](){return can_export_model(); }, this);
 #endif
@@ -2871,13 +3009,13 @@ void MainFrame::init_menubar_as_editor()
         // BBS
         wxMenu *import_menu = new wxMenu();
 #ifndef __APPLE__
-        append_menu_item(import_menu, wxID_ANY, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots + "\t" + ctrl + "I", _L("Load a model"),
+        append_shortcut_item(import_menu, Shortcut::ImportModel, true, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots, _L("Load a model"),
             [this](wxCommandEvent&) { if (m_plater) {
             m_plater->add_file();
         } }, "menu_import", nullptr,
             [this](){return can_add_models(); }, this);
 #else
-        append_menu_item(import_menu, wxID_ANY, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots + "\t" + ctrl + "I", _L("Load a model"),
+        append_shortcut_item(import_menu, Shortcut::ImportModel, true, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots, _L("Load a model"),
             [this](wxCommandEvent&) { if (m_plater) { m_plater->add_model(); } }, "", nullptr,
             [this](){return can_add_models(); }, this);
 #endif
@@ -2909,7 +3047,7 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_core_3mf(); }, "menu_export_sliced_file", nullptr,
             [this](){return can_export_model(); }, this);
         // BBS export .gcode.3mf
-        append_menu_item(export_menu, wxID_ANY, _L("Export plate sliced file") + dots + "\t" + ctrl + "G", _L("Export current sliced file"),
+        append_shortcut_item(export_menu, Shortcut::ExportSlicedFile, true, _L("Export plate sliced file") + dots, _L("Export current sliced file"),
             [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE)); }, "menu_export_sliced_file", nullptr,
             [this](){return can_export_gcode(); }, this);
 
@@ -2959,37 +3097,37 @@ void MainFrame::init_menubar_as_editor()
     };
 #ifndef __APPLE__
         // BBS undo
-        append_menu_item(editMenu, wxID_ANY, _L("Undo") + "\t" + ctrl + "Z",
+        append_shortcut_item(editMenu, Shortcut::Undo, true, _L("Undo"),
             _L("Undo"), [this](wxCommandEvent&) { m_plater->undo(); },
             "menu_undo", nullptr, [this](){return m_plater->can_undo(); }, this);
         // BBS redo
-        append_menu_item(editMenu, wxID_ANY, _L("Redo") + "\t" + ctrl + "Y",
+        append_shortcut_item(editMenu, Shortcut::Redo, true, _L("Redo"),
             _L("Redo"), [this](wxCommandEvent&) { m_plater->redo(); },
             "menu_redo", nullptr, [this](){return m_plater->can_redo(); }, this);
         editMenu->AppendSeparator();
         // BBS Cut TODO
-        append_menu_item(editMenu, wxID_ANY, _L("Cut") + "\t" + ctrl + "X",
+        append_shortcut_item(editMenu, Shortcut::Cut, true, _L("Cut"),
             _L("Cut selection to clipboard"), [this](wxCommandEvent&) {m_plater->cut_selection_to_clipboard(); },
             "menu_cut", nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Copy
-        append_menu_item(editMenu, wxID_ANY, _L("Copy") + "\t" + ctrl + "C",
+        append_shortcut_item(editMenu, Shortcut::Copy, true, _L("Copy"),
             _L("Copy selection to clipboard"), [this](wxCommandEvent&) { m_plater->copy_selection_to_clipboard(); },
             "menu_copy", nullptr, [this](){return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Paste
-        append_menu_item(editMenu, wxID_ANY, _L("Paste") + "\t" + ctrl + "V",
+        append_shortcut_item(editMenu, Shortcut::Paste, true, _L("Paste"),
             _L("Paste clipboard"), [this](wxCommandEvent&) { m_plater->paste_from_clipboard(); },
             "menu_paste", nullptr, [this](){return m_plater->can_paste_from_clipboard(); }, this);
         // BBS Delete selected
-        append_menu_item(editMenu, wxID_ANY, _L("Delete Selected") + "\t" + _L_CONTEXT("Del", "Keyboard Shortcut"),
+        append_shortcut_item(editMenu, Shortcut::DeleteSelected, true, _L("Delete Selected"),
             _L("Deletes the current selection"),[this](wxCommandEvent&) { m_plater->remove_selected(); },
             "menu_remove", nullptr, [this](){return can_delete(); }, this);
         //BBS: delete all
-        append_menu_item(editMenu, wxID_ANY, _L("Delete All") + "\t" + ctrl + "D",
+        append_shortcut_item(editMenu, Shortcut::DeleteAll, true, _L("Delete All"),
             _L("Deletes all objects"),[this](wxCommandEvent&) { m_plater->delete_all_objects_from_model(); },
             "menu_remove", nullptr, [this](){return can_delete_all(); }, this);
         editMenu->AppendSeparator();
         // BBS Clone Selected
-        append_menu_item(editMenu, wxID_ANY, _L("Clone Selected") /*+ "\t" + ctrl + "M"*/,
+        append_shortcut_item(editMenu, Shortcut::CloneSelected, true, _L("Clone Selected"),
             _L("Clone copies of selections"),[this](wxCommandEvent&) {
                 m_plater->clone_selection();
             },
@@ -3003,7 +3141,7 @@ void MainFrame::init_menubar_as_editor()
         editMenu->AppendSeparator();
 #else
         // BBS undo
-        append_menu_item(editMenu, wxID_ANY, _L("Undo") + sep + ctrl_t + "Z",
+        append_shortcut_item(editMenu, Shortcut::Undo, false, _L("Undo"),
             _L("Undo"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3015,7 +3153,7 @@ void MainFrame::init_menubar_as_editor()
                 m_plater->undo(); },
             "", nullptr, [this](){return m_plater->can_undo(); }, this);
         // BBS redo
-        append_menu_item(editMenu, wxID_ANY, _L("Redo") + sep + ctrl_t + "Y",
+        append_shortcut_item(editMenu, Shortcut::Redo, false, _L("Redo"),
             _L("Redo"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3028,7 +3166,7 @@ void MainFrame::init_menubar_as_editor()
             "", nullptr, [this](){return m_plater->can_redo(); }, this);
         editMenu->AppendSeparator();
         // BBS Cut TODO
-        append_menu_item(editMenu, wxID_ANY, _L("Cut") + sep + ctrl_t + "X",
+        append_shortcut_item(editMenu, Shortcut::Cut, false, _L("Cut"),
             _L("Cut selection to clipboard"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3040,7 +3178,7 @@ void MainFrame::init_menubar_as_editor()
                 m_plater->cut_selection_to_clipboard(); },
             "", nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Copy
-        append_menu_item(editMenu, wxID_ANY, _L("Copy") + sep + ctrl_t + "C",
+        append_shortcut_item(editMenu, Shortcut::Copy, false, _L("Copy"),
             _L("Copy selection to clipboard"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3052,7 +3190,7 @@ void MainFrame::init_menubar_as_editor()
                 m_plater->copy_selection_to_clipboard(); },
             "", nullptr, [this](){return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Paste
-        append_menu_item(editMenu, wxID_ANY, _L("Paste") + sep + ctrl_t + "V",
+        append_shortcut_item(editMenu, Shortcut::Paste, false, _L("Paste"),
             _L("Paste clipboard"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3065,14 +3203,14 @@ void MainFrame::init_menubar_as_editor()
             "", nullptr, [this](){return m_plater->can_paste_from_clipboard(); }, this);
 #if 0
         // BBS Delete selected
-        append_menu_item(editMenu, wxID_ANY, _L("Delete Selected") + "\t" + _L_CONTEXT("Backspace", "Keyboard Shortcut"),
+        append_shortcut_item(editMenu, Shortcut::DeleteSelected, true, _L("Delete Selected"),
             _L("Deletes the current selection"),[this](wxCommandEvent&) {
                 m_plater->remove_selected();
             },
             "", nullptr, [this](){return can_delete(); }, this);
 #endif
         //BBS: delete all
-        append_menu_item(editMenu, wxID_ANY, _L("Delete All") + "\t" + ctrl + "D",
+        append_shortcut_item(editMenu, Shortcut::DeleteAll, true, _L("Delete All"),
             _L("Deletes all objects"),[this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3085,7 +3223,7 @@ void MainFrame::init_menubar_as_editor()
             "", nullptr, [this](){return can_delete_all(); }, this);
         editMenu->AppendSeparator();
         // BBS Clone Selected
-        append_menu_item(editMenu, wxID_ANY, _L("Clone Selected") + "\t" + ctrl + "K",
+        append_shortcut_item(editMenu, Shortcut::CloneSelected, true, _L("Clone Selected"),
             _L("Clone copies of selections"),[this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3108,7 +3246,7 @@ void MainFrame::init_menubar_as_editor()
 #endif
 
         // BBS Select All
-        append_menu_item(editMenu, wxID_ANY, _L("Select All") + sep + ctrl_t + "A",
+        append_shortcut_item(editMenu, Shortcut::SelectAll, false, _L("Select All"),
             _L("Selects all objects"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3160,7 +3298,7 @@ void MainFrame::init_menubar_as_editor()
     wxMenu* viewMenu = nullptr;
     if (m_plater) {
         viewMenu = new wxMenu();
-        add_common_view_menu_items(viewMenu, this, std::bind(&MainFrame::can_change_view, this));
+        add_common_view_menu_items(viewMenu, std::bind(&MainFrame::can_change_view, this));
         viewMenu->AppendSeparator();
 
         //BBS perspective view
@@ -3191,13 +3329,14 @@ void MainFrame::init_menubar_as_editor()
             []() { return wxGetApp().app_config->get_bool("auto_perspective"); }, this);
 
         viewMenu->AppendSeparator();
-        append_menu_check_item(viewMenu, wxID_ANY, _L("Show &G-code Window") + sep + "C", _L("Show G-code window in Preview scene."),
+        wxMenuItem* gcode_window = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &G-code Window"), Shortcut::ToggleGcodeWindow, true), _L("Show G-code window in Preview scene."),
             [this](wxCommandEvent &) {
                 wxGetApp().toggle_show_gcode_window();
                 m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
             },
             this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
             []() { return wxGetApp().show_gcode_window(); }, this);
+        m_shortcut_menu_items.push_back({ gcode_window, Shortcut::ToggleGcodeWindow, _L("Show &G-code Window"), true });
 
         append_menu_check_item(
             viewMenu, wxID_ANY, _L("Show 3D Navigator"), _L("Show 3D navigator in Prepare and Preview scene."),
@@ -3225,9 +3364,10 @@ void MainFrame::init_menubar_as_editor()
             this);
 
         viewMenu->AppendSeparator();
-        append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Labels") + "\t" + ctrl + "E", _L("Show object labels in 3D scene."),
+        wxMenuItem* show_labels = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &Labels"), Shortcut::ShowLabels, true), _L("Show object labels in 3D scene."),
             [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); }, this,
             [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
+        m_shortcut_menu_items.push_back({ show_labels, Shortcut::ShowLabels, _L("Show &Labels"), true });
 
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Overhang"), _L("Show object overhang highlight in 3D scene."),
             [this](wxCommandEvent &) {
@@ -3272,8 +3412,6 @@ void MainFrame::init_menubar_as_editor()
     //auto preference_item = new wxMenuItem(parent_menu, OrcaSlicerMenuPreferences + bambu_studio_id_base, _L("Preferences") + "\t" + ctrl + ",", "");
 #else
     wxMenu* parent_menu = m_topbar->GetTopMenu();
-    auto preference_item = new wxMenuItem(parent_menu, ConfigMenuPreferences + config_id_base, _L("Preferences") + "\t" + ctrl + "P", "");
-
 #endif
 
 #ifdef __APPLE__
@@ -3282,8 +3420,8 @@ void MainFrame::init_menubar_as_editor()
         parent_menu, wxID_ANY, _L(about_title), "",
         [](wxCommandEvent &) { Slic3r::GUI::about();},
         "", nullptr, []() { return true; }, this, 0);
-    append_menu_item(
-        parent_menu, wxID_ANY, _L("Preferences") + "\t" + ctrl + ",", "",
+    append_shortcut_item(
+        parent_menu, Shortcut::Preferences, true, _L("Preferences"), "",
         [](wxCommandEvent &) {
             wxGetApp().open_preferences();
         },
@@ -3301,8 +3439,8 @@ void MainFrame::init_menubar_as_editor()
         m_topbar->AddDropDownSubMenu(viewMenu, _L("View"));
     //BBS add Preference
 
-    append_menu_item(
-        m_topbar->GetTopMenu(), wxID_ANY, _L("Preferences") + "\t" + ctrl + "P", "",
+    append_shortcut_item(
+        m_topbar->GetTopMenu(), Shortcut::Preferences, true, _L("Preferences"), "",
         [](wxCommandEvent &) {
             // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
             wxGetApp().open_preferences();
@@ -3312,7 +3450,13 @@ void MainFrame::init_menubar_as_editor()
     auto top_menu = m_topbar->GetTopMenu();
     top_menu->AppendSeparator();
 
-        append_menu_item(
+    append_shortcut_item(
+        top_menu, Shortcut::SpeedDial, false, _L("Open Speed Dial"), "",
+        [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
+        "", nullptr, []() { return true; }, this);
+    top_menu->AppendSeparator();
+
+    append_menu_item(
         top_menu, wxID_ANY, _L("Preset Bundle") + "\t", "",
         [this](wxCommandEvent &) {
             // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
@@ -3358,88 +3502,51 @@ void MainFrame::init_menubar_as_editor()
 
     // Temperature
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Temperature"), _L("Temperature Calibration"),
-        [this](wxCommandEvent&) {
-            if (!m_temp_calib_dlg)
-                m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_temp_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Temperature); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Max Volumetric Speed
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Max flowrate"), _L("Max flowrate"),
-        [this](wxCommandEvent&) {
-            if (!m_vol_test_dlg)
-                m_vol_test_dlg = new MaxVolumetricSpeed_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vol_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::MaxVolumetric); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Pressure Advance
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Pressure advance"), _L("Pressure advance"),
-        [this](wxCommandEvent&) {
-            if (!m_pa_calib_dlg)
-                m_pa_calib_dlg = new PA_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_pa_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::PressureAdvance); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flow rate (Wizard Dialog)
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
-        [this](wxCommandEvent&) {
-            if (!m_plater) return;
-            if (!m_flow_rate_calib_dlg)
-                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
-            m_flow_rate_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Retraction
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction"), _L("Retraction"),
-        [this](wxCommandEvent&) {
-            if (!m_retraction_calib_dlg)
-                m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_retraction_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Retraction); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Cornering
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Cornering"), _L("Cornering calibration"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Cornering_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Cornering); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Input Shaping (with submenu)
     auto input_shaping_menu = new wxMenu();
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Frequency"), _L("Input Shaping Frequency"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Freq_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingFreq); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Damping/zeta factor"), _L("Input Shaping Damping/zeta factor"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Damp_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingDamp); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     m_topbar->GetCalibMenu()->AppendSubMenu(input_shaping_menu, _L("Input Shaping"));
 
     // VFA
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("VFA"), _L("VFA"),
-        [this](wxCommandEvent&) {
-            if (!m_vfa_test_dlg)
-                m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vfa_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // help
@@ -3450,6 +3557,10 @@ void MainFrame::init_menubar_as_editor()
 #else
     // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
     fileMenu->AppendSeparator();
+    append_shortcut_item(
+        fileMenu, Shortcut::SpeedDial, false, _L("Open Speed Dial"), "",
+        [](wxCommandEvent&) { wxGetApp().open_speed_dial(); },
+        "", nullptr, []() { return true; }, this);
     append_menu_item(
         fileMenu, wxID_ANY, _L("Preset Bundle"), "",
         [this](wxCommandEvent&) {
@@ -3496,89 +3607,52 @@ void MainFrame::init_menubar_as_editor()
 
     // Temperature
     append_menu_item(calib_menu, wxID_ANY, _L("Temperature"), _L("Temperature"),
-        [this](wxCommandEvent&) {
-            if (!m_temp_calib_dlg)
-                m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_temp_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Temperature); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Max Volumetric Speed
     append_menu_item(calib_menu, wxID_ANY, _L("Max flowrate"), _L("Max flowrate"),
-        [this](wxCommandEvent&) {
-            if (!m_vol_test_dlg)
-                m_vol_test_dlg = new MaxVolumetricSpeed_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vol_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::MaxVolumetric); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Pressure Advance
     append_menu_item(calib_menu, wxID_ANY, _L("Pressure advance"), _L("Pressure advance"),
-        [this](wxCommandEvent&) {
-            if (!m_pa_calib_dlg)
-                m_pa_calib_dlg = new PA_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_pa_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::PressureAdvance); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flowrate (with submenu)
     // ORCA: Flow rate (Wizard Dialog)
     append_menu_item(calib_menu, wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
-        [this](wxCommandEvent&) {
-            if (!m_plater) return;
-            if (!m_flow_rate_calib_dlg)
-                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
-            m_flow_rate_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Retraction
     append_menu_item(calib_menu, wxID_ANY, _L("Retraction"), _L("Retraction"),
-        [this](wxCommandEvent&) {
-            if (!m_retraction_calib_dlg)
-                m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_retraction_calib_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Retraction); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Cornering
     append_menu_item(calib_menu, wxID_ANY, _L("Cornering"), _L("Cornering calibration"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Cornering_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Cornering); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Input Shaping (with submenu)
     auto input_shaping_menu = new wxMenu();
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Frequency"), _L("Input Shaping Frequency"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Freq_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingFreq); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(
         input_shaping_menu, wxID_ANY, _L("Input Shaping Damping/zeta factor"), _L("Input Shaping Damping/zeta factor"),
-        [this](wxCommandEvent&) {
-            auto dlg = new Input_Shaping_Damp_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            dlg->ShowModal();
-            dlg->Destroy();
-        },
+        [this](wxCommandEvent&) { run_calibration(CalibKind::InputShapingDamp); },
         "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     calib_menu->AppendSubMenu(input_shaping_menu, _L("Input Shaping"));
 
     // VFA
     append_menu_item(calib_menu, wxID_ANY, _L("VFA"), _L("VFA"),
-        [this](wxCommandEvent&) {
-            if (!m_vfa_test_dlg)
-                m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
-            m_vfa_test_dlg->ShowModal();
-        }, "", nullptr,
+        [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     // help
     append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
@@ -3687,7 +3761,7 @@ void MainFrame::init_menubar_as_gcodeviewer()
     wxMenu* viewMenu = nullptr;
     if (m_plater != nullptr) {
         viewMenu = new wxMenu();
-        add_common_view_menu_items(viewMenu, this, std::bind(&MainFrame::can_change_view, this));
+        add_common_view_menu_items(viewMenu, std::bind(&MainFrame::can_change_view, this));
     }
 
     // helpmenu
@@ -4350,6 +4424,72 @@ void MainFrame::technology_changed()
     PrinterTechnology pt = plater()->printer_technology();
     if (int id = m_menubar->FindMenu(pt == ptFFF ? _omitL("Material Settings") : _L("Filament settings")); id != wxNOT_FOUND)
         m_menubar->SetMenuLabel(id, pt == ptSLA ? _omitL("Material Settings") : _L("Filament settings"));
+}
+
+// Opens the calibration wizard for `calib_kind`. Single source of truth for the wizard lifecycle:
+// the Calibration menu handlers and the Speed Dial native commands both call it. Most wizards are
+// cached members reused across launches; cornering/input-shaping build a fresh transient dialog.
+// Call while the Prepare (3D) panel is shown.
+void MainFrame::run_calibration(CalibKind calib_kind)
+{
+    switch (calib_kind) {
+    case CalibKind::Temperature: {
+        if (!m_temp_calib_dlg)
+            m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_temp_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::MaxVolumetric: {
+        if (!m_vol_test_dlg)
+            m_vol_test_dlg = new MaxVolumetricSpeed_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_vol_test_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::PressureAdvance: {
+        if (!m_pa_calib_dlg)
+            m_pa_calib_dlg = new PA_Calibration_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_pa_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::FlowRatio: {
+        if (!m_plater)
+            break;
+        if (!m_flow_rate_calib_dlg)
+            m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*) this, wxID_ANY, m_plater);
+        m_flow_rate_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::Retraction: {
+        if (!m_retraction_calib_dlg)
+            m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_retraction_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::Cornering: {
+        auto dlg = new Cornering_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        dlg->ShowModal();
+        dlg->Destroy();
+        break;
+    }
+    case CalibKind::InputShapingFreq: {
+        auto dlg = new Input_Shaping_Freq_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        dlg->ShowModal();
+        dlg->Destroy();
+        break;
+    }
+    case CalibKind::InputShapingDamp: {
+        auto dlg = new Input_Shaping_Damp_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        dlg->ShowModal();
+        dlg->Destroy();
+        break;
+    }
+    case CalibKind::VFA: {
+        if (!m_vfa_test_dlg)
+            m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_vfa_test_dlg->ShowModal();
+        break;
+    }
+    }
 }
 
 

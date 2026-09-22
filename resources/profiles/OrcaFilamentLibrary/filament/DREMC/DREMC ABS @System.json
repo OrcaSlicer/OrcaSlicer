@@ -3,6 +3,7 @@
 	"name": "DREMC ABS @System",
 	"inherits": "DREMC ABS @base",
 	"from": "system",
-	"instantiation": "false",
+	"setting_id": "gNjISMxTLwQzDrV9",
+	"instantiation": "true",
 	"compatible_printers": []
 }
