@@ -7,18 +7,42 @@
 
 uniform sampler2D color_texture;
 uniform sampler2D depth_texture;
-uniform sampler2D normal_texture;   
+uniform vec2 inv_tex_size;
 uniform float z_near;
 uniform float z_far;
 uniform bool is_outline;
+// The pass has no normal target to read, so the surface normal is reconstructed from the depth
+// buffer. inv_projection_matrix unprojects a pixel back into view space and up_view is world +Z
+// expressed in view space, which is what tells a top surface from a wall.
+uniform mat4 inv_projection_matrix;
+uniform vec3 up_view;
 
 in vec2 tex_coord;
 out vec4 frag_color;
 
-float linearize_depth(float depth)
+// Position of the given pixel in view space. Valid under both an orthographic and a perspective
+// camera, unlike the depth linearization it replaces.
+vec3 view_pos(ivec2 pixel)
 {
-    float z = depth * 2.0 - 1.0;
-    return (2.0 * z_near * z_far) / (z_far + z_near - z * (z_far - z_near));
+    ivec2 sz = textureSize(depth_texture, 0);
+    ivec2 p = clamp(pixel, ivec2(0), sz - 1);
+    float d = texelFetch(depth_texture, p, 0).r;
+    vec4 ndc = vec4((vec2(p) + 0.5) * inv_tex_size * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+    vec4 view = inv_projection_matrix * ndc;
+    return view.xyz / view.w;
+}
+
+// Surface normal at the given pixel, from the forward differences of the reconstructed view
+// position. It rings by a pixel across a depth discontinuity, which is acceptable here: the
+// normal only weights the occlusion, nothing is shaded with it.
+vec3 view_normal(ivec2 pixel)
+{
+    vec3 p  = view_pos(pixel);
+    vec3 px = view_pos(pixel + ivec2(1, 0));
+    vec3 py = view_pos(pixel + ivec2(0, 1));
+    vec3 n = cross(px - p, py - p);
+    float len = length(n);
+    return (len > 1e-8) ? n / len : vec3(0.0, 0.0, 1.0);
 }
 
 void main()
@@ -28,15 +52,21 @@ void main()
         return;
     }
     ivec2 pixel = ivec2(gl_FragCoord.xy);
-    float center_depth = linearize_depth(texelFetch(depth_texture, pixel, 0).r);
-    
-    // Sample normal buffer (stored as RGB in 0-1 range, convert to -1 to 1)
-    vec3 normal_center = texelFetch(normal_texture, pixel, 0).rgb * 2.0 - 1.0;
-    normal_center = normalize(normal_center);
-    
+    vec3 color = texture(color_texture, tex_coord).rgb;
+
+    // Nothing was drawn here: occluding the background would only darken the gradient, and its
+    // reconstructed normal is degenerate anyway.
+    if (texelFetch(depth_texture, pixel, 0).r >= 0.9999) {
+        frag_color = vec4(color, 1.0);
+        return;
+    }
+
+    float center_depth = -view_pos(pixel).z;
+    vec3 normal_center = view_normal(pixel);
+
     // Calculate upward-facing factor (Z-up coordinate system)
-    float up_factor = clamp(normal_center.z * 1.5, 0.0, 1.0);
-    
+    float up_factor = clamp(dot(normal_center, up_view) * 1.5, 0.0, 1.0);
+
     // Adaptive radius in pixel space
     int radius = int(mix(2.0, 4.0, center_depth / z_far));
 
@@ -47,6 +77,10 @@ void main()
         ivec2(2, 0),  ivec2(-2, 0),  ivec2(0, 2),  ivec2(0, -2)
     );
 
+    // Minimum depth difference to consider occlusion (ignores small variations)
+    float threshold_min = 0.008;  // Higher = only deep valleys get darkened
+    float threshold_max = 0.04;   // Transition range for full occlusion
+
     float occlusion = 0.0;
     int valid_samples = 0;
 
@@ -56,18 +90,11 @@ void main()
         if (sample_pixel.x < 0 || sample_pixel.y < 0) 
             continue;
         
-        float sample_depth = linearize_depth(texelFetch(depth_texture, sample_pixel, 0).r);
-        
-        // Sample normal at neighbor
-        vec3 normal_sample = texelFetch(normal_texture, sample_pixel, 0).rgb * 2.0 - 1.0;
+        float sample_depth = -view_pos(sample_pixel).z;
+        vec3 normal_sample = view_normal(sample_pixel);
         
         // Depth difference (positive if neighbor is closer to camera)
         float depth_diff = center_depth - sample_depth;
-        
-        // Sharp depth threshold ===
-        // Minimum depth difference to consider occlusion (ignores small variations)
-        float threshold_min = 0.008;  // Higher = only deep valleys get darkened
-        float threshold_max = 0.04;   // Transition range for full occlusion
         
         float contribution = 0.0;
         if (depth_diff > threshold_min) {
@@ -103,6 +130,5 @@ void main()
         occlusion = 1.0;
     }
 
-    vec3 color = texture(color_texture, tex_coord).rgb;
     frag_color = vec4(color * occlusion, 1.0);
 }

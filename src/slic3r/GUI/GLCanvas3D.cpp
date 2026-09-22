@@ -7894,6 +7894,13 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     shader->set_uniform("inv_tex_size", Vec2f(1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height)));
     shader->set_uniform("z_near", camera.get_near_z());
     shader->set_uniform("z_far", camera.get_far_z());
+    // The shader reconstructs the surface normal from the depth buffer, there being no normal
+    // target to read: it unprojects a pixel back into view space, then measures the result
+    // against world +Z expressed in view space to tell a top surface from a wall.
+    const Matrix4d inv_projection_matrix = camera.get_projection_matrix().matrix().inverse();
+    shader->set_uniform("inv_projection_matrix", inv_projection_matrix);
+    const Vec3d up_view = (camera.get_view_matrix().matrix().block<3, 3>(0, 0) * Vec3d::UnitZ()).normalized();
+    shader->set_uniform("up_view", up_view);
 
     glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));

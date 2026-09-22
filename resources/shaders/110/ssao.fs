@@ -7,18 +7,40 @@
 
 uniform sampler2D color_texture;
 uniform sampler2D depth_texture;
-uniform sampler2D normal_texture;
 uniform vec2 inv_tex_size;
 uniform float z_near;
 uniform float z_far;
 uniform bool is_outline;
+// The pass has no normal target to read, so the surface normal is reconstructed from the depth
+// buffer. inv_projection_matrix unprojects a pixel back into view space and up_view is world +Z
+// expressed in view space, which is what tells a top surface from a wall.
+uniform mat4 inv_projection_matrix;
+uniform vec3 up_view;
 
 varying vec2 tex_coord;
 
-float linearize_depth(float depth)
+// Position of the given pixel in view space. Valid under both an orthographic and a perspective
+// camera, unlike the depth linearization it replaces.
+vec3 view_pos(vec2 uv)
 {
-    float z = depth * 2.0 - 1.0;
-    return (2.0 * z_near * z_far) / (z_far + z_near - z * (z_far - z_near));
+    vec2 c = clamp(uv, vec2(0.0), vec2(1.0));
+    float d = texture2D(depth_texture, c).r;
+    vec4 ndc = vec4(c * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+    vec4 view = inv_projection_matrix * ndc;
+    return view.xyz / view.w;
+}
+
+// Surface normal at the given pixel, from the forward differences of the reconstructed view
+// position. It rings by a pixel across a depth discontinuity, which is acceptable here: the
+// normal only weights the occlusion, nothing is shaded with it.
+vec3 view_normal(vec2 uv)
+{
+    vec3 p  = view_pos(uv);
+    vec3 px = view_pos(uv + vec2(inv_tex_size.x, 0.0));
+    vec3 py = view_pos(uv + vec2(0.0, inv_tex_size.y));
+    vec3 n = cross(px - p, py - p);
+    float len = length(n);
+    return (len > 1e-8) ? n / len : vec3(0.0, 0.0, 1.0);
 }
 
 void main()
@@ -28,16 +50,20 @@ void main()
         return;
     }
     vec3 base = texture2D(color_texture, tex_coord).rgb;
-    float depth_center = linearize_depth(texture2D(depth_texture, tex_coord).r);
 
-    // Sample normal at current fragment (range: -1 to 1)
-    vec3 normal_center = texture2D(normal_texture, tex_coord).rgb * 2.0 - 1.0;
+    // Nothing was drawn here: occluding the background would only darken the gradient, and its
+    // reconstructed normal is degenerate anyway.
+    if (texture2D(depth_texture, tex_coord).r >= 0.9999) {
+        gl_FragColor = vec4(base, 1.0);
+        return;
+    }
+
+    float depth_center = -view_pos(tex_coord).z;
+    vec3 normal_center = view_normal(tex_coord);
     
     // Calculate how much the surface faces upward
-    // up_factor = 1.0 for surfaces pointing straight up (0,0,1)
-    // up_factor = 0.0 for surfaces pointing down or sideways
-    float up_factor = max(0.0, normal_center.z);  // Assuming Z is up axis
-    // Alternative: if Y is up, use normal_center.y
+    // up_factor = 1.0 for surfaces pointing straight up, 0.0 for walls and downward faces
+    float up_factor = clamp(dot(normal_center, up_view), 0.0, 1.0);
     
     // Adaptive sampling radius
     float radius = mix(2.0, 4.0, depth_center / z_far);
@@ -57,9 +83,8 @@ void main()
     
     for (int i = 0; i < 8; ++i) {
         vec2 uv = tex_coord + offsets[i] * inv_tex_size * radius;
-        uv = clamp(uv, vec2(0.001), vec2(0.999));
         
-        float sample_depth = linearize_depth(texture2D(depth_texture, uv).r);
+        float sample_depth = -view_pos(uv).z;
         float depth_diff = max(0.0, depth_center - sample_depth);
         
         float threshold = 0.015 * (0.5 + depth_center / z_far);
