@@ -88,10 +88,10 @@ TEST_CASE("ensure builds whatever is left and is a no-op afterwards", "[Lazy]")
     Made<Staged> made;
     Lazy<Staged> lazy("staged", 0, made.factory());
     lazy.build_step();
-    Staged& s = lazy.ensure();
-    REQUIRE(&s == made.objects[0].get());
-    REQUIRE(s.ran == std::vector<int>{1, 2});
-    REQUIRE(&lazy.ensure() == &s);
+    Staged* s = lazy.ensure();
+    REQUIRE(s == made.objects[0].get());
+    REQUIRE(s->ran == std::vector<int>{1, 2});
+    REQUIRE(lazy.ensure() == s);
     REQUIRE(made.objects.size() == 1);
 }
 
@@ -177,4 +177,26 @@ TEST_CASE("A factory that returns null leaves the holder unbuilt and not pending
     REQUIRE(lazy.get() == nullptr);
     REQUIRE_FALSE(lazy.build_step()); // not retried
     REQUIRE(calls == 1);
+}
+
+TEST_CASE("ensure returns null for a factory that returned null", "[Lazy]")
+{
+    Lazy<Plain> lazy("plain", 0, [] { return static_cast<Plain*>(nullptr); });
+    REQUIRE(lazy.ensure() == nullptr);
+    REQUIRE_FALSE(lazy.built());
+}
+
+TEST_CASE("A nested ensure inside the factory returns null", "[Lazy]")
+{
+    Made<Plain>  made;
+    Lazy<Plain>* self   = nullptr;
+    Plain*       nested = reinterpret_cast<Plain*>(1);
+    Lazy<Plain>  lazy("plain", 0, [&] {
+        nested = self->ensure(); // as if the constructor pumped the event loop into a caller
+        return made.make();
+    });
+    self = &lazy;
+    Plain* built = lazy.ensure();
+    REQUIRE(built == made.objects[0].get());
+    REQUIRE(nested == nullptr);
 }

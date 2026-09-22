@@ -4041,7 +4041,8 @@ void MainFrame::jump_to_multipage()
     if (!m_multi_machine_page->in_book())
         return;
     m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE);
-    m_multi_machine_page->ensure().jump_to_send_page();
+    if (MultiMachinePage* page = m_multi_machine_page->ensure())
+        page->jump_to_send_page();
 }
 
 

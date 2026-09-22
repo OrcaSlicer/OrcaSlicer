@@ -29,9 +29,9 @@ cursor for an on-demand build lives in `Lazy.cpp` and is skipped when there is n
 so the holder is unit-tested.
 
 - `get()` is null until the object is completely built; `built()` says the same.
-- `ensure()` builds whatever is left now, under a busy cursor, and returns the object. A
-  click on an unbuilt tab or a first open of a dialog goes through this, and it logs the
-  units and time it took.
+- `ensure()` builds whatever is left now, under a busy cursor, and returns the object, or
+  null in the two cases below. A click on an unbuilt tab or a first open of a dialog goes
+  through this, and it logs the units and time it took.
 - `build_step()` runs one unit of construction and returns true while more remain. The
   first unit is the factory call, and each later unit is one `StagedBuild` step if the
   type has them.
@@ -39,7 +39,8 @@ so the holder is unit-tested.
 - `pending()` says whether the idle prebuild has work here: not built, and the factory
   has not returned null. A null factory result is logged and the holder stays unbuilt.
 - A unit that pumps the event loop cannot re-enter the holder; a nested `build_step()`
-  does nothing and a nested `ensure()` returns the object as it is.
+  does nothing and a nested `ensure()` returns the object as it is, which is null while the
+  factory itself has not returned.
 
 The holder does not own the object; its wx parent does, as for any window. A type with
 one instance in the app derives from `LazyInstance<T>`, which points at that instance's

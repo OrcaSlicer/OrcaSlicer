@@ -85,8 +85,9 @@ public:
     // Null until completely built.
     T* get() const { return built() ? m_object : nullptr; }
 
-    // Builds whatever is left now and returns the object.
-    T& ensure()
+    // Builds whatever is left now and returns the object, null if the factory returned null
+    // or has not returned yet.
+    T* ensure()
     {
         if (!built() && !m_building) {
             OnDemandBuild build(*this);
@@ -94,7 +95,7 @@ public:
                 build.unit();
             while (build_step());
         }
-        return *m_object;
+        return m_object;
     }
 
     // Runs fn on the object now if it is built, otherwise once it is.
@@ -176,8 +177,9 @@ class LazyInstance
 public:
     // Null until completely built.
     static Self* if_built() { return s_lazy ? s_lazy->get() : nullptr; }
-    // Builds the object if needed; null only while no holder exists.
-    static Self* ensure() { return s_lazy ? &s_lazy->ensure() : nullptr; }
+    // Builds the object if needed; null while no holder exists or the holder has no
+    // object.
+    static Self* ensure() { return s_lazy ? s_lazy->ensure() : nullptr; }
     // Runs fn on the object now if it is built, otherwise once it is.
     static void when_built(std::function<void(Self&)> fn)
     {

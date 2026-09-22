@@ -62,7 +62,8 @@ public:
             // The book shows its first page as it is inserted, before startup has chosen the
             // start page, so a hidden frame builds nothing; MainFrame::Show() completes it.
             if (this->built() || wxGetTopLevelParent(this)->IsShown()) {
-                this->ensure().Show(true);
+                if (Panel* panel = this->ensure())
+                    panel->Show(true);
                 // The sizer skipped the panel while the book kept it hidden.
                 Layout();
             }
