@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Basic @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA00",
+	"filament_id": "OFoiVqVM",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

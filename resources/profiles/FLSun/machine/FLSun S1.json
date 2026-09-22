@@ -8,5 +8,5 @@
 	"bed_model": "flsun_s1_buildplate_model.stl",
 	"bed_texture": "FLSun_S1_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "FLSun S1 PLA High Speed;FLSun S1 PLA Silk;FLSun S1 PLA Generic;FLSun S1 PETG;FLSun S1 ASA;FLSun S1 TPU;FLSun S1 ABS"
+	"default_materials": "Generic PLA High Speed @FLSun S1;Generic PLA Silk @FLSun S1;Generic PLA @FLSun S1;Generic PETG @FLSun S1;Generic ASA @FLSun S1;Generic TPU @FLSun S1;Generic ABS @FLSun S1"
 }

@@ -63,7 +63,6 @@ class ProjectPanel : public wxPanel
 {
 private:
     std::atomic<bool> m_web_init_completed{false};
-    bool       m_reload_already = {false};
 
     std::shared_ptr<std::atomic<bool>> m_reload_cancel_token{std::make_shared<std::atomic<bool>>(false)};
     std::unique_ptr<boost::thread> m_reload_task;

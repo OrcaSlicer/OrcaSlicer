@@ -1,4 +1,9 @@
 {
+	"type": "machine",
+	"name": "fdm_openeye_common",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
 	"bed_exclude_area": [
@@ -38,14 +43,11 @@
 	"fan_kickstart": "0",
 	"fan_speedup_overhangs": "1",
 	"fan_speedup_time": "0",
-	"from": "system",
 	"gcode_flavor": "klipper",
 	"head_wrap_detect_zone": [],
 	"high_current_on_filament_swap": "0",
 	"host_type": "octoprint",
 	"printer_agent": "moonraker",
-	"inherits": "fdm_machine_common",
-	"instantiation": "false",
 	"layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\n_MMU_UPDATE_HEIGHT",
 	"long_retractions_when_cut": [
 		"0"
@@ -137,7 +139,6 @@
 		"0.08"
 	],
 	"min_resonance_avoidance_speed": "70",
-	"name": "fdm_openeye_common",
 	"nozzle_diameter": [
 		"0.4",
 		"0.4"
@@ -195,7 +196,6 @@
 		"40"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",
@@ -208,7 +208,6 @@
 	"travel_slope": [
 		"3"
 	],
-	"type": "machine",
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
 	"wipe": [

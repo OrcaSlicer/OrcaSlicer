@@ -56,7 +56,7 @@ protected:
     void         paintEvent(wxPaintEvent &evt);
     void         render(wxDC &dc);
     void         doRender(wxDC &dc);
-    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
+    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO) override;
 
 
 

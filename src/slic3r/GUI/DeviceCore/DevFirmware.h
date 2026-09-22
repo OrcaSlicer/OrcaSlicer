@@ -64,7 +64,7 @@ public:
     DevFirmware(MachineObject* obj) : m_owner(obj) {}
 
 private:
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 };
 
 } // namespace Slic3r

@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Marble @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM003",
+	"filament_id": "OFKiSMWR",
 	"instantiation": "false",
 	"filament_cost": [
 		"21.99"

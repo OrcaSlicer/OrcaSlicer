@@ -862,7 +862,6 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
             if (new_extra_ams_ver != obj->new_ver_list.end())
                 has_new_version = true;
 
-            extra_ams_it->second.sw_new_ver;
             if (has_new_version) {
                 m_extra_ams_panel->m_ams_new_version_img->Show();
                 ver_text = new_extra_ams_ver->second.sw_ver;
