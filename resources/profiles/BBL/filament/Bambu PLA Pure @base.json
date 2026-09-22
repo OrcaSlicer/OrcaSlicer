@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Pure @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA19",
+	"filament_id": "OFTHDCqA",
 	"instantiation": "false",
 	"filament_cost": [
 		"21.99"

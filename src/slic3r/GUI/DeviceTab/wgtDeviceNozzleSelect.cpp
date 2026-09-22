@@ -3,7 +3,7 @@
 *  Description: The panel to select nozzle
 *
 *  \n class wgtDeviceNozzleSelect;
-//**********************************************************/
+************************************************************/
 
 #include "wgtDeviceNozzleSelect.h"
 #include "wgtDeviceNozzleRack.h"
@@ -114,7 +114,7 @@ static void s_update_nozzle_info(wgtDeviceNozzleRackNozzleItem* item,
                                  std::shared_ptr<DevNozzleRack> rack,
                                  const DevNozzle& nozzle_info)
 {
-    item->Update(rack, nozzle_info.IsOnRack());
+    item->UpdateInfo(rack, nozzle_info.IsOnRack());
     if (nozzle_info.IsUnknown()) {
         if (item->GetToolTipText() != _L("Nozzle information needs to be read")) {
             item->SetToolTip(_L("Nozzle information needs to be read"));
@@ -266,7 +266,7 @@ void wgtDeviceNozzleRackSelect::OnNozzleItemSelected(wxCommandEvent &evt)
     }
 
     auto *item = dynamic_cast<wgtDeviceNozzleRackNozzleItem *>(evt.GetEventObject());
-    if (item; auto ptr = m_nozzle_rack.lock()) {
+    if (auto ptr = m_nozzle_rack.lock(); item && ptr) {
         int to_select_pos_id = sGetNozzlePosId(item, m_toolhead_nozzle_l, m_toolhead_nozzle_r);
         if (to_select_pos_id > -1 && to_select_pos_id != GetSelectedNozzlePosID()) {
             SetSelectedNozzle(ptr->GetNozzleSystem()->GetNozzleByPosId(to_select_pos_id));

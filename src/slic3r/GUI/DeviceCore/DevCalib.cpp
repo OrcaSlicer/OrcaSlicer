@@ -1,5 +1,7 @@
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
 
 #include "slic3r/GUI/UserNotification.hpp"
 #include "libslic3r/PrintConfig.hpp"

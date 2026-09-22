@@ -22,7 +22,7 @@
 	"auxiliary_fan": "0",
 	"printer_variant": "0.4",
 	"default_filament_profile": [
-		"Direct Drive"
+		"YUMI PLA Direct Drive"
 	],
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
 	"change_filament_gcode": "M600",

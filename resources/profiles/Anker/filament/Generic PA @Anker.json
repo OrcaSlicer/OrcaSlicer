@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Generic PA @Anker",
+	"inherits": "Generic PA @Anker base",
+	"renamed_from": "Anker Generic PA",
+	"from": "system",
+	"setting_id": "sLWVtBxpAC53eUwo",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anker M5 All-Metal 0.4 nozzle",
+		"Anker M5 All-Metal 0.6 nozzle",
+		"Anker M5C 0.4 nozzle",
+		"Anker M5C 0.6 nozzle"
+	]
+}

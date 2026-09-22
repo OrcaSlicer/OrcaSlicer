@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Meltingplot PA6 CF HT @0.4 nozzle",
+	"inherits": "Meltingplot PA6 CF HT",
+	"from": "system",
+	"setting_id": "yUlzU6KMVx8bpxj1",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"7"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 0.4 nozzle",
+		"Meltingplot MBL 136 0.4 nozzle",
+		"Meltingplot MBL 308 0.4 nozzle",
+		"Meltingplot MBL 480 0.4 nozzle",
+		"Meltingplot CHX 350 0.4 nozzle"
+	]
+}
