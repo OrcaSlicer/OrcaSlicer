@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/PresetBundle.hpp"
+#include "slic3r/plugin/host/FilamentSlotMutationTransaction.hpp"
 #include "slic3r/plugin/host/PersistentPresetMutationTransaction.hpp"
 #include "test_utils.hpp"
 
@@ -32,6 +33,38 @@ Slic3r::PresetBundle printer_bundle(const boost::filesystem::path& root)
     selected.is_external = false;
     bundle.printers.get_edited_preset() = selected;
     return bundle;
+}
+
+Slic3r::PresetBundle filament_bundle(const boost::filesystem::path& root)
+{
+    Slic3r::PresetBundle bundle;
+    Slic3r::Preset& target = bundle.filaments.get_selected_preset();
+    target.name = "G4 Filament Target";
+    target.file = (root / "g4-filament-target.json").string();
+    target.is_default = false;
+    target.is_system = false;
+    target.is_external = false;
+    target.is_project_embedded = false;
+    target.bundle_id.clear();
+    bundle.filaments.get_edited_preset() = target;
+
+    Slic3r::DynamicPrintConfig other_config = target.config;
+    Slic3r::Preset& other = bundle.filaments.load_preset(
+        (root / "g4-filament-slot-zero.json").string(), "G4 Filament Slot Zero", other_config, false);
+    other.is_default = false;
+    other.is_system = false;
+    other.is_external = false;
+    other.is_project_embedded = false;
+    other.bundle_id.clear();
+    bundle.filament_presets = { other.name, target.name };
+    bundle.set_num_filaments(2);
+    bundle.filaments.select_preset_by_name(target.name, true);
+    return bundle;
+}
+
+std::vector<std::string> filament_mapping(const Slic3r::PresetBundle& bundle)
+{
+    return bundle.filament_presets;
 }
 
 } // namespace
@@ -209,4 +242,198 @@ TEST_CASE("Printer approved protected mutation stays native and failed recovery 
     CHECK(failed->execute({ { "time_cost", "1" } }, false).state ==
           Slic3r::PersistentPresetMutationState::FailedRecovery);
     CHECK_THROWS(failed->execute({ { "time_cost", "2" } }, false));
+}
+
+TEST_CASE("Filament slot persistent mutation commits only a unique physical user slot", "[PluginHost][FilamentSlotMutation]")
+{
+    ScopedTemporaryDir root("orca-filament-slot-mutation");
+    Slic3r::PresetBundle bundle = filament_bundle(root.path());
+    const auto before_mapping = filament_mapping(bundle);
+    const auto before_physical = bundle.physical_filament_config_indices();
+    const auto before_mixed = bundle.project_config.option<Slic3r::ConfigOptionBools>("filament_is_mixed")->values;
+    const auto before_map = bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_map")->values;
+    const auto before_nozzle_map = bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values;
+    const auto before_volume_map = bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_volume_map")->values;
+    const Slic3r::Preset* target_before = bundle.filaments.find_preset("G4 Filament Target", false, true);
+    REQUIRE(target_before != nullptr);
+    const Slic3r::DynamicPrintConfig before_target = target_before->config;
+    auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+    const auto captured = transaction->snapshot();
+
+    CHECK(captured.slot_index == 1);
+    CHECK(captured.active_slot_name == "G4 Filament Target");
+    CHECK(captured.target_preset_name == "G4 Filament Target");
+    CHECK(captured.shared_slot_indices == std::vector<size_t>{ 1 });
+    CHECK(captured.filament_presets == before_mapping);
+    CHECK(captured.physical_filament_config_indices == before_physical);
+    CHECK(captured.collection_selected_name == bundle.filaments.get_selected_preset_name());
+
+    const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+
+    CHECK(result.committed);
+    CHECK(result.slot_index == 1);
+    CHECK(result.target_preset_name == "G4 Filament Target");
+    CHECK(result.applied.at("filament_density") == "1.3");
+    CHECK(result.persisted.at("filament_density") == "1.3");
+    CHECK_FALSE(result.selection_changed);
+    CHECK_FALSE(result.mapping_changed);
+    CHECK(bundle.filament_presets == before_mapping);
+    CHECK(bundle.physical_filament_config_indices() == before_physical);
+    CHECK(bundle.project_config.option<Slic3r::ConfigOptionBools>("filament_is_mixed")->values == before_mixed);
+    CHECK(bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_map")->values == before_map);
+    CHECK(bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values == before_nozzle_map);
+    CHECK(bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_volume_map")->values == before_volume_map);
+    CHECK(bundle.filament_presets[0] == "G4 Filament Slot Zero");
+    CHECK(result.side_effects == std::vector<std::string>{
+        "filament_preset_persisted", "filament_compatibility_recalculated" });
+
+    Slic3r::DynamicPrintConfig file_values;
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+    file_values.load_from_json((root.path() / "g4-filament-target.json").string(),
+                               Slic3r::ForwardCompatibilitySubstitutionRule::Disable, key_values, reason);
+    CHECK(reason.empty());
+    Slic3r::DynamicPrintConfig direct_readback = before_target;
+    direct_readback.apply(std::move(file_values));
+    CHECK(direct_readback.opt_serialize("filament_density") == "1.3");
+}
+
+TEST_CASE("Filament slot mutation rejects unsupported target identities", "[PluginHost][FilamentSlotMutation]")
+{
+    ScopedTemporaryDir root("orca-filament-slot-reject");
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        CHECK_THROWS(Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 2));
+    }
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        bundle.project_config.option<Slic3r::ConfigOptionBools>("filament_is_mixed", true)->values[1] = true;
+        CHECK_THROWS(Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1));
+    }
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        bundle.filament_presets[0] = bundle.filament_presets[1];
+        CHECK_THROWS(Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1));
+    }
+    for (const auto target_kind : { 0, 1, 2, 3, 4 }) {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        Slic3r::Preset* target = bundle.filaments.find_preset("G4 Filament Target", false, true);
+        REQUIRE(target != nullptr);
+        if (target_kind == 0) target->is_default = true;
+        if (target_kind == 1) target->is_system = true;
+        if (target_kind == 2) target->is_external = true;
+        if (target_kind == 3) target->is_project_embedded = true;
+        if (target_kind == 4) target->bundle_id = "bundle";
+        CHECK_THROWS(Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1));
+    }
+}
+
+TEST_CASE("Filament slot mutation rejects below-minimum cost before persistence", "[PluginHost][FilamentSlotMutation]")
+{
+    ScopedTemporaryDir root("orca-filament-slot-invalid-cost");
+    Slic3r::PresetBundle bundle = filament_bundle(root.path());
+    const auto before_mapping = filament_mapping(bundle);
+    const Slic3r::Preset* target_before = bundle.filaments.find_preset("G4 Filament Target", false, true);
+    REQUIRE(target_before != nullptr);
+    const Slic3r::DynamicPrintConfig before_target = target_before->config;
+    auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+
+    const auto result = transaction->execute({ { "filament_cost", "-1" } }, false);
+
+    CHECK_FALSE(result.committed);
+    CHECK(result.state == Slic3r::PersistentPresetMutationState::RolledBack);
+    CHECK_FALSE(result.rollback_attempted);
+    CHECK(result.rollback_verified);
+    CHECK(result.error_code == "staged_config_validation_failed");
+    CHECK(bundle.filament_presets == before_mapping);
+    const Slic3r::Preset* target_after = bundle.filaments.find_preset("G4 Filament Target", false, true);
+    REQUIRE(target_after != nullptr);
+    CHECK(target_after->config.equals(before_target));
+}
+
+TEST_CASE("Filament slot mutation rejects stale mapping and target identity before writing", "[PluginHost][FilamentSlotMutation]")
+{
+    ScopedTemporaryDir root("orca-filament-slot-stale");
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+        bundle.filament_presets[0] = "G4 Filament Target";
+        const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.error_code == "stale_slot_identity");
+        CHECK(result.mapping_changed);
+    }
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+        Slic3r::Preset* target = bundle.filaments.find_preset("G4 Filament Target", false, true);
+        REQUIRE(target != nullptr);
+        target->is_external = true;
+        const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.error_code == "stale_slot_identity");
+    }
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+        Slic3r::Preset* target = bundle.filaments.find_preset("G4 Filament Target", false, true);
+        REQUIRE(target != nullptr);
+        target->name = "G4 Filament Target Renamed";
+        const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.error_code == "stale_slot_identity");
+    }
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+        CHECK(bundle.filaments.delete_preset("G4 Filament Target", true));
+        const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.error_code == "stale_slot_identity");
+    }
+}
+
+TEST_CASE("Filament slot mutation preserves a different selected collection and rolls back safely", "[PluginHost][FilamentSlotMutation]")
+{
+    ScopedTemporaryDir root("orca-filament-slot-rollback");
+    {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        bundle.filaments.select_preset_by_name("G4 Filament Slot Zero", true);
+        bundle.filaments.get_edited_preset().config.set_deserialize_strict("filament_cost", "77");
+        bundle.filaments.update_dirty();
+        auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
+        const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+        CHECK(result.committed);
+        CHECK_FALSE(result.selection_changed);
+        CHECK(bundle.filaments.get_selected_preset_name() == "G4 Filament Slot Zero");
+        CHECK(bundle.filaments.get_edited_preset().config.opt_serialize("filament_cost") == "77");
+        CHECK(result.dirty_before == result.dirty_after);
+    }
+    for (const auto hooks : { Slic3r::FilamentSlotMutationTransaction::TestingHooks{true, false, false},
+                              Slic3r::FilamentSlotMutationTransaction::TestingHooks{false, true, false} }) {
+        Slic3r::PresetBundle bundle = filament_bundle(root.path());
+        bundle.filaments.select_preset_by_name("G4 Filament Slot Zero", true);
+        bundle.filaments.get_edited_preset().config.set_deserialize_strict("filament_cost", "77");
+        bundle.filaments.update_dirty();
+        const auto before_mapping = filament_mapping(bundle);
+        auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1, hooks);
+        const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
+        CHECK_FALSE(result.committed);
+        CHECK(result.rollback_attempted);
+        CHECK(result.rollback_verified);
+        CHECK_FALSE(result.mapping_changed);
+        CHECK(bundle.filament_presets == before_mapping);
+        CHECK(bundle.filaments.get_selected_preset_name() == "G4 Filament Slot Zero");
+        CHECK(bundle.filaments.get_edited_preset().config.opt_serialize("filament_cost") == "77");
+        CHECK(result.dirty_before == result.dirty_after);
+    }
+
+    Slic3r::PresetBundle bundle = filament_bundle(root.path());
+    Slic3r::FilamentSlotMutationTransaction::TestingHooks hooks;
+    hooks.force_save_failure = true;
+    hooks.force_rollback_failure = true;
+    auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1, hooks);
+    CHECK(transaction->execute({ { "filament_density", "1.30" } }, false).state ==
+          Slic3r::PersistentPresetMutationState::FailedRecovery);
+    CHECK_THROWS(transaction->execute({ { "filament_density", "1.31" } }, false));
 }

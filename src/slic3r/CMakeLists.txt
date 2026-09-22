@@ -661,6 +661,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/IsolatedSlicingJob.hpp
     plugin/host/PersistentPresetMutationTransaction.cpp
     plugin/host/PersistentPresetMutationTransaction.hpp
+    plugin/host/FilamentSlotMutationTransaction.cpp
+    plugin/host/FilamentSlotMutationTransaction.hpp
     plugin/host/PluginHostMesh.cpp
     plugin/host/PluginHostMesh.hpp
     plugin/host/PluginHostModel.cpp
