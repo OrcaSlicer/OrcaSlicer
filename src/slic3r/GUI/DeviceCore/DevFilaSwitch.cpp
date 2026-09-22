@@ -9,19 +9,6 @@ namespace Slic3r {
 
 DevFilaSwitch::DevFilaSwitch(MachineObject *owner) { m_owner = owner; }
 
-bool DevFilaSwitch::IsReady() const
-{
-    if (!m_is_installed) { return false; }
-
-    const auto& ams_list = m_owner->GetFilaSystem()->GetAmsList();
-    for (const auto& ams_item : ams_list) {
-        if (ams_item.second->GetBindedExtruderSet().empty()) { return false; }
-        if (!ams_item.second->GetSwitcherPos().has_value()) { return false; }
-    }
-
-    return true;
-}
-
 void DevFilaSwitch::Reset()
 {
     m_is_installed = false;
@@ -32,6 +19,24 @@ void DevFilaSwitch::Reset()
     m_out_a_extruder_id.reset();
     m_out_b_extruder_id.reset();
     m_cali_status = CaliStatus::CALI_IDLE;
+}
+
+bool DevFilaSwitch::IsReady() const
+{
+    if (!m_is_installed) {
+        BOOST_LOG_TRIVIAL(debug) << "[FilaSwitch] IsReady: not installed";
+        return false;
+    }
+
+    const auto& ams_list = m_owner->GetFilaSystem()->GetAmsList();
+    for (const auto& ams_item : ams_list) {
+        if (ams_item.second->GetBindedExtruderSet().size() == 0) { return false; }
+        if (!ams_item.second->GetSwitcherPos().has_value()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 std::optional<DevAmsTray> DevFilaSwitch::GetInA_Slot() const

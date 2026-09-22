@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <nlohmann/json.hpp>
 #include "DevMapping.h"
 #include "DevFilaSystem.h"
@@ -162,8 +164,8 @@ namespace Slic3r
                 }
 
                 //first: left,nozzle=1,map=1   second: right,nozzle=0,map=2
-                bool right_ams_valid = ams->second->GetExtruderId() == 0 && map_opt[MappingOption::USE_RIGHT_AMS];
-                bool left_ams_valid = ams->second->GetExtruderId() == 1 && map_opt[MappingOption::USE_LEFT_AMS];
+                bool right_ams_valid = (ams->second->GetBindedExtruderSet().count(MAIN_EXTRUDER_ID) != 0) && map_opt[MappingOption::USE_RIGHT_AMS];
+                bool left_ams_valid = (ams->second->GetBindedExtruderSet().count(DEPUTY_EXTRUDER_ID) != 0) && map_opt[MappingOption::USE_LEFT_AMS];
                 if (right_ams_valid || left_ams_valid)
                 {
                     tray_filaments.emplace(std::make_pair(tray_index, info));
@@ -270,7 +272,7 @@ namespace Slic3r
         std::set<int> picked_tar;
         for (int k = 0; k < distance_map.size(); k++)
         {
-            float min_val = INT_MAX;
+            float min_val = std::numeric_limits<float>::max();
             int picked_src_idx = -1;
             int picked_tar_idx = -1;
             for (int i = 0; i < distance_map.size(); i++)

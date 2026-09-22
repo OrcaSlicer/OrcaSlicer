@@ -86,7 +86,6 @@ private:
 */
 
 	// Following objects are not owned by SupportMaterial class.
-	const PrintObject 		*m_object;
 	const PrintConfig 		*m_print_config;
 	const PrintObjectConfig *m_object_config;
 	// Pre-calculated parameters shared between the object slicer and the support generator,

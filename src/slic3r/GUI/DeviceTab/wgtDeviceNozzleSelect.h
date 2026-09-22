@@ -3,18 +3,15 @@
 *  Description: The panel to select nozzle
 *
 *  \n class wgtDeviceNozzleSelect;
-//**********************************************************/
+************************************************************/
 
 #pragma once
 
-#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h" // DevNozzle (value member) + DevDefs.h (PrintFromType, MAIN/DEPUTY_EXTRUDER_ID)
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 
 #include <wx/panel.h>
 
 #include <memory>
-#include <optional>
-#include <unordered_map>
-#include <vector>
 
 // Previous definitions
 class Label;

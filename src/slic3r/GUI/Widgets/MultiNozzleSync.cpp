@@ -9,6 +9,7 @@
 #include "../wxExtensions.hpp"
 #include "Button.hpp"
 #include "Label.hpp"
+#include "ComboBox.hpp"
 #include "StaticBox.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
@@ -20,6 +21,8 @@
 #include <set>
 
 #include <wx/choice.h>
+#include <wx/filename.h>
+#include <wx/filesys.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -75,13 +78,16 @@ ManualNozzleCountDialog::ManualNozzleCountDialog(
 
     wxPanel *content = new wxPanel(this);
     content->SetBackgroundColour(*wxWHITE);
-    wxBitmap    nozzle_bmp  = create_scaled_bitmap("hotend_thumbnail", nullptr, FromDIP(60));
+    wxBitmap    nozzle_bmp  = create_scaled_bitmap("hotend_thumbnail", nullptr, 60);
     auto       *nozzle_icon = new wxStaticBitmap(content, wxID_ANY, nozzle_bmp);
     wxBoxSizer *content_sizer = new wxBoxSizer(wxHORIZONTAL);
     content->SetSizer(content_sizer);
 
     wxBoxSizer *choice_sizer = new wxBoxSizer(wxVERTICAL);
-    choice_sizer->Add(new wxStaticText(content, wxID_ANY, _L("Please set nozzle count")), 0, wxALL | wxALIGN_LEFT, FromDIP(10));
+    auto nozzle_label = new wxStaticText(content, wxID_ANY, _L("Please set nozzle count"));
+    nozzle_label->SetFont(Label::Body_14);
+    nozzle_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    choice_sizer->Add(nozzle_label, 0, wxTOP | wxRIGHT, FromDIP(15));
 
     wxArrayString nozzle_choices;
     for (int i = 0; i <= max_nozzle_count; ++i)
@@ -90,16 +96,32 @@ ManualNozzleCountDialog::ManualNozzleCountDialog(
     // A Hybrid extruder mixes Standard and High Flow nozzles, so it gets both count choices; the concrete
     // types get exactly one.
     if (volume_type == nvtStandard || volume_type == nvtHybrid) {
-        choice_sizer->Add(new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(nvtStandard))), 0, wxALL | wxALIGN_LEFT, FromDIP(5));
-        m_standard_choice = new wxChoice(content, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(100), -1), nozzle_choices);
+        wxBoxSizer *standard_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto standard_label = new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(nvtStandard)), wxDefaultPosition, wxSize(FromDIP(100), -1));
+        standard_label->SetFont(Label::Body_14);
+        standard_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        standard_sizer->Add(standard_label, 0, wxALIGN_CENTER_VERTICAL);
+        m_standard_choice = new ComboBox(content, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(80), -1), 0, nullptr, wxCB_READONLY);
+        std::vector<wxString>::iterator iter;
+        for (iter = nozzle_choices.begin(); iter != nozzle_choices.end(); iter++)
+            m_standard_choice->Append(*iter);
         m_standard_choice->SetSelection(standard_count);
-        choice_sizer->Add(m_standard_choice, 0, wxLEFT | wxBOTTOM | wxRIGHT, FromDIP(10));
+        standard_sizer->Add(m_standard_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+        choice_sizer->Add(standard_sizer, 0, wxTOP | wxRIGHT, FromDIP(15));
     }
     if (volume_type == nvtHighFlow || volume_type == nvtHybrid) {
-        choice_sizer->Add(new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(nvtHighFlow))), 0, wxALL | wxALIGN_LEFT, FromDIP(5));
-        m_highflow_choice = new wxChoice(content, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(100), -1), nozzle_choices);
+        wxBoxSizer *highflow_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto highflow_label = new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(nvtHighFlow)), wxDefaultPosition, wxSize(FromDIP(100), -1));
+        highflow_label->SetFont(Label::Body_14);
+        highflow_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        highflow_sizer->Add(highflow_label, 0, wxALIGN_CENTER_VERTICAL);
+        m_highflow_choice = new ComboBox(content, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(80), -1), 0, nullptr, wxCB_READONLY);
+        std::vector<wxString>::iterator iter;
+        for (iter = nozzle_choices.begin(); iter != nozzle_choices.end(); iter++)
+            m_highflow_choice->Append(*iter);
         m_highflow_choice->SetSelection(highflow_count);
-        choice_sizer->Add(m_highflow_choice, 0, wxLEFT | wxBOTTOM | wxRIGHT, FromDIP(10));
+        highflow_sizer->Add(m_highflow_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+        choice_sizer->Add(highflow_sizer, 0, wxTOP | wxRIGHT, FromDIP(15));
     }
 
     m_error_label = new wxStaticText(this, wxID_ANY, "");
@@ -126,12 +148,12 @@ ManualNozzleCountDialog::ManualNozzleCountDialog(
     };
 
     if (m_standard_choice)
-        m_standard_choice->Bind(wxEVT_CHOICE, [this, update_nozzle_error](wxCommandEvent &e) {
+        m_standard_choice->Bind(wxEVT_COMBOBOX, [this, update_nozzle_error](wxCommandEvent &e) {
             update_nozzle_error(m_standard_choice->GetSelection(), m_highflow_choice ? m_highflow_choice->GetSelection() : 0);
             e.Skip();
         });
     if (m_highflow_choice)
-        m_highflow_choice->Bind(wxEVT_CHOICE, [this, update_nozzle_error](wxCommandEvent &e) {
+        m_highflow_choice->Bind(wxEVT_COMBOBOX, [this, update_nozzle_error](wxCommandEvent &e) {
             update_nozzle_error(m_standard_choice ? m_standard_choice->GetSelection() : 0, m_highflow_choice->GetSelection());
             e.Skip();
         });
@@ -140,13 +162,13 @@ ManualNozzleCountDialog::ManualNozzleCountDialog(
     content_sizer->Add(choice_sizer, 0, wxALIGN_CENTRE_VERTICAL);
 
     m_confirm_btn = new Button(this, _L("Confirm"));
-    m_confirm_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    m_confirm_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_confirm_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_OK); });
 
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
     main_sizer->Add(content, 1, wxEXPAND);
-    main_sizer->Add(m_error_label, 0, wxALL, FromDIP(5));
-    main_sizer->Add(m_confirm_btn, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, FromDIP(20));
+    main_sizer->Add(m_error_label, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+    main_sizer->Add(m_confirm_btn, 0, wxALIGN_RIGHT | wxALL, FromDIP(15));
 
     SetSizerAndFit(main_sizer);
     CentreOnParent();
@@ -600,7 +622,7 @@ StaticBox* HotEndTable::CreateNozzleBox(const std::vector<int>& nozzle_indices)
 void HotEndTable::UpdateNozzleItems(const std::unordered_map<int, wgtDeviceNozzleRackNozzleItem*>& nozzle_items, std::shared_ptr<DevNozzleRack> nozzle_rack)
 {
     for (auto& item : nozzle_items)
-        item.second->Update(nozzle_rack);
+        item.second->UpdateInfo(nozzle_rack);
 }
 
 void HotEndTable::OnPaint(wxPaintEvent& evt)
@@ -630,7 +652,7 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
     SetSizer(sizer);
     Layout();
 
-    m_web_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this,sizer](wxWebViewEvent& evt) {
+    m_web_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
         std::string message = evt.GetString().ToStdString();
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Received message: " << message;
         try {
@@ -1168,8 +1190,8 @@ void MultiNozzleSyncDialog::UpdateButton(std::weak_ptr<DevNozzleRack> rack, bool
         m_cancel_btn->SetLabel(_L("Ignore"));
         m_confirm_btn->SetLabel(_L("Refresh"));
 
-        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, ignore_opt](auto& e) {ignore_opt(); });
-        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, refresh_cmd](auto& e) {refresh_cmd(); });
+        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [rack, ignore_opt](auto& e) {ignore_opt(); });
+        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [rack, refresh_cmd](auto& e) {refresh_cmd(); });
     }
     else if (has_unknown) {
         m_cancel_btn->Show();
@@ -1178,8 +1200,8 @@ void MultiNozzleSyncDialog::UpdateButton(std::weak_ptr<DevNozzleRack> rack, bool
         m_cancel_btn->SetLabel(_L("Ignore"));
         m_confirm_btn->SetLabel(_L("Refresh"));
 
-        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, ignore_opt](auto& e) {ignore_opt(); });
-        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, refresh_cmd](auto& e) {refresh_cmd(); });
+        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [rack, ignore_opt](auto& e) {ignore_opt(); });
+        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [rack, refresh_cmd](auto& e) {refresh_cmd(); });
     }
     else if (has_unreliable) {
         m_cancel_btn->Show();
@@ -1188,8 +1210,8 @@ void MultiNozzleSyncDialog::UpdateButton(std::weak_ptr<DevNozzleRack> rack, bool
         m_cancel_btn->SetLabel(_L("Refresh"));
         m_confirm_btn->SetLabel(_L("Confirm"));
 
-        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, refresh_cmd](auto& e) {refresh_cmd(); });
-        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, trust_cmd](auto& e) {trust_cmd(); });
+        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [rack, refresh_cmd](auto& e) {refresh_cmd(); });
+        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [rack, trust_cmd](auto& e) {trust_cmd(); });
 
     }
     else {

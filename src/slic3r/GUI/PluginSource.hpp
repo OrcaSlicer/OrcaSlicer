@@ -11,6 +11,7 @@ namespace Slic3r
             // IMPORTANT: ordinal order is the Plugins dialog Source sort priority.
             Mine,
             Subscribed,
+            Orphaned,
             Local
         };
 
@@ -20,6 +21,7 @@ namespace Slic3r
             {
             case PluginSource::Mine: return "mine";
             case PluginSource::Subscribed: return "subscribed";
+            case PluginSource::Orphaned: return "orphaned";
             case PluginSource::Local: return "local";
             }
 

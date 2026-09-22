@@ -1,6 +1,7 @@
 #include "GLGizmoAssembly.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -32,13 +33,13 @@ std::string GLGizmoAssembly::on_get_name() const
 {
     if (!on_is_activable() && m_state == EState::Off) {
         if (wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasAssembleView) {
-            return _u8L("Assemble") + ":\n" + _u8L("Please confirm explosion ratio = 1 and select at least two volumes.");
+            return _u8L_CONTEXT("Assemble", "Assembly tool") + ":\n" + _u8L("Please confirm explosion ratio = 1 and select at least two volumes.");
         }
         else {
-            return _u8L("Assemble") + ":\n" + _u8L("Please select at least two volumes.");
+            return _u8L_CONTEXT("Assemble", "Assembly tool") + ":\n" + _u8L("Please select at least two volumes.");
         }
     } else {
-        return _u8L("Assemble");
+        return _u8L_CONTEXT("Assemble", "Assembly tool");
     }
 }
 
@@ -46,7 +47,7 @@ bool GLGizmoAssembly::on_init()
 {
     GLGizmoMeasure::on_init();
 
-    m_shortcut_key = WXK_CONTROL_Y;
+    m_shortcut = Shortcut::GizmoAssembly;
     return true;
 }
 
@@ -69,6 +70,7 @@ bool GLGizmoAssembly::on_is_activable() const
 
 void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limit)
 {
+    render_dimensioning_if_scene_reused();
     static std::optional<Measure::SurfaceFeature> last_feature;
     static EMode last_mode = EMode::FeatureSelection;
     static SelectedFeatures last_selected_features;

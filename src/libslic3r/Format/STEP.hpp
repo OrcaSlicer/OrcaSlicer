@@ -78,7 +78,7 @@ public:
     Standard_Boolean UserBreak() override { return should_stop.load(); }
 
     void Show(const Message_ProgressScope&, const Standard_Boolean) override {
-        std::cout << "Progress: " << GetPosition() << "%" << std::endl;
+        std::cout << "Progress: " << std::fixed << std::setprecision(2) << 100.0 * GetPosition() << "%" << std::endl;
     }
 private:
     std::atomic<bool>& should_stop;

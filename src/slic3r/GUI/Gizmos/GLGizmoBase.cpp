@@ -4,6 +4,7 @@
 #include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_Colors.hpp"
 
@@ -299,7 +300,6 @@ GLGizmoBase::GLGizmoBase(GLCanvas3D &parent, const std::string &icon_filename, u
     : m_parent(parent)
     , m_group_id(-1)
     , m_state(Off)
-    , m_shortcut_key(NO_SHORTCUT_KEY_VALUE)
     , m_icon_filename(icon_filename)
     , m_sprite_id(sprite_id)
     , m_imgui(wxGetApp().imgui())
@@ -442,7 +442,7 @@ bool GLGizmoBase::use_grabbers(const wxMouseEvent &mouse_event) {
         }
     } else if (m_dragging) {
         // when mouse cursor leave window than finish actual dragging operation
-        bool is_leaving = mouse_event.Leaving();
+        bool is_leaving = mouse_event.Leaving() && !m_parent.has_mouse_capture(); // ORCA keep tracking mouse position while drag active and cursor not in window bounds
         if (mouse_event.Dragging()) {
             Point      mouse_coord(mouse_event.GetX(), mouse_event.GetY());
             auto       ray = m_parent.mouse_ray(mouse_coord);
@@ -515,11 +515,8 @@ void GLGizmoBase::render_input_window(float x, float y, float bottom_limit)
 
 std::string GLGizmoBase::get_name(bool include_shortcut) const
 {
-    int key = get_shortcut_key();
-    std::string out = on_get_name();
-    if (include_shortcut && key >= WXK_CONTROL_A && key <= WXK_CONTROL_Z)
-        out += std::string(" [") + char(int('A') + key - int(WXK_CONTROL_A)) + "]";
-    return out;
+    const std::string name = on_get_name();
+    return include_shortcut && m_shortcut.has_value() ? wxGetApp().shortcuts().with_key(name, *m_shortcut) : name;
 }
 
 } // namespace GUI

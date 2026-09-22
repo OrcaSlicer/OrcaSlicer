@@ -311,7 +311,6 @@ public:
     std::string get_plugin_url(const std::string& sharing_token) const;
     int subscribe_plugin(const std::string& plugin_uuid);
     int unsubscribe_plugins(const std::vector<std::string>& plugin_uuids);
-    int delete_my_plugin(const std::string& plugin_uuid);
     int fetch_plugin_changelogs(const std::vector<std::string>& uuids, std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog);
 
     // ========================================================================

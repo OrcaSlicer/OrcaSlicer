@@ -8,14 +8,16 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define PLUGIN_CONFIG_DIR "config.json"
 
 namespace Slic3r {
 
-class Preset;
+class DynamicConfig;
 struct CapabilityConfigEntry
 {
     PluginCapabilityId id;
@@ -35,6 +37,9 @@ public:
     bool                                 contains(const PluginCapabilityId& id) const;
     bool                                 upsert(CapabilityConfigEntry entry);
     bool                                 erase(const PluginCapabilityId& id);
+    // Drops every entry whose (type, name) is not in `referenced`, e.g. capabilities a preset's
+    // plugin-backed options no longer name. Returns true if anything was removed.
+    bool                                 prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced);
     bool                                 empty() const;
     nlohmann::json                       serialize_entries() const;
     nlohmann::json                       root_json() const;
@@ -44,11 +49,15 @@ private:
     std::vector<nlohmann::json>                  m_opaque_entries;
 };
 
-inline constexpr const char* PLUGIN_OVERRIDES_OPTION_KEY = "plugin_config_overrides";
-
-std::string plugin_overrides_of(const Preset& preset);
 bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& document, std::string& error);
 std::string serialize_plugin_overrides(const CapabilityConfigDocument& document);
+
+// Drops override entries for capabilities no longer named by any plugin-backed option in `config`
+// (e.g. slicing_pipeline_plugin cleared or pointed at another capability) and writes the result back
+// to `overrides_key`. Call it wherever such an option changes, so a saved preset never carries
+// configuration for a capability it no longer references. Returns true if `config` was modified, so a
+// caller holding a GUI field over `overrides_key` knows to refresh it.
+bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& overrides_key);
 
 struct EffectiveCapabilityConfig
 {

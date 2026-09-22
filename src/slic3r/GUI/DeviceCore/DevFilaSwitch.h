@@ -1,7 +1,6 @@
 #pragma once
 #include "DevDefs.h"
 #include <optional>
-#include <nlohmann/json.hpp>
 
 namespace Slic3r
 {
@@ -10,16 +9,11 @@ class MachineObject;
 class DevExtder;
 class DevAmsTray;
 
-// Filament Track Switch (H2-family hardware).
-// The filament blacklist consumes IsInstalled() for the `has_filament_switch`
-// rule (e.g. PLA Silk). m_is_installed defaults to false and is only raised when
-// the device reports the switch over MQTT (aux bit 29), so the rule stays inert on
-// every printer that does not report an installed switch.
 class DevFilaSwitch
 {
 public:
     enum class CaliStatus : int
-    {
+    {        
         CALI_IDLE = 0,
         CALI_STEPING = 1,
     };
@@ -48,10 +42,6 @@ public:
 
 public:
     bool IsInstalled() const { return m_is_installed; };
-
-    // Ready once installed and every AMS has resolved both its extruder binding and its
-    // switcher track position from the device. The send dialog and sidebar sync UX only
-    // treat the switch as usable when this is true.
     bool IsReady() const;
 
     std::optional<bool> IsInA_HasFilament() const { return m_in_a_has_filament; };

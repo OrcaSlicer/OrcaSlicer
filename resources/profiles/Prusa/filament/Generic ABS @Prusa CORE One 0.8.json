@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Prusa CORE One 0.8",
+	"inherits": "Generic ABS @Prusa CORE One",
+	"renamed_from": "Prusa Generic ABS @CORE One 0.8;Prusa Generic ABS CORE One 0.8",
+	"from": "system",
+	"setting_id": "ExG49agessyLCVpW",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.8 nozzle"
+	],
+	"fan_cooling_layer_time": [
+		"40"
+	]
+}

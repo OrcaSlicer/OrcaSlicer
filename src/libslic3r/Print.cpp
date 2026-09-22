@@ -1,3 +1,8 @@
+#ifdef _WIN32
+// Keep this first. A header below reaches boost/regex, whose w32_regex_traits
+// needs the Win32 types declared already.
+#include <Windows.h>
+#endif
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"
@@ -5,6 +10,7 @@
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
 #include "Extruder.hpp"
+#include "FilamentMixer.hpp"
 #include "Flow.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "I18N.hpp"
@@ -14,6 +20,7 @@
 #include "GCode.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
+#include "GCode/WipeTowerEstimate.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
@@ -226,6 +233,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "accel_to_decel_enable",
         "accel_to_decel_factor",
         "wipe_on_loops",
+        "wipe_inward",
+        "wipe_inward_distance",
         "gcode_comments",
         "gcode_label_objects", 
         "exclude_object",
@@ -282,9 +291,18 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_x"
             || opt_key == "wipe_tower_y"
             || opt_key == "wipe_tower_rotation_angle") {
+            // The tower gcode itself is position-independent (position and rotation are applied
+            // at export), except that the wait_for_temp_on_wipe_tower park bakes a bed-relative
+            // side choice into it (WipeTower2::toolchange_Change) — regenerate it when the tower
+            // moves. Gating on the old config is safe: both inputs of wait_for_temp_enabled
+            // invalidate psWipeTower themselves when they are part of the same diff.
+            if ((opt_key == "wipe_tower_x" || opt_key == "wipe_tower_y" || opt_key == "wipe_tower_rotation_angle")
+                && WipeTower2::wait_for_temp_enabled(m_config))
+                steps.emplace_back(psWipeTower);
             steps.emplace_back(psSkirtBrim);
         } else if (
                opt_key == "slicing_pipeline_plugin"
+            || opt_key == "print_plugin_config_overrides"
             || opt_key == "initial_layer_print_height"
             || opt_key == "nozzle_diameter"
             || opt_key == "filament_shrink"
@@ -342,6 +360,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
             || opt_key == "toolchange_ordering"
+            || opt_key == "toolchange_cyclic_order"
+            || opt_key == "toolchange_cyclic_first_layer"
             || opt_key == "extruder_ams_count"
             || opt_key == "extruder_nozzle_stats"
             || opt_key == "filament_map_mode"
@@ -381,6 +401,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"
             || opt_key == "tool_change_on_wipe_tower"
+            || opt_key == "wait_for_temp_on_wipe_tower"
             || opt_key == "purge_in_prime_tower"
             || opt_key == "z_offset"
             || opt_key == "support_multi_bed_types"
@@ -555,7 +576,7 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
     if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
-        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament <= int(config().filament_diameter.size()));
         extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
 
@@ -945,6 +966,377 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     return single_object_exception;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Clearance rule for a prime tower compacted by wipe_tower_no_sparse_layers.
+// Ported from BambuStudio and adapted to Orca's printer config: Orca has no
+// prime_tower_lift_height (z_hop alone bounds the spiral), spells the toolhead radius
+// extruder_clearance_radius, and derives the spiral slope from the per-filament travel_slope instead
+// of one global constant.
+// ---------------------------------------------------------------------------------------------
+
+double compacted_tower_footprint_padding(const PrintConfig &config, double brim_width)
+{
+    // The brim is deposited material like any other and reaches past the wall on the first layer, so
+    // the sweeping rod has to clear it too.
+    //
+    // On top of it, two effects make a nominal outline fall short of the printed tower on its low
+    // corner even though it overshoots by millimetres on the high one: WipeTower re-centres the tower
+    // by rib_offset once its first-layer wall is known, and the precise check hulls extrusion centre
+    // lines, so the deposited material reaches half a line width further still. Allowing a line width
+    // per side covers both, which is what keeps an estimated footprint enclosing the real one and the
+    // pre-slice check stricter than the precise one.
+    return std::max(0., brim_width) + 2. * config.nozzle_diameter.get_at(0);
+}
+
+Polygons compacted_wipe_tower_rings(const CompactedTowerZone &zone, bool any_body_tier)
+{
+    Polygons rings = zone.grown_nozzle;
+    if (any_body_tier)
+        append(rings, zone.grown_body);
+    return rings;
+}
+
+CompactedTowerZone compacted_wipe_tower_zone(const PrintConfig &config, const Polygon &tower_footprint)
+{
+    CompactedTowerZone zone;
+    if (tower_footprint.points.empty())
+        return zone;
+
+    // Spiral Z-hop at wipe-tower entry (the G3 Z I J that GCodeWriter emits for a SpiralLift) starts on
+    // the tower outline at a low Z. The spiral centre sits one radius away from the start point, so the
+    // circle reaches 2 * radius beyond the outline. radius = lift / (2*pi*atan(travel_slope)) is the
+    // same formula GCodeWriter uses; both are per filament, so take the widest any filament can make.
+    double spiral_reach = 0.;
+    for (size_t i = 0; i < config.z_hop.size(); ++i) {
+        const double lift = std::min(double(config.z_hop.get_at(i)), 5.);
+        if (lift < EPSILON)
+            continue;
+        const double slope = i < config.travel_slope.size() ? double(config.travel_slope.get_at(i)) : 0.;
+        if (slope < EPSILON)
+            continue;
+        spiral_reach = std::max(spiral_reach, 2. * lift / (2. * PI * std::atan(slope)));
+    }
+
+    // Working footprint = outline grown by the spiral envelope. All later clearance tests use this, so
+    // a travel that leaves the deposited wall at low Z is still treated as part of the tower.
+    zone.hull = tower_footprint;
+    if (spiral_reach > EPSILON) {
+        const Polygons grown = offset(tower_footprint, float(scale_(spiral_reach)), jtRound, scale_(0.1));
+        if (! grown.empty())
+            zone.hull = Geometry::convex_hull(grown);
+    }
+
+    // The rod sweeps the whole X axis, so its keep-out band is the tower's Y span widened by half
+    // the nozzle-to-rod offset per side (the instance carries the other half). Orca's sequential
+    // check has no such margin, having had no option to read it from until now.
+    zone.bbox_rod = zone.hull.bounding_box();
+    zone.bbox_rod.offset(scale_(config.extruder_clearance_dist_to_rod.value * 0.5));
+
+    // Horizontal clearance, mirroring the sequential print check down to how the distance is split:
+    // there each of the two object hulls grows by half of extruder_clearance_radius, so the two
+    // outlines touch exactly when the objects are the full radius apart. Splitting it the same way
+    // here (half on the tower, half on the instance in compacted_wipe_tower_clearance) states the
+    // same criterion, and it is what lets the plater draw both outlines: they meet at the instant the
+    // check trips, instead of one of them being already buried inside the other. The smaller
+    // MAX_OUTER_NOZZLE_DIAMETER tier is the bare nozzle cone, the only part narrow enough to sit
+    // beside an object rising less than nozzle_height. The 0.2 mm shaved off is the same rounding
+    // slack the sequential check applies, 0.1 mm per side. Both rings are built here; which one a
+    // given object is measured against depends on its own height and is decided in
+    // compacted_wipe_tower_clearance().
+    zone.body_radius  = config.extruder_clearance_radius.value;
+    zone.grown_body   = offset(zone.hull, float(scale_(compacted_tower_half_clearance(zone.body_radius))), jtRound, scale_(0.1));
+    zone.grown_nozzle = offset(zone.hull, float(scale_(compacted_tower_half_clearance(MAX_OUTER_NOZZLE_DIAMETER))), jtRound, scale_(0.1));
+    return zone;
+}
+
+CompactedTowerClearance compacted_wipe_tower_clearance(const PrintConfig &config, const CompactedTowerZone &zone,
+                                                      const Polygon &inst_hull, double object_rise)
+{
+    BoundingBox inst_bbox = inst_hull.bounding_box();
+    inst_bbox.offset(scale_(config.extruder_clearance_dist_to_rod.value * 0.5));
+
+    // Only the Y span matters for the rod: it spans the whole X axis, so an object sharing the tower's
+    // Y band passes under it however far apart the two are in X.
+    const bool overlaps_in_y = std::min(inst_bbox.max.y(), zone.bbox_rod.max.y()) - std::max(inst_bbox.min.y(), zone.bbox_rod.min.y()) > 0;
+
+    CompactedTowerClearance result;
+    result.far_clearance = overlaps_in_y ? config.extruder_clearance_height_to_rod.value : config.extruder_clearance_height_to_lid.value;
+
+    // The rod and the lid are the only obstacles once the object stands far enough away. Closer than
+    // the toolhead radius it is the head body itself that hits the object, and it does so as soon as
+    // the object rises past the nozzle cone, which is far below the rod.
+    // The instance carries the other half of each clearance, the tower rings already hold the first
+    // half; see compacted_wipe_tower_zone(). Both halves are needed for the verdict to mean
+    // "a full radius apart", and drawing what is tested is what keeps the plater honest.
+    //
+    // Which tier applies is a property of this object alone: the head body sits above the nozzle cone,
+    // so it cannot reach an object that stays below nozzle_height however close it stands, and however
+    // tall the rest of the plate is.
+    const bool object_is_short = object_rise <= double(config.nozzle_height.value) + EPSILON;
+    result.body_clearance      = object_is_short ? double(MAX_OUTER_NOZZLE_DIAMETER) : zone.body_radius;
+
+    const Polygons inst_near_nozzle = offset(inst_hull, float(scale_(compacted_tower_half_clearance(MAX_OUTER_NOZZLE_DIAMETER))), jtRound, scale_(0.1));
+    const bool     near_nozzle      = ! intersection(zone.grown_nozzle, inst_near_nozzle).empty();
+    result.near_body                = false;
+    if (! object_is_short) {
+        const Polygons inst_near_body = offset(inst_hull, float(scale_(compacted_tower_half_clearance(zone.body_radius))), jtRound, scale_(0.1));
+        result.near_body              = ! intersection(zone.grown_body, inst_near_body).empty();
+    }
+
+    result.allowed_rise = result.far_clearance;
+    if (near_nozzle)
+        result.allowed_rise = 0.;
+    else if (result.near_body)
+        result.allowed_rise = std::min(result.far_clearance, double(config.nozzle_height.value));
+    return result;
+}
+
+Polygon compacted_wipe_tower_offender_outline(const Polygon &inst_hull, double body_clearance)
+{
+    // Exactly the half-clearance the check grew this instance by, so the halo drawn around an object is
+    // the very outline that was tested against the tower ring of the same tier. Passing the clearance
+    // the object was actually judged on keeps a short object from being drawn with the wide ring it is
+    // not subject to.
+    const Polygons grown = offset(inst_hull, float(scale_(compacted_tower_half_clearance(body_clearance))), jtRound, scale_(0.1));
+    return grown.empty() ? inst_hull : grown.front();
+}
+
+// Shared user-facing message for every compacted-tower clearance failure. Height-limit and too-close
+// are the same class of layout violation under "No sparse layers", so they share one wording.
+static std::string compacted_wipe_tower_clearance_error()
+{
+    return L("The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\".");
+}
+
+// Convex hull of one print instance in bed coordinates, the same outline both compacted tower checks
+// compare against the tower.
+static Polygon compacted_tower_print_instance_hull(const PrintObject &object, const PrintInstance &instance)
+{
+    Points pts;
+    for (const ModelVolume *v : object.model_object()->volumes) {
+        if (! v->is_model_part())
+            continue;
+        Polygon hull = v->get_convex_hull_2d(Geometry::assemble_transform(Vec3d::Zero(), instance.model_instance->get_rotation(),
+                                                                          instance.model_instance->get_scaling_factor(), instance.model_instance->get_mirror()));
+        hull.translate(instance.shift - object.center_offset());
+        append(pts, hull.points);
+    }
+    return pts.empty() ? Polygon() : Geometry::convex_hull(pts);
+}
+
+// Footprint the compacted prime tower is expected to occupy on the plate, in bed coordinates.
+// Before psWipeTower has run there is no tower geometry at all, so this falls back to the same
+// estimate the plater builds its preview box from. Answering while the user is still arranging the
+// plate is the whole point of the pre-slice check, and an estimate is all that can be had then.
+static Polygon estimated_wipe_tower_footprint(const Print &print)
+{
+    const PrintConfig &config        = print.config();
+    const size_t       filaments_cnt = print.extruders().size();
+    if (filaments_cnt == 0)
+        return Polygon();
+
+    const WipeTowerData &wtd = print.wipe_tower_data(filaments_cnt);
+
+    double width, depth, brim;
+    Vec2d  local_min;
+    if (wtd.bbx.size().x() > EPSILON && wtd.bbx.size().y() > EPSILON) {
+        // The tower has already been generated once, so use its real box (brim included) instead of
+        // re-estimating. Same frame first_layer_wipe_tower_corners() works in.
+        width     = wtd.bbx.size().x();
+        depth     = wtd.bbx.size().y();
+        local_min = wtd.bbx.min + wtd.rib_offset.cast<double>();
+        brim      = 0.;
+    } else {
+        depth = wtd.depth;
+        if (depth < EPSILON)
+            return Polygon();
+        // PartPlate::estimate_wipe_tower_size() squares the rib tower off and the preview box the user
+        // drags around is built from that, so match it here rather than keeping the nominal width.
+        width     = config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib ? depth : double(config.prime_tower_width.value);
+        local_min = Vec2d::Zero();
+        brim      = double(wtd.brim_width);
+    }
+
+    const double padding = compacted_tower_footprint_padding(config, brim);
+    local_min -= Vec2d(padding, padding);
+    width += 2. * padding;
+    depth += 2. * padding;
+
+    const Eigen::Rotation2Dd rot(Geometry::deg2rad(config.wipe_tower_rotation_angle.value));
+    const Vec2d              translate(config.wipe_tower_x.get_at(print.get_plate_index()) + print.get_plate_origin()(0),
+                                       config.wipe_tower_y.get_at(print.get_plate_index()) + print.get_plate_origin()(1));
+
+    Polygon footprint;
+    for (const Vec2d &corner : { local_min,
+                                 Vec2d(local_min.x() + width, local_min.y()),
+                                 Vec2d(local_min.x() + width, local_min.y() + depth),
+                                 Vec2d(local_min.x(),         local_min.y() + depth) }) {
+        const Vec2d p = rot * corner + translate;
+        footprint.points.emplace_back(scale_(p.x()), scale_(p.y()));
+    }
+    return footprint;
+}
+
+// Pre-slice counterpart of validate_compacted_wipe_tower_clearance(). It applies the very same
+// clearance rule, but to an estimated tower footprint instead of the real tool-change extrusions,
+// which is what lets it run from Print::validate() before anything has been sliced. Reporting through
+// polygons / height_polygons rather than by throwing is what puts the collision area and the height
+// limit plane on the plater, exactly the way sequential printing does it.
+StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>> *height_polygons)
+{
+    const PrintConfig &config = print.config();
+    if (! wipe_tower_sparse_layers_skipped(config) || config.print_sequence != PrintSequence::ByLayer || ! print.has_wipe_tower())
+        return {};
+
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, estimated_wipe_tower_footprint(print));
+    if (zone.empty())
+        return {};
+
+    StringObjectException exception;
+    Polygons              offenders;
+    bool                  body_tier_used = false;
+    for (const PrintObject *object : print.objects()) {
+        const double object_top = unscaled<double>(object->max_z());
+        for (const PrintInstance &instance : object->instances()) {
+            const Polygon inst_hull = compacted_tower_print_instance_hull(*object, instance);
+            if (inst_hull.points.empty())
+                continue;
+            const CompactedTowerClearance clearance = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
+            body_tier_used                          = body_tier_used || compacted_tower_body_tier(clearance);
+            // Every tier the precise check applies is applied here too, otherwise an object standing
+            // within the toolhead radius would pass here and then be rejected mid-slice, which is the
+            // one outcome this check exists to prevent. The compacted tower base is unknown before
+            // slicing, so the rise is measured from the plate rather than from the tower top; that
+            // overstates it by the tower's own height and makes this check err strict, never lax.
+            if (object_top <= clearance.allowed_rise + EPSILON)
+                continue;
+
+            // Height-limit and too-close cases share one user-facing message: both mean the layout
+            // violates the "No sparse layers" clearance rule, and the remedies are the same.
+            const std::string msg = compacted_wipe_tower_clearance_error();
+            if (exception.string.empty()) {
+                exception.string = msg;
+                exception.object = instance.model_instance;
+            } else {
+                // Same wording for every offender; keep a single copy and drop the object pointer.
+                exception.object = nullptr;
+            }
+            const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
+            offenders.emplace_back(outline);
+            if (height_polygons)
+                height_polygons->emplace_back(outline, float(clearance.allowed_rise));
+        }
+    }
+
+    // Draw the tower's keep-out ring alongside the offending objects, so the collision area reads as
+    // "this object reaches into the space the toolhead needs around the tower" rather than as a lone
+    // highlighted object. Emitted only on a real collision; the plater discards polygons otherwise.
+    // Only the rings some object on this plate is actually measured against are drawn, so that a ring
+    // and an object outline touching always means that object is over its limit.
+    if (polygons && ! offenders.empty()) {
+        append(*polygons, compacted_wipe_tower_rings(zone, body_tier_used));
+        append(*polygons, offenders);
+    }
+    return exception;
+}
+
+// With wipe_tower_no_sparse_layers the tower only grows on layers that carry a real toolchange,
+// so it ends up far below the object and the nozzle has to descend to it. While the nozzle sits
+// down on the compacted tower the rod is at tower_z + extruder_clearance_height_to_rod, and it
+// sweeps the tower's Y band across the whole X axis. Anything already printed above that line and
+// sharing the band gets hit. Nearer than the toolhead radius the head body hits the object well before
+// the rod does, which is the horizontal half of the same problem. The spiral Z-hop that opens a wipe-
+// tower travel also leaves the extrusion outline at a low Z, so the footprint used here is the
+// deposited hull grown by the spiral circle's maximum reach. This mirrors both clearance checks of
+// sequential printing, except that the tower is revisited over and over, so every object is compared
+// against it.
+void Print::validate_compacted_wipe_tower_clearance() const
+{
+    // Nothing to check when the tower is not compacted: it then follows the object as usual and the
+    // regular by-layer clearance check already covers it. Asking wipe_tower_sparse_layers_skipped()
+    // rather than the raw option keeps this from rejecting plates whose tower is in fact full height.
+    if (! wipe_tower_sparse_layers_skipped(m_config) || m_config.print_sequence != PrintSequence::ByLayer)
+        return;
+
+    const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes = m_wipe_tower_data.tool_changes;
+    if (tool_changes.empty() || m_objects.empty())
+        return;
+
+    // Same accumulation the G-code emitter runs, so validation and output cannot disagree.
+    const std::vector<float> tower_z = compute_compacted_wipe_tower_z(tool_changes, float(m_config.z_offset.value));
+
+    // Wipe tower footprint: build it from the ACTUAL tool-change extrusions rather than the nominal
+    // width x depth rectangle returned by first_layer_wipe_tower_corners(). With a rib wall the printed
+    // wall bulges past the nominal box and the first-layer brim reaches even further; the nominal box
+    // (m_wipe_tower_data.bbx) undercounts that outermost extent by several millimetres, which is
+    // exactly the extent that decides how close the sweeping rod comes to a neighbouring object. The
+    // extrusion end-points are stored in the wipe-tower local frame, so we map them to the bed frame
+    // with the same transform the G-code emitter applies. The two emitters differ in where rib_offset
+    // enters: WipeTowerIntegration::append_tcr() (type 1) rotates the point and then adds the offset,
+    // append_tcr2() (type 2) adds it before rotating. On a rotated rib-wall tower the two land several
+    // millimetres apart, which is exactly the margin this check measures, so follow the emitter in use.
+    const Eigen::Rotation2Dd wt_rot(Geometry::deg2rad(m_config.wipe_tower_rotation_angle.value));
+    const Vec2d              wt_translate(m_config.wipe_tower_x.get_at(m_plate_index) + m_origin(0),
+                                          m_config.wipe_tower_y.get_at(m_plate_index) + m_origin(1));
+    const Vec2d              rib_off        = m_wipe_tower_data.rib_offset.cast<double>();
+    const bool               rib_off_rotates = this->wipe_tower_type() == WipeTowerType::Type2;
+    auto to_bed = [&wt_rot, &wt_translate, &rib_off, rib_off_rotates](const Vec2d &pt) {
+        return rib_off_rotates ? Vec2d(wt_rot * (pt + rib_off) + wt_translate) : Vec2d(wt_rot * pt + wt_translate + rib_off);
+    };
+
+    Points tower_pts;
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : tool_changes) {
+        if (layer.empty() || wipe_tower_layer_is_sparse(layer))
+            continue;
+        for (const WipeTower::ToolChangeResult &tcr : layer)
+            for (size_t i = 0; i < tcr.extrusions.size(); ++i) {
+                // A zero width marks a travel end-point. Keep it only when it opens a real extrusion, so
+                // the hull covers the deposited material and nothing else; travels reach a bit further out
+                // than the walls do.
+                const WipeTower::Extrusion &e = tcr.extrusions[i];
+                if (e.width == 0.f && (i + 1 == tcr.extrusions.size() || tcr.extrusions[i + 1].width == 0.f))
+                    continue;
+                const Vec2d p = to_bed(Vec2d(e.pos.x(), e.pos.y()));
+                tower_pts.emplace_back(scale_(p.x()), scale_(p.y()));
+            }
+    }
+    if (tower_pts.empty())
+        return;
+
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(m_config, Geometry::convex_hull(tower_pts));
+    if (zone.empty())
+        return;
+
+    for (const PrintObject *object : m_objects) {
+        const double object_top = unscaled<double>(object->max_z());
+        for (const PrintInstance &instance : object->instances()) {
+            const Polygon inst_hull = compacted_tower_print_instance_hull(*object, instance);
+            if (inst_hull.points.empty())
+                continue;
+
+            // Report the worst layer rather than the first offending one, it is the one that explains the
+            // collision best. The rise has to be known before the clearance: it is what selects the
+            // horizontal tier, the nozzle cone being out of the head body's reach.
+            double max_rise = 0.;
+            for (size_t i = 0; i < tool_changes.size(); ++i) {
+                if (tool_changes[i].empty() || wipe_tower_layer_is_sparse(tool_changes[i]))
+                    continue;
+                // Nothing above the current layer exists yet, so a tall object only counts up to it.
+                const double rise = std::min(object_top, double(tool_changes[i].front().print_z)) - tower_z[i];
+                if (rise > max_rise)
+                    max_rise = rise;
+            }
+
+            const CompactedTowerClearance clearance = compacted_wipe_tower_clearance(m_config, zone, inst_hull, max_rise);
+            if (max_rise <= clearance.allowed_rise + EPSILON)
+                continue;
+            // Same wording as compacted_wipe_tower_clearance_valid(): height-limit and too-close
+            // share one message, since both are layout violations of "No sparse layers".
+            throw Slic3r::SlicingError(compacted_wipe_tower_clearance_error());
+        }
+    }
+}
+
 //BBS
 static StringObjectException layered_print_cleareance_valid(const Print &print, StringObjectException *warning)
 {
@@ -1015,20 +1407,21 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
 
     //BBS: add the wipe tower check logic
     const PrintConfig &       config   = print.config();
-    int                 filaments_count = print.extruders().size();
+    // Custom G-code tool changes (MultiAsSingle) build a real tower on a plate whose objects
+    // all use one filament, so they have to be counted or the hull below collapses to a point.
+    int                 filaments_count = print.extruders(true).size();
     int                 plate_index = print.get_plate_index();
     const Vec3d         plate_origin = print.get_plate_origin();
     float               x            = config.wipe_tower_x.get_at(plate_index) + plate_origin(0);
     float               y            = config.wipe_tower_y.get_at(plate_index) + plate_origin(1);
-    float               width        = config.prime_tower_width.value;
     float               a            = config.wipe_tower_rotation_angle.value;
     //float               v            = config.wiping_volume.value;
 
-    float        depth                     = print.wipe_tower_data(filaments_count).depth;
-    //float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
-
-    if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib)
-        width = depth;
+    // The estimate resolves the effective width (a rib wall squares the tower).
+    const WipeTowerData &wipe_tower_estimate = print.wipe_tower_data(filaments_count);
+    float                width               = wipe_tower_estimate.width;
+    float                depth               = wipe_tower_estimate.depth;
+    float                brim_width          = wipe_tower_estimate.brim_width;
 
     Polygons convex_hulls_temp;
     if (print.has_wipe_tower()) {
@@ -1038,31 +1431,66 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y));
             wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y + depth));
             wipe_tower_convex_hull.points.emplace_back(scale_(x), scale_(y + depth));
-            wipe_tower_convex_hull.rotate(a);
+            wipe_tower_convex_hull.rotate(Geometry::deg2rad(a), Point(scale_(x), scale_(y)));
             convex_hulls_temp.push_back(wipe_tower_convex_hull);
         } else {
             //here, wipe_tower_polygon is not always convex.
             Polygon wipe_tower_polygon;
             if (print.wipe_tower_data().wipe_tower_mesh_data)
                 wipe_tower_polygon = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
+            wipe_tower_polygon.rotate(Geometry::deg2rad(a));
             wipe_tower_polygon.translate(Point(scale_(x), scale_(y)));
             convex_hulls_temp.push_back(wipe_tower_polygon);
         }
     }
+    // Post-generation the mesh bottom already carries the brim. Pre-generation the body grows
+    // by the brim only when its width is explicit; the auto brim and a Type2 cone base depend on
+    // the tower height, exact only once generated, so they only warn here - the exact footprint
+    // is re-checked in _make_wipe_tower.
+    const bool exact_footprint     = print.is_step_done(psWipeTower);
+    Polygons   tower_polys_checked = (!exact_footprint && config.prime_tower_brim_width.value >= 0) ?
+                                         offset(convex_hulls_temp, float(scale_(brim_width))) :
+                                         convex_hulls_temp;
+    Polygons tower_polys_estimated;
+    if (!exact_footprint && !convex_hulls_temp.empty()) {
+        double max_height = 0.;
+        for (const PrintObject *object : print.objects())
+            max_height = std::max(max_height, unscale_(object->size().z()));
+        Polygon base = estimate_wipe_tower_first_layer_outline(config, print.wipe_tower_type(), width, depth, max_height);
+        base.rotate(Geometry::deg2rad(a));
+        base.translate(Point(scale_(x), scale_(y)));
+        tower_polys_estimated = offset(base, float(scale_(brim_width)));
+    }
+    // Object proximity stays a body-only warning: brim near-misses would newly warn on
+    // many setups that print fine.
     if (!intersection(convex_hulls_other, convex_hulls_temp).empty()) {
         if (warning) {
             warning->string += L("Prime Tower") + L(" is too close to others, and collisions may be caused.\n");
         }
     }
-    if (!intersection(exclude_polys, convex_hulls_temp).empty()) {
-        /*if (warning) {
-            warning->string += L("Prime Tower is too close to exclusion area, there may be collisions when printing.\n");
-        }*/
+    if (!intersection(exclude_polys, tower_polys_checked).empty()) {
         return {L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n")};
     }
-    if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
+    if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, tower_polys_checked).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
     }
+    if (warning && !intersection(exclude_polys, tower_polys_estimated).empty()) {
+        warning->string += L("Prime Tower") + L(" is too close to exclusion area, there may be collisions when printing.") + "\n";
+    }
+    if (warning && print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, tower_polys_estimated).empty()) {
+        warning->string += L("Prime Tower") + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n";
+    }
+    // No gate on "is there a tower": one that is not printed estimates to zero, so the hulls
+    // are degenerate and every check passes. Re-deriving it here missed the wrapping-detection
+    // tower on a single-filament plate.
+    Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
+    const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
+    for (Polygon &p : printable_polys)
+        p.translate(plate_shift);
+    if (!diff(tower_polys_checked, printable_polys).empty())
+        return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
+    if (warning && !diff(tower_polys_estimated, printable_polys).empty())
+        warning->string += L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n");
     return {};
 }
 
@@ -1300,6 +1728,19 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
 
+    // Orca: a gradient mixed filament only renders its gradient with "Mixed color sublayer" on;
+    // without it ToolOrdering::resolve_mixed_filaments prints one whole component per layer and
+    // the gradient is dropped silently. extruders() already covers painting, height ranges,
+    // per-feature filament ids and supports, and still lists mixed slots under their own id here.
+    if (!m_config.enable_mixed_color_sublayer.value) {
+        const auto &is_mixed = m_config.filament_is_mixed.values;
+        const auto &gradient = m_config.filament_mixed_gradient.values;
+        if (std::any_of(extruders.begin(), extruders.end(), [&](unsigned int e) {
+                return e < is_mixed.size() && is_mixed[e] && e < gradient.size() && gradient[e]; }))
+            warn(L("A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."),
+                 "enable_mixed_color_sublayer");
+    }
+
     if (nozzles < 2 && extruders.size() > 1) {
         auto ret = check_multi_filament_valid(*this);
         if (!ret.string.empty())
@@ -1340,6 +1781,16 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
         if (!layer_warning.string.empty())
             add_warning(layer_warning);
+
+        // Orca: a compacted prime tower drags the nozzle back down to the plate on every toolchange, so
+        // tall objects collide with it much like they do in sequential printing. Checking it here rather
+        // than only during slicing is what lets the plater show the collision area and the height limit
+        // while the plate is still being arranged.
+        ret = compacted_wipe_tower_clearance_valid(*this, collison_polygons, height_polygons);
+        if (!ret.string.empty()) {
+            ret.type = STRING_EXCEPT_OBJECT_COLLISION_IN_LAYER_PRINT;
+            return ret;
+        }
     }
 
     if (m_config.enable_prime_tower) {
@@ -1361,6 +1812,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // #4043
         if (total_copies_count > 1 && m_config.print_sequence != PrintSequence::ByObject)
             return {L("Please select \"By object\" print sequence to print multiple objects in spiral vase mode."), nullptr, "spiral_mode"};
+        // A mixed (virtual) filament always resolves to multiple physical components, which
+        // spiral vase cannot print.
+        const auto &is_mixed = m_config.filament_is_mixed.values;
+        for (const PrintObject *object : m_objects)
+            for (unsigned int ext : object->object_extruders())
+                if (ext < is_mixed.size() && is_mixed[ext])
+                    return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
         assert(m_objects.size() == 1);
         const auto all_regions = m_objects.front()->all_regions();
         if (all_regions.size() > 1) {
@@ -1437,6 +1895,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
+        // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
+        // resolve_mixed_filaments has expanded every mixed (virtual) slot, so a mixed slot here
+        // would reach the G-code as a tool change to a slot no nozzle carries. The GUI hides
+        // mixed slots from the option; this guards loaded projects and the CLI.
+        if (m_config.wipe_tower_filament > 0) {
+            const auto  &is_mixed = m_config.filament_is_mixed.values;
+            const size_t wipe_idx = size_t(m_config.wipe_tower_filament - 1);
+            if (wipe_idx < is_mixed.size() && is_mixed[wipe_idx])
+                return { L("The wipe tower filament cannot be a mixed filament."), nullptr, "wipe_tower_filament" };
+        }
+
         // Make sure all extruders use same diameter filament and have the same nozzle diameter
         // EPSILON comparison is used for nozzles and 10 % tolerance is used for filaments
         double first_nozzle_diam = m_config.nozzle_diameter.get_at(extruders.front());
@@ -2229,7 +2698,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         obj->clear_shared_object();
 
     //add the print_object share check logic
-    auto is_print_object_the_same = [this](const PrintObject* object1, const PrintObject* object2) -> bool{
+    auto is_print_object_the_same = [](const PrintObject* object1, const PrintObject* object2) -> bool{
         if (object1->trafo().matrix() != object2->trafo().matrix())
             return false;
         const ModelObject* model_obj1 = object1->model_object();
@@ -2534,6 +3003,12 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     if (this->has_wipe_tower()) {
         m_fake_wipe_tower.set_pos({ m_config.wipe_tower_x.get_at(m_plate_index), m_config.wipe_tower_y.get_at(m_plate_index) });
+        // Validated on every process() run rather than only when the wipe tower step is (re)generated.
+        // Moving the tower changes only wipe_tower_x/y, which invalidates psSkirtBrim but not psWipeTower,
+        // so a validate call living inside _make_wipe_tower would be skipped and keep using the stale
+        // position, missing a fresh collision. The tower geometry (tool_changes) is stored in the local
+        // frame and is position independent, so re-checking here with the current position is correct.
+        this->validate_compacted_wipe_tower_clearance();
     }
 
     if (this->set_started(psSkirtBrim)) {
@@ -2546,8 +3021,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         m_skirt_brim_groups.clear();
         m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
-        m_objectBrimAreas.clear();
-        m_supportBrimAreas.clear();
+        m_objectBrimAreasByInstance.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
 
@@ -2559,18 +3033,31 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         std::vector<const PrintInstance*>::const_iterator 	print_object_instance_sequential_active;
         std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> layers_to_print = GCode::collect_layers_to_print(*this);
         std::vector<unsigned int> printExtruders;
+        // Per-object first-layer mixed-slot resolutions for the by-object remap below
+        // (BBS reads them from m_sequential_print_data->object_tool_ordering_map).
+        std::map<ObjectID, std::map<unsigned int, unsigned int>> seq_mixed_resolution;
         // Cleared on every process so a print-sequence or selector-mode change can never leave
         // stale object pointers behind; repopulated below only by the sequential selector path.
         m_sequential_dynamic_orderings.clear();
         if (this->config().print_sequence == PrintSequence::ByObject) {
             // Order object instances for sequential print.
             print_object_instances_ordering = sort_object_instances_by_model_order(*this);
+            // A mixed slot is virtual; only its components reach a nozzle. These per-object orderings
+            // are unsorted (no resolve_mixed_filaments), so expand the slots here for the grouping, the
+            // unprintable sets and the slice-used lists. Because the expansion happens here rather than
+            // on the sorted orderings, the first-layer used set lists every component of a mixed slot,
+            // not just the one layer 0 resolves to. No-op without mixed filaments.
+            const auto &is_mixed  = m_config.filament_is_mixed.values;
+            const auto &comp_strs = m_config.filament_mixed_components.values;
+            const bool  has_mixed = has_any_mixed_filament(is_mixed);
             std::vector<unsigned int> first_layer_used_filaments;
             std::vector<std::vector<unsigned int>> all_filaments;
             for (print_object_instance_sequential_active = print_object_instances_ordering.begin(); print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
                 tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
                 for (size_t idx = 0; idx < tool_ordering.layer_tools().size(); ++idx) {
-                    auto& layer_filament = tool_ordering.layer_tools()[idx].extruders;
+                    auto layer_filament = tool_ordering.layer_tools()[idx].extruders;
+                    if (has_mixed)
+                        layer_filament = expand_mixed_filaments(layer_filament, is_mixed, comp_strs);
                     all_filaments.emplace_back(layer_filament);
                     if (idx == 0)
                         first_layer_used_filaments.insert(first_layer_used_filaments.end(), layer_filament.begin(), layer_filament.end());
@@ -2582,6 +3069,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
             auto physical_unprintables = this->get_physical_unprintable_filaments(used_filaments);
             auto geometric_unprintables = this->get_geometric_unprintable_filaments();
+            if (has_mixed)
+                expand_mixed_slots_in_unprintables(geometric_unprintables, is_mixed, comp_strs);
             auto filament_unprintable_volumes = this->get_filament_unprintable_flow(used_filaments);
             // Selector (per-layer regroup) prints skip the static grouping: their print-wide result
             // is stitched from the per-object plans after the ordering loop below.
@@ -2633,6 +3122,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             std::vector<std::vector<int>>          nozzle_map_per_layer;
             std::vector<std::vector<unsigned int>> stitched_layer_filaments;
             print_object_instance_sequential_active = print_object_instances_ordering.begin();
+            std::vector<unsigned int> used_mixed_filaments;
             for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
                 const PrintObject *print_object = (*print_object_instance_sequential_active)->print_object;
                 if (dynamic_reorder) {
@@ -2661,11 +3151,18 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 } else {
                     tool_ordering = ToolOrdering(*print_object, initial_extruder_id);
                     tool_ordering.sort_and_build_data(*print_object, initial_extruder_id);
+                    if (!tool_ordering.layer_tools().empty())
+                        seq_mixed_resolution[print_object->id()] = tool_ordering.layer_tools().front().mixed_filament_resolution;
                 }
+                // Only sorted orderings have run resolve_mixed_filaments, so only they know which
+                // mixed slots actually print.
+                append(used_mixed_filaments, tool_ordering.used_mixed_filaments());
                 if ((initial_extruder_id = tool_ordering.first_extruder()) != static_cast<unsigned int>(-1)) {
                     append(printExtruders, tool_ordering.tools_for_layer(layers_to_print.front().first).extruders);
                 }
             }
+            sort_remove_duplicates(used_mixed_filaments);
+            this->set_slice_used_mixed_filaments(used_mixed_filaments);
             if (dynamic_reorder && m_objects.size() > 1) {
                 // Stitch the per-object plans into one print-wide selector result. A single-object
                 // sequential print publishes (and writes back) from its own ordering instead: the
@@ -2686,6 +3183,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 first_layer_used_filaments = tool_ordering.layer_tools().front().extruders;
 
             this->set_slice_used_filaments(first_layer_used_filaments, tool_ordering.all_extruders());
+            this->set_slice_used_mixed_filaments(tool_ordering.used_mixed_filaments());
             has_wipe_tower = this->has_wipe_tower() && tool_ordering.has_wipe_tower();
             initial_extruder_id = tool_ordering.first_extruder();
             print_object_instances_ordering = chain_print_object_instances(*this);
@@ -2693,6 +3191,28 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
         auto objectExtruderMap = getObjectExtruderMap(*this);
+        // Resolve mixed filament virtual slots to physical components so brim
+        // extruder matching works correctly (mixed slot IDs are not present
+        // in printExtruders after ToolOrdering::resolve_mixed_filaments).
+        {
+            const LayerTools *first_lt = nullptr;
+            if (m_config.print_sequence != PrintSequence::ByObject && !tool_ordering.layer_tools().empty())
+                first_lt = &tool_ordering.layer_tools().front();
+            for (auto &[obj_id, ext_1based] : objectExtruderMap) {
+                if (ext_1based == 0)
+                    continue;
+                const std::map<unsigned int, unsigned int> *resolution = nullptr;
+                if (first_lt)
+                    resolution = &first_lt->mixed_filament_resolution;
+                else if (auto obj_it = seq_mixed_resolution.find(obj_id); obj_it != seq_mixed_resolution.end())
+                    resolution = &obj_it->second;
+                if (resolution) {
+                    auto it = resolution->find(ext_1based - 1);
+                    if (it != resolution->end())
+                        ext_1based = it->second + 1;
+                }
+            }
+        }
         std::vector<std::pair<ObjectID, unsigned int>> objPrintVec;
         for (const PrintInstance* instance : print_object_instances_ordering) {
             const ObjectID& print_object_ID = instance->print_object->id();
@@ -2703,14 +3223,16 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (!existObject && objectExtruderMap.find(print_object_ID) != objectExtruderMap.end())
                 objPrintVec.push_back(std::make_pair(print_object_ID, objectExtruderMap.at(print_object_ID)));
         }
-        // BBS: m_brimMap and m_supportBrimMap are used instead of m_brim to generate brim of objs and supports seperately
+        // Orca: Build both the old object-keyed brim map and the per-instance
+        // maps used by skirt/brim groups.
         m_brimMap.clear();
-        m_supportBrimMap.clear();
+        m_brimMapByInstance.clear();
         m_first_layer_convex_hull.points.clear();
         if (this->has_brim()) {
             Polygons islands_area;
             make_brim(*this, this->make_try_cancel(), islands_area, m_brimMap,
-                m_supportBrimMap, objPrintVec, printExtruders, &m_objectBrimAreas, &m_supportBrimAreas);
+                m_brimMapByInstance, objPrintVec, printExtruders,
+                &m_objectBrimAreasByInstance);
             for (Polygon& poly_ex : islands_area)
                 poly_ex.douglas_peucker(SCALED_RESOLUTION);
             for (Polygon &poly : union_(this->first_layer_islands(), islands_area))
@@ -2859,7 +3381,8 @@ void Print::_make_skirt()
         Polygon      hull;
     };
 
-    // Orca: build one local occupied hull per object from object and support geometry up to skirt height.
+    // Orca: Build one local occupied hull per object from object/support
+    // geometry up to skirt height. Instances translate this hull later.
     std::vector<ObjectSkirtHull> object_convex_hulls;
     for (PrintObject *object : m_objects) {
         Points object_points;
@@ -2969,49 +3492,49 @@ void Print::_make_skirt()
         object_hull.object->m_skirt.clear();
 
     if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
-        struct SkirtGroupItem {
+        struct SkirtBrimGroupItem {
             Points       occupied_points;
             ObjectID     object_id;
+            size_t       instance_id;
             bool         emits_skirt;
         };
 
-        // Orca: group items represent occupied first-layer areas. Object items emit skirts;
-        // obstacle-only items, such as wipe tower, only force nearby object groups to merge.
-        std::vector<SkirtGroupItem> group_items;
+        // Orca: Each object instance can emit skirt/brim. Wipe tower is only an
+        // obstacle here; it may merge nearby items, but does not emit anything.
+        std::vector<SkirtBrimGroupItem> group_items;
         const coord_t grouping_offset = scale_(m_config.skirt_distance.value + m_config.skirt_loops.value * spacing);
         for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
             PrintObject* object = object_hull.object;
-            Points occupied_points;
-            for (const PrintInstance &instance : object->instances()) {
+            std::vector<size_t> object_item_indices;
+            object_item_indices.reserve(object->instances().size());
+            for (size_t instance_idx = 0; instance_idx < object->instances().size(); ++instance_idx) {
+                const PrintInstance &instance = object->instances()[instance_idx];
                 Points copy_points = object_hull.hull.points;
                 for (Point &pt : copy_points)
                     pt += instance.shift;
-                append(occupied_points, copy_points);
+                if (copy_points.size() < 3)
+                    continue;
+
+                object_item_indices.push_back(group_items.size());
+                group_items.push_back({ std::move(copy_points), object->id(), instance_idx, true });
             }
 
-            auto append_brim_points = [&occupied_points](const ExPolygons& areas) {
-                for (const ExPolygon& area : areas)
-                    append(occupied_points, area.contour.points);
-            };
-            if (auto it = m_objectBrimAreas.find(object->id()); it != m_objectBrimAreas.end())
-                append_brim_points(it->second);
-            if (auto it = m_supportBrimAreas.find(object->id()); it != m_supportBrimAreas.end())
-                append_brim_points(it->second);
-            if (occupied_points.size() < 3)
-                continue;
-
-            // Orca: include the object's brim/support-brim footprint before checking skirt collisions.
-            group_items.push_back({ std::move(occupied_points), object->id(), true });
+            for (size_t item_idx : object_item_indices) {
+                const ObjectInstanceID key{ object->id(), group_items[item_idx].instance_id };
+                if (auto instance_brim_it = m_objectBrimAreasByInstance.find(key); instance_brim_it != m_objectBrimAreasByInstance.end())
+                    for (const ExPolygon& area : instance_brim_it->second)
+                        append(group_items[item_idx].occupied_points, area.contour.points);
+            }
         }
 
         // Orca: the wipe tower contributes occupied area, but does not emit a skirt by itself.
         Points wipe_tower_points = this->first_layer_wipe_tower_corners();
         if (wipe_tower_points.size() >= 3)
-            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), false });
+            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), size_t(-1), false });
 
         std::vector<size_t> parent(group_items.size());
         std::iota(parent.begin(), parent.end(), 0);
-        // Orca: union-find keeps collision merging local without repeatedly rebuilding item lists.
+        // Orca: Use union-find so touching items can be merged while scanning.
         auto find_parent = [&parent](size_t idx) {
             while (parent[idx] != idx) {
                 parent[idx] = parent[parent[idx]];
@@ -3026,24 +3549,24 @@ void Print::_make_skirt()
                 parent[b] = a;
         };
 
-        // Orca: combined skirt is the same grouping model with all items forced into one group.
+        // Orca: Combined skirt starts with all items in the same group.
         if (m_config.skirt_type == stCombined && !group_items.empty())
             for (size_t i = 1; i < group_items.size(); ++i)
                 unite(0, i);
 
-        auto build_grouped_points = [&]() {
-            struct GroupData {
-                Points                points;
-                std::vector<ObjectID> object_ids;
-                bool                  emits_skirt = false;
+        auto build_skirt_brim_groups = [&]() {
+            struct SkirtBrimGroupData {
+                Points                                           points;
+                std::vector<ObjectInstanceID>                    instances;
+                bool                                             emits_skirt = false;
             };
 
-            std::map<size_t, GroupData> grouped;
+            std::map<size_t, SkirtBrimGroupData> grouped;
             for (size_t i = 0; i < group_items.size(); ++i) {
-                GroupData& group = grouped[find_parent(i)];
+                SkirtBrimGroupData& group = grouped[find_parent(i)];
                 append(group.points, group_items[i].occupied_points);
                 if (group_items[i].object_id.valid())
-                    group.object_ids.push_back(group_items[i].object_id);
+                    group.instances.push_back({ group_items[i].object_id, group_items[i].instance_id });
                 group.emits_skirt = group.emits_skirt || group_items[i].emits_skirt;
             }
             return grouped;
@@ -3052,16 +3575,18 @@ void Print::_make_skirt()
         bool groups_changed = m_config.skirt_type == stPerObject;
         while (groups_changed) {
             groups_changed = false;
-            auto grouped_points = build_grouped_points();
+            auto grouped_points = build_skirt_brim_groups();
             std::vector<std::pair<size_t, Polygon>> group_envelopes;
             for (const auto& [root, group] : grouped_points) {
                 if (group.points.size() < 3)
                     continue;
 
-                // Orca: emitting groups are expanded to their final skirt reach; obstacle groups are not.
+                // Orca: Only skirt-emitting groups are expanded by skirt distance;
+                // obstacle-only groups stay at their occupied outline.
                 Polygon envelope = Geometry::convex_hull(group.points);
                 if (group.emits_skirt) {
-                    // Orca: merge groups when a skirt envelope intersects another group or obstacle.
+                    // Orca: If the expanded skirt outline touches another group
+                    // or obstacle, merge them and run the pass again.
                     Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
                     if (envelopes.empty())
                         continue;
@@ -3082,28 +3607,23 @@ void Print::_make_skirt()
             }
         }
 
-        auto make_group_brims = [this](const std::vector<ObjectID>& group_object_ids) {
+        auto make_brims_for_skirt_brim_group = [this](const std::vector<ObjectInstanceID>& group_instances) {
             std::vector<SkirtBrimGroup::Brim> brims;
-            std::vector<ObjectID> brim_object_ids;
-            for (ObjectID object_id : group_object_ids) {
-                const auto brim_it = m_brimMap.find(object_id);
-                if (brim_it != m_brimMap.end() && !brim_it->second.empty())
-                    brim_object_ids.push_back(object_id);
+            std::vector<ObjectInstanceID> brim_instances;
+            for (const ObjectInstanceID& instance : group_instances) {
+                const auto brim_it = m_brimMapByInstance.find(instance);
+                if (brim_it != m_brimMapByInstance.end() && !brim_it->second.empty())
+                    brim_instances.push_back(instance);
             }
 
-            const bool global_combined_brim = m_config.combine_brims && m_config.skirt_type != stPerObject && m_brimMap.size() == 1;
-            auto brim_owner_ids = [&group_object_ids, global_combined_brim](const std::vector<ObjectID>& object_ids) {
-                return global_combined_brim ? group_object_ids : object_ids;
-            };
-
-            const bool combine_group_brims = m_config.combine_brims && brim_object_ids.size() > 1;
+            const bool combine_group_brims = m_config.combine_brims && brim_instances.size() > 1;
             if (!combine_group_brims) {
-                for (ObjectID object_id : brim_object_ids)
-                    brims.push_back({ m_brimMap.at(object_id), brim_owner_ids({ object_id }) });
+                for (const ObjectInstanceID& instance : brim_instances)
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
                 return brims;
             }
 
-            std::vector<size_t> brim_parent(brim_object_ids.size());
+            std::vector<size_t> brim_parent(brim_instances.size());
             std::iota(brim_parent.begin(), brim_parent.end(), 0);
             auto find_brim_parent = [&brim_parent](size_t idx) {
                 while (brim_parent[idx] != idx) {
@@ -3120,61 +3640,64 @@ void Print::_make_skirt()
             };
 
             const coord_t brim_contact_distance = coord_t(brim_flow().scaled_spacing() * 2.);
-            for (size_t i = 0; i < brim_object_ids.size(); ++i) {
-                const auto area_i = m_objectBrimAreas.find(brim_object_ids[i]);
-                if (area_i == m_objectBrimAreas.end())
+            for (size_t i = 0; i < brim_instances.size(); ++i) {
+                const auto area_i = m_objectBrimAreasByInstance.find(brim_instances[i]);
+                if (area_i == m_objectBrimAreasByInstance.end())
                     continue;
-                for (size_t j = i + 1; j < brim_object_ids.size(); ++j) {
-                    const auto area_j = m_objectBrimAreas.find(brim_object_ids[j]);
-                    if (area_j != m_objectBrimAreas.end() &&
+                for (size_t j = i + 1; j < brim_instances.size(); ++j) {
+                    const auto area_j = m_objectBrimAreasByInstance.find(brim_instances[j]);
+                    if (area_j != m_objectBrimAreasByInstance.end() &&
                         !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
                         unite_brims(i, j);
                 }
             }
 
-            std::map<size_t, std::vector<ObjectID>> combined_brim_ids;
-            for (size_t i = 0; i < brim_object_ids.size(); ++i)
-                combined_brim_ids[find_brim_parent(i)].push_back(brim_object_ids[i]);
+            std::map<size_t, std::vector<ObjectInstanceID>> combined_brim_ids;
+            for (size_t i = 0; i < brim_instances.size(); ++i)
+                combined_brim_ids[find_brim_parent(i)].push_back(brim_instances[i]);
 
-            for (const auto& [_, object_ids] : combined_brim_ids) {
-                if (object_ids.size() == 1) {
-                    brims.push_back({ m_brimMap.at(object_ids.front()), brim_owner_ids(object_ids) });
+            for (const auto& [_, instances] : combined_brim_ids) {
+                if (instances.size() == 1) {
+                    const ObjectInstanceID& instance = instances.front();
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
                     continue;
                 }
 
                 ExPolygons combined_area;
-                for (ObjectID object_id : object_ids)
-                    expolygons_append(combined_area, m_objectBrimAreas.at(object_id));
+                for (const ObjectInstanceID& instance : instances)
+                    expolygons_append(combined_area, m_objectBrimAreasByInstance.at(instance));
                 combined_area = union_ex(combined_area);
                 const float scaled_resolution  = float(scaled(m_config.resolution.value));
                 const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
                 combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
                 Polygons islands_area;
-                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), object_ids });
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), instances });
             }
 
             return brims;
         };
 
-        auto grouped_points = build_grouped_points();
+        auto grouped_points = build_skirt_brim_groups();
         for (auto& [_, group] : grouped_points) {
             if (!group.emits_skirt || group.points.size() < 3)
                 continue;
-            if (generate_skirt && m_config.skirt_type == stPerObject && group.object_ids.size() > 1)
+            if (generate_skirt && m_config.skirt_type == stPerObject && group.instances.size() > 1)
                 m_has_shared_per_object_skirt = true;
-            // Orca: after merging, use the occupied outline directly; do not add skirt distance twice.
+            // Orca: Group points already include the occupied outline, so don't
+            // add skirt distance here again.
             ExtrusionEntityCollection group_skirt;
             if (generate_skirt)
                 append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
-            std::vector<SkirtBrimGroup::Brim> group_brims = make_group_brims(group.object_ids);
+            std::vector<SkirtBrimGroup::Brim> group_brims = make_brims_for_skirt_brim_group(group.instances);
             if (!group_skirt.empty()) {
                 group_skirt.reverse();
-                // Orca: keep m_skirt as a flattened compatibility mirror for preview/extents.
+                // Orca: Keep m_skirt filled for code that still reads a flat
+                // skirt collection.
                 m_skirt.append(group_skirt.entities);
             }
             if (!group_skirt.empty() || !group_brims.empty())
-                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.object_ids), std::move(group_brims) });
+                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.instances), std::move(group_brims) });
         }
     }
 }
@@ -3406,7 +3929,11 @@ void Print::update_filament_maps_to_config(std::vector<int> f_maps, std::vector<
             }
             else if ((extruder_volume_type_count > extruder_count) && (m_config.filament_volume_map.values.size() > index))
                 nozzle_volume_type = (NozzleVolumeType)(m_config.filament_volume_map.values[index]);
-            m_config.filament_map_2.values[index] = m_ori_full_print_config.get_index_for_extruder(f_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+            // Orca: when the process variant columns cannot be matched (degenerate
+            // print_extruder_id), key the override by plain extruder index like the seeding
+            // above instead of poisoning the map with -1.
+            int slot_index = m_ori_full_print_config.get_index_for_extruder(f_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+            m_config.filament_map_2.values[index] = slot_index >= 0 ? slot_index : f_maps[index] - 1;
         }
 
         m_full_print_config = m_ori_full_print_config;
@@ -3603,7 +4130,8 @@ std::vector<std::set<int>> Print::get_physical_unprintable_filaments(const std::
         return physical_unprintables;
 
     auto get_unprintable_extruder_id = [&](unsigned int filament_idx) -> int {
-        int status = m_config.filament_printable.values[filament_idx];
+        // filament_printable may be shorter than the filament count; get_at() clamps.
+        int status = m_config.filament_printable.get_at(filament_idx);
         for (int i = 0; i < extruder_num; ++i) {
             if (!(status >> i & 1)) {
                 return i;
@@ -3678,7 +4206,7 @@ std::vector<Polygons> Print::get_extruder_printable_polygons() const
         Polygons ploys = {Polygon::new_scale(e_printable_area)};
         extruder_printable_polys.emplace_back(ploys);
     }
-    return std::move(extruder_printable_polys);
+    return extruder_printable_polys;
 }
 
 std::vector<Polygons> Print::get_extruder_unprintable_polygons() const
@@ -3691,7 +4219,7 @@ std::vector<Polygons> Print::get_extruder_unprintable_polygons() const
         Polygons ploys = diff(printable_poly, Polygon::new_scale(e_printable_area));
         extruder_unprintable_polys.emplace_back(ploys);
     }
-    return std::move(extruder_unprintable_polys);
+    return extruder_unprintable_polys;
 }
 
 size_t Print::get_extruder_id(unsigned int filament_id) const
@@ -3742,6 +4270,14 @@ bool Print::is_dynamic_group_reorder() const
     const bool  enabled = opt && opt->value;
     if (!enabled || m_config.filament_map_mode != FilamentMapMode::fmmAutoForFlush || m_config.nozzle_diameter.size() <= 1)
         return false;
+
+    // Dynamic regrouping and mixed-color slots are incompatible: a mixed slot is resolved to
+    // different physical components per layer, so a group assignment made up-front would be wrong.
+    const auto &is_mixed = m_config.filament_is_mixed.values;
+    for (unsigned int filament_id : extruders()) {
+        if (filament_id < is_mixed.size() && is_mixed[filament_id])
+            return false;
+    }
     return true;
 }
 
@@ -3872,82 +4408,25 @@ bool Print::has_wipe_tower() const
 
 const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 {
-    // If the wipe tower wasn't created yet, make sure the depth and brim_width members are set to default.
-    double max_height = 0;
-    for (size_t obj_idx = 0; obj_idx < m_objects.size(); obj_idx++) {
-        double object_z = (double) m_objects[obj_idx]->size().z();
-        max_height      = std::max(unscale_(object_z), max_height);
+    // Until the tower is generated, size it with the estimate the GUI/CLI placement uses, so
+    // validation cannot reject a position the clamp just accepted.
+    if (is_step_done(psWipeTower) || filaments_cnt == 0)
+        return m_wipe_tower_data;
+
+    double max_height   = 0.;
+    double layer_height = std::numeric_limits<double>::max();
+    for (const PrintObject *object : m_objects) {
+        max_height   = std::max(max_height, unscale_(double(object->size().z())));
+        layer_height = std::min(layer_height, object->config().layer_height.value);
     }
-    if (max_height < EPSILON) return m_wipe_tower_data;
+    if (max_height < EPSILON)
+        return m_wipe_tower_data;
 
-    double layer_height                  = 0.08f; // hard code layer height
-    layer_height        = m_objects.front()->config().layer_height.value;
-
-    auto   timelapse_type  = config().option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool   need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib);
-    double extra_spacing = config().option("prime_tower_infill_gap")->getFloat() / 100.;
-    double rib_width     = config().option("wipe_tower_rib_width")->getFloat();
-
-    double filament_change_volume = 0.;
-    {
-        std::vector<double> filament_change_lengths;
-        auto                filament_change_lengths_opt = config().option<ConfigOptionFloats>("filament_change_length");
-        if (filament_change_lengths_opt) filament_change_lengths = filament_change_lengths_opt->values;
-        double              length   = filament_change_lengths.empty() ? 0 : *std::max_element(filament_change_lengths.begin(), filament_change_lengths.end());
-        double              diameter = 1.75;
-        std::vector<double> diameters;
-        auto                filament_diameter_opt = config().option<ConfigOptionFloats>("filament_diameter");
-        if (filament_diameter_opt) diameters = filament_diameter_opt->values;
-        diameter               = diameters.empty() ? diameter : *std::max_element(diameters.begin(), diameters.end());
-        filament_change_volume = length * PI * diameter * diameter / 4.;
-    }
-
-
-    if (! is_step_done(psWipeTower) && filaments_cnt !=0) {
-        double wipe_volume  = m_config.prime_volume;
-        int filament_depth_count = m_config.nozzle_diameter.values.size() == 2 ? filaments_cnt : filaments_cnt - 1;
-        if (filaments_cnt == 1 && enable_timelapse_print()) filament_depth_count = 1;
-        double volume = wipe_volume * filament_depth_count;
-        if (m_config.nozzle_diameter.values.size() == 2) volume += filament_change_volume * (int) (filaments_cnt / 2);
-
-        if (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
-            double depth = std::sqrt(volume / layer_height * extra_spacing);
-            if (need_wipe_tower || filaments_cnt > 1) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth  = std::max((double) min_wipe_tower_depth, depth);
-                depth += rib_width / std::sqrt(2) + config().wipe_tower_extra_rib_length.value;
-                const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-                const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
-            }
-        }
-        else {
-        double width        = m_config.prime_tower_width;
-        if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
-            // Calculating depth should take into account currently set wiping volumes.
-            // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
-            // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
-            std::vector<std::vector<float>> wipe_volumes = WipeTower2::extract_wipe_volumes(m_config);
-            std::vector<float>              max_wipe_volumes;
-            for (const std::vector<float> &v : wipe_volumes)
-                max_wipe_volumes.emplace_back(*std::max_element(v.begin(), v.end()));
-            float maximum = std::accumulate(max_wipe_volumes.begin(), max_wipe_volumes.end(), 0.f);
-            maximum       = maximum * filaments_cnt / max_wipe_volumes.size();
-            
-            // Orca: it's overshooting a bit, so let's reduce it a bit
-            maximum *= 0.6; 
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = maximum / (layer_height * width);
-        } else {
-            double depth = volume / (layer_height * width) * extra_spacing;
-            if (need_wipe_tower || m_wipe_tower_data.depth > EPSILON) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth = std::max((double) min_wipe_tower_depth, depth);
-            }
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-        }
-        const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
-        }
-        if (m_config.prime_tower_brim_width < 0) const_cast<Print *>(this)->m_wipe_tower_data.brim_width = WipeTower::get_auto_brim_by_height(max_height);
-    }
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, this->wipe_tower_type(), this->extruders(true), layer_height, max_height);
+    WipeTowerData &data = const_cast<Print *>(this)->m_wipe_tower_data;
+    data.depth      = float(footprint.depth);
+    data.width      = float(footprint.width);
+    data.brim_width = float(footprint.brim_width);
     return m_wipe_tower_data;
 }
 
@@ -3973,38 +4452,36 @@ void Print::_make_wipe_tower()
         return;
 
     // Check whether there are any layers in m_tool_ordering, which are marked with has_wipe_tower,
-    // they print neither object, nor support. These layers are above the raft and below the object, and they
-    // shall be added to the support layers to be printed.
-    // see https://github.com/prusa3d/PrusaSlicer/issues/607
+    // they print neither object, nor support. Each such layer needs a virtual support layer
+    // counterpart in m_objects.front() so that GCode::collect_layers_to_print picks it up and the
+    // wipe tower G-code is actually emitted for that z. Such layers appear in two scenarios:
+    //   - above the raft, between raft top and the first real object layer
+    //     (see https://github.com/prusa3d/PrusaSlicer/issues/607);
+    //   - between two real wipe-tower layers, when one object is fully floating above another and
+    //     the support_top_z_distance / support_bottom_z_distance gap leaves interior z values with
+    //     neither object nor support (continuity fill in ToolOrdering::fill_wipe_tower_partitions).
+    // The previous implementation only handled the first contiguous run starting at the first
+    // virtual layer, which made the second scenario silently produce empty wipe-tower layers.
     {
-        size_t idx_begin = size_t(-1);
-        size_t idx_end   = m_wipe_tower_data.tool_ordering.layer_tools().size();
-        // Find the first wipe tower layer, which does not have a counterpart in an object or a support layer.
+        auto &support_layers = m_objects.front()->support_layers();
+        auto it_layer = support_layers.begin();
+        const size_t idx_end = m_wipe_tower_data.tool_ordering.layer_tools().size();
         for (size_t i = 0; i < idx_end; ++ i) {
-            const LayerTools &lt = m_wipe_tower_data.tool_ordering.layer_tools()[i];
-            if (lt.has_wipe_tower && ! lt.has_object && ! lt.has_support) {
-                idx_begin = i;
-                break;
-            }
-        }
-        if (idx_begin != size_t(-1)) {
-            // Find the position in m_objects.first()->support_layers to insert these new support layers.
-            double wipe_tower_new_layer_print_z_first = m_wipe_tower_data.tool_ordering.layer_tools()[idx_begin].print_z;
-            auto it_layer = m_objects.front()->support_layers().begin();
-            auto it_end   = m_objects.front()->support_layers().end();
-            for (; it_layer != it_end && (*it_layer)->print_z - EPSILON < wipe_tower_new_layer_print_z_first; ++ it_layer);
-            // Find the stopper of the sequence of wipe tower layers, which do not have a counterpart in an object or a support layer.
-            for (size_t i = idx_begin; i < idx_end; ++ i) {
-                LayerTools &lt = const_cast<LayerTools&>(m_wipe_tower_data.tool_ordering.layer_tools()[i]);
-                if (! (lt.has_wipe_tower && ! lt.has_object && ! lt.has_support))
-                    break;
-                lt.has_support = true;
-                // Insert the new support layer.
-                double height    = lt.print_z - (i == 0 ? 0. : m_wipe_tower_data.tool_ordering.layer_tools()[i-1].print_z);
-                //FIXME the support layer ID is set to -1, as Vojtech hopes it is not being used anyway.
-                it_layer = m_objects.front()->insert_support_layer(it_layer, -1, 0, height, lt.print_z, lt.print_z - 0.5 * height);
+            LayerTools &lt = const_cast<LayerTools&>(m_wipe_tower_data.tool_ordering.layer_tools()[i]);
+            if (! (lt.has_wipe_tower && ! lt.has_object && ! lt.has_support))
+                continue;
+            while (it_layer != support_layers.end() && (*it_layer)->print_z + EPSILON < lt.print_z)
                 ++ it_layer;
+            if (it_layer != support_layers.end() && std::abs((*it_layer)->print_z - lt.print_z) < EPSILON) {
+                lt.has_support = true;
+                ++ it_layer;
+                continue;
             }
+            lt.has_support = true;
+            double height = lt.print_z - (i == 0 ? 0. : m_wipe_tower_data.tool_ordering.layer_tools()[i-1].print_z);
+            //FIXME the support layer ID is set to -1, as Vojtech hopes it is not being used anyway.
+            it_layer = m_objects.front()->insert_support_layer(it_layer, -1, 0, height, lt.print_z, lt.print_z - 0.5 * height);
+            ++ it_layer;
         }
     }
     this->throw_if_canceled();
@@ -4013,8 +4490,33 @@ void Print::_make_wipe_tower()
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
         WipeTower wipe_tower(m_config, m_plate_index, m_origin, m_wipe_tower_data.tool_ordering.first_extruder(),
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
+        // Orca: the tower's first-layer flow follows the user's first-layer flow ratio (BBS reads
+        // its initial_layer_flow_ratio here — STUDIO-14254; first_layer_flow_ratio is Orca's analog,
+        // default 1.0 in both). Honor the set_other_flow_ratios gate that governs the option
+        // everywhere else.
+        wipe_tower.set_first_layer_flow_ratio(m_default_object_config.set_other_flow_ratios
+                                                  ? float(m_default_region_config.first_layer_flow_ratio)
+                                                  : 1.f);
         wipe_tower.set_has_tpu_filament(this->has_tpu_filament());
-        wipe_tower.set_filament_map(this->get_filament_maps());
+        // Per-layer filament->nozzle grouping. sort_and_build_data() above publishes it on the Print
+        // for by-layer prints; by-object prints publish only later (psSkirtBrim), so fall back to the
+        // ToolOrdering's own copy there. set_extruder() below dereferences it, so it must be set first.
+        auto print_group_result = get_layered_nozzle_group_result();
+        const MultiNozzleUtils::LayeredNozzleGroupResult &nozzle_group_result =
+            print_group_result ? *print_group_result : m_wipe_tower_data.tool_ordering.get_layered_nozzle_group_result();
+        wipe_tower.set_nozzle_group_result(nozzle_group_result);
+        {
+            // Orca: acceleration options are object-scope (PrintConfig members in BBS), so resolve
+            // the per-variant columns here; initial_layer_travel_acceleration is FloatOrPercent
+            // over travel_acceleration and needs the full config to resolve.
+            std::vector<double> first_layer_travel_accels;
+            for (size_t i = 0; i < m_config.initial_layer_travel_acceleration.values.size(); ++i)
+                first_layer_travel_accels.emplace_back(m_full_print_config.get_abs_value_at("initial_layer_travel_acceleration", i));
+            wipe_tower.set_accelerations(m_default_object_config.default_acceleration.values,
+                                         m_default_object_config.initial_layer_acceleration.values,
+                                         m_default_object_config.travel_acceleration.values,
+                                         first_layer_travel_accels);
+        }
         // Feed the has_filament_switcher device flag (develop-only dynamic key, read defensively from
         // the full config — no shipping profile sets it) and the shared printable bed used by the PETG
         // pre-extrusion offset clamp. Both are inert unless has_filament_switcher is set.
@@ -4050,14 +4552,24 @@ void Print::_make_wipe_tower()
             multi_extruder_flush.emplace_back(wipe_volumes);
         }
 
-        std::vector<int>filament_maps = get_filament_maps();
+        // Per-carousel-slot purge tracking via NozzleStatusRecorder (BBS pattern); the layered
+        // group result set on the tower above resolves each filament to its nozzle slot per layer.
+        MultiNozzleUtils::NozzleStatusRecorder nozzle_recorder;
 
-        std::vector<unsigned int> nozzle_cur_filament_ids(nozzle_nums, -1);
+        std::vector<int>filament_maps = get_filament_maps();
+        int layer_idx = -1;
+
         unsigned int current_filament_id = m_wipe_tower_data.tool_ordering.first_extruder();
-        size_t cur_nozzle_id = filament_maps[current_filament_id] - 1;
-        nozzle_cur_filament_ids[cur_nozzle_id] = current_filament_id;
+        // Initialize NozzleStatusRecorder with the first filament's carousel slot
+        {
+            auto nozzle = nozzle_group_result.get_nozzle_for_filament(current_filament_id, layer_idx);
+            if (nozzle)
+                nozzle_recorder.set_nozzle_status(nozzle->group_id, current_filament_id, nozzle->extruder_id);
+        }
 
         for (auto& layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
+            ++layer_idx;
+
             if (!layer_tools.has_wipe_tower) continue;
             bool first_layer = &layer_tools == &m_wipe_tower_data.tool_ordering.front();
             wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, current_filament_id);
@@ -4068,30 +4580,52 @@ void Print::_make_wipe_tower()
                 if (filament_id == current_filament_id)
                     continue;
 
-                int          nozzle_id = filament_maps[filament_id] - 1;
-                unsigned int pre_filament_id = nozzle_cur_filament_ids[nozzle_id];
-
                 float volume_to_purge = 0;
-                if (pre_filament_id != (unsigned int)(-1) && pre_filament_id != filament_id) {
-                    volume_to_purge = multi_extruder_flush[nozzle_id][pre_filament_id][filament_id];
-                    // Fast purge mode uses flush_multiplier_fast; Default is inert.
-                    float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast) ? m_config.flush_multiplier_fast.get_at(nozzle_id)
-                                                                                                      : m_config.flush_multiplier.get_at(nozzle_id);
-                    volume_to_purge *= flush_multiplier;
-                    volume_to_purge = pre_filament_id == -1 ? 0 :
-                        layer_tools.wiping_extrusions().mark_wiping_extrusions(*this, current_filament_id, filament_id, volume_to_purge);
+
+                // Per-carousel-slot purge tracking via NozzleStatusRecorder
+                {
+                    auto nozzle_info = nozzle_group_result.get_nozzle_for_filament(filament_id, layer_idx);
+                    if (nozzle_info) {
+                        int extruder_id = nozzle_info->extruder_id;
+                        int nozzle_id   = nozzle_info->group_id;
+                        int prev_nozzle_filament = nozzle_recorder.get_filament_in_nozzle(nozzle_id);
+
+                        if (!nozzle_recorder.is_nozzle_empty(nozzle_id) &&
+                            static_cast<int>(filament_id) != prev_nozzle_filament) {
+                            volume_to_purge = multi_extruder_flush[extruder_id][prev_nozzle_filament][filament_id];
+                            // Fast purge mode uses flush_multiplier_fast; Default is inert.
+                            float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast)
+                                ? m_config.flush_multiplier_fast.get_at(extruder_id)
+                                : m_config.flush_multiplier.get_at(extruder_id);
+                            volume_to_purge *= flush_multiplier;
+                            volume_to_purge = layer_tools.wiping_extrusions().mark_wiping_extrusions(
+                                *this, current_filament_id, filament_id, volume_to_purge);
+                        }
+                        nozzle_recorder.set_nozzle_status(nozzle_id, filament_id, extruder_id);
+                    }
                 }
 
                 //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
-                float grab_purge_volume = m_config.grab_length.get_at(nozzle_id) * 2.4; //(diameter/2)^2*PI=2.4
+                int grab_extruder_id = filament_maps[filament_id] - 1;
+                float grab_purge_volume = m_config.grab_length.get_at(grab_extruder_id) * 2.4; //(diameter/2)^2*PI=2.4
                 volume_to_purge = std::max(0.f, volume_to_purge - grab_purge_volume);
 
-                // Saving mode reduces the prime volume to 15 mm3; Default is inert.
-                float prime_volume = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) ? 15.f : (float) m_config.prime_volume;
+                // Prime volume per-filament: the tower now picks extruder-change vs nozzle-change
+                // (carousel) internally per plan layer, so pass both candidates (BBS pattern).
+                float wipe_volume_ec = filament_id < m_config.filament_prime_volume.values.size()
+                    ? m_config.filament_prime_volume.values[filament_id]
+                    : (float) m_config.prime_volume;
+                float wipe_volume_nc = filament_id < m_config.filament_prime_volume_nc.values.size()
+                    ? m_config.filament_prime_volume_nc.values[filament_id]
+                    : (float) m_config.prime_volume;
+                if (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) {
+                    wipe_volume_ec = 15.f;
+                    wipe_volume_nc = 15.f;
+                }
+
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, filament_id,
-                    prime_volume, volume_to_purge);
+                    wipe_volume_ec, wipe_volume_nc, volume_to_purge);
                 current_filament_id = filament_id;
-                nozzle_cur_filament_ids[nozzle_id] = filament_id;
             }
             layer_tools.wiping_extrusions().ensure_perimeters_infills_order(*this);
 
@@ -4118,12 +4652,14 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.tool_changes.reserve(m_wipe_tower_data.tool_ordering.layer_tools().size());
         wipe_tower.generate_new(m_wipe_tower_data.tool_changes);
         m_wipe_tower_data.depth      = wipe_tower.get_depth();
+        m_wipe_tower_data.width      = wipe_tower.width();
         m_wipe_tower_data.brim_width = wipe_tower.get_brim_width();
         m_wipe_tower_data.bbx = wipe_tower.get_bbx();
         m_wipe_tower_data.rib_offset = wipe_tower.get_rib_offset();
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
+        bool generate_final_purge = true;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -4135,11 +4671,14 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // The wipe tower does not reach the last print layer.
+            // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+            generate_final_purge = false;
         }
-        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int) (-1)));
+        m_wipe_tower_data.final_purge = generate_final_purge
+            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
+            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
@@ -4227,6 +4766,7 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.tool_changes.reserve(m_wipe_tower_data.tool_ordering.layer_tools().size());
         wipe_tower.generate(m_wipe_tower_data.tool_changes);
         m_wipe_tower_data.depth             = wipe_tower.get_depth();
+        m_wipe_tower_data.width             = wipe_tower.width();
         m_wipe_tower_data.z_and_depth_pairs = wipe_tower.get_z_and_depth_pairs();
         m_wipe_tower_data.brim_width        = wipe_tower.get_brim_width();
         m_wipe_tower_data.height            = wipe_tower.get_wipe_tower_height();
@@ -4235,6 +4775,7 @@ void Print::_make_wipe_tower()
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
+        bool generate_final_purge = true;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -4246,11 +4787,14 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // The wipe tower does not reach the last print layer.
+            // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+            generate_final_purge = false;
         }
-        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int) (-1)));
+        m_wipe_tower_data.final_purge = generate_final_purge
+            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
+            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
@@ -4258,13 +4802,42 @@ void Print::_make_wipe_tower()
                                          wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
                                          config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
-                                         config().wipe_tower_fillet_wall.value);
+                                         config().wipe_tower_fillet_wall.value,
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
+                                             (float) config().wipe_tower_cone_angle.value : 0.f);
         const Vec3d origin                      = Vec3d::Zero();
-        m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
+        // FakeWipeTower::pos is a bed-frame translation applied after rotation
+        // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
+        // tower-local rib offset must be rotated into the bed frame first.
+        m_fake_wipe_tower.rib_offset = Eigen::Rotation2Df(Geometry::deg2rad((float)config().wipe_tower_rotation_angle.value)) *
+                                       wipe_tower.get_rib_offset();
+        m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position() + m_fake_wipe_tower.rib_offset, wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
                                                   m_wipe_tower_data.z_and_depth_pairs, m_wipe_tower_data.brim_width,
                                                   config().wipe_tower_rotation_angle, config().wipe_tower_cone_angle,
                                                   {scale_(origin.x()), scale_(origin.y())});
+    }
+
+    // The clamps and checks above work from estimates; re-test the exact generated footprint
+    // so an off-plate tower fails with a clear error instead of exporting unprintable G-code
+    // (validate() only sees the mesh on its next run).
+    if (m_wipe_tower_data.wipe_tower_mesh_data) {
+        Polygon footprint = m_wipe_tower_data.wipe_tower_mesh_data->bottom; // includes brim and rib offset
+        footprint.rotate(Geometry::deg2rad(m_config.wipe_tower_rotation_angle.value));
+        footprint.translate(Point(scale_(m_config.wipe_tower_x.get_at(m_plate_index)),
+                                  scale_(m_config.wipe_tower_y.get_at(m_plate_index))));
+        const Polygons printable_polys = this->get_extruder_shared_printable_polygon();
+        if (!printable_polys.empty() && !diff(Polygons{footprint}, printable_polys).empty()) {
+            const BoundingBox fp = get_extents(footprint);
+            const BoundingBox pr = get_extents(printable_polys);
+            BOOST_LOG_TRIVIAL(error) << boost::format("wipe tower footprint [%1%,%2%]-[%3%,%4%] leaves printable [%5%,%6%]-[%7%,%8%]") %
+                unscaled(fp.min.x()) % unscaled(fp.min.y()) % unscaled(fp.max.x()) % unscaled(fp.max.y()) %
+                unscaled(pr.min.x()) % unscaled(pr.min.y()) % unscaled(pr.max.x()) % unscaled(pr.max.y());
+            throw Slic3r::SlicingError(L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n"));
+        }
+        // The cutter/purge corner is a physical obstacle — the brim must stay out like the body.
+        if (!intersection(get_bed_excluded_area(m_config), Polygons{footprint}).empty())
+            throw Slic3r::SlicingError(L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n"));
     }
 }
 
@@ -5519,7 +6092,7 @@ int Print::load_cached_data(const std::string& directory)
         return CLI_IMPORT_CACHE_NOT_FOUND;
     }
 
-    auto find_region = [this](PrintObject* object, size_t config_hash) -> const PrintRegion* {
+    auto find_region = [](PrintObject* object, size_t config_hash) -> const PrintRegion* {
         int regions_count = object->num_printing_regions();
         for (int index = 0; index < regions_count; index++ )
         {
@@ -5731,7 +6304,7 @@ BoundingBoxf3 PrintInstance::get_bounding_box() const {
 
 Polygon PrintInstance::get_convex_hull_2d() {
     Polygon poly = print_object->model_object()->convex_hull_2d(model_instance->get_matrix());
-    poly.douglas_peucker(0.1);
+    poly.douglas_peucker(scale_(0.1));
     return poly;
 }
 
@@ -5814,17 +6387,26 @@ ExtrusionLayers FakeWipeTower::getTrueExtrusionLayersFromWipeTower() const
     }
     return wtels;
 }
-void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall)
+void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall, float cone_angle)
 {
     wipe_tower_mesh_data = WipeTowerMeshData{};
     float first_layer_height=0.08; //brim height
     if (width < EPSILON || depth < EPSILON || height < EPSILON) return;
-    if (!is_rib_wipe_tower || rib_length < EPSILON) {
+    if (cone_angle > EPSILON && (!is_rib_wipe_tower || rib_length < EPSILON)) {
+        // Cone tower: the base bulges past the body box; this bottom polygon feeds the
+        // containment checks, so it must carry the bulge and the brim (cone not lofted).
+        wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
+        wipe_tower_mesh_data->bottom               = WipeTower2::cone_base_polygon(width, depth, height, cone_angle);
+        auto brim_bottom                           = offset(wipe_tower_mesh_data->bottom, scaled(brim_width));
+        if (!brim_bottom.empty())
+            wipe_tower_mesh_data->bottom = brim_bottom.front();
+        wipe_tower_mesh_data->real_brim_mesh = WipeTower::its_make_rib_brim(wipe_tower_mesh_data->bottom, first_layer_height);
+    } else if (!is_rib_wipe_tower || rib_length < EPSILON) {
         wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
         wipe_tower_mesh_data->real_brim_mesh       = make_cube(width + 2 * brim_width, depth + 2 * brim_width, first_layer_height);
         wipe_tower_mesh_data->real_brim_mesh.translate({-brim_width, -brim_width, 0});
-        wipe_tower_mesh_data->bottom = {scaled(Vec2f{-brim_width, -brim_width}), scaled(Vec2f{width + brim_width, 0}), scaled(Vec2f{width + brim_width, depth + brim_width}),
-                                        scaled(Vec2f{0, depth})};
+        wipe_tower_mesh_data->bottom = {scaled(Vec2f{-brim_width, -brim_width}), scaled(Vec2f{width + brim_width, -brim_width}),
+                                        scaled(Vec2f{width + brim_width, depth + brim_width}), scaled(Vec2f{-brim_width, depth + brim_width})};
     } else {
         wipe_tower_mesh_data->real_wipe_tower_mesh = WipeTower::its_make_rib_tower(width, depth, height, rib_length, rib_width, fillet_wall);
         wipe_tower_mesh_data->bottom               = WipeTower::rib_section(width, depth, rib_length, rib_width, fillet_wall);

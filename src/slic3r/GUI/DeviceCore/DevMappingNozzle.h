@@ -18,7 +18,7 @@ namespace GUI
 class Plater;
 }
 
-struct FilamentInfo; // libslic3r/ProjectTask.hpp
+struct FilamentInfo; // Orca: libslic3r/ProjectTask.hpp — forward-decl for CtrlGetAutoNozzleMappingV0 signature
 
 class MachineObject;
 class DevNozzleMappingCtrl

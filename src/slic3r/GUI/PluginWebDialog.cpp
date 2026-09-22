@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 
 #include <wx/event.h>
+#include <wx/uri.h>
 
 #include <utility>
 
@@ -15,46 +16,14 @@ namespace Slic3r { namespace GUI {
 
 namespace {
 
-// Low-specificity element defaults (no !important) for UNSTYLED plugin HTML, so a bare
-// plugin page looks native while any CSS the plugin ships still wins. Built on the
-// --orca-* variables the host injects (see WebViewHostDialog); document-start injected
-// AFTER the host contract so the variables are defined (shares the base injector's
-// WebView2 timing guard).
-std::string plugin_defaults_user_script()
-{
-    std::string css;
-    css += "<style id=\"orca-plugin-defaults\">";
-    css += "html,body{background:var(--orca-bg);color:var(--orca-fg);"
-           "font-family:var(--orca-font);font-size:13px;}";
-    css += "body{margin:0;}";
-    css += "h1,h2,h3,h4,h5,h6{color:var(--orca-fg);font-weight:600;}";
-    css += "a{color:var(--orca-accent);}";
-    css += "hr{border:0;border-top:1px solid var(--orca-border);}";
-    css += "button{font:inherit;color:var(--orca-accent-fg);background:var(--orca-accent);"
-           "border:1px solid var(--orca-accent);border-radius:4px;padding:5px 14px;cursor:pointer;}";
-    css += "button:hover{filter:brightness(1.1);}";
-    css += "button:disabled{opacity:.5;cursor:default;}";
-    css += "input,select,textarea{font:inherit;color:var(--orca-fg);"
-           "background:var(--orca-bg);border:1px solid var(--orca-border);"
-           "border-radius:4px;padding:4px 8px;}";
-    css += "input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orca-accent);}";
-    css += "table{border-collapse:collapse;}";
-    css += "th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--orca-border);}";
-    css += "th{color:var(--orca-muted);font-weight:600;}";
-    css += "::-webkit-scrollbar{width:12px;height:12px;}";
-    css += "::-webkit-scrollbar-thumb{background:var(--orca-border);border-radius:6px;}";
-    css += "::-webkit-scrollbar-track{background:transparent;}";
-    css += "</style>";
-    return WebViewHostDialog::document_start_injector(css, "orca-plugin-defaults", "beforeend");
-}
-
-// Injected into every page at document start (before the plugin's own scripts).
-// Defines window.orca as the only host surface the page may use. It references
-// window.wx lazily (at call time) so it never races the backend's deferred
-// registration of the "wx" message handler. Guarded against double-injection so
-// it is harmless if also prepended.
+// Injected into the top-level page at document start (before the plugin's own
+// scripts). Defines window.orca as the only host surface the page may use. It
+// references window.wx lazily (at call time) so it never races the backend's
+// deferred registration of the "wx" message handler. Guarded against
+// double-injection so it is harmless if also prepended.
 constexpr char ORCA_BRIDGE_JS[] = R"JS(
 (function () {
+  if (window.top !== window.self) return;
   if (window.orca) return;
   var handlers = [];
   function send(kind, data) {
@@ -85,6 +54,14 @@ wxString web_base_url()
 {
     const std::string dir = (boost::filesystem::path(resources_dir()) / "web").make_preferred().string();
     return wxString("file://") + from_u8(dir) + "/";
+}
+
+// Whether a loaded document is the plugin HTML's own base URL. The web view reports the URL it
+// parsed, so any fragment the page navigated to is ignored and the escaping it applies to what the
+// resources path holds (a space, a non-ASCII character) is undone first.
+bool is_content_url(const wxString& url)
+{
+    return wxURI::Unescape(url.BeforeFirst('#')) == web_base_url();
 }
 
 } // namespace
@@ -121,6 +98,7 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
         // missing/blocked bootstrap resource (e.g. a packaged build) still triggers it.
         Bind(wxEVT_WEBVIEW_LOADED, &PluginWebDialog::on_bootstrap_event, this, wv->GetId());
         Bind(wxEVT_WEBVIEW_ERROR, &PluginWebDialog::on_bootstrap_event, this, wv->GetId());
+        Bind(wxEVT_WEBVIEW_NAVIGATED, &PluginWebDialog::on_navigated, this, wv->GetId());
     }
     Bind(wxEVT_CLOSE_WINDOW, &PluginWebDialog::on_close_window, this);
 }
@@ -128,7 +106,7 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
 void PluginWebDialog::add_user_scripts()
 {
     if (wxWebView* wv = browser()) {
-        wv->AddUserScript(wxString::FromUTF8(plugin_defaults_user_script()));
+        wv->AddUserScript(wxString::FromUTF8(WebViewHostDialog::plugin_defaults_user_script()));
         wv->AddUserScript(ORCA_BRIDGE_JS);
     }
 }
@@ -171,19 +149,37 @@ void PluginWebDialog::destroy_for_plugin(PluginWebDialog* dialog)
 
 void PluginWebDialog::on_bootstrap_event(wxWebViewEvent& event)
 {
-    // The first bootstrap load (or its error) triggers the swap to plugin HTML;
-    // the resulting plugin-page load is ignored (guarded by m_content_loaded).
-    load_plugin_content();
+    const bool loaded = event.GetEventType() == wxEVT_WEBVIEW_LOADED;
+    // The first bootstrap load (or its error) triggers the swap to plugin HTML.
+    if (!m_content_loaded)
+        load_plugin_content();
+    // WebKit reloads the SetPage base URL, so a committed load of it that we did not start is a reload.
+    // A failed navigation is reported against the page that stayed but never commits. Edge ignores the
+    // base URL and restores SetPage content itself, so nothing matches there.
+    else if (is_content_url(event.GetURL())) {
+        if (m_own_page_load)
+            m_own_page_load = false;
+        else if (loaded && m_content_navigated)
+            load_plugin_content();
+    }
+    if (loaded)
+        m_content_navigated = false;
+    event.Skip();
+}
+
+void PluginWebDialog::on_navigated(wxWebViewEvent& event)
+{
+    m_content_navigated = is_content_url(event.GetURL());
     event.Skip();
 }
 
 void PluginWebDialog::load_plugin_content()
 {
-    if (m_content_loaded)
-        return;
     m_content_loaded = true;
-    if (wxWebView* wv = browser())
+    if (wxWebView* wv = browser()) {
+        m_own_page_load = true;
         wv->SetPage(wxString::FromUTF8(m_html), web_base_url());
+    }
 }
 
 void PluginWebDialog::on_script_message(const nlohmann::json& payload)
