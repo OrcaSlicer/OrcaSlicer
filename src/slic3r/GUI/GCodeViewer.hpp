@@ -521,6 +521,8 @@ public:
     // ORCA: draw the toolpaths of translucent filament colors translucent
     void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
 
+    // whether the mouse is holding either slider's handle
+    bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }
     // while the user drags the camera or a slider, draw the solid model, if the preference asks for it
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
