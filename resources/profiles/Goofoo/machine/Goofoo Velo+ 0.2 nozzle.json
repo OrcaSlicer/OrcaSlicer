@@ -1,7 +1,7 @@
 {
   "type": "machine",
   "name": "Goofoo Velo+ 0.2 nozzle",
-  "inherits": "MyKlipper 0.2 nozzle",
+  "inherits": "fdm_klipper_common",
   "from": "system",
   "setting_id": "wSr6VNECZHekeNRi",
   "instantiation": "true",
@@ -93,5 +93,11 @@
     "0"
   ],
   "machine_max_acceleration_travel": "10000",
+  "max_layer_height": [
+    "0.16"
+  ],
+  "min_layer_height": [
+    "0.04"
+  ],
   "upward_compatible_machine": []
 }

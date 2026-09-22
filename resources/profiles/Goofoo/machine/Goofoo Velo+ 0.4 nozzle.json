@@ -1,7 +1,7 @@
 {
   "type": "machine",
   "name": "Goofoo Velo+ 0.4 nozzle",
-  "inherits": "MyKlipper 0.4 nozzle",
+  "inherits": "fdm_klipper_common",
   "from": "system",
   "setting_id": "XzHz1vNOYg3Ofe8X",
   "instantiation": "true",

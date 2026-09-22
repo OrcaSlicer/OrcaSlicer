@@ -1,7 +1,7 @@
 {
   "type": "machine",
   "name": "Goofoo GP1 0.4 nozzle",
-  "inherits": "MyKlipper 0.4 nozzle",
+  "inherits": "fdm_klipper_common",
   "from": "system",
   "setting_id": "x4GJ08PooNDQ8WJj",
   "instantiation": "true",
