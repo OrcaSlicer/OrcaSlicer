@@ -1853,53 +1853,6 @@ static void remove_multiple_edges_in_vertices(MMU_Graph &graph, const std::vecto
     }
 }
 
-// diff_ex(subject, clip), one subject ExPolygon at a time against the part of `clip` in its box. The pieces are disjoint,
-// so the result is the same; but ClipperLib never gets a whole finely painted layer at once, where re-linking the holes
-// of its PolyTree (FixupFirstLefts) is quadratic in the thousands of regions.
-static ExPolygons diff_ex_by_piece(const ExPolygons &subject, const ExPolygons &clip)
-{
-    // A coarse grid over the clip's boxes, so each piece only looks at the clip regions near it.
-    std::vector<BoundingBox> clip_bboxes;
-    clip_bboxes.reserve(clip.size());
-    BoundingBox extent;
-    for (const ExPolygon &expoly : clip) {
-        clip_bboxes.emplace_back(get_extents(expoly));
-        extent.merge(clip_bboxes.back());
-    }
-    constexpr int GRID = 64;
-    const Point   size = extent.defined ? extent.size() : Point(1, 1);
-    const coord_t cell_w = std::max<coord_t>(1, size.x() / GRID + 1), cell_h = std::max<coord_t>(1, size.y() / GRID + 1);
-    const auto    cells  = [&](const BoundingBox &bb, auto &&fn) {
-        const int x0 = std::clamp(int((bb.min.x() - extent.min.x()) / cell_w), 0, GRID - 1), x1 = std::clamp(int((bb.max.x() - extent.min.x()) / cell_w), 0, GRID - 1);
-        const int y0 = std::clamp(int((bb.min.y() - extent.min.y()) / cell_h), 0, GRID - 1), y1 = std::clamp(int((bb.max.y() - extent.min.y()) / cell_h), 0, GRID - 1);
-        for (int y = y0; y <= y1; ++y)
-            for (int x = x0; x <= x1; ++x)
-                fn(y * GRID + x);
-    };
-    std::vector<std::vector<size_t>> grid(GRID * GRID);
-    if (extent.defined)
-        for (size_t i = 0; i < clip.size(); ++i)
-            cells(clip_bboxes[i], [&](int cell) { grid[cell].emplace_back(i); });
-
-    std::vector<ExPolygons> pieces(subject.size());
-    tbb::parallel_for(size_t(0), subject.size(), [&](size_t idx) {
-        const BoundingBox bbox = get_extents(subject[idx]).inflated(SCALED_EPSILON);
-        std::vector<size_t> near;
-        if (extent.defined && bbox.overlap(extent)) {
-            cells(bbox, [&](int cell) { append(near, grid[cell]); });
-            sort_remove_duplicates(near);
-        }
-        Polygons nearby_clip;
-        for (size_t i : near)
-            if (clip_bboxes[i].overlap(bbox))
-                polygons_append(nearby_clip, ClipperUtils::clip_clipper_polygons_with_subject_bbox(clip[i], bbox));
-        pieces[idx] = nearby_clip.empty() ? ExPolygons{ subject[idx] } : diff_ex(subject[idx], nearby_clip);
-    });
-    ExPolygons out;
-    for (ExPolygons &piece : pieces)
-        append(out, std::move(piece));
-    return out;
-}
 
 // Finds the islands (layer ExPolygons) a region piece overlaps. A top or bottom region is projected from the neighbouring
 // layers and may reach past the island it belongs to, or over several islands.
@@ -2031,9 +1984,9 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
             // Side regions minus the top/bottom regions of every colour.
             std::vector<std::vector<ExPolygons>> merged(num_buckets, std::vector<ExPolygons>(num_facets_states));
             tbb::parallel_for(size_t(0), num_buckets, [&](size_t bucket) {
-                ExPolygons tops_all;
+                Polygons tops_all;
                 for (const ExPolygons &t : tops[bucket])
-                    append(tops_all, t);
+                    polygons_append(tops_all, t);
                 for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id)
                     if (!sides[bucket][extruder_id].empty())
                         merged[bucket][extruder_id] = tops_all.empty() ? std::move(sides[bucket][extruder_id]) :

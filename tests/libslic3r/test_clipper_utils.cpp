@@ -299,3 +299,47 @@ TEST_CASE("Traversing Clipper PolyTree", "[ClipperUtils]") {
         REQUIRE(count_polys(output) == reference.size());
     }
 }
+
+TEST_CASE("Tiled diff and intersection cover the same area as the plain calls", "[ClipperUtils]") {
+    // A grid of disjoint framed squares, enough of them to be split into several tiles.
+    const int  n    = 40;
+    const coord_t cell = scaled<coord_t>(2.), side = scaled<coord_t>(1.5), frame = scaled<coord_t>(0.3);
+    ExPolygons subject;
+    for (int y = 0; y < n; ++ y)
+        for (int x = 0; x < n; ++ x) {
+            const Point o(x * cell, y * cell);
+            ExPolygon square(Polygon({ o, o + Point(side, 0), o + Point(side, side), o + Point(0, side) }));
+            Polygon hole({ o + Point(frame, frame), o + Point(frame, side - frame), o + Point(side - frame, side - frame), o + Point(side - frame, frame) });
+            square.holes.emplace_back(std::move(hole));
+            subject.emplace_back(std::move(square));
+        }
+    // Clip polygons crossing many squares, one of them large with holes of its own.
+    Polygons clip;
+    const coord_t span = n * cell;
+    for (int i = 0; i < 8; ++ i) {
+        const coord_t y0 = coord_t(i) * span / 8, y1 = y0 + scaled<coord_t>(0.9);
+        clip.emplace_back(Polygon({ Point(- cell, y0), Point(span, y0 + cell * 3), Point(span, y1 + cell * 3), Point(- cell, y1) }));
+    }
+    ExPolygon big(Polygon({ Point(span / 4, span / 4), Point(3 * span / 4, span / 4), Point(3 * span / 4, 3 * span / 4), Point(span / 4, 3 * span / 4) }));
+    for (int i = 0; i < 4; ++ i) {
+        const Point o(span / 4 + scaled<coord_t>(3.1) + i * scaled<coord_t>(9.7), span / 4 + scaled<coord_t>(5.3));
+        big.holes.emplace_back(Polygon({ o, o + Point(0, scaled<coord_t>(20.)), o + Point(scaled<coord_t>(5.), scaled<coord_t>(20.)), o + Point(scaled<coord_t>(5.), 0) }));
+    }
+    polygons_append(clip, to_polygons(big));
+
+    const auto xor_area = [](const ExPolygons &a, const ExPolygons &b) { return area(diff_ex(a, b)) + area(diff_ex(b, a)); };
+    const ApplySafetyOffset safety = GENERATE(ApplySafetyOffset::No, ApplySafetyOffset::Yes);
+    const double tolerance = double(scaled<coord_t>(0.001)) * double(span);
+
+    const ExPolygons diff_plain = diff_ex(subject, clip, safety);
+    const ExPolygons diff_tiled = diff_ex_by_piece(subject, clip, safety);
+    REQUIRE(area(diff_plain) > 0.);
+    CHECK_THAT(area(diff_tiled), Catch::Matchers::WithinRel(area(diff_plain), 1e-9));
+    CHECK(xor_area(diff_tiled, diff_plain) < tolerance);
+
+    const ExPolygons intersection_plain = intersection_ex(subject, clip, safety);
+    const ExPolygons intersection_tiled = intersection_ex_by_piece(subject, clip, safety);
+    REQUIRE(area(intersection_plain) > 0.);
+    CHECK_THAT(area(intersection_tiled), Catch::Matchers::WithinRel(area(intersection_plain), 1e-9));
+    CHECK(xor_area(intersection_tiled, intersection_plain) < tolerance);
+}
