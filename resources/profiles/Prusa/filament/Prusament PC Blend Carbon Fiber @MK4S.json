@@ -4,7 +4,7 @@
     "inherits": "fdm_filament_pccf",
     "from": "system",
     "setting_id": "hsgqC40IgFV1nBFs",
-    "filament_id": "Prusament PC Blend Carbon Fiber @MK4S",
+    "filament_id": "OFdO6vpt",
     "instantiation": "true",
     "close_fan_the_first_x_layers": "4",
     "compatible_printers": [

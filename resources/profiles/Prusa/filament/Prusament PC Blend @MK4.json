@@ -4,7 +4,7 @@
     "inherits": "fdm_filament_pc",
     "from": "system",
     "setting_id": "ZGYW1dcpquZnrAvh",
-    "filament_id": "Prusament PC Blend @MK4",
+    "filament_id": "OFvDbkFq",
     "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4 0.25 nozzle",

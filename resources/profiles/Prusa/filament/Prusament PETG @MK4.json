@@ -4,7 +4,7 @@
     "inherits": "fdm_filament_pet",
     "from": "system",
     "setting_id": "YB1aMpM57M1Wrhnw",
-    "filament_id": "Prusament PETG @MK4",
+    "filament_id": "OFkR8E2c",
     "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4 0.25 nozzle",

@@ -4,7 +4,7 @@
     "inherits": "fdm_filament_pa11cf",
     "from": "system",
     "setting_id": "bUXItT9R8S8cC0zq",
-    "filament_id": "Prusament PA11 Carbon Fiber @MK4S",
+    "filament_id": "OF4MZtnE",
     "instantiation": "true",
     "close_fan_the_first_x_layers": "4",
     "compatible_printers": [
