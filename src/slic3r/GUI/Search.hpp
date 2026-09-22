@@ -19,6 +19,7 @@
 #include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"
 #include "libslic3r/Preset.hpp"
+#include "SettingsIndex.hpp"
 #include "Widgets/ScrolledWindow.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/PopupWindow.hpp"
@@ -33,39 +34,6 @@ wxDECLARE_EVENT(wxCUSTOMEVT_JUMP_TO_OBJECT, wxCommandEvent);
 namespace Search {
 
 class SearchDialog;
-
-struct InputInfo
-{
-    DynamicPrintConfig *config{nullptr};
-    Preset::Type        type{Preset::TYPE_INVALID};
-    ConfigOptionMode    mode{comSimple};
-};
-
-struct GroupAndCategory
-{
-    wxString group;
-    wxString category;
-};
-
-struct Option
-{
-    //    bool operator<(const Option& other) const { return other.label > this->label; }
-    bool operator<(const Option &other) const { return other.key > this->key; }
-
-    // Fuzzy matching works at a character level. Thus matching with wide characters is a safer bet than with short characters,
-    // though for some languages (Chinese?) it may not work correctly.
-    std::wstring key;
-    Preset::Type type{Preset::TYPE_INVALID};
-    std::wstring label;
-    std::wstring label_local;
-    std::wstring group;
-    std::wstring group_local;
-    std::wstring category;
-    std::wstring category_local;
-    bool multi_category { false };
-
-    std::string opt_key() const;
-};
 
 struct FoundOption
 {
@@ -90,25 +58,19 @@ struct OptionViewParameters
 
 class OptionsSearcher
 {
-    std::string                             search_line;
-    Preset::Type                            search_type = Preset::TYPE_INVALID;
+    SettingsIndex m_index;
 
-    std::map<std::string, GroupAndCategory> groups_and_categories;
-    PrinterTechnology                       printer_technology;
-
-    std::vector<Option>      options{};
+    std::string              search_line;
+    Preset::Type             search_type = Preset::TYPE_INVALID;
+    PrinterTechnology        printer_technology;
     std::vector<FoundOption> found{};
 
-    void append_options(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode);
-
-    void sort_options();
     void sort_found()
     {
         std::sort(found.begin(), found.end(),
                   [](const FoundOption &f1, const FoundOption &f2) { return f1.outScore > f2.outScore || (f1.outScore == f2.outScore && f1.label < f2.label); });
     };
 
-    size_t options_size() const { return options.size(); }
     size_t found_size() const { return found.size(); }
 
 public:
@@ -119,31 +81,25 @@ public:
     OptionsSearcher();
     ~OptionsSearcher();
 
+    SettingsIndex &      index() { return m_index; }
+    const SettingsIndex &index() const { return m_index; }
+
+    // Rebuild the catalog and re-run the current query so the cached results track it.
     void init(std::vector<InputInfo> input_values);
     void apply(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode);
+
     bool search();
     bool search(const std::string &search, bool force = false, Preset::Type type = Preset::TYPE_INVALID);
-
-    void add_key(const std::string &opt_key, Preset::Type type, const wxString &group, const wxString &category);
 
     size_t size() const { return found_size(); }
 
     const FoundOption &operator[](const size_t pos) const noexcept { return found[pos]; }
     const Option &     get_option(size_t pos_in_filter) const;
-    const Option &     get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const;
-    Option             get_option(const std::string &opt_key, const wxString &label, Preset::Type type) const;
 
     const std::vector<FoundOption> &found_options() { return found; }
-    const GroupAndCategory &        get_group_and_category(const std::string &opt_key) { return groups_and_categories[opt_key]; }
     std::string &                   search_string() { return search_line; }
 
     void set_printer_technology(PrinterTechnology pt) { printer_technology = pt; }
-
-    void sort_options_by_key()
-    {
-        std::sort(options.begin(), options.end(), [](const Option &o1, const Option &o2) { return o1.key < o2.key; });
-    }
-    void sort_options_by_label() { sort_options(); }
 
     void show_dialog(Preset::Type type, wxWindow *parent, TextInput *input, wxWindow *ssearch_btn);
     void dlg_sys_color_changed();

@@ -13,11 +13,13 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_capabilities_in_use.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_printer_agent.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_shortcuts.cpp
     ../fff_print/test_helpers.cpp
     )
 
@@ -53,6 +55,18 @@ elseif (APPLE)
             "${CMAKE_PREFIX_PATH}/libpython"
             "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
         COMMENT "Copying Python runtime for macOS plugin host API tests"
+        VERBATIM
+    )
+elseif (FLATPAK)
+    # Same <testdir>/python home as WIN32/APPLE; symlink since /app/libpython
+    # already ships in the flatpak (the test exe links libpython3.12.so from it).
+    add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf
+            "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${CMAKE_PREFIX_PATH}/libpython"
+            "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMENT "Linking Python runtime for flatpak plugin host API tests"
         VERBATIM
     )
 endif()

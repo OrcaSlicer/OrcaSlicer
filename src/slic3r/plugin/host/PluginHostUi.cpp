@@ -7,8 +7,10 @@
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MainFrame.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+#include <slic3r/GUI/Plater.hpp>
+#include <slic3r/GUI/DockPanel.hpp>
 #include <slic3r/GUI/PluginProgressDialog.hpp>
-#include <slic3r/GUI/PluginWebDialog.hpp>
+#include <slic3r/GUI/WebDialog.hpp>
 #include <slic3r/GUI/NotificationManager.hpp>
 
 #include <nlohmann/json.hpp>
@@ -20,6 +22,7 @@
 #include <wx/defs.h>
 #include <wx/window.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <future>
@@ -73,7 +76,7 @@ CallablePtr make_holder(py::object obj)
 
 // Adapt a Python callable to a GUI message handler that acquires the GIL and
 // swallows/logs exceptions (a raising handler must not escape into wx events).
-GUI::PluginWebDialog::MessageHandler make_message_adapter(py::object on_message)
+GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message)
 {
     CallablePtr holder = make_holder(std::move(on_message));
     if (!holder)
@@ -91,7 +94,7 @@ GUI::PluginWebDialog::MessageHandler make_message_adapter(py::object on_message)
     };
 }
 
-GUI::PluginWebDialog::SubmitHandler make_submit_adapter(py::object on_submit)
+GUI::WebDialog::SubmitHandler make_submit_adapter(py::object on_submit)
 {
     CallablePtr holder = make_holder(std::move(on_submit));
     if (!holder)
@@ -104,6 +107,25 @@ GUI::PluginWebDialog::SubmitHandler make_submit_adapter(py::object on_submit)
             holder->fn(json_to_py(data));
         } catch (py::error_already_set& e) {
             BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_submit handler raised: " << e.what();
+            PyErr_Clear();
+        }
+    };
+}
+
+// The plugin's on_close: fired only on a user/JS-initiated close (not forced teardown), while the
+// window is alive. Empty if the plugin passed None.
+std::function<void()> make_close_adapter(const CallablePtr& holder)
+{
+    if (!holder)
+        return nullptr;
+    return [holder]() {
+        PythonGILState gil;
+        if (!gil)
+            return;
+        try {
+            holder->fn();
+        } catch (py::error_already_set& e) {
+            BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_close handler raised: " << e.what();
             PyErr_Clear();
         }
     };
@@ -350,28 +372,13 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
-        // Plugin's on_close: fired only on a user/JS-initiated close (not forced
-        // teardown), while the dialog is alive. Empty if the plugin passed None.
-        GUI::PluginWebDialog::CloseHandler on_close;
-        if (close_holder) {
-            on_close = [close_holder]() {
-                PythonGILState gil;
-                if (!gil)
-                    return;
-                try {
-                    close_holder->fn();
-                } catch (py::error_already_set& e) {
-                    BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_close handler raised: " << e.what();
-                    PyErr_Clear();
-                }
-            };
-        }
+        GUI::WebDialog::CloseHandler on_close = make_close_adapter(close_holder);
         // Registry cleanup: GIL-free, runs from the dialog destructor on every path.
         auto on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
 
-        auto* dlg = new GUI::PluginWebDialog(ui_parent(), wxString::FromUTF8(title), html,
-                                             wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
-                                             std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE);
+        auto* dlg = new GUI::WebDialog(ui_parent(), wxString::FromUTF8(title), html,
+                                       wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
+                                       std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE);
         UiRegistry::instance().bind(new_id, dlg, plugin_key);
         if (modal) {
             dlg->ShowModal();
@@ -387,14 +394,69 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
     return py::cast(UiWindowHandle{new_id});
 }
 
+// --------------------------------------------------------------------------
+// orca.host.ui.create_dock_panel + UiDockPanel handle
+// --------------------------------------------------------------------------
+constexpr const char* DOCK_POSITIONS[] = {"left", "right", "bottom", "float"};
+
+struct UiDockPanelHandle
+{
+    int id{0};
+};
+
+py::object ui_create_dock_panel(const std::string& html, const std::string& title, int width, int height,
+                                py::object on_message, py::object on_close, const std::string& dock)
+{
+    if (std::find(std::begin(DOCK_POSITIONS), std::end(DOCK_POSITIONS), dock) == std::end(DOCK_POSITIONS))
+        throw std::invalid_argument("orca.host.ui.create_dock_panel dock must be \"left\", \"right\", \"bottom\" or \"float\"");
+
+    auto              msg_adapter  = make_message_adapter(std::move(on_message));
+    CallablePtr       close_holder = make_holder(std::move(on_close));
+    const std::string plugin_key   = PluginAuditManager::instance().current_plugin();
+    const int         w            = width > 0 ? width : 320;
+    const int         h            = height > 0 ? height : 480;
+
+    if (wxTheApp == nullptr)
+        throw std::runtime_error("OrcaSlicer application is not initialized");
+
+    // Deferred and pre-bound for the same reasons as create_window().
+    const int new_id = UiRegistry::instance().reserve_id();
+    UiRegistry::instance().bind(new_id, nullptr, plugin_key);
+
+    GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, dock, w, h,
+                               msg_adapter = std::move(msg_adapter),
+                               close_holder = std::move(close_holder)]() mutable {
+        if (!UiRegistry::instance().is_open(new_id))
+            return;
+
+        GUI::Plater* plater = GUI::wxGetApp().plater();
+        if (plater == nullptr || GUI::wxGetApp().is_closing()) {
+            UiRegistry::instance().remove(new_id);
+            return;
+        }
+
+        auto  on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
+        auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter), make_close_adapter(close_holder),
+                                         std::move(on_destroyed));
+        UiRegistry::instance().bind(new_id, panel, plugin_key);
+        plater->add_dock_pane(panel, GUI::plugin_pane_name(plugin_key, title), wxString::FromUTF8(title), dock,
+                              wxSize(w, h), [panel]() { panel->fire_close(); });
+    });
+
+    return py::cast(UiDockPanelHandle{new_id});
+}
+
 void handle_post(int id, py::object data)
 {
     if (wxTheApp == nullptr)
         return;
     json j = py_to_json(data); // GIL held (binding body)
     GUI::wxGetApp().CallAfter([id, j = std::move(j)]() {
-        auto* d = UiRegistry::instance().get_as<GUI::PluginWebDialog>(id);
-        GUI::PluginWebDialog::post_message(d, j);
+        auto* window = UiRegistry::instance().get_as<wxWindow>(id);
+        if (auto* panel = dynamic_cast<GUI::DockPanel*>(window))
+            panel->push_message(j);
+        else
+            GUI::WebDialog::post_message(dynamic_cast<GUI::WebDialog*>(window), j);
     });
 }
 
@@ -403,8 +465,23 @@ void handle_close(int id)
     if (wxTheApp == nullptr)
         return;
     GUI::wxGetApp().CallAfter([id]() {
-        auto* d = UiRegistry::instance().get_as<GUI::PluginWebDialog>(id);
-        GUI::PluginWebDialog::request_close(d);
+        auto* window = UiRegistry::instance().get_as<wxWindow>(id);
+        if (auto* panel = dynamic_cast<GUI::DockPanel*>(window))
+            panel->request_close();
+        else
+            GUI::WebDialog::request_close(dynamic_cast<GUI::WebDialog*>(window));
+    });
+}
+
+void handle_show(int id, bool show)
+{
+    if (wxTheApp == nullptr)
+        return;
+    GUI::wxGetApp().CallAfter([id, show]() {
+        auto*        panel  = UiRegistry::instance().get_as<GUI::DockPanel>(id);
+        GUI::Plater* plater = GUI::wxGetApp().plater();
+        if (panel != nullptr && plater != nullptr)
+            plater->show_dock_pane(panel, show);
     });
 }
 
@@ -563,6 +640,31 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
            "or WINDOW_MODAL. on_message(data) is called on the UI thread when the page posts; on_submit(data) "
            "is called when the page submits; offload heavy work to a thread and push results back with window.post().");
 
+    py::class_<UiDockPanelHandle>(ui, "UiDockPanel", "Handle to a dockable plugin HTML panel created by create_dock_panel().")
+        .def_property_readonly("id", [](const UiDockPanelHandle& h) { return h.id; })
+        .def(
+            "post", [](const UiDockPanelHandle& h, py::object data) { handle_post(h.id, std::move(data)); },
+            py::arg("data"), "Send a payload to the page (delivered to window.orca.onMessage handlers).")
+        .def(
+            "show", [](const UiDockPanelHandle& h) { handle_show(h.id, true); }, "Show the panel again after hide().")
+        .def(
+            "hide", [](const UiDockPanelHandle& h) { handle_show(h.id, false); }, "Hide the panel without closing it.")
+        .def(
+            "close", [](const UiDockPanelHandle& h) { handle_close(h.id); }, "Close the panel (fires on_close).")
+        .def(
+            "is_open", [](const UiDockPanelHandle& h) { return UiRegistry::instance().is_open(h.id); },
+            "Return True until the panel is closed; a hidden panel is still open.");
+
+    ui.def("create_dock_panel", &ui_create_dock_panel, py::arg("html"), py::arg("title") = "OrcaSlicer",
+           py::arg("width") = 320, py::arg("height") = 480, py::arg("on_message") = py::none(),
+           py::arg("on_close") = py::none(), py::arg("dock") = "right",
+           "Open an HTML panel docked beside the 3D view and return a UiDockPanel. dock is \"left\", \"right\", "
+           "\"bottom\" or \"float\", and width/height are in DIPs; the user can move and resize the panel, and a panel "
+           "opened again comes back where the window layout was last saved. The panel belongs to the Prepare and "
+           "Preview tabs. on_message(data) is called on the UI thread when the page posts; window.orca.close() "
+           "or the panel's close button closes it and calls on_close(). A post() made before the page has "
+           "loaded can be dropped, so have the page request its first data.");
+
     py::class_<UiProgressHandle>(ui, "ProgressDialog", "Handle to a native progress dialog.")
         .def(py::init(&new_progress_dialog), py::arg("title"), py::arg("message"), py::arg("maximum") = 100,
              py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE)
@@ -630,8 +732,10 @@ void PluginHostUi::close_windows_for_plugin(const std::string& plugin_key)
         // Destroy() bypasses wxEVT_CLOSE, so the plugin's on_close is not fired on
         // forced teardown (intended); the resource destructor still cleans the registry.
         for (auto* window : UiRegistry::instance().take_for_plugin(plugin_key)) {
-            if (auto* dialog = dynamic_cast<GUI::PluginWebDialog*>(window))
-                GUI::PluginWebDialog::destroy_for_plugin(dialog);
+            if (auto* dialog = dynamic_cast<GUI::WebDialog*>(window))
+                GUI::WebDialog::destroy_silently(dialog);
+            else if (auto* panel = dynamic_cast<GUI::DockPanel*>(window))
+                panel->destroy_silently();
             else if (window != nullptr)
                 window->Destroy();
         }

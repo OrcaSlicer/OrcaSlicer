@@ -1,6 +1,6 @@
 {
 	"name": "Anycubic",
-	"version": "02.04.00.03",
+	"version": "02.04.00.07",
 	"force_update": "0",
 	"description": "Anycubic configurations",
 	"machine_model_list": [
@@ -49,6 +49,10 @@
 			"sub_path": "machine/Anycubic Kobra 3 Max.json"
 		},
 		{
+			"name": "Anycubic Kobra 3 V2",
+			"sub_path": "machine/Anycubic Kobra 3 V2.json"
+		},
+		{
 			"name": "Anycubic Kobra Max",
 			"sub_path": "machine/Anycubic Kobra Max.json"
 		},
@@ -64,10 +68,10 @@
 			"name": "Anycubic Kobra S1",
 			"sub_path": "machine/Anycubic Kobra S1.json"
 		},
-        {
-             "name": "Anycubic Kobra S1 Max",
-             "sub_path": "machine/Anycubic Kobra S1 Max.json"
-        },
+		{
+			"name": "Anycubic Kobra S1 Max",
+			"sub_path": "machine/Anycubic Kobra S1 Max.json"
+		},
 		{
 			"name": "Anycubic Kobra X",
 			"sub_path": "machine/Anycubic Kobra X.json"
@@ -91,6 +95,10 @@
 			"sub_path": "process/fdm_process_common.json"
 		},
 		{
+			"name": "0.06mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "process/0.06mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
 			"name": "0.08mm HighDetail @Anycubic Kobra 3 0.4 nozzle",
 			"sub_path": "process/0.08mm HighDetail @Anycubic Kobra 3 0.4 nozzle.json"
 		},
@@ -99,12 +107,32 @@
 			"sub_path": "process/0.08mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
+			"name": "0.08mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.08mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.08mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "process/0.08mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "0.08mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.08mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
 			"name": "0.08mm Standard @Anycubic Kobra X",
 			"sub_path": "process/0.08mm Standard @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
 			"name": "0.10mm Detail @Anycubic Kobra 3 0.2 nozzle",
 			"sub_path": "process/0.10mm Detail @Anycubic Kobra 3 0.2 nozzle.json"
+		},
+		{
+			"name": "0.10mm Standard @Anycubic Kobra 3 V2 0.2 nozzle",
+			"sub_path": "process/0.10mm Standard @Anycubic Kobra 3 V2 0.2 nozzle.json"
+		},
+		{
+			"name": "0.10mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "process/0.10mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
 		},
 		{
 			"name": "0.12mm Detail @Anycubic Kobra 2 Neo 0.4 nozzle",
@@ -127,8 +155,24 @@
 			"sub_path": "process/0.12mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
+			"name": "0.12mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.12mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.12mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "process/0.12mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "0.12mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.12mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
 			"name": "0.12mm Standard @Anycubic Kobra X",
 			"sub_path": "process/0.12mm Standard @Anycubic Kobra X 0.4 nozzle.json"
+		},
+		{
+			"name": "0.14mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "process/0.14mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
 		},
 		{
 			"name": "0.15mm Optimal @Anycubic 4MaxPro2",
@@ -163,6 +207,10 @@
 			"sub_path": "process/0.15mm Optimal @Anycubic i3MegaS.json"
 		},
 		{
+			"name": "0.16mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.16mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
 			"name": "0.16mm High Quality @Anycubic Kobra X",
 			"sub_path": "process/0.16mm High Quality @Anycubic Kobra X 0.4 nozzle.json"
 		},
@@ -183,8 +231,16 @@
 			"sub_path": "process/0.16mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
+			"name": "0.16mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.16mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "0.16mm Standard @Anycubic Kobra Neo 0.4 nozzle",
 			"sub_path": "process/0.16mm Standard @Anycubic Kobra Neo 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.16mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
 		},
 		{
 			"name": "0.16mm Standard @Anycubic Kobra X",
@@ -193,6 +249,14 @@
 		{
 			"name": "0.18mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
 			"sub_path": "process/0.18mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "0.18mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "process/0.18mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "0.20mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.20mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle.json"
 		},
 		{
 			"name": "0.20mm High Quality @Anycubic Kobra X",
@@ -243,12 +307,20 @@
 			"sub_path": "process/0.20mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "0.20mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.20mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "0.20mm Standard @Anycubic Kobra Neo 0.4 nozzle",
 			"sub_path": "process/0.20mm Standard @Anycubic Kobra Neo 0.4 nozzle.json"
 		},
 		{
 			"name": "0.20mm Standard @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "process/0.20mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.20mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
 		},
 		{
 			"name": "0.20mm Standard @Anycubic Kobra X",
@@ -295,6 +367,22 @@
 			"sub_path": "process/0.24mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "0.24mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.24mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.24mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "process/0.24mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "0.24mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "process/0.24mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "0.24mm Standard @Anycubic Kobra X",
 			"sub_path": "process/0.24mm Standard @Anycubic Kobra X 0.4 nozzle.json"
 		},
@@ -311,8 +399,16 @@
 			"sub_path": "process/0.28mm Standard @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
+			"name": "0.28mm Standard @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.28mm Standard @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "0.28mm Standard @Anycubic Kobra Neo 0.4 nozzle",
 			"sub_path": "process/0.28mm Standard @Anycubic Kobra Neo 0.4 nozzle.json"
+		},
+		{
+			"name": "0.28mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "process/0.28mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
 		},
 		{
 			"name": "0.28mm Standard @Anycubic Kobra X",
@@ -363,12 +459,28 @@
 			"sub_path": "process/0.30mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
 		},
 		{
+			"name": "0.30mm Standard @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "process/0.30mm Standard @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.30mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "process/0.30mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
 			"name": "0.32mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
 			"sub_path": "process/0.32mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "0.32mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "process/0.32mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "0.36mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
 			"sub_path": "process/0.36mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "0.36mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "process/0.36mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
 		},
 		{
 			"name": "0.40mm Standard @Anycubic Kobra 3 0.8 nozzle",
@@ -379,109 +491,61 @@
 			"sub_path": "process/0.40mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "0.40mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.40mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "0.42mm Standard @Anycubic Kobra 3 Max 0.6 nozzle",
 			"sub_path": "process/0.42mm Standard @Anycubic Kobra 3 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "0.42mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "process/0.42mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
 		},
 		{
 			"name": "0.48mm Standard @Anycubic Kobra 3 Max 0.8 nozzle",
 			"sub_path": "process/0.48mm Standard @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
-        {
-        	"name": "0.08mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "process/0.08mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-    		"name": "0.12mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "process/0.12mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
-     	},
-     	{
-    		"name": "0.16mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "process/0.16mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-    		"name": "0.16mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "process/0.16mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-       		"name": "0.20mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle",
-       		"sub_path": "process/0.20mm High Quality @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-       		"name": "0.20mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-       		"sub_path": "process/0.20mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-        	"name": "0.24mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-        	"sub_path": "process/0.24mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-        {
-    		"name": "0.28mm Standard @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "process/0.28mm Standard @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-
-    	{
-        	"name": "0.10mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
-    		"sub_path": "process/0.10mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-        {
-      		"name": "0.06mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
-     		"sub_path": "process/0.06mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-        {
-       		"name": "0.08mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
-       		"sub_path": "process/0.08mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-    	{
-     		"name": "0.12mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
-       		"sub_path": "process/0.12mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-    	{
-    		"name": "0.14mm Standard @Anycubic Kobra S1 Max 0.25 nozzle",
-     		"sub_path": "process/0.14mm Standard @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-
-        {
-     		"name": "0.30mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "process/0.30mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		{
+			"name": "0.48mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "process/0.48mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
-    	{
-        	"name": "0.18mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
-        	"sub_path": "process/0.18mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-        {
-     		"name": "0.24mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "process/0.24mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-        {
-    		"name": "0.36mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "process/0.36mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-        {
-     		"name": "0.42mm Standard @Anycubic Kobra S1 Max 0.6 nozzle",
-     		"sub_path": "process/0.42mm Standard @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-
-        {
-    		"name": "0.40mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "process/0.40mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-    		"name": "0.24mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "process/0.24mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-    		"name": "0.32mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "process/0.32mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-     		"name": "0.48mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "process/0.48mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-    		"name": "0.56mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "process/0.56mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        }
-
+		{
+			"name": "0.56mm Standard @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "process/0.56mm Standard @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "0.12mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.12mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.16mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.16mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.20mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "process/0.20mm High Quality @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "0.24mm Standard @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "process/0.24mm Standard @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.36mm Standard @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "process/0.36mm Standard @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "0.32mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "process/0.32mm Standard @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
+			"name": "0.48mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "process/0.48mm Standard @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		}
 	],
 	"filament_list": [
 		{
@@ -533,8 +597,28 @@
 			"sub_path": "filament/Anycubic ABS @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "Anycubic ABS @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic ABS @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "Anycubic ABS @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic ABS @Anycubic Kobra X 0.4 nozzle",
@@ -553,8 +637,28 @@
 			"sub_path": "filament/Anycubic ASA @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "Anycubic ASA @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic ASA @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "Anycubic ASA @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic ASA @Anycubic Kobra X 0.4 nozzle",
@@ -565,6 +669,46 @@
 			"sub_path": "filament/Generic ASA @Anycubic.json"
 		},
 		{
+			"name": "Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PA @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PA @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PA @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PA @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PA6-CF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PA6-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PA6-CF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PA6-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PA6-CF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PA6-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Fiberon PA6-CF20 @Anycubic Kobra S1",
+			"sub_path": "filament/Polymaker/Fiberon PA6-CF20 @Anycubic Kobra S1.json"
+		},
+		{
 			"name": "Generic PA @Anycubic",
 			"sub_path": "filament/Generic PA @Anycubic.json"
 		},
@@ -573,16 +717,56 @@
 			"sub_path": "filament/Generic PA-CF @Anycubic.json"
 		},
 		{
-			"name": "Fiberon PA6-CF20 @Anycubic Kobra S1",
-			"sub_path": "filament/Polymaker/Fiberon PA6-CF20 @Anycubic Kobra S1.json"
+			"name": "Anycubic PC @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PC @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PC @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC-CF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PC-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC-CF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PC-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC-CF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PC-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC-GF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PC-GF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC-GF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PC-GF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PC-GF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PC-GF @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Generic PC @Anycubic",
 			"sub_path": "filament/Generic PC @Anycubic.json"
 		},
 		{
-			"name": "Generic PETG @Anycubic",
-			"sub_path": "filament/Generic PETG @Anycubic.json"
+			"name": "Anycubic PET-CF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PET-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PET-CF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PET-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PET-CF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PET-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic PETG @Anycubic Kobra 3 Max 0.4 nozzle",
@@ -597,12 +781,52 @@
 			"sub_path": "filament/Anycubic PETG @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "Anycubic PETG @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "Anycubic PETG @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PETG @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PETG @Anycubic Kobra X 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PETG-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PETG-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PETG-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Generic PETG @Anycubic",
+			"sub_path": "filament/Generic PETG @Anycubic.json"
+		},
+		{
+			"name": "Generic PETG @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Generic PETG @Anycubic Kobra S1 Max 0.4 nozzle.json"
 		},
 		{
 			"name": "Generic PETG @Anycubic Kobra X 0.4 nozzle",
@@ -611,14 +835,6 @@
 		{
 			"name": "Generic PETG Basic @Anycubic Kobra 3 Max 0.4 nozzle",
 			"sub_path": "filament/Generic PETG Basic @Anycubic Kobra 3 Max 0.4 nozzle.json"
-		},
-		{
-			"name": "Generic PLA @Anycubic",
-			"sub_path": "filament/Generic PLA @Anycubic.json"
-		},
-		{
-			"name": "Generic PLA-CF @Anycubic",
-			"sub_path": "filament/Generic PLA-CF @Anycubic.json"
 		},
 		{
 			"name": "Anycubic PLA @Anycubic Kobra 3 Max 0.4 nozzle",
@@ -633,12 +849,60 @@
 			"sub_path": "filament/Anycubic PLA @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA @Anycubic Kobra 3 V2 0.2 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra 3 V2 0.2 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA @Anycubic Kobra X 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Galaxy @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Galaxy @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Galaxy @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Galaxy @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Galaxy @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Galaxy @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Glow @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra 3 V2 0.4 nozzle.json"
 		},
 		{
 			"name": "Anycubic PLA Glow @Anycubic Kobra X 0.4 nozzle",
@@ -649,8 +913,24 @@
 			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA High Speed @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA High Speed @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic PLA High Speed @Anycubic Kobra X 0.4 nozzle",
@@ -661,24 +941,92 @@
 			"sub_path": "filament/Anycubic PLA Luminous @Anycubic Kobra 3 Max 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA Marble @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Marble @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Marble @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Marble @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Marble @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Marble @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA Matte @Anycubic Kobra 3 Max 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra 3 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Matte @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Matte @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Matte @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Matte @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic PLA Matte @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA Metal @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Metal @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Metal @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Metal @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Metal @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Metal @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA SE @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA SE @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA Silk @Anycubic Kobra 3 Max 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra 3 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Silk @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra 3 V2 0.4 nozzle.json"
 		},
 		{
 			"name": "Anycubic PLA Silk @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA Silk @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra X 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Translucent @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Translucent @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle.json"
 		},
 		{
 			"name": "Anycubic PLA+ @Anycubic Kobra 3 Max 0.4 nozzle",
@@ -689,8 +1037,28 @@
 			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA+ @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA+ @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA+ @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA+ @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra X 0.4 nozzle.json"
+		},
+		{
+			"name": "Generic PLA @Anycubic",
+			"sub_path": "filament/Generic PLA @Anycubic.json"
+		},
+		{
+			"name": "Generic PLA-CF @Anycubic",
+			"sub_path": "filament/Generic PLA-CF @Anycubic.json"
 		},
 		{
 			"name": "Panchroma PLA @Anycubic Kobra S1",
@@ -705,20 +1073,52 @@
 			"sub_path": "filament/Polymaker/Polymaker PLA Pro Metallic @Anycubic Kobra S1.json"
 		},
 		{
-			"name": "Generic PVA @Anycubic",
-			"sub_path": "filament/Generic PVA @Anycubic.json"
+			"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PVA @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PVA @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PVA @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic PVA @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic PVA @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
-			"name": "Generic TPU @Anycubic",
-			"sub_path": "filament/Generic TPU @Anycubic.json"
+			"name": "Generic PVA @Anycubic",
+			"sub_path": "filament/Generic PVA @Anycubic.json"
 		},
 		{
 			"name": "Anycubic PEBA 95A @Anycubic Kobra 3 Max 0.4 nozzle",
 			"sub_path": "filament/Anycubic PEBA 95A @Anycubic Kobra 3 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PEBA @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PEBA @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PEBA @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic TPU 95A @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic TPU 95A @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic TPU 95A @Anycubic Kobra S1 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic TPU 95A @Anycubic Kobra X 0.4 nozzle",
@@ -737,12 +1137,32 @@
 			"sub_path": "filament/Anycubic TPU @Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "Anycubic TPU @Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "filament/Anycubic TPU @Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
 			"name": "Anycubic TPU @Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "filament/Anycubic TPU @Anycubic Kobra S1 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic TPU for ACE @Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra X 0.4 nozzle.json"
+		},
+		{
+			"name": "Generic TPU @Anycubic",
+			"sub_path": "filament/Generic TPU @Anycubic.json"
 		},
 		{
 			"name": "Generic ABS @Anycubic Kobra 3 0.4 nozzle",
@@ -755,6 +1175,22 @@
 		{
 			"name": "Anycubic PETG @Anycubic Kobra 3 0.4 nozzle",
 			"sub_path": "filament/Anycubic PETG @Anycubic Kobra 3 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Silk @Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PETG @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "filament/Anycubic PETG @Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Silk @Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra 3 V2 0.8 nozzle.json"
 		},
 		{
 			"name": "Anycubic PLA @Anycubic Kobra 2 Max 0.4 nozzle",
@@ -797,6 +1233,18 @@
 			"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra 3 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic PLA High Speed @Anycubic Kobra 3 0.4 nozzle",
 			"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra 3 0.4 nozzle.json"
 		},
@@ -817,301 +1265,21 @@
 			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra 3 0.4 nozzle.json"
 		},
 		{
+			"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "filament/Anycubic PLA-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "filament/Anycubic PLA-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "filament/Anycubic PLA-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
+		{
 			"name": "Generic TPU @Anycubic Kobra 3 0.4 nozzle",
 			"sub_path": "filament/Generic TPU @Anycubic Kobra 3 0.4 nozzle.json"
-		},
-    	{
-     		"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle",
-      		"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.4 nozzle",
-     		"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-    	{
-      		"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.4 nozzle",
-        	"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-      		"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PEBA @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.4 nozzle",
-     		"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.4 nozzle",
-     		"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-    	{
-        	"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.4 nozzle",
-        	"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-        	"name": "Anycubic PLA Matte @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle",
-     		"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-    		"name": "Anycubic PLA+ @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-    		"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic TPU 95A @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-    	{
-    		"name": "Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle",
-        	"sub_path": "filament/Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-      		"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.4 nozzle",
-     		"sub_path": "filament/Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-    	{
-      		"name": "Anycubic PA6-CF @Anycubic Kobra S1 Max 0.4 nozzle",
-      		"sub_path": "filament/Anycubic PA6-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PC @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PC @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-    		"name": "Anycubic PC-CF @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PC-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-    		"name": "Anycubic PC-GF @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PC-GF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-        	"name": "Anycubic PET-CF @Anycubic Kobra S1 Max 0.4 nozzle",
-        	"sub_path": "filament/Anycubic PET-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PETG-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-      		"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.4 nozzle",
-      		"sub_path": "filament/Anycubic PLA-CF @Anycubic Kobra S1 Max 0.4 nozzle.json"
-       	},
-      	{
-        	"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PVA @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-        {
-      		"name": "Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.4 nozzle",
-       		"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-        {
-       		"name": "Generic PETG @Anycubic Kobra S1 Max 0.4 nozzle",
-       		"sub_path": "filament/Generic PETG @Anycubic Kobra S1 Max 0.4 nozzle.json"
-		},
-    	{
-      		"name": "Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle",
-    		"sub_path": "filament/Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle.json"
-    	},
-
-    	{
-      		"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.25 nozzle",
-      		"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.25 nozzle",
-       		"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.25 nozzle",
-    		"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-    	{
-     		"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.25 nozzle",
-     		"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.25 nozzle.json"
-    	},
-
-       	{
-     		"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.6 nozzle",
-      		"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.6 nozzle",
-       		"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.6 nozzle",
-       		"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-      		"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.6 nozzle",
-      		"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-      		"name": "Anycubic PLA Matte @Anycubic Kobra S1 Max 0.6 nozzle",
-      		"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-      		"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.6 nozzle",
-       		"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 Max 0.6 nozzle.json"
-		},
-    	{
-    		"name": "Anycubic PLA+ @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.6 nozzle",
-     		"sub_path": "filament/Anycubic PLA-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-        {
-    		"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-        {
-    		"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.6 nozzle",
-     		"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PA @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PA @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-		{
-     		"name": "Anycubic PA6-CF @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PA6-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-      		"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.6 nozzle",
-      		"sub_path": "filament/Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-    	{
-       		"name": "Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PC-CF @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PC-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PC-GF @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PC-GF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.6 nozzle",
-       		"sub_path": "filament/Anycubic PEBA @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PET-CF @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PET-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "filament/Anycubic PETG-CF @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.6 nozzle",
-       		"sub_path": "filament/Anycubic PVA @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.6 nozzle",
-       		"sub_path": "filament/Anycubic TPU 95A @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-    	{
-      		"name": "Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.6 nozzle",
-      		"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.6 nozzle.json"
-    	},
-
-    	{
-       		"name": "Anycubic PLA @Anycubic Kobra S1 Max 0.8 nozzle",
-      		"sub_path": "filament/Anycubic PLA @Anycubic Kobra S1 Max 0.8 nozzle.json"
-	},
-    	{
-    		"name": "Anycubic PETG @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic PETG @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-     	{
-       		"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.8 nozzle",
-       		"sub_path": "filament/Anycubic ABS @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic ASA @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic ASA @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-    	{
-      		"name": "Anycubic PA @Anycubic Kobra S1 Max 0.8 nozzle",
-       		"sub_path": "filament/Anycubic PA @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic PA6-CF @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic PA6-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-     	},
-    	{
-    		"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.8 nozzle",
-       		"sub_path": "filament/Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-      		"name": "Anycubic PC @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic PC @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-     		"name": "Anycubic PC-CF @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PC-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-    	{
-      		"name": "Anycubic PC-GF @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PC-GF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-    		"name": "Anycubic PEBA @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PEBA @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-    	{
-     		"name": "Anycubic PET-CF @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PET-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PETG-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-    	{
-     		"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PLA Glow @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-     		"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-        {
-       		"name": "Anycubic PLA Matte @Anycubic Kobra S1 Max 0.8 nozzle",
-       		"sub_path": "filament/Anycubic PLA Matte @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.8 nozzle",
-       		"sub_path": "filament/Anycubic PLA Silk @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-       		"name": "Anycubic PLA+ @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra S1 Max 0.8 nozzle.json"
-        },
-    	{
-       		"name": "Anycubic PLA-CF @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic PLA-CF @Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
-    	{
-    		"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic PVA @Anycubic Kobra S1 Max 0.8 nozzle.json"
-     	},
-     	{
-     		"name": "Anycubic TPU 95A @Anycubic Kobra S1 Max 0.8 nozzle",
-    		"sub_path": "filament/Anycubic TPU 95A @Anycubic Kobra S1 Max 0.8 nozzle.json"
-      	},
-     	{
-     		"name": "Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.8 nozzle",
-     		"sub_path": "filament/Anycubic TPU for ACE @Anycubic Kobra S1 Max 0.8 nozzle.json"
-     	}
-
+		}
 	],
 	"machine_list": [
 		{
@@ -1183,6 +1351,22 @@
 			"sub_path": "machine/Anycubic Kobra 3 Max 0.8 nozzle.json"
 		},
 		{
+			"name": "Anycubic Kobra 3 V2 0.2 nozzle",
+			"sub_path": "machine/Anycubic Kobra 3 V2 0.2 nozzle.json"
+		},
+		{
+			"name": "Anycubic Kobra 3 V2 0.4 nozzle",
+			"sub_path": "machine/Anycubic Kobra 3 V2 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic Kobra 3 V2 0.6 nozzle",
+			"sub_path": "machine/Anycubic Kobra 3 V2 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic Kobra 3 V2 0.8 nozzle",
+			"sub_path": "machine/Anycubic Kobra 3 V2 0.8 nozzle.json"
+		},
+		{
 			"name": "Anycubic Kobra Max 0.4 nozzle",
 			"sub_path": "machine/Anycubic Kobra Max 0.4 nozzle.json"
 		},
@@ -1198,22 +1382,22 @@
 			"name": "Anycubic Kobra S1 0.4 nozzle",
 			"sub_path": "machine/Anycubic Kobra S1 0.4 nozzle.json"
 		},
-        {
-            "name": "Anycubic Kobra S1 Max 0.4 nozzle",
-            "sub_path": "machine/Anycubic Kobra S1 Max 0.4 nozzle.json"
-        },
-        {
-    		"name": "Anycubic Kobra S1 Max 0.25 nozzle",
-    		"sub_path": "machine/Anycubic Kobra S1 Max 0.25 nozzle.json"
-        },
-     	{
-    		"name": "Anycubic Kobra S1 Max 0.6 nozzle",
-    		"sub_path": "machine/Anycubic Kobra S1 Max 0.6 nozzle.json"
-        },
-    	{
-    		"name": "Anycubic Kobra S1 Max 0.8 nozzle",
-       		"sub_path": "machine/Anycubic Kobra S1 Max 0.8 nozzle.json"
-    	},
+		{
+			"name": "Anycubic Kobra S1 Max 0.25 nozzle",
+			"sub_path": "machine/Anycubic Kobra S1 Max 0.25 nozzle.json"
+		},
+		{
+			"name": "Anycubic Kobra S1 Max 0.4 nozzle",
+			"sub_path": "machine/Anycubic Kobra S1 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Anycubic Kobra S1 Max 0.6 nozzle",
+			"sub_path": "machine/Anycubic Kobra S1 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Anycubic Kobra S1 Max 0.8 nozzle",
+			"sub_path": "machine/Anycubic Kobra S1 Max 0.8 nozzle.json"
+		},
 		{
 			"name": "Anycubic Kobra X 0.4 nozzle",
 			"sub_path": "machine/Anycubic Kobra X 0.4 nozzle.json"
