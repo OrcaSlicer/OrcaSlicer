@@ -130,7 +130,7 @@ private:
     {
     public:
         HttpServer&                        server;
-        boost::asio::io_service            io_service;
+        boost::asio::io_context            io_service;
         boost::asio::ip::tcp::acceptor     acceptor;
         std::set<std::shared_ptr<session>> sessions;
 

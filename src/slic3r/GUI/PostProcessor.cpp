@@ -165,7 +165,15 @@ static int run_script(const std::string& script, const std::string& gcode, std::
 // POSIX
 
 #include <cstdlib> // getenv()
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 108800
+#define BOOST_PROCESS_VERSION 1
+#include <boost/process/v1/child.hpp>
+#include <boost/process/v1/io.hpp>
+#include <boost/process/v1/pipe.hpp>
+#else
 #include <boost/process.hpp>
+#endif
 
 namespace process = boost::process;
 
