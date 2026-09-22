@@ -6,6 +6,7 @@
 #include "GUI_Factories.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "ObjectDataViewModel.hpp"
@@ -2083,13 +2084,8 @@ wxMenu* MenuFactory::assemble_part_menu()
 
 void MenuFactory::append_menu_item_clone(wxMenu* menu)
 {
-#ifdef __APPLE__
-    static const wxString ctrl = ("Ctrl+");
-#else
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    static const wxString ctrl = _L("Ctrl+");
-#endif
-    append_menu_item(menu, wxID_ANY, _L("Clone") + "\t" + ctrl + "K", "",
+    const std::string accel = wxGetApp().shortcuts().accelerator(Shortcut::CloneSelected);
+    append_menu_item(menu, wxID_ANY, _L("Clone") + (accel.empty() ? wxString() : "\t" + from_u8(accel)), "",
         [](wxCommandEvent&) {
             plater()->clone_selection();
         }, "", nullptr,
