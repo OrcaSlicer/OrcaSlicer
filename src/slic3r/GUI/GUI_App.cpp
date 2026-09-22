@@ -3619,9 +3619,7 @@ void GUI_App::ensure_oss_network_plugin()
             if (fs::is_regular_file(*it)) {
                 std::string stem = it->path().stem().string();
                 if (stem.rfind("bambu_networking_02.08.", 0) == 0 ||
-                    stem.rfind("bambu_networking_02.07.01.6", 0) == 0 ||
-                    stem.rfind("bambu_networking_02.07.01.7", 0) == 0 ||
-                    stem == "bambu_networking_02.07.01") {
+                    stem.rfind("bambu_networking_02.07.01", 0) == 0) {
                     fs::remove(it->path(), ec);
                 }
             }
@@ -3630,6 +3628,13 @@ void GUI_App::ensure_oss_network_plugin()
 
     fs::path dst = dst_dir / fname;
     fs::path dst_ver = dst_dir / fname_ver;
+#if defined(_WIN32)
+    fs::path dst_ver_99 = dst_dir / ("bambu_networking_" + ver + ".99.dll");
+#elif defined(__APPLE__)
+    fs::path dst_ver_99 = dst_dir / ("libbambu_networking_" + ver + ".99.dylib");
+#else
+    fs::path dst_ver_99 = dst_dir / ("libbambu_networking_" + ver + ".99.so");
+#endif
 
     auto copy_if_diff = [](const fs::path& s, const fs::path& d) {
         boost::system::error_code err;
@@ -3641,6 +3646,7 @@ void GUI_App::ensure_oss_network_plugin()
 
     copy_if_diff(src, dst);
     copy_if_diff(src, dst_ver);
+    copy_if_diff(src, dst_ver_99);
 
     // Copy all plugin files and extras from src_dir
     if (fs::exists(src_dir) && fs::is_directory(src_dir)) {
