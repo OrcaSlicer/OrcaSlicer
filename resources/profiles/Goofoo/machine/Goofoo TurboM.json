@@ -3,7 +3,7 @@
   "name": "Goofoo TurboM",
   "nozzle_diameter": "0.4",
   "bed_model": "Goofoo-TurboM.stl",
-  "bed_texture": "Goofoo-TurboM.svg",
+  "bed_texture": "Goofoo-TurboM-texture.svg",
   "family": "Goofoo",
   "machine_tech": "FFF",
   "model_id": "V002",

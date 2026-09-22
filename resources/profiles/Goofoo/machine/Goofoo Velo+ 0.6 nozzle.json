@@ -14,7 +14,7 @@
   "default_filament_profile": [
     "Goofoo Velo+ ABS @System"
   ],
-  "default_print_profile": "0.30mm Standard Velo+ @Goofoo",
+  "default_print_profile": "0.30mm Standard @Goofoo Velo+",
   "printable_area": [
     "0x0",
     "600x0",

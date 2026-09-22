@@ -1,13 +1,14 @@
 {
   "type": "process",
-  "name": "0.20mm GP1 @Goofoo",
-  "inherits": "0.20mm Standard @MyKlipper",
+  "name": "0.20mm Standard @Goofoo GP1",
+  "inherits": "fdm_process_klipper_common",
   "from": "system",
-  "setting_id": "tLK2IpnCRLbLIUg4",
+  "setting_id": "zrscQBUxp6L7BlQ9",
   "instantiation": "true",
   "compatible_printers": [
     "Goofoo GP1 0.4 nozzle"
   ],
+  "layer_height": "0.2",
   "accel_to_decel_enable": "0",
   "bridge_acceleration": "100%",
   "bridge_speed": "100",

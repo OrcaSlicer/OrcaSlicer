@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"name": "0.20mm Velo+ @Goofoo",
-	"inherits": "0.20mm Standard @MyKlipper",
+	"name": "0.20mm Standard @Goofoo Velo+",
+	"inherits": "fdm_process_klipper_common",
 	"from": "system",
-	"setting_id": "DmmsHo7Q0v3hltV9",
+	"setting_id": "iWjynhCcvbF8MWev",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Goofoo Velo+ 0.2 nozzle",

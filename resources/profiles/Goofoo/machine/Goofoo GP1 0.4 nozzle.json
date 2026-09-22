@@ -12,7 +12,7 @@
     "Goofoo GP1 ABS @System"
   ],
   "printer_model": "Goofoo GP1",
-  "default_print_profile": "0.20mm GP1 @Goofoo",
+  "default_print_profile": "0.20mm Standard @Goofoo GP1",
   "printer_variant": "0.4",
   "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n;G92 E0",
   "change_filament_gcode": "G5",

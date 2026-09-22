@@ -1,13 +1,14 @@
 {
   "type": "process",
-  "name": "0.20mm TurboM @Goofoo",
-  "inherits": "0.20mm Standard @MyKlipper",
+  "name": "0.20mm Standard @Goofoo TurboM",
+  "inherits": "fdm_process_klipper_common",
   "from": "system",
-  "setting_id": "gMM6EVerOIxuS81f",
+  "setting_id": "LVXxUtAcYGCY6irA",
   "instantiation": "true",
   "compatible_printers": [
     "Goofoo TurboM 0.4 nozzle"
   ],
+  "layer_height": "0.2",
   "bridge_acceleration": "2000",
   "bridge_speed": "60",
   "brim_type": "no_brim",
