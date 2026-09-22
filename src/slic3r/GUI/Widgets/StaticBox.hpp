@@ -27,6 +27,8 @@ public:
 
     void SetBorderWidth(int width);
 
+    void SetTopMargin(int margin); // ORCA
+
     void SetBorderColor(StateColor const & color);
 
     void SetBorderColorNormal(wxColor const &color);
@@ -57,6 +59,7 @@ protected:
 protected:
     double radius;
     int border_width = 1;
+    int top_margin = 0;
     wxPenStyle border_style = wxPENSTYLE_SOLID;
     StateHandler state_handler;
     StateColor   border_color;

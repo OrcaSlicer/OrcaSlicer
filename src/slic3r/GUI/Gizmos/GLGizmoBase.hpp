@@ -11,6 +11,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 
 #include <cereal/archives/binary.hpp>
+#include <optional>
 
 #include <wx/event.h>
 
@@ -29,6 +30,7 @@ namespace GUI {
 
 
 class ImGuiWrapper;
+enum class Shortcut : uint8_t;
 class GLCanvas3D;
 enum class CommonGizmosDataID;
 class CommonGizmosDataPool;
@@ -71,9 +73,6 @@ public:
         PosZ = 1 << 4,
         NegZ = 1 << 5,
     };
-
-    // Represents NO key(button on keyboard) value
-    static const int NO_SHORTCUT_KEY_VALUE = 0;
 
 protected:
     struct Grabber
@@ -138,7 +137,7 @@ protected:
 
     int m_group_id; // TODO: remove only for rotate
     EState m_state;
-    int m_shortcut_key;
+    std::optional<Shortcut> m_shortcut;   // the registry entry that opens this gizmo
     std::string m_icon_filename;
     unsigned int m_sprite_id;
     int m_hover_id{ -1 };
@@ -169,7 +168,7 @@ public:
     EState get_state() const { return m_state; }
     void set_state(EState state) { m_state = state; on_set_state(); }
 
-    int get_shortcut_key() const { return m_shortcut_key; }
+    std::optional<Shortcut> shortcut() const { return m_shortcut; }
 
     const std::string& get_icon_filename() const { return m_icon_filename; }
 
@@ -179,6 +178,8 @@ public:
     bool is_selectable() const { return on_is_selectable(); }
     CommonGizmosDataID get_requirements() const { return on_get_requirements(); }
     virtual bool wants_enter_leave_snapshots() const { return false; }
+    // True when what on_render() draws would change if the cursor moved.
+    virtual bool render_follows_cursor() const { return false; }
     virtual std::string get_gizmo_entering_text() const { assert(false); return ""; }
     virtual std::string get_gizmo_leaving_text() const { assert(false); return ""; }
     virtual std::string get_action_snapshot_name() const;

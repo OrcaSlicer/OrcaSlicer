@@ -2,6 +2,7 @@
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -90,7 +91,7 @@ void GLGizmoMmuSegmentation::init_extruders_data()
 bool GLGizmoMmuSegmentation::on_init()
 {
     // BBS
-    m_shortcut_key = WXK_CONTROL_N;
+    m_shortcut = Shortcut::GizmoMmuSegmentation;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     const wxString alt   = GUI::shortkey_alt_prefix();
@@ -209,30 +210,16 @@ bool GLGizmoMmuSegmentation::on_number_key_down(int number)
     return true;
 }
 
-bool GLGizmoMmuSegmentation::on_key_down_select_tool_type(int keyCode) {
-    switch (keyCode)
-    {
-    case 'F':
-        m_current_tool = ImGui::FillButtonIcon;
-        break;
-    case 'T':
-        m_current_tool = ImGui::TriangleButtonIcon;
-        break;
-    case 'S':
-        m_current_tool = ImGui::SphereButtonIcon;
-        break;
-    case 'C':
-        m_current_tool = ImGui::CircleButtonIcon;
-        break;
-    case 'H':
-        m_current_tool = ImGui::HeightRangeIcon;
-        break;
-    case 'G':
-        m_current_tool = ImGui::GapFillIcon;
-        break;
-    default:
-        return false;
-        break;
+bool GLGizmoMmuSegmentation::on_tool_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::PaintToolFill:        m_current_tool = ImGui::FillButtonIcon; break;
+    case Shortcut::PaintToolTriangle:    m_current_tool = ImGui::TriangleButtonIcon; break;
+    case Shortcut::PaintToolSphere:      m_current_tool = ImGui::SphereButtonIcon; break;
+    case Shortcut::PaintToolCircle:      m_current_tool = ImGui::CircleButtonIcon; break;
+    case Shortcut::PaintToolHeightRange: m_current_tool = ImGui::HeightRangeIcon; break;
+    case Shortcut::PaintToolGapFill:     m_current_tool = ImGui::GapFillIcon; break;
+    default: return false;
     }
     return true;
 }

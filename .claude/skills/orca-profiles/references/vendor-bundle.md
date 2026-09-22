@@ -171,5 +171,5 @@ A separate tree (`Template.json` + `Template/`) holding filament and process tem
 scaffold for shipped profiles — `CreatePresetsDialog.cpp` reads it for the in-app "create a custom
 printer/filament" wizard, so editing it changes what users get when they create a custom preset.
 `check_profile.sh`'s validator checks default to `resources/profiles` (redirectable with `-p`), and so
-does `orca_profile_tool.py` (redirectable with `--profiles`, plus `--snapshot` for the id checks);
+does `orca_profile_tool.py` (redirectable with `--profiles`);
 neither covers this tree.

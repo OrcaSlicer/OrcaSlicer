@@ -2885,6 +2885,21 @@ bool PerimeterGeneratorLoop::is_internal_contour() const
     return true;
 }
 
+// ORCA: Arachne drops features below min_feature_size, classic builds nothing thinner than a third of the
+// nozzle. Both describe the layer below, a union of regions sharing neither nozzle nor generator, so every
+// ambiguity resolves low: it may keep a sliver that was never printed, but it never drops one that was.
+ExPolygons PerimeterGenerator::printable_slices(const ExPolygons &slices) const
+{
+    double min_width = *std::min_element(print_config->nozzle_diameter.values.begin(),
+                                         print_config->nozzle_diameter.values.end()) / 3.;
+    if (object_config->wall_generator.value == PerimeterGeneratorType::Arachne) {
+        const double min_feature_size = Arachne::make_paths_params(layer_id, *object_config, *print_config).min_feature_size;
+        // Spiral vase can put a classic layer under an Arachne one, so there both limits apply.
+        min_width = print_config->spiral_mode ? std::min(min_width, min_feature_size) : min_feature_size;
+    }
+    return min_width > EPSILON ? opening_ex(slices, float(scale_(min_width / 2.))) : slices;
+}
+
 std::vector<Polygons> PerimeterGenerator::generate_lower_polygons_series(float width)
 {
     float nozzle_diameter = print_config->nozzle_diameter.get_at(config->outer_wall_filament_id - 1);

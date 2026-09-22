@@ -40,6 +40,9 @@
 // Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
 // names rather than positional indices so optional pages cannot shift them.
 #define TAB_ID_HOME          "home"
+#ifdef SLIC3R_CAD
+#define TAB_ID_DESIGN        "design"
+#endif
 #define TAB_ID_PREPARE       "prepare"
 #define TAB_ID_PREVIEW       "preview"
 #define TAB_ID_MONITOR       "monitor"
@@ -65,9 +68,14 @@ namespace GUI
 class Tab;
 class PrintHostQueueDialog;
 class Plater;
+#ifdef SLIC3R_CAD
+class DesignPanel;
+#endif
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
+enum class Shortcut : uint8_t;
+struct KeyChord;
 #ifdef __WXGTK__
 class ResizeEdgePanel;
 #endif
@@ -105,6 +113,20 @@ public:
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
+};
+
+// Calibration wizard identity, shared by MainFrame::run_calibration and the Speed Dial command runners.
+enum class CalibKind : int
+{ 
+    Temperature, 
+    MaxVolumetric, 
+    PressureAdvance, 
+    FlowRatio, 
+    Retraction,
+    Cornering, 
+    InputShapingFreq, 
+    InputShapingDamp,
+    VFA
 };
 
 class MainFrame : public DPIFrame
@@ -174,6 +196,29 @@ class MainFrame : public DPIFrame
 
     // vector of a MenuBar items changeable in respect to printer technology
     std::vector<wxMenuItem*> m_changeable_menu_items;
+
+    // Menu items whose label shows a key binding; update_shortcut_labels() rewrites them.
+    struct ShortcutMenuItem
+    {
+        wxMenuItem* item;
+        Shortcut    shortcut;
+        wxString    label;
+        bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
+    };
+    std::vector<ShortcutMenuItem> m_shortcut_menu_items;
+
+    wxString shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator);
+    template<typename... Args>
+    wxMenuItem* append_shortcut_item(wxMenu* menu, Shortcut shortcut, bool accelerator, const wxString& label, Args&&... args)
+    {
+        wxMenuItem* item = append_menu_item(menu, wxID_ANY, shortcut_label(label, shortcut, accelerator), std::forward<Args>(args)...);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, accelerator });
+        return item;
+    }
+    // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
+    bool handle_global_shortcut(const KeyChord& chord);
+    void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
+    wxMenu* generate_help_menu();
 
     struct FileHistory : wxFileHistory
     {
@@ -334,6 +379,7 @@ public:
     void        request_select_tab(const wxString& id);
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
+    void        update_shortcut_labels();
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);
@@ -354,6 +400,11 @@ public:
 
     void        technology_changed();
 
+    // Opens the calibration wizard for `kind`. Single source of truth for the wizard lifecycle:
+    // the Calibration menu handlers and the Speed Dial native commands both call this. Most wizards
+    // are cached members; cornering/input-shaping are transient. Call while the Prepare (3D) panel
+    // is shown (menu items are gated on is_view3D_shown; the speed dial ensures it first).
+    void        run_calibration(CalibKind calib_kind);
 
     //BBS
     void        load_url(wxString url);
@@ -384,6 +435,17 @@ public:
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+#ifdef SLIC3R_CAD
+    // The tab page is the placeholder; m_design_panel stays null until the tab is first
+    // selected, so everything the Design panel builds stays off the startup path.
+    wxPanel*              m_design_page { nullptr };
+    DesignPanel*          m_design_panel { nullptr };
+    // Builds the Design panel if it does not exist yet and returns it (null only before the
+    // placeholder page itself exists). Main thread only -- it creates wx controls. Both the
+    // tab activation and the MCP socket go through this: the socket is driven headlessly,
+    // with nobody to click the tab, and without this every verb would answer "not ready".
+    DesignPanel*          ensure_design_panel();
+#endif
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };
 
