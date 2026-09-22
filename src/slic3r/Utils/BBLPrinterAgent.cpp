@@ -204,62 +204,6 @@ int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tra
     return publish(dev_id, j, lan_mode);
 }
 
-int BBLPrinterAgent::command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = "G90 \n";
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    return publish(dev_id, j, lan_mode);
-}
-
-int BBLPrinterAgent::command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = "G29 \n";
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    return publish(dev_id, j, lan_mode);
-}
-
-int BBLPrinterAgent::command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    if (supports_mqtt_homing) {
-        j["print"]["command"] = "back_to_center";
-        return publish(dev_id, j, lan_mode);
-    }
-
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = is_printing ? "G28 X\n" : "G28 \n";
-    return publish(dev_id, j, lan_mode);
-}
-
-int BBLPrinterAgent::command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    if (supports_mqtt_bed_ctrl) {
-        j["print"]["command"] = "set_bed_temp";
-        j["print"]["temp"] = temp;
-        return publish(dev_id, j, lan_mode);
-    }
-
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = (boost::format("M140 S%1%\n") % temp).str();
-    return publish(dev_id, j, lan_mode);
-}
-
-int BBLPrinterAgent::command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode)
-{
-    nlohmann::json j;
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = (boost::format("M104 S%1%\n") % temp).str();
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    return publish(dev_id, j, lan_mode);
-}
-
 int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
                                            bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
 {
