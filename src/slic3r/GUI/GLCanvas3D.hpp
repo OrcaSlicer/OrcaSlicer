@@ -63,6 +63,7 @@ class PartPlateList;
 #ifdef SLIC3R_CAD
 class DesignSketchTool;   // Design tab: interactive 2D sketch tool
 #endif
+struct KeyChord;
 
 #if ENABLE_RETINA_GL
 class RetinaHelper;
@@ -185,7 +186,6 @@ wxDECLARE_EVENT(EVT_GLCANVAS_UPDATE_BED_SHAPE, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_TAB, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_RESETGIZMOS, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_MOVE_SLIDERS, wxKeyEvent);
-wxDECLARE_EVENT(EVT_GLCANVAS_EDIT_COLOR_CHANGE, wxKeyEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_JUMP_TO, wxKeyEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_UNDO, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_REDO, SimpleEvent);
@@ -626,7 +626,23 @@ private:
     bool m_dynamic_background_enabled;
     bool m_multisample_allowed;
     bool m_moving;
-    bool m_tab_down;
+    // The key-down being dispatched, kept for the char event that may follow it.
+    struct KeyDown
+    {
+        int  code   = WXK_NONE;
+        bool repeat = false;
+    };
+    KeyDown m_key_down;
+    // A keyboard move or rotation of the selection runs from the key-down that started it to
+    // that key's release, so a held key becomes one undo step.
+    struct SelectionEdit
+    {
+        enum Kind { None, Move, Rotate };
+        Kind  kind = None;
+        int   key  = WXK_NONE;   // raw key code of the key-down, matched against the key-up
+        Vec3d direction{ Vec3d::UnitX() };
+    };
+    SelectionEdit m_selection_edit;
     bool m_camera_movement;
     //BBS: add toolpath outside
     bool m_toolpath_outside{ false };
@@ -1094,6 +1110,13 @@ public:
     void on_idle(wxIdleEvent& evt);
     void on_char(wxKeyEvent& evt);
     void on_key(wxKeyEvent& evt);
+    // Runs the Plater/Preview shortcut bound to chord, swallowing auto-repeats of one-shot
+    // shortcuts; false when nothing is bound.
+    bool handle_shortcut(const KeyChord& chord);
+    void apply_selection_move(bool slow, bool camera_space);
+    void apply_selection_rotate(double angle_z_rad);
+    void finish_selection_edit();
+    void update_shortcut_tooltips();
     void on_mouse_wheel(wxMouseEvent& evt);
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);
@@ -1333,6 +1356,8 @@ private:
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
     void _render_wireframe_overlay();
+    bool _is_xray_view_active() const;
+    void _render_xray_volumes();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
     void _render_gcode_overlay(int canvas_width, int canvas_height);
