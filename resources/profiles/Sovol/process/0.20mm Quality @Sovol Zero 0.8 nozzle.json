@@ -37,6 +37,7 @@
 	"gap_infill_speed": "200",
 	"sparse_infill_speed": "500",
 	"compatible_printers": [
-		"Sovol Zero 0.8 nozzle"
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle"
 	]
 }

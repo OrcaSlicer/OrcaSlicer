@@ -29,7 +29,8 @@
 	"top_shell_layers": "4",
 	"internal_solid_infill_line_width": "0.66",
 	"compatible_printers": [
-		"Sovol Zero 0.6 nozzle"
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle"
 	],
 	"renamed_from": "0.30mm Standard @Sovol ZERO 0.6 nozzle"
 }

@@ -31,6 +31,7 @@
 	"top_shell_layers": "4",
 	"internal_solid_infill_line_width": "0.44",
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle"
 	]
 }

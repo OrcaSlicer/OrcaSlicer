@@ -14,7 +14,8 @@
 		"50"
 	],
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"245"
@@ -34,8 +35,12 @@
 	"hot_plate_temp_initial_layer": [
 		"65"
 	],
-	"enable_pressure_advance": "1",
-	"pressure_advance": "0.032",
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.032"
+	],
 	"fan_min_speed": [
 		"100"
 	],
@@ -60,7 +65,9 @@
 	"overhang_fan_threshold": [
 		"75%"
 	],
-	"additional_cooling_fan_speed": "100",
+	"additional_cooling_fan_speed": [
+		"100"
+	],
 	"filament_z_hop": [
 		"0"
 	],

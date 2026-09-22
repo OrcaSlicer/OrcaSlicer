@@ -31,6 +31,7 @@
 	"top_shell_layers": "8",
 	"top_shell_thickness": "1",
 	"compatible_printers": [
-		"Sovol Zero 0.2 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.2 Hardened Steel nozzle"
 	]
 }

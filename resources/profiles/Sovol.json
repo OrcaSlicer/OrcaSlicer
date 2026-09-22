@@ -1,7 +1,7 @@
 {
 	"name": "Sovol",
 	"url": "",
-	"version": "02.04.00.06",
+	"version": "02.04.00.07",
 	"force_update": "0",
 	"description": "Sovol configurations",
 	"machine_model_list": [
@@ -314,8 +314,8 @@
 			"sub_path": "filament/Generic PETG @Sovol Zero.json"
 		},
 		{
-			"name": "Generic PETG HS @Sovol Zero",
-			"sub_path": "filament/Generic PETG HS @Sovol Zero.json"
+			"name": "Generic PETG @Sovol Zero Hardened Steel nozzle",
+			"sub_path": "filament/Generic PETG @Sovol Zero Hardened Steel nozzle.json"
 		},
 		{
 			"name": "Generic PLA @Sovol SV06 ACE",
@@ -346,8 +346,8 @@
 			"sub_path": "filament/Generic PLA @Sovol Zero.json"
 		},
 		{
-			"name": "Generic PLA HS @Sovol Zero",
-			"sub_path": "filament/Generic PLA HS @Sovol Zero.json"
+			"name": "Generic PLA @Sovol Zero Hardened Steel nozzle",
+			"sub_path": "filament/Generic PLA @Sovol Zero Hardened Steel nozzle.json"
 		},
 		{
 			"name": "Generic PLA SPEEDBENCHY @Sovol Zero",
@@ -362,8 +362,8 @@
 			"sub_path": "filament/Generic PLA Silk @Sovol Zero.json"
 		},
 		{
-			"name": "Generic PLA Silk HS @Sovol Zero",
-			"sub_path": "filament/Generic PLA Silk HS @Sovol Zero.json"
+			"name": "Generic PLA Silk @Sovol Zero Hardened Steel nozzle",
+			"sub_path": "filament/Generic PLA Silk @Sovol Zero Hardened Steel nozzle.json"
 		},
 		{
 			"name": "Generic TPU @Sovol SV06 ACE",
@@ -502,6 +502,26 @@
 		{
 			"name": "Sovol Zero 1.0 nozzle",
 			"sub_path": "machine/Sovol Zero 1.0 nozzle.json"
+		},
+		{
+			"name": "Sovol Zero 0.2 Hardened Steel nozzle",
+			"sub_path": "machine/Sovol Zero 0.2 Hardened Steel nozzle.json"
+		},
+		{
+			"name": "Sovol Zero 0.4 Hardened Steel nozzle",
+			"sub_path": "machine/Sovol Zero 0.4 Hardened Steel nozzle.json"
+		},
+		{
+			"name": "Sovol Zero 0.6 Hardened Steel nozzle",
+			"sub_path": "machine/Sovol Zero 0.6 Hardened Steel nozzle.json"
+		},
+		{
+			"name": "Sovol Zero 0.8 Hardened Steel nozzle",
+			"sub_path": "machine/Sovol Zero 0.8 Hardened Steel nozzle.json"
+		},
+		{
+			"name": "Sovol Zero 1.0 Hardened Steel nozzle",
+			"sub_path": "machine/Sovol Zero 1.0 Hardened Steel nozzle.json"
 		}
 	]
 }

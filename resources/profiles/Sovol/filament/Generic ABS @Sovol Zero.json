@@ -78,7 +78,12 @@
 		"Sovol Zero 0.4 nozzle",
 		"Sovol Zero 0.6 nozzle",
 		"Sovol Zero 0.8 nozzle",
-		"Sovol Zero 1.0 nozzle"
+		"Sovol Zero 1.0 nozzle",
+		"Sovol Zero 0.2 Hardened Steel nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
 	],
 	"cool_plate_temp": [
 		"80"

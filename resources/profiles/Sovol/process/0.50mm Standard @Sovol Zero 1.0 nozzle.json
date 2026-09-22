@@ -82,6 +82,7 @@
 	"sparse_infill_speed": "70",
 	"travel_acceleration": "38000",
 	"compatible_printers": [
-		"Sovol Zero 1.0 nozzle"
+		"Sovol Zero 1.0 nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
 	]
 }

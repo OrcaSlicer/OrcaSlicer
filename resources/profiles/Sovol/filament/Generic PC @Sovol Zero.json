@@ -18,7 +18,12 @@
 		"Sovol Zero 0.4 nozzle",
 		"Sovol Zero 0.6 nozzle",
 		"Sovol Zero 0.8 nozzle",
-		"Sovol Zero 1.0 nozzle"
+		"Sovol Zero 1.0 nozzle",
+		"Sovol Zero 0.2 Hardened Steel nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"290"
@@ -56,7 +61,9 @@
 	"slow_down_min_speed": [
 		"10"
 	],
-	"dont_slow_down_outer_wall": "0",
+	"dont_slow_down_outer_wall": [
+		"0"
+	],
 	"overhang_fan_speed": [
 		"20"
 	],
@@ -66,10 +73,18 @@
 	"temperature_vitrification": [
 		"60"
 	],
-	"additional_cooling_fan_speed": "0",
-	"activate_air_filtration": "1",
-	"during_print_exhaust_fan_speed": "50",
-	"complete_print_exhaust_fan_speed": "50",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"during_print_exhaust_fan_speed": [
+		"50"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"50"
+	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
 	]

@@ -79,6 +79,7 @@
 	"support_top_z_distance": "0.235",
 	"support_bottom_z_distance": "0.235",
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle"
 	]
 }

@@ -1,17 +1,21 @@
 {
 	"type": "filament",
-	"filament_id": "OFkva2rO",
-	"setting_id": "kCCCYlFJVHVnQMqX",
-	"name": "Generic PETG HS @Sovol Zero",
-	"renamed_from": "Sovol Zero PETG - Hardened Steel;Sovol ZERO PETG - Hardened Steel;Sovol Zero PETG HS Nozzle",
+	"filament_id": "OFYPdQJh",
+	"setting_id": "d9QbCESNz3ZLU6eu",
+	"name": "Generic PETG @Sovol Zero Hardened Steel nozzle",
+	"renamed_from": "Sovol Zero PETG - Hardened Steel;Sovol ZERO PETG - Hardened Steel;Sovol Zero PETG HS Nozzle;Generic PETG HS @Sovol Zero",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
 	"filament_flow_ratio": [
 		"0.98"
 	],
-	"enable_pressure_advance": "1",
-	"pressure_advance": "0.048",
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.048"
+	],
 	"filament_max_volumetric_speed": [
 		"15"
 	],
@@ -69,15 +73,21 @@
 	"filament_z_hop": [
 		"0.4"
 	],
-	"activate_air_filtration": "1",
-	"during_print_exhaust_fan_speed": "50",
-	"complete_print_exhaust_fan_speed": "50",
+	"activate_air_filtration": [
+		"1"
+	],
+	"during_print_exhaust_fan_speed": [
+		"50"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"50"
+	],
 	"compatible_printers": [
-		"Sovol Zero 0.2 nozzle",
-		"Sovol Zero 0.4 nozzle",
-		"Sovol Zero 0.6 nozzle",
-		"Sovol Zero 0.8 nozzle",
-		"Sovol Zero 1.0 nozzle"
+		"Sovol Zero 0.2 Hardened Steel nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
 	],
 	"cool_plate_temp": [
 		"85"

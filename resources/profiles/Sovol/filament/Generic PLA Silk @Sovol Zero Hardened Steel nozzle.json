@@ -1,26 +1,30 @@
 {
 	"type": "filament",
-	"filament_id": "OFTU1kCv",
-	"setting_id": "jqZSE6ewVwYKwHkP",
-	"name": "Generic PLA HS @Sovol Zero",
-	"renamed_from": "Sovol Zero PLA - Hardened Steel;Sovol ZERO PLA - Hardened Steel;Sovol Zero PLA Basic HS Nozzle",
+	"filament_id": "OFesA6rF",
+	"setting_id": "LA8X1RsMdV2xNT1o",
+	"name": "Generic PLA Silk @Sovol Zero Hardened Steel nozzle",
+	"renamed_from": "Sovol Zero Silk PLA - Hardened Steel;Sovol ZERO Silk PLA - Hardened Steel;Sovol Zero PLA Silk HS Nozzle;Generic PLA Silk HS @Sovol Zero",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
 	"filament_flow_ratio": [
-		"1.0348"
+		"0.98"
 	],
 	"filament_max_volumetric_speed": [
-		"21"
+		"15"
 	],
-	"enable_pressure_advance": "1",
-	"pressure_advance": "0.03",
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.027"
+	],
 	"compatible_printers": [
-		"Sovol Zero 0.2 nozzle",
-		"Sovol Zero 0.4 nozzle",
-		"Sovol Zero 0.6 nozzle",
-		"Sovol Zero 0.8 nozzle",
-		"Sovol Zero 1.0 nozzle"
+		"Sovol Zero 0.2 Hardened Steel nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"245"
@@ -58,7 +62,9 @@
 	"slow_down_min_speed": [
 		"10"
 	],
-	"dont_slow_down_outer_wall": "0",
+	"dont_slow_down_outer_wall": [
+		"0"
+	],
 	"overhang_fan_speed": [
 		"100"
 	],
@@ -68,10 +74,18 @@
 	"temperature_vitrification": [
 		"60"
 	],
-	"additional_cooling_fan_speed": "75%",
-	"activate_air_filtration": "1",
-	"during_print_exhaust_fan_speed": "80%",
-	"complete_print_exhaust_fan_speed": "80%",
+	"additional_cooling_fan_speed": [
+		"75%"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"during_print_exhaust_fan_speed": [
+		"80%"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"80%"
+	],
 	"cool_plate_temp": [
 		"60"
 	],
