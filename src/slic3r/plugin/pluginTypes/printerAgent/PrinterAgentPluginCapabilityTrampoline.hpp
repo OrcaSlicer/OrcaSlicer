@@ -25,6 +25,12 @@
     } ORCA_PY_AGENT_CATCH(name) \
     return printer_agent_failure<ret>()
 
+#define ORCA_PY_AGENT_OVERRIDE_DEFAULT(ret, name, ...) \
+    try { \
+        ORCA_PY_OVERRIDE_AUDITED([] {}, PYBIND11_OVERRIDE, ret, PrinterAgentPluginCapability, name, ##__VA_ARGS__); \
+    } ORCA_PY_AGENT_CATCH(name) \
+    return printer_agent_failure<ret>()
+
 namespace Slic3r {
 // NetworkAgent's no-agent answer: -1 for a status code, the empty value (false, "", none) otherwise.
 template<typename T> T printer_agent_failure()
@@ -67,57 +73,57 @@ public:
 
     int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_ams_refresh_rfid, dev_id, tray_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_refresh_rfid, dev_id, tray_id, sequence_id, lan_mode);
     }
 
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_ams_calibrate, dev_id, ams_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_calibrate, dev_id, ams_id, sequence_id, lan_mode);
     }
 
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_ams_select_tray, dev_id, tray_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_select_tray, dev_id, tray_id, sequence_id, lan_mode);
     }
 
     int command_start_camera(std::string dev_id) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_start_camera, dev_id);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_start_camera, dev_id);
     }
 
     int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_xyz_abs, dev_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_xyz_abs, dev_id, sequence_id, lan_mode);
     }
 
     int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_auto_leveling, dev_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_auto_leveling, dev_id, sequence_id, lan_mode);
     }
 
     int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing,
                         int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_go_home, dev_id, is_printing, supports_mqtt_homing, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_go_home, dev_id, is_printing, supports_mqtt_homing, sequence_id, lan_mode);
     }
 
     int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl,
                         int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_set_bed, dev_id, temp, supports_mqtt_bed_ctrl, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_set_bed, dev_id, temp, supports_mqtt_bed_ctrl, sequence_id, lan_mode);
     }
 
     int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_set_nozzle, dev_id, temp, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_set_nozzle, dev_id, temp, sequence_id, lan_mode);
     }
 
     int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val,
                              int speed, bool is_core_xy, bool supports_mqtt_axis_control,
                              int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, command_axis_control, dev_id, axis, unit, input_val, speed,
-                               is_core_xy, supports_mqtt_axis_control, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_axis_control, dev_id, axis, unit, input_val, speed,
+                                       is_core_xy, supports_mqtt_axis_control, sequence_id, lan_mode);
     }
 
     bool start_discovery(bool start, bool sending) override
@@ -153,22 +159,22 @@ public:
 
     FilamentSyncMode get_filament_sync_mode() const override
     {
-        ORCA_PY_AGENT_OVERRIDE(FilamentSyncMode, get_filament_sync_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(FilamentSyncMode, get_filament_sync_mode);
     }
 
     CameraStreamMode get_camera_stream_mode() const override
     {
-        ORCA_PY_AGENT_OVERRIDE(CameraStreamMode, get_camera_stream_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(CameraStreamMode, get_camera_stream_mode);
     }
 
     std::string get_camera_url() const override
     {
-        ORCA_PY_AGENT_OVERRIDE(std::string, get_camera_url);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(std::string, get_camera_url);
     }
 
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE(bool, fetch_filament_info, dev_id, sync_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(bool, fetch_filament_info, dev_id, sync_mode);
     }
 
     int check_cert() override
@@ -178,7 +184,7 @@ public:
 
     void install_device_cert(std::string dev_id, bool lan_only) override
     {
-        ORCA_PY_AGENT_OVERRIDE(void, install_device_cert, dev_id, lan_only);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(void, install_device_cert, dev_id, lan_only);
     }
 
     int ping_bind(std::string ping_code) override
@@ -213,7 +219,7 @@ public:
 
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, get_hms_snapshot, dev_id, file_name, callback);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, get_hms_snapshot, dev_id, file_name, callback);
     }
 
     int set_server_callback(OnServerErrFn fn) override
