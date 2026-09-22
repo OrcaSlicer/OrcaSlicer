@@ -1666,7 +1666,9 @@ void PrintObject::detect_surfaces_type()
     bool interface_shells = ! spiral_mode && m_config.interface_shells.value;
     size_t num_layers     = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
 
-    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+    // The regions of a layer do not see each other here, and a layer cut through a fine relief takes far longer than the
+    // others, so the regions run next to each other instead of one after another, each still over all layers.
+    tbb::parallel_for(size_t(0), this->num_printing_regions(), [&](size_t region_id) {
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " in parallel - start";
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
         for (Layer *layer : m_layers)
@@ -2086,29 +2088,31 @@ void PrintObject::detect_surfaces_type()
                 }
             }
             );
-            // ==============================================================================================================
-            // === ORCA: Interim workaround - for now the new stInternalAfterExternalBridge surfaace is re-classified  ==============
-            // === back to a bottom bridge. As a starting point, this improves bridging reliability as it extrudes ==========
-            // === two external bridge layers. However, TODO: Implement a new surface type throughout the codebase ==========
-            // ==============================================================================================================
-            for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
-                tbb::parallel_for( tbb::blocked_range<size_t>(0, m_layers.size()), [this, region_id](const tbb::blocked_range<size_t> &range) {
-                    for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++idx_layer) {
-                        Surfaces &surfs = m_layers[idx_layer]->m_regions[region_id]->slices.surfaces;
-                        for (Surface &s : surfs) {
-                            if (s.surface_type == stInternalAfterExternalBridge) {
-                                s.surface_type = stBottomBridge;
-                            }
-                        }
-                    }
-                }
-              );
-            }
         }
         // ==============================================================================================================
         // === ORCA: End of second external bridge layer changes  =======================================================
         // ==============================================================================================================
         
+    }); // for each this->print->region_count
+
+    // ==============================================================================================================
+    // === ORCA: Interim workaround - for now the new stInternalAfterExternalBridge surfaace is re-classified  ==============
+    // === back to a bottom bridge. As a starting point, this improves bridging reliability as it extrudes ==========
+    // === two external bridge layers. However, TODO: Implement a new surface type throughout the codebase ==========
+    // ==============================================================================================================
+    // Once all the regions have their second bridge layer, and before their slices are trimmed into fill surfaces below.
+    if ((this->config().enable_extra_bridge_layer.value == eblApplyToAll) || (this->config().enable_extra_bridge_layer.value == eblExternalBridgeOnly)) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()), [this](const tbb::blocked_range<size_t> &range) {
+            for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++idx_layer)
+                for (LayerRegion *layerm : m_layers[idx_layer]->regions())
+                    for (Surface &s : layerm->slices.surfaces)
+                        if (s.surface_type == stInternalAfterExternalBridge)
+                            s.surface_type = stBottomBridge;
+        });
+        m_print->throw_if_canceled();
+    }
+
+    tbb::parallel_for(size_t(0), this->num_printing_regions(), [&](size_t region_id) {
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " - clipping in parallel - start";
         // Fill in layerm->fill_surfaces by trimming the layerm->slices by the cummulative layerm->fill_surfaces.
         tbb::parallel_for(
@@ -2125,7 +2129,7 @@ void PrintObject::detect_surfaces_type()
             });
         m_print->throw_if_canceled();
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " - clipping in parallel - end";
-    } // for each this->print->region_count
+    });
 
     // Mark the object to have the region slices classified (typed, which also means they are split based on whether they are supported, bridging, top layers etc.)
     m_typed_slices = true;
@@ -2192,8 +2196,10 @@ void PrintObject::process_external_surfaces()
 	    BOOST_LOG_TRIVIAL(debug) << "Collecting surfaces covered with extrusions in parallel - end";
 	}
 
-	for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
-        BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces for region " << region_id << " in parallel - start";
+    BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces in parallel - start";
+    // The regions of a layer do not see each other here, and a layer cut through a fine relief takes far longer than the
+    // others, so the regions run next to each other instead of one after another, each still over all layers.
+    tbb::parallel_for(size_t(0), this->num_printing_regions(), [this, &surfaces_covered](size_t region_id) {
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
             [this, &surfaces_covered, region_id](const tbb::blocked_range<size_t>& range) {
@@ -2208,9 +2214,9 @@ void PrintObject::process_external_surfaces()
                 }
             }
         );
-        m_print->throw_if_canceled();
-        BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces for region " << region_id << " in parallel - end";
-    }
+    });
+    m_print->throw_if_canceled();
+    BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces in parallel - end";
 }
 
 void PrintObject::discover_vertical_shells()
@@ -2330,19 +2336,128 @@ void PrintObject::discover_vertical_shells()
     // region-specific but the shell settings and the external perimeter spacing, so a region sharing them with an earlier
     // one reuses its result instead of repeating it: that accumulation is a union over several layers of top/bottom
     // surfaces, and a multi-material print has a region per filament.
+    using AccumulationKey = std::array<double, 5>;
     struct ShellAccumulation
     {
-        std::array<double, 5> key;
-        Polygons              shell;
-        Polygons              holes;
+        AccumulationKey key;
+        Polygons        shell;
+        Polygons        holes;
+    };
+    const auto accumulation_key = [](const PrintRegionConfig &region_config, const LayerRegion *layerm) {
+        return AccumulationKey{ double(region_config.top_shell_layers.value), region_config.top_shell_thickness.value,
+                                double(region_config.bottom_shell_layers.value), region_config.bottom_shell_thickness.value,
+                                double(layerm->flow(frExternalPerimeter).scaled_spacing()) };
+    };
+    const auto accumulate_shell = [this, &cache_top_botom_regions](size_t idx_layer, const PrintRegionConfig &region_config,
+                                                                   const LayerRegion *layerm, Polygons &shell, Polygons &holes) {
+        const Layer *layer = m_layers[idx_layer];
+    			        polygons_append(holes, cache_top_botom_regions[idx_layer].holes);
+                        auto combine_holes = [&holes](const Polygons &holes2) {
+                            if (holes.empty() || holes2.empty())
+                                holes.clear();
+                            else
+                                holes = intersection(holes, holes2);
+                        };
+                        auto combine_shells = [&shell](const Polygons &shells2) {
+                            if (shell.empty())
+                                shell = std::move(shells2);
+                            else if (! shells2.empty()) {
+                                polygons_append(shell, shells2);
+                                // Running the union_ using the Clipper library piece by piece is cheaper
+                                // than running the union_ all at once.
+                                shell = union_(shell);
+                            }
+                        };
+                        static constexpr const bool one_more_layer_below_top_bottom_surfaces = false;
+    			        if (int n_top_layers = region_config.top_shell_layers.value; n_top_layers > 0) {
+                            // Gather top regions projected to this layer.
+                            coordf_t print_z = layer->print_z;
+                            int i = int(idx_layer) + 1;
+                            int itop = int(idx_layer) + n_top_layers;
+                            bool at_least_one_top_projected = false;
+    	                    for (; i < int(cache_top_botom_regions.size()) &&
+    	                         (i < itop || m_layers[i]->print_z - print_z < region_config.top_shell_thickness - EPSILON);
+    	                        ++ i) {
+                                at_least_one_top_projected = true;
+    	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
+                                combine_holes(cache.holes);
+                                combine_shells(cache.top_surfaces);
+    	                    }
+                            if (!at_least_one_top_projected && i < int(cache_top_botom_regions.size())) {
+                                // Lets consider this a special case - with only 1 top solid and minimal shell thickness settings, the
+                                // boundaries of solid layers are not anchored over/under perimeters, so lets fix it by adding at least one
+                                // perimeter width of area
+                                Polygons anchor_area = intersection(expand(cache_top_botom_regions[idx_layer].top_surfaces,
+                                                                           layerm->flow(frExternalPerimeter).scaled_spacing()),
+                                                                    to_polygons(m_layers[i]->lslices));
+                                combine_shells(anchor_area);
+                            }
+
+                            if (one_more_layer_below_top_bottom_surfaces)
+                                if (i < int(cache_top_botom_regions.size()) &&
+                                    (i <= itop || m_layers[i]->bottom_z() - print_z < region_config.top_shell_thickness - EPSILON))
+                                    combine_holes(cache_top_botom_regions[i].holes);
+    	                }
+    	                if (int n_bottom_layers = region_config.bottom_shell_layers.value; n_bottom_layers > 0) {
+                            // Gather bottom regions projected to this layer.
+                            coordf_t bottom_z = layer->bottom_z();
+                            int i = int(idx_layer) - 1;
+                            int ibottom = int(idx_layer) - n_bottom_layers;
+                            bool at_least_one_bottom_projected = false;
+    	                    for (; i >= 0 &&
+    	                         (i > ibottom || bottom_z - m_layers[i]->bottom_z() < region_config.bottom_shell_thickness - EPSILON);
+    	                        -- i) {
+                                    at_least_one_bottom_projected = true;
+    	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
+    							combine_holes(cache.holes);
+                                combine_shells(cache.bottom_surfaces);
+    	                    }
+
+                            if (!at_least_one_bottom_projected && i >= 0) {
+                                Polygons anchor_area = intersection(expand(cache_top_botom_regions[idx_layer].bottom_surfaces,
+                                                                           layerm->flow(frExternalPerimeter).scaled_spacing()),
+                                                                    to_polygons(m_layers[i]->lslices));
+                                combine_shells(anchor_area);
+                            }
+
+                            if (one_more_layer_below_top_bottom_surfaces)
+                                if (i >= 0 &&
+                                    (i > ibottom || bottom_z - m_layers[i]->print_z < region_config.bottom_shell_thickness - EPSILON))
+                                    combine_holes(cache_top_botom_regions[i].holes);
+    	                }
     };
     std::vector<std::vector<ShellAccumulation>> shell_accumulations(top_bottom_surfaces_all_regions ? num_layers : 0);
+    if (! shell_accumulations.empty()) {
+        // Every (layer, key) pair is accumulated once, before the regions, so that nothing in the loop below is shared
+        // between them and they can run next to each other.
+        std::vector<std::array<size_t, 3>> todo; // layer, its slot, a region holding the key
+        for (size_t idx_layer = 0; idx_layer < num_layers; ++ idx_layer) {
+            std::vector<ShellAccumulation> &accumulations = shell_accumulations[idx_layer];
+            for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+                if (this->printing_region(region_id).config().ensure_vertical_shell_thickness.value != evstAll)
+                    continue;
+                const LayerRegion    *layerm = m_layers[idx_layer]->m_regions[region_id];
+                const AccumulationKey key    = accumulation_key(layerm->region().config(), layerm);
+                if (std::none_of(accumulations.begin(), accumulations.end(), [&key](const ShellAccumulation &a) { return a.key == key; })) {
+                    todo.push_back({ idx_layer, accumulations.size(), region_id });
+                    accumulations.push_back({ key, {}, {} });
+                }
+            }
+        }
+        tbb::parallel_for(size_t(0), todo.size(), [this, &todo, &shell_accumulations, &accumulate_shell](size_t i) {
+            m_print->throw_if_canceled();
+            const LayerRegion *layerm = m_layers[todo[i][0]]->m_regions[todo[i][2]];
+            ShellAccumulation &out    = shell_accumulations[todo[i][0]][todo[i][1]];
+            accumulate_shell(todo[i][0], layerm->region().config(), layerm, out.shell, out.holes);
+        });
+        m_print->throw_if_canceled();
+    }
 
-    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+    const auto process_region = [&](size_t region_id) {
         const PrintRegion &region = this->printing_region(region_id);
         if (region.config().ensure_vertical_shell_thickness.value != evstAll )
             // This region will be handled by discover_horizontal_shells().
-            continue;
+            return;
 
         //FIXME Improve the heuristics for a grain size.
         size_t grain_size = std::max(num_layers / 16, size_t(1));
@@ -2382,7 +2497,7 @@ void PrintObject::discover_vertical_shells()
         grain_size = 1;
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
-            [this, region_id, &cache_top_botom_regions, &shell_accumulations]
+            [this, region_id, &shell_accumulations, &accumulation_key, &accumulate_shell]
             (const tbb::blocked_range<size_t>& range) {
                 // printf("discover_vertical_shells from %d to %d\n", range.begin(), range.end());
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
@@ -2432,98 +2547,19 @@ void PrintObject::discover_vertical_shells()
                         }
                     }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
-                    const std::array<double, 5> accumulation_key{ double(region_config.top_shell_layers.value), region_config.top_shell_thickness.value,
-                                                                  double(region_config.bottom_shell_layers.value), region_config.bottom_shell_thickness.value,
-                                                                  double(layerm->flow(frExternalPerimeter).scaled_spacing()) };
-                    std::vector<ShellAccumulation> *accumulations = shell_accumulations.empty() ? nullptr : &shell_accumulations[idx_layer];
-                    const auto reused = accumulations == nullptr ? nullptr :
+                    const AccumulationKey key = accumulation_key(region_config, layerm);
+                    const ShellAccumulation *reused = shell_accumulations.empty() ? nullptr :
                         [&]() -> const ShellAccumulation * {
-                            for (const ShellAccumulation &a : *accumulations)
-                                if (a.key == accumulation_key)
+                            for (const ShellAccumulation &a : shell_accumulations[idx_layer])
+                                if (a.key == key)
                                     return &a;
                             return nullptr;
                         }();
                     if (reused != nullptr) {
                         shell = reused->shell;
                         holes = reused->holes;
-                    } else {
-			        polygons_append(holes, cache_top_botom_regions[idx_layer].holes);
-                    auto combine_holes = [&holes](const Polygons &holes2) {
-                        if (holes.empty() || holes2.empty())
-                            holes.clear();
-                        else
-                            holes = intersection(holes, holes2);
-                    };
-                    auto combine_shells = [&shell](const Polygons &shells2) {
-                        if (shell.empty())
-                            shell = std::move(shells2);
-                        else if (! shells2.empty()) {
-                            polygons_append(shell, shells2);
-                            // Running the union_ using the Clipper library piece by piece is cheaper
-                            // than running the union_ all at once.
-                            shell = union_(shell);
-                        }
-                    };
-                    static constexpr const bool one_more_layer_below_top_bottom_surfaces = false;
-			        if (int n_top_layers = region_config.top_shell_layers.value; n_top_layers > 0) {
-                        // Gather top regions projected to this layer.
-                        coordf_t print_z = layer->print_z;
-                        int i = int(idx_layer) + 1;
-                        int itop = int(idx_layer) + n_top_layers;
-                        bool at_least_one_top_projected = false;
-	                    for (; i < int(cache_top_botom_regions.size()) &&
-	                         (i < itop || m_layers[i]->print_z - print_z < region_config.top_shell_thickness - EPSILON);
-	                        ++ i) {
-                            at_least_one_top_projected = true;
-	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
-                            combine_holes(cache.holes);
-                            combine_shells(cache.top_surfaces);
-	                    }
-                        if (!at_least_one_top_projected && i < int(cache_top_botom_regions.size())) {
-                            // Lets consider this a special case - with only 1 top solid and minimal shell thickness settings, the
-                            // boundaries of solid layers are not anchored over/under perimeters, so lets fix it by adding at least one
-                            // perimeter width of area
-                            Polygons anchor_area = intersection(expand(cache_top_botom_regions[idx_layer].top_surfaces,
-                                                                       layerm->flow(frExternalPerimeter).scaled_spacing()),
-                                                                to_polygons(m_layers[i]->lslices));
-                            combine_shells(anchor_area);
-                        }
-
-                        if (one_more_layer_below_top_bottom_surfaces)
-                            if (i < int(cache_top_botom_regions.size()) &&
-                                (i <= itop || m_layers[i]->bottom_z() - print_z < region_config.top_shell_thickness - EPSILON))
-                                combine_holes(cache_top_botom_regions[i].holes);
-	                }
-	                if (int n_bottom_layers = region_config.bottom_shell_layers.value; n_bottom_layers > 0) {
-                        // Gather bottom regions projected to this layer.
-                        coordf_t bottom_z = layer->bottom_z();
-                        int i = int(idx_layer) - 1;
-                        int ibottom = int(idx_layer) - n_bottom_layers;
-                        bool at_least_one_bottom_projected = false;
-	                    for (; i >= 0 &&
-	                         (i > ibottom || bottom_z - m_layers[i]->bottom_z() < region_config.bottom_shell_thickness - EPSILON);
-	                        -- i) {
-                                at_least_one_bottom_projected = true;
-	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
-							combine_holes(cache.holes);
-                            combine_shells(cache.bottom_surfaces);
-	                    }
-
-                        if (!at_least_one_bottom_projected && i >= 0) {
-                            Polygons anchor_area = intersection(expand(cache_top_botom_regions[idx_layer].bottom_surfaces,
-                                                                       layerm->flow(frExternalPerimeter).scaled_spacing()),
-                                                                to_polygons(m_layers[i]->lslices));
-                            combine_shells(anchor_area);
-                        }
-
-                        if (one_more_layer_below_top_bottom_surfaces)
-                            if (i >= 0 &&
-                                (i > ibottom || bottom_z - m_layers[i]->print_z < region_config.bottom_shell_thickness - EPSILON))
-                                combine_holes(cache_top_botom_regions[i].holes);
-	                }
-                    if (accumulations != nullptr)
-                        accumulations->push_back({ accumulation_key, shell, holes });
-                    }
+                    } else
+                        accumulate_shell(idx_layer, region_config, layerm, shell, holes);
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
                     {
         				Slic3r::SVG svg(debug_out_path("discover_vertical_shells-perimeters-before-union-%d.svg", debug_idx), get_extents(shell));
@@ -2707,7 +2743,15 @@ void PrintObject::discover_vertical_shells()
 			layerm->export_region_fill_surfaces_to_svg_debug("3_discover_vertical_shells-final");
 		}
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
-    } // for each region
+    }; // for each region
+    if (top_bottom_surfaces_all_regions)
+        // Nothing is shared between the regions, and a layer cut through a fine relief takes far longer than the others,
+        // so they run next to each other instead of one after another.
+        tbb::parallel_for(size_t(0), this->num_printing_regions(), process_region);
+    else
+        // Here every region fills the one top/bottom cache with its own surfaces first.
+        for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
+            process_region(region_id);
 } // void PrintObject::discover_vertical_shells()
 
 // #define DEBUG_BRIDGE_OVER_INFILL
