@@ -476,6 +476,17 @@ public:
 
     void reset_window_layout();
 
+    // Dock panes sit alongside the sidebar; `window` must be a child of the Plater. `dock` is
+    // "left", "right", "bottom" or "float", and `size` is in DIPs. A pane closed from its own close
+    // button is destroyed after on_close runs; remove_dock_pane() destroys it without calling on_close.
+    void add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
+                       const wxSize& size, std::function<void()> on_close);
+    void remove_dock_pane(wxWindow* window);
+    void show_dock_pane(wxWindow* window, bool show);
+    // Removes every dock pane without calling on_close, for MainFrame::shutdown() (app exit and a
+    // language switch), while the Plater and any floating frames still exist.
+    void remove_dock_panes();
+
     // Called after the Preferences dialog is closed and the program settings are saved.
     // Update the UI based on the current preferences.
     void update_ui_from_settings();

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 15:50+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -5901,11 +5901,14 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr "ขวา"
 
-msgid "Add"
-msgstr "เพิ่ม"
-
 msgid "Add plate"
 msgstr "เพิ่มจาน"
+
+msgid "Split to objects"
+msgstr "แยกเป็นวัตถุ"
+
+msgid "Add"
+msgstr "เพิ่ม"
 
 msgid "Auto orient all/selected objects"
 msgstr "ปรับทิศทางวัตถุทั้งหมด/ที่เลือกโดยอัตโนมัติ"
@@ -5918,9 +5921,6 @@ msgstr "จัดเรียงวัตถุทั้งหมด"
 
 msgid "Arrange objects on selected plates"
 msgstr "จัดเรียงวัตถุบนจานที่เลือก"
-
-msgid "Split to objects"
-msgstr "แยกเป็นวัตถุ"
 
 msgid "Assembly View"
 msgstr "มุมมองการประกอบ"
@@ -5977,6 +5977,9 @@ msgstr "เส้นขอบ"
 # AI Translated
 msgid "Wireframe"
 msgstr "โครงลวด"
+
+msgid "X-Ray"
+msgstr ""
 
 msgid "Realistic View"
 msgstr "มุมมองสมจริง"
@@ -6517,9 +6520,6 @@ msgstr "แสดงเค้าร่างรอบๆ วัตถุที�
 msgid "Preferences"
 msgstr "การตั้งค่า"
 
-msgid "Open speed dial..."
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6527,6 +6527,9 @@ msgstr "แก้ไข"
 
 msgid "View"
 msgstr "มุมมอง"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "ชุดที่ตั้งไว้ล่วงหน้า"
@@ -8318,9 +8321,6 @@ msgstr "ขยายแถบด้านข้าง"
 msgid "Collapse sidebar"
 msgstr "ยุบแถบด้านข้าง"
 
-msgid "Tab"
-msgstr "แท็บ"
-
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "กำลังโหลดไฟล์: %s"
@@ -9338,10 +9338,10 @@ msgstr "การจัดการอุปกรณ์หลายเครื
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "เมื่อเปิดใช้งานตัวเลือกนี้ คุณสามารถส่งงานไปยังอุปกรณ์หลายเครื่องพร้อมกันและจัดการอุปกรณ์หลายเครื่องได้"
 
-msgid "Open the Speed Dial with the Space key"
+msgid "Open the Speed Dial from the keyboard"
 msgstr ""
 
-msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
 msgstr ""
 
 msgid "Recent actions"
@@ -9473,6 +9473,15 @@ msgstr "ลากเมาส์ขวา"
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "ตั้งค่าการดำเนินการที่ควรดำเนินการด้วยการลากปุ่มเมาส์ขวา"
 
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
+
 msgid "Clear my choice on..."
 msgstr "ล้างตัวเลือกของฉันใน..."
 
@@ -9583,11 +9592,39 @@ msgstr ""
 "จำกัดอัตราเฟรมวิวพอร์ตเพื่อลดภาระของ GPU และการใช้พลังงาน\n"
 "ตั้งค่าเป็น 0 สำหรับอัตราเฟรมไม่จำกัด"
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 msgid "Show FPS overlay"
 msgstr "แสดงการซ้อนทับ FPS"
 
-msgid "Displays current viewport FPS in the top-right corner."
-msgstr "แสดงวิวพอร์ต FPS ปัจจุบันที่มุมขวาบน"
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
+msgstr ""
 
 # AI Translated
 msgid "G-code Preview"
@@ -10047,13 +10084,8 @@ msgstr "เผยแพร่ 3MF..."
 msgid "Select which settings to be published in the 3MF file"
 msgstr "เลือกว่าจะเผยแพร่การตั้งค่าใดในไฟล์ 3MF"
 
-# AI Translated
-msgid "Publish 3MF Wiki"
-msgstr "วิกิการเผยแพร่ 3MF"
-
-# AI Translated
-msgid "Publish 3MF Video Guide"
-msgstr "คู่มือวีดีโอการเผยแพร่ 3MF"
+msgid "Video Guide"
+msgstr ""
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10254,6 +10286,13 @@ msgstr ""
 
 msgid "No wiki page for this action"
 msgstr ""
+
+msgid "Show details"
+msgstr "แสดงรายละเอียด"
+
+# AI Translated
+msgid "Hide details"
+msgstr "ซ่อนรายละเอียด"
 
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
@@ -12087,67 +12126,39 @@ msgstr "แพ็คเกจการกำหนดค่ามีการเ
 msgid "Configuration package changed"
 msgstr "แพ็คเกจการกำหนดค่ามีการเปลี่ยนแปลง"
 
-msgid "Toolbar"
-msgstr "แถบเครื่องมือ"
-
-msgid "Objects list"
-msgstr "รายการวัตถุ"
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "นำเข้าข้อมูลเรขาคณิตจากไฟล์ STL/STEP/3MF/OBJ/AMF"
-
-msgid "Paste from clipboard"
-msgstr "วางจากคลิปบอร์ด"
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "แสดง/ซ่อนกล่องโต้ตอบการตั้งค่าอุปกรณ์ 3Dconnexion"
-
-msgid "Switch table page"
-msgstr "สลับหน้าตาราง"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Space"
-
-msgid "Open speed dial"
-msgstr ""
-
-msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
-msgstr ""
-
-msgid "Show keyboard shortcuts list"
-msgstr "แสดงรายการแป้นพิมพ์ลัด"
-
-msgid "Global shortcuts"
-msgstr "ทางลัดทั่วโลก"
-
 msgid "Pan View"
 msgstr "แพนวิว"
 
 msgid "Rotate View"
 msgstr "หมุนมุมมอง"
 
-msgid "Middle mouse button"
-msgstr "ปุ่มกลางของเมาส์"
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
+msgstr ""
 
-msgid "Zoom View"
-msgstr "ซูมดู"
+msgctxt "Keyboard Shortcut"
+msgid "Key"
+msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-msgstr "ปรับทิศทางวัตถุที่เลือกหรือวัตถุทั้งหมดโดยอัตโนมัติ หากมีวัตถุที่เลือกไว้ วัตถุนั้นจะปรับทิศทางวัตถุที่เลือกเท่านั้น มิฉะนั้นจะวางแนววัตถุทั้งหมดในโปรเจ็กต์ปัจจุบัน"
+msgid "Left mouse"
+msgstr ""
 
-msgid "Auto orients all objects on the active plate."
-msgstr "ปรับทิศทางวัตถุทั้งหมดบนเพลตที่ใช้งานอยู่โดยอัตโนมัติ"
+msgid "Available anywhere in the window, even while typing in a text field."
+msgstr ""
 
-msgid "Collapse/Expand the sidebar"
-msgstr "ยุบ/ขยายแถบด้านข้าง"
+msgid "Run a speed dial favorite while the dial is open"
+msgstr ""
 
-msgid "Any arrow"
-msgstr "ลูกศรอะไรก็ได้"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
 
-msgid "Movement in camera space"
-msgstr "การเคลื่อนไหวในพื้นที่กล้อง"
+msgid "Switch to the next main tab"
+msgstr ""
+
+msgid "Available while the 3D view on the Prepare tab has focus."
+msgstr ""
 
 msgid "Select a part"
 msgstr "เลือกส่วนหนึ่ง"
@@ -12158,126 +12169,29 @@ msgstr "เลือกหลายวัตถุ"
 msgid "Select objects by rectangle"
 msgstr "เลือกวัตถุตามสี่เหลี่ยม"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr "ลูกศรขึ้น"
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr "เลื่อนส่วนที่เลือกไป 10 มม. ในทิศทางบวก Y"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr "ลูกศรลง"
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr "ย้ายส่วนที่เลือกไป 10 มม. ในทิศทางลบ Y"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr "ลูกศรซ้าย"
-
-msgid "Move selection 10mm in negative X direction"
-msgstr "ย้ายส่วนที่เลือกไป 10 มม. ในทิศทาง X ลบ"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr "ลูกศรขวา"
-
-msgid "Move selection 10mm in positive X direction"
-msgstr "เลื่อนส่วนที่เลือกไป 10 มม. ในทิศทาง X บวก"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "แป้นพิมพ์ 1-9: ตั้งค่าเส้นพลาสติกสำหรับวัตถุ/ชิ้นส่วน"
 
 msgid "Movement step set to 1mm"
 msgstr "ตั้งระยะขยับเป็น 1 มม."
 
-msgid "Keyboard 1-9: set filament for object/part"
-msgstr "แป้นพิมพ์ 1-9: ตั้งค่าเส้นพลาสติกสำหรับวัตถุ/ชิ้นส่วน"
+msgid "Movement in camera space"
+msgstr "การเคลื่อนไหวในพื้นที่กล้อง"
 
-msgid "Camera view - Default"
-msgstr "มุมมองกล้อง - ค่าเริ่มต้น"
+msgid "Middle mouse"
+msgstr ""
 
-msgid "Camera view - Top"
-msgstr "มุมมองกล้อง - ด้านบน"
+msgid "Right mouse"
+msgstr ""
 
-msgid "Camera view - Bottom"
-msgstr "มุมมองกล้อง - ด้านล่าง"
+msgid "Zoom View"
+msgstr "ซูมดู"
 
-msgid "Camera view - Front"
-msgstr "มุมมองกล้อง - ด้านหน้า"
+msgid "Painting"
+msgstr ""
 
-msgid "Camera view - Behind"
-msgstr "มุมมองกล้อง - ด้านหลัง"
-
-msgid "Camera Angle - Left side"
-msgstr "มุมกล้อง - ด้านซ้าย"
-
-msgid "Camera Angle - Right side"
-msgstr "มุมกล้อง - ด้านขวา"
-
-msgid "Select all objects"
-msgstr "เลือกวัตถุทั้งหมด"
-
-msgid "Gizmo move"
-msgstr "กิสโม่ย้าย"
-
-msgid "Gizmo rotate"
-msgstr "กิสโม่หมุน"
-
-msgid "Gizmo scale"
-msgstr "ขนาดกิสโม่"
-
-msgid "Gizmo place face on bed"
-msgstr "กิสโมวางหน้าบนฐานพิมพ์"
-
-msgid "Gizmo cut"
-msgstr "กิสโม่ตัด"
-
-msgid "Gizmo mesh boolean"
-msgstr "Gizmo mesh บูลีน"
-
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Gizmo FDM เพ้นท์ผิวฟัซซี"
-
-msgid "Gizmo SLA support points"
-msgstr "จุดส่วนรองรับ Gizmo SLA"
-
-msgid "Gizmo FDM paint-on seam"
-msgstr "รอยตะเข็บทาสี Gizmo FDM"
-
-msgid "Gizmo text emboss/engrave"
-msgstr "ข้อความ Gizmo นูน/แกะสลัก"
-
-msgid "Gizmo measure"
-msgstr "เครื่องวัดกิสโม่"
-
-msgid "Gizmo assemble"
-msgstr "กิสโมประกอบ"
-
-msgid "Gizmo brim ears"
-msgstr "Gizmo หูขอบยึดชิ้นงาน (Brim Ears)"
-
-msgid "Zoom in"
-msgstr "ซูมเข้า"
-
-msgid "Zoom out"
-msgstr "ซูมออก"
-
-msgid "Toggle printable for object/part"
-msgstr "สลับการพิมพ์สำหรับวัตถุ/ชิ้นส่วน"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr "Tab"
-
-msgid "Switch between Prepare/Preview"
-msgstr "สลับระหว่างการเตรียม/ดูตัวอย่าง"
-
-msgid "Plater"
-msgstr "เพลเตอร์"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "ย้าย: กดเพื่อสแน็ป 1 มม"
@@ -12288,14 +12202,19 @@ msgstr "ส่วนรองรับ / การวาดภาพสี: ป�
 msgid "Support/Color Painting: adjust section position"
 msgstr "ส่วนรองรับ / การวาดภาพสี: ปรับตำแหน่งส่วน"
 
-msgid "Gizmo"
-msgstr "กิสโม่"
+msgid "Objects list"
+msgstr "รายการวัตถุ"
+
+msgid "Available while the object list has focus."
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "กำหนดหมายเลขชุดดันเส้นสำหรับวัตถุและชิ้นส่วน"
 
-msgid "Delete objects, parts, modifiers"
-msgstr "ลบวัตถุ ชิ้นส่วน ตัวดัดแปลง"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Space"
 
 msgid "Select the object/part and press space to change the name"
 msgstr "เลือกวัตถุ/ชิ้นส่วนแล้วกด Space เพื่อเปลี่ยนชื่อ"
@@ -12306,45 +12225,48 @@ msgstr "คลิกเมาส์"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "เลือกวัตถุ/ชิ้นส่วนแล้วคลิกเมาส์เพื่อเปลี่ยนชื่อ"
 
-msgid "Objects List"
-msgstr "รายการวัตถุ"
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr "แถบเลื่อนแนวตั้ง - เลื่อนนิ้วโป้งที่ใช้งานอยู่ขึ้น"
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr "แถบเลื่อนแนวตั้ง - เลื่อนนิ้วโป้งที่ใช้งานอยู่ลง"
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr "แถบเลื่อนแนวนอน - เลื่อนนิ้วหัวแม่มือที่ใช้งานไปทางซ้าย"
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr "แถบเลื่อนแนวนอน - เลื่อนนิ้วหัวแม่มือที่ใช้งานไปทางขวา"
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr "เปิด/ปิดโหมดเลเยอร์เดียวของแถบเลื่อนแนวตั้ง"
-
-msgid "On/Off G-code window"
-msgstr "เปิด/ปิดหน้าต่างรหัส G"
+msgid "Available while the 3D view on the Preview tab has focus."
+msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr "เลื่อนตัวเลื่อนเร็วขึ้น 5 เท่า"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Home"
-msgstr "Home"
+msgid "Scroll slider 5x faster"
+msgstr ""
 
-msgid "Horizontal slider - Move to start position"
-msgstr "แถบเลื่อนแนวนอน - เลื่อนไปยังตำแหน่งเริ่มต้น"
+msgid "Not customizable"
+msgstr ""
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "End"
-msgstr "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
+msgstr ""
 
-msgid "Horizontal slider - Move to last position"
-msgstr "แถบเลื่อนแนวนอน - เลื่อนไปยังตำแหน่งสุดท้าย"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
+msgstr ""
 
 msgid "Release Note"
 msgstr "บันทึกประจำรุ่น"
@@ -17213,8 +17135,8 @@ msgstr "อุ่นเครื่องตามขั้นตอน"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "ใส่คำสั่งอุ่นล่วงหน้าหลายคำสั่ง (เช่น M104.1) มีประโยชน์สำหรับ Prusa XL เท่านั้น สำหรับเครื่องพิมพ์อื่นๆ โปรดตั้งค่าเป็น 1"
 
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "G-code เขียนไว้ที่ด้านบนสุดของไฟล์เอาต์พุต ก่อนเนื้อหาอื่นๆ มีประโยชน์สำหรับการเพิ่มข้อมูลเมตาที่เฟิร์มแวร์เครื่องพิมพ์อ่านจากบรรทัดแรกของไฟล์ (เช่น เวลาในการพิมพ์โดยประมาณ การใช้เส้นพลาสติก) รองรับตัวยึดตำแหน่ง เช่น {print_time_sec} และ {used_filament_length}"
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "เริ่ม G-code"
@@ -18753,11 +18675,35 @@ msgstr "เส้นพลาสติกที่ใช้แล้ว"
 msgid "Total length of filament used in the print."
 msgstr "ความยาวรวมของเส้นพลาสติกที่ใช้ในการพิมพ์"
 
-msgid "Print time (seconds)"
-msgstr "เวลาในการพิมพ์ (วินาที)"
+msgid "Print time (total seconds)"
+msgstr ""
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "เวลาพิมพ์ทั้งหมดโดยประมาณเป็นวินาที แทนที่ด้วยค่าจริงระหว่างการประมวลผลภายหลัง"
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
 
 msgid "Filament length (meters)"
 msgstr "ความยาวเส้นพลาสติก (เมตร)"
@@ -20592,6 +20538,9 @@ msgstr "ไม่พบเซสชันที่ถูกต้อง ดำ�
 msgid "Success!"
 msgstr "สำเร็จ!"
 
+msgid "Generate API Key"
+msgstr ""
+
 msgid "Are you sure to log out?"
 msgstr "คุณแน่ใจหรือว่าจะออกจากระบบ?"
 
@@ -21590,13 +21539,6 @@ msgstr "ปลั๊กอินเครือข่าย Bambu จำเป�
 #, c-format, boost-format
 msgid "Error: %s"
 msgstr "ข้อผิดพลาด: %s"
-
-msgid "Show details"
-msgstr "แสดงรายละเอียด"
-
-# AI Translated
-msgid "Hide details"
-msgstr "ซ่อนรายละเอียด"
 
 msgid "Version to install:"
 msgstr "เวอร์ชันที่จะติดตั้ง:"
@@ -24228,6 +24170,12 @@ msgstr ""
 msgid "No binding for that field"
 msgstr ""
 
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
 msgid "Primitive"
 msgstr ""
 
@@ -24238,6 +24186,216 @@ msgid "Pocket (Cut)"
 msgstr ""
 
 msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "End"
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr "ลูกศรซ้าย"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr "ลูกศรขวา"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr "ลูกศรขึ้น"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr "ลูกศรลง"
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr "นำเข้าข้อมูลเรขาคณิตจากไฟล์ STL/STEP/3MF/OBJ/AMF"
+
+msgid "Select all objects"
+msgstr "เลือกวัตถุทั้งหมด"
+
+msgid "Paste from clipboard"
+msgstr "วางจากคลิปบอร์ด"
+
+msgid "Toggle printable for object/part"
+msgstr "สลับการพิมพ์สำหรับวัตถุ/ชิ้นส่วน"
+
+msgid "Move selection 10mm in negative X direction"
+msgstr "ย้ายส่วนที่เลือกไป 10 มม. ในทิศทาง X ลบ"
+
+msgid "Move selection 10mm in positive X direction"
+msgstr "เลื่อนส่วนที่เลือกไป 10 มม. ในทิศทาง X บวก"
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr "เลื่อนส่วนที่เลือกไป 10 มม. ในทิศทางบวก Y"
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr "ย้ายส่วนที่เลือกไป 10 มม. ในทิศทางลบ Y"
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr "กิสโม่ย้าย"
+
+msgid "Gizmo rotate"
+msgstr "กิสโม่หมุน"
+
+msgid "Gizmo scale"
+msgstr "ขนาดกิสโม่"
+
+msgid "Gizmo place face on bed"
+msgstr "กิสโมวางหน้าบนฐานพิมพ์"
+
+msgid "Gizmo cut"
+msgstr "กิสโม่ตัด"
+
+msgid "Gizmo mesh boolean"
+msgstr "Gizmo mesh บูลีน"
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "รอยตะเข็บทาสี Gizmo FDM"
+
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr "Gizmo FDM เพ้นท์ผิวฟัซซี"
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr "ข้อความ Gizmo นูน/แกะสลัก"
+
+msgid "Gizmo measure"
+msgstr "เครื่องวัดกิสโม่"
+
+msgid "Gizmo assemble"
+msgstr "กิสโมประกอบ"
+
+msgid "Gizmo brim ears"
+msgstr "Gizmo หูขอบยึดชิ้นงาน (Brim Ears)"
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr "แถบเลื่อนแนวตั้ง - เลื่อนนิ้วโป้งที่ใช้งานอยู่ขึ้น"
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr "แถบเลื่อนแนวตั้ง - เลื่อนนิ้วโป้งที่ใช้งานอยู่ลง"
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr "แถบเลื่อนแนวนอน - เลื่อนนิ้วหัวแม่มือที่ใช้งานไปทางซ้าย"
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr "แถบเลื่อนแนวนอน - เลื่อนนิ้วหัวแม่มือที่ใช้งานไปทางขวา"
+
+msgid "Horizontal slider - Move to start position"
+msgstr "แถบเลื่อนแนวนอน - เลื่อนไปยังตำแหน่งเริ่มต้น"
+
+msgid "Horizontal slider - Move to last position"
+msgstr "แถบเลื่อนแนวนอน - เลื่อนไปยังตำแหน่งสุดท้าย"
+
+msgid "Camera view - Default"
+msgstr "มุมมองกล้อง - ค่าเริ่มต้น"
+
+msgid "Camera view - Top"
+msgstr "มุมมองกล้อง - ด้านบน"
+
+msgid "Camera view - Bottom"
+msgstr "มุมมองกล้อง - ด้านล่าง"
+
+msgid "Camera view - Front"
+msgstr "มุมมองกล้อง - ด้านหน้า"
+
+msgid "Camera view - Behind"
+msgstr "มุมมองกล้อง - ด้านหลัง"
+
+msgid "Camera Angle - Left side"
+msgstr "มุมกล้อง - ด้านซ้าย"
+
+msgid "Camera Angle - Right side"
+msgstr "มุมกล้อง - ด้านขวา"
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr "ซูมเข้า"
+
+msgid "Zoom out"
+msgstr "ซูมออก"
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "แสดง/ซ่อนกล่องโต้ตอบการตั้งค่าอุปกรณ์ 3Dconnexion"
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr "เปิด/ปิดหน้าต่างรหัส G"
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr "เปิด/ปิดโหมดเลเยอร์เดียวของแถบเลื่อนแนวตั้ง"
+
+msgid "Switch between Prepare/Preview"
+msgstr "สลับระหว่างการเตรียม/ดูตัวอย่าง"
+
+msgid "Collapse/Expand the sidebar"
+msgstr "ยุบ/ขยายแถบด้านข้าง"
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr "แสดงรายการแป้นพิมพ์ลัด"
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -24539,6 +24697,62 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Tab"
+#~ msgstr "แท็บ"
+
+#~ msgid "Displays current viewport FPS in the top-right corner."
+#~ msgstr "แสดงวิวพอร์ต FPS ปัจจุบันที่มุมขวาบน"
+
+# AI Translated
+#~ msgid "Publish 3MF Wiki"
+#~ msgstr "วิกิการเผยแพร่ 3MF"
+
+# AI Translated
+#~ msgid "Publish 3MF Video Guide"
+#~ msgstr "คู่มือวีดีโอการเผยแพร่ 3MF"
+
+#~ msgid "Toolbar"
+#~ msgstr "แถบเครื่องมือ"
+
+#~ msgid "Switch table page"
+#~ msgstr "สลับหน้าตาราง"
+
+#~ msgid "Global shortcuts"
+#~ msgstr "ทางลัดทั่วโลก"
+
+#~ msgid "Middle mouse button"
+#~ msgstr "ปุ่มกลางของเมาส์"
+
+#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+#~ msgstr "ปรับทิศทางวัตถุที่เลือกหรือวัตถุทั้งหมดโดยอัตโนมัติ หากมีวัตถุที่เลือกไว้ วัตถุนั้นจะปรับทิศทางวัตถุที่เลือกเท่านั้น มิฉะนั้นจะวางแนววัตถุทั้งหมดในโปรเจ็กต์ปัจจุบัน"
+
+#~ msgid "Auto orients all objects on the active plate."
+#~ msgstr "ปรับทิศทางวัตถุทั้งหมดบนเพลตที่ใช้งานอยู่โดยอัตโนมัติ"
+
+#~ msgid "Any arrow"
+#~ msgstr "ลูกศรอะไรก็ได้"
+
+#~ msgid "Gizmo SLA support points"
+#~ msgstr "จุดส่วนรองรับ Gizmo SLA"
+
+#~ msgid "Plater"
+#~ msgstr "เพลเตอร์"
+
+#~ msgid "Gizmo"
+#~ msgstr "กิสโม่"
+
+#~ msgid "Delete objects, parts, modifiers"
+#~ msgstr "ลบวัตถุ ชิ้นส่วน ตัวดัดแปลง"
+
+#~ msgid "Objects List"
+#~ msgstr "รายการวัตถุ"
+
+#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+#~ msgstr "G-code เขียนไว้ที่ด้านบนสุดของไฟล์เอาต์พุต ก่อนเนื้อหาอื่นๆ มีประโยชน์สำหรับการเพิ่มข้อมูลเมตาที่เฟิร์มแวร์เครื่องพิมพ์อ่านจากบรรทัดแรกของไฟล์ (เช่น เวลาในการพิมพ์โดยประมาณ การใช้เส้นพลาสติก) รองรับตัวยึดตำแหน่ง เช่น {print_time_sec} และ {used_filament_length}"
+
+#~ msgid "Print time (seconds)"
+#~ msgstr "เวลาในการพิมพ์ (วินาที)"
 
 # AI Translated
 #~ msgid "Open actions speed dial"

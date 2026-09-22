@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.09",
+	"version": "02.04.00.10",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -155,6 +155,10 @@
 		{
 			"name": "PolyLite ABS @base",
 			"sub_path": "filament/Polymaker/PolyLite ABS @base.json"
+		},
+		{
+			"name": "Printalot ABS @base",
+			"sub_path": "filament/Printalot/Printalot ABS @base.json"
 		},
 		{
 			"name": "Bambu ASA @base",
@@ -765,6 +769,10 @@
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @base.json"
 		},
 		{
+			"name": "PlastAR PLA @base",
+			"sub_path": "filament/Printalot/PlastAR PLA @base.json"
+		},
+		{
 			"name": "PolyLite PLA @base",
 			"sub_path": "filament/Polymaker/PolyLite PLA @base.json"
 		},
@@ -783,6 +791,10 @@
 		{
 			"name": "Polymaker HT-PLA-GF @base",
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @base.json"
+		},
+		{
+			"name": "Polymaker PLA Pro @base",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @base.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @base",
@@ -1015,6 +1027,10 @@
 		{
 			"name": "PolyLite ABS @System",
 			"sub_path": "filament/Polymaker/PolyLite ABS @System.json"
+		},
+		{
+			"name": "Printalot ABS @System",
+			"sub_path": "filament/Printalot/Printalot ABS @System.json"
 		},
 		{
 			"name": "Bambu ASA @System",
@@ -1901,6 +1917,10 @@
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @System.json"
 		},
 		{
+			"name": "PlastAR PLA @System",
+			"sub_path": "filament/Printalot/PlastAR PLA @System.json"
+		},
+		{
 			"name": "PolyLite Dual PLA @base",
 			"sub_path": "filament/Polymaker/PolyLite Dual PLA @base.json"
 		},
@@ -1927,6 +1947,10 @@
 		{
 			"name": "Polymaker HT-PLA-GF @System",
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @System.json"
+		},
+		{
+			"name": "Polymaker PLA Pro @System",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @System.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @System",
