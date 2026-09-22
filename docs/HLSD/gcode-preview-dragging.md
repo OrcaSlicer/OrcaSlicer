@@ -9,8 +9,8 @@ let go.
 
 | Preference | Values | Effect |
 |---|---|---|
-| `preview_reduced_detail_mode` | `off`, `solid`, `layers`, `outer_walls` | what is drawn while dragging |
-| `preview_reduced_detail_layer_stride` | 1–20 | one layer in every N is kept by the toolpath modes |
+| `preview_reduced_detail_mode` | `off`, `solid`, `layers`, `outer_walls`, `shell` | what is drawn while dragging |
+| `preview_reduced_detail_layer_stride` | 1–20 | one layer in every N is kept by the skip-layers and outer-walls modes |
 
 libvgcode (`src/libvgcode`) builds and binds the reduced toolpath set, `GCodeViewer` maps the
 preferences onto it and draws the solid model, and `GLCanvas3D` decides when the user is dragging.
@@ -35,6 +35,13 @@ are the faces the range cuts open, and the top is what the user is looking at.
 - `LayersOnly` (`layers`) keeps every role of one layer in every stride.
 - `OuterWallsOnly` (`outer_walls`) keeps the outer and overhang perimeters of one layer in every
   stride. The prime tower and supports have other roles and are left out.
+- `ShellOnly` (`shell`) keeps every layer, and every role but the sparse infill, internal solid
+  infill, internal bridge infill and gap fill, which lie under the skins or between the walls.
+  Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so from
+  outside the print looks as it does at rest, and the stride does not apply. The roles come from
+  the slicer, so the classification is exact wherever the slicer's is; what it cannot express is
+  the inside of the prime tower and of a support, which share one role with their outside and are
+  kept whole. A profile with no top or bottom shell layers exposes infill, which this mode hides.
 
 ## The solid model
 
