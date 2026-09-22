@@ -322,7 +322,7 @@ wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString too
     return sizer;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, const wxString wiki_url)
+wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, std::function<void(std::string)> onchange, const wxString wiki_url)
 {
     assert(vlist.size() == config_name_index.size());
     unsigned int current_index = 0;
@@ -338,8 +338,9 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
 
     //// save config
-    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index](wxCommandEvent& e) {
+    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index, onchange](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
+        if (onchange != nullptr) onchange(config_name_index[e.GetSelection()]);
         e.Skip();
     });
 
@@ -684,6 +685,12 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     return m_sizer;
 }
 
+// the reduced-detail modes that keep one layer in every N, so the stride applies
+static bool reduced_detail_mode_skips_layers(const std::string& mode)
+{
+    return mode == "layers" || mode == "outer_walls";
+}
+
 wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange, const wxString wiki_url)
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
@@ -697,6 +704,11 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
     if (param == "preview_dim_previous_layers_brightness") {
         m_dim_previous_layers_brightness_input = input;
         input->Enable(app_config->get_bool("preview_dim_previous_layers"));
+    }
+    // only the toolpath modes skip layers
+    else if (param == "preview_reduced_detail_layer_stride") {
+        m_reduced_detail_layer_stride_input = input;
+        input->Enable(reduced_detail_mode_skips_layers(app_config->get("preview_reduced_detail_mode")));
     }
 
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
@@ -1055,16 +1067,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (Plater* plater = wxGetApp().plater()) {
                 if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
                     canvas->get_gcode_viewer().set_dim_previous_layers(app_config->get_bool(param));
-                    canvas->set_as_dirty();
-                    canvas->request_extra_frame();
-                }
-            }
-        }
-        // apply the solid model preference immediately to the currently loaded preview
-        else if (param == "preview_solid_model_while_dragging") {
-            if (Plater* plater = wxGetApp().plater()) {
-                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
-                    canvas->get_gcode_viewer().set_solid_model_while_dragging(app_config->get_bool(param));
                     canvas->set_as_dirty();
                     canvas->request_extra_frame();
                 }
@@ -2055,14 +2057,54 @@ void PreferencesDialog::create_items()
         "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
     g_sizer->Add(item_preview_view_type);
 
-    auto item_solid_model_while_dragging = create_item_checkbox(
-        _L("Only render solid model when dragging"),
-        _L("While dragging the camera or a preview slider, or zooming with the mouse wheel, draw the sliced objects and the prime tower as solid shapes "
-           "in their filament colors instead of toolpaths, so that large prints stay responsive. They are cut to the visible layer range, with its bottom "
-           "and top layers drawn as toolpaths. Supports are not shown, and negative volumes are not cut out. The toolpaths are restored as soon as you let go."),
-        "preview_solid_model_while_dragging"
+    auto item_reduced_detail_mode = create_item_combobox(
+        _L("Simplify preview while dragging"),
+        _L("What the sliced preview draws while you drag the camera or a preview slider, or zoom with the mouse wheel, so that large prints stay responsive. "
+           "The full toolpaths are restored as soon as you let go.\n"
+           "Off: the full toolpaths.\n"
+           "Solid model: the sliced objects and the prime tower as solid shapes in their filament colors, cut to the visible layer range, "
+           "with its bottom and top layers drawn as toolpaths. Supports are not shown, and negative volumes are not cut out.\n"
+           "Skip layers: the toolpaths of one layer in every N, set below.\n"
+           "Outer walls: only the outer walls of one layer in every N. The prime tower and supports are left out.\n"
+           "The bottom and top of the visible layer range are always drawn whole."),
+        "preview_reduced_detail_mode",
+        {_L("Off"), _L("Solid model"), _L("Skip layers"), _L("Outer walls")},
+        {"off", "solid", "layers", "outer_walls"},
+        // apply the new mode immediately to the currently loaded preview
+        [this](std::string value) {
+            if (m_reduced_detail_layer_stride_input)
+                m_reduced_detail_layer_stride_input->Enable(reduced_detail_mode_skips_layers(value));
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_reduced_detail_mode(value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
     );
-    g_sizer->Add(item_solid_model_while_dragging);
+    g_sizer->Add(item_reduced_detail_mode);
+
+    auto item_reduced_detail_layer_stride = create_item_spinctrl(
+        _L("Draw one layer in every"),
+        "",
+        _L("layers"),
+        _L("How many layers the simplified preview keeps one of while dragging: 1 draws every layer, 4 draws every fourth."),
+        "preview_reduced_detail_layer_stride",
+        1,
+        20,
+        // apply the new stride immediately to the currently loaded preview
+        [](int value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_reduced_detail_layer_stride(static_cast<unsigned int>(value));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_reduced_detail_layer_stride);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),

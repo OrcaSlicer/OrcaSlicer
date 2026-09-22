@@ -1267,7 +1267,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
 
-    read_solid_model_preference();
+    read_reduced_detail_preferences();
 
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
@@ -1699,9 +1699,9 @@ void GCodeViewer::reset()
 void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
-    // while dragging with the solid model on, the objects stand in for their toolpaths, cut to the
+    // while dragging in the solid model mode, the objects stand in for their toolpaths, cut to the
     // visible layer range; the toolpath set then holds only the range's bottom and top layers
-    if (m_viewer.is_reduced_detail())
+    if (m_viewer.is_reduced_detail() && solid_model_enabled())
         render_solid_model(canvas_width, canvas_height);
     else
         render_shells(canvas_width, canvas_height);
@@ -2030,26 +2030,51 @@ void GCodeViewer::update_layers_slider_mode()
 void GCodeViewer::set_interacting(bool interacting)
 {
     // with no shells to stand in for the toolpaths, the solid model would leave only the end layers
-    m_viewer.set_reduced_detail(m_solid_model_while_dragging && interacting && !m_shells.volumes.empty());
+    const bool usable = !solid_model_enabled() || !m_shells.volumes.empty();
+    m_viewer.set_reduced_detail(interacting && usable);
 }
 
-void GCodeViewer::set_solid_model_while_dragging(bool value)
+void GCodeViewer::read_reduced_detail_preferences()
 {
-    const bool was_enabled = m_solid_model_while_dragging;
-    m_solid_model_while_dragging = value;
-    m_viewer.set_reduced_detail_enabled(value);
-    reload_shells_if_solid_model_changed(was_enabled);
+    m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
+    m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
+    apply_reduced_detail_settings();
 }
 
-void GCodeViewer::read_solid_model_preference()
+void GCodeViewer::apply_reduced_detail_settings()
 {
-    m_solid_model_while_dragging = get_app_config()->get_bool("preview_solid_model_while_dragging");
-    m_viewer.set_reduced_detail_enabled(m_solid_model_while_dragging);
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
+    m_viewer.set_reduced_detail_layer_stride(m_reduced_detail_layer_stride);
+}
+
+void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
+{
+    const bool was_solid = solid_model_enabled();
+    m_reduced_detail_mode = reduced_detail_mode_from_string(mode);
+    apply_reduced_detail_settings();
+    reload_shells_if_solid_model_changed(was_solid);
+}
+
+void GCodeViewer::set_reduced_detail_layer_stride(unsigned int value)
+{
+    m_reduced_detail_layer_stride = std::max(1u, value);
+    apply_reduced_detail_settings();
+}
+
+libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
+{
+    if (mode == "solid")
+        return libvgcode::EReducedDetailMode::EndLayersOnly;
+    if (mode == "layers")
+        return libvgcode::EReducedDetailMode::LayersOnly;
+    if (mode == "outer_walls")
+        return libvgcode::EReducedDetailMode::OuterWallsOnly;
+    return libvgcode::EReducedDetailMode::Off;
 }
 
 void GCodeViewer::reload_shells_if_solid_model_changed(bool was_enabled)
 {
-    if (was_enabled == m_solid_model_while_dragging || m_shells.print_id == -1)
+    if (was_enabled == solid_model_enabled() || m_shells.print_id == -1)
         return;
     // only the prime tower comes and goes with the mode: a full reload would drop the shells
     // whenever the print has moved on since they were loaded, leaving the solid model nothing to draw
@@ -2387,7 +2412,7 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
     // the shells can load before the first G-code does, so the preferences are read here as well
-    read_solid_model_preference();
+    read_reduced_detail_preferences();
     if ((print.id().id == m_shells.print_id)&&(print.get_modified_count() == m_shells.print_modify_count)) {
         // the prime tower comes and goes on its own, without reloading the objects
         update_shell_wipe_tower(print, initialized);
@@ -2508,7 +2533,7 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
 // opaque colour, so it never appears among the translucent shells, and stays out of their bounding box.
 void GCodeViewer::update_shell_wipe_tower(const Print& print, bool initialized)
 {
-    const bool with_wipe_tower = m_solid_model_while_dragging && print.is_step_done(psWipeTower) && print.wipe_tower_data().wipe_tower_mesh_data;
+    const bool with_wipe_tower = solid_model_enabled() && print.is_step_done(psWipeTower) && print.wipe_tower_data().wipe_tower_mesh_data;
     if (with_wipe_tower == m_shells.with_wipe_tower)
         return;
     m_shells.with_wipe_tower = with_wipe_tower;

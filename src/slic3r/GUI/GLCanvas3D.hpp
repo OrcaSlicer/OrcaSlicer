@@ -649,7 +649,7 @@ private:
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
     bool m_navigator_dragging{ false };
-    // until when a wheel step keeps the preview's solid model drawn
+    // until when a wheel step keeps the preview's reduced set drawn
     std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
     // whether the frame that restores the toolpaths once that time is up is still owed
     bool m_preview_settle_pending{ false };
@@ -1221,7 +1221,7 @@ public:
     void request_extra_frame() { m_extra_frame_requested = true; }
     // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
     bool is_user_interacting() const;
-    // a wheel step is over before the next frame, so it holds the preview's solid model for a settle time
+    // a wheel step is over before the next frame, so it holds the preview's reduced set for a settle time
     void note_preview_interaction();
 
     void schedule_extra_frame(int milliseconds);
@@ -1370,7 +1370,7 @@ private:
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
     void _render_gcode_overlay(int canvas_width, int canvas_height);
-    // decides whether the preview draws its solid model this frame and returns whether what the scene
+    // decides whether the preview draws its reduced set this frame and returns whether what the scene
     // pass draws changed; runs before the cached scene is consulted
     bool _update_preview_interaction();
     //BBS: render a plane for assemble

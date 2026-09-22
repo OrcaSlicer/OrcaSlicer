@@ -102,14 +102,24 @@ bool Viewer::is_reduced_detail() const
     return m_impl->is_reduced_detail();
 }
 
-void Viewer::set_reduced_detail_enabled(bool value)
+EReducedDetailMode Viewer::get_reduced_detail_mode() const
 {
-    m_impl->set_reduced_detail_enabled(value);
+    return m_impl->get_reduced_detail_mode();
 }
 
-bool Viewer::is_reduced_detail_enabled() const
+void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
 {
-    return m_impl->is_reduced_detail_enabled();
+    m_impl->set_reduced_detail_mode(mode);
+}
+
+uint32_t Viewer::get_reduced_detail_layer_stride() const
+{
+    return m_impl->get_reduced_detail_layer_stride();
+}
+
+void Viewer::set_reduced_detail_layer_stride(uint32_t value)
+{
+    m_impl->set_reduced_detail_layer_stride(value);
 }
 
 void Viewer::set_dim_previous_layers(bool value)

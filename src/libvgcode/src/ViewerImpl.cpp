@@ -1191,6 +1191,18 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     update_colors();
 }
 
+#ifndef ENABLE_OPENGL_ES
+bool ViewerImpl::reduced_set_keeps(const PathVertex& v) const
+{
+    switch (m_settings.reduced_detail_mode) {
+    case EReducedDetailMode::OuterWallsOnly:
+        return v.role == EGCodeExtrusionRole::ExternalPerimeter || v.role == EGCodeExtrusionRole::OverhangPerimeter;
+    default:
+        return true;
+    }
+}
+#endif // ENABLE_OPENGL_ES
+
 void ViewerImpl::update_enabled_entities()
 {
     if (m_vertices.empty())
@@ -1199,9 +1211,12 @@ void ViewerImpl::update_enabled_entities()
     std::vector<uint32_t> enabled_segments;
     std::vector<uint32_t> enabled_options;
 #ifndef ENABLE_OPENGL_ES
-    // the reduced set is filled by the same walk, so switching to it costs no rebuild. It keeps the
-    // bottom and top layers of the visible range: the surfaces the range cuts open
-    const bool build_reduced = m_settings.reduced_detail_enabled;
+    // the reduced set is filled by the same walk, so switching to it costs no rebuild. Whatever the
+    // mode leaves out, the bottom and top layers of the visible range are kept whole: they are the
+    // surfaces the range cuts open
+    const EReducedDetailMode reduced_mode = m_settings.reduced_detail_mode;
+    const bool build_reduced = reduced_mode != EReducedDetailMode::Off;
+    const uint32_t layer_stride = std::max<uint32_t>(1, m_settings.reduced_detail_layer_stride);
     std::vector<uint32_t> enabled_segments_reduced;
     std::vector<uint32_t> enabled_options_reduced;
     const Interval& layers_range = m_layers.get_view_range();
@@ -1255,8 +1270,17 @@ void ViewerImpl::update_enabled_entities()
             enabled_segments.push_back(static_cast<uint32_t>(i));
 
 #ifndef ENABLE_OPENGL_ES
-        if (build_reduced && (v.layer_id == layers_range[0] || v.layer_id == layers_range[1]))
-            (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
+        if (build_reduced) {
+            const bool end_layer = v.layer_id == layers_range[0] || v.layer_id == layers_range[1];
+            if (end_layer)
+                (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
+            else if (reduced_mode != EReducedDetailMode::EndLayersOnly && (v.layer_id % layer_stride) == 0) {
+                if (v.is_option())
+                    enabled_options_reduced.push_back(static_cast<uint32_t>(i));
+                else if (!v.is_extrusion() || reduced_set_keeps(v))
+                    enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
+            }
+        }
 #endif // ENABLE_OPENGL_ES
     }
 
@@ -1510,11 +1534,21 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     update_colors_texture();
 }
 
-void ViewerImpl::set_reduced_detail_enabled(bool value)
+// Either changes which vertices land in the reduced set, so the sets are rebuilt.
+void ViewerImpl::set_reduced_detail_mode(EReducedDetailMode mode)
 {
-    if (m_settings.reduced_detail_enabled == value)
+    if (m_settings.reduced_detail_mode == mode)
         return;
-    m_settings.reduced_detail_enabled = value;
+    m_settings.reduced_detail_mode = mode;
+    m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_reduced_detail_layer_stride(uint32_t value)
+{
+    value = std::max<uint32_t>(1, value);
+    if (m_settings.reduced_detail_layer_stride == value)
+        return;
+    m_settings.reduced_detail_layer_stride = value;
     m_settings.update_enabled_entities = true;
 }
 

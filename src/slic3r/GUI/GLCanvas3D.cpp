@@ -2054,7 +2054,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     const bool overlay_tick = m_fps_overlay_tick;
     m_fps_overlay_tick = false;
 
-    // Whether the preview draws the solid model is decided before the cached scene is consulted,
+    // Whether the preview draws its reduced set is decided before the cached scene is consulted,
     // since switching changes what the scene pass draws.
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data() && _update_preview_interaction())
         scene_dirty = true;
@@ -3240,7 +3240,7 @@ void GLCanvas3D::bind_event_handlers()
                 if (m_selection_edit.kind != SelectionEdit::None)
                     finish_selection_edit();
                 ImGui::SetWindowFocus(nullptr);
-                // a drag cut short never sees its button release, which would leave the solid model drawn
+                // a drag cut short never sees its button release, which would leave the reduced set drawn
                 if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
                     mouse_up_cleanup();
                 render();
@@ -8741,9 +8741,9 @@ void GLCanvas3D::_render_wireframe_overlay()
     shader->stop_using();
 }
 
-// The solid model is drawn while the camera, the navigator or either slider is dragged. A wheel
-// step has no duration, so it holds the solid model for a settle time instead, and the frame that
-// restores the toolpaths is scheduled for when that time runs out. Returns whether what the scene
+// The reduced set is drawn while the camera, the navigator or either slider is dragged. A wheel
+// step has no duration, so it holds the reduced set for a settle time instead, and the frame that
+// restores the full toolpaths is scheduled for when that time runs out. Returns whether what the scene
 // pass draws changed, since a frame that reuses the cached scene would hide the change.
 bool GLCanvas3D::_update_preview_interaction()
 {

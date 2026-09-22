@@ -115,12 +115,15 @@ public:
     bool is_dim_previous_layers() const;
     void set_dim_previous_layers(bool value);
     //
-    // The reduced set holds only the bottom and top layers of the visible range, for a caller that
-    // draws the print itself some other way while the user drags. While enabled it is built
-    // alongside the full set, so set_reduced_detail() rebuilds nothing. Ignored on the OpenGL ES path.
+    // The reduced set drawn while the user drags: what the mode keeps, one layer in every stride
+    // for the toolpath modes, and always the bottom and top layers of the visible range. While a
+    // mode is set it is built alongside the full set, so set_reduced_detail() rebuilds nothing.
+    // Ignored on the OpenGL ES path.
     //
-    void set_reduced_detail_enabled(bool value);
-    bool is_reduced_detail_enabled() const;
+    EReducedDetailMode get_reduced_detail_mode() const;
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    uint32_t get_reduced_detail_layer_stride() const;
+    void set_reduced_detail_layer_stride(uint32_t value);
     void set_reduced_detail(bool value);
     bool is_reduced_detail() const;
     float get_dim_previous_layers_brightness() const;

@@ -236,9 +236,14 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
-    // while dragging, the sliced objects are drawn as solid shapes instead of toolpaths
-    bool m_solid_model_while_dragging{ false };
-    void read_solid_model_preference();
+    // the reduced-detail preferences, pushed to libvgcode by apply_reduced_detail_settings()
+    libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
+    unsigned int m_reduced_detail_layer_stride{ 4 };
+    void read_reduced_detail_preferences();
+    void apply_reduced_detail_settings();
+    static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
+    // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
+    bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
     void render_solid_model(int canvas_width, int canvas_height);
     // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
     void reload_shells_if_solid_model_changed(bool was_enabled);
@@ -374,10 +379,12 @@ public:
 
     // whether the mouse is holding either slider's handle
     bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }
-    // while the user drags the camera or a slider, draw the solid model, if the preference asks for it
+    // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
-    void set_solid_model_while_dragging(bool value);
+    // the preference's string value: "off", "solid", "layers" or "outer_walls"
+    void set_reduced_detail_mode(const std::string& mode);
+    void set_reduced_detail_layer_stride(unsigned int value);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
