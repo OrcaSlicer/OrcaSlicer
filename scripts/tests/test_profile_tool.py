@@ -678,6 +678,34 @@ class TestCheck(TreeCase):
             errors, out = self.names(vendor)
             self.assertEqual(errors, 0, out)
 
+    def machine_models(self):
+        """The cross-vendor machine_model name check, whole tree by design."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            errors = apt.check_machine_model_name_uniqueness(self.t.profiles)
+        return errors, buf.getvalue()
+
+    def test_two_bundles_may_not_declare_one_machine_model_name(self):
+        # The name keys the global printer-type lookup: Preset::get_printer_type
+        # matches a preset's printer_model against every vendor's model names, so a
+        # copy of another vendor's model is ambiguous, not merely duplicated.
+        for vendor in ("V", "W"):
+            self.t.write(vendor, "machine/MyKlipper.json",
+                         {"type": "machine_model", "name": "Generic Klipper Printer",
+                          "model_id": "my_klipper_01"})
+        errors, out = self.machine_models()
+        self.assertEqual(errors, 1, out)
+        self.assertIn('machine_model name "Generic Klipper Printer"', out)
+        self.assertIn("V/machine/MyKlipper.json", out)
+        self.assertIn("W/machine/MyKlipper.json", out)
+
+    def test_distinct_machine_model_names_are_left_alone(self):
+        for vendor in ("V", "W"):
+            self.t.write(vendor, "machine/model.json",
+                         {"type": "machine_model", "name": f"{vendor} Model"})
+        errors, out = self.machine_models()
+        self.assertEqual(errors, 0, out)
+
     def coverage(self, vendor="V"):
         """The index-coverage check for one bundle: (errors, gaps, output)."""
         buf = io.StringIO()
