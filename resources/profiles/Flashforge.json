@@ -1,7 +1,7 @@
 {
 	"name": "Flashforge",
 	"url": "",
-	"version": "02.04.00.06",
+	"version": "02.04.00.10",
 	"force_update": "0",
 	"description": "Flashforge configurations",
 	"machine_model_list": [
@@ -24,6 +24,10 @@
 		{
 			"name": "Flashforge Adventurer 5M Pro",
 			"sub_path": "machine/Flashforge Adventurer 5M Pro.json"
+		},
+		{
+			"name": "Flashforge Adventurer A5",
+			"sub_path": "machine/Flashforge Adventurer A5.json"
 		},
 		{
 			"name": "Flashforge Artemis",
@@ -200,6 +204,10 @@
 			"sub_path": "process/0.20mm Standard @FF AD5X.json"
 		},
 		{
+			"name": "0.20mm Standard @FF Adventurer A5 0.4 nozzle",
+			"sub_path": "process/0.20mm Standard @FF Adventurer A5 0.4 nozzle.json"
+		},
+		{
 			"name": "0.20mm Standard @FF C5",
 			"sub_path": "process/0.20mm Standard @FF C5.json"
 		},
@@ -310,6 +318,10 @@
 		{
 			"name": "0.30mm Standard @FF AD5X 0.6 nozzle",
 			"sub_path": "process/0.30mm Standard @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "0.30mm Standard @FF Adventurer A5 0.6 nozzle",
+			"sub_path": "process/0.30mm Standard @FF Adventurer A5 0.6 nozzle.json"
 		},
 		{
 			"name": "0.40mm Standard @Flashforge AD5M Pro 0.8 Nozzle",
@@ -440,24 +452,12 @@
 			"sub_path": "process/0.14mm Standard @FF AD5X 0.25 nozzle.json"
 		},
 		{
-			"name": "0.08mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.08mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
-			"name": "0.10mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.10mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
-			"name": "0.12mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.12mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
-			"name": "0.14mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.14mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
 			"name": "0.14mm Standard @Flashforge AD5M 0.25 Nozzle",
 			"sub_path": "process/0.14mm Standard @Flashforge AD5M 0.25 Nozzle.json"
+		},
+		{
+			"name": "0.12mm Fine @FF Adventurer A5 0.4 nozzle",
+			"sub_path": "process/0.12mm Fine @FF Adventurer A5 0.4 nozzle.json"
 		},
 		{
 			"name": "0.06mm Standard @Flashforge AD5M Pro 0.25 Nozzle",
@@ -480,6 +480,10 @@
 			"sub_path": "process/0.10mm Standard @Flashforge AD5M Pro 0.25 Nozzle.json"
 		},
 		{
+			"name": "0.12mm Standard @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "process/0.12mm Standard @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
 			"name": "0.12mm Standard @FF G4 0.25 nozzle",
 			"sub_path": "process/0.12mm Standard @FF G4 0.25 nozzle.json"
 		},
@@ -500,6 +504,10 @@
 			"sub_path": "process/0.14mm Standard @Flashforge AD5M Pro 0.25 Nozzle.json"
 		},
 		{
+			"name": "0.24mm Draft @FF Adventurer A5 0.4 nozzle",
+			"sub_path": "process/0.24mm Draft @FF Adventurer A5 0.4 nozzle.json"
+		},
+		{
 			"name": "0.24mm Fine @Flashforge AD5M 0.8 Nozzle",
 			"sub_path": "process/0.24mm Fine @Flashforge AD5M 0.8 Nozzle.json"
 		},
@@ -512,12 +520,20 @@
 			"sub_path": "process/0.18mm Fine @FF AD5X 0.6 nozzle.json"
 		},
 		{
+			"name": "0.18mm Fine @FF Adventurer A5 0.6 nozzle",
+			"sub_path": "process/0.18mm Fine @FF Adventurer A5 0.6 nozzle.json"
+		},
+		{
 			"name": "0.24mm Fine @Flashforge AD5M Pro 0.8 Nozzle",
 			"sub_path": "process/0.24mm Fine @Flashforge AD5M Pro 0.8 Nozzle.json"
 		},
 		{
 			"name": "0.40mm Standard @FF AD5X 0.8 nozzle",
 			"sub_path": "process/0.40mm Standard @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.40mm Standard @FF Adventurer A5 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @FF Adventurer A5 0.8 nozzle.json"
 		},
 		{
 			"name": "0.56mm Draft @Flashforge AD5M Pro 0.8 Nozzle",
@@ -528,12 +544,56 @@
 			"sub_path": "process/0.42mm Draft @FF AD5X 0.6 nozzle.json"
 		},
 		{
+			"name": "0.42mm Draft @FF Adventurer A5 0.6 nozzle",
+			"sub_path": "process/0.42mm Draft @FF Adventurer A5 0.6 nozzle.json"
+		},
+		{
+			"name": "0.08mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.08mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.10mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.10mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.12mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.12mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.14mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.14mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.06mm Standard @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "process/0.06mm Standard @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.08mm Standard @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "process/0.08mm Standard @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.10mm Standard @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "process/0.10mm Standard @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.14mm Standard @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "process/0.14mm Standard @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
 			"name": "0.24mm Fine @FF AD5X 0.8 nozzle",
 			"sub_path": "process/0.24mm Fine @FF AD5X 0.8 nozzle.json"
 		},
 		{
+			"name": "0.24mm Fine @FF Adventurer A5 0.8 nozzle",
+			"sub_path": "process/0.24mm Fine @FF Adventurer A5 0.8 nozzle.json"
+		},
+		{
 			"name": "0.56mm Draft @FF AD5X 0.8 nozzle",
 			"sub_path": "process/0.56mm Draft @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "0.56mm Draft @FF Adventurer A5 0.8 nozzle",
+			"sub_path": "process/0.56mm Draft @FF Adventurer A5 0.8 nozzle.json"
 		}
 	],
 	"filament_list": [
@@ -574,24 +634,28 @@
 			"sub_path": "filament/Generic ASA @Flashforge.json"
 		},
 		{
-			"name": "Generic PETG @Flashforge",
-			"sub_path": "filament/Generic PETG @Flashforge.json"
-		},
-		{
-			"name": "Generic PETG-CF10 @Flashforge",
-			"sub_path": "filament/Generic PETG-CF10 @Flashforge.json"
-		},
-		{
 			"name": "Flashforge PETG",
 			"sub_path": "filament/Flashforge/Flashforge PETG @FF AD3.json"
+		},
+		{
+			"name": "Generic PETG @Flashforge",
+			"sub_path": "filament/Generic PETG @Flashforge.json"
 		},
 		{
 			"name": "Generic PETG @Flashforge Artemis",
 			"sub_path": "filament/Flashforge Generic PETG @Flashforge Artemis.json"
 		},
 		{
+			"name": "Generic PETG-CF10 @Flashforge",
+			"sub_path": "filament/Generic PETG-CF10 @Flashforge.json"
+		},
+		{
 			"name": "SUNLU PETG @base",
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
+		},
+		{
+			"name": "Flashforge PLA",
+			"sub_path": "filament/Flashforge/Flashforge PLA @FF AD3.json"
 		},
 		{
 			"name": "Generic HS PLA @Flashforge",
@@ -608,10 +672,6 @@
 		{
 			"name": "Generic PLA-Silk @Flashforge",
 			"sub_path": "filament/Generic PLA-Silk @Flashforge.json"
-		},
-		{
-			"name": "Flashforge PLA",
-			"sub_path": "filament/Flashforge/Flashforge PLA @FF AD3.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @base",
@@ -662,6 +722,10 @@
 			"sub_path": "filament/Flashforge ABS Basic @FF AD5X 0.8 nozzle.json"
 		},
 		{
+			"name": "Flashforge ABS Basic @FF Adventurer A5",
+			"sub_path": "filament/Flashforge ABS Basic @FF Adventurer A5.json"
+		},
+		{
 			"name": "Flashforge ABS Basic @FF G4",
 			"sub_path": "filament/Flashforge ABS Basic @FF G4.json"
 		},
@@ -710,6 +774,10 @@
 			"sub_path": "filament/Generic ABS @FF AD5M 0.25 Nozzle.json"
 		},
 		{
+			"name": "Generic ABS @Flashforge AD4",
+			"sub_path": "filament/Generic ABS @Flashforge AD4.json"
+		},
+		{
 			"name": "Generic ABS @Flashforge G3U",
 			"sub_path": "filament/Generic ABS @Flashforge G3U.json"
 		},
@@ -730,10 +798,6 @@
 			"sub_path": "filament/Generic HIPS @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
-			"name": "Generic ABS @Flashforge AD4",
-			"sub_path": "filament/Generic ABS @Flashforge AD4.json"
-		},
-		{
 			"name": "Flashforge ASA @FF AD5M 0.25 Nozzle",
 			"sub_path": "filament/Flashforge ASA @FF AD5M 0.25 Nozzle.json"
 		},
@@ -742,44 +806,20 @@
 			"sub_path": "filament/Flashforge ASA Basic.json"
 		},
 		{
-			"name": "Generic ASA @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Generic ASA @FF AD5M 0.25 Nozzle.json"
+			"name": "Flashforge ASA Basic @FF Adventurer A5",
+			"sub_path": "filament/Flashforge ASA Basic @FF Adventurer A5.json"
 		},
 		{
-			"name": "Generic ASA @Flashforge G3U 0.6 Nozzle",
-			"sub_path": "filament/Generic ASA @Flashforge G3U 0.6 Nozzle.json"
+			"name": "Generic ASA @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic ASA @FF AD5M 0.25 Nozzle.json"
 		},
 		{
 			"name": "Generic ASA @Flashforge AD4",
 			"sub_path": "filament/Generic ASA @Flashforge AD4.json"
 		},
 		{
-			"name": "Generic PETG @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Generic PETG @FF AD5M 0.25 Nozzle.json"
-		},
-		{
-			"name": "Generic PETG @Flashforge G3U",
-			"sub_path": "filament/Generic PETG @Flashforge G3U.json"
-		},
-		{
-			"name": "Generic PETG @Flashforge G3U 0.6 Nozzle",
-			"sub_path": "filament/Generic PETG @Flashforge G3U 0.6 Nozzle.json"
-		},
-		{
-			"name": "Generic PETG @Flashforge G3U 0.8 Nozzle",
-			"sub_path": "filament/Generic PETG @Flashforge G3U 0.8 Nozzle.json"
-		},
-		{
-			"name": "Generic PETG-CF @Flashforge G3U",
-			"sub_path": "filament/Generic PETG-CF @Flashforge G3U.json"
-		},
-		{
-			"name": "Generic PETG-CF @Flashforge G3U 0.6 Nozzle",
-			"sub_path": "filament/Generic PETG-CF @Flashforge G3U 0.6 Nozzle.json"
-		},
-		{
-			"name": "Generic PETG-CF @Flashforge G3U 0.8 Nozzle",
-			"sub_path": "filament/Generic PETG-CF @Flashforge G3U 0.8 Nozzle.json"
+			"name": "Generic ASA @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic ASA @Flashforge G3U 0.6 Nozzle.json"
 		},
 		{
 			"name": "Flashforge HS PETG",
@@ -796,6 +836,10 @@
 		{
 			"name": "Flashforge HS PETG @FF AD5X 0.8 nozzle",
 			"sub_path": "filament/Flashforge HS PETG @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF Adventurer A5",
+			"sub_path": "filament/Flashforge HS PETG @FF Adventurer A5.json"
 		},
 		{
 			"name": "Flashforge HS PETG @FF G4",
@@ -830,6 +874,10 @@
 			"sub_path": "filament/Flashforge PETG Pro @FF AD5X 0.8 nozzle.json"
 		},
 		{
+			"name": "Flashforge PETG Pro @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PETG Pro @FF Adventurer A5.json"
+		},
+		{
 			"name": "Flashforge PETG Pro @FF G4",
 			"sub_path": "filament/Flashforge PETG Pro @FF G4.json"
 		},
@@ -852,6 +900,10 @@
 		{
 			"name": "Flashforge PETG Transparent @FF AD5X 0.8 nozzle",
 			"sub_path": "filament/Flashforge PETG Transparent @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PETG Transparent @FF Adventurer A5.json"
 		},
 		{
 			"name": "Flashforge PETG Transparent @FF G4",
@@ -906,8 +958,36 @@
 			"sub_path": "filament/FusRock/FusRock S-PAHT @G3U 0.6 Nozzle.json"
 		},
 		{
+			"name": "Generic PETG @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic PETG @FF AD5M 0.25 Nozzle.json"
+		},
+		{
 			"name": "Generic PETG @Flashforge AD4",
 			"sub_path": "filament/Generic PETG @Flashforge AD4.json"
+		},
+		{
+			"name": "Generic PETG @Flashforge G3U",
+			"sub_path": "filament/Generic PETG @Flashforge G3U.json"
+		},
+		{
+			"name": "Generic PETG @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic PETG @Flashforge G3U 0.6 Nozzle.json"
+		},
+		{
+			"name": "Generic PETG @Flashforge G3U 0.8 Nozzle",
+			"sub_path": "filament/Generic PETG @Flashforge G3U 0.8 Nozzle.json"
+		},
+		{
+			"name": "Generic PETG-CF @Flashforge G3U",
+			"sub_path": "filament/Generic PETG-CF @Flashforge G3U.json"
+		},
+		{
+			"name": "Generic PETG-CF @Flashforge G3U 0.6 Nozzle",
+			"sub_path": "filament/Generic PETG-CF @Flashforge G3U 0.6 Nozzle.json"
+		},
+		{
+			"name": "Generic PETG-CF @Flashforge G3U 0.8 Nozzle",
+			"sub_path": "filament/Generic PETG-CF @Flashforge G3U 0.8 Nozzle.json"
 		},
 		{
 			"name": "Flashforge PETG-CF",
@@ -924,6 +1004,10 @@
 		{
 			"name": "Flashforge PETG-CF @FF AD5X 0.8 nozzle",
 			"sub_path": "filament/Flashforge PETG-CF @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG-CF @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PETG-CF @FF Adventurer A5.json"
 		},
 		{
 			"name": "Generic PETG-CF10 @Flashforge AD4",
@@ -944,10 +1028,6 @@
 		{
 			"name": "SUNLU PETG @FF AD5M 0.8 Nozzle",
 			"sub_path": "filament/SUNLU/SUNLU PETG @FF AD5M 0.8 nozzle.json"
-		},
-		{
-			"name": "Generic HS PLA @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Generic HS PLA @FF AD5M 0.25 Nozzle.json"
 		},
 		{
 			"name": "Flashforge HIPS @FF G4",
@@ -1050,12 +1130,216 @@
 			"sub_path": "filament/Flashforge PLA-CF @FF G4P.json"
 		},
 		{
+			"name": "Generic HS PLA @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic HS PLA @FF AD5M 0.25 Nozzle.json"
+		},
+		{
 			"name": "Generic PLA High Speed @Flashforge AD4",
 			"sub_path": "filament/Generic PLA High Speed @Flashforge AD4.json"
 		},
 		{
+			"name": "Flashforge HS PLA",
+			"sub_path": "filament/Flashforge HS PLA.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF AD5X",
+			"sub_path": "filament/Flashforge HS PLA @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge HS PLA @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge HS PLA @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF Adventurer A5",
+			"sub_path": "filament/Flashforge HS PLA @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge HS PLA+ @FF Adventurer A5",
+			"sub_path": "filament/Flashforge HS PLA+ @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Flashforge PLA @FF AD5M 0.25 Nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic",
+			"sub_path": "filament/Flashforge PLA Basic.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Basic @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Basic @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change",
+			"sub_path": "filament/Flashforge PLA Color Change.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Color Change @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy",
+			"sub_path": "filament/Flashforge PLA Galaxy.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA LITE @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA LITE @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous",
+			"sub_path": "filament/Flashforge PLA Luminous.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Luminous @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Matte",
+			"sub_path": "filament/Flashforge PLA Matte.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Matte @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Matte @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Metal",
+			"sub_path": "filament/Flashforge PLA Metal.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Metal @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Metal @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Pro",
+			"sub_path": "filament/Flashforge PLA Pro.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Pro @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Pro @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle",
+			"sub_path": "filament/Flashforge PLA Sparkle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF AD5X",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF AD5X 0.6 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF Adventurer A5.json"
+		},
+		{
+			"name": "Flashforge R PLA @FF Adventurer A5",
+			"sub_path": "filament/Flashforge R PLA @FF Adventurer A5.json"
+		},
+		{
 			"name": "Generic PLA @FF AD5M 0.25 Nozzle",
 			"sub_path": "filament/Generic PLA @FF AD5M 0.25 Nozzle.json"
+		},
+		{
+			"name": "Generic PLA @Flashforge AD4",
+			"sub_path": "filament/Generic PLA @Flashforge AD4.json"
 		},
 		{
 			"name": "Generic PLA @Flashforge G3U",
@@ -1084,158 +1368,6 @@
 		{
 			"name": "Generic PVA @Flashforge",
 			"sub_path": "filament/Generic PVA @Flashforge.json"
-		},
-		{
-			"name": "Flashforge HS PLA",
-			"sub_path": "filament/Flashforge HS PLA.json"
-		},
-		{
-			"name": "Flashforge HS PLA @FF AD5X",
-			"sub_path": "filament/Flashforge HS PLA @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge HS PLA @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge HS PLA @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PLA @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge HS PLA @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Flashforge PLA @FF AD5M 0.25 Nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Basic",
-			"sub_path": "filament/Flashforge PLA Basic.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Basic @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Basic @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Basic @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change",
-			"sub_path": "filament/Flashforge PLA Color Change.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy",
-			"sub_path": "filament/Flashforge PLA Galaxy.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous",
-			"sub_path": "filament/Flashforge PLA Luminous.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Matte",
-			"sub_path": "filament/Flashforge PLA Matte.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Matte @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Matte @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Matte @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Metal",
-			"sub_path": "filament/Flashforge PLA Metal.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Metal @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Metal @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Metal @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Pro",
-			"sub_path": "filament/Flashforge PLA Pro.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Pro @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Pro @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Pro @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle",
-			"sub_path": "filament/Flashforge PLA Sparkle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF AD5X",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF AD5X 0.6 nozzle",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X 0.8 nozzle.json"
-		},
-		{
-			"name": "Generic PLA @Flashforge AD4",
-			"sub_path": "filament/Generic PLA @Flashforge AD4.json"
 		},
 		{
 			"name": "Polymaker CoPA",
@@ -1270,6 +1402,10 @@
 			"sub_path": "filament/Flashforge PLA-CF @FF AD5X 0.8 nozzle.json"
 		},
 		{
+			"name": "Flashforge PLA-CF @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA-CF @FF Adventurer A5.json"
+		},
+		{
 			"name": "Flashforge PPS @FF G4",
 			"sub_path": "filament/Flashforge PPS @FF G4.json"
 		},
@@ -1298,10 +1434,6 @@
 			"sub_path": "filament/Generic PLA-CF10 @Flashforge AD4.json"
 		},
 		{
-			"name": "Generic PLA-SILK @FF AD5M 0.25 Nozzle",
-			"sub_path": "filament/Generic PLA-SILK @FF AD5M 0.25 Nozzle.json"
-		},
-		{
 			"name": "Flashforge PLA Silk",
 			"sub_path": "filament/Flashforge PLA Silk.json"
 		},
@@ -1318,12 +1450,20 @@
 			"sub_path": "filament/Flashforge PLA Silk @FF AD5X 0.8 nozzle.json"
 		},
 		{
+			"name": "Flashforge PLA Silk @FF Adventurer A5",
+			"sub_path": "filament/Flashforge PLA Silk @FF Adventurer A5.json"
+		},
+		{
 			"name": "Flashforge PLA-SILK @FF AD5M 0.25 Nozzle",
 			"sub_path": "filament/Flashforge PLA-SILK @FF AD5M 0.25 Nozzle.json"
 		},
 		{
 			"name": "Generic PLA Silk @Flashforge AD4",
 			"sub_path": "filament/Generic PLA Silk @Flashforge AD4.json"
+		},
+		{
+			"name": "Generic PLA-SILK @FF AD5M 0.25 Nozzle",
+			"sub_path": "filament/Generic PLA-SILK @FF AD5M 0.25 Nozzle.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @FF AD3",
@@ -1414,6 +1554,10 @@
 			"sub_path": "filament/Flashforge TPU 95A @FF AD5X 0.8 nozzle.json"
 		},
 		{
+			"name": "Flashforge TPU 95A @FF Adventurer A5",
+			"sub_path": "filament/Flashforge TPU 95A @FF Adventurer A5.json"
+		},
+		{
 			"name": "Flashforge TPU 95A @FF G4",
 			"sub_path": "filament/Flashforge TPU 95A @FF G4.json"
 		},
@@ -1452,6 +1596,10 @@
 		{
 			"name": "Generic TPU @Flashforge AD4",
 			"sub_path": "filament/Generic TPU @Flashforge AD4.json"
+		},
+		{
+			"name": "Kexcelled TPU 64D @FF Adventurer A5",
+			"sub_path": "filament/Kexcelled TPU 64D @FF Adventurer A5.json"
 		},
 		{
 			"name": "Flashforge ABS Basic @FF AD5M 0.25 nozzle",
@@ -1710,102 +1858,6 @@
 			"sub_path": "filament/Flashforge ASA Basic @FF AD5X 0.25 nozzle.json"
 		},
 		{
-			"name": "Flashforge HS PETG @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge HS PETG @FF G4 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PETG @FF G4 0.6 nozzle",
-			"sub_path": "filament/Flashforge HS PETG @FF G4 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PETG @FF G4 0.8 HF nozzle",
-			"sub_path": "filament/Flashforge HS PETG @FF G4 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PETG @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge HS PETG @FF G4P 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PETG @FF G4P 0.6 nozzle",
-			"sub_path": "filament/Flashforge HS PETG @FF G4P 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PETG @FF G4P 0.8 HF nozzle",
-			"sub_path": "filament/Flashforge HS PETG @FF G4P 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Pro @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Pro @FF G4 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Pro @FF G4 0.6 nozzle",
-			"sub_path": "filament/Flashforge PETG Pro @FF G4 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Pro @FF G4 0.8 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Pro @FF G4 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Pro @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Pro @FF G4P 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Pro @FF G4P 0.6 nozzle",
-			"sub_path": "filament/Flashforge PETG Pro @FF G4P 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Pro @FF G4P 0.8 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Pro @FF G4P 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Transparent @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Transparent @FF G4 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Transparent @FF G4 0.6 nozzle",
-			"sub_path": "filament/Flashforge PETG Transparent @FF G4 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Transparent @FF G4 0.8 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Transparent @FF G4 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Transparent @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Transparent @FF G4P 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Transparent @FF G4P 0.6 nozzle",
-			"sub_path": "filament/Flashforge PETG Transparent @FF G4P 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG Transparent @FF G4P 0.8 HF nozzle",
-			"sub_path": "filament/Flashforge PETG Transparent @FF G4P 0.8 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge TPU 65D @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge TPU 65D @FF G4 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge TPU 65D @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge TPU 65D @FF G4P 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge TPU 95A @FF G4 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge TPU 95A @FF G4 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge TPU 95A @FF G4P 0.6 HF nozzle",
-			"sub_path": "filament/Flashforge TPU 95A @FF G4P 0.6 HF nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG-CF @FF G4 0.6 nozzle",
-			"sub_path": "filament/Flashforge PETG-CF @FF G4 0.6 nozzle.json"
-		},
-		{
-			"name": "Flashforge PETG-CF @FF G4P 0.6 nozzle",
-			"sub_path": "filament/Flashforge PETG-CF @FF G4P 0.6 nozzle.json"
-		},
-		{
 			"name": "Flashforge HS PETG @FF AD5M 0.25 nozzle",
 			"sub_path": "filament/Flashforge HS PETG @FF AD5M 0.25 nozzle.json"
 		},
@@ -2044,6 +2096,278 @@
 		{
 			"name": "Polymaker CoPA @FF G4P 0.8 HF nozzle",
 			"sub_path": "filament/Polymaker CoPA @FF G4P 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Generic PETG @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Generic PETG @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF G4 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF G4 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF G4 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF G4 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF G4P 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF G4P 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF G4P 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF G4P 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF G4 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF G4 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF G4 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF G4 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF G4P 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF G4P 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF G4P 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF G4P 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF G4 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF G4 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF G4 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF G4 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF G4P 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF G4P 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF G4P 0.8 HF nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF G4P 0.8 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge TPU 65D @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge TPU 65D @FF G4 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge TPU 65D @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge TPU 65D @FF G4P 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge TPU 95A @FF G4 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge TPU 95A @FF G4 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge TPU 95A @FF G4P 0.6 HF nozzle",
+			"sub_path": "filament/Flashforge TPU 95A @FF G4P 0.6 HF nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG-CF @FF G4 0.6 nozzle",
+			"sub_path": "filament/Flashforge PETG-CF @FF G4 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG-CF @FF G4P 0.6 nozzle",
+			"sub_path": "filament/Flashforge PETG-CF @FF G4P 0.6 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge HS PLA @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge HS PLA @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge HS PLA @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge HS PLA @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PLA+ @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge HS PLA+ @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA LITE @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA LITE @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Silk @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Silk @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Silk @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Silk @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Silk @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Silk @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF AD5M 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF AD5X 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF G4 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF G4 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF G4P 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF G4P 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge R PLA @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge R PLA @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Generic PLA @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Generic PLA @FF Adventurer A5 0.25 nozzle.json"
 		},
 		{
 			"name": "Flashforge HS PLA @FF G4 0.6 HF nozzle",
@@ -2342,160 +2666,68 @@
 			"sub_path": "filament/Flashforge PLA-CF @FF G4P 0.6 nozzle.json"
 		},
 		{
-			"name": "Flashforge HS PLA @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge HS PLA @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PLA @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge HS PLA @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge HS PLA @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge HS PLA @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Basic @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Basic @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Basic @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Basic @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Basic @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Color Change @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Color Change @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Color Change @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Color Change @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Color Change @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Galaxy @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Galaxy @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Luminous @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Luminous @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Luminous @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Luminous @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Luminous @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Matte @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Matte @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Matte @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Matte @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Metal @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Metal @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Metal @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Metal @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Pro @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Pro @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Pro @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Pro @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Silk @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Silk @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Silk @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Silk @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Silk @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Silk @FF G4P 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF AD5M 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5M 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF AD5X 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF AD5X 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF G4 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF G4 0.25 nozzle.json"
-		},
-		{
-			"name": "Flashforge PLA Sparkle @FF G4P 0.25 nozzle",
-			"sub_path": "filament/Flashforge PLA Sparkle @FF G4P 0.25 nozzle.json"
-		},
-		{
 			"name": "Flashforge PLA Silk @FF AD5M 0.25 nozzle",
 			"sub_path": "filament/Flashforge PLA Silk @FF AD5M 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge ABS Basic @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge ABS Basic @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge ASA Basic @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge ASA Basic @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge HS PETG @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge HS PETG @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Basic @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PETG Basic @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Pro @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PETG Pro @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PETG Transparent @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PETG Transparent @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Basic @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Basic @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Color Change @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Color Change @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Galaxy @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Galaxy @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Luminous @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Luminous @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Matte @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Metal @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Pro @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Sparkle @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Sparkle @FF Adventurer A5 0.25 nozzle.json"
+		},
+		{
+			"name": "Flashforge PLA Silk @FF Adventurer A5 0.25 nozzle",
+			"sub_path": "filament/Flashforge PLA Silk @FF Adventurer A5 0.25 nozzle.json"
 		},
 		{
 			"name": "Flashforge ABS Basic @FF C5",
@@ -2602,30 +2834,6 @@
 			"sub_path": "filament/Flashforge PETG-CF @FF C5P.json"
 		},
 		{
-			"name": "Flashforge PLA Matte @FF C5",
-			"sub_path": "filament/Flashforge PLA Matte @FF C5.json"
-		},
-		{
-			"name": "Flashforge PLA Matte @FF C5P",
-			"sub_path": "filament/Flashforge PLA Matte @FF C5P.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF C5",
-			"sub_path": "filament/Flashforge PLA Metal @FF C5.json"
-		},
-		{
-			"name": "Flashforge PLA Metal @FF C5P",
-			"sub_path": "filament/Flashforge PLA Metal @FF C5P.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF C5",
-			"sub_path": "filament/Flashforge PLA Pro @FF C5.json"
-		},
-		{
-			"name": "Flashforge PLA Pro @FF C5P",
-			"sub_path": "filament/Flashforge PLA Pro @FF C5P.json"
-		},
-		{
 			"name": "Flashforge PLA Basic @FF C5",
 			"sub_path": "filament/Flashforge PLA Basic @FF C5.json"
 		},
@@ -2656,6 +2864,30 @@
 		{
 			"name": "Flashforge PLA Luminous @FF C5P",
 			"sub_path": "filament/Flashforge PLA Luminous @FF C5P.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF C5",
+			"sub_path": "filament/Flashforge PLA Matte @FF C5.json"
+		},
+		{
+			"name": "Flashforge PLA Matte @FF C5P",
+			"sub_path": "filament/Flashforge PLA Matte @FF C5P.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF C5",
+			"sub_path": "filament/Flashforge PLA Metal @FF C5.json"
+		},
+		{
+			"name": "Flashforge PLA Metal @FF C5P",
+			"sub_path": "filament/Flashforge PLA Metal @FF C5P.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF C5",
+			"sub_path": "filament/Flashforge PLA Pro @FF C5.json"
+		},
+		{
+			"name": "Flashforge PLA Pro @FF C5P",
+			"sub_path": "filament/Flashforge PLA Pro @FF C5P.json"
 		},
 		{
 			"name": "Flashforge PLA Silk @FF C5",
@@ -2908,6 +3140,10 @@
 			"sub_path": "machine/FlashForge AD5X 0.25 nozzle.json"
 		},
 		{
+			"name": "Flashforge Adventurer A5 0.25 nozzle",
+			"sub_path": "machine/Flashforge Adventurer A5 0.25 nozzle.json"
+		},
+		{
 			"name": "Flashforge Guider4 0.25 nozzle",
 			"sub_path": "machine/Flashforge Guider4 0.25 nozzle.json"
 		},
@@ -2918,6 +3154,10 @@
 		{
 			"name": "Flashforge AD5X 0.4 nozzle",
 			"sub_path": "machine/Flashforge AD5X 0.4 nozzle.json"
+		},
+		{
+			"name": "Flashforge Adventurer A5 0.4 nozzle",
+			"sub_path": "machine/Flashforge Adventurer A5 0.4 nozzle.json"
 		},
 		{
 			"name": "Flashforge Creator 5 0.25 nozzle",
@@ -2964,8 +3204,16 @@
 			"sub_path": "machine/Flashforge AD5X 0.6 nozzle.json"
 		},
 		{
+			"name": "Flashforge Adventurer A5 0.6 nozzle",
+			"sub_path": "machine/Flashforge Adventurer A5 0.6 nozzle.json"
+		},
+		{
 			"name": "Flashforge AD5X 0.8 nozzle",
 			"sub_path": "machine/Flashforge AD5X 0.8 nozzle.json"
+		},
+		{
+			"name": "Flashforge Adventurer A5 0.8 nozzle",
+			"sub_path": "machine/Flashforge Adventurer A5 0.8 nozzle.json"
 		},
 		{
 			"name": "Flashforge Guider4 0.4 HF nozzle",

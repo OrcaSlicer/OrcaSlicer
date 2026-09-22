@@ -24,12 +24,6 @@
 	"nozzle_temperature_initial_layer": [
 		"265"
 	],
-	"bed_temperature": [
-		"100"
-	],
-	"bed_temperature_initial_layer": [
-		"100"
-	],
 	"temperature_vitrification": [
 		"95"
 	],

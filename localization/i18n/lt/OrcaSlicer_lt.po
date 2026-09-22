@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:27+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2449,13 +2449,6 @@ msgstr "Yra prieinamas atnaujinimas. Atidarykite profilių paketo dialogo langą
 msgid "%s has been removed."
 msgstr "%s buvo pašalintas."
 
-
-msgid "Select the language"
-msgstr "Pasirinkite kalbą"
-
-msgid "Language"
-msgstr "Kalba"
-
 # AI Translated
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
@@ -2492,6 +2485,19 @@ msgstr ""
 # AI Translated
 msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Nepavyko atidaryti papildinių dialogo lango (nežinoma klaida)."
+
+msgid "Plugins refreshed."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to refresh plugins: %s"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
 
 # AI Translated
 msgid "Plugin Terminal"
@@ -3701,11 +3707,15 @@ msgstr "Ištraukite dabartinę giją ties Filament Track Switch"
 msgid "Switch track at Filament Track Switch"
 msgstr "Perjunkite takelį ties Filament Track Switch"
 
-msgid "The maximum temperature cannot exceed "
-msgstr "Maksimali temperatūra negali viršyti "
+# AI Translated
+#, c-format, boost-format
+msgid "The maximum temperature cannot exceed %d"
+msgstr "Maksimali temperatūra negali viršyti %d"
 
-msgid "The minmum temperature should not be less than "
-msgstr "Minimali temperatūra neturi būti mažesnė nei "
+# AI Translated
+#, c-format, boost-format
+msgid "The minimum temperature should not be less than %d"
+msgstr "Minimali temperatūra neturi būti mažesnė nei %d"
 
 msgid "Type to filter..."
 msgstr "Įveskite tekstą filtravimui..."
@@ -4149,6 +4159,21 @@ msgstr "„OrcaSlicer“ buvo sukurtas vadovaujantis ta pačia dvasia, remiantis
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Šiandien „OrcaSlicer“ yra plačiausiai naudojama ir aktyviausiai tobulinama atvirojo kodo paruošimo spausdinimui (slicer) programa 3D spausdinimo bendruomenėje.. Daugelis jos naujovių buvo perimtos kitų pjaustymo programų, todėl ji tapo visos pramonės varomąja jėga."
 
+msgid "Script plugin skipped."
+msgstr ""
+
+msgid "Script plugin finished."
+msgstr ""
+
+msgid "Printer"
+msgstr "Spausdintuvas"
+
+msgid "Recent Projects"
+msgstr ""
+
+msgid "Go to Plate"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr "AMS medžiagų nuostatos"
 
@@ -4585,6 +4610,15 @@ msgid ""
 "Error message: %1%"
 msgstr ""
 "Nepavyko nukopijuoti laikinojo G-kodo į išvesties G-kodą. Gal draudžiama įrašinėti į SD kortelę?\n"
+"Klaidos pranešimas: %1%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"Copying of the temporary G-code to the output G-code failed.\n"
+"Error message: %1%"
+msgstr ""
+"Nepavyko nukopijuoti laikinojo G kodo į išvesties G kodą.\n"
 "Klaidos pranešimas: %1%"
 
 #, boost-format
@@ -5324,10 +5358,11 @@ msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Reikšmė %s yra už ribų. Galimas diapazonas yra nuo %d iki %d."
 
 #, c-format, boost-format
-msgid ""
-"Is it %s%% or %s %s?"
-msgstr ""
-"Ar tai %s%% ar %s %s?"
+msgid "Is it %s%% or %s %s?"
+msgstr "Ar tai %s%% ar %s %s?"
+
+msgid "%"
+msgstr "%"
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -5354,20 +5389,16 @@ msgid "System agents"
 msgstr "Sisteminiai agentai"
 
 # AI Translated
-msgid "No plugin selected"
-msgstr "Nepasirinktas joks papildinys"
-
-# AI Translated
 msgid "Add plugin"
 msgstr "Pridėti papildinį"
 
 # AI Translated
-msgid "Select plugin"
-msgstr "Pasirinkti papildinį"
-
-# AI Translated
 msgid "Remove plugin"
 msgstr "Pašalinti papildinį"
+
+# AI Translated
+msgid "No plugin selected"
+msgstr "Nepasirinktas joks papildinys"
 
 # AI Translated
 msgid "Configure"
@@ -5624,14 +5655,20 @@ msgstr "Nustatyti į optimalų"
 msgid "Regroup filament"
 msgstr "Pergrupuoti gijas"
 
-msgid "up to"
-msgstr "iki"
+# AI Translated
+#, boost-format
+msgid "up to %1% mm"
+msgstr "iki %1% mm"
 
-msgid "above"
-msgstr "virš"
+# AI Translated
+#, boost-format
+msgid "above %1% mm"
+msgstr "virš %1% mm"
 
-msgid "from"
-msgstr "nuo"
+# AI Translated
+#, boost-format
+msgid "from %1% to %2% mm"
+msgstr "nuo %1% iki %2% mm"
 
 msgid "Usage"
 msgstr "Naudojimas"
@@ -5690,9 +5727,6 @@ msgstr "Spalvos keitimas"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Spausdinti"
-
-msgid "Printer"
-msgstr "Spausdintuvas"
 
 msgid "Time Estimation"
 msgstr "Laiko įvertis (skaičiavimas)"
@@ -5877,11 +5911,14 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr "Dešinė"
 
-msgid "Add"
-msgstr "Įtraukti"
-
 msgid "Add plate"
 msgstr "Įtraukti plokštę"
+
+msgid "Split to objects"
+msgstr "Padalinti į objektus"
+
+msgid "Add"
+msgstr "Įtraukti"
 
 msgid "Auto orient all/selected objects"
 msgstr "Automatiškai orientuoti visus / pasirinktus objektus"
@@ -5894,9 +5931,6 @@ msgstr "Išdėstyti visus objektus"
 
 msgid "Arrange objects on selected plates"
 msgstr "Išdėstyti objektus pasirinktose plokštėse"
-
-msgid "Split to objects"
-msgstr "Padalinti į objektus"
 
 msgid "Assembly View"
 msgstr "Surinkimo vaizdas"
@@ -5951,6 +5985,9 @@ msgstr "Kontūras"
 
 msgid "Wireframe"
 msgstr "Rodyti karkasinį vaizdą"
+
+msgid "X-Ray"
+msgstr ""
 
 msgid "Realistic View"
 msgstr "Realistiškas vaizdas"
@@ -6160,6 +6197,9 @@ msgstr "Programa uždaroma, nors kai kurie profiliai yra pakeisti."
 msgid "Logging"
 msgstr "Registravimas"
 
+msgid "Design"
+msgstr ""
+
 msgid "Prepare"
 msgstr "Paruošimas"
 
@@ -6306,11 +6346,13 @@ msgstr "Įrašyti projektą kaip"
 msgid "Save current project as"
 msgstr "Įrašyti dabartinį projektą kaip"
 
+# AI Translated
 msgid "Publish 3MF"
-msgstr ""
+msgstr "Talpinti 3MF"
 
+# AI Translated
 msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
+msgstr "Eksportuoti 3MF failą su įterptais pasirinktais parametrais"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importuoti 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -6493,6 +6535,9 @@ msgstr "Redaguoti"
 
 msgid "View"
 msgstr "Vaizdas"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Profilių rinkinys"
@@ -7422,6 +7467,233 @@ msgstr "Daugiau nerodyti šio dialogo lango"
 msgid "Please refer to Wiki before use->"
 msgstr "Prieš naudodami peržiūrėkite „Wiki“ ->"
 
+msgid "Plates are a filament (FFF) feature."
+msgstr ""
+
+msgid "Open the 3D view first."
+msgstr ""
+
+msgid "Select an object first."
+msgstr ""
+
+msgid "Slice and Preview"
+msgstr ""
+
+msgid "Slice & Export"
+msgstr ""
+
+msgid "Go to layer (percent)"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Go to tab..."
+msgstr ""
+
+msgid "Load Project"
+msgstr ""
+
+msgid "Save Project As"
+msgstr ""
+
+msgid "Mode: Simple"
+msgstr ""
+
+msgid "Mode: Advanced"
+msgstr ""
+
+msgid "Mode: Expert"
+msgstr ""
+
+msgid "Toggle Developer Mode"
+msgstr ""
+
+msgid "Developer mode enabled."
+msgstr ""
+
+msgid "Developer mode disabled."
+msgstr ""
+
+msgid "Export STL"
+msgstr "Eksportuoti STL"
+
+msgid "Export 3MF"
+msgstr "Eksportuoti 3MF"
+
+msgid "Export Sliced File"
+msgstr ""
+
+msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Max Volumetric Speed Calibration"
+msgstr "Didžiausio tūrinio greičio kalibravimas"
+
+msgid "Pressure Advance Calibration"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr "Srauto santykio kalibravimas"
+
+msgid "Retraction Calibration"
+msgstr ""
+
+msgid "Cornering Calibration"
+msgstr ""
+
+msgid "Input Shaping Frequency Calibration"
+msgstr ""
+
+msgid "Input Shaping Damping Calibration"
+msgstr ""
+
+msgid "VFA Calibration"
+msgstr ""
+
+msgid "View: Top"
+msgstr ""
+
+msgid "View: Bottom"
+msgstr ""
+
+msgid "View: Front"
+msgstr ""
+
+msgid "View: Rear"
+msgstr ""
+
+msgid "View: Left"
+msgstr ""
+
+msgid "View: Right"
+msgstr ""
+
+msgid "View: Isometric"
+msgstr ""
+
+msgid "View: Default"
+msgstr ""
+
+msgid "Fit Bed to View"
+msgstr ""
+
+msgid "Toggle Perspective"
+msgstr ""
+
+# AI Translated
+msgid "Delete All Objects"
+msgstr "Ištrinti visus objektus"
+
+msgid "Mirror X"
+msgstr ""
+
+msgid "Mirror Y"
+msgstr ""
+
+msgid "Mirror Z"
+msgstr ""
+
+# AI Translated
+msgid "Split to Objects"
+msgstr "Skaidyti į objektus"
+
+msgid "Split to Parts"
+msgstr ""
+
+msgid "Center Selected on Plate"
+msgstr ""
+
+msgid "Drop to Bed"
+msgstr ""
+
+msgid "Scale to Fit Print Volume"
+msgstr ""
+
+msgid "Increase Instances"
+msgstr ""
+
+msgid "Decrease Instances"
+msgstr ""
+
+msgid "Auto-Arrange"
+msgstr ""
+
+msgid "Auto-Orient"
+msgstr ""
+
+msgid "Add Plate"
+msgstr ""
+
+msgid "Cannot add another plate (maximum reached)."
+msgstr ""
+
+msgid "Duplicate Plate"
+msgstr ""
+
+msgid "Cannot duplicate a plate (maximum reached)."
+msgstr ""
+
+msgid "Cannot delete the only plate."
+msgstr ""
+
+msgid "Rename Plate"
+msgstr ""
+
+msgid "Toggle Plate Lock"
+msgstr ""
+
+msgid "No plates available."
+msgstr ""
+
+msgid "Synchronize Filament List from AMS"
+msgstr ""
+
+msgid "Connect a printer to synchronize the AMS filament list."
+msgstr ""
+
+msgid "Open Preset Bundle"
+msgstr ""
+
+msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "Export All Objects as STLs"
+msgstr ""
+
+msgid "Export All Objects as DRC (one file)"
+msgstr ""
+
+msgid "Export All Objects as DRCs"
+msgstr ""
+
+msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "About OrcaSlicer"
+msgstr ""
+
+msgid "Open Wiki"
+msgstr ""
+
+msgid "Open YouTube Channel"
+msgstr ""
+
+msgid "Open Plugins"
+msgstr ""
+
+msgid "Refresh Plugins"
+msgstr ""
+
+msgid "Install Plugin"
+msgstr ""
+
+msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Unknown command."
+msgstr ""
+
 msgid "3D Mouse disconnected."
 msgstr "3D pelė atjungta."
 
@@ -7584,6 +7856,14 @@ msgstr "Viršutinis"
 msgctxt "Layers"
 msgid "Bottom"
 msgstr "Apatinis"
+
+# AI Translated
+msgid "This setting does not specify a plugin capability type."
+msgstr "Šis parametras nenurodo papildinio gebos tipo."
+
+# AI Translated
+msgid "This setting specifies an unrecognized plugin capability type: "
+msgstr "Šis parametras nurodo neatpažintą papildinio gebos tipą: "
 
 # AI Translated
 msgid "Plugin Selection"
@@ -8076,9 +8356,6 @@ msgstr "Išskleisti šoninę juostą"
 msgid "Collapse sidebar"
 msgstr "Sutraukti šoninę juostą"
 
-msgid "Tab"
-msgstr "Tab"
-
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "Įkeliamas failas: %s"
@@ -8153,11 +8430,13 @@ msgstr "Patvirtinkite, kad šiuose profiliuose esantis G-kodas yra saugus, kad i
 msgid "Customized Preset"
 msgstr "Pritaikytas profilis"
 
+# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr ""
+msgstr "Kai kurių patalpintų parametrų pritaikyti nepavyko:"
 
+# AI Translated
 msgid "Some filament slots were changed:"
-msgstr ""
+msgstr "Kai kurie gijų lizdai buvo pakeisti:"
 
 msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Komponentų pavadinimai STEP faile nėra UTF-8 formato!"
@@ -8279,19 +8558,11 @@ msgid "Delete Object"
 msgstr "Ištrinti objektą"
 
 # AI Translated
-msgid "Delete All Objects"
-msgstr "Ištrinti visus objektus"
-
-# AI Translated
 msgid "Reset Project"
 msgstr "Atkurti projektą"
 
 msgid "The selected object couldn't be split."
 msgstr "Pasirinkto objekto negalima suskaidyti."
-
-# AI Translated
-msgid "Split to Objects"
-msgstr "Skaidyti į objektus"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Išjungti automatinį nuleidimą, kad būtų išsaugota Z pozicija?\n"
@@ -8570,13 +8841,17 @@ msgstr "Išsaugoti susluoksniuotą failą kaip:"
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Failas %s išsiųstas į spausdintuvo laikmeną ir gali būti peržiūrimas spausdintuve."
 
+# AI Translated
 msgid "Publish 3MF file as:"
-msgstr ""
+msgstr "Talpinti 3MF failą kaip:"
 
+# AI Translated
 msgid ""
 "Failed to export the published 3MF file.\n"
 "Please check whether the folder exists online or if other programs have the file open."
 msgstr ""
+"Nepavyko eksportuoti patalpinto 3MF failo.\n"
+"Patikrinkite, ar aplankas pasiekiamas internete ir ar failo neturi atvėrusios kitos programos."
 
 msgid "Publish"
 msgstr "Talpinti"
@@ -8791,7 +9066,6 @@ msgstr "Ar norite tęsti?"
 msgid "Language selection"
 msgstr "Kalbos pasirinkimas"
 
-
 msgid "Asia-Pacific"
 msgstr "Azija-Ramusis vandenynas"
 
@@ -8895,6 +9169,9 @@ msgstr "Dabartinės versijos kelias: "
 
 msgid "General"
 msgstr "Bendras"
+
+msgid "Language"
+msgstr "Kalba"
 
 msgid "Metric"
 msgstr "Metrinė"
@@ -9092,6 +9369,33 @@ msgstr "Kelių įrenginių valdymas"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Kai įjungta ši funkcija, jūs galite siųsti užduotį keliems įrenginiams vienu metu, taip apt kontroliuoti keletą įrenginių."
 
+msgid "Open the Speed Dial from the keyboard"
+msgstr ""
+
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
+msgstr ""
+
+msgid "Recent actions"
+msgstr ""
+
+msgid "actions"
+msgstr ""
+
+msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
+msgstr ""
+
+msgid "CAD feature (experimental)"
+msgstr ""
+
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr ""
+
+msgid "Auto-close sketch loops"
+msgstr ""
+
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
+msgstr ""
+
 msgid "Pop up to select filament grouping mode"
 msgstr "Iššokantis langas gijų grupavimo režimui pasirinkti"
 
@@ -9173,6 +9477,12 @@ msgstr "Apversti pelės didinimą"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Jei įjungta, apverčia didinimo ar mažinimo kryptį pelės ratuku."
 
+msgid "Draw mate connectors as a face"
+msgstr ""
+
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
+msgstr ""
+
 msgid "Pan"
 msgstr "Slinkimas"
 
@@ -9193,6 +9503,15 @@ msgstr "Vilkti dešiniuoju pelės mygtuku"
 
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Nustatykite veiksmą, kuris turi būti atliktas, velkant dešinįjį pelės mygtuką."
+
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Išvalyti mano pasirinkimą..."
@@ -9302,11 +9621,39 @@ msgid ""
 "Set to 0 for unlimited frame rate."
 msgstr "Riboja vaizdo srities kadrų dažnį, kad sumažintų vaizdo plokštės (GPU) apkrovą ir energijos sąnaudas. Įveskite 0, jei kadrų dažnis neribojamas."
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 msgid "Show FPS overlay"
 msgstr "Rodyti KPS (FPS) indikatorių"
 
-msgid "Displays current viewport FPS in the top-right corner."
-msgstr "Viršutiniame dešiniajame kampe rodo esamą vaizdo srities kadrų dažnį."
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
+msgstr ""
 
 # AI Translated
 msgid "G-code Preview"
@@ -9323,9 +9670,6 @@ msgstr "Slenkant sluoksnių slankiklį pjaustytoje peržiūroje, atvaizduoti že
 # AI Translated
 msgid "Dimmed layer brightness"
 msgstr "Pritemdytų sluoksnių ryškumas"
-
-msgid "%"
-msgstr "%"
 
 # AI Translated
 msgid ""
@@ -9723,63 +10067,75 @@ msgstr "Įkeliami duomenys"
 msgid "Jump to webpage"
 msgstr "Pereiti į interneto puslapį"
 
+# AI Translated
 msgid "Material"
-msgstr ""
+msgstr "Medžiaga"
 
+# AI Translated
 msgid "Mixed filament"
-msgstr ""
+msgstr "Mišri gija"
 
+# AI Translated
 msgid "Some mixed filaments rely on filaments that will not be published:"
-msgstr ""
+msgstr "Kai kurios mišrios gijos priklauso nuo gijų, kurios nebus patalpintos:"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Filament %d (mixed)"
-msgstr ""
+msgstr "Gija %d (mišri)"
 
-msgid "needs"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, which is not enabled."
+msgstr "%1% reikalauja %2%, kuri nėra įjungta."
 
-msgid "not enabled"
-msgstr ""
+# AI Translated
+#, boost-format
+msgid "%1% needs %2%, whose material will not be published."
+msgstr "%1% reikalauja %2%, kurios medžiaga nebus paskelbta."
 
-msgid "material not published"
-msgstr ""
-
+# AI Translated
 msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
-msgstr ""
+msgstr "Norėdami patalpinti mišrią giją, įjunkite kiekvieną jos naudojamą giją ir pasirinkite Pilną talpinimą arba įvykdykite jos Tipo reikalavimą."
 
+# AI Translated
 msgid "Publish anyway"
-msgstr ""
+msgstr "Vis tiek talpinti"
 
+# AI Translated
 msgid "Publish 3MF..."
-msgstr ""
+msgstr "Talpinti 3MF..."
 
+# AI Translated
 msgid "Select which settings to be published in the 3MF file"
+msgstr "Pasirinkite, kuriuos parametrus talpinti 3MF faile"
+
+msgid "Video Guide"
 msgstr ""
 
-msgid "Publish 3MF Wiki"
-msgstr ""
-
-msgid "Publish 3MF Video Guide"
-msgstr ""
-
+# AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
-msgstr ""
+msgstr "Mišri gija - talpinama kaip visuma, kai viršuje pasirinkta \"Įjungti\""
 
+# AI Translated
 msgid "Publish this mixed filament and enable + Full Publish its component filaments"
-msgstr ""
+msgstr "Talpinti šią mišrią giją ir įjungti + pilnai patalpinti jos sudedamąsias gijas"
 
+# AI Translated
 msgid "Publish this filament slot in the 3MF file"
-msgstr ""
+msgstr "Talpinti šį gijos lizdą 3MF faile"
 
+# AI Translated
 msgid "Full Publish"
-msgstr ""
+msgstr "Pilnas talpinimas"
 
+# AI Translated
 msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
+msgstr "Įterpti visą šio lizdo giją į 3MF failą"
 
+# AI Translated
 msgid "Filter non-selected"
-msgstr ""
+msgstr "Filtruoti nepasirinktus"
 
 #, c-format, boost-format
 msgid "Save %s as"
@@ -9797,6 +10153,10 @@ msgstr "Nukopijuoja į šį profilį visas iš pirminio profilio paveldėtas rei
 
 msgid "Detach from parent"
 msgstr "Atskirti nuo tėvinio profilio"
+
+# AI Translated
+msgid "Save without parent"
+msgstr "Išsaugoti be tėvinio profilio"
 
 # AI Translated
 msgid "Unique preset"
@@ -9856,6 +10216,133 @@ msgstr "Profilio „%1%“ atveju, pridėti „%2%“ kaip naują profilį"
 #, boost-format
 msgid "Simply switch to \"%1%\""
 msgstr "Paprasčiausiai persijunkite į \"%1%\""
+
+msgid "Expert"
+msgstr ""
+
+msgid "Simple"
+msgstr ""
+
+msgid "Search actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Search %s actions"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "Other"
+msgstr "Kita"
+
+#, c-format, boost-format
+msgid "No actions match (Total: %s)"
+msgstr ""
+
+msgid "No actions yet"
+msgstr ""
+
+msgid "No tabs match"
+msgstr ""
+
+msgid "No tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Showing %s of %s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s actions"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s tabs"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s matches"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourites are full (%s max)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to %s%% of the layer range"
+msgstr ""
+
+msgid "Enter a layer percentage (0-100)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Go to layer %% (0-100)"
+msgstr ""
+
+msgid "Go to tab"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Favourite %s (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Pin to favourites (%s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Unpin from favourites (%s)"
+msgstr ""
+
+msgid "Remove from favourites"
+msgstr ""
+
+msgid "Move left"
+msgstr ""
+
+msgid "Move right"
+msgstr ""
+
+msgid "Unpin"
+msgstr ""
+
+msgid "Wiki (F1)"
+msgstr ""
+
+msgid "No wiki page for this action"
+msgstr ""
+
+msgid "Show details"
+msgstr "Rodyti išsamiau"
+
+# AI Translated
+msgid "Hide details"
+msgstr "Slėpti išsamią informaciją"
+
+#, c-format, boost-format
+msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
+msgstr ""
+
+msgid "Developer setting"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" is a %s setting. Switch from %s mode to %s mode to edit it?"
+msgstr ""
+
+msgid "Switch settings mode"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Run \"%s\"?"
+msgstr ""
+
+msgid "Run plugin"
+msgstr ""
+
+msgid "Don't ask again for this action"
+msgstr ""
 
 msgid "Task canceled"
 msgstr "Užduotis atšaukta"
@@ -10500,8 +10987,16 @@ msgstr "Norint aptikti gumbų susidarymą, reikalingas valymo bokštas. Be valym
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Įjungus ir tikslų Z aukštį, ir valymo bokštą, gali kilti sluoksniavimo klaidų. Ar vis tiek norite įjungti tikslų Z aukštį?"
 
+# AI Translated
+msgid "Smooth timelapse needs a prime tower on every layer, which is not compatible with \"No sparse layers\". \"No sparse layers\" has been turned off."
+msgstr "Sklandžiam pakadriniam filmavimui (timelapse) reikia valymo bokšto kiekviename sluoksnyje, o tai nesuderinama su parinktimi \"Nėra retų sluoksnių\". Parinktis \"Nėra retų sluoksnių\" buvo išjungta."
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Norint sklandžiai įrašyti laiko tarpų (timelapse) vaizdo įrašą, reikalingas valymo bokštas. Be valymo bokšto modelyje gali atsirasti defektų. Ar norite įjungti valymo bokštą?"
+
+# AI Translated
+msgid "\"No sparse layers\" is not compatible with smooth timelapse, which needs a prime tower on every layer. Timelapse has been switched to traditional mode."
+msgstr "Parinktis \"Nėra retų sluoksnių\" nesuderinama su sklandžiu pakadriniu filmavimu (timelapse), kuriam reikia valymo bokšto kiekviename sluoksnyje. Pakadrinis filmavimas perjungtas į tradicinį režimą."
 
 msgid "Still print by object?"
 msgstr "Vis dar spausdinti pagal objektą?"
@@ -10874,9 +11369,6 @@ msgstr "Suderinami apdorojimo profiliai"
 
 msgid "Printable space"
 msgstr "Erdvė spausdinimui"
-
-msgid "Printer Agent"
-msgstr "Spausdintuvo agentas"
 
 msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
 msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti. Prieinami agentai užregistruojami paleidimo metu."
@@ -11280,12 +11772,6 @@ msgstr "Ekstruderių skaičius"
 msgid "Capabilities"
 msgstr "Galimybės"
 
-msgid "Left: "
-msgstr "Kairė:"
-
-msgid "Right: "
-msgstr "Dešinė:"
-
 msgid "Show all presets (including incompatible)"
 msgstr "Rodyti visus profilius (įskaitant nesuderinamus)"
 
@@ -11670,56 +12156,39 @@ msgstr "Konfigūracijos paketas buvo pakeistas ankstesniame konfigūravimo vadov
 msgid "Configuration package changed"
 msgstr "Pakeistas konfigūracijos paketas"
 
-msgid "Toolbar"
-msgstr "Įrankių juosta"
-
-msgid "Objects list"
-msgstr "Objektų sąrašas"
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "Importuoti geometrijos duomenis iš STL/STEP/3MF/OBJ/AMF failų"
-
-msgid "Paste from clipboard"
-msgstr "Įklijuoti iš mainų srities"
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "Rodyti/slėpti 3DConnexion įrenginių nustatymų dialogo langą"
-
-msgid "Switch table page"
-msgstr "Perjungti lentelės puslapį"
-
-msgid "Show keyboard shortcuts list"
-msgstr "Rodyti sparčiųjų klavišų sąrašą"
-
-msgid "Global shortcuts"
-msgstr "Bendrieji spartieji klavišai"
-
 msgid "Pan View"
 msgstr "Vaizdo stūmimas (panoraminis vaizdas)"
 
 msgid "Rotate View"
 msgstr "Vaizdo pasukimas"
 
-msgid "Middle mouse button"
-msgstr "Vidurinis pelės mygtukas"
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
+msgstr ""
 
-msgid "Zoom View"
-msgstr "Vaizdo mastelio keitimas (zoom)"
+msgctxt "Keyboard Shortcut"
+msgid "Key"
+msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-msgstr "Automatiškai orientuoja pasirinktus objektus arba visus objektus. Jei yra pasirinkti objektai, orientuoja tik pasirinktus. Kitais atvejais orientuoja visus esamo projekto objektus."
+msgid "Left mouse"
+msgstr ""
 
-msgid "Auto orients all objects on the active plate."
-msgstr "Automatiškai orientuoja visus objektus aktyvioje plokštėje."
+msgid "Available anywhere in the window, even while typing in a text field."
+msgstr ""
 
-msgid "Collapse/Expand the sidebar"
-msgstr "Sutraukti / išskleisti šoninę juostą"
+msgid "Run a speed dial favorite while the dial is open"
+msgstr ""
 
-msgid "Any arrow"
-msgstr "Bet kuri rodyklė"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
 
-msgid "Movement in camera space"
-msgstr "Judėjimas kameros erdvėje"
+msgid "Switch to the next main tab"
+msgstr ""
+
+msgid "Available while the 3D view on the Prepare tab has focus."
+msgstr ""
 
 msgid "Select a part"
 msgstr "Pasirinkti dalį"
@@ -11730,135 +12199,29 @@ msgstr "Pasirinkite kelis objektus"
 msgid "Select objects by rectangle"
 msgstr "Pasirinkti objektus stačiakampio rėmeliu"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr "Rodyklė aukštyn"
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr "Perkelti pasirinkimą 10 mm teigiama Y kryptimi"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr "Rodyklė žemyn"
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr "Perkelti pasirinkimą 10 mm neigiama Y kryptimi"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr "Rodyklė kairėn"
-
-msgid "Move selection 10mm in negative X direction"
-msgstr "Perkelti pasirinkimą 10 mm neigiama X kryptimi"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr "Rodyklė dešinėn"
-
-msgid "Move selection 10mm in positive X direction"
-msgstr "Perkelti pasirinkimą 10 mm teigiama X kryptimi"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "Klaviatūra 1-9: nustatyti objekto/dalies giją"
 
 msgid "Movement step set to 1mm"
 msgstr "Judėjimo žingsnis nustatytas į 1 mm"
 
-msgid "Keyboard 1-9: set filament for object/part"
-msgstr "Klaviatūra 1-9: nustatyti objekto/dalies giją"
+msgid "Movement in camera space"
+msgstr "Judėjimas kameros erdvėje"
 
-msgid "Camera view - Default"
-msgstr "Kameros vaizdas - Numatytasis"
+msgid "Middle mouse"
+msgstr ""
 
-msgid "Camera view - Top"
-msgstr "Kameros vaizdas - Viršus"
+msgid "Right mouse"
+msgstr ""
 
-msgid "Camera view - Bottom"
-msgstr "Kameros vaizdas - Apačia"
+msgid "Zoom View"
+msgstr "Vaizdo mastelio keitimas (zoom)"
 
-msgid "Camera view - Front"
-msgstr "Kameros vaizdas - Priekis"
+msgid "Painting"
+msgstr ""
 
-msgid "Camera view - Behind"
-msgstr "Kameros vaizdas – iš galo"
-
-msgid "Camera Angle - Left side"
-msgstr "Kameros kampas – iš kairės"
-
-msgid "Camera Angle - Right side"
-msgstr "Kameros kampas – iš dešinės"
-
-msgid "Select all objects"
-msgstr "Pasirinkti visus objektus"
-
-msgid "Gizmo move"
-msgstr "Perkėlimo manipuliatorius"
-
-msgid "Gizmo rotate"
-msgstr "Pasukimo manipuliatorius"
-
-msgid "Gizmo scale"
-msgstr "Mastelio keitimo manipuliatorius"
-
-msgid "Gizmo place face on bed"
-msgstr "Paviršiaus dėjimo ant pagrindo manipuliatorius"
-
-msgid "Gizmo cut"
-msgstr "Pjovimo manipuliatorius"
-
-msgid "Gizmo mesh boolean"
-msgstr "Loginių tinklelio veiksmų (Boolean) manipuliatorius"
-
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "FDM užtepamo grublėto paviršiaus (fuzzy skin) manipuliatorius"
-
-msgid "Gizmo SLA support points"
-msgstr "SLA atramų taškų manipuliatorius"
-
-msgid "Gizmo FDM paint-on seam"
-msgstr "FDM užtepamos siūlės (seam) manipuliatorius"
-
-msgid "Gizmo text emboss/engrave"
-msgstr "Teksto iškėlimo ir įspaudimo (emboss/engrave) manipuliatorius"
-
-msgid "Gizmo measure"
-msgstr "Matavimo manipuliatorius"
-
-msgid "Gizmo assemble"
-msgstr "Surinkimo manipuliatorius"
-
-msgid "Gizmo brim ears"
-msgstr "Krašto „auselių“ (brim ears) manipuliatorius"
-
-msgid "Zoom in"
-msgstr "Padidinti"
-
-msgid "Zoom out"
-msgstr "Nutolinti"
-
-msgid "Toggle printable for object/part"
-msgstr "Perjungti objekto / dalies spausdinimą"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr "Tab"
-
-msgid "Switch between Prepare/Preview"
-msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Tarpas"
-
-# AI Translated
-msgid "Open actions speed dial"
-msgstr "Atidaryti veiksmų greitosios prieigos meniu"
-
-msgid "Plater"
-msgstr "Plokštė"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "Perkėlimas: paspauskite, kad pritrauktumėte kas 1 mm"
@@ -11869,14 +12232,19 @@ msgstr "Atramų ir spalvų užtepimas: keisti teptuko spindulį"
 msgid "Support/Color Painting: adjust section position"
 msgstr "Atramų ir spalvų užtepimas: keisti pjūvio padėtį"
 
-msgid "Gizmo"
-msgstr "Manipuliatorius"
+msgid "Objects list"
+msgstr "Objektų sąrašas"
+
+msgid "Available while the object list has focus."
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Nustatykite ekstruderio numerį objektams ir dalims"
 
-msgid "Delete objects, parts, modifiers"
-msgstr "Ištrinti objektus, dalis, modifikatorius"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Tarpas"
 
 msgid "Select the object/part and press space to change the name"
 msgstr "Pasirinkite objektą ir (arba) dalį ir paspauskite tarpo klavišą, kad pakeistumėte pavadinimą"
@@ -11887,45 +12255,48 @@ msgstr "Pelės paspaudimas"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Pasirinkite objektą/dalį ir spustelėkite pele, kad pakeistumėte pavadinimą"
 
-msgid "Objects List"
-msgstr "Objektų sąrašas"
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr "Vertikalus slankiklis – kelti aktyvų žymeklį aukštyn"
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr "Vertikalus slankiklis – nuleisti aktyvų žymeklį žemyn"
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį kairėn"
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį dešinėn"
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr "Vertikalaus slankiklio vieno sluoksnio režimas įjungimas / išjungimas"
-
-msgid "On/Off G-code window"
-msgstr "G-kodo lango įjungimas / išjungimas"
+msgid "Available while the 3D view on the Preview tab has focus."
+msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr "Judinkite slankiklį 5 kartus greičiau"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Home"
-msgstr "Home"
+msgid "Scroll slider 5x faster"
+msgstr ""
 
-msgid "Horizontal slider - Move to start position"
-msgstr "Horizontalus slankiklis – perkelti į pradinę padėtį"
+msgid "Not customizable"
+msgstr ""
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "End"
-msgstr "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
+msgstr ""
 
-msgid "Horizontal slider - Move to last position"
-msgstr "Horizontalus slankiklis – perkelti į paskutinę padėtį"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
+msgstr ""
 
 msgid "Release Note"
 msgstr "Versijos pastabos (Release notes)"
@@ -12124,14 +12495,21 @@ msgstr "Taisymas atšauktas"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Failo %1% kopijavimas į %2% nepavyko: %3%"
 
+# AI Translated
+msgid "Downloading new vendor profile(s): "
+msgstr "Atsisiunčiami nauji gamintojų profiliai: "
+
+# AI Translated
+#, boost-format
+msgid "Configuration package: %1% updated to %2%"
+msgstr "Konfigūracijos paketas: %1% atnaujintas į %2%"
+
+# AI Translated
+msgid "Failed to download vendor profile(s): "
+msgstr "Nepavyko atsisiųsti gamintojų profilių: "
+
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Prieš atnaujinant konfigūraciją reikia patikrinti neišsaugotus pakeitimus."
-
-msgid "Configuration package: "
-msgstr "Konfigūracijos paketas: "
-
-msgid " updated to "
-msgstr " atnaujintas į "
 
 msgid "Open G-code file:"
 msgstr "Atidaryti G-kodo failą:"
@@ -12192,11 +12570,15 @@ msgstr ""
 msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2."
 msgstr "„Input shaping“ funkcija palaikoma tik „Klipper“, „RepRapFirmware“ ir „Marlin 2“ programinėje aparatinėje įrangoje"
 
-msgid "Grouping error: "
-msgstr "Grupavimo klaida: "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the left nozzle"
+msgstr "Grupavimo klaida: %1% negalima įdėti į kairįjį purkštuką"
 
-msgid " can not be placed in the "
-msgstr "negali būti įkeltas į "
+# AI Translated
+#, boost-format
+msgid "Grouping error: %1% cannot be placed in the right nozzle"
+msgstr "Grupavimo klaida: %1% negalima įdėti į dešinįjį purkštuką"
 
 # AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
@@ -12309,6 +12691,10 @@ msgstr "%1% yra per arti kitų, todėl gali įvykti susidūrimas."
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% yra per aukštas, todėl įvyks susidūrimai."
+
+# AI Translated
+msgid "The relative position of the model and the prime tower does not meet the requirements of the \"No sparse layers\" feature. Please adjust their relative positions, lower the model height, or turn off \"No sparse layers\"."
+msgstr "Modelio ir valymo bokšto tarpusavio padėtis neatitinka funkcijos \"Nėra retų sluoksnių\" reikalavimų. Pakoreguokite jų tarpusavio padėtį, sumažinkite modelio aukštį arba išjunkite parinktį \"Nėra retų sluoksnių\"."
 
 msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " yra per arti uždraustosios zonos, spausdinant gali įvykti susidūrimų."
@@ -12654,6 +13040,9 @@ msgstr "Vietoj G-kodo naudoti 3MF"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Įjunkite, jei spausdintuvas spausdinimo užduotims priima 3MF failus. Kai įjungta, „Orca Slicer“ sugeneruotą failą siunčia kaip „.gcode.3mf“, o ne kaip paprastą „.gcode“ failą."
+
+msgid "Printer Agent"
+msgstr "Spausdintuvo agentas"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti."
@@ -13699,6 +14088,10 @@ msgstr "Sulygiuotas tiesiaeigis"
 msgid "Concentric"
 msgstr "Koncentrinis"
 
+# AI Translated
+msgid "Spiral Inset"
+msgstr "Spiralinis poslinkis"
+
 msgid "Hilbert Curve"
 msgstr "Hilberto kreivė"
 
@@ -13790,13 +14183,13 @@ msgstr "Viršutinio paviršiaus užpildymo tvarka"
 
 # AI Translated
 msgid ""
-"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Kryptis, kuria užpildomi viršutiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
-"„Į išorę“ prasideda paviršiaus centre, todėl bet koks perteklinė medžiaga stumiama link krašto, kur ji mažiausiai matoma. „Į vidų“ prasideda nuo krašto ir baigiasi ankštomis kreivėmis centre.\n"
-"Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+"Kryptis, kuria užpildomi viršutiniai paviršiai naudojant nuo centro einantį raštą (Koncentrinis, Spiralinis poslinkis, Archimedo akordai, Oktagramos spiralė).\n"
+"Į išorę pradeda nuo paviršiaus centro, todėl medžiagos perteklius stumiamas link krašto, kur jis mažiausiai matomas. Į vidų pradeda nuo krašto ir baigia ankštais posūkiais centre.\n"
+"Numatytasis naudoja trumpiausio kelio eiliškumą, kuris gali eiti bet kuria kryptimi."
 
 # AI Translated
 msgid "Bottom surface fill order"
@@ -13804,13 +14197,13 @@ msgstr "Apatinio paviršiaus užpildymo tvarka"
 
 # AI Translated
 msgid ""
-"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Kryptis, kuria užpildomi apatiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
-"„Į vidų“ pradeda kiekvieną paviršių platesnėmis išorinėmis kreivėmis, o tai pagerina pirmojo sluoksnio sukibimą ant pagrindų, kur ankštos kreivės centre gali nesilaikyti. „Į išorę“ prasideda centre, stumdama bet kokią perteklinę medžiagą link krašto.\n"
-"Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+"Kryptis, kuria užpildomi apatiniai paviršiai naudojant nuo centro einantį raštą (Koncentrinis, Spiralinis poslinkis, Archimedo akordai, Oktagramos spiralė).\n"
+"Į vidų pradeda kiekvieną paviršių nuo platesnių išorinių posūkių, o tai pagerina pirmojo sluoksnio sukibimą su pagrindais, prie kurių ankšti posūkiai centre gali nepriliptų. Į išorę pradeda nuo centro ir stumia medžiagos perteklių link krašto.\n"
+"Numatytasis naudoja trumpiausio kelio eiliškumą, kuris gali eiti bet kuria kryptimi."
 
 msgid "Internal solid infill pattern"
 msgstr "Vidinio tvirto užpildo raštas"
@@ -13908,6 +14301,14 @@ msgstr "Prieš laikrodžio rodyklę"
 
 msgid "Clockwise"
 msgstr "Pagal laikrodžio rodyklę"
+
+# AI Translated
+msgid "Distance to rod"
+msgstr "Atstumas iki strypo"
+
+# AI Translated
+msgid "Horizontal distance of the nozzle tip to the rod's farther edge. Used for collision avoidance in by-object printing."
+msgstr "Horizontalus atstumas nuo purkštuko galiuko iki tolimesnio strypo krašto. Naudojamas susidūrimams išvengti spausdinant objektą po objekto."
 
 msgid "Height to rod"
 msgstr "Aukštis iki ašies (strypo)"
@@ -16064,6 +16465,20 @@ msgstr "Aptikti iškyšų sieneles"
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Nustatykite iškyšos procentinę dalį, palyginti su linijos pločiu, ir naudokite skirtingą spausdinimo greitį. Jei iškyša 100%%, naudojamas tilto greitis."
 
+# AI Translated
+msgid "Print unsupported walls last"
+msgstr "Neatremtas sieneles spausdinti paskutines"
+
+# AI Translated
+msgid ""
+"Wall loops that lie entirely in mid air are printed once something can hold them:\n"
+"they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
+"A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
+msgstr ""
+"Sienelės kontūrai, esantys visiškai ore, spausdinami tik tada, kai juos yra kam palaikyti:\n"
+"jie išspaudžiami po kitų savo salos sienelių, pradedant nuo vidinės, nepriklausomai nuo sienelių eiliškumo.\n"
+"Kontūras, kurį gali įtvirtinti tik šio sluoksnio tiltai, laukia, kol tie tiltai bus atspausdinti, o kontūras, einantis šalia atremtos sienelės, išlaiko savo vietą prieš užpildą, kuriam jis reikalingas kaip įtvirtinimas."
+
 msgid "Outer walls"
 msgstr "Išorinės sienelės"
 
@@ -16497,6 +16912,39 @@ msgstr "Nuvalyti kilpas"
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
 msgstr "Siekiant sumažinti siūlės matomumą uždaroje ekstruzijos kilpoje, prieš ekstruderiui išeinant iš kilpos atliekamas nedidelis judesys į vidų."
 
+# AI Translated
+msgid "Wipe inward"
+msgstr "Valymas į vidų"
+
+# AI Translated
+msgid ""
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"\n"
+"Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
+"\n"
+"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+msgstr ""
+"Taikoma tik išorinėms sienelėms, įskaitant skylių kontūrus. Valymo metu karštą purkštuką patraukia link jau atspausdintų vidinių sienelių, kad sumažintų ką tik atspausdinto plastiko pakartotinį įkaitimą ir siūlės žymes.\n"
+"\n"
+"Ypač naudinga esant mažesniam nei 0,1 mm sluoksnio aukščiui, kai valymo žymės labiau matomos.\n"
+"\n"
+"Naudoja įprastą valymą, jei nėra jau atspausdintos gretimos vidinės sienelės (vienos sienelės sritys arba sienelių eiliškumas Išorinis / vidinis) arba jei nepavyksta rasti atremto kelio į vidų, pavyzdžiui, ankštuose kampuose ar siūlės tarpuose."
+
+# AI Translated
+msgid "Wipe inward distance"
+msgstr "Valymo į vidų atstumas"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid ""
+"The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
+"\n"
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+msgstr ""
+"Atstumas, kuriuo valymo kelias pastumiamas nuo išorinio kontūro, nurodomas milimetrais arba procentais nuo faktinio išorinės sienelės išspaudimo pločio.\n"
+"\n"
+"Pavyzdžiui, 50% pastumia kelią per pusę išorinės sienelės pločio. Faktinį poslinkį riboja tiek tikrasis išorinės sienelės plotis, tiek laisvas tarpas iki gretimos sienelės, todėl didesnės nei 100% reikšmės ar joms lygiavertis absoliutus atstumas papildomo poveikio neturi. Nustatykite 0, kad poslinkis būtų išjungtas."
+
 msgid "Wipe before external loop"
 msgstr "Valymas prieš išorinį kontūrą"
 
@@ -16696,8 +17144,8 @@ msgstr "Įkaitinimo etapai"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "Įterpkite kelias įkaitinimo komandas (pvz., M104.1). Naudinga tik „Prusa XL“. Kitiems spausdintuvams nustatykite 1."
 
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "G-kodas, įrašomas pačiame išvesties failo viršuje, prieš bet kokį kitą turinį. Naudingas įterpti metaduomenims, kuriuos spausdintuvo aparatinė programinė įranga nuskaito iš pirmųjų failo eilučių (pvz., numatomą spausdinimo laiką, gijos sąnaudas). Palaiko kintamuosius (placeholders), tokius kaip {print_time_sec} ir {used_filament_length}."
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "Pradžios G-kodas"
@@ -16758,8 +17206,9 @@ msgstr "Paima naują įrankį nelaukdamas, kol jis pasieks spausdinimo temperat�
 msgid "No sparse layers (beta)"
 msgstr "Nėra retų sluoksnių (beta)"
 
-msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Jei įjungta, valymo bokštas nebus spausdinamas tuose sluoksniuose, kur įrankis nekeičiamas. Sluoksniuose, kur įrankis keičiamas, ekstruderis nusileis žemyn atspausdinti valymo bokšto dalies. Naudotojas pats atsako už tai, kad ekstruderis nesusidurtų su spaudiniu."
+# AI Translated
+msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
+msgstr "Jei įjungta, valymo bokštas nebus spausdinamas sluoksniuose be įrankio keitimų. Sluoksniuose su įrankio keitimu ekstruderis nusileis žemyn, kad atspausdintų valymo bokštą, todėl bokštas atsiduria žemiau modelio ir spausdinimo galvutė turi prie jo pasiekti žemyn. Išdėstymai, kuriuose tai susidurtų su jau atspausdintu objektu, atmetami. Neveikia esant sklandžiam pakadriniam filmavimui ar purkštuko apnašų aptikimui, nes jiems reikia bokšto kiekviename sluoksnyje."
 
 msgid "Prime all printing extruders"
 msgstr "Paruošti (prime) visus spausdinimo ekstruderius"
@@ -16785,6 +17234,34 @@ msgstr ""
 msgid "Cyclic"
 msgstr "Ciklinė"
 
+# AI Translated
+msgid "Cyclic order"
+msgstr "Ciklinis eiliškumas"
+
+# AI Translated
+msgid ""
+"Custom filament sequence used by the cyclic toolchange ordering, as filament numbers separated by commas (e.g. \"3,2,1,4\").\n"
+"Each layer prints its filaments following this sequence; filaments not listed are printed last, in ascending order.\n"
+"Leave empty to cycle through the filaments in ascending order."
+msgstr ""
+"Pasirinktinė gijų seka, naudojama cikliniame įrankių keitimo eiliškume, kaip kableliais atskirti gijų numeriai (pvz., \"3,2,1,4\").\n"
+"Kiekvienas sluoksnis spausdina savo gijas pagal šią seką; nenurodytos gijos spausdinamos paskutinės, didėjimo tvarka.\n"
+"Palikite tuščią, kad gijos būtų perrenkamos didėjimo tvarka."
+
+# AI Translated
+msgid "Apply cyclic order to first layer"
+msgstr "Taikyti ciklinį eiliškumą pirmajam sluoksniui"
+
+# AI Translated
+msgid ""
+"Applies the cyclic toolchange order to the first layer as well.\n"
+"By default this is disabled, because the first layer is instead ordered for the best bed adhesion: filaments that print small, fragile first-layer features are printed last, so the following tool changes and travel moves are less likely to knock those weakly anchored parts loose. This first-layer order also honors a custom first layer filament sequence when one is set. The cyclic order's benefit (extra tool changes give each layer more time to cool) does not apply to the first layer, which is printed slowly and hot for adhesion.\n"
+"Enable this only if you need the exact same tool sequence on every layer, including the first, at the cost of that adhesion optimization."
+msgstr ""
+"Taiko ciklinį įrankių keitimo eiliškumą ir pirmajam sluoksniui.\n"
+"Pagal numatytuosius nustatymus tai išjungta, nes pirmasis sluoksnis vietoj to išdėstomas siekiant geriausio sukibimo su pagrindu: gijos, kuriomis spausdinamos mažos, trapios pirmojo sluoksnio detalės, spausdinamos paskutinės, todėl tolesni įrankių keitimai ir tuščiosios eigos rečiau nuplėšia tas silpnai įtvirtintas dalis. Šis pirmojo sluoksnio eiliškumas taip pat atsižvelgia į pirmojo sluoksnio pasirinktinę gijų seką, jei ji nustatyta. Ciklinio eiliškumo nauda (papildomi įrankių keitimai kiekvienam sluoksniui suteikia daugiau laiko atvėsti) pirmajam sluoksniui negalioja, nes jis spausdinamas lėtai ir karštas dėl sukibimo.\n"
+"Įjunkite tai tik tuomet, jei jums reikia tiksliai tokios pačios įrankių sekos kiekviename sluoksnyje, įskaitant pirmąjį, aukojant šį sukibimo optimizavimą."
+
 msgid "Slice gap closing radius"
 msgstr "Sluoksniavimo tarpo uždarymo spindulys"
 
@@ -16793,9 +17270,6 @@ msgstr "Plyšiai, mažesni nei 2x tarpo uždarymo spindulys, užpildomi trikampi
 
 msgid "Slicing Mode"
 msgstr "Sluoksniavimo režimas"
-
-msgid "Other"
-msgstr "Kita"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "„3DLabPrint“ lėktuvų modeliams naudokite „Lyginis-nelyginis“. Naudokite „Uždaryti kiaurymes“, kad uždarytumėte visas modelio kiaurymes."
@@ -17727,9 +18201,6 @@ msgstr "per didelis linijos plotis "
 msgid " not in range "
 msgstr " nepatenka į intervalą "
 
-msgid "Export 3MF"
-msgstr "Eksportuoti 3MF"
-
 msgid "This exports the project as a 3MF file."
 msgstr "Tai eksportuoja projektą kaip 3MF failą."
 
@@ -17744,9 +18215,6 @@ msgstr "Įkelti sluoksniavimo duomenis"
 
 msgid "Load cached slicing data from directory."
 msgstr "Įkelti į talpyklą įrašytus sluoksniavimo duomenis iš katalogo."
-
-msgid "Export STL"
-msgstr "Eksportuoti STL"
 
 msgid "Export the objects as single STL."
 msgstr "Eksportuoti visus objektus kaip vieną STL."
@@ -17799,6 +18267,14 @@ msgstr "Netikrinama"
 msgid "Do not run any validity checks, such as G-code path conflicts check."
 msgstr "Nevykdyti jokių tinkamumo patikrinimų, pavyzdžiui, G-kodo (G-code) trajektorijų konfliktų patikros."
 
+# AI Translated
+msgid "Strict mode"
+msgstr "Griežtas režimas"
+
+# AI Translated
+msgid "Exit non-zero when slicing raises a non-critical warning that is otherwise only logged, such as a model that needs support while support is disabled. Use this in CI or scripted pipelines that should never ship a subtly broken slice. Each such warning is also listed with a stable class in the `warnings` array of result.json, which is written on Linux only. Cannot be combined with --no-check, which skips the support check."
+msgstr "Baigia darbą su ne nuliniu kodu, kai sluoksniuojant pateikiamas nekritinis įspėjimas, kuris kitu atveju būtų tik užregistruotas žurnale, pavyzdžiui, modelis, kuriam reikia atramų, kai atramos išjungtos. Naudokite tai CI arba scenarijais valdomuose procesuose, kurie niekada neturėtų pateikti nepastebimai sugadinto rezultato. Kiekvienas toks įspėjimas taip pat nurodomas su pastoviu klasės vardu result.json masyve `warnings`, kuris rašomas tik Linux sistemoje. Negalima derinti su --no-check, kuris praleidžia atramų patikrą."
+
 msgid "Normative check"
 msgstr "Normatyvinė patikra"
 
@@ -17811,11 +18287,28 @@ msgstr "Išvesti modelio informaciją"
 msgid "This outputs the model’s information."
 msgstr "Tai išveda modelio informaciją."
 
+# AI Translated
+msgid "Inspect mesh (JSON to stdout)"
+msgstr "Tikrinti tinklelį (JSON į stdout)"
+
+# AI Translated
+msgid "Print a JSON summary of each loaded object to stdout, then exit: its bounding boxes and the convex hull faces it can be laid on, with their normals, areas and centers. These are the faces the --ground-* options choose from. Machine-readable alternative to --info."
+msgstr "Išveda į stdout JSON santrauką apie kiekvieną įkeltą objektą ir baigia darbą: jo ribojančius gretasienius ir iškiliojo apvalkalo sienas, ant kurių jį galima paguldyti, su jų normalėmis, plotais ir centrais. Būtent iš šių sienų renkasi --ground-* parinktys. Kompiuterio skaitoma alternatyva --info."
+
+# AI Translated
+msgid "Inspect paint (JSON to stdout)"
+msgstr "Tikrinti piešinį (JSON į stdout)"
+
+# AI Translated
+msgid "Print a structured JSON summary of every painted layer (supports, seam, MMU color, fuzzy-skin) already stored on the loaded model — per-state facet count, surface area, and mesh-local bounding box — then exit. Machine-readable alternative to opening the paint gizmos in the GUI."
+msgstr "Išveda struktūrizuotą JSON santrauką apie kiekvieną piešimo sluoksnį (atramos, siūlė, MMU spalva, grublėtas paviršius), jau įrašytą į įkeltą modelį — sienelių skaičių, paviršiaus plotą ir ribojantį gretasienį tinklelio koordinatėmis kiekvienai būsenai — ir baigia darbą. Kompiuterio skaitoma alternatyva piešimo įrankių atvėrimui sąsajoje."
+
 msgid "Export Settings"
 msgstr "Eksportavimo nustatymai"
 
-msgid "This exports settings to a file."
-msgstr "Tai eksportuoja nustatymus į failą."
+# AI Translated
+msgid "This exports settings to a file. Use - to write them to stdout."
+msgstr "Tai eksportuoja parametrus į failą. Naudokite -, kad jie būtų įrašyti į stdout."
 
 msgid "Send progress to pipe"
 msgstr "Siųsti pažangą į kanalą"
@@ -17870,6 +18363,30 @@ msgstr "Pasukti aplink Y ašį"
 
 msgid "Rotation angle around the Y axis in degrees."
 msgstr "Sukimosi kampas aplink Y ašį laipsniais."
+
+# AI Translated
+msgid "Ground largest face"
+msgstr "Guldyti ant didžiausios sienos"
+
+# AI Translated
+msgid "Lay each object on the largest face of its convex hull and drop it onto the bed. Of equally large faces, the one already facing down is kept. Objects without a face large enough to rest on are left as they are. Transforms run in command-line order, so rotations given before this option are respected. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Paguldo kiekvieną objektą ant didžiausios jo iškiliojo apvalkalo sienos ir nuleidžia jį ant pagrindo. Iš vienodo dydžio sienų paliekama ta, kuri jau nukreipta žemyn. Objektai, neturintys pakankamai didelės sienos atsiremti, paliekami tokie, kokie yra. Transformacijos vykdomos komandų eilutės tvarka, todėl prieš šią parinktį nurodyti pasukimai išlaikomi. --orient 1 vykdoma po visų transformacijų ir pakeičia orientaciją."
+
+# AI Translated
+msgid "Ground face by normal"
+msgstr "Guldyti ant sienos pagal normalę"
+
+# AI Translated
+msgid "Lay each object on the convex hull face whose outward normal is closest to the direction NX,NY,NZ and drop it onto the bed. The direction is in object coordinates, which include the rotations given before this option and match the plate axes unless the input file rotates the object. For example, 1,0,0 stands the object on its +X side. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Paguldo kiekvieną objektą ant tos iškiliojo apvalkalo sienos, kurios išorinė normalė arčiausia krypties NX,NY,NZ, ir nuleidžia jį ant pagrindo. Kryptis nurodoma objekto koordinatėmis, kurios apima prieš šią parinktį nurodytus pasukimus ir sutampa su pagrindo ašimis, nebent įvesties failas objektą pasuka. Pavyzdžiui, 1,0,0 pastato objektą ant jo +X pusės. --orient 1 vykdoma po visų transformacijų ir pakeičia orientaciją."
+
+# AI Translated
+msgid "Ground face at point"
+msgstr "Guldyti ant sienos taške"
+
+# AI Translated
+msgid "Lay each object on the convex hull face that contains the point X,Y,Z and drop it onto the bed. The point is in object coordinates, which include the rotations given before this option; --inspect-mesh reports face centers in them. Objects without such a face are left as they are, and the run fails if no object has one. --orient 1 runs after all transforms and replaces the orientation."
+msgstr "Paguldo kiekvieną objektą ant tos iškiliojo apvalkalo sienos, kurioje yra taškas X,Y,Z, ir nuleidžia jį ant pagrindo. Taškas nurodomas objekto koordinatėmis, kurios apima prieš šią parinktį nurodytus pasukimus; --inspect-mesh pateikia sienų centrus būtent jomis. Objektai, neturintys tokios sienos, paliekami tokie, kokie yra, o vykdymas nepavyksta, jei tokios sienos neturi nė vienas objektas. --orient 1 vykdoma po visų transformacijų ir pakeičia orientaciją."
 
 msgid "Scale the model by a float factor."
 msgstr "Keisti modelio mastelį pagal slankiojo kablelio koeficientą."
@@ -18170,11 +18687,35 @@ msgstr "Naudota gija"
 msgid "Total length of filament used in the print."
 msgstr "Bendras viso spausdinimo metu sunaudotos gijos ilgis."
 
-msgid "Print time (seconds)"
-msgstr "Spausdinimo laikas (sekundėmis)"
+msgid "Print time (total seconds)"
+msgstr ""
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Bendras numatomas spausdinimo laikas sekundėmis. Papildomo apdorojimo (post-processing) metu pakeičiama faktine reikšme."
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
 
 msgid "Filament length (meters)"
 msgstr "Gijos ilgis (metrais)"
@@ -18405,9 +18946,6 @@ msgstr "Faile yra neteisingas viršūnių indeksas."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Šio OBJ failo nepavyko perskaityti, nes jis tuščias."
-
-msgid "Max Volumetric Speed Calibration"
-msgstr "Didžiausio tūrinio greičio kalibravimas"
 
 msgid "Manage Result"
 msgstr "Tvarkyti rezultatus"
@@ -19256,9 +19794,6 @@ msgstr ""
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "PASTABA: didelės reikšmės gali lemti sluoksnių poslinkį (Layer shift) (>%s)"
 
-msgid "Flow Ratio Calibration"
-msgstr "Srauto santykio kalibravimas"
-
 msgid "Calibration Test Type"
 msgstr "Kalibravimo testo tipas"
 
@@ -20022,6 +20557,9 @@ msgstr "Nerasta galiojančios sesijos. Prisijungti prie „3DPrinterOS“?"
 
 msgid "Success!"
 msgstr "Pavyko!"
+
+msgid "Generate API Key"
+msgstr ""
 
 msgid "Are you sure to log out?"
 msgstr "Ar tikrai norite atsijungti?"
@@ -20935,14 +21473,17 @@ msgstr "Šio veiksmo atšaukti nebus galima. Tęsti?"
 msgid "Skipping objects."
 msgstr "Praleidžiami objektai."
 
+# AI Translated
 msgid "Material Ratio"
-msgstr ""
+msgstr "Medžiagos santykis"
 
+# AI Translated
 msgid "Model Height"
-msgstr ""
+msgstr "Modelio aukštis"
 
+# AI Translated
 msgid "Ratio"
-msgstr ""
+msgstr "Santykis"
 
 msgid "Select Filament"
 msgstr "Pasirinkti giją"
@@ -20974,13 +21515,6 @@ msgstr "„Bambu“ tinklo papildinys yra būtinas, kad veiktų debesijos funkci
 #, c-format, boost-format
 msgid "Error: %s"
 msgstr "Klaida: %s"
-
-msgid "Show details"
-msgstr "Rodyti išsamiau"
-
-# AI Translated
-msgid "Hide details"
-msgstr "Slėpti išsamią informaciją"
 
 msgid "Version to install:"
 msgstr "Diegiama versija:"
@@ -21198,12 +21732,14 @@ msgid "Drying-Dehumidifying"
 msgstr "Džiovinimas – sausinimas"
 
 # AI Translated
-msgid " maximum drying temperature is "
-msgstr " didžiausia džiovinimo temperatūra yra "
+#, c-format, boost-format
+msgid "%s maximum drying temperature is %d°C."
+msgstr "Didžiausia %s džiovinimo temperatūra yra %d°C."
 
 # AI Translated
-msgid " minimum drying temperature is "
-msgstr " mažiausia džiovinimo temperatūra yra "
+#, c-format, boost-format
+msgid "%s minimum drying temperature is %d°C."
+msgstr "Mažiausia %s džiovinimo temperatūra yra %d°C."
 
 # AI Translated
 msgid "This filament may not be completely dried."
@@ -21347,6 +21883,2494 @@ msgstr "Gija gali būti nesuderinama su dabartiniais įrenginio nustatymais. Bus
 
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Gijos modelis nežinomas. Bus naudojamas atsitiktinis gijos profilis."
+
+msgid "Construction"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  ·  on %s"
+msgstr ""
+
+msgid "Line — click start, then end"
+msgstr ""
+
+msgid "Rectangle — click two opposite corners"
+msgstr ""
+
+msgid "Circle — click center, then radius"
+msgstr ""
+
+msgid "Arc — click start, end, then a point"
+msgstr ""
+
+msgid "Slot — two centerline ends, then end radius"
+msgstr ""
+
+msgid "Ellipse — center, major end, minor point"
+msgstr ""
+
+msgid "Spline — click control points"
+msgstr ""
+
+msgid "Point — click to place"
+msgstr ""
+
+msgid "Dimension — click 2 points or an entity"
+msgstr ""
+
+msgid "Trim — click a segment to trim it"
+msgstr ""
+
+msgid "Extend — click a line/arc to extend it"
+msgstr ""
+
+msgid "Offset — pick an entity, drag the distance"
+msgstr ""
+
+msgid "Mirror — pick axis, then entities"
+msgstr ""
+
+msgid "Fillet — pick two lines, set the radius"
+msgstr ""
+
+msgid "Chamfer — pick two lines, set the distance"
+msgstr ""
+
+msgid "Polygon — click center, then a vertex"
+msgstr ""
+
+msgid "Nothing here has a value to type — pick a line, an arc, a circle, or two entities"
+msgstr ""
+
+msgid "Normal to the sketch plane"
+msgstr ""
+
+msgid "Converted the selection between construction and real geometry"
+msgstr ""
+
+msgid "Origin planes shown"
+msgstr ""
+
+msgid "Origin planes hidden"
+msgstr ""
+
+msgid "World axes shown"
+msgstr ""
+
+msgid "World axes hidden"
+msgstr ""
+
+msgid "Isometric view, fitted"
+msgstr ""
+
+msgid "Bed shown"
+msgstr ""
+
+msgid "Bed hidden"
+msgstr ""
+
+msgid "FEATURES"
+msgstr ""
+
+msgid "Sketch"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketching on %s — pick a tool"
+msgstr ""
+
+msgid "Click a face or a reference plane in the viewport, then a sketch tool"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Drawing on %s.\n"
+"Pick a tool, or press Menu for the list."
+msgstr ""
+
+msgid "Click a face or a reference plane, then a sketch tool."
+msgstr ""
+
+msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
+msgstr ""
+
+msgid "Extrude a sketch profile, or push/pull a picked face"
+msgstr ""
+
+msgid "Create a sketch, or pick a solid face, first"
+msgstr ""
+
+msgid "Revolve"
+msgstr ""
+
+msgid "Revolve a profile about an axis"
+msgstr ""
+
+msgid "Create a sketch profile to revolve first"
+msgstr ""
+
+msgid "Sweep"
+msgstr ""
+
+msgid "Sweep a profile along a path"
+msgstr ""
+
+msgid "Create a profile sketch to sweep first"
+msgstr ""
+
+msgid "Loft"
+msgstr ""
+
+msgid "Loft (skin) between two or more profiles"
+msgstr ""
+
+msgid "Create at least two profile sketches to loft"
+msgstr ""
+
+msgid "Thicken"
+msgstr ""
+
+msgid "Offset a solid face into a thin plate (new body)"
+msgstr ""
+
+msgid "Thicken needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format
+msgid "Body %zu"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch line, fused to a body"
+msgstr ""
+
+msgid "Rib needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Create a sketch with an open line first"
+msgstr ""
+
+msgid "Create a solid body to pattern first"
+msgstr ""
+
+msgid "Pattern — needs a solid body to replicate"
+msgstr ""
+
+msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
+msgstr ""
+
+msgid "Surface Extrude"
+msgstr ""
+
+msgid "Extrude a sketch into a sheet body (no end caps)"
+msgstr ""
+
+msgid "Create a sketch first"
+msgstr ""
+
+msgid "Surface Revolve"
+msgstr ""
+
+msgid "Revolve a sketch profile into a sheet body"
+msgstr ""
+
+msgid "Surface Loft"
+msgstr ""
+
+msgid "Loft (skin) between 2+ profiles, open (no end caps)"
+msgstr ""
+
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Fill a sketch boundary with a smooth face"
+msgstr ""
+
+msgid "Create a sketch profile to fill first"
+msgstr ""
+
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Offset a sheet body's shell by a signed distance"
+msgstr ""
+
+msgid "No sheet body to offset — create a surface feature first"
+msgstr ""
+
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Thicken a sheet body into a solid"
+msgstr ""
+
+msgid "No sheet body to thicken — create a surface feature first"
+msgstr ""
+
+msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
+msgstr ""
+
+msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
+msgstr ""
+
+msgid "Coord Sys"
+msgstr ""
+
+msgid "Datum coordinate system (world point, or face + direction edge)"
+msgstr ""
+
+msgid "Helix"
+msgstr ""
+
+msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
+msgstr ""
+
+msgid "Project body edges onto a plane as sketch entities"
+msgstr ""
+
+msgid "Project needs a body — add or import one first"
+msgstr ""
+
+msgid "(all edges)"
+msgstr ""
+
+msgid "Placement (transform / mirror / mate)"
+msgstr ""
+
+msgid "Transform"
+msgstr ""
+
+msgid "Move and/or rotate an existing body"
+msgstr ""
+
+msgid "Transform needs a body — add or import one first"
+msgstr ""
+
+msgid "Reflect a body about a plane"
+msgstr ""
+
+msgid "Mirror needs a body — add or import one first"
+msgstr ""
+
+msgid "Mate"
+msgstr ""
+
+msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
+msgstr ""
+
+msgid "Boolean (combine bodies)"
+msgstr ""
+
+msgid "Boolean — needs two solid bodies to combine"
+msgstr ""
+
+msgid "Cut (split a body with a plane)"
+msgstr ""
+
+msgid "Create a solid body to cut first"
+msgstr ""
+
+msgid "Cut — needs a solid body to slice"
+msgstr ""
+
+msgid "Color — set the selected body's display colour"
+msgstr ""
+
+msgid "Select a feature, or a body, first — then rename it"
+msgstr ""
+
+msgid "Fillet / chamfer / draft / shell / delete face"
+msgstr ""
+
+msgid "Fillet / Chamfer"
+msgstr ""
+
+msgid "Round or bevel a picked edge"
+msgstr ""
+
+msgid "Draft (taper a face)"
+msgstr ""
+
+msgid "Tilt a picked face by a draft angle"
+msgstr ""
+
+msgid "Hollow the body to a wall thickness, opening a picked face"
+msgstr ""
+
+msgid "Delete Face"
+msgstr ""
+
+msgid "Remove faces from a body and heal the solid"
+msgstr ""
+
+msgid "Delete Face needs a body — add or import one first"
+msgstr ""
+
+msgid "(none)"
+msgstr ""
+
+msgid "Hole / thread"
+msgstr ""
+
+msgid "Drill a hole, centred on a picked face or placed on a plane"
+msgstr ""
+
+msgid "Thread"
+msgstr ""
+
+msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
+msgstr ""
+
+msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
+msgstr ""
+
+msgid "Import STEP (editable B-rep solid)"
+msgstr ""
+
+msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
+msgstr ""
+
+msgid "Constrain selected sketch"
+msgstr ""
+
+msgid "SKETCH"
+msgstr ""
+
+msgid "Click to select; Shift to add; double-click for a whole loop"
+msgstr ""
+
+msgid "Dimension"
+msgstr ""
+
+msgid "Click 2 points or a line / circle / arc to place a dimension"
+msgstr ""
+
+msgid "Line / polyline"
+msgstr ""
+
+msgid "Click start, then end — then set the exact length"
+msgstr ""
+
+msgid "Polyline"
+msgstr ""
+
+msgid "Click points; click first / right-click to close the loop"
+msgstr ""
+
+msgid "Corner rectangle"
+msgstr ""
+
+msgid "Click two opposite corners"
+msgstr ""
+
+msgid "Center rectangle"
+msgstr ""
+
+msgid "Click center, then a corner"
+msgstr ""
+
+msgid "Oblique rectangle"
+msgstr ""
+
+msgid "Click two corners of one edge, then a point for the width"
+msgstr ""
+
+msgid "Rounded rectangle"
+msgstr ""
+
+msgid "Click two opposite corners, then a point for the corner radius"
+msgstr ""
+
+msgid "Center circle"
+msgstr ""
+
+msgid "Click center, then radius"
+msgstr ""
+
+msgid "2-point circle"
+msgstr ""
+
+msgid "Click two ends of the diameter"
+msgstr ""
+
+msgid "3-point circle"
+msgstr ""
+
+msgid "Click three points on the circle"
+msgstr ""
+
+msgid "Arc"
+msgstr ""
+
+msgid "3-point arc"
+msgstr ""
+
+msgid "Click start, end, then a point on the arc"
+msgstr ""
+
+msgid "Tangent arc"
+msgstr ""
+
+msgid "Click start (on the last entity) then end"
+msgstr ""
+
+msgid "Center-point arc"
+msgstr ""
+
+msgid "Click center, then start, then a point for the end angle"
+msgstr ""
+
+msgid "Slot"
+msgstr ""
+
+msgid "Click two centerline ends, then a point for the end radius"
+msgstr ""
+
+msgid "Arc slot"
+msgstr ""
+
+msgid "Click center, start, end, then a point for the width"
+msgstr ""
+
+msgid "Ellipse"
+msgstr ""
+
+msgid "Click center, a major-axis end, then a point for the minor axis"
+msgstr ""
+
+msgid "Elliptical arc"
+msgstr ""
+
+msgid "Click center, major-axis end, minor point, then arc start and end"
+msgstr ""
+
+msgid "Spline"
+msgstr ""
+
+msgid "Click control points; double-click or right-click to finish"
+msgstr ""
+
+msgid "Click to place a point"
+msgstr ""
+
+msgid "Select — click to select; Shift to add"
+msgstr ""
+
+msgid "Text — emboss text as a profile"
+msgstr ""
+
+msgid "SVG — import an outline as a profile"
+msgstr ""
+
+msgid "Fillet / chamfer"
+msgstr ""
+
+msgid "Fillet"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the radius to set it"
+msgstr ""
+
+msgid "Chamfer"
+msgstr ""
+
+msgid "Pick two lines, then drag the arrow or click the distance to set it"
+msgstr ""
+
+msgid "Offset"
+msgstr ""
+
+msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
+msgstr ""
+
+msgid "Trim"
+msgstr ""
+
+msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
+msgstr ""
+
+msgid "Extend"
+msgstr ""
+
+msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
+msgstr ""
+
+msgid "Constrain — add geometric/dimensional relations"
+msgstr ""
+
+msgid "Move / rotate / scale"
+msgstr ""
+
+msgid "Move (translate)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
+msgstr ""
+
+msgid "Rotate (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
+msgstr ""
+
+msgid "Scale (about centroid)"
+msgstr ""
+
+msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
+msgstr ""
+
+msgid "Linear / polar array"
+msgstr ""
+
+msgid "Linear array"
+msgstr ""
+
+msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
+msgstr ""
+
+msgid "Polar array (about centroid)"
+msgstr ""
+
+msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Click center then a vertex — %d sides, %s"
+msgstr ""
+
+msgid "circumscribed"
+msgstr ""
+
+msgid "inscribed"
+msgstr ""
+
+msgid "Polygon"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Converted %d entit%s between construction and real geometry"
+msgstr ""
+
+msgid "CONSTRAIN"
+msgstr ""
+
+msgid "Perpendicular"
+msgstr ""
+
+msgid "Coincident"
+msgstr ""
+
+msgid "Equal length"
+msgstr ""
+
+msgid "Equal radius"
+msgstr ""
+
+msgid "Collinear"
+msgstr ""
+
+msgid "Tangent"
+msgstr ""
+
+msgid "Midpoint"
+msgstr ""
+
+msgid "Symmetric"
+msgstr ""
+
+msgid "Symmetric about the vertical axis"
+msgstr ""
+
+msgid "Symmetric about the horizontal axis"
+msgstr ""
+
+msgid "Fix point (anchor in place)"
+msgstr ""
+
+msgid "Horizontal distance"
+msgstr ""
+
+msgid "Vertical distance"
+msgstr ""
+
+msgid "✓ Confirm"
+msgstr ""
+
+msgid "✗ Cancel"
+msgstr ""
+
+msgid "Undo (Ctrl+Z)"
+msgstr ""
+
+msgid "Redo (Ctrl+Shift+Z)"
+msgstr ""
+
+msgid "New Design — clear the feature tree"
+msgstr ""
+
+msgid "Export STEP…"
+msgstr ""
+
+msgid "Show the printer bed and its plate grid"
+msgstr ""
+
+msgid "Place on Face (F) — lay the picked face on the bed"
+msgstr ""
+
+msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
+msgstr ""
+
+msgid "Flip Section — show the opposite half"
+msgstr ""
+
+msgid "Commit to Plate — send the solid to Prepare"
+msgstr ""
+
+msgid "Width / X"
+msgstr ""
+
+msgid "Height / Y"
+msgstr ""
+
+msgid "Distance X"
+msgstr ""
+
+msgid "Distance Y"
+msgstr ""
+
+msgid "Distance Z"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Rotation axis"
+msgstr ""
+
+msgid "Angle °"
+msgstr ""
+
+msgid "Move / Rotate"
+msgstr ""
+
+msgid "Sketch: —"
+msgstr ""
+
+msgid "Extrude dist"
+msgstr ""
+
+msgid "End"
+msgstr "Pabaiga"
+
+msgid "2nd dist"
+msgstr ""
+
+msgid "Taper °"
+msgstr ""
+
+msgid "New body"
+msgstr ""
+
+msgid "Intersect"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Flip direction"
+msgstr ""
+
+msgid "(no edge picked — group below)"
+msgstr ""
+
+msgid "Bottom"
+msgstr "Apačia"
+
+msgid "Lateral"
+msgstr ""
+
+msgid "Edges"
+msgstr ""
+
+msgid "Size (r/dist)"
+msgstr ""
+
+msgid "XY"
+msgstr ""
+
+msgid "XZ"
+msgstr ""
+
+msgid "YZ"
+msgstr ""
+
+msgid "Hole plane"
+msgstr ""
+
+msgid "Depth (blind)"
+msgstr ""
+
+msgid "Pos X"
+msgstr ""
+
+msgid "Pos Y"
+msgstr ""
+
+msgid "Through"
+msgstr ""
+
+msgid "(none — uses Hole plane)"
+msgstr ""
+
+msgid "On face"
+msgstr ""
+
+msgid "Thread plane"
+msgstr ""
+
+msgid "Pitch"
+msgstr ""
+
+msgid "Thread depth"
+msgstr ""
+
+msgid "(none — uses Thread plane)"
+msgstr ""
+
+msgid "Plane X"
+msgstr ""
+
+msgid "Plane Y"
+msgstr ""
+
+msgid "Profile: —"
+msgstr ""
+
+msgid "Path"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Total angle°"
+msgstr ""
+
+msgid "Boolean"
+msgstr ""
+
+msgid "Union (join)"
+msgstr ""
+
+msgid "Subtract (cut)"
+msgstr ""
+
+msgid "Target (kept)"
+msgstr ""
+
+msgid "Keep tool body"
+msgstr ""
+
+msgid "Body"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid ""
+"Drag a corner to size, the centre to move.\n"
+"Confirm or Cancel in the toolbar above."
+msgstr ""
+
+msgid "Midplane"
+msgstr ""
+
+msgid "Two edges"
+msgstr ""
+
+msgid "Plane type"
+msgstr ""
+
+msgid "Base"
+msgstr ""
+
+msgid "Angle°"
+msgstr ""
+
+msgid "Base X"
+msgstr ""
+
+msgid "Base Y"
+msgstr ""
+
+msgid "Tilt axis"
+msgstr ""
+
+msgid "Pick Face A"
+msgstr ""
+
+msgid "Pick Face B"
+msgstr ""
+
+msgid "Pick Edge A"
+msgstr ""
+
+msgid "Pick Edge B"
+msgstr ""
+
+msgid "Size U"
+msgstr ""
+
+msgid "Size V"
+msgstr ""
+
+msgid "Profiles (check 2+, in order):"
+msgstr ""
+
+msgid "Ruled (straight) sections"
+msgstr ""
+
+msgid "Fills the sketch's closed boundary with a smooth face."
+msgstr ""
+
+msgid "Sheet body"
+msgstr ""
+
+msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
+msgstr ""
+
+msgid "Thickens a sheet body into a solid. Flip reverses the direction."
+msgstr ""
+
+msgid "(all faces — closed hollow)"
+msgstr ""
+
+msgid "Open face"
+msgstr ""
+
+msgid "Pick a solid face to open it, then set the wall thickness."
+msgstr ""
+
+msgid "Angle (°)"
+msgstr ""
+
+msgid "(pick a side face)"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
+msgstr ""
+
+msgid "Translate X"
+msgstr ""
+
+msgid "Translate Y"
+msgstr ""
+
+msgid "Translate Z"
+msgstr ""
+
+msgid "Rotate axis"
+msgstr ""
+
+msgid "Pivot X"
+msgstr ""
+
+msgid "Pivot Y"
+msgstr ""
+
+msgid "Pivot Z"
+msgstr ""
+
+msgid "Keep original (make a copy)"
+msgstr ""
+
+msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
+msgstr ""
+
+msgid "Mirror plane"
+msgstr ""
+
+msgid "Keep original"
+msgstr ""
+
+msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
+msgstr ""
+
+msgid "(pick a solid face)"
+msgstr ""
+
+msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
+msgstr ""
+
+msgid "Target body"
+msgstr ""
+
+msgid "Entity index"
+msgstr ""
+
+msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
+msgstr ""
+
+msgid "Source body"
+msgstr ""
+
+msgid "Target plane"
+msgstr ""
+
+msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
+msgstr ""
+
+msgid "Add picked face"
+msgstr ""
+
+msgid "Click a face on the body first, then Add picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d is already in the list"
+msgstr ""
+
+msgid "Faces to delete"
+msgstr ""
+
+msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
+msgstr ""
+
+msgid "Left-handed"
+msgstr ""
+
+msgid "Taper (°)"
+msgstr ""
+
+msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
+msgstr ""
+
+msgid "Two points"
+msgstr ""
+
+msgid "Face normal"
+msgstr ""
+
+msgid "Cylinder centerline"
+msgstr ""
+
+msgid "Plane intersection"
+msgstr ""
+
+msgid "Along edge"
+msgstr ""
+
+msgid "Axis type"
+msgstr ""
+
+msgid "Pick Face"
+msgstr ""
+
+msgid "Pick Edge"
+msgstr ""
+
+msgid "Plane A"
+msgstr ""
+
+msgid "Plane B"
+msgstr ""
+
+msgid "Point 1 X"
+msgstr ""
+
+msgid "Point 1 Y"
+msgstr ""
+
+msgid "Point 1 Z"
+msgstr ""
+
+msgid "Point 2 X"
+msgstr ""
+
+msgid "Point 2 Y"
+msgstr ""
+
+msgid "Point 2 Z"
+msgstr ""
+
+msgid "Point (world)"
+msgstr ""
+
+msgid "Face + direction"
+msgstr ""
+
+msgid "(all)"
+msgstr ""
+
+msgid "Restrict picking to one body — the others go see-through and stop catching clicks"
+msgstr ""
+
+msgid "Edge (sets in-plane direction)"
+msgstr ""
+
+msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
+msgstr ""
+
+msgid "X hint X"
+msgstr ""
+
+msgid "X hint Y"
+msgstr ""
+
+msgid "X hint Z"
+msgstr ""
+
+msgid "Fastened — 6 DOF locked, B driven onto A exactly"
+msgstr ""
+
+msgid "Planar — z aligned, offset distance; free in-plane slide"
+msgstr ""
+
+msgid "Revolute — axes collinear; free rotation about z"
+msgstr ""
+
+msgid "Slider — orientation locked; free axial slide"
+msgstr ""
+
+msgid "Cylindrical — axes collinear; free spin + axial slide"
+msgstr ""
+
+msgid "Kind"
+msgstr ""
+
+msgid "CS A (fixed)"
+msgstr ""
+
+msgid "CS B (moves)"
+msgstr ""
+
+msgid "Flip (oppose z axes)"
+msgstr ""
+
+msgid "Plane distance"
+msgstr ""
+
+msgid "Axial position"
+msgstr ""
+
+msgid "Expression"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Expr"
+msgstr ""
+
+msgid "(no bindings)"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Constraints"
+msgstr ""
+
+msgid "Feature tree"
+msgstr ""
+
+msgid " — the eye suppresses this mate"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s selected — F2 or right-click renames it, double-click edits it"
+msgstr ""
+
+msgid "Rename\tF2"
+msgstr ""
+
+msgid "Scale artwork"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Show / hide"
+msgstr ""
+
+msgid "Check interference — find overlapping bodies"
+msgstr ""
+
+msgid "Bodies"
+msgstr ""
+
+msgid "Move body"
+msgstr ""
+
+msgid "Select a body row first, then move it"
+msgstr ""
+
+msgid "Boolean — join, subtract or intersect with another body"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d selected — right-click for what applies to it"
+msgstr ""
+
+msgid "Variables"
+msgstr ""
+
+msgid "+"
+msgstr ""
+
+msgid "Del"
+msgstr "Del"
+
+msgid "Sketch created — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Sketch empty — nothing committed"
+msgstr ""
+
+msgid "Sketch updated"
+msgstr ""
+
+#, c-format
+msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Could not resolve the sketch to extrude"
+msgstr ""
+
+msgid "Face selected — set the depth and Confirm"
+msgstr ""
+
+msgid "Region selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+msgid "Sketch selected — right-click to Extrude, or double-click to edit"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d "
+msgstr ""
+
+msgid "vertex selected — click again for the whole body"
+msgstr ""
+
+msgid "selected (whole body) — right-click for what applies to it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click for the drawing tools"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s plane selected — right-click to sketch on it, or click an object to select it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
+msgstr ""
+
+msgid "Tool exited"
+msgstr ""
+
+msgid "Sketch kept — Finish to commit it, Cancel to discard"
+msgstr ""
+
+msgid "✗ Conflicting constraints"
+msgstr ""
+
+msgid "✓ Fully constrained"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d degrees of freedom"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
+msgstr ""
+
+#, c-format
+msgid "OK — %zu triangles"
+msgstr ""
+
+msgid "Text to insert:"
+msgstr ""
+
+msgid "Import SVG"
+msgstr ""
+
+msgid "Import STEP"
+msgstr ""
+
+msgid "Reading STEP…"
+msgstr ""
+
+msgid "No solids found in STEP"
+msgstr ""
+
+msgid "STEP import failed: "
+msgstr ""
+
+msgid "Rebuilding model…"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+msgid "Import mesh"
+msgstr ""
+
+msgid "Could not read the STL file"
+msgstr ""
+
+msgid "Could not read the OBJ file: "
+msgstr ""
+
+msgid "Unsupported mesh format (STL and OBJ are supported)"
+msgstr ""
+
+msgid "The mesh contains no triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
+"\n"
+"Import anyway?"
+msgstr ""
+
+msgid "Large mesh"
+msgstr ""
+
+msgid "Mesh conversion failed: "
+msgstr ""
+
+msgid "Mesh conversion produced no geometry"
+msgstr ""
+
+msgid "Mesh import failed: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
+msgstr ""
+
+msgid "No importable geometry found"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s added to the sketch — Confirm to commit it"
+msgstr ""
+
+msgid " — drag to place/size, then Confirm"
+msgstr ""
+
+msgid "Insert cancelled"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move — right-click when done"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Sketch added on %s — select it, then right-click to Extrude"
+msgstr ""
+
+msgid "Recompute error: "
+msgstr ""
+
+msgid "Add a solid (sketch + extrude) first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Edge %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Thread standard: %s  (pitch %.3g mm)"
+msgstr ""
+
+msgid "Thread needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to revolve first"
+msgstr ""
+
+msgid "Revolve needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a profile sketch to sweep first"
+msgstr ""
+
+msgid "Pick a path sketch for the sweep"
+msgstr ""
+
+msgid "Sweep needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Check at least two profile sketches to loft"
+msgstr ""
+
+msgid "Loft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Pick a sketch profile to extrude first"
+msgstr ""
+
+msgid "Pick a sketch to fill first"
+msgstr ""
+
+msgid "Select a sheet body first"
+msgstr ""
+
+msgid "Pick a solid face to thicken first"
+msgstr ""
+
+msgid "Pick a sketch with an open line first"
+msgstr ""
+
+msgid "Add at least one face to delete first"
+msgstr ""
+
+msgid "Mate needs two CoordSys features — create them first"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different CoordSys features"
+msgstr ""
+
+msgid "Mate rejected"
+msgstr ""
+
+msgid "No interference — need at least two solid bodies to check"
+msgstr ""
+
+msgid "No interference found"
+msgstr ""
+
+#, c-format
+msgid "%zu interference pairs, worst %.2f mm³"
+msgstr ""
+
+msgid ""
+"Interference pairs:\n"
+"\n"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d"
+msgstr ""
+
+msgid "Interference"
+msgstr ""
+
+msgid "Select a solid body first — its mass properties are what is reported"
+msgstr ""
+
+msgid "Mass properties could not be computed for this body"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: sheet body — %.2f cm² of surface, no volume"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Sheet body (open shell)\n"
+"Surface area: %.2f cm²\n"
+"\n"
+"A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
+msgstr ""
+
+msgid "Mass properties"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s: %.3f cm³, %.2f cm²"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"%s\n"
+"\n"
+"Volume: %.3f cm³\n"
+"Surface area: %.2f cm²"
+msgstr ""
+
+msgid "Pattern needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Boolean needs two solid bodies — add or import a second one"
+msgstr ""
+
+msgid "Cut needs a solid body — add or import one first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "the picked face of Body %d"
+msgstr ""
+
+msgid "the picked face"
+msgstr ""
+
+#, c-format, boost-format
+msgid "  ·  %d picked"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
+msgstr ""
+
+msgid "Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  Shift-click adds  ·  Del removes"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d picked  ·  now choose a constraint (Horizontal, Parallel, Tangent, Equal…)"
+msgstr ""
+
+msgid "Constrain — click one or two entities, then choose a constraint"
+msgstr ""
+
+msgid "Dimension — click an entity, or the first of two points"
+msgstr ""
+
+msgid "Dimension — click the second point"
+msgstr ""
+
+msgid "Line — click the start point"
+msgstr ""
+
+msgid "Line — click the end point, or type the length"
+msgstr ""
+
+msgid "Polyline — click the first point"
+msgstr ""
+
+msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
+msgstr ""
+
+msgid "Rectangle — click one corner"
+msgstr ""
+
+msgid "Rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Centre rectangle — click the centre"
+msgstr ""
+
+msgid "Centre rectangle — click a corner"
+msgstr ""
+
+msgid "Oblique rectangle — click the start of the base edge"
+msgstr ""
+
+msgid "Oblique rectangle — click the end of the base edge (this sets the angle)"
+msgstr ""
+
+msgid "Oblique rectangle — click to set the width"
+msgstr ""
+
+msgid "Rounded rectangle — click one corner"
+msgstr ""
+
+msgid "Rounded rectangle — click the opposite corner"
+msgstr ""
+
+msgid "Rounded rectangle — click to set the corner radius"
+msgstr ""
+
+msgid "Circle — click the centre"
+msgstr ""
+
+msgid "Circle — click to set the radius, or type it"
+msgstr ""
+
+msgid "Circle (2 points) — click one end of the diameter"
+msgstr ""
+
+msgid "Circle (2 points) — click the other end of the diameter"
+msgstr ""
+
+msgid "Circle (3 points) — click the first point on the circle"
+msgstr ""
+
+msgid "Circle (3 points) — click the second point"
+msgstr ""
+
+msgid "Circle (3 points) — click the third point"
+msgstr ""
+
+msgid "Arc — click the start point"
+msgstr ""
+
+msgid "Arc — click the end point"
+msgstr ""
+
+msgid "Arc — click a point the arc passes through"
+msgstr ""
+
+msgid "Tangent arc — click the endpoint it leaves from"
+msgstr ""
+
+msgid "Tangent arc — click its far end"
+msgstr ""
+
+msgid "Centre arc — click the centre"
+msgstr ""
+
+msgid "Centre arc — click the start point (this sets the radius)"
+msgstr ""
+
+msgid "Centre arc — click the end point"
+msgstr ""
+
+msgid "Slot — click one end of the centreline"
+msgstr ""
+
+msgid "Slot — click the other end of the centreline"
+msgstr ""
+
+msgid "Slot — click to set the width"
+msgstr ""
+
+msgid "Arc slot — click the centre the slot curves about"
+msgstr ""
+
+msgid "Arc slot — click the start of the centreline (this sets the radius)"
+msgstr ""
+
+msgid "Arc slot — click the end of the centreline"
+msgstr ""
+
+msgid "Arc slot — click to set the width"
+msgstr ""
+
+msgid "Polygon — click the centre"
+msgstr ""
+
+msgid "Polygon — click a vertex (this sets size and orientation)"
+msgstr ""
+
+msgid "Ellipse — click the centre"
+msgstr ""
+
+msgid "Ellipse — click the end of the major axis"
+msgstr ""
+
+msgid "Ellipse — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click the centre"
+msgstr ""
+
+msgid "Elliptical arc — click the end of the major axis"
+msgstr ""
+
+msgid "Elliptical arc — click a point on the minor axis"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc starts"
+msgstr ""
+
+msgid "Elliptical arc — click where the arc ends"
+msgstr ""
+
+msgid "Spline — click the first control point"
+msgstr ""
+
+msgid "Spline — click the next control point  ·  right-click to finish the curve"
+msgstr ""
+
+msgid "Point — click to place one; the tool stays armed for more"
+msgstr ""
+
+msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
+msgstr ""
+
+msgid "Fillet — click the first of two lines that meet"
+msgstr ""
+
+msgid "Fillet — click the second line"
+msgstr ""
+
+msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Chamfer — click the first of two lines that meet"
+msgstr ""
+
+msgid "Chamfer — click the second line"
+msgstr ""
+
+msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Offset — click the entity to offset"
+msgstr ""
+
+msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
+msgstr ""
+
+msgid "Mirror — first click the LINE to mirror about (a construction line works)"
+msgstr ""
+
+msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Move — click the entities to move"
+msgstr ""
+
+msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
+msgstr ""
+
+msgid "Rotate — click the entities to rotate"
+msgstr ""
+
+msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
+msgstr ""
+
+msgid "Scale — click the entities to scale"
+msgstr ""
+
+msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
+msgstr ""
+
+msgid "Array — click the entities to repeat"
+msgstr ""
+
+msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Polar array — click the entities to repeat"
+msgstr ""
+
+msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
+msgstr ""
+
+msgid "Drag a corner to scale, the centre to move  ·  right-click when done"
+msgstr ""
+
+msgid "  ·  Esc goes back to Select"
+msgstr ""
+
+msgid "  ·  click a constraint badge to remove it"
+msgstr ""
+
+msgid "select something first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Mate: %s  →  %s"
+msgstr ""
+
+msgid "Fastened"
+msgstr ""
+
+msgid "Revolute"
+msgstr ""
+
+msgid "Slider"
+msgstr ""
+
+msgid "Cylindrical"
+msgstr ""
+
+msgid "Click a solid FACE in the viewport"
+msgstr ""
+
+msgid "Click a solid EDGE in the viewport"
+msgstr ""
+
+msgid "An angled plane needs an edge to tilt about — pick Edge A"
+msgstr ""
+
+msgid "A midplane needs two faces — pick Face A and Face B"
+msgstr ""
+
+msgid "Face A and Face B are the same face — a midplane needs two different faces"
+msgstr ""
+
+msgid "A tangent plane needs a cylindrical face — pick Face A"
+msgstr ""
+
+msgid "This plane needs two edges — pick Edge A and Edge B"
+msgstr ""
+
+msgid "Plane added — pick it as a sketch plane"
+msgstr ""
+
+msgid "Axis added"
+msgstr ""
+
+msgid "Coord Sys added"
+msgstr ""
+
+msgid "Shell needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a solid body — add or import one first"
+msgstr ""
+
+msgid "Draft needs a picked face — click a side face first"
+msgstr ""
+
+msgid ""
+"Nothing yet — import a STEP or a mesh from the toolbar,\n"
+"or click a reference plane and right-click it to start a sketch."
+msgstr ""
+
+msgid "No solid yet — select a sketch and right-click it to Extrude."
+msgstr ""
+
+msgid "Could not restore the CAD model from this project"
+msgstr ""
+
+msgid "Could not restore the CAD model: "
+msgstr ""
+
+#, c-format
+msgid "Body %zu — %s"
+msgstr ""
+
+msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
+msgstr ""
+
+msgid "Section view off"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Section view — showing the %s half"
+msgstr ""
+
+msgid "upper"
+msgstr ""
+
+msgid "lower"
+msgstr ""
+
+msgid "Boolean needs two bodies — create or import a second solid"
+msgstr ""
+
+msgid "Select a body first — click it in the viewport or the Bodies list"
+msgstr ""
+
+msgid "That body has no display mesh yet — recompute first"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
+msgstr ""
+
+msgid "Drag the arrows to move, the rings to rotate — the numbers follow"
+msgstr ""
+
+msgid "Select a body first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d colour set"
+msgstr ""
+
+msgid "Click a face on the solid, then press F"
+msgstr ""
+
+msgid "Placed on face — body laid flat on the bed"
+msgstr ""
+
+msgid "Edit rejected: "
+msgstr ""
+
+msgid "Erase all features and bodies and start a new design? This cannot be undone."
+msgstr ""
+
+msgid "New Design"
+msgstr ""
+
+msgid "This body has no feature to delete — use New Design to start over"
+msgstr ""
+
+#, c-format, boost-format
+msgid "feature %d"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Delete %s?\n"
+"\n"
+"That is the feature this body was made from. Features built on it may be removed or stop working."
+msgstr ""
+
+msgid "Delete body"
+msgstr ""
+
+msgid "Select the FEATURE that created this body (or use New Design)"
+msgstr ""
+
+msgid "Select a feature in the tree first"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d shown"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d hidden"
+msgstr ""
+
+msgid "Feature shown"
+msgstr ""
+
+msgid "Feature hidden"
+msgstr ""
+
+msgid "Draw a sketch first, then Constrain"
+msgstr ""
+
+msgid "Select a sketch in the tree first"
+msgstr ""
+
+msgid "Selected feature is not a sketch"
+msgstr ""
+
+msgid "Pick 1-2 lines, then a constraint; right-click exits"
+msgstr ""
+
+msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
+msgstr ""
+
+msgid "Pick an entity first"
+msgstr ""
+
+msgid "Pick two entities first"
+msgstr ""
+
+msgid "Horizontal and Vertical apply to a line"
+msgstr ""
+
+msgid "Angle applies between two lines"
+msgstr ""
+
+msgid "Collinear needs two lines"
+msgstr ""
+
+msgid "Parallel, perpendicular and equal length apply to two lines"
+msgstr ""
+
+msgid "Equal radius needs two circles or arcs"
+msgstr ""
+
+msgid "Concentric needs two circles or arcs"
+msgstr ""
+
+msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
+msgstr ""
+
+msgid "This constraint needs two entities with a point to join"
+msgstr ""
+
+msgid "This dimension needs two entities with a point to measure between"
+msgstr ""
+
+msgid "Midpoint needs a point and a line"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines + an axis"
+msgstr ""
+
+msgid "Symmetric needs two points or two lines"
+msgstr ""
+
+msgid "Symmetric: pick two entities, then an axis line"
+msgstr ""
+
+msgid "Radius/Diameter needs a circle or arc"
+msgstr ""
+
+msgid "Unsupported constraint"
+msgstr ""
+
+msgid "Constraint rejected (over-constrained)"
+msgstr ""
+
+msgid "Applied constraint  ·  its badge is on the sketch — click the badge to remove it"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s  —  %d selected. Press Esc for the Select tool, click one line, then Shift- or Ctrl-click the other."
+msgstr ""
+
+msgid "Applied constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Fix %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock X %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Lock Y %s"
+msgstr ""
+
+msgid "Equal"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric %s — %s / %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about Y axis %s — %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Symmetric about X axis %s — %s"
+msgstr ""
+
+msgid "On line"
+msgstr ""
+
+msgid "On edge"
+msgstr ""
+
+msgid "Constraint"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Constraints (%d)"
+msgstr ""
+
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
+msgid "Constraint deleted"
+msgstr ""
+
+msgid "Press Constrain on a sketch first"
+msgstr ""
+
+msgid "Pick the entity, then a mirror-axis line"
+msgstr ""
+
+msgid "Mirror axis must be a line"
+msgstr ""
+
+msgid "Mirror produced nothing"
+msgstr ""
+
+msgid "Offset distance (+left / -right of direction)"
+msgstr ""
+
+msgid "Offset collapsed the entity"
+msgstr ""
+
+msgid "Pick two lines to fillet"
+msgstr ""
+
+msgid "Fillet needs two lines"
+msgstr ""
+
+msgid "Fillet radius"
+msgstr ""
+
+msgid "Fillet failed (parallel lines or radius too large)"
+msgstr ""
+
+msgid "Pick two lines to chamfer"
+msgstr ""
+
+msgid "Chamfer needs two lines"
+msgstr ""
+
+msgid "Chamfer distance"
+msgstr ""
+
+msgid "Chamfer failed (parallel lines or distance too large)"
+msgstr ""
+
+msgid "Trim works on lines, arcs and circles"
+msgstr ""
+
+msgid "Extend works on lines and arcs"
+msgstr ""
+
+msgid "Pick the edge to trim/extend"
+msgstr ""
+
+msgid "Nothing to trim at the pick"
+msgstr ""
+
+msgid "No edge to extend to"
+msgstr ""
+
+msgid "Array count (incl. original)"
+msgstr ""
+
+msgid "Spacing (mm)"
+msgstr ""
+
+msgid "Array produced nothing"
+msgstr ""
+
+msgid "Move dX (mm)"
+msgstr ""
+
+msgid "Move dY (mm)"
+msgstr ""
+
+msgid "Move produced nothing"
+msgstr ""
+
+msgid "Rotate angle (deg)"
+msgstr ""
+
+msgid "Rotate produced nothing"
+msgstr ""
+
+msgid "Scale factor"
+msgstr ""
+
+msgid "Scale produced nothing"
+msgstr ""
+
+msgid "Polar count (incl. original)"
+msgstr ""
+
+msgid "Total sweep (deg)"
+msgstr ""
+
+msgid "Polar array produced nothing"
+msgstr ""
+
+msgid "Applied edit"
+msgstr ""
+
+msgid " — type a value, press Enter (or Confirm)"
+msgstr ""
+
+msgid "Pick a segment in the viewport first"
+msgstr ""
+
+msgid "Applied Horizontal"
+msgstr ""
+
+msgid "Applied Vertical"
+msgstr ""
+
+msgid "Sketch: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "On a face of Body %d"
+msgstr ""
+
+msgid "On a stored face"
+msgstr ""
+
+msgid "Editing sketch — drag a handle or click a quote to edit"
+msgstr ""
+
+msgid "An imported solid has no parameters — use Transform to move or rotate it"
+msgstr ""
+
+msgid "This feature type can't be edited yet"
+msgstr ""
+
+msgid "Nothing to export — add a feature first"
+msgstr ""
+
+msgid "Export STEP"
+msgstr ""
+
+msgid "Exported STEP"
+msgstr ""
+
+msgid "STEP export failed: "
+msgstr ""
+
+msgid "Nothing to commit — add a feature first"
+msgstr ""
+
+msgid "All bodies hidden — show one before committing"
+msgstr ""
+
+msgid "Plane ready"
+msgstr ""
+
+msgid "Axis ready"
+msgstr ""
+
+msgid "Coord Sys ready"
+msgstr ""
+
+msgid "Helix ready"
+msgstr ""
+
+msgid "Project ready"
+msgstr ""
+
+msgid "Sketch ready"
+msgstr ""
+
+msgid "Mate needs at least two CoordSys features"
+msgstr ""
+
+msgid "Mate: CS A and CS B must be different"
+msgstr ""
+
+msgid "Mate ready"
+msgstr ""
+
+msgid "Invalid: "
+msgstr ""
+
+#, c-format
+msgid "Preview — %zu triangles"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
+msgstr ""
+
+msgid "Profile: "
+msgstr ""
+
+#, c-format, boost-format
+msgid "Face %d (push/pull)"
+msgstr ""
+
+msgid "Move cancelled"
+msgstr ""
+
+msgid "Discard this sketch and everything drawn in it?"
+msgstr ""
+
+msgid "Discard sketch"
+msgstr ""
+
+msgid "Keep drawing"
+msgstr ""
+
+msgid "Finish or cancel the current tool first (Esc)"
+msgstr ""
+
+msgid "Nothing to redo"
+msgstr ""
+
+msgid "Nothing to undo"
+msgstr ""
+
+#, c-format
+msgid "Redo  (%zu more)"
+msgstr ""
+
+#, c-format
+msgid "Undo  (%zu more)"
+msgstr ""
+
+msgid "Variable name:"
+msgstr ""
+
+msgid "Add Variable"
+msgstr ""
+
+msgid "Variable name must not contain spaces"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Expression for '%s':"
+msgstr ""
+
+msgid "Select a variable first"
+msgstr ""
+
+msgid "Edit Variable"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
+msgstr ""
+
+msgid "No binding for that field"
+msgstr ""
+
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
+msgid "Primitive"
+msgstr ""
+
+msgid "Empty mesh generated"
+msgstr ""
+
+msgid "Pocket (Cut)"
+msgstr ""
+
+msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "End"
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr "Rodyklė kairėn"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr "Rodyklė dešinėn"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr "Rodyklė aukštyn"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr "Rodyklė žemyn"
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr "Importuoti geometrijos duomenis iš STL/STEP/3MF/OBJ/AMF failų"
+
+msgid "Select all objects"
+msgstr "Pasirinkti visus objektus"
+
+msgid "Paste from clipboard"
+msgstr "Įklijuoti iš mainų srities"
+
+msgid "Toggle printable for object/part"
+msgstr "Perjungti objekto / dalies spausdinimą"
+
+msgid "Move selection 10mm in negative X direction"
+msgstr "Perkelti pasirinkimą 10 mm neigiama X kryptimi"
+
+msgid "Move selection 10mm in positive X direction"
+msgstr "Perkelti pasirinkimą 10 mm teigiama X kryptimi"
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr "Perkelti pasirinkimą 10 mm teigiama Y kryptimi"
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr "Perkelti pasirinkimą 10 mm neigiama Y kryptimi"
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr "Perkėlimo manipuliatorius"
+
+msgid "Gizmo rotate"
+msgstr "Pasukimo manipuliatorius"
+
+msgid "Gizmo scale"
+msgstr "Mastelio keitimo manipuliatorius"
+
+msgid "Gizmo place face on bed"
+msgstr "Paviršiaus dėjimo ant pagrindo manipuliatorius"
+
+msgid "Gizmo cut"
+msgstr "Pjovimo manipuliatorius"
+
+msgid "Gizmo mesh boolean"
+msgstr "Loginių tinklelio veiksmų (Boolean) manipuliatorius"
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "FDM užtepamos siūlės (seam) manipuliatorius"
+
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr "FDM užtepamo grublėto paviršiaus (fuzzy skin) manipuliatorius"
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr "Teksto iškėlimo ir įspaudimo (emboss/engrave) manipuliatorius"
+
+msgid "Gizmo measure"
+msgstr "Matavimo manipuliatorius"
+
+msgid "Gizmo assemble"
+msgstr "Surinkimo manipuliatorius"
+
+msgid "Gizmo brim ears"
+msgstr "Krašto „auselių“ (brim ears) manipuliatorius"
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr "Vertikalus slankiklis – kelti aktyvų žymeklį aukštyn"
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr "Vertikalus slankiklis – nuleisti aktyvų žymeklį žemyn"
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį kairėn"
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį dešinėn"
+
+msgid "Horizontal slider - Move to start position"
+msgstr "Horizontalus slankiklis – perkelti į pradinę padėtį"
+
+msgid "Horizontal slider - Move to last position"
+msgstr "Horizontalus slankiklis – perkelti į paskutinę padėtį"
+
+msgid "Camera view - Default"
+msgstr "Kameros vaizdas - Numatytasis"
+
+msgid "Camera view - Top"
+msgstr "Kameros vaizdas - Viršus"
+
+msgid "Camera view - Bottom"
+msgstr "Kameros vaizdas - Apačia"
+
+msgid "Camera view - Front"
+msgstr "Kameros vaizdas - Priekis"
+
+msgid "Camera view - Behind"
+msgstr "Kameros vaizdas – iš galo"
+
+msgid "Camera Angle - Left side"
+msgstr "Kameros kampas – iš kairės"
+
+msgid "Camera Angle - Right side"
+msgstr "Kameros kampas – iš dešinės"
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr "Padidinti"
+
+msgid "Zoom out"
+msgstr "Nutolinti"
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "Rodyti/slėpti 3DConnexion įrenginių nustatymų dialogo langą"
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr "G-kodo lango įjungimas / išjungimas"
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr "Vertikalaus slankiklio vieno sluoksnio režimas įjungimas / išjungimas"
+
+msgid "Switch between Prepare/Preview"
+msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
+
+msgid "Collapse/Expand the sidebar"
+msgstr "Sutraukti / išskleisti šoninę juostą"
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr "Rodyti sparčiųjų klavišų sąrašą"
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
+msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -21648,6 +24672,152 @@ msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
 
+#~ msgid "Tab"
+#~ msgstr "Tab"
+
+#~ msgid "Displays current viewport FPS in the top-right corner."
+#~ msgstr "Viršutiniame dešiniajame kampe rodo esamą vaizdo srities kadrų dažnį."
+
+# AI Translated
+#~ msgid "Publish 3MF Wiki"
+#~ msgstr "3MF talpinimo wiki"
+
+# AI Translated
+#~ msgid "Publish 3MF Video Guide"
+#~ msgstr "3MF talpinimo vaizdo vadovas"
+
+#~ msgid "Toolbar"
+#~ msgstr "Įrankių juosta"
+
+#~ msgid "Switch table page"
+#~ msgstr "Perjungti lentelės puslapį"
+
+#~ msgid "Global shortcuts"
+#~ msgstr "Bendrieji spartieji klavišai"
+
+#~ msgid "Middle mouse button"
+#~ msgstr "Vidurinis pelės mygtukas"
+
+#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+#~ msgstr "Automatiškai orientuoja pasirinktus objektus arba visus objektus. Jei yra pasirinkti objektai, orientuoja tik pasirinktus. Kitais atvejais orientuoja visus esamo projekto objektus."
+
+#~ msgid "Auto orients all objects on the active plate."
+#~ msgstr "Automatiškai orientuoja visus objektus aktyvioje plokštėje."
+
+#~ msgid "Any arrow"
+#~ msgstr "Bet kuri rodyklė"
+
+#~ msgid "Gizmo SLA support points"
+#~ msgstr "SLA atramų taškų manipuliatorius"
+
+#~ msgid "Plater"
+#~ msgstr "Plokštė"
+
+#~ msgid "Gizmo"
+#~ msgstr "Manipuliatorius"
+
+#~ msgid "Delete objects, parts, modifiers"
+#~ msgstr "Ištrinti objektus, dalis, modifikatorius"
+
+#~ msgid "Objects List"
+#~ msgstr "Objektų sąrašas"
+
+#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+#~ msgstr "G-kodas, įrašomas pačiame išvesties failo viršuje, prieš bet kokį kitą turinį. Naudingas įterpti metaduomenims, kuriuos spausdintuvo aparatinė programinė įranga nuskaito iš pirmųjų failo eilučių (pvz., numatomą spausdinimo laiką, gijos sąnaudas). Palaiko kintamuosius (placeholders), tokius kaip {print_time_sec} ir {used_filament_length}."
+
+#~ msgid "Print time (seconds)"
+#~ msgstr "Spausdinimo laikas (sekundėmis)"
+
+# AI Translated
+#~ msgid "Open actions speed dial"
+#~ msgstr "Atidaryti veiksmų greitosios prieigos meniu"
+
+#~ msgid "Left: "
+#~ msgstr "Kairė:"
+
+#~ msgid "Right: "
+#~ msgstr "Dešinė:"
+
+#~ msgid "The maximum temperature cannot exceed "
+#~ msgstr "Maksimali temperatūra negali viršyti "
+
+#~ msgid "The minmum temperature should not be less than "
+#~ msgstr "Minimali temperatūra neturi būti mažesnė nei "
+
+#~ msgid "up to"
+#~ msgstr "iki"
+
+#~ msgid "above"
+#~ msgstr "virš"
+
+#~ msgid "from"
+#~ msgstr "nuo"
+
+#~ msgid "Configuration package: "
+#~ msgstr "Konfigūracijos paketas: "
+
+#~ msgid " updated to "
+#~ msgstr " atnaujintas į "
+
+#~ msgid "Grouping error: "
+#~ msgstr "Grupavimo klaida: "
+
+#~ msgid " can not be placed in the "
+#~ msgstr "negali būti įkeltas į "
+
+# AI Translated
+#~ msgid " maximum drying temperature is "
+#~ msgstr " didžiausia džiovinimo temperatūra yra "
+
+# AI Translated
+#~ msgid " minimum drying temperature is "
+#~ msgstr " mažiausia džiovinimo temperatūra yra "
+
+# AI Translated
+#~ msgid "needs"
+#~ msgstr "reikalauja"
+
+# AI Translated
+#~ msgid "not enabled"
+#~ msgstr "neįjungta"
+
+# AI Translated
+#~ msgid "material not published"
+#~ msgstr "medžiaga nepatalpinta"
+
+#~ msgid "Select the language"
+#~ msgstr "Pasirinkite kalbą"
+
+# AI Translated
+#~ msgid "Select plugin"
+#~ msgstr "Pasirinkti papildinį"
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Kryptis, kuria užpildomi viršutiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
+#~ "„Į išorę“ prasideda paviršiaus centre, todėl bet koks perteklinė medžiaga stumiama link krašto, kur ji mažiausiai matoma. „Į vidų“ prasideda nuo krašto ir baigiasi ankštomis kreivėmis centre.\n"
+#~ "Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+
+# AI Translated
+#~ msgid ""
+#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+#~ "Default uses shortest-path ordering, which may run in either direction."
+#~ msgstr ""
+#~ "Kryptis, kuria užpildomi apatiniai paviršiai naudojant į centrą orientuotą raštą (koncentrinį, Archimedo stygų, Oktogramos spiralės).\n"
+#~ "„Į vidų“ pradeda kiekvieną paviršių platesnėmis išorinėmis kreivėmis, o tai pagerina pirmojo sluoksnio sukibimą ant pagrindų, kur ankštos kreivės centre gali nesilaikyti. „Į išorę“ prasideda centre, stumdama bet kokią perteklinę medžiagą link krašto.\n"
+#~ "Numatytoji tvarka naudoja trumpiausio kelio rikiavimą, kuris gali vykti bet kuria kryptimi."
+
+#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
+#~ msgstr "Jei įjungta, valymo bokštas nebus spausdinamas tuose sluoksniuose, kur įrankis nekeičiamas. Sluoksniuose, kur įrankis keičiamas, ekstruderis nusileis žemyn atspausdinti valymo bokšto dalies. Naudotojas pats atsako už tai, kad ekstruderis nesusidurtų su spaudiniu."
+
+#~ msgid "This exports settings to a file."
+#~ msgstr "Tai eksportuoja nustatymus į failą."
+
 #~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
 #~ msgstr "Tiesioginei „Native Wayland“ peržiūrai reikalingas „GStreamer GTK“ vaizdo sinchronizatorius (video sink). Įdiekite „GStreamer“ skirtą „gtksink“ papildinį, tada iš naujo paleiskite „OrcaSlicer“."
 
@@ -21702,9 +24872,6 @@ msgstr ""
 #~ msgid "Print order within a single layer."
 #~ msgstr "Elementų spausdinimo eiliškumas vieno sluoksnio ribose."
 
-#~ msgid "Bottom"
-#~ msgstr "Apačia"
-
 #~ msgid "Front"
 #~ msgstr "Priekis"
 
@@ -21716,9 +24883,6 @@ msgstr ""
 
 #~ msgid "Esc"
 #~ msgstr "Esc"
-
-#~ msgid "Del"
-#~ msgstr "Del"
 
 #~ msgid "Backspace"
 #~ msgstr "Backspace"
@@ -21734,9 +24898,6 @@ msgstr ""
 
 #~ msgid "Arrow Right"
 #~ msgstr "Rodyklė dešinėn"
-
-#~ msgid "End"
-#~ msgstr "Pabaiga"
 
 #~ msgid "Hotend"
 #~ msgstr "Kaitinimo blokas (Hotend)"
