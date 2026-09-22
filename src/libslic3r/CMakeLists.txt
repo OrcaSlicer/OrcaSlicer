@@ -36,6 +36,8 @@ set(lisbslic3r_sources
     Algorithm/RegionExpansion.cpp
     Algorithm/RegionExpansion.hpp
     AnyPtr.hpp
+    AgentCli.cpp
+    AgentCli.hpp
     AppConfig.cpp
     AppConfig.hpp
     Arachne/BeadingStrategy/BeadingStrategy.cpp
