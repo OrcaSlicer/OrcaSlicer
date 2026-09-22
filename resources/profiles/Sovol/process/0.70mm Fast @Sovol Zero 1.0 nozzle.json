@@ -27,9 +27,6 @@
 	"support_speed": "120",
 	"top_surface_line_width": "1.2",
 	"top_shell_layers": "3",
-	"overhang_speed": "45",
-	"min_layer_time": "8",
-	"slow_down_if_layer_time_below": "8",
 	"compatible_printers": [
 		"Sovol Zero 1.0 nozzle"
 	]

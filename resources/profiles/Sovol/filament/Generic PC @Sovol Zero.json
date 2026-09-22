@@ -72,8 +72,5 @@
 	"complete_print_exhaust_fan_speed": "50",
 	"filament_end_gcode": [
 		"; filament end gcode \n"
-	],
-	"bed_type": [
-		"Cool Plate"
 	]
 }

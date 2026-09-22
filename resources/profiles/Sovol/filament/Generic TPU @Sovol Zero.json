@@ -96,9 +96,6 @@
 	"filament_retraction_length": [
 		"nil"
 	],
-	"bed_type": [
-		"Cool Plate"
-	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
 	]

@@ -73,10 +73,6 @@
 	"top_surface_line_width": "1.05",
 	"top_shell_layers": "4",
 	"top_shell_thickness": "1",
-	"overhang_speed": "22",
-	"bridge_flow_ratio": "0.95",
-	"min_layer_time": "15",
-	"slow_down_if_layer_time_below": "15",
 	"compatible_printers": [
 		"Sovol Zero 1.0 nozzle"
 	]

@@ -81,10 +81,6 @@
 	"gap_infill_speed": "35",
 	"sparse_infill_speed": "70",
 	"travel_acceleration": "38000",
-	"overhang_speed": "32",
-	"bridge_flow_ratio": "1.0",
-	"min_layer_time": "10",
-	"slow_down_if_layer_time_below": "10",
 	"compatible_printers": [
 		"Sovol Zero 1.0 nozzle"
 	]

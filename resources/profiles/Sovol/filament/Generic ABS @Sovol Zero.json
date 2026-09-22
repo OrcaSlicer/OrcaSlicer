@@ -103,8 +103,5 @@
 	],
 	"filament_density": [
 		"1.10"
-	],
-	"bed_type": [
-		"Cool Plate"
 	]
 }
