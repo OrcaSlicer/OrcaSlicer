@@ -8779,6 +8779,15 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     else
         m_gcode_viewer.set_shadow_map(4, Transform3d::Identity(), 0.0f, 0.0f);
 
+    // Realistic view spends the toolpath colour on shading: the lighting term alone never
+    // reaches 1.0, and the shadow above and the SSAO post pass below only take more away. The
+    // tone here pays that back, and leaves the shading untouched while realistic view is off.
+    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+    if (realistic_mode)
+        m_gcode_viewer.set_tone(1.2f, 1.2f, 2.0f);
+    else
+        m_gcode_viewer.set_tone(1.0f, 1.0f, 1.0f);
+
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
 
     if (receive_shadows) {
