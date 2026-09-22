@@ -2054,6 +2054,11 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     const bool overlay_tick = m_fps_overlay_tick;
     m_fps_overlay_tick = false;
 
+    // Whether the preview draws the solid model is decided before the cached scene is consulted,
+    // since switching changes what the scene pass draws.
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data() && _update_preview_interaction())
+        scene_dirty = true;
+
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
     const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
@@ -3235,8 +3240,15 @@ void GLCanvas3D::bind_event_handlers()
                 if (m_selection_edit.kind != SelectionEdit::None)
                     finish_selection_edit();
                 ImGui::SetWindowFocus(nullptr);
+                // a drag cut short never sees its button release, which would leave the solid model drawn
+                if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
+                    mouse_up_cleanup();
                 render();
                 evt.Skip();
+            });
+        m_canvas->Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) {
+                if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
+                    mouse_up_cleanup();
             });
         m_event_handlers_bound = true;
 
@@ -3310,6 +3322,17 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     m_overlay_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
+    // the render timer only wakes the idle loop; the frame that puts the preview's toolpaths back
+    // after a wheel burst has to be asked for here, once the settle time is really up
+    if (m_preview_settle_pending) {
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= m_preview_interaction_until) {
+            m_preview_settle_pending = false;
+            m_dirty = true;
+        }
+        else // the timer fired early
+            schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
+    }
 
     if (!m_dirty && !m_overlay_dirty)
         return;
@@ -3840,6 +3863,10 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
         return;
     }
 
+    // only a wheel the panels did not take moves the camera
+    if (m_canvas_type == CanvasPreview)
+        note_preview_interaction();
+
 #ifdef __WXMSW__
 	// For some reason the Idle event is not being generated after the mouse scroll event in case of scrolling with the two fingers on the touch pad,
 	// if the event is not allowed to be passed further.
@@ -3938,6 +3965,11 @@ void GLCanvas3D::on_fps_overlay_timer(wxTimerEvent& evt)
     m_fps_overlay_tick = true;
     _set_overlay_as_dirty();
     wxWakeUpIdle();
+}
+
+void GLCanvas3D::note_preview_interaction()
+{
+    m_preview_interaction_until = std::chrono::steady_clock::now() + std::chrono::milliseconds(150);
 }
 
 void GLCanvas3D::schedule_extra_frame(int milliseconds)
@@ -5556,6 +5588,9 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;
     m_dirty = true;
+    // the frame that follows a release puts the preview's toolpaths back, and on some platforms
+    // no idle event follows a button release until the next input
+    wxWakeUpIdle();
 
     if (m_canvas->HasCapture())
         m_canvas->ReleaseMouse();
@@ -8697,6 +8732,26 @@ void GLCanvas3D::_render_wireframe_overlay()
     glsafe(::glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 #endif
     shader->stop_using();
+}
+
+// The solid model is drawn while the camera, the navigator or either slider is dragged. A wheel
+// step has no duration, so it holds the solid model for a settle time instead, and the frame that
+// restores the toolpaths is scheduled for when that time runs out. Returns whether what the scene
+// pass draws changed, since a frame that reuses the cached scene would hide the change.
+bool GLCanvas3D::_update_preview_interaction()
+{
+    IMSlider* layers_slider = m_gcode_viewer.get_layers_slider();
+    IMSlider* moves_slider  = m_gcode_viewer.get_moves_slider();
+    const auto now = std::chrono::steady_clock::now();
+    const bool settling = now < m_preview_interaction_until;
+    const bool dragging = m_mouse.dragging || m_navigator_dragging || layers_slider->is_dragging() || moves_slider->is_dragging();
+    const bool was_reduced = m_gcode_viewer.is_reduced_detail();
+    m_gcode_viewer.set_interacting(dragging || settling);
+    if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
+        m_preview_settle_pending = true;
+        schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
+    }
+    return m_gcode_viewer.is_reduced_detail() != was_reduced;
 }
 
 //BBS: GUI refactor: add canvas size as parameters

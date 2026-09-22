@@ -25,6 +25,10 @@ struct Settings
 		// ORCA: how bright those darkened layers are rendered, 1.0 = unchanged, 0.0 = black
 		float dim_previous_layers_brightness{ 0.4f };
 		bool spiral_vase_mode{ false };
+		// whether the reduced set (the visible range's end layers) is built, and whether it is drawn.
+		// Ignored on the OpenGL ES path.
+		bool reduced_detail_enabled{ false };
+		bool reduced_detail{ false };
 		//
 		// Required update flags
 		//

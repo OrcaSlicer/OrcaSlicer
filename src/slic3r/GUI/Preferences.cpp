@@ -1049,6 +1049,16 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             }
         }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
+        // apply the solid model preference immediately to the currently loaded preview
+        else if (param == "preview_solid_model_while_dragging") {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_solid_model_while_dragging(app_config->get_bool(param));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
                 m_dim_previous_layers_brightness_input->Enable(app_config->get_bool(param));
@@ -2044,6 +2054,15 @@ void PreferencesDialog::create_items()
            "You can still switch the view type in the preview afterwards."),
         "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
     g_sizer->Add(item_preview_view_type);
+
+    auto item_solid_model_while_dragging = create_item_checkbox(
+        _L("Only render solid model when dragging"),
+        _L("While dragging the camera or a preview slider, or zooming with the mouse wheel, draw the sliced objects and the prime tower as solid shapes "
+           "in their filament colours instead of toolpaths, so that large prints stay responsive. They are cut to the visible layer range, with its bottom "
+           "and top layers drawn as toolpaths. Supports are not shown. The toolpaths are restored as soon as you let go."),
+        "preview_solid_model_while_dragging"
+    );
+    g_sizer->Add(item_solid_model_while_dragging);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),

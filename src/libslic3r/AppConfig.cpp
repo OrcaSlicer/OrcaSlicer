@@ -205,6 +205,10 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // draw the sliced objects instead of their toolpaths while the user drags the preview
+    if (get("preview_solid_model_while_dragging").empty())
+        set_bool("preview_solid_model_while_dragging", false);
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);

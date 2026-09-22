@@ -174,6 +174,8 @@ public:
         int  print_id{-1};
         int  print_modify_count{-1};
         bool previewing{false};
+        // the prime tower was loaded with the objects, for the solid model
+        bool with_wipe_tower{false};
     };
     //BBS
     ConflictResultOpt m_conflict_result;
@@ -234,6 +236,13 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
+    // while dragging, the sliced objects are drawn as solid shapes instead of toolpaths
+    bool m_solid_model_while_dragging{ false };
+    void read_solid_model_preference();
+    void render_solid_model(int canvas_width, int canvas_height);
+    // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
+    void reload_shells_if_solid_model_changed(bool was_enabled);
+    void update_shell_wipe_tower(const Print& print, bool initialized);
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -291,7 +300,7 @@ public:
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
-    bool has_data() const { return !m_viewer.get_extrusion_roles().empty(); }
+    bool has_data() const { return m_viewer.get_extrusion_roles_count() != 0; }
 
     bool can_export_toolpaths() const;
     std::vector<int> get_plater_extruder();
@@ -362,6 +371,11 @@ public:
     // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+
+    // while the user drags the camera or a slider, draw the solid model, if the preference asks for it
+    void set_interacting(bool interacting);
+    bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
+    void set_solid_model_while_dragging(bool value);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 

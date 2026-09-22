@@ -114,6 +114,15 @@ public:
     //
     bool is_dim_previous_layers() const;
     void set_dim_previous_layers(bool value);
+    //
+    // The reduced set holds only the bottom and top layers of the visible range, for a caller that
+    // draws the print itself some other way while the user drags. While enabled it is built
+    // alongside the full set, so set_reduced_detail() rebuilds nothing. Ignored on the OpenGL ES path.
+    //
+    void set_reduced_detail_enabled(bool value);
+    bool is_reduced_detail_enabled() const;
+    void set_reduced_detail(bool value);
+    bool is_reduced_detail() const;
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //

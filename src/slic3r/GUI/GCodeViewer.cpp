@@ -1267,6 +1267,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
 
+    read_solid_model_preference();
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
@@ -1660,6 +1662,7 @@ void GCodeViewer::reset_shell()
 {
     m_shells.volumes.clear();
     m_shells.print_id = -1;
+    m_shells.with_wipe_tower = false;
     m_shell_bounding_box = BoundingBoxf3();
 }
 
@@ -1696,7 +1699,12 @@ void GCodeViewer::reset()
 void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
-    render_shells(canvas_width, canvas_height);
+    // while dragging with the solid model on, the objects stand in for their toolpaths, cut to the
+    // visible layer range; the toolpath set then holds only the range's bottom and top layers
+    if (m_viewer.is_reduced_detail())
+        render_solid_model(canvas_width, canvas_height);
+    else
+        render_shells(canvas_width, canvas_height);
 
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
@@ -2017,6 +2025,41 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
+}
+
+void GCodeViewer::set_interacting(bool interacting)
+{
+    // with no shells to stand in for the toolpaths, the solid model would leave only the end layers
+    m_viewer.set_reduced_detail(m_solid_model_while_dragging && interacting && !m_shells.volumes.empty());
+}
+
+void GCodeViewer::set_solid_model_while_dragging(bool value)
+{
+    const bool was_enabled = m_solid_model_while_dragging;
+    m_solid_model_while_dragging = value;
+    m_viewer.set_reduced_detail_enabled(value);
+    reload_shells_if_solid_model_changed(was_enabled);
+}
+
+void GCodeViewer::read_solid_model_preference()
+{
+    m_solid_model_while_dragging = get_app_config()->get_bool("preview_solid_model_while_dragging");
+    m_viewer.set_reduced_detail_enabled(m_solid_model_while_dragging);
+}
+
+void GCodeViewer::reload_shells_if_solid_model_changed(bool was_enabled)
+{
+    if (was_enabled == m_solid_model_while_dragging || m_shells.print_id == -1)
+        return;
+    // only the prime tower comes and goes with the mode: a full reload would drop the shells
+    // whenever the print has moved on since they were loaded, leaving the solid model nothing to draw
+    if (wxGetApp().plater() == nullptr)
+        return;
+    // the shells are loaded from the current plate's print, which is not the plater's own
+    const Print& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
+    if (static_cast<int>(print.id().id) != m_shells.print_id)
+        return;
+    update_shell_wipe_tower(print, m_gl_data_initialized);
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)
@@ -2343,7 +2386,11 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
+    // the shells can load before the first G-code does, so the preferences are read here as well
+    read_solid_model_preference();
     if ((print.id().id == m_shells.print_id)&&(print.get_modified_count() == m_shells.print_modify_count)) {
+        // the prime tower comes and goes on its own, without reloading the objects
+        update_shell_wipe_tower(print, initialized);
         //BBS: update force previewing logic
         if (force_previewing)
             m_shells.previewing = force_previewing;
@@ -2452,8 +2499,43 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
     m_shells.print_id = print.id().id;
     m_shells.print_modify_count = print.get_modified_count();
     m_shells.previewing = true;
+    update_shell_wipe_tower(print, initialized);
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": shell loaded, id change to %1%, modify_count %2%, object count %3%, glvolume count %4%")
         % m_shells.print_id % m_shells.print_modify_count % object_count %m_shells.volumes.volumes.size();
+}
+
+// The prime tower as it was sliced, so that the solid model shows what the print shows. It keeps its
+// opaque colour, so it never appears among the translucent shells, and stays out of their bounding box.
+void GCodeViewer::update_shell_wipe_tower(const Print& print, bool initialized)
+{
+    const bool with_wipe_tower = m_solid_model_while_dragging && print.is_step_done(psWipeTower) && print.wipe_tower_data().wipe_tower_mesh_data;
+    if (with_wipe_tower == m_shells.with_wipe_tower)
+        return;
+    m_shells.with_wipe_tower = with_wipe_tower;
+    GLVolumePtrs& volumes = m_shells.volumes.volumes;
+    if (!with_wipe_tower) {
+        volumes.erase(std::remove_if(volumes.begin(), volumes.end(), [](GLVolume* volume) {
+            if (!volume->is_wipe_tower)
+                return false;
+            delete volume;
+            return true;
+        }), volumes.end());
+        return;
+    }
+    const PrintConfig& config = print.config();
+    const int plate_idx = print.get_plate_index();
+    const Vec3d plate_origin = print.get_plate_origin();
+    const float x = static_cast<float>(config.wipe_tower_x.get_at(plate_idx) + plate_origin.x());
+    const float y = static_cast<float>(config.wipe_tower_y.get_at(plate_idx) + plate_origin.y());
+    const size_t first_new = volumes.size();
+    m_shells.volumes.load_real_wipe_tower_preview(1000 + plate_idx, x, y, print.wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
+                                                  print.wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh, true,
+                                                  static_cast<float>(config.wipe_tower_rotation_angle), false, initialized);
+    for (size_t i = first_new; i < volumes.size(); ++i) {
+        volumes[i]->zoom_to_volumes = false;
+        volumes[i]->force_native_color = true;
+        volumes[i]->set_render_color();
+    }
 }
 
 void GCodeViewer::render_toolpaths()
@@ -2654,6 +2736,50 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
     shader->stop_using();
 
     glsafe(::glDepthMask(GL_TRUE));
+}
+
+// The sliced objects and the prime tower drawn opaque, in their filament colours, cut to the
+// visible layer range by the shader's z range. The toolpaths of the range's bottom and top layers
+// are drawn afterwards and cap the cut.
+void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
+{
+    if (m_shells.volumes.empty())
+        return;
+    // gouraud_light has no z range, so it could not cut the model
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud");
+    if (shader == nullptr)
+        return;
+
+    const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+    const float z_top = m_viewer.get_layer_z(layers[1]) - m_z_offset + 0.001f;
+    const float z_bottom = (layers[0] > 0) ? m_viewer.get_layer_z(layers[0] - 1) - m_z_offset - 0.001f : -FLT_MAX;
+
+    std::vector<float> alphas;
+    alphas.reserve(m_shells.volumes.volumes.size());
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        alphas.push_back(volume->color.a());
+        volume->color.a(1.0f);
+        volume->set_render_color();
+    }
+    m_shells.volumes.set_z_range(z_bottom, z_top);
+    // gouraud also clips by this plane, which nothing else sets on the shells
+    m_shells.volumes.set_clipping_plane(ClippingPlane::ClipsNothing().get_data());
+
+    shader->start_using();
+    // the 3D view leaves its shadow settings on the shared program
+    shader->set_uniform("shadow_intensity", 0.0f);
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("z_far", camera.get_far_z());
+    shader->set_uniform("z_near", camera.get_near_z());
+    m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
+    shader->stop_using();
+
+    m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    size_t k = 0;
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        volume->color.a(alphas[k++]);
+        volume->set_render_color();
+    }
 }
 
 //BBS

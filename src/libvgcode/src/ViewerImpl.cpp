@@ -899,9 +899,15 @@ void ViewerImpl::reset()
 #else
     m_enabled_segments_count = 0;
     m_enabled_options_count = 0;
+    m_enabled_segments_reduced_count = 0;
+    m_enabled_options_reduced_count = 0;
 
     m_settings_used_for_ranges = std::nullopt;
 
+    delete_textures(m_enabled_options_reduced_tex_id);
+    delete_buffers(m_enabled_options_reduced_buf_id);
+    delete_textures(m_enabled_segments_reduced_tex_id);
+    delete_buffers(m_enabled_segments_reduced_buf_id);
     delete_textures(m_enabled_options_tex_id);
     delete_buffers(m_enabled_options_buf_id);
     delete_textures(m_enabled_segments_tex_id);
@@ -1161,6 +1167,17 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glGenTextures(1, &m_enabled_options_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
 
+        // create (but do not fill) the reduced counterparts of the two buffers above
+        glsafe(glGenBuffers(1, &m_enabled_segments_reduced_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_buf_id));
+        glsafe(glGenTextures(1, &m_enabled_segments_reduced_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_tex_id));
+
+        glsafe(glGenBuffers(1, &m_enabled_options_reduced_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_reduced_buf_id));
+        glsafe(glGenTextures(1, &m_enabled_options_reduced_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_reduced_tex_id));
+
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, old_bound_texture));
 #endif // ENABLE_OPENGL_ES
@@ -1179,6 +1196,14 @@ void ViewerImpl::update_enabled_entities()
 
     std::vector<uint32_t> enabled_segments;
     std::vector<uint32_t> enabled_options;
+#ifndef ENABLE_OPENGL_ES
+    // the reduced set is filled by the same walk, so switching to it costs no rebuild. It keeps the
+    // bottom and top layers of the visible range: the surfaces the range cuts open
+    const bool build_reduced = m_settings.reduced_detail_enabled;
+    std::vector<uint32_t> enabled_segments_reduced;
+    std::vector<uint32_t> enabled_options_reduced;
+    const Interval& layers_range = m_layers.get_view_range();
+#endif // ENABLE_OPENGL_ES
     Interval range = m_view_range.get_visible();
 
     // when top layer only visualization is enabled, we need to render
@@ -1226,6 +1251,11 @@ void ViewerImpl::update_enabled_entities()
             enabled_options.push_back(static_cast<uint32_t>(i));
         else
             enabled_segments.push_back(static_cast<uint32_t>(i));
+
+#ifndef ENABLE_OPENGL_ES
+        if (build_reduced && (v.layer_id == layers_range[0] || v.layer_id == layers_range[1]))
+            (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
+#endif // ENABLE_OPENGL_ES
     }
 
 #ifdef ENABLE_OPENGL_ES
@@ -1253,6 +1283,21 @@ void ViewerImpl::update_enabled_entities()
         glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_options.size() * sizeof(uint32_t), enabled_options.data(), GL_STATIC_DRAW));
     else
         glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_STATIC_DRAW));
+
+    m_enabled_segments_reduced_count = enabled_segments_reduced.size();
+    m_enabled_options_reduced_count = enabled_options_reduced.size();
+
+    if (build_reduced) {
+        assert(m_enabled_segments_reduced_buf_id > 0);
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_reduced_buf_id));
+        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_segments_reduced.size() * sizeof(uint32_t),
+                            enabled_segments_reduced.empty() ? nullptr : enabled_segments_reduced.data(), GL_STATIC_DRAW));
+
+        assert(m_enabled_options_reduced_buf_id > 0);
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_reduced_buf_id));
+        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_options_reduced.size() * sizeof(uint32_t),
+                            enabled_options_reduced.empty() ? nullptr : enabled_options_reduced.data(), GL_STATIC_DRAW));
+    }
 
     glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
 #endif // ENABLE_OPENGL_ES
@@ -1459,6 +1504,14 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     m_settings.update_enabled_entities = true;
     //m_settings.update_colors = true;
     update_colors_texture();
+}
+
+void ViewerImpl::set_reduced_detail_enabled(bool value)
+{
+    if (m_settings.reduced_detail_enabled == value)
+        return;
+    m_settings.reduced_detail_enabled = value;
+    m_settings.update_enabled_entities = true;
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
@@ -2070,7 +2123,8 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
 #ifdef ENABLE_OPENGL_ES
     if (m_texture_data.get_enabled_segments_count() == 0)
 #else
-    if (m_enabled_segments_count == 0)
+    const ActiveSet segments = active_segments();
+    if (segments.count == 0)
 #endif // ENABLE_OPENGL_ES
         return;
 
@@ -2138,10 +2192,10 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_colors_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
-    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
-    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, segments.tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, segments.buf_id));
 
-    m_segment_template.render(m_enabled_segments_count);
+    m_segment_template.render(segments.count);
 #endif // ENABLE_OPENGL_ES
 
     if (curr_cull_face)
@@ -2167,7 +2221,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
 #ifdef ENABLE_OPENGL_ES
     if (m_texture_data.get_enabled_options_count() == 0)
 #else
-    if (m_enabled_options_count == 0)
+    const ActiveSet options = active_options();
+    if (options.count == 0)
 #endif // ENABLE_OPENGL_ES
         return;
 
@@ -2225,10 +2280,10 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_colors_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
-    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
-    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_options_buf_id));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, options.tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, options.buf_id));
 
-    m_option_template.render(m_enabled_options_count);
+    m_option_template.render(options.count);
 #endif // ENABLE_OPENGL_ES
 
     if (!curr_cull_face)
