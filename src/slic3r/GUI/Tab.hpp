@@ -401,6 +401,16 @@ public:
     void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
     void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
     void            set_option_label(const std::string &opt_key, const wxString &label, int opt_index = -1);
+
+    // Live state of the settings row that owns an option, read from the built pages.
+    struct SettingRowState
+    {
+        bool     visible{true}; // false when ConfigManipulation hides the row
+        wxString label;         // Line::label the row draws (may change at runtime)
+        bool     multi{false};  // row packs several options, so label is precomposed
+    };
+    SettingRowState setting_row_state(const std::string &opt_id) const;
+
 	wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
