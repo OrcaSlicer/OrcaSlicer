@@ -234,6 +234,20 @@ private:
     //
     std::array<float, TIME_MODES_COUNT> m_total_time{ 0.0f, 0.0f };
     //
+    // Running sum of the vertex estimated times at each layer's first vertex, for each time mode,
+    // so that get_estimated_time_at() only accumulates the vertices of one layer.
+    //
+    std::array<std::vector<float>, TIME_MODES_COUNT> m_layer_start_times;
+    //
+    // For each layer L, the index of the first vertex whose layer_id is >= L (m_vertices.size()
+    // if there is none). Derived from the vertices, so it stays exact whatever order they arrive in.
+    //
+    std::vector<uint32_t> m_layer_first_vertex;
+    //
+    // Scratch buffer for update_colors_texture(), kept alive across slider steps
+    //
+    std::vector<float> m_colors_scratch;
+    //
     // Detected travel moves times
     //
     std::array<float, TIME_MODES_COUNT> m_travels_time{ 0.0f, 0.0f };

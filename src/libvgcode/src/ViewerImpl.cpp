@@ -875,6 +875,12 @@ void ViewerImpl::reset()
     m_travels_time = { 0.0f, 0.0f };
     m_vertices.clear();
     m_vertices_colors.clear();
+    // swap rather than clear: these are sized by the print, and a reset means the memory
+    // should go back, not sit reserved until the next load
+    for (std::vector<float>& times : m_layer_start_times)
+        std::vector<float>().swap(times);
+    std::vector<uint32_t>().swap(m_layer_first_vertex);
+    std::vector<float>().swap(m_colors_scratch);
     m_valid_lines_bitset.clear();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_cog_marker.reset();
@@ -1046,6 +1052,37 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     // Populate layer_duration for each vertex from the accumulated layer times
     for (PathVertex& v : m_vertices) {
         v.layer_duration = m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id));
+    }
+
+    // Index of the first vertex of each layer, walked back to front so that a layer with no
+    // vertex of its own inherits the next layer's index and the array stays non-decreasing.
+    if (!m_layers.empty()) {
+        const uint32_t vertices_count = static_cast<uint32_t>(m_vertices.size());
+        m_layer_first_vertex.assign(m_layers.count(), vertices_count);
+        for (uint32_t i = vertices_count; i > 0; --i) {
+            const uint32_t layer_id = m_vertices[i - 1].layer_id;
+            if (layer_id < m_layer_first_vertex.size())
+                m_layer_first_vertex[layer_id] = i - 1;
+        }
+        for (size_t i = m_layer_first_vertex.size() - 1; i > 0; --i)
+            m_layer_first_vertex[i - 1] = std::min(m_layer_first_vertex[i - 1], m_layer_first_vertex[i]);
+
+        // the running time at each layer's first vertex, summed in vertex order so that
+        // get_estimated_time_at() matches a full accumulation exactly
+        std::array<float, TIME_MODES_COUNT> running{};
+        for (std::vector<float>& times : m_layer_start_times)
+            times.assign(m_layer_first_vertex.size(), 0.0f);
+        size_t layer = 0;
+        for (size_t i = 0; i <= m_vertices.size(); ++i) {
+            for (; layer < m_layer_first_vertex.size() && m_layer_first_vertex[layer] == i; ++layer) {
+                for (size_t j = 0; j < TIME_MODES_COUNT; ++j)
+                    m_layer_start_times[j][layer] = running[j];
+            }
+            if (i < m_vertices.size()) {
+                for (size_t j = 0; j < TIME_MODES_COUNT; ++j)
+                    running[j] += m_vertices[i].times[j];
+            }
+        }
     }
 
     if (!m_layers.empty())
@@ -1261,7 +1298,10 @@ void ViewerImpl::update_colors_texture()
 
     // Based on current settings and slider position, we might want to render some
     // vertices as dark grey (or darkened, see above). Use either that or the normal color (from the cache).
-    std::vector<float> colors(m_vertices_colors.size());
+    // Reused across calls: this runs on every slider tick, and the allocation alone is
+    // 4 bytes per vertex of the whole print each time.
+    std::vector<float>& colors = m_colors_scratch;
+    colors.resize(m_vertices_colors.size());
     assert(colors.size() == m_vertices.size() && m_vertices_colors.size() == m_vertices.size());
     for (size_t i=0; i<m_vertices.size(); ++i) {
         const PathVertex& v = m_vertices[i];
@@ -1516,8 +1556,19 @@ void ViewerImpl::set_view_visible_range(Interval::value_type min, Interval::valu
 
 float ViewerImpl::get_estimated_time_at(size_t id) const
 {
-    return std::accumulate(m_vertices.begin(), m_vertices.begin() + id + 1, 0.0f, 
-        [this](float a, const PathVertex& v) { return a + v.times[static_cast<size_t>(m_settings.time_mode)]; });
+    const size_t mode = static_cast<size_t>(m_settings.time_mode);
+    if (mode >= TIME_MODES_COUNT || id >= m_vertices.size())
+        return 0.0f;
+    size_t first = 0;
+    float time = 0.0f;
+    const size_t layer = static_cast<size_t>(m_vertices[id].layer_id);
+    if (layer < m_layer_first_vertex.size() && m_layer_first_vertex[layer] <= id) {
+        first = m_layer_first_vertex[layer];
+        time = m_layer_start_times[mode][layer];
+    }
+    for (size_t i = first; i <= id; ++i)
+        time += m_vertices[i].times[mode];
+    return time;
 }
 
 Color ViewerImpl::get_vertex_color(const PathVertex& v) const
@@ -1722,6 +1773,10 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += sizeof(m_extrusion_roles_colors);
     ret += sizeof(m_options_colors);
     ret += STDVEC_MEMSIZE(m_vertices, PathVertex);
+    for (const std::vector<float>& times : m_layer_start_times)
+        ret += STDVEC_MEMSIZE(times, float);
+    ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);
+    ret += STDVEC_MEMSIZE(m_colors_scratch, float);
     ret += m_valid_lines_bitset.size_in_bytes_cpu();
     ret += m_height_range.size_in_bytes_cpu();
     ret += m_width_range.size_in_bytes_cpu();
@@ -1787,7 +1842,11 @@ void ViewerImpl::update_view_full_range()
     const bool travels_visible = m_settings.options_visibility[size_t(EOptionType::Travels)];
     const bool wipes_visible   = m_settings.options_visibility[size_t(EOptionType::Wipes)];
 
+    // every vertex before m_layer_first_vertex[layers_range[0]] has a smaller layer_id, so the loop
+    // below would skip all of them anyway
     auto first_it = m_vertices.begin();
+    if (layers_range[0] < m_layer_first_vertex.size())
+        first_it += m_layer_first_vertex[layers_range[0]];
     while (first_it != m_vertices.end() &&
            (first_it->layer_id < layers_range[0] || !is_visible(*first_it, m_settings))) {
         ++first_it;
