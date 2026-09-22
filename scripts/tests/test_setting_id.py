@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the setting_id half of scripts/orca_id_tool.py (stdlib unittest, no
+"""Tests for the setting_id half of scripts/orca_profile_tool.py (stdlib unittest, no
 external deps).
 
 Run from the repo root:  python -m unittest discover -s scripts/tests -v
@@ -17,7 +17,7 @@ import uuid
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import orca_id_tool as afi  # noqa: E402
+import orca_profile_tool as afi  # noqa: E402
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 REAL_PROFILES = os.path.join(REPO_ROOT, "resources", "profiles")
@@ -246,7 +246,7 @@ class TestBase62Tail(unittest.TestCase):
 
 class TestAssignment(SettingTreeCase):
     def test_instantiation_is_read_exactly_as_the_validator_reads_it(self):
-        # orca_extra_profile_check.py tests `instantiation == "true"` strictly.
+        # check_setting_id_uniqueness tests `instantiation == "true"` strictly.
         # Anything looser here would hand an id to a preset the validator calls
         # a base profile, and the two would fight over it on every run.
         for name, value in [("Boolean", True), ("Capitalised", "True"),
@@ -852,7 +852,7 @@ class TestCli(SettingTreeCase):
         self.t.write("VendorA", "machine",
                      preset("P1 0.4 nozzle", type_name="machine"))
 
-        rc, out = self.main(["--generate", "--setting-id",
+        rc, out = self.main(["generate-id", "--setting-id",
                              "--profiles", self.t.profiles])
 
         self.assertEqual(rc, 0, out)
@@ -874,13 +874,13 @@ class TestCli(SettingTreeCase):
     def test_dry_run_setting_id_writes_nothing(self):
         self.t.write("VendorA", "filament", preset("A PLA @P1"))
         before = self.t.bytes_map()
-        rc, out = self.main(["--generate", "--setting-id", "--dry-run",
+        rc, out = self.main(["generate-id", "--setting-id", "--dry-run",
                              "--profiles", self.t.profiles])
         self.assertEqual(rc, 0, out)
         self.assertIn("1 file(s) would change", out)   # there WAS one to write
         self.assertEqual(self.t.bytes_map(), before)
         # the real run then writes exactly it
-        rc, out = self.main(["--generate", "--setting-id",
+        rc, out = self.main(["generate-id", "--setting-id",
                              "--profiles", self.t.profiles])
         self.assertEqual(rc, 0, out)
         self.assertIn("1 file(s) changed", out)
@@ -888,7 +888,7 @@ class TestCli(SettingTreeCase):
                          afi.generate_preset_setting_id("VendorA", "filament",
                                                         "A PLA @P1"))
 
-    def test_setting_id_without_generate_is_a_usage_error(self):
+    def test_setting_id_without_a_command_is_a_usage_error(self):
         with contextlib.redirect_stderr(io.StringIO()), \
                 self.assertRaises(SystemExit) as cm:
             afi.main(["--setting-id", "--profiles", self.t.profiles])

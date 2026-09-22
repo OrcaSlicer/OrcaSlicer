@@ -15,6 +15,9 @@
 #include "SelectMachine.hpp"
 
 namespace Slic3r {
+
+struct PrintParams;
+
 namespace GUI {
 #define SEND_LEFT_PADDING_LEFT 15
 #define SEND_LEFT_PRINTABLE    40

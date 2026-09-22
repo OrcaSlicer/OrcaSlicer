@@ -1,5 +1,6 @@
 #include "FilamentMapPanel.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "Plater.hpp"
 #include "Widgets/MultiNozzleSync.hpp" // manuallySetNozzleCount producer for extruder_nozzle_stats
 #include <algorithm>

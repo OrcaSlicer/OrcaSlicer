@@ -3,6 +3,10 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 

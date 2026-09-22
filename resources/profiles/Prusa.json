@@ -1,6 +1,6 @@
 {
 	"name": "Prusa",
-	"version": "02.04.00.04",
+	"version": "02.04.00.06",
 	"force_update": "0",
 	"description": "Prusa configurations",
 	"machine_model_list": [
@@ -1449,32 +1449,8 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Generic ABS @Prusa base",
-			"sub_path": "filament/Generic ABS @Prusa base.json"
-		},
-		{
-			"name": "Generic ABS @Prusa",
-			"sub_path": "filament/Generic ABS @Prusa.json"
-		},
-		{
 			"name": "Generic ABS @Prusa CORE One",
 			"sub_path": "filament/Generic ABS @Prusa CORE One.json"
-		},
-		{
-			"name": "Generic ABS @Prusa MINIIS",
-			"sub_path": "filament/Generic ABS @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic ABS @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic ABS @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic ABS @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic ABS @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic ABS @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic ABS @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Generic ABS @Prusa MK3.5",
@@ -1493,36 +1469,12 @@
 			"sub_path": "filament/Generic ABS @Prusa MK3.5 0.8.json"
 		},
 		{
-			"name": "Generic ABS @Prusa MK4",
-			"sub_path": "filament/Generic ABS @Prusa MK4.json"
-		},
-		{
 			"name": "Generic ABS @Prusa MK4S",
 			"sub_path": "filament/Generic ABS @Prusa MK4S.json"
 		},
 		{
-			"name": "Generic ABS @Prusa XL",
-			"sub_path": "filament/Generic ABS @Prusa XL.json"
-		},
-		{
-			"name": "Generic ABS @Prusa XL 5T",
-			"sub_path": "filament/Generic ABS @Prusa XL 5T.json"
-		},
-		{
-			"name": "Generic ABS HF @Prusa base",
-			"sub_path": "filament/Generic ABS HF @Prusa base.json"
-		},
-		{
-			"name": "Generic ABS HF @Prusa MINIIS",
-			"sub_path": "filament/Generic ABS HF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic ABS HF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic ABS HF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic ABS HF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic ABS HF @Prusa MINIIS 0.8.json"
+			"name": "Generic ABS @Prusa base",
+			"sub_path": "filament/Generic ABS @Prusa base.json"
 		},
 		{
 			"name": "Generic ABS HF @Prusa MK3.5",
@@ -1535,6 +1487,10 @@
 		{
 			"name": "Generic ABS HF @Prusa MK3.5 0.8",
 			"sub_path": "filament/Generic ABS HF @Prusa MK3.5 0.8.json"
+		},
+		{
+			"name": "Generic ABS HF @Prusa base",
+			"sub_path": "filament/Generic ABS HF @Prusa base.json"
 		},
 		{
 			"name": "Generic ASA @Prusa",
@@ -1585,22 +1541,6 @@
 			"sub_path": "filament/Generic ASA @Prusa MK4S.json"
 		},
 		{
-			"name": "Generic ASA HF @Prusa base",
-			"sub_path": "filament/Generic ASA HF @Prusa base.json"
-		},
-		{
-			"name": "Generic ASA HF @Prusa MINIIS",
-			"sub_path": "filament/Generic ASA HF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic ASA HF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic ASA HF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic ASA HF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic ASA HF @Prusa MINIIS 0.8.json"
-		},
-		{
 			"name": "Generic ASA HF @Prusa MK3.5",
 			"sub_path": "filament/Generic ASA HF @Prusa MK3.5.json"
 		},
@@ -1611,6 +1551,10 @@
 		{
 			"name": "Generic ASA HF @Prusa MK3.5 0.8",
 			"sub_path": "filament/Generic ASA HF @Prusa MK3.5 0.8.json"
+		},
+		{
+			"name": "Generic ASA HF @Prusa base",
+			"sub_path": "filament/Generic ASA HF @Prusa base.json"
 		},
 		{
 			"name": "Prusament ASA @CORE One",
@@ -1637,30 +1581,6 @@
 			"sub_path": "filament/Generic TPU @Prusa CORE One.json"
 		},
 		{
-			"name": "Generic PA @Prusa base",
-			"sub_path": "filament/Generic PA @Prusa base.json"
-		},
-		{
-			"name": "Generic PA @Prusa",
-			"sub_path": "filament/Generic PA @Prusa.json"
-		},
-		{
-			"name": "Generic PA @Prusa MINIIS",
-			"sub_path": "filament/Generic PA @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PA @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic PA @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic PA @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PA @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PA @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PA @Prusa MINIIS 0.8.json"
-		},
-		{
 			"name": "Generic PA @Prusa MK3.5",
 			"sub_path": "filament/Generic PA @Prusa MK3.5.json"
 		},
@@ -1677,28 +1597,8 @@
 			"sub_path": "filament/Generic PA @Prusa MK3.5 0.8.json"
 		},
 		{
-			"name": "Generic PA-CF @Prusa base",
-			"sub_path": "filament/Generic PA-CF @Prusa base.json"
-		},
-		{
-			"name": "Generic PA-CF @Prusa",
-			"sub_path": "filament/Generic PA-CF @Prusa.json"
-		},
-		{
-			"name": "Generic PA-CF @Prusa MINIIS",
-			"sub_path": "filament/Generic PA-CF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PA-CF @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic PA-CF @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic PA-CF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PA-CF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PA-CF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PA-CF @Prusa MINIIS 0.8.json"
+			"name": "Generic PA @Prusa base",
+			"sub_path": "filament/Generic PA @Prusa base.json"
 		},
 		{
 			"name": "Generic PA-CF @Prusa MK3.5",
@@ -1715,6 +1615,10 @@
 		{
 			"name": "Generic PA-CF @Prusa MK3.5 0.8",
 			"sub_path": "filament/Generic PA-CF @Prusa MK3.5 0.8.json"
+		},
+		{
+			"name": "Generic PA-CF @Prusa base",
+			"sub_path": "filament/Generic PA-CF @Prusa base.json"
 		},
 		{
 			"name": "Prusament PA-CF @CORE One",
@@ -1765,22 +1669,6 @@
 			"sub_path": "filament/Generic PC @Prusa MK3.5 0.8.json"
 		},
 		{
-			"name": "Generic PC HF @Prusa base",
-			"sub_path": "filament/Generic PC HF @Prusa base.json"
-		},
-		{
-			"name": "Generic PC HF @Prusa MINIIS",
-			"sub_path": "filament/Generic PC HF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PC HF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PC HF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PC HF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PC HF @Prusa MINIIS 0.8.json"
-		},
-		{
 			"name": "Generic PC HF @Prusa MK3.5",
 			"sub_path": "filament/Generic PC HF @Prusa MK3.5.json"
 		},
@@ -1791,6 +1679,10 @@
 		{
 			"name": "Generic PC HF @Prusa MK3.5 0.8",
 			"sub_path": "filament/Generic PC HF @Prusa MK3.5 0.8.json"
+		},
+		{
+			"name": "Generic PC HF @Prusa base",
+			"sub_path": "filament/Generic PC HF @Prusa base.json"
 		},
 		{
 			"name": "Prusament PC Blend @CORE One",
@@ -1817,32 +1709,8 @@
 			"sub_path": "filament/Prusament PC-CF @XL 5T.json"
 		},
 		{
-			"name": "Generic PETG @Prusa base",
-			"sub_path": "filament/Generic PETG @Prusa base.json"
-		},
-		{
-			"name": "Generic PETG @Prusa",
-			"sub_path": "filament/Generic PETG @Prusa.json"
-		},
-		{
 			"name": "Generic PETG @Prusa CORE One",
 			"sub_path": "filament/Generic PETG @Prusa CORE One.json"
-		},
-		{
-			"name": "Generic PETG @Prusa MINIIS",
-			"sub_path": "filament/Generic PETG @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PETG @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic PETG @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic PETG @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PETG @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PETG @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PETG @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Generic PETG @Prusa MK3.5",
@@ -1861,36 +1729,12 @@
 			"sub_path": "filament/Generic PETG @Prusa MK3.5 0.8.json"
 		},
 		{
-			"name": "Generic PETG @Prusa MK4",
-			"sub_path": "filament/Generic PETG @Prusa MK4.json"
-		},
-		{
 			"name": "Generic PETG @Prusa MK4S",
 			"sub_path": "filament/Generic PETG @Prusa MK4S.json"
 		},
 		{
-			"name": "Generic PETG @Prusa XL",
-			"sub_path": "filament/Generic PETG @Prusa XL.json"
-		},
-		{
-			"name": "Generic PETG @Prusa XL 5T",
-			"sub_path": "filament/Generic PETG @Prusa XL 5T.json"
-		},
-		{
-			"name": "Generic PETG HF @Prusa base",
-			"sub_path": "filament/Generic PETG HF @Prusa base.json"
-		},
-		{
-			"name": "Generic PETG HF @Prusa MINIIS",
-			"sub_path": "filament/Generic PETG HF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PETG HF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PETG HF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PETG HF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PETG HF @Prusa MINIIS 0.8.json"
+			"name": "Generic PETG @Prusa base",
+			"sub_path": "filament/Generic PETG @Prusa base.json"
 		},
 		{
 			"name": "Generic PETG HF @Prusa MK3.5",
@@ -1905,6 +1749,10 @@
 			"sub_path": "filament/Generic PETG HF @Prusa MK3.5 0.8.json"
 		},
 		{
+			"name": "Generic PETG HF @Prusa base",
+			"sub_path": "filament/Generic PETG HF @Prusa base.json"
+		},
+		{
 			"name": "Prusament PETG @CORE One",
 			"sub_path": "filament/Prusament PETG @CORE One.json"
 		},
@@ -1913,40 +1761,8 @@
 			"sub_path": "filament/Prusament PETG @base.json"
 		},
 		{
-			"name": "Prusament PETG @XL",
-			"sub_path": "filament/Prusament PETG @XL.json"
-		},
-		{
-			"name": "Prusament PETG @XL 5T",
-			"sub_path": "filament/Prusament PETG @XL 5T.json"
-		},
-		{
-			"name": "Generic PLA @Prusa base",
-			"sub_path": "filament/Generic PLA @Prusa base.json"
-		},
-		{
-			"name": "Generic PLA @Prusa",
-			"sub_path": "filament/Generic PLA @Prusa.json"
-		},
-		{
 			"name": "Generic PLA @Prusa CORE One",
 			"sub_path": "filament/Generic PLA @Prusa CORE One.json"
-		},
-		{
-			"name": "Generic PLA @Prusa MINIIS",
-			"sub_path": "filament/Generic PLA @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PLA @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic PLA @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic PLA @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PLA @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PLA @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PLA @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Generic PLA @Prusa MK3.5",
@@ -1965,36 +1781,12 @@
 			"sub_path": "filament/Generic PLA @Prusa MK3.5 0.8.json"
 		},
 		{
-			"name": "Generic PLA @Prusa MK4",
-			"sub_path": "filament/Generic PLA @Prusa MK4.json"
-		},
-		{
 			"name": "Generic PLA @Prusa MK4S",
 			"sub_path": "filament/Generic PLA @Prusa MK4S.json"
 		},
 		{
-			"name": "Generic PLA @Prusa XL",
-			"sub_path": "filament/Generic PLA @Prusa XL.json"
-		},
-		{
-			"name": "Generic PLA @Prusa XL 5T",
-			"sub_path": "filament/Generic PLA @Prusa XL 5T.json"
-		},
-		{
-			"name": "Generic PLA HF @Prusa base",
-			"sub_path": "filament/Generic PLA HF @Prusa base.json"
-		},
-		{
-			"name": "Generic PLA HF @Prusa MINIIS",
-			"sub_path": "filament/Generic PLA HF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PLA HF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PLA HF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PLA HF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PLA HF @Prusa MINIIS 0.8.json"
+			"name": "Generic PLA @Prusa base",
+			"sub_path": "filament/Generic PLA @Prusa base.json"
 		},
 		{
 			"name": "Generic PLA HF @Prusa MK3.5",
@@ -2009,32 +1801,12 @@
 			"sub_path": "filament/Generic PLA HF @Prusa MK3.5 0.8.json"
 		},
 		{
+			"name": "Generic PLA HF @Prusa base",
+			"sub_path": "filament/Generic PLA HF @Prusa base.json"
+		},
+		{
 			"name": "Generic PLA Silk @Prusa CORE One",
 			"sub_path": "filament/Generic PLA Silk @Prusa CORE One.json"
-		},
-		{
-			"name": "Generic PLA-CF @Prusa base",
-			"sub_path": "filament/Generic PLA-CF @Prusa base.json"
-		},
-		{
-			"name": "Generic PLA-CF @Prusa",
-			"sub_path": "filament/Generic PLA-CF @Prusa.json"
-		},
-		{
-			"name": "Generic PLA-CF @Prusa MINIIS",
-			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PLA-CF @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic PLA-CF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PLA-CF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Generic PLA-CF @Prusa MK3.5",
@@ -2053,6 +1825,10 @@
 			"sub_path": "filament/Generic PLA-CF @Prusa MK3.5 0.8.json"
 		},
 		{
+			"name": "Generic PLA-CF @Prusa base",
+			"sub_path": "filament/Generic PLA-CF @Prusa base.json"
+		},
+		{
 			"name": "Prusament PLA @CORE One",
 			"sub_path": "filament/Prusament PLA @CORE One.json"
 		},
@@ -2061,52 +1837,12 @@
 			"sub_path": "filament/Prusament PLA @base.json"
 		},
 		{
-			"name": "Prusament PLA @XL",
-			"sub_path": "filament/Prusament PLA @XL.json"
-		},
-		{
-			"name": "Prusament PLA @XL 5T",
-			"sub_path": "filament/Prusament PLA @XL 5T.json"
-		},
-		{
 			"name": "Prusament rPLA @CORE One",
 			"sub_path": "filament/Prusament rPLA @CORE One.json"
 		},
 		{
 			"name": "Prusament rPLA @base",
 			"sub_path": "filament/Prusament rPLA @base.json"
-		},
-		{
-			"name": "Prusament rPLA @XL",
-			"sub_path": "filament/Prusament rPLA @XL.json"
-		},
-		{
-			"name": "Prusament rPLA @XL 5T",
-			"sub_path": "filament/Prusament rPLA @XL 5T.json"
-		},
-		{
-			"name": "Generic PVA @Prusa base",
-			"sub_path": "filament/Generic PVA @Prusa base.json"
-		},
-		{
-			"name": "Generic PVA @Prusa",
-			"sub_path": "filament/Generic PVA @Prusa.json"
-		},
-		{
-			"name": "Generic PVA @Prusa MINIIS",
-			"sub_path": "filament/Generic PVA @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PVA @Prusa MINIIS 0.25",
-			"sub_path": "filament/Generic PVA @Prusa MINIIS 0.25.json"
-		},
-		{
-			"name": "Generic PVA @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PVA @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PVA @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PVA @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Generic PVA @Prusa MK3.5",
@@ -2125,20 +1861,8 @@
 			"sub_path": "filament/Generic PVA @Prusa MK3.5 0.8.json"
 		},
 		{
-			"name": "Generic PVA HF @Prusa base",
-			"sub_path": "filament/Generic PVA HF @Prusa base.json"
-		},
-		{
-			"name": "Generic PVA HF @Prusa MINIIS",
-			"sub_path": "filament/Generic PVA HF @Prusa MINIIS.json"
-		},
-		{
-			"name": "Generic PVA HF @Prusa MINIIS 0.6",
-			"sub_path": "filament/Generic PVA HF @Prusa MINIIS 0.6.json"
-		},
-		{
-			"name": "Generic PVA HF @Prusa MINIIS 0.8",
-			"sub_path": "filament/Generic PVA HF @Prusa MINIIS 0.8.json"
+			"name": "Generic PVA @Prusa base",
+			"sub_path": "filament/Generic PVA @Prusa base.json"
 		},
 		{
 			"name": "Generic PVA HF @Prusa MK3.5",
@@ -2153,6 +1877,10 @@
 			"sub_path": "filament/Generic PVA HF @Prusa MK3.5 0.8.json"
 		},
 		{
+			"name": "Generic PVA HF @Prusa base",
+			"sub_path": "filament/Generic PVA HF @Prusa base.json"
+		},
+		{
 			"name": "Prusament PVB @CORE One",
 			"sub_path": "filament/Prusament PVB @CORE One.json"
 		},
@@ -2165,40 +1893,24 @@
 			"sub_path": "filament/Prusament PVB @XL 5T.json"
 		},
 		{
-			"name": "Generic TPU @Prusa base",
-			"sub_path": "filament/Generic TPU @Prusa base.json"
-		},
-		{
-			"name": "Generic TPU @Prusa",
-			"sub_path": "filament/Generic TPU @Prusa.json"
-		},
-		{
-			"name": "Generic TPU @Prusa MINIIS",
-			"sub_path": "filament/Generic TPU @Prusa MINIIS.json"
-		},
-		{
 			"name": "Generic TPU @Prusa MK3.5",
 			"sub_path": "filament/Generic TPU @Prusa MK3.5.json"
-		},
-		{
-			"name": "Generic TPU @Prusa MK4",
-			"sub_path": "filament/Generic TPU @Prusa MK4.json"
 		},
 		{
 			"name": "Generic TPU @Prusa MK4S",
 			"sub_path": "filament/Generic TPU @Prusa MK4S.json"
 		},
 		{
-			"name": "Generic TPU HF @Prusa base",
-			"sub_path": "filament/Generic TPU HF @Prusa base.json"
-		},
-		{
-			"name": "Generic TPU HF @Prusa MINIIS",
-			"sub_path": "filament/Generic TPU HF @Prusa MINIIS.json"
+			"name": "Generic TPU @Prusa base",
+			"sub_path": "filament/Generic TPU @Prusa base.json"
 		},
 		{
 			"name": "Generic TPU HF @Prusa MK3.5",
 			"sub_path": "filament/Generic TPU HF @Prusa MK3.5.json"
+		},
+		{
+			"name": "Generic TPU HF @Prusa base",
+			"sub_path": "filament/Generic TPU HF @Prusa base.json"
 		},
 		{
 			"name": "Generic ABS @Prusa CORE One 0.6",
@@ -2237,6 +1949,50 @@
 			"sub_path": "filament/Generic ABS @Prusa MK4S HF0.4.json"
 		},
 		{
+			"name": "Generic ABS @Prusa",
+			"sub_path": "filament/Generic ABS @Prusa.json"
+		},
+		{
+			"name": "Generic ABS @Prusa MINIIS",
+			"sub_path": "filament/Generic ABS @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic ABS @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic ABS @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic ABS @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic ABS @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic ABS @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic ABS @Prusa MINIIS 0.8.json"
+		},
+		{
+			"name": "Generic ABS @Prusa MK4",
+			"sub_path": "filament/Generic ABS @Prusa MK4.json"
+		},
+		{
+			"name": "Generic ABS @Prusa XL",
+			"sub_path": "filament/Generic ABS @Prusa XL.json"
+		},
+		{
+			"name": "Generic ABS @Prusa XL 5T",
+			"sub_path": "filament/Generic ABS @Prusa XL 5T.json"
+		},
+		{
+			"name": "Generic ABS HF @Prusa MINIIS",
+			"sub_path": "filament/Generic ABS HF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic ABS HF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic ABS HF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic ABS HF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic ABS HF @Prusa MINIIS 0.8.json"
+		},
+		{
 			"name": "Generic ASA @Prusa CORE One 0.6",
 			"sub_path": "filament/Generic ASA @Prusa CORE One 0.6.json"
 		},
@@ -2273,6 +2029,18 @@
 			"sub_path": "filament/Generic ASA @Prusa MK4S HF0.4.json"
 		},
 		{
+			"name": "Generic ASA HF @Prusa MINIIS",
+			"sub_path": "filament/Generic ASA HF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic ASA HF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic ASA HF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic ASA HF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic ASA HF @Prusa MINIIS 0.8.json"
+		},
+		{
 			"name": "Prusament ASA @CORE One 0.6",
 			"sub_path": "filament/Prusament ASA @CORE One 0.6.json"
 		},
@@ -2305,12 +2073,64 @@
 			"sub_path": "filament/Generic TPU @Prusa CORE One 0.8.json"
 		},
 		{
+			"name": "Generic PA @Prusa",
+			"sub_path": "filament/Generic PA @Prusa.json"
+		},
+		{
+			"name": "Generic PA @Prusa MINIIS",
+			"sub_path": "filament/Generic PA @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PA @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic PA @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic PA @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PA @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PA @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PA @Prusa MINIIS 0.8.json"
+		},
+		{
+			"name": "Generic PA-CF @Prusa",
+			"sub_path": "filament/Generic PA-CF @Prusa.json"
+		},
+		{
+			"name": "Generic PA-CF @Prusa MINIIS",
+			"sub_path": "filament/Generic PA-CF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PA-CF @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic PA-CF @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic PA-CF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PA-CF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PA-CF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PA-CF @Prusa MINIIS 0.8.json"
+		},
+		{
 			"name": "Prusament PA-CF @CORE One 0.6",
 			"sub_path": "filament/Prusament PA-CF @CORE One 0.6.json"
 		},
 		{
 			"name": "Prusament PA-CF @CORE One 0.8",
 			"sub_path": "filament/Prusament PA-CF @CORE One 0.8.json"
+		},
+		{
+			"name": "Generic PC HF @Prusa MINIIS",
+			"sub_path": "filament/Generic PC HF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PC HF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PC HF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PC HF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PC HF @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Prusament PC Blend @CORE One 0.6",
@@ -2381,6 +2201,50 @@
 			"sub_path": "filament/Generic PETG @Prusa MK4S HF0.4.json"
 		},
 		{
+			"name": "Generic PETG @Prusa",
+			"sub_path": "filament/Generic PETG @Prusa.json"
+		},
+		{
+			"name": "Generic PETG @Prusa MINIIS",
+			"sub_path": "filament/Generic PETG @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PETG @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic PETG @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic PETG @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PETG @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PETG @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PETG @Prusa MINIIS 0.8.json"
+		},
+		{
+			"name": "Generic PETG @Prusa MK4",
+			"sub_path": "filament/Generic PETG @Prusa MK4.json"
+		},
+		{
+			"name": "Generic PETG @Prusa XL",
+			"sub_path": "filament/Generic PETG @Prusa XL.json"
+		},
+		{
+			"name": "Generic PETG @Prusa XL 5T",
+			"sub_path": "filament/Generic PETG @Prusa XL 5T.json"
+		},
+		{
+			"name": "Generic PETG HF @Prusa MINIIS",
+			"sub_path": "filament/Generic PETG HF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PETG HF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PETG HF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PETG HF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PETG HF @Prusa MINIIS 0.8.json"
+		},
+		{
 			"name": "Prusament PETG @CORE One 0.6",
 			"sub_path": "filament/Prusament PETG @CORE One 0.6.json"
 		},
@@ -2403,6 +2267,14 @@
 		{
 			"name": "Prusament PETG @CORE One HF 0.8",
 			"sub_path": "filament/Prusament PETG @CORE One HF 0.8.json"
+		},
+		{
+			"name": "Prusament PETG @XL",
+			"sub_path": "filament/Prusament PETG @XL.json"
+		},
+		{
+			"name": "Prusament PETG @XL 5T",
+			"sub_path": "filament/Prusament PETG @XL 5T.json"
 		},
 		{
 			"name": "Generic PLA @Prusa CORE One 0.6",
@@ -2445,12 +2317,76 @@
 			"sub_path": "filament/Generic PLA Silk @Prusa MK4S.json"
 		},
 		{
+			"name": "Generic PLA @Prusa",
+			"sub_path": "filament/Generic PLA @Prusa.json"
+		},
+		{
+			"name": "Generic PLA @Prusa MINIIS",
+			"sub_path": "filament/Generic PLA @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PLA @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic PLA @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic PLA @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PLA @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PLA @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PLA @Prusa MINIIS 0.8.json"
+		},
+		{
+			"name": "Generic PLA @Prusa MK4",
+			"sub_path": "filament/Generic PLA @Prusa MK4.json"
+		},
+		{
+			"name": "Generic PLA @Prusa XL",
+			"sub_path": "filament/Generic PLA @Prusa XL.json"
+		},
+		{
+			"name": "Generic PLA @Prusa XL 5T",
+			"sub_path": "filament/Generic PLA @Prusa XL 5T.json"
+		},
+		{
+			"name": "Generic PLA HF @Prusa MINIIS",
+			"sub_path": "filament/Generic PLA HF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PLA HF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PLA HF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PLA HF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PLA HF @Prusa MINIIS 0.8.json"
+		},
+		{
 			"name": "Generic PLA Silk @Prusa CORE One 0.6",
 			"sub_path": "filament/Generic PLA Silk @Prusa CORE One 0.6.json"
 		},
 		{
 			"name": "Generic PLA Silk @Prusa CORE One 0.8",
 			"sub_path": "filament/Generic PLA Silk @Prusa CORE One 0.8.json"
+		},
+		{
+			"name": "Generic PLA-CF @Prusa",
+			"sub_path": "filament/Generic PLA-CF @Prusa.json"
+		},
+		{
+			"name": "Generic PLA-CF @Prusa MINIIS",
+			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PLA-CF @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic PLA-CF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PLA-CF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PLA-CF @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Prusament PLA @CORE One 0.6",
@@ -2477,12 +2413,60 @@
 			"sub_path": "filament/Prusament PLA @CORE One HF 0.8.json"
 		},
 		{
+			"name": "Prusament PLA @XL",
+			"sub_path": "filament/Prusament PLA @XL.json"
+		},
+		{
+			"name": "Prusament PLA @XL 5T",
+			"sub_path": "filament/Prusament PLA @XL 5T.json"
+		},
+		{
 			"name": "Prusament rPLA @CORE One 0.6",
 			"sub_path": "filament/Prusament rPLA @CORE One 0.6.json"
 		},
 		{
 			"name": "Prusament rPLA @CORE One 0.8",
 			"sub_path": "filament/Prusament rPLA @CORE One 0.8.json"
+		},
+		{
+			"name": "Prusament rPLA @XL",
+			"sub_path": "filament/Prusament rPLA @XL.json"
+		},
+		{
+			"name": "Prusament rPLA @XL 5T",
+			"sub_path": "filament/Prusament rPLA @XL 5T.json"
+		},
+		{
+			"name": "Generic PVA @Prusa",
+			"sub_path": "filament/Generic PVA @Prusa.json"
+		},
+		{
+			"name": "Generic PVA @Prusa MINIIS",
+			"sub_path": "filament/Generic PVA @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PVA @Prusa MINIIS 0.25",
+			"sub_path": "filament/Generic PVA @Prusa MINIIS 0.25.json"
+		},
+		{
+			"name": "Generic PVA @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PVA @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PVA @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PVA @Prusa MINIIS 0.8.json"
+		},
+		{
+			"name": "Generic PVA HF @Prusa MINIIS",
+			"sub_path": "filament/Generic PVA HF @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic PVA HF @Prusa MINIIS 0.6",
+			"sub_path": "filament/Generic PVA HF @Prusa MINIIS 0.6.json"
+		},
+		{
+			"name": "Generic PVA HF @Prusa MINIIS 0.8",
+			"sub_path": "filament/Generic PVA HF @Prusa MINIIS 0.8.json"
 		},
 		{
 			"name": "Prusament PVB @CORE One 0.6",
@@ -2499,6 +2483,22 @@
 		{
 			"name": "Generic TPU @Prusa MK4S 0.8",
 			"sub_path": "filament/Generic TPU @Prusa MK4S 0.8.json"
+		},
+		{
+			"name": "Generic TPU @Prusa",
+			"sub_path": "filament/Generic TPU @Prusa.json"
+		},
+		{
+			"name": "Generic TPU @Prusa MINIIS",
+			"sub_path": "filament/Generic TPU @Prusa MINIIS.json"
+		},
+		{
+			"name": "Generic TPU @Prusa MK4",
+			"sub_path": "filament/Generic TPU @Prusa MK4.json"
+		},
+		{
+			"name": "Generic TPU HF @Prusa MINIIS",
+			"sub_path": "filament/Generic TPU HF @Prusa MINIIS.json"
 		},
 		{
 			"name": "Generic ABS @Prusa MK4S HF0.5",

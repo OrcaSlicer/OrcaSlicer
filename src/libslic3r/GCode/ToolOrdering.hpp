@@ -417,6 +417,11 @@ private:
     int                        most_used_extruder;
 };
 
+// Parse the user defined cyclic toolchange sequence ("3,2 , 1 , 4") into 0-based filament indices.
+// Out-of-range entries, duplicates and non-numeric tokens are dropped, so a partially valid string
+// still orders the filaments it does name. Exposed for unit testing.
+std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned int number_of_extruders);
+
 } // namespace SLic3r
 
 #endif /* slic3r_ToolOrdering_hpp_ */

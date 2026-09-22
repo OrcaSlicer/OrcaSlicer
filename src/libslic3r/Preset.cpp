@@ -545,7 +545,7 @@ std::string generate_preset_setting_id(const std::string& vendor, const std::str
         return "";
 
     // Dedicated namespace for preset setting_ids, distinct from the cloud per-user
-    // namespace (OrcaCloudServiceAgent). Keep in sync with scripts/orca_id_tool.py;
+    // namespace (OrcaCloudServiceAgent). Keep in sync with scripts/orca_profile_tool.py;
     // never change this constant.
     static const boost::uuids::uuid vendor_namespace =
         boost::uuids::string_generator()("c1f4d9e2-7a3b-5c8d-9e0f-1a2b3c4d5e6f");
@@ -867,6 +867,20 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
     return is_compatible_with_printer(preset, active_printer, &config);
 }
 
+// ORCA: see the header. The CLI resolves --load-settings into bare DynamicPrintConfigs and has no
+// Preset objects to hand; without this it would have to reimplement the policy or build the shells
+// at every call site.
+bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
+                                const DynamicPrintConfig &printer_config, const std::string &printer_name)
+{
+    Preset preset(preset_type, std::string("__compat_check"));
+    preset.config = preset_config;
+    Preset printer(Preset::TYPE_PRINTER, printer_name);
+    printer.config = printer_config;
+    return is_compatible_with_printer(PresetWithVendorProfile(preset, nullptr),
+                                      PresetWithVendorProfile(printer, nullptr));
+}
+
 void Preset::set_visible_from_appconfig(const AppConfig &app_config)
 {
     //BBS: add config related log
@@ -1044,6 +1058,7 @@ static std::vector<std::string> s_Preset_print_options{
     "reduce_crossing_wall",
     "detect_thin_wall",
     "detect_overhang_wall",
+    "unsupported_wall_last",
     "overhang_reverse",
     "overhang_reverse_threshold",
     "overhang_reverse_internal_only",
@@ -1268,6 +1283,8 @@ static std::vector<std::string> s_Preset_print_options{
     "accel_to_decel_enable",
     "accel_to_decel_factor",
     "wipe_on_loops",
+    "wipe_inward",
+    "wipe_inward_distance",
     "wipe_before_external_loop",
     "bridge_density",
     "internal_bridge_density",
@@ -1304,6 +1321,8 @@ static std::vector<std::string> s_Preset_print_options{
     "wipe_tower_extra_flow",
     "single_extruder_multi_material_priming",
     "toolchange_ordering",
+    "toolchange_cyclic_order",
+    "toolchange_cyclic_first_layer",
     "wipe_tower_rotation_angle",
     "tree_support_branch_distance_organic",
     "tree_support_branch_diameter_organic",
@@ -1429,7 +1448,7 @@ static std::vector<std::string> s_Preset_printer_options {
      "gcode_skip_config_block", "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
     "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
-    "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
+    "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod", "extruder_clearance_dist_to_rod",
     "nozzle_height", "master_extruder_id",
     "default_print_profile", "inherits",
     "silent_mode",
