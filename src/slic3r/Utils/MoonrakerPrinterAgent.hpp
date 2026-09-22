@@ -136,6 +136,10 @@ protected:
 
     virtual void on_status_loop_tick(const std::string& dev_id) {}
 
+    // Queue work that may use agent state. The command worker is joined during
+    // destruction, so queued commands cannot outlive the agent.
+    void enqueue_command(std::function<void()> fn);
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
@@ -254,7 +258,6 @@ private:
     std::thread            connect_thread;
     mutable std::recursive_mutex connect_mutex;
 
-    void enqueue_command(std::function<void()> fn);
     void run_command_worker();
     std::thread cmd_thread;
     std::deque<std::function<void()>> cmd_queue;

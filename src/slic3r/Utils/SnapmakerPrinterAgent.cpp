@@ -82,10 +82,10 @@ SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPri
 
 void SnapmakerPrinterAgent::start_camera_monitor()
 {
-    std::thread([this] {
+    enqueue_command([this] {
         send_ws_rpc("camera.start_monitor",
                     {{"domain", "lan"}, {"interval", 0}, {"expect_pw", false}});
-    }).detach();
+    });
     m_camera_last_fire_ms.store(now_ms());
 }
 
