@@ -16,6 +16,7 @@
 #include "ReleaseNote.hpp"
 #include <thread>
 #include <mutex>
+#include <charconv>
 #include <codecvt>
 #include <boost/foreach.hpp>
 #include <boost/typeof/typeof.hpp>
@@ -2602,9 +2603,14 @@ void MachineObject::set_print_state(std::string status)
 // why: printer agents can report progress without BBL cloud task identity.
 void MachineObject::update_print_progress(const json& value)
 {
-    if (value.is_string())
-        mc_print_percent = stoi(value.get<std::string>());
-    else if (value.is_number_integer())
+    if (value.is_string()) {
+        const std::string progress = value.get<std::string>();
+        int              parsed_progress;
+        const auto       result = std::from_chars(progress.data(), progress.data() + progress.size(), parsed_progress);
+        if (result.ec != std::errc{} || result.ptr != progress.data() + progress.size())
+            return;
+        mc_print_percent = parsed_progress;
+    } else if (value.is_number_integer())
         mc_print_percent = value.get<int>();
     else
         return;
