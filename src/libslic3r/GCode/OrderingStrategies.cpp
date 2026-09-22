@@ -10,6 +10,7 @@
 #include <limits>
 #include <numeric>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -134,15 +135,79 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
         return {std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()};
     };
 
+    // For many islands, the same scan with the edges binned in a uniform grid over their boxes, so each edge is only tested against the edges sharing a
+    // cell with it - two edges whose boxes overlap always do. It returns the same crossing as the all-pairs scan
+    // (smallest i, then smallest j), so the result is unchanged; with thousands of islands on a layer the all-pairs
+    // scan, repeated after every reversal, never finished. Rebuilding the grid costs more than it saves on small inputs.
+    constexpr size_t grid_min_size = 500;
+    BoundingBox extent;
+    for (size_t idx : path)
+        extent.merge(centers[idx]);
+    const int     grid_n = std::clamp(int(std::sqrt(double(pn))), 1, 256);
+    const coord_t cell_w = std::max<coord_t>(1, (extent.max.x() - extent.min.x()) / grid_n + 1);
+    const coord_t cell_h = std::max<coord_t>(1, (extent.max.y() - extent.min.y()) / grid_n + 1);
+    const auto    for_cells = [&](const Point& a, const Point& b, auto&& fn) {
+        const int x0 = int((std::min(a.x(), b.x()) - extent.min.x()) / cell_w), x1 = int((std::max(a.x(), b.x()) - extent.min.x()) / cell_w);
+        const int y0 = int((std::min(a.y(), b.y()) - extent.min.y()) / cell_h), y1 = int((std::max(a.y(), b.y()) - extent.min.y()) / cell_h);
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                fn(y * grid_n + x);
+    };
+    std::vector<std::vector<size_t>> edge_cells(size_t(grid_n) * grid_n);
+
+    auto find_crossing_grid = [&]() -> std::pair<size_t, size_t> {
+        for (std::vector<size_t>& cell : edge_cells)
+            cell.clear();
+        for (size_t j = 0; j < n_edges; ++j)
+            for_cells(centers[path[j]], centers[path[(j + 1) % pn]], [&](int cell) { edge_cells[cell].emplace_back(j); });
+
+        for (size_t i = 0; i < n_edges; ++i) {
+            const Point& ai = centers[path[i]];
+            const Point& bi = centers[path[(i + 1) % pn]];
+
+            size_t first_j = std::numeric_limits<size_t>::max();
+            for_cells(ai, bi, [&](int cell) {
+                for (size_t j : edge_cells[cell]) {
+                    if (j < i + 2 || j >= first_j) continue;
+                    // Skip the (0, pn-1) pair: edges (0,1) and (pn-1,0) share node 0.
+                    if (i == 0 && j == pn - 1) continue;
+
+                    const Point& aj = centers[path[j]];
+                    const Point& bj = centers[path[(j + 1) % pn]];
+
+                    if (!bboxes_overlap(ai, bi, aj, bj)) continue;
+                    if (Geometry::segments_intersect(ai, bi, aj, bj))
+                        first_j = j;
+                }
+            });
+            if (first_j != std::numeric_limits<size_t>::max())
+                return {i, first_j};
+        }
+        return {std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()};
+    };
+
     // Process crossings one at a time: find first, reverse it, restart scan.
     // Cap iterations to prevent infinite loops on collinear/overlapping segments.
     int max_iters = static_cast<int>(pn * pn);
     bool improved = false;
+    // Reversing between two segments that only touch or overlap along a line need not remove the intersection, and on
+    // islands laid out on a regular grid (a tiled texture, an array of parts) the loop cycled through the same orderings
+    // until the pn * pn cap - effectively forever. Stop as soon as an ordering repeats: until then this is the same loop.
+    std::unordered_set<uint64_t> seen_paths;
+    const auto path_hash = [&path]() {
+        uint64_t h = 1469598103934665603ull; // FNV-1a
+        for (size_t idx : path)
+            h = (h ^ uint64_t(idx)) * 1099511628211ull;
+        return h;
+    };
+    seen_paths.insert(path_hash());
     while (max_iters-- > 0) {
-        auto [ci, cj] = find_crossing();
+        auto [ci, cj] = pn >= grid_min_size ? find_crossing_grid() : find_crossing();
         if (ci == std::numeric_limits<size_t>::max()) break;
         improved = true;
         std::reverse(path.begin() + ci + 1, path.begin() + cj + 1);
+        if (!seen_paths.insert(path_hash()).second)
+            break;
     }
     return improved;
 }
