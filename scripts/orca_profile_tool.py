@@ -818,6 +818,55 @@ def check_setting_id_uniqueness(profiles_dir):
     return errors
 
 
+def check_machine_model_name_uniqueness(profiles_dir):
+    """No two bundles may declare a machine_model with the same name.
+
+    A machine_model name is the key the whole tree resolves a printer type by:
+    Preset::get_printer_type (and get_current_printer_type) walk every vendor's
+    models and return the model_id of the first whose name equals the preset's
+    printer_model, so two models sharing a name make that lookup depend on vendor
+    order. The name is also what the Add Printer list shows, so a duplicate
+    renders the same printer twice.
+
+    Unlike preset names, which are per bundle - base profiles share one name
+    across dozens of bundles by design - a machine_model name is global. A vendor
+    copying another vendor's model (the Custom "Generic Klipper Printer" being the
+    usual source) is the common way this happens.
+
+    Cross-vendor by nature, so it always runs over the whole tree, never narrowed
+    by --vendor. Returns the error count.
+    """
+    errors = 0
+    owners = defaultdict(list)  # model name -> [relative path]
+    for vendor in list_profile_dirs(profiles_dir):
+        for path, _sub in iter_profile_files(os.path.join(profiles_dir, vendor)):
+            if os.path.basename(path) in NON_PROFILE_FILES:
+                continue
+            try:
+                data = load_json(path)
+            except (ValueError, OSError):
+                # Parse failures are reported by the checks that walk the same
+                # files; reporting them here too would double-count.
+                continue
+            if not isinstance(data, dict) or data.get("type") != "machine_model":
+                continue
+            name = data.get("name")
+            if name:
+                owners[name].append(
+                    os.path.relpath(path, profiles_dir).replace(os.sep, "/"))
+
+    for name, paths in sorted(owners.items()):
+        if len(paths) < 2:
+            continue
+        errors += 1
+        print_error(
+            f'machine_model name "{name}" is declared by {len(paths)} bundles '
+            f'({", ".join(sorted(paths))}); a machine model name is global, so the '
+            f"printer type resolves to whichever bundle is seen first and the Add "
+            f"Printer list shows it twice - rename or delete the duplicate")
+    return errors
+
+
 # ---------------------------------------------------------------------------
 # Per-vendor validation
 # ---------------------------------------------------------------------------
@@ -1353,9 +1402,11 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None):
         if remedies[category]:
             print_warning(f"{remedies[category]} {hint}")
 
-    # Cross-vendor checks: setting_id uniqueness and the whole filament_id state,
-    # both validated over the entire tree regardless of --vendor.
+    # Cross-vendor checks: setting_id and machine_model name uniqueness and the
+    # whole filament_id state, all validated over the entire tree regardless of
+    # --vendor.
     errors_found += check_setting_id_uniqueness(profiles_dir)
+    errors_found += check_machine_model_name_uniqueness(profiles_dir)
     errors_found += check_filament_ids(profiles_dir)
 
     print("\n==================== SUMMARY ====================")
