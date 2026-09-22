@@ -3,7 +3,7 @@
 	"name": "Polymaker PLA Pro @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM020",
+	"filament_id": "OF5oXk4M",
 	"instantiation": "false",
 	"filament_density": [
 		"1.23"
