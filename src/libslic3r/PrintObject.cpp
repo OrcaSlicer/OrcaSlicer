@@ -1785,20 +1785,30 @@ void PrintObject::detect_surfaces_type()
                             if (lower_layer) { // Only detect small cracks for non-first layer, because first layer should always be bottom
                                 const float small_crack_threshold = -layerm->flow(frExternalPerimeter).scaled_width() * 1.5;
                                 
+                                // Only the bottom surfaces near a crack can take part: one that contains it must contain its box,
+                                // and one whose box misses the grown crack is left unchanged by removing it. A layer cut through
+                                // a fine relief has thousands of both, which made this loop quadratic.
                                 for (const auto& crack : cracks) {
                                     if (offset_ex(crack, small_crack_threshold).empty()) {
                                         // For small cracks, if it's part of a large bottom surface, then it should be added to bottom as well
-                                        if (std::any_of(bottom.begin(), bottom.end(), [&crack, small_crack_threshold](const Surface& s) {
+                                        const BoundingBox crack_bbox = get_extents(crack);
+                                        if (std::any_of(bottom.begin(), bottom.end(), [&crack, &crack_bbox, small_crack_threshold](const Surface& s) {
                                                 const auto& se = s.expolygon;
-                                                return diff_ex(crack, se, ApplySafetyOffset::Yes).empty()
+                                                return get_extents(se).inflated(SCALED_EPSILON).contains(crack_bbox)
+                                                    && diff_ex(crack, se, ApplySafetyOffset::Yes).empty()
                                                     && se.area() > crack.area() * 2
                                                     && !offset_ex(diff_ex(se, crack), small_crack_threshold).empty();
                                         })) continue;
 
                                         // Crack too small, leave it as part of the top surface, remove it from bottom surfaces
+                                        const ExPolygons  grown_crack = offset_ex(crack, -small_crack_threshold);
+                                        const BoundingBox grown_bbox  = get_extents(grown_crack);
                                         Surfaces bot_tmp;
                                         for (auto& b : bottom) {
-                                            surfaces_append(bot_tmp, diff_ex(b.expolygon, offset_ex(crack, -small_crack_threshold)), b.surface_type);
+                                            if (get_extents(b.expolygon).overlap(grown_bbox))
+                                                surfaces_append(bot_tmp, diff_ex(b.expolygon, grown_crack), b.surface_type);
+                                            else
+                                                bot_tmp.emplace_back(std::move(b));
                                         }
                                         bottom = std::move(bot_tmp);
                                     }

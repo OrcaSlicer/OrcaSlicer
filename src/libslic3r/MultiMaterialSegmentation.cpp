@@ -8,6 +8,7 @@
 #include "MutablePolygon.hpp"
 #include "format.hpp"
 
+#include <numeric>
 #include <utility>
 #include <unordered_set>
 
@@ -1900,7 +1901,68 @@ static ExPolygons diff_ex_by_piece(const ExPolygons &subject, const ExPolygons &
     return out;
 }
 
-static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::vector<std::vector<ExPolygons>> &segmented_regions,
+// Finds the islands (layer ExPolygons) a region piece overlaps. A top or bottom region is projected from the neighbouring
+// layers and may reach past the island it belongs to, or over several islands.
+class IslandLocator
+{
+public:
+    explicit IslandLocator(const ExPolygons &islands) : m_islands(islands)
+    {
+        m_bboxes.reserve(islands.size());
+        for (const ExPolygon &island : islands) {
+            m_bboxes.emplace_back(get_extents(island));
+            m_extent.merge(m_bboxes.back());
+        }
+        if (!m_extent.defined)
+            return;
+        const Point size = m_extent.size();
+        m_cell_w = std::max<coord_t>(1, size.x() / GRID + 1);
+        m_cell_h = std::max<coord_t>(1, size.y() / GRID + 1);
+        m_grid.assign(GRID * GRID, {});
+        for (size_t i = 0; i < m_bboxes.size(); ++i)
+            for_cells(m_bboxes[i], [&](int cell) { m_grid[cell].emplace_back(i); });
+    }
+
+    void find(const ExPolygon &piece, std::vector<size_t> &out) const
+    {
+        out.clear();
+        const BoundingBox bbox = get_extents(piece);
+        if (!m_extent.defined || !m_extent.overlap(bbox))
+            return;
+        for_cells(bbox, [&](int cell) {
+            for (size_t i : m_grid[cell])
+                if (m_bboxes[i].overlap(bbox))
+                    out.emplace_back(i);
+        });
+        sort_remove_duplicates(out);
+        if (out.size() > 1)
+            out.erase(std::remove_if(out.begin(), out.end(), [&](size_t i) {
+                const BoundingBox common(m_bboxes[i].min.cwiseMax(bbox.min), m_bboxes[i].max.cwiseMin(bbox.max));
+                return intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(piece, common.inflated(SCALED_EPSILON)),
+                                    ClipperUtils::clip_clipper_polygons_with_subject_bbox(m_islands[i], common.inflated(SCALED_EPSILON))).empty();
+            }), out.end());
+    }
+
+private:
+    static constexpr int GRID = 64;
+    template<typename Fn> void for_cells(const BoundingBox &bb, Fn &&fn) const
+    {
+        const int x0 = std::clamp(int((bb.min.x() - m_extent.min.x()) / m_cell_w), 0, GRID - 1), x1 = std::clamp(int((bb.max.x() - m_extent.min.x()) / m_cell_w), 0, GRID - 1);
+        const int y0 = std::clamp(int((bb.min.y() - m_extent.min.y()) / m_cell_h), 0, GRID - 1), y1 = std::clamp(int((bb.max.y() - m_extent.min.y()) / m_cell_h), 0, GRID - 1);
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                fn(y * GRID + x);
+    }
+
+    const ExPolygons                &m_islands;
+    std::vector<BoundingBox>         m_bboxes;
+    BoundingBox                      m_extent;
+    coord_t                          m_cell_w = 1, m_cell_h = 1;
+    std::vector<std::vector<size_t>> m_grid;
+};
+
+static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::vector<ExPolygons>              &input_expolygons,
+                                                                   const std::vector<std::vector<ExPolygons>> &segmented_regions,
                                                                    std::vector<std::vector<ExPolygons>>      &&top_and_bottom_layers,
                                                                    const size_t                                num_facets_states,
                                                                    const std::function<void()>                &throw_on_cancel_callback)
@@ -1911,33 +1973,91 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
     assert(!top_and_bottom_layers.size() || num_facets_states == top_and_bottom_layers.size());
 
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - Merging segmented layers in parallel - Begin";
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&segmented_regions, &top_and_bottom_layers, &segmented_regions_merged, &num_facets_states, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
+    // Every region of a layer is merged together with the regions of the islands it overlaps, and the islands are further
+    // apart than the dimple removal below reaches, so this gives the same result as merging the layer at once. On a layer
+    // cut through a fine relief every region shares thousands of hole contours with every other, and ClipperLib, splitting
+    // and re-linking one huge polygon over and over, took anything up to half an hour for a layer; per island each operation
+    // stays the size of the island, and the islands run in parallel.
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
             assert(segmented_regions[layer_idx].size() == num_facets_states);
-            ExPolygons top_and_bottom_all_colours;
-            for (const std::vector<ExPolygons> &top_and_bottom_by_extruder : top_and_bottom_layers)
-                append(top_and_bottom_all_colours, top_and_bottom_by_extruder[layer_idx]);
-            // Zero is skipped because it is the default color of the volume
+            throw_on_cancel_callback();
+            // Group the islands joined by a region overlapping several of them; the last group takes the regions lying
+            // outside every island.
+            const ExPolygons   &islands = input_expolygons[layer_idx];
+            const IslandLocator locator(islands);
+            std::vector<size_t> parent(islands.size() + 1);
+            std::iota(parent.begin(), parent.end(), 0);
+            const auto root = [&parent](size_t i) {
+                while (parent[i] != i)
+                    i = parent[i] = parent[parent[i]];
+                return i;
+            };
+            // Islands of every piece: side regions of colours 1.., then top/bottom regions of colours 0..
+            std::vector<const ExPolygon *> pieces;
+            for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id)
+                for (const ExPolygon &piece : segmented_regions[layer_idx][extruder_id])
+                    pieces.emplace_back(&piece);
+            if (!top_and_bottom_layers.empty())
+                for (size_t color_idx = 0; color_idx < num_facets_states; ++color_idx)
+                    for (const ExPolygon &piece : top_and_bottom_layers[color_idx][layer_idx])
+                        pieces.emplace_back(&piece);
+            std::vector<std::vector<size_t>> overlapped(pieces.size());
+            tbb::parallel_for(size_t(0), pieces.size(), [&](size_t i) { locator.find(*pieces[i], overlapped[i]); });
+            std::vector<size_t> piece_island(pieces.size());
+            for (size_t i = 0; i < pieces.size(); ++i) {
+                piece_island[i] = overlapped[i].empty() ? islands.size() : overlapped[i].front();
+                for (size_t island : overlapped[i])
+                    parent[root(island)] = root(piece_island[i]);
+            }
+            std::vector<size_t> bucket_of(parent.size(), size_t(-1));
+            size_t              num_buckets = 0;
+            for (size_t i = 0; i < parent.size(); ++i)
+                if (size_t &b = bucket_of[root(i)]; b == size_t(-1))
+                    b = num_buckets++;
+
+            // [bucket][colour]
+            std::vector<std::vector<ExPolygons>> sides(num_buckets, std::vector<ExPolygons>(num_facets_states));
+            std::vector<std::vector<ExPolygons>> tops(num_buckets, std::vector<ExPolygons>(num_facets_states));
+            size_t                               piece_idx = 0;
+            for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id)
+                for (const ExPolygon &piece : segmented_regions[layer_idx][extruder_id])
+                    sides[bucket_of[root(piece_island[piece_idx++])]][extruder_id].emplace_back(piece);
+            if (!top_and_bottom_layers.empty())
+                for (size_t color_idx = 0; color_idx < num_facets_states; ++color_idx)
+                    for (const ExPolygon &piece : top_and_bottom_layers[color_idx][layer_idx])
+                        tops[bucket_of[root(piece_island[piece_idx++])]][color_idx].emplace_back(piece);
+
+            // Side regions minus the top/bottom regions of every colour.
+            std::vector<std::vector<ExPolygons>> merged(num_buckets, std::vector<ExPolygons>(num_facets_states));
+            tbb::parallel_for(size_t(0), num_buckets, [&](size_t bucket) {
+                ExPolygons tops_all;
+                for (const ExPolygons &t : tops[bucket])
+                    append(tops_all, t);
+                for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id)
+                    if (!sides[bucket][extruder_id].empty())
+                        merged[bucket][extruder_id] = tops_all.empty() ? std::move(sides[bucket][extruder_id]) :
+                                                                         diff_ex_by_piece(sides[bucket][extruder_id], tops_all);
+            });
+
+            // Then this colour's top/bottom regions, with the dimples removed (#7235) when the layer has side regions left.
             for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id) {
-                throw_on_cancel_callback();
-                if (!segmented_regions[layer_idx][extruder_id].empty()) {
-                    ExPolygons segmented_regions_trimmed = segmented_regions[layer_idx][extruder_id];
-                    // All colours at once: taking them one after another made every piece go through ClipperLib once per
-                    // colour, and it is the same area either way.
-                    if (!top_and_bottom_all_colours.empty() && !segmented_regions_trimmed.empty())
-                        segmented_regions_trimmed = diff_ex_by_piece(segmented_regions_trimmed, top_and_bottom_all_colours);
-
-                    segmented_regions_merged[layer_idx][extruder_id - 1] = std::move(segmented_regions_trimmed);
+                if (top_and_bottom_layers.empty() || top_and_bottom_layers[extruder_id][layer_idx].empty()) {
+                    for (size_t bucket = 0; bucket < num_buckets; ++bucket)
+                        append(segmented_regions_merged[layer_idx][extruder_id - 1], std::move(merged[bucket][extruder_id]));
+                    continue;
                 }
-
-                if (!top_and_bottom_layers.empty() && !top_and_bottom_layers[extruder_id][layer_idx].empty()) {
-                    bool was_top_and_bottom_empty = segmented_regions_merged[layer_idx][extruder_id - 1].empty();
-                    append(segmented_regions_merged[layer_idx][extruder_id - 1], top_and_bottom_layers[extruder_id][layer_idx]);
-
-                    // Remove dimples (#7235) appearing after merging side segmentation of the model with tops and bottoms painted layers.
-                    if (!was_top_and_bottom_empty)
-                        segmented_regions_merged[layer_idx][extruder_id - 1] = offset2_ex(union_ex(segmented_regions_merged[layer_idx][extruder_id - 1]), float(SCALED_EPSILON), -float(SCALED_EPSILON));
-                }
+                bool was_top_and_bottom_empty = true;
+                for (size_t bucket = 0; bucket < num_buckets && was_top_and_bottom_empty; ++bucket)
+                    was_top_and_bottom_empty = merged[bucket][extruder_id].empty();
+                tbb::parallel_for(size_t(0), num_buckets, [&](size_t bucket) {
+                    ExPolygons &region = merged[bucket][extruder_id];
+                    append(region, tops[bucket][extruder_id]);
+                    if (!was_top_and_bottom_empty && !region.empty())
+                        region = offset2_ex(union_ex(region), float(SCALED_EPSILON), -float(SCALED_EPSILON));
+                });
+                for (size_t bucket = 0; bucket < num_buckets; ++bucket)
+                    append(segmented_regions_merged[layer_idx][extruder_id - 1], std::move(merged[bucket][extruder_id]));
             }
         }
     }); // end of parallel_for
@@ -2262,10 +2382,13 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                         graph.remove_nodes_with_one_arc();
                         regions = extract_colored_segments(graph, num_facets_states);
                         // The faces of one colour tile it without overlapping; merged here, where an island is small,
-                        // every later boolean gets a few regions instead of thousands of faces sharing their edges.
-                        for (ExPolygons &faces : regions)
-                            if (faces.size() > 1)
-                                faces = union_ex(faces);
+                        // every later boolean gets a few regions instead of thousands of faces sharing their edges. An
+                        // island with many holes keeps its faces: merged, each colour would be one region with thousands
+                        // of holes, and subtracting from that is far slower than from the faces one at a time.
+                        if (island_poly.size() <= 64)
+                            for (ExPolygons &faces : regions)
+                                if (faces.size() > 1)
+                                    faces = union_ex(faces);
                     }
                 });
                 for (std::vector<ExPolygons> &regions : island_regions)
@@ -2293,7 +2416,7 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
         throw_on_cancel_callback();
     }
 
-    std::vector<std::vector<ExPolygons>> segmented_regions_merged = merge_segmented_layers(segmented_regions, std::move(top_and_bottom_layers), num_facets_states, throw_on_cancel_callback);
+    std::vector<std::vector<ExPolygons>> segmented_regions_merged = merge_segmented_layers(input_expolygons, segmented_regions, std::move(top_and_bottom_layers), num_facets_states, throw_on_cancel_callback);
     throw_on_cancel_callback();
 
 #ifdef MM_SEGMENTATION_DEBUG_REGIONS
