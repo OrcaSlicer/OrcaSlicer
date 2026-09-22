@@ -1157,6 +1157,10 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
     const float support_normal_z = get_selection_support_normal_z();
 
+    // The outline passes below are driven by is_outline, which only the object shaders have; with an
+    // overlay one (wireframe, x-ray) bound they would just draw the volume again.
+    const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
+
     // Prime depth_tex on every frame so non-outline draws do not keep the
     // default sampler unit 0, which can conflict with other sampler types.
     shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
@@ -1257,7 +1261,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
 		//BBS: add outline related logic
-        if (volume.first->selected && GUI::wxGetApp().show_outline())
+        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();

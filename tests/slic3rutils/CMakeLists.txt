@@ -13,11 +13,13 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_capabilities_in_use.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_printer_agent.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_shortcuts.cpp
     ../fff_print/test_helpers.cpp
     )
 
