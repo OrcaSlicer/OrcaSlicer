@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
