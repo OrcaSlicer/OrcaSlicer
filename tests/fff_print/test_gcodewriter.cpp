@@ -1,10 +1,15 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <boost/nowide/fstream.hpp>
+
+#include <nlohmann/json.hpp>
 
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
@@ -738,8 +743,31 @@ static std::string shipped_change_filament_gcode(const std::string &printer)
     std::map<std::string, std::string> key_values;
     std::string                        reason;
     config.load_from_json(path, ForwardCompatibilitySubstitutionRule::Enable, key_values, reason);
-    // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
     INFO("profile: " << path << (reason.empty() ? "" : ("  load reason: " + reason)));
+    if (!config.has("change_filament_gcode")) {
+        // Some shipped machine profiles declare this setting in a separate included template.
+        boost::nowide::ifstream profile_file(path);
+        nlohmann::json profile_json;
+        profile_file >> profile_json;
+        const auto includes = profile_json.find("include");
+        REQUIRE(includes != profile_json.end());
+        REQUIRE(includes->is_array());
+        const auto template_name = std::find_if(includes->begin(), includes->end(), [](const nlohmann::json &entry) {
+            return entry.is_string() && entry.get<std::string>().find("change_filament_gcode") != std::string::npos;
+        });
+        REQUIRE(template_name != includes->end());
+
+        const std::string template_path = (boost::filesystem::path(path).parent_path() /
+                                           (template_name->get<std::string>() + ".json")).string();
+        INFO("change-filament template: " << template_path);
+        REQUIRE(boost::filesystem::exists(template_path));
+        config.clear();
+        key_values.clear();
+        reason.clear();
+        config.load_from_json(template_path, ForwardCompatibilitySubstitutionRule::Enable, key_values, reason);
+        INFO("template load reason: " << reason);
+    }
+    // Fail loudly on malformed or renamed profiles instead of null-dereferencing in opt_string.
     REQUIRE(config.has("change_filament_gcode"));
     return config.opt_string("change_filament_gcode");
 }
