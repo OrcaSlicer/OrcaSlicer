@@ -80,9 +80,12 @@ wall would otherwise pass by the thousand.
 
 Two refinements keep sloped surfaces closed:
 
-- **Near-shell inner walls.** The step between one layer's outer wall and the next is often
+- **Near-wall segments.** The step between one layer's outer wall and the next is often
   narrower than a cell. An inner wall (`Perimeter`) segment whose midpoint lies within a line and
-  a half of an outer or overhang perimeter of the same layer is kept as well.
+  a half of an outer or overhang perimeter of the same layer is kept as well. So is any segment,
+  whatever its role, whose midpoint lies within that reach, or a cell if larger, of an outer wall
+  of the layer above or below: that strip is the exposed band of the step, which the cell tests
+  cannot see when it is narrower than a cell.
 - **Top and bottom visibility.** The same pass records the highest and lowest layer occupying
   each cell over the whole print. A segment whose layer is the topmost occupant of any cell it
   crosses is visible from above, and likewise from below with the lowest. These segments are kept

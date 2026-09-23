@@ -1535,19 +1535,57 @@ void ViewerImpl::update_shell_bitset()
         kept.bottom.assign(cells_count, NO_LAYER);
         std::vector<OccupancyGrid> footprints(3, OccupancyGrid(nx, ny));
         OccupancyGrid shell_cells(nx, ny);
-        // the outer wall segments of the layer, by every cell they cross
-        std::unordered_map<size_t, std::vector<uint32_t>> outer_walls_by_cell;
+        // the outer wall segments of a layer, by every cell they cross; kept for the layer below
+        // and above as well, since the exposed band of a step lies just outside their walls
+        using WallMap = std::unordered_map<size_t, std::vector<uint32_t>>;
+        std::vector<WallMap> wall_maps(3);
+        const WallMap no_walls;
         ClosingScratch scratch;
         const auto footprint = [&](size_t layer) -> OccupancyGrid& { return footprints[layer % 3]; };
+        const auto walls = [&](size_t layer) -> WallMap& { return wall_maps[layer % 3]; };
         const auto prepare = [&](size_t layer) {
             OccupancyGrid& g = footprint(layer);
             g.clear();
+            WallMap& w = walls(layer);
+            w.clear();
             const auto [first, last] = layer_segments(layer);
             for (size_t i = first; i < last; ++i) {
-                if (is_drawn_extrusion(i))
-                    for_each_cell(i, [&](int x, int y) { g.set(x, y); });
+                if (!is_drawn_extrusion(i))
+                    continue;
+                for_each_cell(i, [&](int x, int y) { g.set(x, y); });
+                if (is_outer_wall(m_vertices[i].role))
+                    for_each_cell(i, [&](int x, int y) { w[cell_index(x, y)].push_back(static_cast<uint32_t>(i)); });
             }
             close_gaps(g, radius, scratch);
+        };
+        // whether the midpoint of the segment starting at vertex i lies within reach of an outer
+        // wall segment listed in the map
+        const auto beside_wall = [&](size_t i, const WallMap& map, float reach) {
+            const Vec3& a = m_vertices[i].position;
+            const Vec3& b = m_vertices[i + 1].position;
+            const float mx = 0.5f * (a[0] + b[0]);
+            const float my = 0.5f * (a[1] + b[1]);
+            const auto [cx, cy] = cell_of(mx, my);
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const auto it = map.find(cell_index(cx + dx, cy + dy));
+                    if (it == map.end())
+                        continue;
+                    for (uint32_t o : it->second) {
+                        const Vec3& p = m_vertices[o].position;
+                        const Vec3& q = m_vertices[o + 1].position;
+                        const float ex = q[0] - p[0];
+                        const float ey = q[1] - p[1];
+                        const float len2 = ex * ex + ey * ey;
+                        const float t = (len2 > 0.0f) ? std::clamp(((mx - p[0]) * ex + (my - p[1]) * ey) / len2, 0.0f, 1.0f) : 0.0f;
+                        const float ddx = mx - (p[0] + t * ex);
+                        const float ddy = my - (p[1] + t * ey);
+                        if (ddx * ddx + ddy * ddy <= reach * reach)
+                            return true;
+                    }
+                }
+            }
+            return false;
         };
 
         if (first_layer > 0)
@@ -1583,43 +1621,9 @@ void ViewerImpl::update_shell_bitset()
                 }
             }
             const auto [first, last] = layer_segments(layer);
-            outer_walls_by_cell.clear();
-            for (size_t i = first; i < last; ++i) {
-                const EGCodeExtrusionRole role = m_vertices[i].role;
-                if (is_drawn_extrusion(i) && is_outer_wall(role))
-                    for_each_cell(i, [&](int x, int y) { outer_walls_by_cell[cell_index(x, y)].push_back(static_cast<uint32_t>(i)); });
-            }
-            // an inner wall segment is the first inner wall when its midpoint lies within a line
-            // and a half of an outer wall segment of the same layer
-            const auto beside_outer_wall = [&](size_t i) {
-                const Vec3& a = m_vertices[i].position;
-                const Vec3& b = m_vertices[i + 1].position;
-                const float mx = 0.5f * (a[0] + b[0]);
-                const float my = 0.5f * (a[1] + b[1]);
-                const float reach = 1.5f * m_vertices[i].width;
-                const auto [cx, cy] = cell_of(mx, my);
-                for (int dy = -1; dy <= 1; ++dy) {
-                    for (int dx = -1; dx <= 1; ++dx) {
-                        const auto it = outer_walls_by_cell.find(cell_index(cx + dx, cy + dy));
-                        if (it == outer_walls_by_cell.end())
-                            continue;
-                        for (uint32_t o : it->second) {
-                            const Vec3& p = m_vertices[o].position;
-                            const Vec3& q = m_vertices[o + 1].position;
-                            const float ex = q[0] - p[0];
-                            const float ey = q[1] - p[1];
-                            const float len2 = ex * ex + ey * ey;
-                            const float t = (len2 > 0.0f) ? std::clamp(((mx - p[0]) * ex + (my - p[1]) * ey) / len2, 0.0f, 1.0f) : 0.0f;
-                            const float ddx = mx - (p[0] + t * ex);
-                            const float ddy = my - (p[1] + t * ey);
-                            if (ddx * ddx + ddy * ddy <= reach * reach)
-                                return true;
-                        }
-                    }
-                }
-                return false;
-            };
-
+            const WallMap& walls_below = (layer > 0) ? walls(layer - 1) : no_walls;
+            const WallMap& walls_cur = walls(layer);
+            const WallMap& walls_above = (layer + 1 < layers_count) ? walls(layer + 1) : no_walls;
             for (size_t i = first; i < last; ++i) {
                 if (!is_drawn_extrusion(i))
                     continue;
@@ -1631,7 +1635,17 @@ void ViewerImpl::update_shell_bitset()
                 });
                 if (2 * on_shell >= total)
                     kept.shell.push_back(static_cast<uint32_t>(i));
-                if (m_vertices[i].role == EGCodeExtrusionRole::Perimeter && beside_outer_wall(i))
+                // an inner wall segment is the first inner wall when its midpoint lies within a line
+                // and a half of an outer wall of the same layer
+                const float reach = 1.5f * m_vertices[i].width;
+                if (m_vertices[i].role == EGCodeExtrusionRole::Perimeter && beside_wall(i, walls_cur, reach)) {
+                    kept.near_shell.push_back(static_cast<uint32_t>(i));
+                    continue;
+                }
+                // the exposed band of a step is the strip just outside the outer wall of the layer
+                // above or below, whatever role fills it; a step narrower than a cell is invisible
+                // to the grid, so the reach is at least a cell
+                if (beside_wall(i, walls_above, std::max(reach, cell)) || beside_wall(i, walls_below, std::max(reach, cell)))
                     kept.near_shell.push_back(static_cast<uint32_t>(i));
             }
         }
