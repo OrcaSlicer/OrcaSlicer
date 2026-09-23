@@ -1200,6 +1200,20 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 }
 
 #ifndef ENABLE_OPENGL_ES
+static bool is_outer_wall(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::ExternalPerimeter || role == EGCodeExtrusionRole::OverhangPerimeter;
+}
+
+// what is a visible surface by definition, whatever the grid says: the outer walls and the top
+// and bottom skins. A step between one layer and the next is often narrower than a cell, so the
+// grid alone would drop the odd segment of them on a curve and show what lies behind
+static bool is_surface_by_role(EGCodeExtrusionRole role)
+{
+    return is_outer_wall(role) || role == EGCodeExtrusionRole::TopSolidInfill || role == EGCodeExtrusionRole::BottomSurface ||
+           role == EGCodeExtrusionRole::BridgeInfill || role == EGCodeExtrusionRole::Ironing;
+}
+
 // what can never be a visible surface whatever the geometry says: short infill segments hugging
 // a wall would otherwise pass the geometric test by the thousand
 static bool is_hidden_in_shell(EGCodeExtrusionRole role)
@@ -1214,13 +1228,13 @@ bool ViewerImpl::reduced_set_keeps(size_t i, const PathVertex& v) const
 {
     switch (m_settings.reduced_detail_mode) {
     case EReducedDetailMode::OuterWallsOnly:
-        return v.role == EGCodeExtrusionRole::ExternalPerimeter || v.role == EGCodeExtrusionRole::OverhangPerimeter;
+        return is_outer_wall(v.role);
     case EReducedDetailMode::ShellOnly:
         // the first inner wall fills the step of a sloped surface between one layer's outer wall
         // and the next, too narrow for the grid to see; whatever is the visible top or bottom of a
         // step stays whatever its role
-        return (!is_hidden_in_shell(v.role) && m_shell_bitset[i]) || m_near_shell_bitset[i] ||
-               m_top_visible_bitset[i] || m_bottom_visible_bitset[i];
+        return is_surface_by_role(v.role) || (!is_hidden_in_shell(v.role) && m_shell_bitset[i]) ||
+               m_near_shell_bitset[i] || m_top_visible_bitset[i] || m_bottom_visible_bitset[i];
     default:
         return true;
     }
@@ -1571,7 +1585,7 @@ void ViewerImpl::update_shell_bitset()
             outer_walls_by_cell.clear();
             for (size_t i = first; i < last; ++i) {
                 const EGCodeExtrusionRole role = m_vertices[i].role;
-                if (is_drawn_extrusion(i) && (role == EGCodeExtrusionRole::ExternalPerimeter || role == EGCodeExtrusionRole::OverhangPerimeter))
+                if (is_drawn_extrusion(i) && is_outer_wall(role))
                     for_each_cell(i, [&](int x, int y) { outer_walls_by_cell[cell_index(x, y)].push_back(static_cast<uint32_t>(i)); });
             }
             // an inner wall segment is the first inner wall when its midpoint lies within a line
