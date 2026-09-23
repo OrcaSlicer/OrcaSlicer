@@ -1117,21 +1117,21 @@ std::optional<std::pair<size_t, size_t>> SeamPlacer::find_next_seam_in_layer(
     const size_t layer_idx, const float max_distance,
     const SeamPlacerImpl::SeamComparator &comparator) const {
   using namespace SeamPlacerImpl;
-  std::vector<size_t> nearby_points_indices = find_nearby_points(*layers[layer_idx].points_tree, projected_position,
-                                                                 max_distance);
-
-  if (nearby_points_indices.empty()) {
-    return {};
-  }
-
-  size_t best_nearby_point_index = nearby_points_indices[0];
-  size_t nearest_point_index = nearby_points_indices[0];
-
-  // Now find best nearby point, nearest point, and corresponding indices
-  for (const size_t &nearby_point_index : nearby_points_indices) {
+  // Find the best nearby point and the nearest one. A layer of a fine relief has tens of thousands of candidates within
+  // the radius, so they are looked at as the search finds them rather than collected into a vector first.
+  constexpr size_t none = std::numeric_limits<size_t>::max();
+  size_t best_nearby_point_index = none;
+  size_t nearest_point_index = none;
+  visit_nearby_points(*layers[layer_idx].points_tree, projected_position, max_distance,
+                      [&layers, &comparator, &projected_position, layer_idx, &best_nearby_point_index, &nearest_point_index]
+                      (size_t nearby_point_index) {
+    if (best_nearby_point_index == none) {
+      // The first point found starts both, as the first of the collected ones did.
+      best_nearby_point_index = nearest_point_index = nearby_point_index;
+    }
     const SeamCandidate &point = layers[layer_idx].points[nearby_point_index];
     if (point.perimeter.finalized) {
-      continue; // skip over finalized perimeters, try to find some that is not finalized
+      return; // skip over finalized perimeters, try to find some that is not finalized
     }
     if (comparator.is_first_better(point, layers[layer_idx].points[best_nearby_point_index],
                                    projected_position.head<2>())
@@ -1143,6 +1143,10 @@ std::optional<std::pair<size_t, size_t>> SeamPlacer::find_next_seam_in_layer(
         || layers[layer_idx].points[nearest_point_index].perimeter.finalized) {
       nearest_point_index = nearby_point_index;
     }
+  });
+
+  if (best_nearby_point_index == none) {
+    return {};
   }
 
   const SeamCandidate &best_nearby_point = layers[layer_idx].points[best_nearby_point_index];
