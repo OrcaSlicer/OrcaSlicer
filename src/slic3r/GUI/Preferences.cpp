@@ -1025,6 +1025,15 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         app_config->set_bool(param, checkbox->GetValue());
         app_config->save();
 
+        if (param == "thumbnails_with_bed_gui") {
+            if (wxGetApp().plater()) {
+                wxGetApp().plater()->force_update_all_plate_thumbnails();
+                if (wxGetApp().plater()->get_preview_canvas3D()) {
+                    wxGetApp().plater()->get_preview_canvas3D()->force_toolbar_render_update();
+                }
+            }
+        }
+
         if (param == "sync_user_preset") {
             bool sync = app_config->get("sync_user_preset") == "true" ? true : false;
             if (sync) {
@@ -1649,6 +1658,12 @@ void PreferencesDialog::create_items()
 
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
+
+    auto item_thumbnails_with_bed_gui_scr  = create_item_checkbox(_L("Show bed in plate selector toolbar"), _L("Show the bed texture in the GUIs preview plate selector toolbar."), "thumbnails_with_bed_gui");
+    g_sizer->Add(item_thumbnails_with_bed_gui_scr);
+
+    auto item_thumbnails_with_bed_3mf_scr  = create_item_checkbox(_L("Show bed in 3mf file metadata pictures"), _L("Show the bed texture in the 3mf file metadata pictures used for icons."), "thumbnails_with_bed_3mf");
+    g_sizer->Add(item_thumbnails_with_bed_3mf_scr);
 
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));

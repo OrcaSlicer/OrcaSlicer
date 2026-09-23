@@ -943,6 +943,7 @@ public:
     //BBS: GUI refactor: GLToolbar
     void _update_select_plate_toolbar_stats_item(bool force_selected = false);
     void reset_select_plate_toolbar_selection();
+    void force_toolbar_render_update();
     void enable_select_plate_toolbar(bool enable);
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
@@ -1349,7 +1350,7 @@ private:
     // and cast it onto the build plate. Realistic view only.
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
-    void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, const std::array<int, 4>& viewport, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     // Design tab: draw the CAD grid (minor 10 mm + major 50 mm) in place of the plate's
     // corner-origin grid when the axes sit at the bed centre (modeling origin). Rebuilds its
     // GLModels lazily, only when the bed shape changed.
