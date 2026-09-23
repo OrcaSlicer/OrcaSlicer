@@ -125,6 +125,8 @@ period of 250 ms while waiting for the user to go quiet, and a one-shot of zero 
 slice that left work, so the event loop dispatches whatever it has queued (paint,
 timers, input) before the next slice runs. Chaining slices with `CallAfter` would not do
 this: wx drains pending events fully before the next native message, on every platform.
+On GTK the one-shot is 5 ms, because a due GLib timeout runs ahead of the redraw and
+idle sources that paint and deliver posted events.
 A slice runs only once the user has been idle for the quiet time, and the timer stops
 itself once no task is pending. The tick period, quiet time and slice length are
 constants in `IdleScheduler.cpp`. A unit cannot be interrupted once started, so the

@@ -21,6 +21,12 @@ constexpr int quiet_ms = 500;
 // queued meanwhile are handled first; a click waits at most a slice plus the unit that
 // overran it.
 constexpr int slice_ms = 40;
+// On GTK a due timer runs ahead of repaints and posted events, so the next slice waits a few ms.
+#ifdef __WXGTK__
+constexpr int next_slice_ms = 5;
+#else
+constexpr int next_slice_ms = 0;
+#endif
 
 // True when unhandled keyboard, button, touch or pen input is queued; only Windows can ask.
 bool input_pending()
@@ -83,7 +89,7 @@ void IdleScheduler::tick()
     else if (input_pending())
         m_timer.Start(tick_ms);
     else
-        m_timer.StartOnce(0);
+        m_timer.StartOnce(next_slice_ms);
 }
 
 }} // namespace Slic3r::GUI
