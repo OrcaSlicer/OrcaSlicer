@@ -119,7 +119,9 @@ private:
 
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
-    bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
+    bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
+    void send_gcode_async(const std::string& dev_id, const std::string& gcode,
+                          std::function<void(bool)> on_result = {}) const;
 
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);

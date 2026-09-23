@@ -337,7 +337,7 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
     std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
-    if (!send_gcode(device_info.dev_id, gcode)) {
+    if (!send_gcode_sync(device_info.dev_id, gcode)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     }
 
@@ -987,14 +987,11 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
             response["print"]["param"] = gcode;
 
-            if (send_gcode(dev_id, gcode)) {
-                response["print"]["result"] = "success";
+            send_gcode_async(dev_id, gcode, [this, dev_id, response](bool success) mutable {
+                response["print"]["result"] = success ? "success" : "failed";
                 dispatch_message(dev_id, response.dump());
-                return BAMBU_NETWORK_SUCCESS;
-            }
-            response["print"]["result"] = "failed";
-            dispatch_message(dev_id, response.dump());
-            return BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
+            });
+            return BAMBU_NETWORK_SUCCESS;
         }
 
         // Print control commands
@@ -1013,7 +1010,7 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             if (json["print"].contains("temp") && json["print"]["temp"].is_number()) {
                 int         temp  = json["print"]["temp"].get<int>();
                 std::string gcode = "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=" + std::to_string(temp);
-                send_gcode(dev_id, gcode);
+                send_gcode_async(dev_id, gcode);
                 return BAMBU_NETWORK_SUCCESS;
             }
         }
@@ -1028,13 +1025,14 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 }
                 std::string heater = (extruder_idx == 0) ? "extruder" : "extruder" + std::to_string(extruder_idx);
                 std::string gcode  = "SET_HEATER_TEMPERATURE HEATER=" + heater + " TARGET=" + std::to_string(temp);
-                send_gcode(dev_id, gcode);
+                send_gcode_async(dev_id, gcode);
                 return BAMBU_NETWORK_SUCCESS;
             }
         }
 
         if (cmd == "home") {
-            return send_gcode(dev_id, "G28") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+            send_gcode_async(dev_id, "G28");
+            return BAMBU_NETWORK_SUCCESS;
         }
     }
 
@@ -1176,7 +1174,45 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
     return true;
 }
 
-bool MoonrakerPrinterAgent::send_gcode(const std::string& dev_id, const std::string& gcode) const
+void MoonrakerPrinterAgent::send_gcode_async(const std::string& dev_id, const std::string& gcode,
+                                             std::function<void(bool)> on_result) const
+{
+    (void) dev_id;
+    const std::string base_url = device_info.base_url;
+    const std::string api_key  = device_info.api_key;
+    auto http = Http::post(join_url(base_url, "/printer/gcode/script"));
+    if (!api_key.empty()) {
+        http.header("X-Api-Key", api_key);
+    }
+    http.header("Content-Type", "application/json")
+        .set_post_body(nlohmann::json{{"script", gcode}}.dump())
+        .timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([on_result](std::string body, unsigned status_code) {
+            (void) body;
+            const bool success = status_code == 200;
+            if (!success) {
+                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: send_gcode failed: HTTP error " << status_code;
+            }
+            if (on_result) {
+                on_result(success);
+            }
+        })
+        .on_error([on_result](std::string body, std::string err, unsigned status_code) {
+            (void) body;
+            std::string error = err;
+            if (status_code > 0) {
+                error += " (HTTP " + std::to_string(status_code) + ")";
+            }
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: send_gcode failed: " << error;
+            if (on_result) {
+                on_result(false);
+            }
+        })
+        .perform();
+}
+
+bool MoonrakerPrinterAgent::send_gcode_sync(const std::string& dev_id, const std::string& gcode) const
 {
     nlohmann::json payload;
     payload["script"]       = gcode;
@@ -1981,17 +2017,20 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
 
 int MoonrakerPrinterAgent::pause_print(const std::string& dev_id)
 {
-    return send_gcode(dev_id, "PAUSE") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    send_gcode_async(dev_id, "PAUSE");
+    return BAMBU_NETWORK_SUCCESS;
 }
 
 int MoonrakerPrinterAgent::resume_print(const std::string& dev_id)
 {
-    return send_gcode(dev_id, "RESUME") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    send_gcode_async(dev_id, "RESUME");
+    return BAMBU_NETWORK_SUCCESS;
 }
 
 int MoonrakerPrinterAgent::cancel_print(const std::string& dev_id)
 {
-    return send_gcode(dev_id, "CANCEL_PRINT") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    send_gcode_async(dev_id, "CANCEL_PRINT");
+    return BAMBU_NETWORK_SUCCESS;
 }
 
 bool MoonrakerPrinterAgent::send_jsonrpc_command(const std::string&    base_url,
