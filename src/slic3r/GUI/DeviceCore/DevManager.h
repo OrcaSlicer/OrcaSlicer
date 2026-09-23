@@ -12,6 +12,7 @@ namespace Slic3r
 struct BBLocalMachine;
 class MachineObject;
 class NetworkAgent;
+class AppConfig;
 
 namespace GUI {
 class GUI_App;
@@ -24,6 +25,7 @@ class DeviceManager
     friend class DeviceManagerRefresher;
 private:
     NetworkAgent* m_agent{ nullptr };
+    AppConfig* m_app_config{ nullptr };
     DeviceManagerRefresher* m_refresher{ nullptr };
 
     bool m_enable_mutil_machine = false;
@@ -35,11 +37,13 @@ private:
     std::map<std::string, MachineObject*> userMachineList;      /* dev_id -> MachineObject*  cloudMachine of User */
 
 public:
-    DeviceManager(NetworkAgent* agent = nullptr);
+    DeviceManager(NetworkAgent* agent = nullptr, bool enable_refresher = true,
+                  AppConfig* app_config = nullptr);
     ~DeviceManager();
 
 public:
     NetworkAgent* get_agent() const { return m_agent; }
+    AppConfig* get_app_config() const;
     void set_agent(NetworkAgent* agent);
 
     void start_refresher();
@@ -121,6 +125,7 @@ private:
 
     void keep_alive();
     void check_pushing();
+    std::string get_current_cloud_provider() const;
 
     void OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state);
     void OnSelectedMachineChanged(const std::string& pre_dev_id, const std::string& new_dev_id);
@@ -133,14 +138,15 @@ public:
         std::string connection_type, std::string bind_state, std::string version,
         std::string access_code);
     static void update_local_machine(const MachineObject& m);
+    static void update_local_machine(const MachineObject& m, AppConfig* config);
 };
 
 class DeviceManagerRefresher : public wxObject
 {
-    wxTimer* m_timer{ nullptr };
-    int            m_timer_interval_msec = 5000;
+    wxTimer* m_timer{nullptr};
+    int m_timer_interval_msec = 5000;
 
-    DeviceManager* m_manager{ nullptr };
+    DeviceManager* m_manager{nullptr};
 
 public:
     DeviceManagerRefresher(DeviceManager* manger);

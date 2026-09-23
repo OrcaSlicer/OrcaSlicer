@@ -477,7 +477,7 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
 {
     this->access_code = code;
     if (only_refresh) {
-        AppConfig* config = GUI::wxGetApp().app_config;
+        AppConfig* config = m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config;
         if (config) {
             if (is_lan_mode_printer()) {
                 // why: LAN codes are scoped via BBLocalMachine::access_code, keyed by dev_id and
@@ -490,7 +490,7 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
                 // fresh from the cloud API's current response, so there's no cross-agent leakage
                 // risk to guard against there.
                 if (!code.empty()) {
-                    DeviceManager::update_local_machine(*this);
+                    DeviceManager::update_local_machine(*this, config);
                 } else {
                     // Only patch an existing record's code - don't persist a brand-new
                     // never-bound entry just because set_access_code("") was called on it.
@@ -4632,7 +4632,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
     if (diff.count() > 10.0f) {
         BOOST_LOG_TRIVIAL(trace) << "parse_json timeout = " << diff.count();
     }
-    DeviceManager::update_local_machine(*this);
+    DeviceManager::update_local_machine(*this, m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config);
 
     return 0;
 }

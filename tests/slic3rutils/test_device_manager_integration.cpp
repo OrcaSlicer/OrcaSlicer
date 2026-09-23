@@ -2,14 +2,12 @@
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
-#include <slic3r/GUI/GUI_App.hpp>
 #include <libslic3r/AppConfig.hpp>
 #include <slic3r/Utils/NetworkAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
 
 #include <nlohmann/json.hpp>
-#include <wx/init.h>
 
 #include <memory>
 #include <cstdint>
@@ -55,9 +53,6 @@ private:
 struct ScopedAppConfig
 {
     AppConfig config;
-
-    ScopedAppConfig() { GUI::wxGetApp().app_config = &config; }
-    ~ScopedAppConfig() { GUI::wxGetApp().app_config = nullptr; }
 };
 
 std::string machine_list_response(const std::string& provider, const std::string& agent_id,
@@ -99,12 +94,10 @@ TEST_CASE("Network agent stamps user-machine responses with request context", "[
 
 TEST_CASE("Device manager ignores stale cloud machine responses", "[DeviceManager][integration]")
 {
-    wxInitializer wx_init;
-    REQUIRE(wx_init.IsOk());
     ScopedAppConfig app_config;
     NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("integration-agent"));
     network.set_printer_agent(std::make_shared<TestPrinterAgent>("integration-agent"));
-    DeviceManager manager(&network);
+    DeviceManager manager(&network, false, &app_config.config);
 
     const std::uint64_t current_generation = network.get_user_machine_list_generation();
     manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent",
@@ -129,12 +122,11 @@ TEST_CASE("Device manager ignores stale cloud machine responses", "[DeviceManage
 
 TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership", "[DeviceManager][integration]")
 {
-    wxInitializer wx_init;
-    REQUIRE(wx_init.IsOk());
+    ScopedAppConfig app_config;
     auto agent_a = std::make_shared<TestPrinterAgent>("integration-agent-a");
     auto agent_b = std::make_shared<TestPrinterAgent>("integration-agent-b");
     NetworkAgent network(nullptr, agent_a);
-    DeviceManager manager(&network);
+    DeviceManager manager(&network, false, &app_config.config);
 
     BBLocalMachine machine;
     machine.dev_id       = "integration-lan-device";

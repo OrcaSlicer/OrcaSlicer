@@ -2,7 +2,6 @@
 
 #include <slic3r/GUI/WebMediaController.hpp>
 
-#include <wx/init.h>
 #include <wx/webview.h>
 
 #include <string>
@@ -84,9 +83,6 @@ public:
 
 TEST_CASE("Web media controller tears down a snapshot lifecycle", "[WebMediaController][integration]")
 {
-    wxInitializer       wx_init;
-    REQUIRE(wx_init.IsOk());
-
     StubWebView         view;
     WebMediaController  controller(&view);
 
