@@ -310,12 +310,13 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
         // triangles to fit, so every bake after the first came out coarser than the one before.
         const size_t target = settings.max_triangles + preserved;
         const bool   over_budget = displaced.triangle_count() > target;
-        // Only when the mesh is actually over budget: the decimation pass also welds the soup and is
-        // followed by the T-junction repair, and putting an under-budget bake through both changed the
-        // sliced result by a fifth even with the collapse tolerance at zero, i.e. with nothing
-        // collapsed. Harvesting flat faces on a mesh that already fits needs that path to leave the
-        // geometry alone first.
-        if (over_budget) {
+        // Flat faces are harvested whether or not the budget bites. Refinement is driven by the target
+        // edge length alone, so it leaves as fine a mesh over the flat parts of a texture as over its
+        // detail, and nothing else removes those: under its budget a bake kept every redundant triangle
+        // unless the budget was lowered until decimation had to run. Only collapses costing less than
+        // harvest_tol are taken, so this does not reach the relief.
+        const bool harvest_only = !over_budget && settings.harvest_flat && displaced.triangle_count() > 0;
+        if (over_budget || harvest_only) {
             // Colour per face on the fine mesh, so colour boundaries become creases the collapse
             // respects. Excluded (unpainted) faces take no colour.
             std::vector<int> face_color;
@@ -333,20 +334,23 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
                     }
                 });
             }
+            // Harvesting alone is asked for by handing it the count it already has: nothing is then
+            // over the target, so the loop only ever pops collapses under the tolerance.
             const size_t before = displaced.triangle_count();
-            DecimateResult dec = decimate(displaced, target, settings.harvest_flat,
+            DecimateResult dec = decimate(displaced, over_budget ? target : before, settings.harvest_flat,
                                           settings.harvest_tol, locked,
                                           [&](double f) { return report("decimate", f); }, face_color);
             result.locked_over_budget = dec.locked_over_budget;
             displaced                 = std::move(dec.geometry);
-            lap("decimate", displaced, "over budget, simplified");
+            lap("decimate", displaced, over_budget ? "over budget, simplified" : "flat faces harvested");
             BOOST_LOG_TRIVIAL(info) << "TextureBake decimate: " << before << " -> " << displaced.triangle_count()
-                                    << " (budget " << target << ")";
+                                    << (over_budget ? " (budget " : " (flat harvest, budget ") << target << ")";
             parent.clear(); // no longer meaningful
         }
         result.triangles_refined = displaced_before_decimate;
         result.triangles_budget  = target;
         result.budget_limited    = over_budget;
+        result.simplified        = over_budget;
         if (!report("decimate", 1.0)) {
             result.canceled = true;
             return result;

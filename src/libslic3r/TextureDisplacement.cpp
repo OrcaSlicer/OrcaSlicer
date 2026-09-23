@@ -2178,6 +2178,12 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     BOOST_LOG_TRIVIAL(info) << "TextureBake resolution: " << settings.refine_length << " mm"
                             << (auto_edge ? " (auto)" : "") << ", budget " << settings.max_triangles / 1000 << " k"
                             << (auto_budget ? " (auto)" : "");
+    // How far a flat-face harvest may move the surface, tied to the resolution: what a bake refined to
+    // 1.4 mm edges can merge flat is not what one refined to 0.1 mm may touch. A thirty-second of the
+    // edge is well under a layer either way - at the default resolution it sheds about 5% of the
+    // triangles on a relief that covers the whole surface, and far more of one with flat ground in it -
+    // and the floor keeps a very fine resolution from spending the pass for nothing.
+    settings.harvest_tol = std::clamp(settings.refine_length / 32.0, 0.005, 0.05);
     settings.preserve_untextured = true;
     // Always on: relief driven under the plate is unprintable whichever pipeline produced it, so this
     // is no longer a choice the user has to make. Only geometry that ends up below the model's own
@@ -2335,7 +2341,9 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
             // noise. A simplified mesh is neither: its triangles are as large as the colour regions
             // themselves and already end on the colour boundaries, so a majority vote among three
             // neighbours would repaint whole features. Bake mode (no simplification) keeps it.
-            const bool simplified = result.face_parent_id.empty();
+            // Not "did a collapse run": a flat-face harvest leaves the mesh as fine as it was, and
+            // reading it as simplified switched the despeckle off for every bake that harvested.
+            const bool simplified = result.simplified;
             despeckle_triangle_colors(out, palette, simplified ? 0 : color->despeckle_passes);
             merge_small_color_regions(out, palette, color->min_color_region_mm2);
             for (size_t i = 0; i < out.indices.size(); ++i) {

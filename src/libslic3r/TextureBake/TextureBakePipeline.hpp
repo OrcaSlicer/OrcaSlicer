@@ -115,6 +115,12 @@ struct PipelineResult
     size_t           triangles_refined  = 0;
     size_t           triangles_budget   = 0;
     bool             budget_limited     = false;
+    // The budget coarsened the mesh, so its triangles are no longer the fine, even ones the refinement
+    // laid down - they can be as large as the features on them, which a caller that post-processes per
+    // triangle (the colour despeckle) has to know. Harvesting flat faces does not count: what it
+    // removes carried nothing. Not the same question as "did a collapse run", which is why
+    // face_parent_id being empty is no longer used to answer it.
+    bool             simplified         = false;
 };
 
 // `debug`, when given and enabled, receives the mesh after every stage that ran - which is the only
