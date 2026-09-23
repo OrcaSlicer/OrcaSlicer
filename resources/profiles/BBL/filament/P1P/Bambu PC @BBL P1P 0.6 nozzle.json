@@ -1,0 +1,85 @@
+{
+    "type": "filament",
+    "name": "Bambu PC @BBL P1P 0.6 nozzle",
+    "inherits": "Bambu PC @base",
+    "from": "system",
+    "setting_id": "GFSC00_42",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "20"
+    ],
+    "filament_flow_ratio": [
+        "0.94",
+        "0.945"
+    ],
+    "filament_max_volumetric_speed": [
+        "18",
+        "18"
+    ],
+    "filament_retraction_length": [
+        "nil",
+        "0.45"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "0.6"
+    ],
+    "filament_z_hop_types": [
+        "nil",
+        "Spiral Lift"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "280",
+        "280"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270",
+        "270"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P1P 0.6 nozzle"
+    ]
+}
