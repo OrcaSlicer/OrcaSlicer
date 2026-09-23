@@ -6,91 +6,82 @@
 	"setting_id": "GP143",
 	"instantiation": "true",
 	"description": "Standard profile for 0.16mm layer height, prioritizing speed.",
-	"bridge_speed": [
-		"50",
-		"50",
-		"50",
-		"50",
-		"50",
-		"50",
-		"50"
-	],
 	"default_acceleration": [
-		"8000",
-		"8000",
 		"8000",
 		"8000",
 		"8000",
 		"8000",
 		"8000"
 	],
-	"enable_overhang_speed": [
-		"1",
-		"1",
-		"1",
-		"1",
-		"1",
-		"1",
-		"1"
-	],
-	"enable_height_slowdown": [
-		"0",
-		"0",
-		"0",
-		"0",
-		"0",
-		"0",
-		"0"
-	],
-	"enable_tower_interface_features": "1",
-	"gap_infill_speed": [
-		"250",
-		"250",
-		"250",
-		"250",
-		"250",
-		"250",
-		"250"
-	],
 	"initial_layer_speed": [
-		"50",
-		"50",
 		"50",
 		"50",
 		"50",
 		"50",
 		"50"
 	],
-	"inner_wall_speed": [
-		"300",
-		"300",
-		"300",
-		"300",
-		"300",
-		"300",
-		"300"
-	],
 	"internal_solid_infill_speed": [
 		"250",
 		"300",
-		"300",
 		"250",
-		"300",
 		"300",
 		"300"
 	],
-	"initial_layer_travel_acceleration": [
-		"6000",
-		"6000",
-		"6000",
-		"6000",
-		"6000",
-		"6000",
-		"6000"
+	"outer_wall_speed": [
+		"200",
+		"200",
+		"200",
+		"200",
+		"200"
+	],
+	"overhang_1_4_speed": [
+		"60",
+		"60",
+		"60",
+		"60",
+		"60"
+	],
+	"prime_tower_brim_width": "-1",
+	"prime_tower_width": "60",
+	"sparse_infill_speed": [
+		"350",
+		"600",
+		"350",
+		"600",
+		"600"
+	],
+	"travel_speed": [
+		"1000",
+		"1000",
+		"1000",
+		"1000",
+		"1000"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D 0.4 nozzle"
+	],
+	"bridge_speed": [
+		"50",
+		"50",
+		"50",
+		"50",
+		"50"
+	],
+	"enable_overhang_speed": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"gap_infill_speed": [
+		"250",
+		"250",
+		"250",
+		"250",
+		"250"
 	],
 	"initial_layer_acceleration": [
-		"500",
-		"500",
 		"500",
 		"500",
 		"500",
@@ -102,49 +93,37 @@
 		"105",
 		"105",
 		"105",
-		"105",
-		"105",
 		"105"
+	],
+	"initial_layer_travel_acceleration": [
+		"6000",
+		"6000",
+		"6000",
+		"6000",
+		"6000"
 	],
 	"inner_wall_acceleration": [
 		"0",
 		"0",
 		"0",
 		"0",
-		"0",
-		"0",
 		"0"
 	],
-	"outer_wall_speed": [
-		"200",
-		"200",
-		"200",
-		"200",
-		"200",
-		"200",
-		"200"
+	"inner_wall_speed": [
+		"300",
+		"300",
+		"300",
+		"300",
+		"300"
 	],
 	"outer_wall_acceleration": [
 		"5000",
 		"5000",
 		"5000",
 		"5000",
-		"5000",
-		"5000",
 		"5000"
 	],
-	"overhang_1_4_speed": [
-		"60",
-		"60",
-		"60",
-		"60",
-		"60",
-		"60",
-		"60"
-	],
 	"overhang_2_4_speed": [
-		"50",
-		"50",
 		"50",
 		"50",
 		"50",
@@ -156,8 +135,6 @@
 		"30",
 		"30",
 		"30",
-		"30",
-		"30",
 		"30"
 	],
 	"overhang_4_4_speed": [
@@ -165,17 +142,11 @@
 		"10",
 		"10",
 		"10",
-		"10",
-		"10",
 		"10"
 	],
-	"prime_tower_width": "60",
-	"prime_tower_brim_width": "-1",
 	"print_extruder_id": [
 		"1",
 		"1",
-		"1",
-		"2",
 		"2",
 		"2",
 		"2"
@@ -183,96 +154,11 @@
 	"print_extruder_variant": [
 		"Direct Drive Standard",
 		"Direct Drive High Flow",
-		"Direct Drive E3D High Flow",
 		"Direct Drive Standard",
 		"Direct Drive High Flow",
-		"Direct Drive TPU High Flow",
-		"Direct Drive E3D High Flow"
-	],
-	"sparse_infill_speed": [
-		"350",
-		"600",
-		"600",
-		"350",
-		"600",
-		"600",
-		"600"
-	],
-	"support_interface_speed": [
-		"80",
-		"80",
-		"80",
-		"80",
-		"80",
-		"80",
-		"80"
-	],
-	"support_speed": [
-		"150",
-		"150",
-		"150",
-		"150",
-		"150",
-		"150",
-		"150"
-	],
-	"slowdown_start_height": [
-		"0",
-		"0",
-		"0",
-		"0",
-		"0",
-		"0",
-		"0"
-	],
-	"slowdown_start_speed": [
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000"
-	],
-	"slowdown_start_acc": [
-		"100000",
-		"100000",
-		"100000",
-		"100000",
-		"100000",
-		"100000",
-		"100000"
-	],
-	"slowdown_end_height": [
-		"400",
-		"400",
-		"400",
-		"400",
-		"400",
-		"400",
-		"400"
-	],
-	"slowdown_end_speed": [
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000"
-	],
-	"slowdown_end_acc": [
-		"100000",
-		"100000",
-		"100000",
-		"100000",
-		"100000",
-		"100000",
-		"100000"
+		"Direct Drive TPU High Flow"
 	],
 	"small_perimeter_speed": [
-		"50%",
-		"50%",
 		"50%",
 		"50%",
 		"50%",
@@ -284,8 +170,6 @@
 		"0",
 		"0",
 		"0",
-		"0",
-		"0",
 		"0"
 	],
 	"sparse_infill_acceleration": [
@@ -293,83 +177,48 @@
 		"100%",
 		"100%",
 		"100%",
-		"100%",
-		"100%",
 		"100%"
 	],
-	"top_surface_speed": [
-		"200",
-		"200",
-		"200",
-		"200",
-		"200",
-		"200",
-		"200"
+	"support_interface_speed": [
+		"80",
+		"80",
+		"80",
+		"80",
+		"80"
 	],
-	"top_solid_infill_flow_ratio": [
-		"1",
-		"1",
-		"1",
-		"1",
-		"1",
-		"1",
-		"1"
-	],
-	"travel_acceleration": [
-		"10000",
-		"10000",
-		"10000",
-		"10000",
-		"10000",
-		"10000",
-		"10000"
-	],
-	"travel_short_distance_acceleration": [
-		"250",
-		"250",
-		"250",
-		"250",
-		"250",
-		"250",
-		"250"
-	],
-	"travel_speed": [
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000",
-		"1000"
+	"support_speed": [
+		"150",
+		"150",
+		"150",
+		"150",
+		"150"
 	],
 	"top_surface_acceleration": [
 		"2000",
 		"2000",
 		"2000",
 		"2000",
-		"2000",
-		"2000",
 		"2000"
+	],
+	"top_surface_speed": [
+		"200",
+		"200",
+		"200",
+		"200",
+		"200"
+	],
+	"travel_acceleration": [
+		"10000",
+		"10000",
+		"10000",
+		"10000",
+		"10000"
 	],
 	"travel_speed_z": [
 		"0",
 		"0",
 		"0",
 		"0",
-		"0",
-		"0",
 		"0"
-	],
-	"vertical_shell_speed": [
-		"80%",
-		"80%",
-		"80%",
-		"80%",
-		"80%",
-		"80%",
-		"80%"
-	],
-	"compatible_printers": [
-		"Bambu Lab H2D 0.4 nozzle"
 	]
 }

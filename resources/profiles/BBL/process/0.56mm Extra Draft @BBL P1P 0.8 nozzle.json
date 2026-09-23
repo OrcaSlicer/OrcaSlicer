@@ -27,9 +27,21 @@
 		"50",
 		"50"
 	],
+	"initial_layer_infill_speed": [
+		"55",
+		"55"
+	],
 	"initial_layer_speed": [
 		"35",
 		"35"
+	],
+	"initial_layer_acceleration": [
+		"500",
+		"500"
+	],
+	"inner_wall_acceleration": [
+		"0",
+		"0"
 	],
 	"inner_wall_speed": [
 		"150",
@@ -43,21 +55,13 @@
 		"6000",
 		"6000"
 	],
-	"initial_layer_acceleration": [
-		"500",
-		"500"
+	"overhang_3_4_speed": [
+		"25",
+		"25"
 	],
-	"initial_layer_infill_speed": [
-		"55",
-		"55"
-	],
-	"inner_wall_acceleration": [
-		"0",
-		"0"
-	],
-	"outer_wall_speed": [
-		"120",
-		"120"
+	"overhang_4_4_speed": [
+		"5",
+		"5"
 	],
 	"outer_wall_acceleration": [
 		"5000",
@@ -71,13 +75,9 @@
 		"50",
 		"50"
 	],
-	"overhang_3_4_speed": [
-		"25",
-		"25"
-	],
-	"overhang_4_4_speed": [
-		"5",
-		"5"
+	"outer_wall_speed": [
+		"120",
+		"120"
 	],
 	"print_extruder_id": [
 		"1",
@@ -90,14 +90,6 @@
 	"sparse_infill_speed": [
 		"100",
 		"100"
-	],
-	"support_interface_speed": [
-		"80",
-		"80"
-	],
-	"support_speed": [
-		"150",
-		"150"
 	],
 	"slowdown_start_height": [
 		"0",
@@ -135,33 +127,33 @@
 		"100%",
 		"100%"
 	],
-	"top_surface_speed": [
+	"support_speed": [
 		"150",
 		"150"
 	],
-	"top_solid_infill_flow_ratio": [
-		"1",
-		"1"
+	"support_interface_speed": [
+		"80",
+		"80"
 	],
-	"travel_acceleration": [
-		"10000",
-		"10000"
-	],
-	"travel_short_distance_acceleration": [
-		"250",
-		"250"
-	],
-	"travel_speed": [
-		"500",
-		"500"
+	"top_surface_speed": [
+		"150",
+		"150"
 	],
 	"top_surface_acceleration": [
 		"2000",
 		"2000"
 	],
+	"travel_speed": [
+		"500",
+		"500"
+	],
 	"travel_speed_z": [
 		"0",
 		"0"
+	],
+	"travel_acceleration": [
+		"10000",
+		"10000"
 	],
 	"vertical_shell_speed": [
 		"80%",
