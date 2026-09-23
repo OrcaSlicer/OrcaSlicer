@@ -313,6 +313,36 @@ std::vector<size_t> find_nearby_points(const KDTreeIndirectType &kdtree, const P
     return visitor.result;
 }
 
+// Visits the points within max_distance of center, in the order find_nearby_points() would collect them, and hands
+// each of them to `visitor_fn` instead of returning them all: a search over a dense set spends more on collecting the
+// points into a vector than on the search itself, and its caller usually keeps only a few of them.
+template<typename KDTreeIndirectType, typename PointType, typename VisitorFn>
+void visit_nearby_points(const KDTreeIndirectType &kdtree, const PointType &center,
+                         const typename KDTreeIndirectType::CoordType &max_distance, VisitorFn visitor_fn)
+{
+    using CoordType = typename KDTreeIndirectType::CoordType;
+
+    struct Visitor {
+        const KDTreeIndirectType &kdtree;
+        const PointType           center;
+        const CoordType           max_distance_squared;
+        VisitorFn                 visitor_fn;
+
+        unsigned int operator()(size_t idx, size_t dimension) {
+            auto dist = CoordType(0);
+            for (size_t i = 0; i < KDTreeIndirectType::NumDimensions; ++i) {
+                CoordType d = center[i] - kdtree.coordinate(idx, i);
+                dist += d * d;
+            }
+            if (dist < max_distance_squared)
+                visitor_fn(idx);
+            return kdtree.descent_mask(center[dimension], max_distance_squared, idx, dimension);
+        }
+    } visitor { kdtree, center, max_distance * max_distance, visitor_fn };
+
+    kdtree.visit(visitor);
+}
+
 template<typename KDTreeIndirectType, typename PointType>
 std::vector<size_t> find_nearby_points(const KDTreeIndirectType &kdtree, const PointType &center,
                                        const typename KDTreeIndirectType::CoordType& max_distance)
