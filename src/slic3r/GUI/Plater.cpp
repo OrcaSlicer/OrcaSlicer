@@ -19830,8 +19830,8 @@ void Plater::print_job_finished(wxCommandEvent &evt)
 
     dev->set_selected_machine(evt.GetString().ToStdString());
     p->main_frame->request_select_tab(TAB_ID_MONITOR);
-    //jump to monitor and select device status panel
-    MonitorPanel* curr_monitor = MonitorPanel::ensure();
+    // Selects the status page on a built Device tab; one built by the switch starts there.
+    MonitorPanel* curr_monitor = MonitorPanel::if_built();
     if(curr_monitor)
        curr_monitor->get_tabpanel()->ChangeSelection(MonitorPanel::PrinterTab::PT_STATUS);
 }
