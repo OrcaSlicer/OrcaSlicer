@@ -194,9 +194,10 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
     bd->button = btn;
     //bd->type   = type;
 
-    mb->id        = wxString::Format("%d", m_buttons.size());
+    // m_buttons.size() is a size_t, which does not match the %d conversion
+    mb->id        = wxString(std::to_string(m_buttons.size()));
     mb->buttondata = bd;
-    m_buttons[ wxString::Format("%d", m_buttons.size())] = mb;
+    m_buttons[ wxString(std::to_string(m_buttons.size()))] = mb;
     return btn;
 };
 
