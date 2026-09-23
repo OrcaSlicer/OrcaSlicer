@@ -34,13 +34,14 @@ struct AgentInfo {
     std::string description; ///< Brief description of the agent's capabilities, e.g. "Orca printer agent"
 };
 
-struct PrinterConnectionParams {
+struct PrinterConnectionParams
+{
     std::string dev_id;
-    std::string host;
-    std::string port;
+    std::string host; // host address, usually the IP address without the http/https protocol
+    std::string port; // optional
     std::string username;
     std::string password;
-    bool        use_ssl = false;
+    bool use_ssl = false; // indicates if http or https
     std::string ca_file;
 };
 

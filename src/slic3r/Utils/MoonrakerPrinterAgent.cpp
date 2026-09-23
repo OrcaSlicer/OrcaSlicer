@@ -1056,9 +1056,7 @@ bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const st
     device_info.api_key    = password;
     device_info.model_name = printer_cfg.opt_string("printer_model");
     device_info.model_id   = preset.get_printer_type(preset_bundle);
-    device_info.base_url   = normalize_base_url(dev_ip, port);
-    if (use_ssl && boost::istarts_with(device_info.base_url, "http://"))
-        device_info.base_url.replace(0, 7, "https://");
+    device_info.base_url   = normalize_base_url(use_ssl, dev_ip, port);
     device_info.dev_id     = dev_id;
     device_info.version    = "";
     device_info.dev_name   = device_info.dev_id;
@@ -2107,26 +2105,11 @@ bool MoonrakerPrinterAgent::is_numeric(const std::string& value)
     return !value.empty() && std::all_of(value.begin(), value.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
 }
 
-std::string MoonrakerPrinterAgent::normalize_base_url(std::string host, const std::string& port)
+std::string MoonrakerPrinterAgent::normalize_base_url(bool use_ssl, const std::string& host, const std::string& port)
 {
-    boost::trim(host);
-    if (host.empty()) {
-        return "";
-    }
-
-    std::string value = host;
-    if (is_numeric(port) && value.find("://") == std::string::npos && value.find(':') == std::string::npos) {
-        value += ":" + port;
-    }
-
-    if (!boost::istarts_with(value, "http://") && !boost::istarts_with(value, "https://")) {
-        value = "http://" + value;
-    }
-
-    if (value.size() > 1 && value.back() == '/') {
-        value.pop_back();
-    }
-
+    std::string value = use_ssl ? "https://" : "http://";
+    value += host;
+    value += port.empty() ? "" : (":" + port);
     return value;
 }
 

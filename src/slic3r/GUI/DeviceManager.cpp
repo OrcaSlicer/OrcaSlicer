@@ -2619,14 +2619,19 @@ void MachineObject::update_print_progress(const json& value)
         curr_task->task_progress = mc_print_percent;
 }
 
-int MachineObject::connect(bool use_openssl)
+int MachineObject::connect()
 {
     if (get_dev_ip().empty()) return -1;
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
     std::string password = get_access_code();
 
     std::string port;
-    std::string host = Http::get_host_from_url(get_dev_ip(), &port);
+    std::string input = get_dev_ip();
+
+    const bool use_ssl = input.rfind("https", 0) == 0;
+
+    // This strips out the http/https prefix
+    std::string host = Http::get_host_from_url(input, &port);
     std::string ca_file;
 
     if (GUI::wxGetApp().preset_bundle) {
@@ -2639,6 +2644,7 @@ int MachineObject::connect(bool use_openssl)
     if (host.empty())
         host = get_dev_ip();
 
+
     if (m_agent) {
         try {
             PrinterConnectionParams params{
@@ -2647,7 +2653,7 @@ int MachineObject::connect(bool use_openssl)
                 port,
                 username,
                 password,
-                use_openssl,
+                use_ssl,
                 ca_file
             };
             return m_agent->connect_printer(params);

@@ -673,12 +673,7 @@ namespace Slic3r
                         m_agent->disconnect_printer();
                         it->second->reset();
 
-#if !BBL_RELEASE_TO_PUBLIC
-                        AppConfig* config = get_app_config();
-                        it->second->connect(config && config->get("enable_ssl_for_mqtt") == "true");
-#else
-                        it->second->connect(it->second->local_use_ssl);
-#endif
+                        it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
                     }
                 }
@@ -700,12 +695,7 @@ namespace Slic3r
                     {
                         BOOST_LOG_TRIVIAL(info) << "set_selected_machine: select new lan machine, dev_id =" << dev_id;
                         it->second->reset();
-#if !BBL_RELEASE_TO_PUBLIC
-                        AppConfig* config = get_app_config();
-                        it->second->connect(config && config->get("enable_ssl_for_mqtt") == "true");
-#else
-                        it->second->connect(it->second->local_use_ssl);
-#endif
+                        it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
                     }
                 }

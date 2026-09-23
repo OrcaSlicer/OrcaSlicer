@@ -102,7 +102,7 @@ protected:
 
     // Helpers
     bool        is_numeric(const std::string& value);
-    std::string normalize_base_url(std::string host, const std::string& port);
+    std::string normalize_base_url(bool use_ssl, const std::string& host, const std::string& port);
     std::string sanitize_filename(const std::string& filename);
     std::string join_url(const std::string& base_url, const std::string& path) const;
 

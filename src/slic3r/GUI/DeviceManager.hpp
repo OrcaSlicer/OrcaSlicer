@@ -678,7 +678,7 @@ public:
 
 
     /* machine mqtt apis */
-    int connect(bool use_openssl = true);
+    int connect();
     int disconnect();
 
     json_diff print_json;

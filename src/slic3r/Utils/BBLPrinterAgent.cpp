@@ -4,6 +4,7 @@
 #include "NetworkAgentFactory.hpp"
 #include "NetworkAgent.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -264,8 +265,18 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_connect_printer();
+#if !BBL_RELEASE_TO_PUBLIC
+    const bool use_ssl_for_mqtt = GUI::wxGetApp().app_config &&
+                                  GUI::wxGetApp().app_config->get_bool("enable_ssl_for_mqtt");
+#else
+    bool use_ssl_for_mqtt = true;
+    if (auto* dev_manager = GUI::wxGetApp().getDeviceManager()) {
+        if (auto* machine = dev_manager->get_my_machine(params.dev_id))
+            use_ssl_for_mqtt = machine->local_use_ssl;
+    }
+#endif
     if (func && agent) {
-        return func(agent, params.dev_id, params.host, params.username, params.password, params.use_ssl);
+        return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
     }
     return -1;
 }
