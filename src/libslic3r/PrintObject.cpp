@@ -3533,11 +3533,13 @@ void PrintObject::bridge_over_infill()
                 // expansion_area is a clean, non-overlapping set, so uniting it with a bridge or cutting a bridge
                 // out of it only changes the polygons near that bridge. The rest are passed through untouched
                 // instead of being fed to ClipperLib with the whole layer again for every candidate.
-                const auto split_near = [](const Polygons &polys, const BoundingBox &bbox, Polygons &far) {
-                    Polygons near;
+                // Not `near`/`far`: the Windows headers still define those as macros, and they expand to
+                // nothing, which turns the declaration below into an empty one.
+                const auto split_near = [](const Polygons &polys, const BoundingBox &bbox, Polygons &rest) {
+                    Polygons nearby;
                     for (const Polygon &p : polys)
-                        (get_extents(p).overlap(bbox) ? near : far).emplace_back(p);
-                    return near;
+                        (get_extents(p).overlap(bbox) ? nearby : rest).emplace_back(p);
+                    return nearby;
                 };
                 for (const CandidateSurface &candidate : surfaces_by_layer[lidx]) {
                     const auto &region_config = candidate.region->region().config();
