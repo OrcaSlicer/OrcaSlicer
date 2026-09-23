@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/format.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -11,6 +12,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 
@@ -64,7 +66,7 @@ void TextureDisplacementBakeJob::process(Ctl &ctl)
             }
             return true;
         },
-        color, m_input.volume_to_world));
+        color, m_input.volume_to_world, nullptr, &m_stats));
 
     // Always finish at 100: this is what closes the notification. Reported even on cancel, where
     // build_texture_displacement() returns an empty mesh and finalize() commits nothing.
@@ -168,6 +170,19 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
         commit();
     } else {
         commit();
+    }
+
+    // The refinement went finer than the budget could keep: the simplification had to take detail back
+    // out to fit, so what was baked carries less of the texture than the resolution asked for. Said
+    // here, with the numbers, because it is the only place that knows them - and not as an error
+    // dialog: the result is a usable mesh, just not the one the settings described.
+    if (m_stats.budget_limited) {
+        const auto millions = [](size_t n) { return double(n) / 1000000.; };
+        wxGetApp().notification_manager()->push_notification(
+            NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
+            Slic3r::format(_u8L("The triangle budget limited the detail: this resolution needs %1$.1f M triangles, "
+                                "the budget kept %2$.1f M. Raise Budget or use a coarser Resolution for the full detail."),
+                           millions(m_stats.triangles_refined), millions(m_stats.triangles_out)));
     }
 }
 

@@ -4114,6 +4114,44 @@ TextureDisplacementFacetsData GLGizmoTextureDisplacement::masks_after_subdivisio
     return out;
 }
 
+double GLGizmoTextureDisplacement::painted_area_mm2(const ModelVolume &mv)
+{
+    // Keyed on the paint generation, which every stroke and every layer edit raises, so a panel that
+    // asks for this on every frame walks the mesh only when the answer can have changed.
+    const std::string key = std::to_string(mv.id().id) + ":" + std::to_string(mv.mesh().facets_count()) + ":" +
+                            std::to_string(m_preview_generation->load());
+    if (key == m_painted_area_key)
+        return m_painted_area_mm2;
+
+    const TriangleMesh &mesh = mv.mesh();
+    std::vector<uint8_t> region;
+    double               area = 0.;
+    if (collect_paint_region(mesh, facets_data_of(mv), region, nullptr)) {
+        // In the frame the bake refines in, so a scaled instance is measured at the size it prints at.
+        const Transform3d   frame = texture_displacement_bake_frame(texture_displacement_volume_to_world(mv));
+        const indexed_triangle_set &its = mesh.its;
+        for (size_t t = 0; t < its.indices.size() && t < region.size(); ++t) {
+            if ((region[t] & REFINE_PAINTED) == 0)
+                continue;
+            const stl_triangle_vertex_indices &tri = its.indices[t];
+            const Vec3d a = frame * its.vertices[size_t(tri[0])].cast<double>();
+            const Vec3d b = frame * its.vertices[size_t(tri[1])].cast<double>();
+            const Vec3d c = frame * its.vertices[size_t(tri[2])].cast<double>();
+            area += 0.5 * (b - a).cross(c - a).norm();
+        }
+    }
+    m_painted_area_mm2 = area;
+    m_painted_area_key = key;
+    return area;
+}
+
+size_t GLGizmoTextureDisplacement::estimated_refined_triangles(const ModelVolume &mv, float edge_mm)
+{
+    if (edge_mm <= 0.f)
+        return 0;
+    return size_t(4.0 * painted_area_mm2(mv) / (double(edge_mm) * double(edge_mm)));
+}
+
 const V2Resolution &GLGizmoTextureDisplacement::v2_recommendation(const ModelVolume &mv)
 {
     // Rebuilt only when something it depends on changes: the surface area scan is O(triangles) and the
@@ -6768,6 +6806,26 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 hover_tip(_u8L("Triangle edge length the painted area is refined to before displacement. "
                                "Smaller carries finer texture detail and costs more triangles; the budget "
                                "caps the result."));
+
+            // What this resolution costs over what is painted, against what the budget allows. Refining
+            // past the budget is not an error - the bake simplifies back down to it - but the result
+            // then carries less of the texture than the resolution asks for, and the only sign of that
+            // used to be a mesh that came out coarser than expected. Shown before the bake, so the
+            // answer is to change a number rather than to wait out a bake and redo it.
+            const float  edge_now   = auto_res ? rec.edge_mm : opts.v2_refine_mm;
+            const int    budget_k   = opts.v2_max_triangles_k < 0 ? rec.budget_k : opts.v2_max_triangles_k;
+            const size_t budget     = size_t(std::max(0, budget_k)) * 1000;
+            const size_t needed     = estimated_refined_triangles(*mv, edge_now);
+            // Only when it is clearly over: the estimate runs about 3% high where it matters and up to
+            // a third high at coarse resolutions, where the mesh's own triangles are already near the
+            // target, and a warning about a bake that would have fitted is worse than none.
+            if (budget > 0 && needed > budget * 5 / 4) {
+                const auto to_m = [](size_t n) { return double(n) / 1000000.; };
+                m_imgui->warning_text(Slic3r::format(_u8L("This resolution needs about %1$.1f M triangles, "
+                                                          "budget %2$.1f M - the bake will simplify back to "
+                                                          "the budget and lose detail."),
+                                                     to_m(needed), to_m(budget)));
+            }
         } else {
             m_imgui->text(_L("Triangles"));
             ImGui::SameLine();

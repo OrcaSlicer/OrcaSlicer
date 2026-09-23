@@ -280,15 +280,12 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
     }
 
     // 4. Decimate - export only. A bake needs the face-parent map, which a collapse destroys.
-    std::vector<int> parent = std::move(sub.face_parent_id);
+    std::vector<int>   parent                   = std::move(sub.face_parent_id);
+    const size_t       displaced_before_decimate = displaced.triangle_count();
     if (mode == PipelineMode::Export) {
-        // Only when the mesh is actually over budget. Harvesting flat faces on a mesh that already fits
-        // cost several times the decimation itself and degraded the relief it was handed; it now only
-        // runs as part of a decimation that has to happen anyway. The repair pass below keys off the
-        // same decision (it runs only when decimation did), so an under-budget bake skips both.
-        const bool needs_decimation = displaced.triangle_count() > settings.max_triangles;
-        if (needs_decimation) {
-            std::vector<uint8_t> locked;
+        std::vector<uint8_t> locked;
+        size_t               preserved = 0;
+        {
             if (settings.preserve_untextured && !displaced.exclude_weight.empty()) {
                 locked.assign(displaced.triangle_count(), 0);
                 // The corner average, as the displacement stage judges it: after the flip stage's
@@ -304,7 +301,21 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
                 for (size_t t = 0; t < locked.size() && t < soft_excluded.size(); ++t)
                     if (soft_excluded[t])
                         locked[t] = 0;
+                preserved = size_t(std::count(locked.begin(), locked.end(), uint8_t(1)));
             }
+        }
+        // The budget is what this bake may spend on what it refines. Geometry it only preserves - the
+        // relief of an earlier bake, which this one does not paint - is counted on top of it: charged
+        // against the same budget, a second bake over a fresh area had to evict the first one's
+        // triangles to fit, so every bake after the first came out coarser than the one before.
+        const size_t target = settings.max_triangles + preserved;
+        const bool   over_budget = displaced.triangle_count() > target;
+        // Only when the mesh is actually over budget: the decimation pass also welds the soup and is
+        // followed by the T-junction repair, and putting an under-budget bake through both changed the
+        // sliced result by a fifth even with the collapse tolerance at zero, i.e. with nothing
+        // collapsed. Harvesting flat faces on a mesh that already fits needs that path to leave the
+        // geometry alone first.
+        if (over_budget) {
             // Colour per face on the fine mesh, so colour boundaries become creases the collapse
             // respects. Excluded (unpainted) faces take no colour.
             std::vector<int> face_color;
@@ -322,14 +333,20 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
                     }
                 });
             }
-            DecimateResult dec = decimate(displaced, settings.max_triangles, settings.harvest_flat,
+            const size_t before = displaced.triangle_count();
+            DecimateResult dec = decimate(displaced, target, settings.harvest_flat,
                                           settings.harvest_tol, locked,
                                           [&](double f) { return report("decimate", f); }, face_color);
             result.locked_over_budget = dec.locked_over_budget;
             displaced                 = std::move(dec.geometry);
             lap("decimate", displaced, "over budget, simplified");
+            BOOST_LOG_TRIVIAL(info) << "TextureBake decimate: " << before << " -> " << displaced.triangle_count()
+                                    << " (budget " << target << ")";
             parent.clear(); // no longer meaningful
         }
+        result.triangles_refined = displaced_before_decimate;
+        result.triangles_budget  = target;
+        result.budget_limited    = over_budget;
         if (!report("decimate", 1.0)) {
             result.canceled = true;
             return result;

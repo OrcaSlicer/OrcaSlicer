@@ -820,6 +820,21 @@ void merge_small_color_regions(const indexed_triangle_set &mesh, std::vector<int
 // displaced along the wrong direction: a mesh normal maps to the world normal through the inverse
 // transpose, not through the transform itself, so the relief leaned. Identity - the default - is
 // exactly the old behaviour and is what an untransformed volume gives.
+// What a bake spent, for whoever wants to report it. Only the default pipeline fills it in; the
+// classic path moves the vertices the mesh already has and has nothing to say here.
+struct TextureBakeStats
+{
+    // What the refinement produced, before simplification, and what the bake committed.
+    size_t triangles_refined = 0;
+    size_t triangles_out     = 0;
+    // What the result had to fit into: the budget for what this bake refines, plus the triangles it
+    // only preserves (an earlier bake's relief, which this one does not paint).
+    size_t triangles_budget  = 0;
+    // The refined mesh did not fit, so the simplification had to take detail out of it to make it:
+    // the result carries less of the texture than the chosen resolution asked for.
+    bool   budget_limited    = false;
+};
+
 indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
                                                  const std::vector<TextureDisplacementLayer> &layers,
                                                  const TextureDisplacementFacetsData         &facets_data,
@@ -829,7 +844,9 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  const Transform3d                           &volume_to_world = Transform3d::Identity(),
                                                  // When given and enabled, receives the mesh after each
                                                  // stage, already brought back into `base_mesh`'s frame.
-                                                 BakeStageRecorder                           *debug = nullptr);
+                                                 BakeStageRecorder                           *debug = nullptr,
+                                                 // When given, receives what the bake spent.
+                                                 TextureBakeStats                            *stats = nullptr);
 
 // `volume`'s mesh coordinates -> world millimetres: its first instance's transform times its own.
 // The mesh is shared by every instance, so a multi-instance object can only be baked for one of

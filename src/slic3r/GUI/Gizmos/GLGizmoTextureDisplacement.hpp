@@ -611,6 +611,18 @@ private:
     // is exactly what this exists to find.
     bool m_debug_check_topology = true;
 
+    // World-millimetre area of everything painted on `mv`, cached on the mesh and the paint generation:
+    // it is what the refinement has to cover, so it is what says whether a budget can pay for a
+    // resolution. 0 when nothing is painted.
+    double painted_area_mm2(const ModelVolume &mv);
+    double      m_painted_area_mm2 = 0.;
+    std::string m_painted_area_key;
+    // Triangles the refinement needs to reach `edge_mm` over that area. Bisection converges to four of
+    // them to a square of the target edge - measured within 3% on a test model over a 5x range of
+    // resolutions - but the real count depends on the shape of the triangles it starts from, so this
+    // is only ever used to say a budget is clearly too small, never as a promise of what will come out.
+    size_t estimated_refined_triangles(const ModelVolume &mv, float edge_mm);
+
     // The default pipeline's automatic resolution/budget for the volume, cached on what it depends on.
     const V2Resolution &v2_recommendation(const ModelVolume &mv);
     V2Resolution        m_v2_rec;

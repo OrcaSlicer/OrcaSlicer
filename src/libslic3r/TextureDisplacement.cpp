@@ -2095,7 +2095,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                                                    const DisplacementProgressFn                &progress,
                                                    const TextureColorRequest                   *color,
                                                    bool                                         flip_normals,
-                                                   BakeStageRecorder                           *debug)
+                                                   BakeStageRecorder                           *debug,
+                                                   TextureBakeStats                            *stats)
 {
     HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data);
     if (!combined)
@@ -2282,6 +2283,12 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     if (result.canceled || result.geometry.empty())
         return {};
 
+    if (stats != nullptr) {
+        stats->triangles_refined = result.triangles_refined;
+        stats->triangles_out     = result.geometry.triangle_count();
+        stats->triangles_budget  = result.triangles_budget;
+        stats->budget_limited    = result.budget_limited;
+    }
     indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry);
     if (out.indices.empty())
         return mesh;
@@ -2365,8 +2372,11 @@ static indexed_triangle_set build_texture_displacement_in_place(
     const DisplacementProgressFn                &progress,
     const TextureColorRequest                   *color,
     bool                                         flip_normals,
-    BakeStageRecorder                           *debug)
+    BakeStageRecorder                           *debug,
+    TextureBakeStats                            *stats)
 {
+    // The classic path moves the vertices the mesh already has, so there is no budget to report on.
+    (void) stats;
     // Returns true to keep going. An aborted run returns {} (see the header): an empty mesh is the
     // one result no caller can mistake for a finished bake and commit onto the volume.
     const auto report = [&progress](int percent) { return !progress || progress(percent); };
@@ -2400,7 +2410,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
 
     if (options.pipeline_v2)
         return build_texture_displacement_v2(mesh, layers, facets_data, options, progress, color, flip_normals,
-                                             debug);
+                                             debug, stats);
 
     // Layers are combined in slot order, like stacked layers in an image editor: each one folds its
     // own displacement into the running total via its blend mode (see TextureBlendMode).
@@ -2813,7 +2823,8 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  const DisplacementProgressFn                &progress,
                                                  const TextureColorRequest                   *color,
                                                  const Transform3d                           &volume_to_world,
-                                                 BakeStageRecorder                           *debug)
+                                                 BakeStageRecorder                           *debug,
+                                                 TextureBakeStats                            *stats)
 {
     // An untransformed volume on an untransformed instance is by far the common case, and the round
     // trip costs two matrix multiplies per vertex on a mesh that can carry millions of them - so take
@@ -2823,7 +2834,7 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     const Transform3d frame = texture_displacement_bake_frame(volume_to_world);
     if (frame.matrix().isApprox(Transform3d::Identity().matrix()))
         return build_texture_displacement_in_place(base_mesh, layers, facets_data, options, progress, color,
-                                                   false, debug);
+                                                   false, debug, stats);
 
     const Transform3d to_local = frame.inverse();
     // A mirroring placement leaves the positions correct but every winding-derived normal pointing
@@ -2838,7 +2849,7 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
 
     const size_t         debug_mark = (debug != nullptr) ? debug->mark() : 0;
     indexed_triangle_set out = build_texture_displacement_in_place(world, layers, facets_data, options,
-                                                                   progress, color, mirrored, debug);
+                                                                   progress, color, mirrored, debug, stats);
     // Everything the bake recorded is in world millimetres, like `out` itself. The debug view draws in
     // the volume's local frame, so the stages are brought back the same way the result is.
     if (debug != nullptr)

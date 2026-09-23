@@ -74,9 +74,11 @@ struct PipelineSettings
     std::function<bool(const Vec3f &centroid)> painted;
 
     // Export mode only.
+    // What this bake may spend on what it refines. Geometry it only preserves (see preserve_untextured)
+    // is counted on top of it, so an earlier bake's relief does not have to be evicted to fit this one.
     size_t max_triangles = 750'000;
     // Keep removing zero-cost flat faces past the target. Only applies when decimation runs, i.e. when
-    // the displaced mesh is over max_triangles - an under-budget mesh is never decimated.
+    // the displaced mesh is over the budget - an under-budget mesh is never decimated.
     bool   harvest_flat  = true;
     double harvest_tol   = DECIMATE_DEFAULT_HARVEST_TOL;
     // Lock the untextured region against both regularization and decimation.
@@ -107,6 +109,12 @@ struct PipelineResult
     bool             locked_over_budget = false;
     size_t           collapse_count     = 0;
     bool             canceled           = false;
+    // What the refinement produced, before decimation, and the count it had to fit into (the budget
+    // plus the preserved geometry). budget_limited says the refined mesh did not fit: the result
+    // carries less of the texture than the resolution asked for, which is what a caller warns about.
+    size_t           triangles_refined  = 0;
+    size_t           triangles_budget   = 0;
+    bool             budget_limited     = false;
 };
 
 // `debug`, when given and enabled, receives the mesh after every stage that ran - which is the only
@@ -122,7 +130,7 @@ void clamp_below_bottom(TriSoup &geometry, float bottom_z);
 
 // Flatten the bed-contact surface by snapping positions within `tol` of the bottom plane onto it.
 //
-// Gated, not unconditional: an unconditional band snap also flattens the undersides of texture bumps
+// Gated, not unconditional: an unconditional band snap also flattens the undersides of texture relief
 // near the base, folding them coplanar into the bottom face. Folded faces overlap the plate, so edges
 // there pick up four incident faces - non-manifold edges and phantom shells on re-import. All copies
 // of a position move together, and the move is rejected if any incident triangle would go degenerate
