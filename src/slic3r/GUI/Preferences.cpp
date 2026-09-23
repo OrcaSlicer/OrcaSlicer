@@ -18,6 +18,7 @@
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
+#include "Shortcuts.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "NetworkPluginDialog.hpp"
@@ -285,6 +286,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
     combobox->SetToolTip(tip);
+    combobox->SetName(param);   // select_tab() finds the row by this name
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) {
@@ -1005,6 +1007,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetToolTip(tip);
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
+    if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
@@ -1030,6 +1033,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().stop_sync_user_preset();
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
+        }
+        else if (param == SETTING_OPENGL_SCENE_CACHE) {
+            if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -1518,6 +1524,19 @@ PreferencesDialog::~PreferencesDialog()
 {
 }
 
+void PreferencesDialog::select_tab(PreferencesTab tab, const std::string& option)
+{
+    if (const auto index = m_tab_index.find(tab); index != m_tab_index.end())
+        m_pref_tabs->SelectItem(index->second);
+    wxWindow* control = option.empty() ? nullptr : m_parent->FindWindow(wxString(option));
+    if (control == nullptr)
+        return;
+    int unit = 1;
+    m_parent->GetScrollPixelsPerUnit(nullptr, &unit);
+    m_parent->Scroll(wxDefaultCoord, (m_parent->CalcUnscrolledPosition(control->GetPosition()).y - FromDIP(10)) / unit);
+    control->SetFocus();   // the focused tint marks the row
+}
+
 void PreferencesDialog::on_dpi_changed(const wxRect &suggested_rect) {
     m_pref_tabs->Rescale();
 
@@ -1595,7 +1614,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// GENERAL TAB 
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("General"));
+    m_tab_index[PreferencesTab::General] = m_pref_tabs->AppendItem(_L("General"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1726,6 +1745,21 @@ void PreferencesDialog::create_items()
     auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
     g_sizer->Add(item_multi_machine);
 
+    auto item_speed_dial = create_item_checkbox(_L("Open the Speed Dial from the keyboard"),
+        _L("When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."),
+        "enable_speed_dial");
+    g_sizer->Add(item_speed_dial);
+
+    auto item_speed_dial_recents = create_item_spinctrl(
+        _L("Recent actions"),
+        "",
+        _L("actions"),
+        _L("How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."),
+        SETTING_SPEED_DIAL_RECENT_COUNT,
+        SPEED_DIAL_RECENT_COUNT_MIN,
+        SPEED_DIAL_RECENT_COUNT_MAX);
+    g_sizer->Add(item_speed_dial_recents);
+
 #ifdef SLIC3R_CAD
     auto item_cad_feature      = create_item_checkbox(_L("CAD feature (experimental)"),
         _L("With this option enabled, the Design tab is shown, where models can be built and edited "
@@ -1770,7 +1804,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// CONTROL TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Control"));
+    m_tab_index[PreferencesTab::Control] = m_pref_tabs->AppendItem(_L("Control"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1840,6 +1874,14 @@ void PreferencesDialog::create_items()
     auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_right_mouse_drag);
 
+    //// CONTROL > Keyboard
+    g_sizer->Add(create_item_title(_L("Keyboard")), 1, wxEXPAND);
+
+    auto item_shortcuts = create_item_button(_L("Keyboard shortcuts"), _L("Edit") + dots, "", _L("Choose the key for each action."), [this]() {
+        wxGetApp().keyboard_shortcuts(ShortcutContext::Global, this);
+    });
+    g_sizer->Add(item_shortcuts);
+
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
 
@@ -1864,7 +1906,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// GRAPHICS TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Graphics"));
+    m_tab_index[PreferencesTab::Graphics] = m_pref_tabs->AppendItem(_L("Graphics"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
@@ -1889,6 +1931,15 @@ void PreferencesDialog::create_items()
         , SETTING_OPENGL_REALISTIC_PHONG
     );
     g_sizer->Add(item_realistic_phong);
+
+    auto item_realistic_preview = create_item_checkbox(
+        _L("Enable in Preview"),
+        _L("Also applies realistic view to the Preview canvas, not just Prepare.\n"
+           "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably"
+           " more there than on a plain model."),
+        SETTING_OPENGL_REALISTIC_PREVIEW
+    );
+    g_sizer->Add(item_realistic_preview);
 
     auto item_realistic_ssao = create_item_checkbox(
         _L("SSAO ambient occlusion"),
@@ -1944,15 +1995,55 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fps_cap);
 
+    auto item_scene_cache = create_item_checkbox(
+        _L("Reuse the 3D scene while idle"),
+        _L("Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+           "and reuses the previous frame's scene instead. Reduces GPU load.\n"
+           "Disable it if the viewport shows stale or missing contents.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SCENE_CACHE
+    );
+    g_sizer->Add(item_scene_cache);
+
+    auto item_skip_identical_frames = create_item_checkbox(
+        _L("Skip unchanged frames"),
+        _L("Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+           "Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+           "Disable it if a hover highlight, tooltip or animation stops updating.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
+    );
+    g_sizer->Add(item_skip_identical_frames);
+    if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(app_config->get_bool(SETTING_OPENGL_SCENE_CACHE));
+
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
-        _L("Displays current viewport FPS in the top-right corner."),
+        _L("Displays rendering counts in the top-right corner of the viewport.") + "\n" +
+        _L("FPS: frames presented to the screen per second.") + "\n" +
+        _L("3D: frames per second that redrew the 3D scene."),
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);
 
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
+
+    // ORCA: view type the preview opens with
+    std::vector<wxString>    PreviewViewTypeLabels;
+    std::vector<std::string> PreviewViewTypeValues;
+    for (const auto& [value, label] : GCodeViewer::default_view_type_choices()) {
+        PreviewViewTypeValues.push_back(value);
+        PreviewViewTypeLabels.push_back(from_u8(label));
+    }
+    auto item_preview_view_type = create_item_combobox(
+        _L("Default view type"),
+        _L("The color scheme the sliced preview opens with.\n"
+           "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+           "Last used: the view type you selected last.\n"
+           "Any other value always opens that view type.\n"
+           "You can still switch the view type in the preview afterwards."),
+        "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
+    g_sizer->Add(item_preview_view_type);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),
@@ -1989,7 +2080,7 @@ void PreferencesDialog::create_items()
     //////////////////////////
     //// ONLINE TAB
     /////////////////////////////////////
-    m_pref_tabs->AppendItem(_L("Online"));
+    m_tab_index[PreferencesTab::Online] = m_pref_tabs->AppendItem(_L("Online"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);

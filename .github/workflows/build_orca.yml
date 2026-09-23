@@ -448,9 +448,26 @@ jobs:
 
       - name: Install nsis
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        shell: pwsh
+        # The Chocolatey community feed intermittently 504s, and `choco install`
+        # exits 0 when package resolution fails that way. Unchecked, the job then
+        # builds for ~25 minutes before `cpack -G NSIS` reports a missing makensis.
+        # Retry the install and verify makensis itself, so a real failure stops here.
         run: |
           dir "C:/Program Files (x86)/Windows Kits/10/Include"
-          choco install nsis
+          $nsisDir = Join-Path ${env:ProgramFiles(x86)} 'NSIS'
+          $makensis = Join-Path $nsisDir 'makensis.exe'
+          for ($attempt = 1; $attempt -le 3 -and -not (Test-Path $makensis); $attempt++) {
+            if ($attempt -gt 1) { Start-Sleep -Seconds (15 * $attempt) }
+            Write-Host "::group::choco install nsis (attempt $attempt)"
+            choco install nsis --yes --no-progress
+            Write-Host "::endgroup::"
+          }
+          if (-not (Test-Path $makensis)) {
+            throw "NSIS install failed: $makensis not found after 3 attempts."
+          }
+          & $makensis /VERSION
+          $nsisDir | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Build slicer Win
         if: runner.os == 'Windows'
@@ -781,6 +798,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # The save step reports success even when its tar failed, so keep
+          # the older entries unless the new one is listed.
+          if ! gh cache list --ref "$GITHUB_REF" --key "$CCACHE_ENTRY" --json key \
+              | jq -e --arg entry "$CCACHE_ENTRY" 'any(.[]; .key == $entry)' > /dev/null; then
+            echo "$CCACHE_ENTRY was not saved; keeping the older entries."
+            exit 0
+          fi
           gh cache list --ref "$GITHUB_REF" --key "ccache-$CCACHE_LEG-" --limit 100 --json id,key \
             | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \
                 '.[] | select((.key | ltrimstr($prefix) | split("-")[0] | tonumber?) < $run) | .id' \

@@ -1693,6 +1693,18 @@
 			"sub_path": "filament/Prusament ASA @CORE One.json"
 		},
 		{
+			"name": "Prusament ASA @MK3S",
+			"sub_path": "filament/Prusament ASA @MK3S.json"
+		},
+		{
+			"name": "Prusament ASA @MK4",
+			"sub_path": "filament/Prusament ASA @MK4.json"
+		},
+		{
+			"name": "Prusament ASA @MK4S",
+			"sub_path": "filament/Prusament ASA @MK4S.json"
+		},
+		{
 			"name": "Prusament ASA @XL",
 			"sub_path": "filament/Prusament ASA @XL.json"
 		},
@@ -1771,6 +1783,16 @@
 		{
 			"name": "Generic PC @MMU3",
 			"sub_path": "filament/Generic PC @MMU3.json"
+			"name": "Prusament PA11 Carbon Fiber @MK3S",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK3S.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4S",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S.json"
 		},
 		{
 			"name": "Generic PC @Prusa",
@@ -1829,6 +1851,18 @@
 			"sub_path": "filament/Prusament PC Blend @CORE One.json"
 		},
 		{
+			"name": "Prusament PC Blend @MK3S",
+			"sub_path": "filament/Prusament PC Blend @MK3S.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4",
+			"sub_path": "filament/Prusament PC Blend @MK4.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4S",
+			"sub_path": "filament/Prusament PC Blend @MK4S.json"
+		},
+		{
 			"name": "Prusament PC Blend @XL",
 			"sub_path": "filament/Prusament PC Blend @XL.json"
 		},
@@ -1839,6 +1873,18 @@
 		{
 			"name": "Prusament PC-CF @CORE One",
 			"sub_path": "filament/Prusament PC-CF @CORE One.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK3S",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK3S.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4S",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S.json"
 		},
 		{
 			"name": "Prusament PC-CF @XL",
@@ -1899,6 +1945,18 @@
 		{
 			"name": "Prusament PETG @CORE One",
 			"sub_path": "filament/Prusament PETG @CORE One.json"
+		},
+		{
+			"name": "Prusament PETG @MK3S",
+			"sub_path": "filament/Prusament PETG @MK3S.json"
+		},
+		{
+			"name": "Prusament PETG @MK4",
+			"sub_path": "filament/Prusament PETG @MK4.json"
+		},
+		{
+			"name": "Prusament PETG @MK4S",
+			"sub_path": "filament/Prusament PETG @MK4S.json"
 		},
 		{
 			"name": "Prusament PETG @base",
@@ -1981,12 +2039,36 @@
 			"sub_path": "filament/Prusament PLA @CORE One.json"
 		},
 		{
+			"name": "Prusament PLA @MK3S",
+			"sub_path": "filament/Prusament PLA @MK3S.json"
+		},
+		{
+			"name": "Prusament PLA @MK4",
+			"sub_path": "filament/Prusament PLA @MK4.json"
+		},
+		{
+			"name": "Prusament PLA @MK4S",
+			"sub_path": "filament/Prusament PLA @MK4S.json"
+		},
+		{
 			"name": "Prusament PLA @base",
 			"sub_path": "filament/Prusament PLA @base.json"
 		},
 		{
 			"name": "Prusament rPLA @CORE One",
 			"sub_path": "filament/Prusament rPLA @CORE One.json"
+		},
+		{
+			"name": "Prusament rPLA @MK3S",
+			"sub_path": "filament/Prusament rPLA @MK3S.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4",
+			"sub_path": "filament/Prusament rPLA @MK4.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4S",
+			"sub_path": "filament/Prusament rPLA @MK4S.json"
 		},
 		{
 			"name": "Prusament rPLA @base",
@@ -2031,6 +2113,18 @@
 		{
 			"name": "Prusament PVB @CORE One",
 			"sub_path": "filament/Prusament PVB @CORE One.json"
+		},
+		{
+			"name": "Prusament PVB @MK3S",
+			"sub_path": "filament/Prusament PVB @MK3S.json"
+		},
+		{
+			"name": "Prusament PVB @MK4",
+			"sub_path": "filament/Prusament PVB @MK4.json"
+		},
+		{
+			"name": "Prusament PVB @MK4S",
+			"sub_path": "filament/Prusament PVB @MK4S.json"
 		},
 		{
 			"name": "Prusament PVB @XL",
@@ -2227,6 +2321,28 @@
 		{
 			"name": "Prusament ASA @CORE One MMU3",
 			"sub_path": "filament/Prusament ASA @CORE One MMU3.json"
+			"name": "Prusament ASA @MK4S 0.6",
+			"sub_path": "filament/Prusament ASA @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament ASA @MK4S 0.8",
+			"sub_path": "filament/Prusament ASA @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament ASA @MK4S HF0.4",
+			"sub_path": "filament/Prusament ASA @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament ASA @MK4S HF0.5",
+			"sub_path": "filament/Prusament ASA @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament ASA @MK4S HF0.6",
+			"sub_path": "filament/Prusament ASA @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament ASA @MK4S HF0.8",
+			"sub_path": "filament/Prusament ASA @MK4S HF0.8.json"
 		},
 		{
 			"name": "Generic TPU @Prusa CORE One 0.6",
@@ -2291,6 +2407,28 @@
 		{
 			"name": "Prusament PA-CF @CORE One MMU3",
 			"sub_path": "filament/Prusament PA-CF @CORE One MMU3.json"
+			"name": "Prusament PA11 Carbon Fiber @MK4S 0.6",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4S 0.8",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4S HF0.4",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4S HF0.5",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4S HF0.6",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament PA11 Carbon Fiber @MK4S HF0.8",
+			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S HF0.8.json"
 		},
 		{
 			"name": "Generic PC HF @Prusa MINIIS",
@@ -2331,6 +2469,28 @@
 		{
 			"name": "Prusament PC Blend @CORE One MMU3",
 			"sub_path": "filament/Prusament PC Blend @CORE One MMU3.json"
+			"name": "Prusament PC Blend @MK4S 0.6",
+			"sub_path": "filament/Prusament PC Blend @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4S 0.8",
+			"sub_path": "filament/Prusament PC Blend @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4S HF0.4",
+			"sub_path": "filament/Prusament PC Blend @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4S HF0.5",
+			"sub_path": "filament/Prusament PC Blend @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4S HF0.6",
+			"sub_path": "filament/Prusament PC Blend @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament PC Blend @MK4S HF0.8",
+			"sub_path": "filament/Prusament PC Blend @MK4S HF0.8.json"
 		},
 		{
 			"name": "Prusament PC-CF @CORE One 0.6",
@@ -2343,6 +2503,28 @@
 		{
 			"name": "Prusament PC-CF @CORE One MMU3",
 			"sub_path": "filament/Prusament PC-CF @CORE One MMU3.json"
+			"name": "Prusament PC Blend Carbon Fiber @MK4S 0.6",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4S 0.8",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4S HF0.4",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4S HF0.5",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4S HF0.6",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament PC Blend Carbon Fiber @MK4S HF0.8",
+			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S HF0.8.json"
 		},
 		{
 			"name": "Generic PETG @Prusa CORE One 0.6",
@@ -2455,6 +2637,28 @@
 		{
 			"name": "Prusament PETG @CORE One MMU3",
 			"sub_path": "filament/Prusament PETG @CORE One MMU3.json"
+			"name": "Prusament PETG @MK4S 0.6",
+			"sub_path": "filament/Prusament PETG @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament PETG @MK4S 0.8",
+			"sub_path": "filament/Prusament PETG @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament PETG @MK4S HF0.4",
+			"sub_path": "filament/Prusament PETG @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament PETG @MK4S HF0.5",
+			"sub_path": "filament/Prusament PETG @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament PETG @MK4S HF0.6",
+			"sub_path": "filament/Prusament PETG @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament PETG @MK4S HF0.8",
+			"sub_path": "filament/Prusament PETG @MK4S HF0.8.json"
 		},
 		{
 			"name": "Prusament PETG @XL",
@@ -2611,6 +2815,28 @@
 		{
 			"name": "Prusament PLA @CORE One MMU3",
 			"sub_path": "filament/Prusament PLA @CORE One MMU3.json"
+			"name": "Prusament PLA @MK4S 0.6",
+			"sub_path": "filament/Prusament PLA @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament PLA @MK4S 0.8",
+			"sub_path": "filament/Prusament PLA @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament PLA @MK4S HF0.4",
+			"sub_path": "filament/Prusament PLA @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament PLA @MK4S HF0.5",
+			"sub_path": "filament/Prusament PLA @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament PLA @MK4S HF0.6",
+			"sub_path": "filament/Prusament PLA @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament PLA @MK4S HF0.8",
+			"sub_path": "filament/Prusament PLA @MK4S HF0.8.json"
 		},
 		{
 			"name": "Prusament PLA @XL",
@@ -2631,6 +2857,28 @@
 		{
 			"name": "Prusament rPLA @CORE One MMU3",
 			"sub_path": "filament/Prusament rPLA @CORE One MMU3.json"
+			"name": "Prusament rPLA @MK4S 0.6",
+			"sub_path": "filament/Prusament rPLA @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4S 0.8",
+			"sub_path": "filament/Prusament rPLA @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4S HF0.4",
+			"sub_path": "filament/Prusament rPLA @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4S HF0.5",
+			"sub_path": "filament/Prusament rPLA @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4S HF0.6",
+			"sub_path": "filament/Prusament rPLA @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament rPLA @MK4S HF0.8",
+			"sub_path": "filament/Prusament rPLA @MK4S HF0.8.json"
 		},
 		{
 			"name": "Prusament rPLA @XL",
@@ -2683,6 +2931,28 @@
 		{
 			"name": "Prusament PVB @CORE One MMU3",
 			"sub_path": "filament/Prusament PVB @CORE One MMU3.json"
+			"name": "Prusament PVB @MK4S 0.6",
+			"sub_path": "filament/Prusament PVB @MK4S 0.6.json"
+		},
+		{
+			"name": "Prusament PVB @MK4S 0.8",
+			"sub_path": "filament/Prusament PVB @MK4S 0.8.json"
+		},
+		{
+			"name": "Prusament PVB @MK4S HF0.4",
+			"sub_path": "filament/Prusament PVB @MK4S HF0.4.json"
+		},
+		{
+			"name": "Prusament PVB @MK4S HF0.5",
+			"sub_path": "filament/Prusament PVB @MK4S HF0.5.json"
+		},
+		{
+			"name": "Prusament PVB @MK4S HF0.6",
+			"sub_path": "filament/Prusament PVB @MK4S HF0.6.json"
+		},
+		{
+			"name": "Prusament PVB @MK4S HF0.8",
+			"sub_path": "filament/Prusament PVB @MK4S HF0.8.json"
 		},
 		{
 			"name": "Generic TPU @Prusa MK4S 0.6",

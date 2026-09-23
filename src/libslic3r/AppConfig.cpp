@@ -224,6 +224,12 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
+    // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
+    // multi material prints, Line Type for single material ones), "last" restores the view type the user
+    // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
+    if (get("preview_default_view_type").empty())
+        set("preview_default_view_type", "auto");
+
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
 
@@ -283,8 +289,16 @@ void AppConfig::set_defaults()
         set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
     }
 
+    if (get(SETTING_OPENGL_SCENE_CACHE).empty())
+        set_bool(SETTING_OPENGL_SCENE_CACHE, true);
+
+    if (get(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES).empty())
+        set_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, true);
+
     // The getter already defaults, parses and clamps; write back what it resolves to.
     set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
+
+    set(SETTING_SPEED_DIAL_RECENT_COUNT, std::to_string(get_speed_dial_recent_count()));
 
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
@@ -294,6 +308,9 @@ void AppConfig::set_defaults()
 
     if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
         set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
+
+    if (get(SETTING_OPENGL_REALISTIC_PREVIEW).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PREVIEW, false);
 
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
@@ -1682,6 +1699,22 @@ int AppConfig::get_plugin_pages_visible_count() const
         return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
     }
     return std::clamp(visible_count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
+}
+
+int AppConfig::get_speed_dial_recent_count() const
+{
+    std::string value = get(SETTING_SPEED_DIAL_RECENT_COUNT);
+    if (value.empty())
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+
+    int recent_count = SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    try {
+        recent_count = std::stoi(value);
+    }
+    catch (...) {
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    }
+    return std::clamp(recent_count, SPEED_DIAL_RECENT_COUNT_MIN, SPEED_DIAL_RECENT_COUNT_MAX);
 }
 
 std::vector<std::string> AppConfig::get_skipped_network_versions() const

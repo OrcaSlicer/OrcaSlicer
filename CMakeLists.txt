@@ -1122,7 +1122,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/swresample-5.dll
         ${_out_dir}/swscale-8.dll
         ${_out_dir}/avutil-59.dll
-        PARENT_SCOPE
     )
     list(APPEND _dll_list ${_occt_staged})
     set(${output_dlls} ${_dll_list} PARENT_SCOPE)

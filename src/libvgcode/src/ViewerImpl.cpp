@@ -763,6 +763,14 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
     m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
     m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+    // ORCA: realistic view
+    m_uni_segments_shadow_map_id             = glGetUniformLocation(m_segments_shader_id, "shadow_map");
+    m_uni_segments_shadow_light_vp_id        = glGetUniformLocation(m_segments_shader_id, "shadow_light_vp");
+    m_uni_segments_shadow_intensity_id       = glGetUniformLocation(m_segments_shader_id, "shadow_intensity");
+    m_uni_segments_shadow_map_texel_id       = glGetUniformLocation(m_segments_shader_id, "shadow_map_texel");
+    m_uni_segments_exposure_id               = glGetUniformLocation(m_segments_shader_id, "exposure");
+    m_uni_segments_saturation_id             = glGetUniformLocation(m_segments_shader_id, "saturation");
+    m_uni_segments_bias_scale_id             = glGetUniformLocation(m_segments_shader_id, "bias_scale");
     glcheck();
     assert(m_uni_segments_view_matrix_id != -1 &&
            m_uni_segments_projection_matrix_id != -1 &&
@@ -1321,7 +1329,7 @@ void ViewerImpl::update_colors()
     m_settings.update_colors = false;
 }
 
-void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+void ViewerImpl::apply_pending_updates()
 {
     if (m_settings.update_view_full_range)
         update_view_full_range();
@@ -1331,6 +1339,11 @@ void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matr
 
     if (m_settings.update_colors)
         update_colors();
+}
+
+void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+{
+    apply_pending_updates();
 
     const Mat4x4 inv_view_matrix = inverse(view_matrix);
     const Vec3 camera_position = { inv_view_matrix[12], inv_view_matrix[13], inv_view_matrix[14] };
@@ -1343,6 +1356,30 @@ void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matr
     if (m_settings.options_visibility[size_t(EOptionType::CenterOfGravity)])
         render_cog_marker(view_matrix, projection_matrix);
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+}
+
+void ViewerImpl::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position)
+{
+    apply_pending_updates();
+
+    // Only the extrusions and travels cast: the option markers are indicators, not material.
+    m_rendering_shadow_casters = true;
+    render_segments(view_matrix, projection_matrix, light_position);
+    m_rendering_shadow_casters = false;
+}
+
+void ViewerImpl::set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size)
+{
+    m_shadow_map_texture_unit = texture_unit;
+    m_shadow_light_vp = light_view_projection;
+    m_shadow_intensity = intensity;
+    m_shadow_map_texel = texel_size;
+}
+
+void ViewerImpl::set_tone(float exposure, float saturation)
+{
+    m_exposure = exposure;
+    m_saturation = saturation;
 }
 
 void ViewerImpl::set_view_type(EViewType type)
@@ -1994,6 +2031,15 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
     glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
+    // ORCA: realistic view. The depth pass writes the map it would otherwise read, so it shades
+    // with the lookup off.
+    glsafe(glUniform1i(m_uni_segments_shadow_map_id, m_shadow_map_texture_unit));
+    glsafe(glUniformMatrix4fv(m_uni_segments_shadow_light_vp_id, 1, GL_FALSE, m_shadow_light_vp.data()));
+    glsafe(glUniform1f(m_uni_segments_shadow_intensity_id, m_rendering_shadow_casters ? 0.0f : m_shadow_intensity));
+    glsafe(glUniform1f(m_uni_segments_shadow_map_texel_id, m_shadow_map_texel));
+    glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
+    glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
+    glsafe(glUniform1f(m_uni_segments_bias_scale_id, m_rendering_shadow_casters ? 0.0f : 1.0f));
 
     glsafe(glDisable(GL_CULL_FACE));
 

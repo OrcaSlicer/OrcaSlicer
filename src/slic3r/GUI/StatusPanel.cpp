@@ -1462,7 +1462,7 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 #if !BBL_RELEASE_TO_PUBLIC
     m_staticText_timelapse->Show();
     m_bmToggleBtn_timelapse->Show();
-    m_bmToggleBtn_timelapse->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
+    m_bmToggleBtn_timelapse->Bind(wxEVT_TOGGLEBUTTON, [](wxCommandEvent &e) {
         if (e.IsChecked())
             wxGetApp().getAgent()->start_subscribe("tunnel");
         else

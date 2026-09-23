@@ -1,6 +1,7 @@
 #include "OptionsGroup.hpp"
 #include "ConfigExceptions.hpp"
 #include "Plater.hpp"
+#include "SettingsIndex.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "OG_CustomCtrl.hpp"
@@ -243,6 +244,25 @@ void OptionsGroup::set_name(const wxString& new_name) { stb->SetLabel(new_name);
 void OptionsGroup::append_line(const Line& line)
 {
     m_lines.emplace_back(line);
+
+    // Feed the searcher the row's wiki path (Line::label_path, for the Speed Dial's "open wiki"
+    // affordance) and the label the row actually draws, so a setting action is named like the page.
+    if (m_use_custom_ctrl) {
+        Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+        const Preset::Type      type  = static_cast<Preset::Type>(config_type());
+        const bool              multi = line.get_options().size() > 1;
+        for (const auto& opt : line.get_options()) {
+            if (!line.label_path.empty())
+                index.set_path(opt.opt_id, type, line.label_path);
+            // Mirror the sub-label OG_CustomCtrl draws for a multi-option row, so the palette
+            // names each field like the page does.
+            const std::string& leaf_src = opt.opt.label;
+            const wxString leaf = (leaf_src == L_CONTEXT("Top", "Layers") || leaf_src == L_CONTEXT("Bottom", "Layers")) ?
+                                      _L_CONTEXT(leaf_src, "Layers") :
+                                      _(leaf_src);
+            index.set_line_label(opt.opt_id, type, Search::compose_display_label(line.label, leaf, multi));
+        }
+    }
 
     if (line.full_width && (line.widget != nullptr || !line.get_extra_widgets().empty()))
         return;
@@ -650,7 +670,7 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
     m_opt_map.emplace(opt_id, pair);
 
     if (m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
-        wxGetApp().sidebar().get_searcher().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category());
+        wxGetApp().sidebar().settings_index().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category(), this->icon);
 
     return Option(*m_config->def()->get(opt_key), opt_id);
 }
