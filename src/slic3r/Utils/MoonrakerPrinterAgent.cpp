@@ -208,7 +208,7 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
     detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
     detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
     // Prefer fetched hostname, then preset model name, then generic fallback
-    detect.dev_name     = device_info.dev_name;
+    detect.dev_name     = device_info.dev_name.empty() ? dev_ip : device_info.dev_name;
     detect.model_id     = device_info.model_id;
     detect.version      = device_info.version;
     detect.connect_type = "lan";
@@ -2097,13 +2097,13 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
             if (is_stale()) {
                 return;
             }
-            device_info.dev_name     = fetched_info.dev_name;
+            device_info.dev_name     = fetched_info.dev_name.empty() ? dev_id : fetched_info.dev_name;
             device_info.version      = fetched_info.version;
             device_info.klippy_state = fetched_info.klippy_state;
         }
 
 // Orca todo: disable websocket for now, as we don't use MonitorPanel for Moonraker printers yet
-#if 0
+#if 1
         // Query initial status
         nlohmann::json initial_status;
         if (query_printer_status(base_url, api_key, initial_status, error_msg)) {
