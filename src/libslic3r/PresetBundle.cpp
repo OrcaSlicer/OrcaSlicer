@@ -4173,9 +4173,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
 
 void PresetBundle::update_filament_multi_color()
 {
+    const auto &single_colors = project_config.option<ConfigOptionStrings>("filament_colour")->values;
     std::vector<std::string> exsit_multi_colors;
     for (auto &fil_item : ams_multi_color_filment){
-        if (fil_item.empty()) break;
+        // Orca: trays that report a single colour (e.g. Creality CFS) carry no multi-colour list.
+        // Fall back to the slot's own colour so the list stays aligned with filament_colour.
+        if (fil_item.empty()) {
+            const size_t idx = exsit_multi_colors.size();
+            exsit_multi_colors.push_back(idx < single_colors.size() ? single_colors[idx] : std::string());
+            continue;
+        }
         if (fil_item.size() == 1)
             exsit_multi_colors.push_back(fil_item[0]);
         else {

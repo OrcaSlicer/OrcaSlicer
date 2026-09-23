@@ -4,6 +4,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/Utils/CrealityPrintAgent.hpp"
+#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
 
 using namespace Slic3r;
 
@@ -79,6 +80,44 @@ std::string match(const std::vector<FilamentSpec> &specs, const std::string &spo
 }
 
 } // namespace
+
+TEST_CASE("The Creality Hi Moonraker box response exposes loaded CFS slots", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{
+        "T1":{"state":"connect","material_type":["","000003","-1", "000001"],
+              "color_value":["","0FF1E1E","-1","000FF00"]},
+        "T2":{"state":"None","material_type":["000002","-1","-1","-1"],
+              "color_value":["0FFFFFF","-1","-1","-1"]}
+    }}}})";
+    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
+    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[0].slot_index == 1);
+    CHECK(slots[0].material_type == "PETG");
+    CHECK(slots[0].color == "FF1E1E");
+    CHECK(slots[1].slot_index == 3);
+    CHECK(slots[1].material_type == "PLA");
+    CHECK(slots[1].color == "00FF00");
+}
+
+TEST_CASE("The Creality Hi CFS parser rejects malformed and absent box responses", "[CFS][Creality]")
+{
+    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
+    CHECK_FALSE(MoonrakerPrinterAgent::parse_creality_cfs_response("{", slots));
+    CHECK_FALSE(MoonrakerPrinterAgent::parse_creality_cfs_response(R"({"result":{"status":{}}})", slots));
+    CHECK(slots.empty());
+}
+
+TEST_CASE("The Creality Hi CFS parser skips unknown material IDs", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{"T1":{"state":"connect",
+        "material_type":["999999","000003",null,"-1"],"color_value":["0FFFFFF","0FF1E1E","-1","-1"]}}}}})";
+    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
+    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_index == 1);
+    CHECK(slots[0].material_type == "PETG");
+}
 
 // Orca: a CFS spool that names no recognised product must map to the vendor's plain generic. The
 // subtype variants ("High Speed", "Matte", "Silk") score just as well on vendor alone, and since

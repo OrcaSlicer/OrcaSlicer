@@ -603,8 +603,16 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         return true;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
+    // Creality Hi exposes CFS slots as a Moonraker box printer object.
+    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
+                                << (max_lane_index + 1) << " slots";
+        build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
+        return true;
+    }
+
+    // No MMU detected - this is normal for printers without MMU, not an error.
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
     return false;
 }
 
@@ -689,6 +697,89 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 }
 
 // JSON helper methods - null-safe accessors
+std::string MoonrakerPrinterAgent::map_creality_material_id(const std::string& material_id)
+{
+    static const std::map<std::string, std::string> types = {
+        {"000001", "PLA"}, {"000002", "ABS"}, {"000003", "PETG"},
+        {"000004", "TPU"}, {"000005", "ASA"}, {"000006", "PA"},
+        {"000007", "PC"}, {"000008", "PLA-CF"}, {"000009", "PETG-CF"},
+        {"000010", "PA-CF"},
+    };
+    auto it = types.find(material_id);
+    return it == types.end() ? std::string() : it->second;
+}
+
+bool MoonrakerPrinterAgent::parse_creality_cfs_response(const std::string& response,
+                                                       std::vector<CrealityCfsSlot>& slots)
+{
+    slots.clear();
+    const auto json = nlohmann::json::parse(response, nullptr, false, true);
+    if (json.is_discarded() || !json.is_object() || !json.contains("result") ||
+        !json["result"].is_object() || !json["result"].contains("status") ||
+        !json["result"]["status"].is_object() || !json["result"]["status"].contains("box") ||
+        !json["result"]["status"]["box"].is_object())
+        return false;
+
+    const auto& box = json["result"]["status"]["box"];
+    for (int tray_idx = 1; tray_idx <= 4; ++tray_idx) {
+        auto it = box.find("T" + std::to_string(tray_idx));
+        if (it == box.end() || !it->is_object() || safe_json_string(*it, "state") != "connect")
+            continue;
+
+        const auto& tray = *it;
+        const int base_slot = (tray_idx - 1) * 4;
+        for (int slot_i = 0; slot_i < 4; ++slot_i) {
+            const std::string type = map_creality_material_id(
+                tray.contains("material_type") ? safe_array_string(tray["material_type"], slot_i) : "");
+            if (type.empty())
+                continue;
+
+            std::string color = tray.contains("color_value") ? safe_array_string(tray["color_value"], slot_i) : "";
+            // Creality prefixes six-digit RGB colors with a leading zero.
+            if (color.size() == 7 && color.front() == '0')
+                color.erase(0, 1);
+            slots.push_back({base_slot + slot_i, type, color});
+        }
+    }
+    return true;
+}
+
+bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    const std::string url = join_url(device_info.base_url, "/printer/objects/query?box");
+    std::string response_body;
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty())
+        http.header("X-Api-Key", device_info.api_key);
+    http.timeout_connect(5).timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200)
+                response_body = std::move(body);
+        })
+        .perform_sync();
+
+    std::vector<CrealityCfsSlot> slots;
+    if (response_body.empty() || !parse_creality_cfs_response(response_body, slots) || slots.empty())
+        return false;
+
+    trays.clear();
+    max_lane_index = 0;
+    auto* bundle = GUI::wxGetApp().preset_bundle;
+    for (const auto& slot : slots) {
+        AmsTrayData data;
+        data.slot_index = slot.slot_index;
+        data.tray_type = slot.material_type;
+        data.tray_color = slot.color;
+        data.has_filament = true;
+        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type)
+                                    : map_filament_type_to_generic_id(data.tray_type);
+        max_lane_index = std::max(max_lane_index, data.slot_index);
+        trays.push_back(std::move(data));
+    }
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_creality_cfs_data: Detected " << trays.size() << " CFS slots";
+    return true;
+}
+
 std::string MoonrakerPrinterAgent::safe_json_string(const nlohmann::json& obj, const char* key)
 {
     auto it = obj.find(key);

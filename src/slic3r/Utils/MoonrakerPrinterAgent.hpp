@@ -73,6 +73,15 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id) override;
 
+    // Parse the Creality Hi's Moonraker box status without querying printer hardware.
+    // Each slot contains an index, material type and color; empty slots are omitted.
+    struct CrealityCfsSlot {
+        int         slot_index = 0;
+        std::string material_type;
+        std::string color;
+    };
+    static bool parse_creality_cfs_response(const std::string& response, std::vector<CrealityCfsSlot>& slots);
+
 protected:
     struct MoonrakerDeviceInfo
     {
@@ -121,6 +130,8 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
+    static std::string map_creality_material_id(const std::string& material_id);
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
@@ -164,6 +175,7 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
