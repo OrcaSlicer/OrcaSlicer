@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PE-CF @base",
+	"from": "system",
+	"filament_id": "OF0CFc4c",
+	"filament_type": [
+		"PE-CF"
+	],
+	"instantiation": "false",
+	"inherits": "Generic PE-CF @System",
+	"filament_vendor": [
+		"Goofoo"
+	]
+}

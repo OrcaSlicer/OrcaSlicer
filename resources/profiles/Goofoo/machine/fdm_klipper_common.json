@@ -1,0 +1,13 @@
+{
+    "type": "machine",
+    "name": "fdm_klipper_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n\n",
+    "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; use relative distances for extrusion\nM140 S{first_layer_bed_temperature[0]} ; set bed temp\nM104 S140 ; set temporary nozzle temp to prevent oozing\nG4 S10 ; wait 10s for preheating\nG28 ; home all axes\nG1 Z50 F240 ; raise Z axis\nG1 X2 Y10 F3000 ; move to start position\nM104 S{first_layer_temperature[0]} ; set final nozzle temp\nM190 S{first_layer_bed_temperature[0]} ; wait for bed temp\nM109 S{first_layer_temperature[0]} ; wait for nozzle temp\nG1 Z0.28 F240 ; lower nozzle to print height\nG92 E0 ; reset extrusion distance\nG1 Y140 E10 F1500 ; prime the nozzle\nG1 X2.3 F5000 ; slight X adjustment\nG92 E0 ; reset extrusion distance\nG1 Y10 E10 F1200 ; prime again\nG92 E0 ; final extrusion reset",
+    "machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < max_print_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors",
+    "change_filament_gcode": "PAUSE",
+    "machine_pause_gcode": "PAUSE"
+}
