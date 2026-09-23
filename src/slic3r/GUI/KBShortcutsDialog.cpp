@@ -535,7 +535,9 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
         m_ok->Enable(false);
     };
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
-    if (global && !chord.is_menu_accelerator()) {
+    if (chord.is_system_shortcut()) {
+        reject(_L("The system already uses this shortcut."));
+    } else if (global && !chord.is_menu_accelerator()) {
         reject(m_rejection);
     } else if (const std::optional<Shortcut> owner = wxGetApp().shortcuts().step_owner(m_shortcut, chord); owner.has_value()) {
         reject(wxString::Format(_L("Already used as a step of %s."), _(shortcut_info(*owner).name)));
