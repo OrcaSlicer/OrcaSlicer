@@ -19,6 +19,7 @@
 #include <numeric>
 #include <cfloat>
 #include <future>
+#include <system_error>
 #include <thread>
 #include <unordered_map>
 
@@ -1722,16 +1723,23 @@ void ViewerImpl::update_enabled_entities()
     // the shell is classified once per load, the first time it is needed
     const bool shell_reduced = reduced_mode == EReducedDetailMode::ShellOnly;
     if (shell_reduced && m_shell_bitset.size != m_vertices.size()) {
-        try {
-            update_shell_bitset();
-        }
-        catch (...) {
-            // out of memory on a huge print: take everything for shell, which leaves out only the hidden infill
+        const auto fallback = [this]() {
             m_shell_bitset = BitSet<>(m_vertices.size());
             m_shell_bitset.setAll();
             m_near_shell_bitset = BitSet<>(m_vertices.size());
             m_top_visible_bitset = BitSet<>(m_vertices.size());
             m_bottom_visible_bitset = BitSet<>(m_vertices.size());
+        };
+        try {
+            update_shell_bitset();
+        }
+        catch (const std::bad_alloc&) {
+            // out of memory on a huge print: take everything for shell, which leaves out only the hidden infill
+            fallback();
+        }
+        catch (const std::system_error&) {
+            // a worker thread could not be launched
+            fallback();
         }
     }
 #endif // ENABLE_OPENGL_ES
