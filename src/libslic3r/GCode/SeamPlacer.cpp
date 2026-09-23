@@ -8,6 +8,7 @@
 #include <boost/log/trivial.hpp>
 #include <random>
 #include <algorithm>
+#include <limits>
 #include <queue>
 #include <unordered_map>
 
