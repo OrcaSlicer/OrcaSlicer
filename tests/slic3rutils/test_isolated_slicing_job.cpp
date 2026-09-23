@@ -68,12 +68,14 @@ Slic3r::IsolatedSlicingBaseline owned_baseline(
 }
 
 std::shared_ptr<Slic3r::IsolatedSlicingJob> make_job(
-    const boost::filesystem::path& storage_root, const std::string& plugin_key = {})
+    const boost::filesystem::path& storage_root, const std::string& plugin_key = {},
+    bool register_with_plugin_lifecycle = false)
 {
     const Slic3r::DynamicPrintConfig config = small_fff_config();
     const Slic3r::Model model = small_fff_model(config);
     return Slic3r::IsolatedSlicingJob::create_owned(
-        owned_baseline(model, config), storage_root.string(), plugin_key);
+        owned_baseline(model, config), storage_root.string(), plugin_key,
+        register_with_plugin_lifecycle);
 }
 
 bool tree_has_regular_file(const boost::filesystem::path& root)
@@ -512,13 +514,13 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
     ScopedTemporaryDir storage_c("orca-isolated-lifecycle-c");
     ScopedTemporaryDir storage_d("orca-isolated-lifecycle-d");
 
-    auto plugin_a_job = make_job(storage_a.path(), "Isolated_Lifecycle_Plugin");
+    auto plugin_a_job = make_job(storage_a.path(), "Isolated_Lifecycle_Plugin", true);
     std::shared_ptr<Slic3r::IsolatedSlicingJob> plugin_a_derived;
     {
         Slic3r::ScopedPluginAuditContext audit_context("Isolated_Lifecycle_Plugin");
         plugin_a_derived = plugin_a_job->fork_from_baseline();
     }
-    auto plugin_b_job = make_job(storage_b.path(), "isolated-plugin-b");
+    auto plugin_b_job = make_job(storage_b.path(), "isolated-plugin-b", true);
 
     bool teardown_observed_after_drain = false;
     bool registration_rejected_during_teardown = false;
@@ -530,7 +532,7 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
                     plugin_a_derived->state() == Slic3r::IsolatedSlicingState::Closed &&
                     !tree_has_regular_file(storage_a.path() / "isolated_slicing");
                 try {
-                    (void) make_job(storage_a.path(), "Isolated_Lifecycle_Plugin");
+                    (void) make_job(storage_a.path(), "Isolated_Lifecycle_Plugin", true);
                 } catch (const std::runtime_error& error) {
                     registration_rejected_during_teardown =
                         std::string(error.what()).find("Plugin is unloading") != std::string::npos;
@@ -549,7 +551,7 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
     CHECK_FALSE(tree_has_regular_file(storage_a.path() / "isolated_slicing"));
 
     // The per-plugin gate remains closed through teardown, is idempotent, and does not affect B.
-    CHECK_THROWS_WITH(make_job(storage_a.path(), "Isolated_Lifecycle_Plugin"),
+    CHECK_THROWS_WITH(make_job(storage_a.path(), "Isolated_Lifecycle_Plugin", true),
                       Catch::Matchers::ContainsSubstring("Plugin is unloading"));
     CHECK(manager.unload_plugin("Isolated_Lifecycle_Plugin"));
     CHECK(plugin_b_job->state() == Slic3r::IsolatedSlicingState::Ready);
@@ -557,8 +559,8 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
     REQUIRE(plugin_b_job->wait() == Slic3r::IsolatedSlicingState::Succeeded);
     REQUIRE(tree_has_regular_file(storage_b.path() / "isolated_slicing"));
 
-    auto plugin_c_job = make_job(storage_c.path(), "isolated-plugin-c");
-    auto plugin_d_job = make_job(storage_d.path(), "isolated-plugin-d");
+    auto plugin_c_job = make_job(storage_c.path(), "isolated-plugin-c", true);
+    auto plugin_d_job = make_job(storage_d.path(), "isolated-plugin-d", true);
     plugin_c_job->run();
 
     // Global shutdown drains running, completed and not-yet-run jobs before normal plugin teardown.
@@ -570,7 +572,7 @@ TEST_CASE("plugin unload and shutdown synchronously drain isolated slicing jobs"
     CHECK_FALSE(tree_has_regular_file(storage_b.path() / "isolated_slicing"));
     CHECK_FALSE(tree_has_regular_file(storage_c.path() / "isolated_slicing"));
     CHECK_FALSE(tree_has_regular_file(storage_d.path() / "isolated_slicing"));
-    CHECK_THROWS_WITH(make_job(storage_d.path(), "isolated-plugin-new"),
+    CHECK_THROWS_WITH(make_job(storage_d.path(), "isolated-plugin-new", true),
                       Catch::Matchers::ContainsSubstring("Plugin is unloading"));
 
     // Repeated shutdown has no workers to drain and remains safe.

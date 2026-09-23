@@ -99,10 +99,12 @@ public:
     static std::shared_ptr<IsolatedSlicingJob> capture_live();
 
     // Internal construction seam used by focused host tests. The resulting job
-    // has exactly the same ownership, validation and worker behavior as a live capture.
+    // has exactly the same owned baseline, validation and worker behavior as a
+    // live capture.  It is not lifecycle-registered by default because tests
+    // may construct it without an initialized PluginManager.
     static std::shared_ptr<IsolatedSlicingJob> create_owned(
         IsolatedSlicingBaseline baseline, std::string plugin_storage_root,
-        std::string plugin_key = {});
+        std::string plugin_key = {}, bool register_with_plugin_lifecycle = false);
 
     ~IsolatedSlicingJob();
 
