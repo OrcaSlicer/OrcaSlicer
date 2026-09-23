@@ -12,8 +12,7 @@ public:
 
     void render_painter_gizmo() override;
 
-    //BBS
-    bool on_key_down_select_tool_type(int keyCode);
+    bool on_tool_shortcut(Shortcut shortcut) override;
 
 protected:
     // BBS

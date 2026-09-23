@@ -1742,6 +1742,8 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingSuccess) {
         update_print_status_msg(wxEmptyString, false, false);
+    } else if (status == PrintDialogStatus::PrintStatusOptionalPrinterModel) {
+        update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusOptionalPrinterModel), true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
         update_print_status_msg(wxEmptyString, true, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingMixInvalid) {
@@ -1861,19 +1863,13 @@ void SyncAmsInfoDialog::on_cancel(wxCloseEvent &event)
 
 bool SyncAmsInfoDialog::is_blocking_printing(MachineObject *obj_)
 {
-    DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    std::string source_model = "";
+    if (m_print_type == PrintFromType::FROM_NORMAL)
+        return wxGetApp().is_blocking_printing(obj_);
 
-    if (m_print_type == PrintFromType::FROM_NORMAL) {
-        PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-        source_model                = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-
-    } else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW) {
-        if (m_required_data_plate_data_list.size() > 0) { source_model = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id; }
-    }
-
-    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
+    std::string source_model;
+    if (m_print_type == PrintFromType::FROM_SDCARD_VIEW && !m_required_data_plate_data_list.empty())
+        source_model = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id;
+    return wxGetApp().is_blocking_printing(obj_, source_model);
 }
 
 bool SyncAmsInfoDialog::is_same_nozzle_type(std::string &filament_type, NozzleType &tag_nozzle_type)
@@ -2263,6 +2259,18 @@ void SyncAmsInfoDialog::update_show_status()
 
     reset_timeout();
 
+    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    if (m_print_type == PrintFromType::FROM_NORMAL) {
+        if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
+            has_optional_printer_model = has_optional_printer_model ||
+                DevPrinterConfigUtil::is_optional_printer_model_id(
+                    preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
+        }
+    } else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW && !m_required_data_plate_data_list.empty()) {
+        has_optional_printer_model = has_optional_printer_model ||
+            DevPrinterConfigUtil::is_optional_printer_model_id(m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id);
+    }
+
     if (!obj_->GetConfig()->SupportPrintAllPlates() && m_print_plate_idx == PLATE_ALL_IDX) {
         show_status(PrintDialogStatus::PrintStatusNotSupportedPrintAll);
         return;
@@ -2356,6 +2364,9 @@ void SyncAmsInfoDialog::update_show_status()
             }
         }
     }
+
+    if (has_optional_printer_model)
+        show_status(PrintDialogStatus::PrintStatusOptionalPrinterModel);
 }
 
 bool SyncAmsInfoDialog::has_timelapse_warning()

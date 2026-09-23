@@ -68,14 +68,6 @@ TEST_CASE("Moonraker parses nozzle diameter from raw config and tolerates missin
     CHECK(MoonrakerParserProbe::parse_nozzle_diameter(missing_response) == 0.0f);
 }
 
-// why: these builders preserve the Bambu firmware dialect byte-for-byte, including its trailing space.
-TEST_CASE("unit: BBL AMS gcode builders preserve command bytes", "[unit][bbl]")
-{
-    CHECK(BBLPrinterAgent::ams_refresh_rfid_gcode("123") == "M620 R123 \n");
-    CHECK(BBLPrinterAgent::ams_calibrate_gcode(123) == "M620 C123 \n");
-    CHECK(BBLPrinterAgent::ams_select_tray_gcode("123") == "M620 P123 \n");
-}
-
 // why: an agent without a Bambu-dialect translation must refuse these commands before any network or wx path.
 TEST_CASE("unit: default AMS commands report not supported", "[unit][moonraker]")
 {

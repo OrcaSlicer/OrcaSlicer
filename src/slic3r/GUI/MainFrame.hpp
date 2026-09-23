@@ -74,6 +74,8 @@ class DesignPanel;
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
+enum class Shortcut : uint8_t;
+struct KeyChord;
 #ifdef __WXGTK__
 class ResizeEdgePanel;
 #endif
@@ -194,6 +196,29 @@ class MainFrame : public DPIFrame
 
     // vector of a MenuBar items changeable in respect to printer technology
     std::vector<wxMenuItem*> m_changeable_menu_items;
+
+    // Menu items whose label shows a key binding; update_shortcut_labels() rewrites them.
+    struct ShortcutMenuItem
+    {
+        wxMenuItem* item;
+        Shortcut    shortcut;
+        wxString    label;
+        bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
+    };
+    std::vector<ShortcutMenuItem> m_shortcut_menu_items;
+
+    wxString shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator);
+    template<typename... Args>
+    wxMenuItem* append_shortcut_item(wxMenu* menu, Shortcut shortcut, bool accelerator, const wxString& label, Args&&... args)
+    {
+        wxMenuItem* item = append_menu_item(menu, wxID_ANY, shortcut_label(label, shortcut, accelerator), std::forward<Args>(args)...);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, accelerator });
+        return item;
+    }
+    // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
+    bool handle_global_shortcut(const KeyChord& chord);
+    void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
+    wxMenu* generate_help_menu();
 
     struct FileHistory : wxFileHistory
     {
@@ -354,6 +379,7 @@ public:
     void        request_select_tab(const wxString& id);
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
+    void        update_shortcut_labels();
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);

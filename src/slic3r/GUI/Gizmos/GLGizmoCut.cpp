@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -1310,7 +1311,7 @@ void GLGizmoCut3D::render_cut_line()
 bool GLGizmoCut3D::on_init()
 {
     m_grabbers.emplace_back();
-    m_shortcut_key = WXK_CONTROL_C;
+    m_shortcut = Shortcut::GizmoCut;
 
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();

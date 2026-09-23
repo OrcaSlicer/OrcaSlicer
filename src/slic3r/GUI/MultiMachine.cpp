@@ -3,7 +3,6 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
-#include "DeviceCore/DevConfigUtil.h"
 
 namespace Slic3r {
 namespace GUI {
@@ -52,7 +51,7 @@ void DeviceItem::sync_state()
             state_printable = 6;
         }
 
-        if (is_blocking_printing(obj_)) {
+        if (wxGetApp().is_blocking_printing(obj_)) {
             state_printable = 5;
         }
 
@@ -103,18 +102,6 @@ void DeviceItem::unselected()
     if (state_selected != 2) {
         state_selected = 0;
     }
-}
-
-bool DeviceItem::is_blocking_printing(MachineObject* obj_)
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    std::string source_model = "";
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-
-    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
 }
 
 void DeviceItem::update_item(const DeviceItem* item)

@@ -1277,7 +1277,7 @@ void SendToPrinterDialog::update_show_status()
     reset_timeout();
 
     // reading done
-    if (is_blocking_printing(obj_)) {
+    if (wxGetApp().is_blocking_printing(obj_)) {
         show_status(PrintDialogStatus::PrintStatusUnsupportedPrinter);
         return;
     }
@@ -1340,16 +1340,6 @@ void SendToPrinterDialog::update_show_status()
             }
         }
     }
-}
-
-bool SendToPrinterDialog::is_blocking_printing(MachineObject* obj_)
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
 }
 
 void SendToPrinterDialog::Enable_Refresh_Button(bool en)

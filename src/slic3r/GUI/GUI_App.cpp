@@ -3,6 +3,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "BindDialog.hpp"
 #include "DeviceManager.hpp"
@@ -1117,6 +1118,8 @@ GUI_App::GUI_App()
 {
 	//app config initializes early becasuse it is used in instance checking in OrcaSlicer.cpp
     this->init_app_config();
+    m_shortcuts = std::make_unique<ShortcutRegistry>();
+    m_shortcuts->load(*app_config);
     this->init_download_path();
     // Note: the WebView2 runtime check (init_webview_runtime) used to run here, but
     // the constructor executes before wxWidgets is fully initialized and before the
@@ -2380,19 +2383,21 @@ GUI_App::~GUI_App()
 
 bool GUI_App::is_blocking_printing(MachineObject *obj_)
 {
-    DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    if (obj_ == nullptr) {
-        obj_ = dev->get_selected_machine();
-    }
-
-    if (!obj_)
-    {
-        return false;
-    }
-
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    std::string    source_model  = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+    const std::string source_model = preset_bundle
+        ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle)
+        : std::string();
+    return is_blocking_printing(obj_, source_model);
+}
+
+bool GUI_App::is_blocking_printing(MachineObject *obj_, const std::string& source_model)
+{
+    DeviceManager *dev = getDeviceManager();
+    if (!dev) return true;
+    if (obj_ == nullptr)
+        obj_ = dev->get_selected_machine();
+    if (!obj_)
+        return false;
 
     return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
 }
@@ -4660,10 +4665,26 @@ void GUI_App::system_info()
     //dlg.ShowModal();
 }
 
-void GUI_App::keyboard_shortcuts()
+void GUI_App::keyboard_shortcuts(ShortcutContext page, wxWindow* parent)
 {
-    KBShortcutsDialog dlg;
+    KBShortcutsDialog dlg(parent != nullptr ? parent : mainframe, page);
     dlg.ShowModal();
+}
+
+void GUI_App::on_shortcuts_changed()
+{
+    m_shortcuts->save(*app_config);
+    app_config->save();
+    if (mainframe == nullptr)
+        return;
+    mainframe->update_shortcut_labels();
+    if (Plater* plater = this->plater(); plater != nullptr) {
+        if (GLCanvas3D* canvas = plater->get_view3D_canvas3D(); canvas != nullptr)
+            canvas->update_shortcut_tooltips();
+#ifdef __WXOSX__
+        obj_list()->update_shortcut_accelerators();
+#endif
+    }
 }
 
 void GUI_App::troubleshoot()
@@ -8450,7 +8471,9 @@ void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::strin
     }
 }
 
-void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
+void GUI_App::open_preferences() { open_preferences(PreferencesTab::General); }
+
+void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_option)
 {
     // Render settings the canvas reads every frame; a change needs one redraw to show.
     static constexpr const char* opengl_render_setting_keys[] = {
@@ -8467,7 +8490,8 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         // the dialog needs to be destroyed before the call to recreate_GUI()
         // or sometimes the application crashes into wxDialogBase() destructor
         // so we put it into an inner scope
-        PreferencesDialog dlg(mainframe, open_on_tab, highlight_option);
+        PreferencesDialog dlg(mainframe);
+        dlg.select_tab(tab, highlight_option);
         dlg.ShowModal();
         need_recreate_gui = dlg.recreate_GUI();
         pending_language = dlg.pending_language();

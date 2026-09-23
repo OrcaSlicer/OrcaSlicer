@@ -300,3 +300,5 @@ src/slic3r/GUI/CAD/DesignPanel.cpp
 src/slic3r/GUI/CAD/SketchInlineEditor.cpp
 src/slic3r/GUI/Gizmos/GLGizmoPrimitive.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSketch.cpp
+src/slic3r/GUI/KeyChord.cpp
+src/slic3r/GUI/Shortcuts.cpp

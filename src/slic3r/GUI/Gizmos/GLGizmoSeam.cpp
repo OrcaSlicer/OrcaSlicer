@@ -5,6 +5,7 @@
 //#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
@@ -28,7 +29,7 @@ void GLGizmoSeam::on_shutdown()
 
 bool GLGizmoSeam::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_P;
+    m_shortcut = Shortcut::GizmoSeam;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     const wxString alt   = GUI::shortkey_alt_prefix();
@@ -86,19 +87,12 @@ void GLGizmoSeam::render_painter_gizmo()
     glsafe(::glDisable(GL_BLEND));
 }
 
-// BBS
-bool GLGizmoSeam::on_key_down_select_tool_type(int keyCode) {
-    switch (keyCode)
-    {
-    case 'S':
-        m_current_tool = ImGui::SphereButtonIcon;
-        break;
-    case 'C':
-        m_current_tool = ImGui::CircleButtonIcon;
-        break;
-    default:
-        return false;
-        break;
+bool GLGizmoSeam::on_tool_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::PaintToolSphere: m_current_tool = ImGui::SphereButtonIcon; break;
+    case Shortcut::PaintToolCircle: m_current_tool = ImGui::CircleButtonIcon; break;
+    default: return false;
     }
     return true;
 }
