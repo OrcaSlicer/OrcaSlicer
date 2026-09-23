@@ -1,0 +1,53 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Prusa CORE One MMU3",
+	"inherits": "Generic ASA @Prusa CORE One",
+	"from": "system",
+	"setting_id": "0uAHoCupgHmVYVEx",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
+	],
+	"filament_cooling_final_speed": [
+		"2.5"
+	],
+	"filament_cooling_initial_speed": [
+		"5"
+	],
+	"filament_cooling_moves": [
+		"3"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_loading_speed": [
+		"10"
+	],
+	"filament_loading_speed_start": [
+		"50"
+	],
+	"filament_ramming_parameters": [
+		"250 100 42.4194 42.4194 42.4194 42.4194 42.4194| 0.05 42.4387 0.45 42.4387 0.95 42.4387 1.45 42.4387 1.95 42.4387 2.45 42.4387 2.95 42.4387 3.45 42.4387 3.95 42.4387 4.45 42.4387 4.95 42.4387"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"26.5"
+	],
+	"filament_start_gcode": [
+		"M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.02{elsif nozzle_diameter[filament_extruder_id]==0.5}0.018{elsif nozzle_diameter[filament_extruder_id]==0.6}0.012{elsif nozzle_diameter[filament_extruder_id]==0.8}0.01{elsif nozzle_diameter[filament_extruder_id]==0.25}0.09{elsif nozzle_diameter[filament_extruder_id]==0.3}0.065{else}0{endif} ; Filament gcode\n\nM142 S40 ; set heatbreak target temp"
+	],
+	"filament_unloading_speed": [
+		"60"
+	],
+	"filament_unloading_speed_start": [
+		"60"
+	],
+	"idle_temperature": [
+		"130"
+	]
+}
