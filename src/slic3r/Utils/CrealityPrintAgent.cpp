@@ -80,7 +80,7 @@ std::vector<std::string> name_words(const std::string& name)
 //   can collapse a brand-specific match back to "Generic PLA" via the inherited id.
 // Requires the preset's declared filament_type to equal the spool's base type
 // (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
-// Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
+// Falls back to a visible system base of the same type when nothing scores.
 std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& filaments,
                                                       const std::string&      vendor,
                                                       const std::string&      brand_name,
@@ -140,13 +140,17 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
     }
 
     if (matches.empty()) {
-        const std::string fallback = filaments.filament_id_by_type(base_type);
-        const bool        fallback_ok = has_visible_base_preset(filaments, fallback);
+        // filament_id_by_type() falls back to the first visible preset if no system
+        // base of this type exists. Never sync an unrelated material to the CFS.
+        const auto&       fallback_preset = filaments.preset(filaments.first_visible_idx_by_type(base_type));
+        const std::string fallback        = fallback_preset.filament_id;
+        const bool        fallback_ok     = fallback_preset.config.opt_string("filament_type", 0u) == base_type &&
+                                    has_visible_base_preset(filaments, fallback);
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no preset scored for spool {" << vendor << " "
             << brand_name << " (" << base_type << ")} after considering " << considered
             << " presets; falling back to generic preset id \"" << fallback << "\""
-            << (fallback_ok ? "" : " (NOT visible — returning empty)");
+            << (fallback_ok ? "" : " (no visible base of this type; returning empty)");
         return fallback_ok ? fallback : std::string();
     }
 

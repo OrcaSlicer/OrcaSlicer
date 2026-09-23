@@ -124,6 +124,14 @@ TEST_CASE("A CFS spool from an unknown vendor falls back to a preset of the same
     CHECK(std::string(spec->filament_type) == "PLA");
 }
 
+TEST_CASE("A CFS fallback never selects another material when its type is unavailable", "[CFS][Creality]")
+{
+    const std::vector<FilamentSpec> no_system_abs{
+        {"Generic TPU @System", "TPU-GENERIC", "TPU", /*is_library=*/true},
+        {"My ABS", "ABS-USER", "ABS", /*is_library=*/false, /*is_system=*/false},
+    };
+    CHECK(match(no_system_abs, "Unknown", "", "ABS").empty());
+}
 
 // Orca: Creality's bundle also ships third party filaments ("eSUN PLA+ @K2 Plus-all"). Those carry
 // Creality's VendorProfile but name their real brand, so the vendor bonus has to accept a name
