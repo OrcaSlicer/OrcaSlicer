@@ -655,6 +655,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHost.cpp
     plugin/host/PluginHost.hpp
     plugin/host/PluginHostBindings.hpp
+    plugin/host/PluginHostFeatureContracts.cpp
+    plugin/host/PluginHostFeatureContracts.hpp
     plugin/host/PluginHostApp.cpp
     plugin/host/PluginHostGeometry.cpp
     plugin/host/IsolatedSlicingJob.cpp
