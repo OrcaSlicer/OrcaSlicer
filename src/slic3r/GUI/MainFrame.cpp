@@ -1190,6 +1190,8 @@ void MainFrame::shutdown()
     if (m_project != nullptr)
         m_project->shutdown();
     m_plugin_pages.shutdown();
+    if (m_plater != nullptr)
+        m_plater->remove_dock_panes();
 #ifdef __WXGTK__
     // Edge panels are child windows — wxWidgets destroys them automatically.
     m_edge_bottom = nullptr;
@@ -3425,11 +3427,6 @@ void MainFrame::init_menubar_as_editor()
             wxGetApp().open_preferences();
         },
         "", nullptr, []() { return true; }, this, 1);
-    parent_menu->AppendSeparator();
-    append_shortcut_item(
-        parent_menu, Shortcut::SpeedDial, false, _L("Open speed dial..."), "",
-        [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
-        "", nullptr, []() { return true; }, this);
     //parent_menu->Insert(1, preference_item);
 #endif
     // Help menu
@@ -3455,7 +3452,7 @@ void MainFrame::init_menubar_as_editor()
     top_menu->AppendSeparator();
 
     append_shortcut_item(
-        top_menu, Shortcut::SpeedDial, false, _L("Open speed dial..."), "",
+        top_menu, Shortcut::SpeedDial, false, _L("Open Speed Dial"), "",
         [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     top_menu->AppendSeparator();
@@ -3562,7 +3559,7 @@ void MainFrame::init_menubar_as_editor()
     // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
     fileMenu->AppendSeparator();
     append_shortcut_item(
-        fileMenu, Shortcut::SpeedDial, false, _L("Open speed dial..."), "",
+        fileMenu, Shortcut::SpeedDial, false, _L("Open Speed Dial"), "",
         [](wxCommandEvent&) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     append_menu_item(

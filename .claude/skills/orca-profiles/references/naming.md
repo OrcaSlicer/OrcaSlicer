@@ -35,9 +35,10 @@ toolhead, a multi-material build) may drop the suffix — still an exact referen
 ## `process`
 
 `<layer height>mm <quality> @<target>` — [process-profiles.md](process-profiles.md#naming) has the
-quality ladder and the `fdm_process_*` base names. The `@<target>` is a human label, not a reference: it
-usually does not equal a real variant, and compatibility comes from the resolved `compatible_printers`
-list or condition.
+quality ladder and the `fdm_process_*` base names. The quality label stays before `@` and the printer
+target after it: a printer model in the quality slot leaves the tier undescribed. The `@<target>` is a
+human label, not a reference: it usually does not equal a real variant, and compatibility comes from the
+resolved `compatible_printers` list or condition.
 
 ## `filament`
 
@@ -46,12 +47,41 @@ to the first `@`; the target half is a label except for reserved forms:
 
 - `@base` — a non-instantiated product root. `@base` is convention; a base is really identified by
   `instantiation: "false"` and no `setting_id` ([the three-part shape](filament-profiles.md#the-three-part-shape)).
-- `@System` — the OrcaFilamentLibrary selectable shim. The literal `Generic <mat> @System` is
-  load-bearing for 3MF/project recovery, beyond the alias rule ([alias shadowing](filament-profiles.md#alias-shadowing)).
+- `@System` — the OrcaFilamentLibrary selectable shim, and the convention for an all-printer product
+  (`<Product> @System`, empty `compatible_printers`); not enforced, so a deviation is worth a review
+  comment. The literal `Generic <mat> @System` is load-bearing for 3MF/project recovery, beyond the
+  alias rule ([alias shadowing](filament-profiles.md#alias-shadowing)).
 - `@<Vendor>`, `@<Vendor> <Model>`, `@<Vendor> <Model> <nozzle> nozzle` — printer tunes, BBL's shape.
   Other vendors differ (a bare model, a printer serial, Creality's `@<Model>-all`). Specificity is judged
   from `compatible_printers`, not the name
   ([one variant, one profile](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product)).
+- Color is not part of the product name: `<Product> <Color>` presets are not authored; the color is
+  chosen at runtime
+  ([color is a runtime property](filament-profiles.md#color-is-a-runtime-property)).
+
+## Checking names
+
+Check every newly added profile's `name` against its type and role: model, selectable preset or base.
+Apply the same checks to an intentional name change. The human-readable naming shapes are not enforced
+by `check`: inspect the added or renamed profiles in the diff, using neighbouring names as context and
+following the bundle's established style where the type-specific conventions allow variation.
+
+For bases (`instantiation: "false"`), use the type-specific conventions:
+
+| Type | Base names |
+| --- | --- |
+| `machine` | `fdm_machine_common`, `fdm_<vendor>_common`, or an established machine-family base name |
+| `process` | `fdm_process_*`, including shared roots and per-layer-height / per-nozzle bases such as `fdm_process_single_0.20` |
+| `filament` | `fdm_filament_*` material roots or `<Product> @base` product roots |
+
+Shared base names across bundles are intentional, including product roots such as `Fiberon PA6-CF @base`.
+Investigate a newly authored base that retains an unrelated selectable preset's name from a copy.
+
+**Name uniqueness is checked by CI.** `check_preset_name_uniqueness` checks type + name within each
+bundle. `check_machine_model_name_uniqueness` checks model names across the entire tree, even with
+`--vendor`: `Preset::get_printer_type` matches `printer_model` against all vendors' models and returns
+the first match, so a duplicate makes lookup depend on vendor order. Both run as part of
+`python3 scripts/orca_profile_tool.py check`.
 
 ## Not the same as the filename
 

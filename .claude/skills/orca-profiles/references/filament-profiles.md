@@ -52,6 +52,15 @@ a brand means adding a folder here; the folder name is a directory label only �
   collection, so there is no duplicate-name error.
 - You may inherit from an instantiated preset as well as from a base; it is common.
 
+## Color is a runtime property
+
+`filament_id` identifies a product, not a color; filament sync/AMS reads the color from the spool at
+runtime. A product ships one all-printer preset and the color is chosen at runtime — never a sibling
+preset that differs only by color. A material family (PLA vs PLA Matte vs PLA Silk) is a new product; a
+color is not. A printer tune keeps the product alias and does not multiply per color either.
+
+CI does not catch this — per-color presets pass `check` — so it is a review call.
+
 ## The two most common contributions
 
 **A printer vendor tuning a generic.** Keep the `Generic X` base name so the alias shadows the library

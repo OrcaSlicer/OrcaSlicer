@@ -1160,8 +1160,23 @@ bool GuideFrame::run()
 
 int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType)
 {
+    std::unordered_set<std::string> visiting;
+    return GetFilamentInfo(VendorDirectory, pFilaList, filepath, sVendor, sType, visiting);
+}
+
+int GuideFrame::GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList,
+                                const std::string& filepath, std::string& sVendor,
+                                std::string& sType, std::unordered_set<std::string>& visiting)
+{
     //GetStardardFilePath(filepath);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " GetFilamentInfo:VendorDirectory - " << VendorDirectory << ", Filepath - "<<filepath;
+
+    // Path-scoped guard: without it an `inherits` cycle would recurse forever.
+    // The repeated file was not inserted, so the cycle hit has nothing to erase.
+    if (!visiting.insert(filepath).second) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits cycle at " << filepath;
+        return -1;
+    }
 
     // Resolve this file's own vendor/type into LOCAL variables, independent of
     // whatever the caller already accumulated. The cache entry for `filepath`
@@ -1197,41 +1212,30 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
             else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_type";
 
-            if (vendor == "" || type == "") {
-                if (jLocal.contains("inherits")) {
-                    std::string FName = jLocal["inherits"];
+            if (jLocal.contains("inherits")) {
+                std::string FName = jLocal["inherits"];
 
-                    if (!pFilaList.contains(FName)) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
-                        status = -1;
-                    } else {
-                        std::string FPath = pFilaList[FName]["sub_path"];
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
-                        wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
-                        boost::filesystem::path inherits_path(w2s(strNewFile));
-                        if (!boost::filesystem::exists(inherits_path))
-                            inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
-
-                        if (boost::filesystem::exists(inherits_path)) {
-                            // Recurse with this file's own (vendor, type) as the chain accumulator.
-                            status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type);
-                        } else {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
-                            status = -1;
-                        }
-                    }
+                if (!pFilaList.contains(FName)) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
+                    status = -1;
                 } else {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
-                    if (type == "") {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
-                        status = -1;
+                    std::string FPath = pFilaList[FName]["sub_path"];
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
+                    wxString strNewFile = wxString::Format("%s%c%s", wxString(VendorDirectory.c_str(), wxConvUTF8), boost::filesystem::path::preferred_separator, FPath);
+                    boost::filesystem::path inherits_path(w2s(strNewFile));
+                    if (!boost::filesystem::exists(inherits_path))
+                        inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
+
+                    if (boost::filesystem::exists(inherits_path)) {
+                        // Traverse the full chain for errors; inherited values only fill local gaps.
+                        status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type, visiting);
                     } else {
-                        if (vendor == "")
-                            vendor = "Generic";
-                        status = 0;
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
+                        status = -1;
                     }
                 }
             } else {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
                 status = 0;
             }
         }
@@ -1250,6 +1254,7 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     // Merge this file's resolved values into the caller's out-params (fill empties only).
     if (sVendor.empty()) sVendor = vendor;
     if (sType.empty())   sType   = type;
+    visiting.erase(filepath);
     return status;
 }
 
@@ -1803,8 +1808,8 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
                     std::string sT;
 
                     int nRet = GetFilamentInfo(vendor_dir.string(),tFilaList, sub_file, sV, sT);
-                    if (nRet != 0) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Load Filament:" << s1 << ",GetFilamentInfo Failed, Vendor:" << sV << ",Type:"<< sT;
+                    if (nRet != 0 || sV.empty() || sT.empty()) {
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Load Filament:" << s1 << ",unresolved vendor/type, Vendor:" << sV << ",Type:"<< sT;
                         continue;
                     }
 

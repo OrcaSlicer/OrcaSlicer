@@ -413,6 +413,14 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/caches"
+        # The save step reports success even when its tar failed, so keep
+        # the older entries unless the new one is listed.
+        if ! curl -sSf -H "Authorization: Bearer $GH_TOKEN" \
+            "$api?ref=$GITHUB_REF&key=$CCACHE_ENTRY" \
+            | jq -e --arg entry "$CCACHE_ENTRY" 'any(.actions_caches[]; .key == $entry)' > /dev/null; then
+          echo "$CCACHE_ENTRY was not saved; keeping the older entries."
+          exit 0
+        fi
         curl -sSf -H "Authorization: Bearer $GH_TOKEN" \
           "$api?ref=$GITHUB_REF&key=ccache-$CCACHE_LEG-&per_page=100" \
           | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \

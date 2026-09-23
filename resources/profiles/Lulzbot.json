@@ -1,10 +1,14 @@
 {
 	"name": "Lulzbot",
 	"url": "https://ohai.lulzbot.com/group/taz-6/",
-	"version": "02.04.00.04",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "Lulzbot configurations",
 	"machine_model_list": [
+		{
+			"name": "Lulzbot Mini 1",
+			"sub_path": "machine/Lulzbot Mini 1.json"
+		},
 		{
 			"name": "Lulzbot Taz 4 or 5",
 			"sub_path": "machine/Lulzbot Taz 4 or 5.json"
@@ -28,6 +32,10 @@
 			"sub_path": "process/fdm_process_common.json"
 		},
 		{
+			"name": "0.25mm Standard @Lulzbot Mini 1",
+			"sub_path": "process/0.25mm Standard @Lulzbot Mini 1.json"
+		},
+		{
 			"name": "0.25mm Standard @Lulzbot Taz 4 or 5",
 			"sub_path": "process/0.25mm Standard @Lulzbot Taz 4 or 5.json"
 		},
@@ -42,6 +50,10 @@
 		{
 			"name": "0.25mm Standard @Lulzbot Taz Pro S",
 			"sub_path": "process/0.25mm Standard @Lulzbot Taz Pro S.json"
+		},
+		{
+			"name": "0.18mm High Detail @Lulzbot Mini 1",
+			"sub_path": "process/0.18mm High Detail @Lulzbot Mini 1.json"
 		},
 		{
 			"name": "0.18mm High Detail @Lulzbot Taz 4 or 5",
@@ -66,18 +78,34 @@
 			"sub_path": "filament/Generic ABS @Lulzbot.json"
 		},
 		{
+			"name": "Generic ABS @Lulzbot Mini 1",
+			"sub_path": "filament/Generic ABS @Lulzbot Mini 1.json"
+		},
+		{
 			"name": "Generic PETG @Lulzbot",
 			"sub_path": "filament/Generic PETG @Lulzbot.json"
 		},
 		{
+			"name": "Generic PETG @Lulzbot Mini 1",
+			"sub_path": "filament/Generic PETG @Lulzbot Mini 1.json"
+		},
+		{
 			"name": "Generic PLA @Lulzbot",
 			"sub_path": "filament/Generic PLA @Lulzbot.json"
+		},
+		{
+			"name": "Generic PLA @Lulzbot Mini 1",
+			"sub_path": "filament/Generic PLA @Lulzbot Mini 1.json"
 		}
 	],
 	"machine_list": [
 		{
 			"name": "fdm_machine_common",
 			"sub_path": "machine/fdm_machine_common.json"
+		},
+		{
+			"name": "Lulzbot Mini 1 0.5 nozzle",
+			"sub_path": "machine/Lulzbot Mini 1 0.5 nozzle.json"
 		},
 		{
 			"name": "Lulzbot Taz 4 or 5 0.5 nozzle",
