@@ -548,10 +548,13 @@ public:
     //BBS
     void publish_project();
 
-    void reload_from_disk();
+    // interactive=false skips every dialog reload_from_disk() can show (locate-missing-file,
+    // replace-confirmation, .obj color import) and leaves the corresponding volumes untouched
+    // instead; returns false if anything was skipped, cancelled, or failed to load.
+    bool reload_from_disk(bool interactive = true);
     void replace_with_stl();
     void replace_all_with_stl();
-    void reload_all_from_disk();
+    bool reload_all_from_disk(bool interactive = true);
     bool has_toolpaths_to_export() const;
     void export_toolpaths_to_obj() const;
     void reslice();

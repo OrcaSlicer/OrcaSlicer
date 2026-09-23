@@ -377,6 +377,9 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
+    // Slice the current plate and switch to Preview, same as Cmd+R. Returns whether a slice was
+    // started (false when the plate can't be sliced right now).
+    bool        slice_current_plate();
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     void        update_shortcut_labels();

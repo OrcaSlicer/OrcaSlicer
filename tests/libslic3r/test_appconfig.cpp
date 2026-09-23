@@ -81,3 +81,31 @@ TEST_CASE("AppConfig Speed Dial recent count defaults, clamps and parses", "[App
         REQUIRE(config.get_speed_dial_recent_count() == SPEED_DIAL_RECENT_COUNT_DEFAULT);
     }
 }
+
+TEST_CASE("AppConfig auto-reload options are off by default and keep a user's choice", "[AppConfig]") {
+    AppConfig config;
+
+    SECTION("both default to off") {
+        REQUIRE_FALSE(config.get_bool("auto_reload_on_source_change"));
+        REQUIRE_FALSE(config.get_bool("auto_slice_after_reload"));
+    }
+
+    SECTION("the defaults are written explicitly so an older config gains the keys") {
+        REQUIRE_FALSE(config.get("auto_reload_on_source_change").empty());
+        REQUIRE_FALSE(config.get("auto_slice_after_reload").empty());
+    }
+
+    SECTION("re-applying the defaults does not undo an enabled option") {
+        config.set_bool("auto_reload_on_source_change", true);
+        config.set_bool("auto_slice_after_reload", true);
+        config.set_defaults();
+        REQUIRE(config.get_bool("auto_reload_on_source_change"));
+        REQUIRE(config.get_bool("auto_slice_after_reload"));
+    }
+
+    SECTION("the two options are independent of each other and of auto slice after changes") {
+        config.set_bool("auto_reload_on_source_change", true);
+        REQUIRE_FALSE(config.get_bool("auto_slice_after_reload"));
+        REQUIRE_FALSE(config.get_bool("auto_slice_after_change"));
+    }
+}
