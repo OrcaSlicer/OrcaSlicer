@@ -68,7 +68,7 @@ pages in and out of the book.
   activation hook (refresh timers, machine sync) and `SelectPageByName()` works
   unchanged. A show builds the panel unless the frame itself is still hidden, because
   the book selects its first page as it is inserted; `MainFrame::Show()` shows the
-  current page again once the frame is visible, which builds it.
+  current page again when the frame becomes visible, which builds it.
 - `in_book()` says whether the parent notebook currently lists the page, and
   `pending()` is that and not built, so a tab `show_device()` has taken out of the book
   is not prebuilt.

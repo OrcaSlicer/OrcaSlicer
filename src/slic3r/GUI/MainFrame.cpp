@@ -4005,7 +4005,7 @@ void MainFrame::select_prepare_for_gl_init()
 bool MainFrame::Show(bool show)
 {
     const bool changed = DPIFrame::Show(show);
-    if (show && m_tabpanel != nullptr)
+    if (show && changed && m_tabpanel != nullptr)
         if (wxWindow* page = m_tabpanel->GetCurrentPage())
             page->Show(true);
     return changed;
