@@ -710,6 +710,7 @@ private:
 
     // Always check gcode placeholders when building in debug mode.
 #if !defined(NDEBUG)
+#undef ORCA_CHECK_GCODE_PLACEHOLDERS
 #define ORCA_CHECK_GCODE_PLACEHOLDERS 1
 #endif
     

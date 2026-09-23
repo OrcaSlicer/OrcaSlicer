@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 
 #include <wx/event.h>
+#include <wx/uri.h>
 
 #include <utility>
 
@@ -55,6 +56,14 @@ wxString web_base_url()
     return wxString("file://") + from_u8(dir) + "/";
 }
 
+// Whether a loaded document is the plugin HTML's own base URL. The web view reports the URL it
+// parsed, so any fragment the page navigated to is ignored and the escaping it applies to what the
+// resources path holds (a space, a non-ASCII character) is undone first.
+bool is_content_url(const wxString& url)
+{
+    return wxURI::Unescape(url.BeforeFirst('#')) == web_base_url();
+}
+
 } // namespace
 
 PluginWebDialog::PluginWebDialog(wxWindow*          parent,
@@ -89,6 +98,7 @@ PluginWebDialog::PluginWebDialog(wxWindow*          parent,
         // missing/blocked bootstrap resource (e.g. a packaged build) still triggers it.
         Bind(wxEVT_WEBVIEW_LOADED, &PluginWebDialog::on_bootstrap_event, this, wv->GetId());
         Bind(wxEVT_WEBVIEW_ERROR, &PluginWebDialog::on_bootstrap_event, this, wv->GetId());
+        Bind(wxEVT_WEBVIEW_NAVIGATED, &PluginWebDialog::on_navigated, this, wv->GetId());
     }
     Bind(wxEVT_CLOSE_WINDOW, &PluginWebDialog::on_close_window, this);
 }
@@ -139,19 +149,37 @@ void PluginWebDialog::destroy_for_plugin(PluginWebDialog* dialog)
 
 void PluginWebDialog::on_bootstrap_event(wxWebViewEvent& event)
 {
-    // The first bootstrap load (or its error) triggers the swap to plugin HTML;
-    // the resulting plugin-page load is ignored (guarded by m_content_loaded).
-    load_plugin_content();
+    const bool loaded = event.GetEventType() == wxEVT_WEBVIEW_LOADED;
+    // The first bootstrap load (or its error) triggers the swap to plugin HTML.
+    if (!m_content_loaded)
+        load_plugin_content();
+    // WebKit reloads the SetPage base URL, so a committed load of it that we did not start is a reload.
+    // A failed navigation is reported against the page that stayed but never commits. Edge ignores the
+    // base URL and restores SetPage content itself, so nothing matches there.
+    else if (is_content_url(event.GetURL())) {
+        if (m_own_page_load)
+            m_own_page_load = false;
+        else if (loaded && m_content_navigated)
+            load_plugin_content();
+    }
+    if (loaded)
+        m_content_navigated = false;
+    event.Skip();
+}
+
+void PluginWebDialog::on_navigated(wxWebViewEvent& event)
+{
+    m_content_navigated = is_content_url(event.GetURL());
     event.Skip();
 }
 
 void PluginWebDialog::load_plugin_content()
 {
-    if (m_content_loaded)
-        return;
     m_content_loaded = true;
-    if (wxWebView* wv = browser())
+    if (wxWebView* wv = browser()) {
+        m_own_page_load = true;
         wv->SetPage(wxString::FromUTF8(m_html), web_base_url());
+    }
 }
 
 void PluginWebDialog::on_script_message(const nlohmann::json& payload)

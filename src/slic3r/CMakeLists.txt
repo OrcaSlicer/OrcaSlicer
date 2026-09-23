@@ -14,8 +14,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/2DBed.hpp
     GUI/3DBed.cpp
     GUI/3DBed.hpp
-    GUI/Widgets/StaticGroup.cpp
-    GUI/Widgets/StaticGroup.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
     GUI/Widgets/FilamentLoad.cpp
@@ -125,10 +123,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginPickerDialog.hpp
     GUI/PluginsDialog.cpp
     GUI/PluginsDialog.hpp
+    GUI/Shortcuts.cpp
+    GUI/Shortcuts.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
     GUI/ActionRegistry.cpp
     GUI/ActionRegistry.hpp
+    GUI/NativeCommands.cpp
+    GUI/NativeCommands.hpp
     GUI/PluginsConfigDialog.cpp
     GUI/PluginsConfigDialog.hpp
     GUI/ProcessRunner.cpp
@@ -345,6 +347,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/KeyChord.cpp
+    GUI/KeyChord.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/LinuxDisplayBackend.cpp
@@ -479,6 +483,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SavePresetDialog.hpp
     GUI/SceneRaycaster.cpp
     GUI/SceneRaycaster.hpp
+    GUI/SceneCache.cpp
+    GUI/SceneCache.hpp
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
@@ -486,6 +492,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SkipPartCanvas.hpp
     GUI/Search.cpp
     GUI/Search.hpp
+    GUI/SettingsIndex.cpp
+    GUI/SettingsIndex.hpp
     GUI/Selection.cpp
     GUI/Selection.hpp
     GUI/SelectMachine.cpp
@@ -788,6 +796,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/SimplyPrint.hpp
     Utils/TCPConsole.cpp
     Utils/TCPConsole.hpp
+    Utils/UltiMaker.cpp
+    Utils/UltiMaker.hpp
     Utils/UndoRedo.cpp
     Utils/UndoRedo.hpp
     Utils/WebSocketClient.hpp

@@ -3,6 +3,7 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Jobs/RotoptimizeJob.hpp"
@@ -555,7 +556,7 @@ bool GLGizmoRotate3D::on_init()
     for (unsigned int i = 0; i < 3; ++i)
         m_gizmos[i].set_highlight_color(AXES_COLOR[i]);
 
-    m_shortcut_key = WXK_CONTROL_R;
+    m_shortcut = Shortcut::GizmoRotate;
 
     return true;
 }
