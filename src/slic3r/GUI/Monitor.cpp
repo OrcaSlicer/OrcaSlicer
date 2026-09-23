@@ -103,6 +103,7 @@ MonitorPanel::MonitorPanel(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     : wxPanel(parent, id, pos, size, style),
     m_select_machine(SelectMachinePopup(this))
 {
+    SetBackgroundColour(*wxWHITE);
 #ifdef __WINDOWS__
     SetDoubleBuffered(true);
 #endif //__WINDOWS__
@@ -180,31 +181,36 @@ void MonitorPanel::init_tabpanel()
             auto title = m_tabpanel->GetPageText(m_tabpanel->GetSelection());
             m_media_file_panel->SwitchStorage(title == _L("Storage"));
         }
-        page->SetFocus();
+        // The first page is selected while the panel is built off screen.
+        if (page->IsShownOnScreen())
+            page->SetFocus();
         update_all();
         }, m_tabpanel->GetId());
 
-    //m_status_add_machine_panel = new AddMachinePanel(m_tabpanel);
-    m_status_info_panel        = new StatusPanel(m_tabpanel);
+    m_status_info_panel = new StatusPanel(m_tabpanel);
+    // Queued before the page is added, since adding it selects it and runs the handler above,
+    // where built() must already be false.
+    add_build_steps_of(*m_status_info_panel);
     m_tabpanel->AddPage(m_status_info_panel, _L("Status"), true);
+    add_build_step([this] {
+        m_media_file_panel = new MediaFilePanel(m_tabpanel);
+        m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
+    });
+    add_build_step([this] {
+        m_upgrade_panel = new UpgradePanel(m_tabpanel);
+        m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), false);
+    });
+    add_build_step([this] {
+        m_hms_panel = new HMSPanel(m_tabpanel);
+        m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"), false);
 
-    m_media_file_panel = new MediaFilePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_media_file_panel, _L("Storage"), false);
-    //m_tabpanel->AddPage(m_media_file_panel, _L("Internal Storage"), false);
+        std::string network_ver = Slic3r::NetworkAgent::get_version();
+        if (!network_ver.empty()) {
+            m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
+        }
 
-    m_upgrade_panel = new UpgradePanel(m_tabpanel);
-    m_tabpanel->AddPage(m_upgrade_panel, _L_CONTEXT(L_CONTEXT("Update", "Firmware"), "Firmware"), false);
-
-    m_hms_panel = new HMSPanel(m_tabpanel);
-    m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    false);
-
-    std::string network_ver = Slic3r::NetworkAgent::get_version();
-    if (!network_ver.empty()) {
-        m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
-    }
-
-    m_initialized = true;
-    show_status((int)MonitorStatus::MONITOR_NO_PRINTER);
+        show_status((int)MonitorStatus::MONITOR_NO_PRINTER);
+    });
 }
 
 void MonitorPanel::set_default()
@@ -288,17 +294,21 @@ void MonitorPanel::on_select_printer(wxCommandEvent& event)
     set_default();
     update_all();
 
-    MachineObject *obj_ = dev->get_selected_machine();
-    if (obj_) {
-        obj_->last_cali_version = -1;
-        obj_->reset_pa_cali_history_result();
-        obj_->reset_pa_cali_result();
-        Sidebar &sidebar = GUI::wxGetApp().sidebar();
-        sidebar.update_sync_status(obj_);
-        sidebar.set_need_auto_sync_after_connect_printer(sidebar.need_auto_sync_extruder_list_after_connect_priner(obj_));
-    }
+    on_machine_selected(dev->get_selected_machine());
 
     Layout();
+}
+
+void MonitorPanel::on_machine_selected(MachineObject* obj)
+{
+    if (obj == nullptr)
+        return;
+    obj->last_cali_version = -1;
+    obj->reset_pa_cali_history_result();
+    obj->reset_pa_cali_result();
+    Sidebar& sidebar = GUI::wxGetApp().sidebar();
+    sidebar.update_sync_status(obj);
+    sidebar.set_need_auto_sync_after_connect_printer(sidebar.need_auto_sync_extruder_list_after_connect_priner(obj));
 }
 
 void MonitorPanel::on_printer_clicked(wxMouseEvent &event)
@@ -331,7 +341,8 @@ void MonitorPanel::on_size(wxSizeEvent &event)
 
 void MonitorPanel::update_all()
 {
-    if (!m_initialized)
+    // Every page exists once the last build step has run.
+    if (!built())
         return;
 
     NetworkAgent* m_agent = wxGetApp().getAgent();
@@ -412,16 +423,12 @@ void MonitorPanel::update_hms_tag()
 
 bool MonitorPanel::Show(bool show)
 {
-#ifdef __APPLE__
-    // Notebook::InsertPage() hides every page it appends, so this also runs while MainFrame is
-    // still constructing, before GUI_App::mainframe is assigned. Same guard as Plater::Show().
-    if (wxGetApp().mainframe)
-        wxGetApp().mainframe->SetMinSize(wxGetApp().plater()->GetMinSize());
-#endif
-
     NetworkAgent* m_agent = wxGetApp().getAgent();
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (show) {
+#ifdef __APPLE__
+        wxGetApp().mainframe->SetMinSize(wxGetApp().plater()->GetMinSize());
+#endif
         start_update();
         update_network_version_footer();
 
@@ -448,7 +455,7 @@ bool MonitorPanel::Show(bool show)
 
 void MonitorPanel::show_status(int status)
 {
-    if (!m_initialized) return;
+    if (!built()) return;
     if (last_status == status)return;
     if ((last_status & (int)MonitorStatus::MONITOR_CONNECTING) != 0) {
         NetworkAgent* agent = wxGetApp().getAgent();
