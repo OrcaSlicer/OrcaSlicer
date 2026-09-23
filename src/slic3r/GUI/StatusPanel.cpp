@@ -4734,11 +4734,11 @@ void StatusPanel::on_ams_refresh_rfid(wxCommandEvent &event)
         try {
             if (!use_new_command) {
                 int tray_index = atoi(curr_ams_id.c_str()) * 4 + atoi(slot_it->second->id.c_str());
-                obj->command_ams_refresh_rfid(std::to_string(tray_index));
+                obj->command_ams_refresh_rfid(-1, tray_index);
             }
 
             if (use_new_command) {
-                obj->command_ams_refresh_rfid2(stoi(curr_ams_id), stoi(curr_can_id));
+                obj->command_ams_refresh_rfid(stoi(curr_ams_id), stoi(curr_can_id));
             }
 
         } catch (...) {

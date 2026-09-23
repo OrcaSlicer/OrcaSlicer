@@ -1774,20 +1774,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
     return this->publish_json(j);
 }
 
-int MachineObject::command_ams_refresh_rfid(std::string tray_id)
+int MachineObject::command_ams_refresh_rfid(int ams_id, int slot_id)
 {
     if (!m_agent) return -1;
-    return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
-}
-
-int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
-{
-    json j;
-    j["print"]["command"]       = "ams_get_rfid";
-    j["print"]["sequence_id"]   = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["ams_id"]        = ams_id;
-    j["print"]["slot_id"]       = slot_id;
-    return this->publish_json(j);
+    return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), ams_id, slot_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_start_camera()

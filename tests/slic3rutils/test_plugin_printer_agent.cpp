@@ -128,7 +128,7 @@ TEST_CASE("A printer agent uses IPrinterAgent defaults for omitted commands", "[
 
     CHECK(agent->command_xyz_abs("dev", 1, false) == 7);
     CHECK(agent->command_set_nozzle("dev", 200, 2, true) == 8);
-    CHECK(agent->command_ams_refresh_rfid("dev", "tray", 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent->command_ams_refresh_rfid("dev", -1, 0, 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
 }
 
 TEST_CASE("A printer agent operation returning the wrong type answers like a missing agent", "[PluginPrinterAgent][Python]")

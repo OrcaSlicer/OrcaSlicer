@@ -147,21 +147,27 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // Communication
 // ============================================================================
 
-int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = (boost::format("M620 R%1% \n") % tray_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
     nlohmann::json j;
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = gcode;
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    if (ams_id == -1) {
+        const std::string gcode   = (boost::format("M620 R%1% \n") % slot_id).str();
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = gcode;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish(dev_id, j, lan_mode);
+    }
+
+    j["print"]["command"]     = "ams_get_rfid";
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["ams_id"]      = ams_id;
+    j["print"]["slot_id"]     = slot_id;
     return publish(dev_id, j, lan_mode);
 }
 
 int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
 {
     const std::string gcode = (boost::format("M620 C%1% \n") % ams_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;
@@ -172,7 +178,6 @@ int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int s
 int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
 {
     const std::string gcode = (boost::format("M620 P%1% \n") % tray_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;
