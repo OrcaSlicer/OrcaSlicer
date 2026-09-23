@@ -52,6 +52,18 @@ void write_printer_preset(const DynamicPrintConfig &default_config, const fs::pa
     config.save_to_json(file.string(), name, "User", "1.0.0");
 }
 
+// Write one process preset under <root>/process/<name>.json listing the given printer as compatible.
+void write_process_preset(const DynamicPrintConfig &default_config, const fs::path &root, const std::string &name,
+                          const std::string &compatible_printer)
+{
+    DynamicPrintConfig config(default_config);
+    config.option<ConfigOptionString>("print_settings_id", true)->value = name;
+    config.option<ConfigOptionStrings>("compatible_printers", true)->values = { compatible_printer };
+    const fs::path file = root / PRESET_PRINT_NAME / (name + ".json");
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), name, "User", "1.0.0");
+}
+
 // Load <sys_root>/machine (system presets), mark the given names is_system, then load
 // <usr_root>/machine (user presets) so their inherits resolve against the loaded system parents.
 void load_printers(PresetBundle &bundle, const fs::path &sys_root, const fs::path &usr_root,
@@ -248,6 +260,49 @@ TEST_CASE("PresetBundle::rename_user_printer_model repoints app-config keys old-
     CHECK(config.get_printer_setting(new_name, PRESET_PRINTER_NAME) == new_name);
     CHECK_FALSE(config.has_printer_settings(old_name));
     CHECK(config.get("presets", PRESET_PRINTER_NAME) == new_name);
+}
+
+TEST_CASE("Printer rename also renames dependent @printer-named user process presets", "[Preset][Variants][12105]")
+{
+    TempPresetDir temp;
+    PresetBundle  bundle;
+    const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
+
+    write_printer_preset(bundle.printers.default_preset().config, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "0.4", 0.4);
+    write_printer_preset(bundle.printers.default_preset().config, usr, "Fixture Printer 0.4 nozzle - Copy", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    // A detached user process preset carrying the printer name in its own name (the "@<printer>"
+    // convention) and gating compatibility on that exact printer name.
+    const std::string proc_old = "0.20mm Test @Fixture Printer 0.4 nozzle - Copy";
+    write_process_preset(bundle.prints.default_preset().config, usr, proc_old, "Fixture Printer 0.4 nozzle - Copy");
+
+    load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle"});
+    PresetsConfigSubstitutions subs;
+    bundle.prints.load_presets(usr.string(), PRESET_PRINT_NAME, subs, ForwardCompatibilitySubstitutionRule::Disable);
+    bundle.printers.migrate_user_models_for_variants("Copy"); // -> "Fixture Printer - Copy"
+    bundle.printers.select_preset_by_name("Fixture Printer 0.4 nozzle - Copy", true);
+
+    // The remembered process pairing under the printer's app-config submap must follow both renames.
+    AppConfig config;
+    config.set_printer_setting("Fixture Printer 0.4 nozzle - Copy", PRESET_PRINT_NAME, proc_old);
+
+    CHECK(bundle.rename_user_printer_model("Fixture Printer - Copy", "My Printer", config) == 1);
+
+    // The process preset renamed on disk and in memory, keeping the "@<printer>" convention intact.
+    const std::string proc_new = "0.20mm Test @My Printer 0.4 nozzle";
+    CHECK(bundle.prints.find_preset(proc_old, false) == nullptr);
+    const Preset *p = bundle.prints.find_preset(proc_new, false);
+    REQUIRE(p != nullptr);
+    // The fixture writes the file at process/<name>.json; the rename re-derives the path for a
+    // detached preset under process/base/. Old location empty either way, new file present.
+    CHECK_FALSE(fs::exists(usr / PRESET_PRINT_NAME / (proc_old + ".json")));
+    CHECK(fs::exists(usr / PRESET_PRINT_NAME / "base" / (proc_new + ".json")));
+    // Its compatible_printers entry was rewritten to the renamed printer.
+    const auto *cp = p->config.option<ConfigOptionStrings>("compatible_printers");
+    REQUIRE(cp != nullptr);
+    REQUIRE(cp->values.size() == 1);
+    CHECK(cp->values[0] == "My Printer 0.4 nozzle");
+    // The app-config pairing follows: submap moved to the new printer name, process key repointed.
+    CHECK(config.get_printer_setting("My Printer 0.4 nozzle", PRESET_PRINT_NAME) == proc_new);
 }
 
 TEST_CASE("get_similar_printer_preset: user model with no system counterpart resolves to a user variant",

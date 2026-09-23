@@ -4221,6 +4221,9 @@ bool PresetCollection::rename_user_preset_files(Preset &preset, const std::strin
     // cloud-synced .info (sync_info="delete") when setting_id is set. Renaming the .info preserves
     // setting_id/base_id/updated_time so the renamed preset keeps its cloud identity.
     if (old_json != new_json && boost::filesystem::exists(old_json)) {
+        // The new path may re-classify the preset into a not-yet-existing subdirectory (a detached
+        // preset moving under <type>/base/) — rename(2) fails silently without the parent dir.
+        boost::filesystem::create_directories(boost::filesystem::path(new_json).parent_path());
         boost::nowide::rename(old_json.c_str(), new_json.c_str());
         if (boost::filesystem::exists(old_info))
             boost::nowide::rename(old_info.string().c_str(), new_info.string().c_str());
@@ -4232,8 +4235,11 @@ bool PresetCollection::rename_user_preset_files(Preset &preset, const std::strin
     preset.file = new_json;
     if (m_type == Preset::TYPE_PRINT)
         preset.config.option<ConfigOptionString>("print_settings_id", true)->value = new_name;
-    else if (m_type == Preset::TYPE_FILAMENT)
-        preset.config.option<ConfigOptionStrings>("filament_settings_id", true)->values[0] = new_name;
+    else if (m_type == Preset::TYPE_FILAMENT) {
+        auto &ids = preset.config.option<ConfigOptionStrings>("filament_settings_id", true)->values;
+        ids.resize(std::max<size_t>(ids.size(), 1));
+        ids[0] = new_name;
+    }
     else if (m_type == Preset::TYPE_PRINTER)
         preset.config.option<ConfigOptionString>("printer_settings_id", true)->value = new_name;
 

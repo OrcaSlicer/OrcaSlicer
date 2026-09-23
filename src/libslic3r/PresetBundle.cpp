@@ -3609,6 +3609,88 @@ int PresetBundle::rename_user_printer_model(const std::string &old_model, const 
     fixup(prints);
     fixup(filaments);
 
+    // (3) Dependent user process/filament presets often carry the printer preset name in their OWN
+    // name ("0.20mm Standard @<printer>"). Rename those too, so their labels don't keep showing the
+    // old printer name. Same two-pass batch as the printer rename: collect targets + parents while
+    // the deque is still sorted, then rename and re-sort once.
+    auto rename_dependents = [&](PresetCollection &coll) {
+        struct Item { Preset *preset; const DynamicPrintConfig *parent; std::string target; };
+        std::vector<Item>     items;
+        std::set<std::string> claimed;
+        const std::string sel_old = coll.get_selected_preset_name();
+        std::string       sel_new = sel_old;
+        for (Preset &preset : coll) {
+            if (!preset.is_user())
+                continue;
+            std::string target = preset.name;
+            for (const auto &r : renames) {
+                const std::string tag = "@" + r.first;
+                const size_t      pos = target.find(tag);
+                if (pos != std::string::npos) {
+                    target.replace(pos, tag.size(), "@" + r.second);
+                    break;
+                }
+            }
+            if (target == preset.name)
+                continue;
+            auto taken = [&](const std::string &t) {
+                if (claimed.count(t)) return true;
+                const Preset *e = coll.find_preset(t, false);
+                return e != nullptr && e->name != preset.name;
+            };
+            if (taken(target)) {
+                const std::string base = target;
+                int m = 2;
+                while (taken(base + " (" + std::to_string(m) + ")")) ++m;
+                target = base + " (" + std::to_string(m) + ")";
+            }
+            claimed.insert(target);
+            const std::string inherits = Preset::inherits(preset.config);
+            Preset *parent = inherits.empty() ? nullptr : coll.find_preset(inherits, false, true);
+            items.push_back({ &preset, parent ? &parent->config : nullptr, std::move(target) });
+        }
+        std::map<std::string, std::string> renamed;
+        for (Item &it : items) {
+            const std::string old_name = it.preset->name;
+            if (coll.rename_user_preset_files(*it.preset, it.target, it.parent)) {
+                renamed.emplace(old_name, it.target);
+                if (sel_old == old_name) sel_new = it.target;
+            }
+        }
+        if (!renamed.empty())
+            coll.resort_after_rename(sel_new);
+        return renamed;
+    };
+    const std::map<std::string, std::string> print_renames    = rename_dependents(prints);
+    const std::map<std::string, std::string> filament_renames = rename_dependents(filaments);
+
+    // (4) Repoint references to the renamed dependents: the per-slot filament selections and the
+    // remembered per-printer process/filament pairing in app-config (stored under the printer's — now
+    // new — name as PRESET_PRINT_NAME / PRESET_FILAMENT_NAME / "filament_NN" keys).
+    for (std::string &f : filament_presets) {
+        auto it = filament_renames.find(f);
+        if (it != filament_renames.end()) f = it->second;
+    }
+    if (!print_renames.empty() || !filament_renames.empty()) {
+        for (const auto &r : renames) {
+            if (!config.has_printer_settings(r.second))
+                continue;
+            auto repoint = [&](const std::string &key, const std::map<std::string, std::string> &map) {
+                auto it = map.find(config.get_printer_setting(r.second, key));
+                if (it != map.end()) config.set_printer_setting(r.second, key, it->second);
+            };
+            repoint(PRESET_PRINT_NAME, print_renames);
+            repoint(PRESET_FILAMENT_NAME, filament_renames);
+            for (unsigned i = 1; i < 64; ++i) {
+                char key[64];
+                sprintf(key, "filament_%02u", i);
+                if (config.get_printer_setting(r.second, key).empty())
+                    break;
+                repoint(key, filament_renames);
+            }
+        }
+    }
+
     return n;
 }
 

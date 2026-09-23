@@ -4530,10 +4530,13 @@ void MainFrame::show_rename_printer_model_dialog()
     // Real rename via the bundle: moves each variant's preset name + .json/.info and repoints forward
     // references (app-config per-printer settings, last-selected key, user compatible_printers lists).
     int n = wxGetApp().preset_bundle->rename_user_printer_model(old_model, new_model, *wxGetApp().app_config);
-    // The backend re-sorted the collection and re-pointed the selection at the renamed preset; refresh
-    // the edited preset copy under its (now possibly new) name and rebuild the preset UI.
-    const std::string cur = printers.get_selected_preset().name;
-    printers.select_preset_by_name(cur, true);
+    // The backend re-sorted the collections and re-pointed the selections at the renamed presets
+    // (dependent "@<printer>"-named process/filament presets rename too); refresh each edited preset
+    // copy under its (now possibly new) name and rebuild the preset UI.
+    auto& bundle = *wxGetApp().preset_bundle;
+    printers.select_preset_by_name(printers.get_selected_preset().name, true);
+    bundle.prints.select_preset_by_name(bundle.prints.get_selected_preset().name, true);
+    bundle.filaments.select_preset_by_name(bundle.filaments.get_selected_preset().name, true);
     update_side_preset_ui();
     MessageDialog done(this,
         wxString::Format(_L("Renamed %d preset(s) to \"%s\"."), n, from_u8(new_model)),
