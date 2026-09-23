@@ -147,7 +147,7 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
     SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, { WXK_TAB }),
     SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          CANVAS, { WXK_TAB, SHIFT }),
-    SHORTCUT(SpeedDial,         "speed_dial",         L("Open the speed dial"),                              GLOBAL, { WXK_SPACE }),
+    SHORTCUT(SpeedDial,         "speed_dial",         L("Open the Speed Dial"),                                  GLOBAL, { WXK_SPACE }),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
     SHORTCUT(KeyboardShortcuts, "keyboard_shortcuts", L("Show keyboard shortcuts list"),                         CANVAS, { '?' }),
 }};
