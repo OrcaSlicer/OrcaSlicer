@@ -2,6 +2,7 @@
 
 #include <libslic3r/LifecycleEvents.hpp>
 #include <libslic3r/Utils.hpp>
+#include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -76,6 +77,96 @@ class EchoPackage(orca.base):
     def register_capabilities(self):
         orca.register_capability(Echo)
 )PY";
+
+// A minimal printer-agent plugin exposing exactly one PrinterConnection capability.
+const char* const PRINTER_AGENT_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+#
+# [tool.orcaslicer.plugin]
+# name = "Lifecycle Test Agent"
+# description = "Minimal printer-agent plugin for the lifecycle test."
+# author = "tests"
+# version = "1.0.0"
+# type = "printer-connection"
+# ///
+import orca
+
+
+class LifecycleTestAgentCapability(orca.printer_agent.PrinterAgentBase):
+    def get_name(self):
+        return "Lifecycle Test Agent"
+
+    def get_agent_info(self):
+        return orca.printer_agent.AgentInfo(
+            id="lifecycle-test-agent",
+            name="Lifecycle Test Agent",
+            version="1.0.0",
+            description="Lifecycle test printer agent",
+        )
+
+
+@orca.plugin
+class LifecycleTestPlugin(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(LifecycleTestAgentCapability)
+)PY";
+
+// In production GUI_App::init_plugin_gui_wiring subscribes the agent-registry
+// callbacks. The test binary has no GUI, so install the same unload-side wiring
+// once so these tests exercise the production deregister-on-unload path.
+//
+// The load-side (register) wiring is deliberately not installed: duplicate-id
+// coverage registers agents manually in a deterministic order instead.
+void install_agent_registry_wiring()
+{
+    static bool installed = false;
+    if (installed)
+        return;
+    installed = true;
+
+    PluginManager& manager = PluginManager::instance();
+    manager.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
+    manager.subscribe_on_capability_unload_callback([](const PluginCapabilityId& capability) {
+        if (capability.type == PluginCapabilityType::PrinterConnection)
+            NetworkAgentFactory::deregister_python_printer_agent(capability.plugin_key, capability.name);
+    });
+}
+
+// Duplicate-id coverage needs two distinct plugins with different package keys
+// and classes while both return the same AgentInfo.id.
+std::string make_agent_plugin_source(const std::string& suffix,
+                                     const std::string& display_name,
+                                     const std::string& agent_id)
+{
+    return std::string{}
+        + "# /// script\n"
+        + "# requires-python = \">=3.12\"\n"
+        + "# dependencies = []\n"
+        + "#\n"
+        + "# [tool.orcaslicer.plugin]\n"
+        + "# name = \"" + display_name + "\"\n"
+        + "# description = \"Duplicate-id fake printer-agent plugin.\"\n"
+        + "# author = \"tests\"\n"
+        + "# version = \"1.0.0\"\n"
+        + "# type = \"printer-connection\"\n"
+        + "# ///\n"
+        + "import orca\n"
+        + "\n\n"
+        + "class Cap" + suffix + "(orca.printer_agent.PrinterAgentBase):\n"
+        + "    def get_name(self):\n"
+        + "        return \"" + display_name + "\"\n"
+        + "\n"
+        + "    def get_agent_info(self):\n"
+        + "        return orca.printer_agent.AgentInfo(\n"
+        + "            id=\"" + agent_id + "\", name=\"" + display_name + "\",\n"
+        + "            version=\"1.0.0\", description=\"duplicate id test\")\n"
+        + "\n\n"
+        + "@orca.plugin\n"
+        + "class Plugin" + suffix + "(orca.base):\n"
+        + "    def register_capabilities(self):\n"
+        + "        orca.register_capability(Cap" + suffix + ")\n";
+}
 
 // Writes {data_dir}/orca_plugins/<stem>/<stem>.py and returns the plugin directory.
 fs::path write_plugin(const ScopedDataDir& data_dir_guard, const std::string& stem, const std::string& source)
@@ -220,6 +311,157 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     CHECK(manager.get_plugin_capability({PluginCapabilityType::Script, "Echo", "Echo_Plugin"}) == echo);
 
     manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("A printer-agent plugin registers and deregisters with its lifecycle", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("printer-agent-load");
+    write_plugin(data_dir_guard, "LifecycleTestAgent", PRINTER_AGENT_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor("LifecycleTestAgent", descriptor));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "LifecycleTestAgent", error));
+    INFO("load error: " << error);
+
+    const auto capabilities = manager.get_plugin_capabilities(
+        "LifecycleTestAgent", PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities.size() == 1);
+    NetworkAgentFactory::register_python_printer_agent("LifecycleTestAgent", capabilities.front()->name());
+
+    CHECK(NetworkAgentFactory::is_printer_agent_registered("lifecycle-test-agent"));
+    REQUIRE(manager.unload_plugin("LifecycleTestAgent"));
+    CHECK_FALSE(NetworkAgentFactory::is_printer_agent_registered("lifecycle-test-agent"));
+}
+
+TEST_CASE("A duplicate printer-agent id is rejected without clobbering its owner", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string key_a  = "DuplicateIdAgentA";
+    const std::string key_b  = "DuplicateIdAgentB";
+    const std::string dup_id = "duplicate-id-agent";
+
+    ScopedDataDir data_dir_guard("printer-agent-duplicate");
+    write_plugin(data_dir_guard, key_a, make_agent_plugin_source("A", "Duplicate Id Agent A", dup_id));
+    write_plugin(data_dir_guard, key_b, make_agent_plugin_source("B", "Duplicate Id Agent B", dup_id));
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor_a;
+    PluginDescriptor descriptor_b;
+    REQUIRE(manager.try_get_valid_plugin_descriptor(key_a, descriptor_a));
+    REQUIRE(manager.try_get_valid_plugin_descriptor(key_b, descriptor_b));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, key_a, error));
+    REQUIRE(load_and_wait(manager, key_b, error));
+
+    const auto capabilities_a = manager.get_plugin_capabilities(key_a, PluginCapabilityType::PrinterConnection);
+    const auto capabilities_b = manager.get_plugin_capabilities(key_b, PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities_a.size() == 1);
+    REQUIRE(capabilities_b.size() == 1);
+
+    NetworkAgentFactory::register_python_printer_agent(key_a, capabilities_a.front()->name());
+    NetworkAgentFactory::register_python_printer_agent(key_b, capabilities_b.front()->name());
+
+    CHECK(NetworkAgentFactory::is_printer_agent_registered(dup_id));
+    const PrinterAgentInfo* info = NetworkAgentFactory::get_printer_agent_info(dup_id);
+    REQUIRE(info != nullptr);
+    CHECK(info->plugin_identifier.find(key_a) != std::string::npos);
+    CHECK(info->plugin_identifier.find(key_b) == std::string::npos);
+
+    REQUIRE(manager.unload_plugin(key_a));
+    CHECK_FALSE(NetworkAgentFactory::is_printer_agent_registered(dup_id));
+    manager.unload_plugin(key_b);
+}
+
+TEST_CASE("A printer-agent plugin cannot claim a built-in agent id", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    NetworkAgentFactory::register_all_agents();
+    REQUIRE(NetworkAgentFactory::is_printer_agent_registered(BBL_PRINTER_AGENT_ID));
+
+    const std::string plugin_key = "BuiltinClashAgent";
+    ScopedDataDir data_dir_guard("printer-agent-builtin-clash");
+    write_plugin(data_dir_guard, plugin_key,
+                 make_agent_plugin_source("Clash", "Builtin Clash", BBL_PRINTER_AGENT_ID));
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor(plugin_key, descriptor));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, plugin_key, error));
+    const auto capabilities = manager.get_plugin_capabilities(plugin_key, PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities.size() == 1);
+    NetworkAgentFactory::register_python_printer_agent(plugin_key, capabilities.front()->name());
+
+    const PrinterAgentInfo* info = NetworkAgentFactory::get_printer_agent_info(BBL_PRINTER_AGENT_ID);
+    REQUIRE(info != nullptr);
+    CHECK_FALSE(info->is_plugin());
+    CHECK(info->plugin_identifier.find(plugin_key) == std::string::npos);
+
+    manager.unload_plugin(plugin_key);
+}
+
+TEST_CASE("Re-registering a printer-agent capability preserves its registration", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "ReRegisterAgent";
+    const std::string agent_id   = "re-register-agent";
+
+    ScopedDataDir data_dir_guard("printer-agent-reregister");
+    write_plugin(data_dir_guard, plugin_key,
+                 make_agent_plugin_source("Re", "Re Register", agent_id));
+
+    PluginManager& manager = PluginManager::instance();
+    install_agent_registry_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor(plugin_key, descriptor));
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, plugin_key, error));
+    const auto capabilities = manager.get_plugin_capabilities(plugin_key, PluginCapabilityType::PrinterConnection);
+    REQUIRE(capabilities.size() == 1);
+
+    NetworkAgentFactory::register_python_printer_agent(plugin_key, capabilities.front()->name());
+    REQUIRE(NetworkAgentFactory::is_printer_agent_registered(agent_id));
+    const PrinterAgentInfo* first = NetworkAgentFactory::get_printer_agent_info(agent_id);
+    REQUIRE(first != nullptr);
+    const std::string owner = first->plugin_identifier;
+
+    NetworkAgentFactory::register_python_printer_agent(plugin_key, capabilities.front()->name());
+    CHECK(NetworkAgentFactory::is_printer_agent_registered(agent_id));
+    const PrinterAgentInfo* second = NetworkAgentFactory::get_printer_agent_info(agent_id);
+    REQUIRE(second != nullptr);
+    CHECK(second->plugin_identifier == owner);
+
+    manager.unload_plugin(plugin_key);
 }
 
 TEST_CASE("Plugin manager can initialize again after shutdown", "[PluginLifecycle][Python]")

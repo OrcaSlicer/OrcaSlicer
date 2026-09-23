@@ -156,7 +156,7 @@ if (NOT _is_multi AND NOT CMAKE_BUILD_TYPE)
 endif ()
 
 function(orcaslicer_add_cmake_project projectname)
-    cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
+    cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND;SOURCE_DIR" "CMAKE_ARGS" ${ARGN})
 
     # MSVC is true for clang-cl as well, so the sub-build toolchain has to key on the
     # generator. A non-Visual-Studio superbuild passes its own generator down, and with
@@ -202,12 +202,18 @@ function(orcaslicer_add_cmake_project projectname)
       set(_build_j "-j${NPROC}")
     endif ()
 
+    set(_source_dir_arg "")
+    if (P_ARGS_SOURCE_DIR)
+        set(_source_dir_arg SOURCE_DIR ${P_ARGS_SOURCE_DIR})
+    endif ()
+
 if (NOT IS_CROSS_COMPILE OR NOT APPLE)
     ExternalProject_Add(
         dep_${projectname}
         EXCLUDE_FROM_ALL    ON
         INSTALL_DIR         ${DESTDIR}
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
+        ${_source_dir_arg}
         ${_gen}
         CMAKE_ARGS
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
@@ -240,12 +246,14 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
         # note for future devs: shared libs may actually create a size reduction
         # but orcaslicer_deps tends to get really funny regarding linking after that (notably boost)
         # so, as much as I would like to use that, it's not happening
-        ExternalProject_Add_Step(dep_${projectname} free_download_space
-                DEPENDEES download # do after download
-                COMMENT "Freeing Space: Removing source archive"
-                WORKING_DIRECTORY ${DEP_DOWNLOAD_DIR}
-                COMMAND ${CMAKE_COMMAND} -E rm -r ${projectname}
-        )
+        if (NOT P_ARGS_SOURCE_DIR)
+            ExternalProject_Add_Step(dep_${projectname} free_download_space
+                    DEPENDEES download # do after download
+                    COMMENT "Freeing Space: Removing source archive"
+                    WORKING_DIRECTORY ${DEP_DOWNLOAD_DIR}
+                    COMMAND ${CMAKE_COMMAND} -E rm -rf ${projectname}
+            )
+        endif ()
         ExternalProject_Add_Step(dep_${projectname} free_build_space
                 DEPENDEES install # do after install
                 COMMENT "Freeing Space: Removing source and build files"
@@ -259,6 +267,7 @@ else()
         EXCLUDE_FROM_ALL    ON
         INSTALL_DIR         ${DESTDIR}
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
+        ${_source_dir_arg}
         ${_gen}
         CMAKE_ARGS
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
@@ -386,10 +395,6 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
-include(FFMPEG/FFMPEG.cmake)
-include(Assimp/Assimp.cmake)
-
-
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
 # a grep across the repo shows it is used for other things
@@ -399,6 +404,12 @@ if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
     set(OPENSSL_PKG dep_OpenSSL)
 endif()
+
+include(FFMPEG/FFMPEG.cmake)
+include(Assimp/Assimp.cmake)
+
+include(DataChannel/DataChannel.cmake)
+set(DATACHANNEL_PKG dep_DataChannel)
 
 # we don't want to load a "wrong" openssl when loading curl
 # so, just don't even bother
@@ -473,6 +484,7 @@ set(_dep_list
     dep_wxInspector
     dep_FFMPEG
     dep_Assimp
+    ${DATACHANNEL_PKG}
     )
 
 if (MSVC)

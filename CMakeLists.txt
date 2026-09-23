@@ -826,6 +826,37 @@ find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Freetype REQUIRED)
 
+if (SLIC3R_GUI)
+    # LibDataChannel's installed export references its bundled dependencies,
+    # but does not install their CMake targets. Recreate those targets from
+    # the same dependency prefix before loading the LibDataChannel config.
+    if (NOT TARGET Usrsctp::usrsctp)
+        find_library(_ORCA_USRSCTP_LIBRARY NAMES usrsctp
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_USRSCTP_LIBRARY)
+            add_library(Usrsctp::usrsctp UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(Usrsctp::usrsctp PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_USRSCTP_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    if (NOT TARGET LibJuice::LibJuice)
+        find_library(_ORCA_LIBJUICE_LIBRARY NAMES juice
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_LIBJUICE_LIBRARY)
+            add_library(LibJuice::LibJuice UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(LibJuice::LibJuice PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_LIBJUICE_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    find_package(LibDataChannel CONFIG REQUIRED)
+endif()
+
 
 add_library(libcurl INTERFACE)
 target_link_libraries(libcurl INTERFACE CURL::libcurl)
@@ -1106,6 +1137,7 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
     endif ()
     file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
             ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
             ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
             ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
@@ -1118,6 +1150,7 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/WebView2Loader.dll
 
         ${_out_dir}/freetype.dll
+        ${_out_dir}/avformat-61.dll
         ${_out_dir}/avcodec-61.dll
         ${_out_dir}/swresample-5.dll
         ${_out_dir}/swscale-8.dll
@@ -1141,7 +1174,10 @@ function(orcaslicer_copy_sos target config postfix output_sos)
         set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
     endif ()
 
-    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
             ${CMAKE_PREFIX_PATH}/lib/libavutil.so
@@ -1156,6 +1192,9 @@ function(orcaslicer_copy_sos target config postfix output_sos)
          DESTINATION ${_out_dir})
 
     set(${output_sos}
+        ${_out_dir}/libavformat.so
+        ${_out_dir}/libavformat.so.61
+        ${_out_dir}/libavformat.so.61.1.100
         ${_out_dir}/libavcodec.so
         ${_out_dir}/libavcodec.so.61
         ${_out_dir}/libavcodec.so.61.3.100
@@ -1285,6 +1324,8 @@ endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavformat.so.61
+    ${LIBDIR_BIN}/libavformat.so.61.1.100
     ${LIBDIR_BIN}/libavcodec.so.61
     ${LIBDIR_BIN}/libavcodec.so.61.3.100
     ${LIBDIR_BIN}/libavutil.so.59

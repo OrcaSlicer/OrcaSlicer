@@ -40,7 +40,7 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
     return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
-bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
+bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::string error;
 

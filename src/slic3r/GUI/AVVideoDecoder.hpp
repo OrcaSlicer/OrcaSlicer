@@ -23,8 +23,10 @@ public:
 
 public:
     int  open(Bambu_StreamInfo const &info);
+    int  open(AVCodecParameters const &parameters);
 
     int  decode(Bambu_Sample const &sample);
+    int  decode(AVPacket const &packet);
 
     int  flush();
 
@@ -33,6 +35,14 @@ public:
     bool toWxImage(wxImage &image, wxSize const &size);
 
     bool toWxBitmap(wxBitmap &bitmap, wxSize const & size);
+
+    // Native size of the most recently decoded frame, or an unspecified size if
+    // nothing has decoded yet. Lets a caller learn the video dimensions when the
+    // container/probe could not report them up front.
+    wxSize decoded_frame_size() const
+    {
+        return got_frame_ && frame_ ? wxSize{frame_->width, frame_->height} : wxSize{};
+    }
 
 private:
     AVCodecContext *codec_ctx_ = nullptr;

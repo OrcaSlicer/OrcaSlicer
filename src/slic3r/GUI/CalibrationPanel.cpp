@@ -328,7 +328,7 @@ void SelectMObjectPopup::update_user_devices()
     }
 
     m_bind_machine_list.clear();
-    m_bind_machine_list = dev->get_my_machine_list();
+    m_bind_machine_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
     //sort list
     std::vector<std::pair<std::string, MachineObject*>> user_machine_list;

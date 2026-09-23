@@ -112,6 +112,7 @@ enum PrintDialogStatus : unsigned int {
     // Orca: a nozzle diameter that differs from the one the printer remembers is a warning,
     // not an error, so non-standard nozzles can still be printed with.
     PrintStatusNozzleDiameterMismatch,
+    PrintStatusOptionalPrinterModel,
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament
@@ -170,7 +171,7 @@ public:
     void add_with_checkbox(PrintDialogStatus state, wxString msg, wxString checkbox_label, bool checked, std::function<void(bool)> checkbox_callback);
     static ::std::string get_print_status_info(PrintDialogStatus status);
 
-	wxString get_pre_state_msg(PrintDialogStatus status);
+	static wxString get_pre_state_msg(PrintDialogStatus status);
     static bool is_error(PrintDialogStatus status) { return (PrintStatusErrorBegin < status) && (PrintStatusErrorEnd > status); };
     static bool is_error_printer(PrintDialogStatus status) { return (PrintStatusPrinterErrorBegin < status) && (PrintStatusPrinterErrorEnd > status); };
     static bool is_error_filament(PrintDialogStatus status) { return (PrintStatusFilamentErrorBegin < status) && (PrintStatusFilamentErrorEnd > status); };

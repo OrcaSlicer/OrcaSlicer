@@ -4385,7 +4385,7 @@ void MainFrame::load_printer_url()
         if (auto *device_manager = wxGetApp().getDeviceManager()) {
             auto *machine = device_manager->get_selected_machine();
             if (!machine) {
-                auto machines = device_manager->get_my_machine_list();
+                auto machines = device_manager->get_my_machine_list(device_manager->get_current_printer_agent_id());
                 if (machines.size() == 1)
                     machine = machines.begin()->second;
             }

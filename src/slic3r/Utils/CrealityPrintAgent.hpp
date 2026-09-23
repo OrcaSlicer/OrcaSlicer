@@ -41,7 +41,7 @@ public:
     static AgentInfo get_agent_info_static();
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
-    bool fetch_filament_info(std::string dev_id) override;
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
     // Parse the boxsInfo JSON returned by CrealityPrint::query_boxes_info() into
     // a flat list of loaded slots, plus the count of CFS boxes the printer reports.

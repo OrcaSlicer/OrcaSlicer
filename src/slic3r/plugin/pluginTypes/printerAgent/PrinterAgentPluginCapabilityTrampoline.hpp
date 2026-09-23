@@ -5,7 +5,10 @@
 #include "../../PyPluginTrampoline.hpp"
 
 #include "IPrinterAgent.hpp"
+#include "pybind11/pybind11.h"
+#include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <string>
 
 #include <type_traits>
 
@@ -19,6 +22,12 @@
 #define ORCA_PY_AGENT_OVERRIDE(ret, name, ...) \
     try { \
         ORCA_PY_OVERRIDE_AUDITED([] {}, PYBIND11_OVERRIDE_PURE, ret, PrinterAgentPluginCapability, name, ##__VA_ARGS__); \
+    } ORCA_PY_AGENT_CATCH(name) \
+    return printer_agent_failure<ret>()
+
+#define ORCA_PY_AGENT_OVERRIDE_DEFAULT(ret, name, ...) \
+    try { \
+        ORCA_PY_OVERRIDE_AUDITED([] {}, PYBIND11_OVERRIDE, ret, PrinterAgentPluginCapability, name, ##__VA_ARGS__); \
     } ORCA_PY_AGENT_CATCH(name) \
     return printer_agent_failure<ret>()
 
@@ -42,9 +51,9 @@ public:
         ORCA_PY_AGENT_OVERRIDE(AgentInfo, get_agent_info);
     }
 
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override
+    int connect_printer(const PrinterConnectionParams& params) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, connect_printer, dev_id, dev_ip, username, password, use_ssl);
+        ORCA_PY_AGENT_OVERRIDE(int, connect_printer, params);
     }
 
     int disconnect_printer() override
@@ -60,6 +69,61 @@ public:
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override
     {
         ORCA_PY_AGENT_OVERRIDE(int, send_message_to_printer, dev_id, json_str, qos, flag);
+    }
+
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id,int slot_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_refresh_rfid, dev_id, ams_id, slot_id, sequence_id, lan_mode);
+    }
+
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_calibrate, dev_id, ams_id, sequence_id, lan_mode);
+    }
+
+    int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_select_tray, dev_id, tray_id, sequence_id, lan_mode);
+    }
+
+    int command_start_camera(std::string dev_id) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_start_camera, dev_id);
+    }
+
+    int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_xyz_abs, dev_id, sequence_id, lan_mode);
+    }
+
+    int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_auto_leveling, dev_id, sequence_id, lan_mode);
+    }
+
+    int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing,
+                        int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_go_home, dev_id, is_printing, supports_mqtt_homing, sequence_id, lan_mode);
+    }
+
+    int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl,
+                        int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_set_bed, dev_id, temp, supports_mqtt_bed_ctrl, sequence_id, lan_mode);
+    }
+
+    int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_set_nozzle, dev_id, temp, sequence_id, lan_mode);
+    }
+
+    int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val,
+                             int speed, bool is_core_xy, bool supports_mqtt_axis_control,
+                             int sequence_id, bool lan_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_axis_control, dev_id, axis, unit, input_val, speed,
+                                       is_core_xy, supports_mqtt_axis_control, sequence_id, lan_mode);
     }
 
     bool start_discovery(bool start, bool sending) override
@@ -95,12 +159,22 @@ public:
 
     FilamentSyncMode get_filament_sync_mode() const override
     {
-        ORCA_PY_AGENT_OVERRIDE(FilamentSyncMode, get_filament_sync_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(FilamentSyncMode, get_filament_sync_mode);
     }
 
-    bool fetch_filament_info(std::string dev_id) override
+    CameraStreamMode get_camera_stream_mode() const override
     {
-        ORCA_PY_AGENT_OVERRIDE(bool, fetch_filament_info, dev_id);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(CameraStreamMode, get_camera_stream_mode);
+    }
+
+    std::string get_camera_url() const override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(std::string, get_camera_url);
+    }
+
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(bool, fetch_filament_info, dev_id, sync_mode);
     }
 
     int check_cert() override
@@ -110,7 +184,7 @@ public:
 
     void install_device_cert(std::string dev_id, bool lan_only) override
     {
-        ORCA_PY_AGENT_OVERRIDE(void, install_device_cert, dev_id, lan_only);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(void, install_device_cert, dev_id, lan_only);
     }
 
     int ping_bind(std::string ping_code) override
@@ -145,7 +219,7 @@ public:
 
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, get_hms_snapshot, dev_id, file_name, callback);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, get_hms_snapshot, dev_id, file_name, callback);
     }
 
     int set_server_callback(OnServerErrFn fn) override
@@ -196,6 +270,8 @@ public:
     // request_bind_ticket returns its ticket through a std::string* out-param, which pybind11
     // cannot marshal back through a plain override. We dispatch manually: the Python plugin
     // returns a (result, ticket) tuple, which we unpack into the int result and the out-param.
+    // Not required to be implemented, so a missing override answers with the same failure value
+    // as the other printer-agent operations. Leave the out-param untouched on failure.
     int request_bind_ticket(std::string* ticket) override
     {
         try {
@@ -207,7 +283,7 @@ public:
             pybind11::function override =
                 pybind11::get_override(static_cast<const PrinterAgentPluginCapability*>(this), "request_bind_ticket");
             if (!override)
-                pybind11::pybind11_fail("Tried to call pure virtual function \"PrinterAgentPluginCapability::request_bind_ticket\"");
+                return printer_agent_failure<int>();
             try {
                 pybind11::tuple result = override().cast<pybind11::tuple>();
                 if (ticket)

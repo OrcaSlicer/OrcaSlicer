@@ -5,6 +5,7 @@
 #include "ICloudServiceAgent.hpp"
 #include <string>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -28,7 +29,13 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode) override;
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
+    int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
+    int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                              bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode) override;
+    std::string default_lan_username() const override { return "bblp"; }
+    int connect_printer(const PrinterConnectionParams& params) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
 
@@ -99,7 +106,7 @@ public:
     static std::string from_orca_payload(std::string json_text);
 
 private:
-    std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
+    int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);
 };
 
 } // namespace Slic3r
