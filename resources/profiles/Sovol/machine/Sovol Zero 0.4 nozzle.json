@@ -2,7 +2,6 @@
 	"type": "machine",
 	"setting_id": "QclEa2nmpBiii6Y0",
 	"name": "Sovol Zero 0.4 nozzle",
-	"renamed_from": "Sovol ZERO 0.4 nozzle",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_machine_common",

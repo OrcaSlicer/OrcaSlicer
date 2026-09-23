@@ -3,7 +3,7 @@
 	"filament_id": "OFesA6rF",
 	"setting_id": "Se2yKerHRStYtWf5",
 	"name": "Generic PLA Silk @Sovol Zero",
-	"renamed_from": "Sovol Zero Silk PLA - Brass;Sovol Zero PLA Silk;Sovol ZERO Silk PLA - Brass",
+	"renamed_from": "Sovol Zero PLA Silk",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",

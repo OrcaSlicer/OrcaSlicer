@@ -3,7 +3,7 @@
 	"filament_id": "OFDSrzZ8",
 	"setting_id": "NNDerIjh7qtuh1I3",
 	"name": "Generic PLA @Sovol Zero",
-	"renamed_from": "Sovol Zero PLA - Brass;Sovol Zero PLA Basic;Sovol ZERO PLA - Brass",
+	"renamed_from": "Sovol Zero PLA Basic",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",

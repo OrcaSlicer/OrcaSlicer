@@ -3,7 +3,7 @@
 	"filament_id": "OFDSrzZ8",
 	"setting_id": "nZgETe4CTpicEjQX",
 	"name": "Generic PLA @Sovol Zero Hardened Steel nozzle",
-	"renamed_from": "Sovol Zero PLA - Hardened Steel;Sovol ZERO PLA - Hardened Steel;Sovol Zero PLA Basic HS Nozzle;Generic PLA HS @Sovol Zero",
+	"renamed_from": "Sovol Zero PLA Basic HS Nozzle",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",

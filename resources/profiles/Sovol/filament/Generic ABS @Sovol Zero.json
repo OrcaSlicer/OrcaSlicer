@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Sovol Zero",
-	"renamed_from": "Sovol Zero ABS;Sovol ZERO ABS",
+	"renamed_from": "Sovol Zero ABS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "g6sSyyIFYJUzlXsp",

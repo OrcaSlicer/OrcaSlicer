@@ -2,7 +2,6 @@
 	"type": "process",
 	"setting_id": "ShJTVnJ492No1j2j",
 	"name": "0.20mm Standard @Sovol Zero 0.4 nozzle",
-	"renamed_from": "0.20mm Standard @Sovol ZERO 0.4 nozzle",
 	"from": "system",
 	"inherits": "fdm_process_zero",
 	"instantiation": "true",

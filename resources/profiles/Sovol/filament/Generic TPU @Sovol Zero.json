@@ -3,7 +3,7 @@
 	"filament_id": "OFgbpcy9",
 	"setting_id": "MlY6WQ41FE8zDPSV",
 	"name": "Generic TPU @Sovol Zero",
-	"renamed_from": "Sovol Zero TPU;Sovol ZERO TPU",
+	"renamed_from": "Sovol Zero TPU",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",

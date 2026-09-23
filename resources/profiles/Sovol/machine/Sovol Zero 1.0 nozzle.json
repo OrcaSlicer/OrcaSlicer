@@ -114,6 +114,5 @@
 	"machine_end_gcode": "END_PRINT\n",
 	"default_filament_profile": [
 		"Generic PLA @Sovol Zero"
-	],
-	"renamed_from": "Sovol ZERO 1.0 nozzle"
+	]
 }

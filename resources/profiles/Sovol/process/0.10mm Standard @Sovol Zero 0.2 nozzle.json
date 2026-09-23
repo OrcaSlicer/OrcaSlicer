@@ -1,7 +1,6 @@
 {
 	"type": "process",
 	"name": "0.10mm Standard @Sovol Zero 0.2 nozzle",
-	"renamed_from": "0.10mm Standard @Sovol ZERO 0.2 nozzle",
 	"inherits": "fdm_process_zero",
 	"from": "system",
 	"setting_id": "Gql3487jsaTXyuYZ",

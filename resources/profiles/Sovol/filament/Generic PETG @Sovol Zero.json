@@ -3,7 +3,7 @@
 	"filament_id": "OFYPdQJh",
 	"setting_id": "i4OW2eAtXOKdtVNj",
 	"name": "Generic PETG @Sovol Zero",
-	"renamed_from": "Sovol Zero PETG - Brass;Sovol Zero PETG;Sovol ZERO PETG - Brass",
+	"renamed_from": "Sovol Zero PETG",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
