@@ -2890,6 +2890,12 @@ void texture_displacement_patch_frame(const indexed_triangle_set &patch, const s
         }
     average_normal = (normal_sum.norm() > 1e-8f) ? Vec3f(normal_sum.normalized()) : Vec3f::UnitZ();
     center         = (count > 0) ? Vec3f(centroid_sum / float(count)) : Vec3f::Zero();
+    if (count == 0) {
+        // Nothing to measure: an upright cylinder about the origin, rather than the axis least aligned
+        // with a normal that is itself only a fallback.
+        axis = Vec3f::UnitZ();
+        return;
+    }
 
     // The world axis least aligned with the average normal - perpendicular to the outward radial
     // normal, as a cylinder's own axis would be.
