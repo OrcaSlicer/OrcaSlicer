@@ -47,7 +47,9 @@ enum class Shortcut : uint8_t {
     // Display
     ShowLabels, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, SpeedDial, ReloadDevicePage, KeyboardShortcuts,
+    Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts,
+    // Speed Dial
+    SpeedDial,
     Count
 };
 
@@ -66,7 +68,7 @@ struct ShortcutInfo
 
 // Headings of the shortcuts dialog, in listing order.
 enum class ShortcutSection : uint8_t {
-    Project, SlicingAndPrinting, Selection, Editing, Objects, Placement, Gizmos, Sliders, PaintingTools, Camera, Display, Application,
+    Project, SlicingAndPrinting, Selection, Editing, Objects, Placement, Gizmos, Sliders, PaintingTools, Camera, Display, Application, SpeedDial,
     Count
 };
 
