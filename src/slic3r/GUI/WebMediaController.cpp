@@ -4,13 +4,23 @@
 
 namespace Slic3r { namespace GUI {
 
-WebMediaController::WebMediaController(wxWebView* webview) : m_webview(webview)
+namespace {
+
+void initialize_webview(wxWebView* webview)
 {
-    if (!m_webview)
+    if (!webview)
         return;
 
-    m_webview->SetBackgroundColour(*wxBLACK);
-    m_webview->SetPage("<html><head><style>html,body{margin:0;height:100%;background:#000;}</style></head><body></body></html>", "");
+    webview->SetBackgroundColour(*wxBLACK);
+    webview->SetPage("<html><head><style>html,body{margin:0;height:100%;background:#000;}</style></head><body></body></html>", "");
+}
+
+} // namespace
+
+WebMediaController::WebMediaController(wxWebView* webview)
+    : m_webview(webview)
+{
+    initialize_webview(m_webview);
 }
 
 void WebMediaController::Load(wxURI url)
@@ -71,6 +81,8 @@ void WebMediaController::Stop()
     if (m_webview) {
         m_webview->RunScript("if(typeof stopCameraRefresh==='function') stopCameraRefresh();");
         m_webview->Stop();
+        m_webview->SetPage("", "about:blank");
+        m_webview->ClearHistory();
     }
     m_url.clear();
 }

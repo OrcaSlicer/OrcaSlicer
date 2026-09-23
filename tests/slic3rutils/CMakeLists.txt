@@ -6,6 +6,8 @@ add_executable(${_TEST_NAME}_tests
     test_dev_mapping.cpp
     test_filament_bitmap_utils.cpp
     test_device_progress.cpp
+    test_device_manager_integration.cpp
+    test_web_media_controller.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp

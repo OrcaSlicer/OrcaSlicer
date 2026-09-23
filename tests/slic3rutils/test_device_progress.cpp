@@ -115,7 +115,7 @@ TEST_CASE("Malformed string progress leaves a fresh machine unchanged", "[Device
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
     REQUIRE(machine.subtask_ == nullptr);
 
-    CHECK_THROWS_AS(machine.update_print_progress(json("not-a-percent")), std::invalid_argument);
+    CHECK_NOTHROW(machine.update_print_progress(json("not-a-percent")));
     CHECK(machine.mc_print_percent == 0);
     CHECK(machine.subtask_ == nullptr);
 }

@@ -6,6 +6,7 @@
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Print.hpp"
+#include "PrePrintChecker.hpp"
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevConfigUtil.h"
@@ -1639,19 +1640,6 @@ void CalibrationPresetPage::update_combobox_filaments(MachineObject* obj)
     select_default_compatible_filament();
 }
 
-bool CalibrationPresetPage::is_blocking_printing()
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-
-    MachineObject* obj_ = dev->get_selected_machine();
-    if (obj_ == nullptr) return true;
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    const auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-    return !DevPrinterConfigUtil::is_printer_model_compatible(source_model, *obj_);
-}
-
 bool CalibrationPresetPage::is_nozzle_info_synced() const
 {
     if (!curr_obj || !curr_obj->is_info_ready())
@@ -1733,11 +1721,13 @@ void CalibrationPresetPage::update_show_status()
         }
     }
 
-    //if (is_blocking_printing()) {
-    //    show_status(CaliPresetPageStatus::CaliPresetStatusUnsupportedPrinter);
-    //    return;
-    //}
-    //else
+    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
+        has_optional_printer_model = has_optional_printer_model ||
+            DevPrinterConfigUtil::is_optional_printer_model_id(
+                preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
+    }
+
     if (obj_->is_connecting() || !obj_->is_connected()) {
         show_status(CaliPresetPageStatus::CaliPresetStatusInConnecting);
         return;
@@ -1789,7 +1779,9 @@ void CalibrationPresetPage::update_show_status()
         return;
     }
 
-    show_status(CaliPresetPageStatus::CaliPresetStatusNormal);
+    show_status(has_optional_printer_model ?
+        CaliPresetPageStatus::CaliPresetStatusOptionalPrinterModel :
+        CaliPresetPageStatus::CaliPresetStatusNormal);
 }
 
 
@@ -1842,6 +1834,10 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(true);
         Layout();
         Fit();
+    }
+    else if (status == CaliPresetPageStatus::CaliPresetStatusOptionalPrinterModel) {
+        update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusOptionalPrinterModel), true);
+        Enable_Send_Button(true);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNoUserLogin) {
         wxString msg_text = _L("No login account, only printers in LAN mode are displayed.");
