@@ -4136,16 +4136,8 @@ void GUI_App::select_machine(const std::string& agent_id)
         monitor->select_machine(dev_id);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
     } else if (m_device_manager->set_selected_machine(dev_id)) {
-        // Without the Device tab, the selection's sidebar side is done here; the tab's own
-        // state waits for the tab.
-        if (MachineObject* obj = m_device_manager->get_selected_machine()) {
-            obj->last_cali_version = -1;
-            obj->reset_pa_cali_history_result();
-            obj->reset_pa_cali_result();
-            Sidebar& sidebar = this->sidebar();
-            sidebar.update_sync_status(obj);
-            sidebar.set_need_auto_sync_after_connect_printer(sidebar.need_auto_sync_extruder_list_after_connect_priner(obj));
-        }
+        // The Device tab's own state is set when the tab is built.
+        MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": set_selected_machine dev_id=" << dev_id;
     }
 }

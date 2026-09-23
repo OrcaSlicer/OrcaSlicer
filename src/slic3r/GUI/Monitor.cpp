@@ -294,17 +294,21 @@ void MonitorPanel::on_select_printer(wxCommandEvent& event)
     set_default();
     update_all();
 
-    MachineObject *obj_ = dev->get_selected_machine();
-    if (obj_) {
-        obj_->last_cali_version = -1;
-        obj_->reset_pa_cali_history_result();
-        obj_->reset_pa_cali_result();
-        Sidebar &sidebar = GUI::wxGetApp().sidebar();
-        sidebar.update_sync_status(obj_);
-        sidebar.set_need_auto_sync_after_connect_printer(sidebar.need_auto_sync_extruder_list_after_connect_priner(obj_));
-    }
+    on_machine_selected(dev->get_selected_machine());
 
     Layout();
+}
+
+void MonitorPanel::on_machine_selected(MachineObject* obj)
+{
+    if (obj == nullptr)
+        return;
+    obj->last_cali_version = -1;
+    obj->reset_pa_cali_history_result();
+    obj->reset_pa_cali_result();
+    Sidebar& sidebar = GUI::wxGetApp().sidebar();
+    sidebar.update_sync_status(obj);
+    sidebar.set_need_auto_sync_after_connect_printer(sidebar.need_auto_sync_extruder_list_after_connect_priner(obj));
 }
 
 void MonitorPanel::on_printer_clicked(wxMouseEvent &event)

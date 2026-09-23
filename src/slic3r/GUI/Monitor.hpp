@@ -125,6 +125,8 @@ public:
 
     StatusPanel* get_status_panel() {return m_status_info_panel;};
 	void select_machine(std::string machine_sn);
+    // Resets the selected printer's calibration results and syncs the sidebar, without the Device tab.
+    static void on_machine_selected(MachineObject* obj);
     void on_timer(wxTimerEvent& event);
     void on_select_printer(wxCommandEvent& event);
     void on_printer_clicked(wxMouseEvent &event);
