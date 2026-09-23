@@ -29,10 +29,7 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
-    static std::string ams_refresh_rfid_gcode(const std::string& tray_id);
-    static std::string ams_calibrate_gcode(int ams_id);
-    static std::string ams_select_tray_gcode(const std::string& tray_id);
-    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode) override;
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
     int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,

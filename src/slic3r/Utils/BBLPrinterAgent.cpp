@@ -4,6 +4,8 @@
 #include "NetworkAgentFactory.hpp"
 #include "libslic3r/Utils.hpp"
 #include "NetworkAgent.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -148,36 +150,27 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // Communication
 // ============================================================================
 
-std::string BBLPrinterAgent::ams_refresh_rfid_gcode(const std::string& tray_id)
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
-    return (boost::format("M620 R%1% \n") % tray_id).str();
-}
-
-std::string BBLPrinterAgent::ams_calibrate_gcode(int ams_id)
-{
-    return (boost::format("M620 C%1% \n") % ams_id).str();
-}
-
-std::string BBLPrinterAgent::ams_select_tray_gcode(const std::string& tray_id)
-{
-    return (boost::format("M620 P%1% \n") % tray_id).str();
-}
-
-int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
-{
-    const std::string gcode = ams_refresh_rfid_gcode(tray_id);
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
     nlohmann::json j;
-    j["print"]["command"] = "gcode_line";
-    j["print"]["param"] = gcode;
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    if (ams_id == -1) {
+        const std::string gcode   = (boost::format("M620 R%1% \n") % slot_id).str();
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = gcode;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish(dev_id, j, lan_mode);
+    }
+
+    j["print"]["command"]     = "ams_get_rfid";
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["ams_id"]      = ams_id;
+    j["print"]["slot_id"]     = slot_id;
     return publish(dev_id, j, lan_mode);
 }
 
 int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = ams_calibrate_gcode(ams_id);
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    const std::string gcode = (boost::format("M620 C%1% \n") % ams_id).str();
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;
@@ -187,8 +180,7 @@ int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int s
 
 int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = ams_select_tray_gcode(tray_id);
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    const std::string gcode = (boost::format("M620 P%1% \n") % tray_id).str();
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;
@@ -278,8 +270,18 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_connect_printer();
+#if !BBL_RELEASE_TO_PUBLIC
+    const bool use_ssl_for_mqtt = GUI::wxGetApp().app_config &&
+                                  GUI::wxGetApp().app_config->get_bool("enable_ssl_for_mqtt");
+#else
+    bool use_ssl_for_mqtt = true;
+    if (auto* dev_manager = GUI::wxGetApp().getDeviceManager()) {
+        if (auto* machine = dev_manager->get_my_machine(params.dev_id))
+            use_ssl_for_mqtt = machine->local_use_ssl;
+    }
+#endif
     if (func && agent) {
-        return func(agent, params.dev_id, params.host, params.username, params.password, params.use_ssl);
+        return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
     }
     return -1;
 }

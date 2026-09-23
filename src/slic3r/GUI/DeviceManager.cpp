@@ -1774,20 +1774,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
     return this->publish_json(j);
 }
 
-int MachineObject::command_ams_refresh_rfid(std::string tray_id)
+int MachineObject::command_ams_refresh_rfid(int ams_id, int slot_id)
 {
     if (!m_agent) return -1;
-    return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
-}
-
-int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
-{
-    json j;
-    j["print"]["command"]       = "ams_get_rfid";
-    j["print"]["sequence_id"]   = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["ams_id"]        = ams_id;
-    j["print"]["slot_id"]       = slot_id;
-    return this->publish_json(j);
+    return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), ams_id, slot_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_start_camera()
@@ -2629,14 +2619,19 @@ void MachineObject::update_print_progress(const json& value)
         curr_task->task_progress = mc_print_percent;
 }
 
-int MachineObject::connect(bool use_openssl)
+int MachineObject::connect()
 {
     if (get_dev_ip().empty()) return -1;
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
     std::string password = get_access_code();
 
     std::string port;
-    std::string host = Http::get_host_from_url(get_dev_ip(), &port);
+    std::string input = get_dev_ip();
+
+    const bool use_ssl = input.rfind("https", 0) == 0;
+
+    // This strips out the http/https prefix
+    std::string host = Http::get_host_from_url(input, &port);
     std::string ca_file;
 
     if (GUI::wxGetApp().preset_bundle) {
@@ -2649,6 +2644,7 @@ int MachineObject::connect(bool use_openssl)
     if (host.empty())
         host = get_dev_ip();
 
+
     if (m_agent) {
         try {
             PrinterConnectionParams params{
@@ -2657,7 +2653,7 @@ int MachineObject::connect(bool use_openssl)
                 port,
                 username,
                 password,
-                use_openssl,
+                use_ssl,
                 ca_file
             };
             return m_agent->connect_printer(params);

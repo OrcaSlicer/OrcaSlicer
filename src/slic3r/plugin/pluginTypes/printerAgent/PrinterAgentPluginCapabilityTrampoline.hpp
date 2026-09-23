@@ -71,9 +71,9 @@ public:
         ORCA_PY_AGENT_OVERRIDE(int, send_message_to_printer, dev_id, json_str, qos, flag);
     }
 
-    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id,int slot_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_refresh_rfid, dev_id, tray_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_refresh_rfid, dev_id, ams_id, slot_id, sequence_id, lan_mode);
     }
 
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override

@@ -1866,6 +1866,11 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
 
     if (wxGetApp().preset_bundle) {
         auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        std::string port;
+        Http::get_host_from_url(str_ip, &port);
+        config.opt_string("print_host") = str_ip;
+        if (!port.empty())
+            config.opt_string("printhost_port") = port;
         if (Http::ca_file_supported())
             config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
     }

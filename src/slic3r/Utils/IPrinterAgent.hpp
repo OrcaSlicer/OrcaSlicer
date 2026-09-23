@@ -34,13 +34,14 @@ struct AgentInfo {
     std::string description; ///< Brief description of the agent's capabilities, e.g. "Orca printer agent"
 };
 
-struct PrinterConnectionParams {
+struct PrinterConnectionParams
+{
     std::string dev_id;
-    std::string host;
-    std::string port;
+    std::string host; // host address, usually the IP address without the http/https protocol
+    std::string port; // optional
     std::string username;
     std::string password;
-    bool        use_ssl = false;
+    bool use_ssl = false; // indicates if http or https
     std::string ca_file;
 };
 
@@ -111,7 +112,7 @@ public:
     // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
     // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
     // publish funnel turns into a dialog.
-    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    virtual int command_ams_refresh_rfid(std::string, int, int, int, bool)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
     virtual int command_ams_calibrate(std::string, int, int, bool)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
