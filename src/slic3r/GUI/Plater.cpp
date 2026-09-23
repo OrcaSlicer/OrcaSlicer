@@ -7022,6 +7022,8 @@ struct Plater::priv
 
     void undo();
     void redo();
+    // True, and tells the user, while a background job is working on the model - see the definition.
+    bool undo_redo_blocked_by_job();
     void undo_redo_to(size_t time_to_load);
 
     // BBS: backup
@@ -14546,8 +14548,25 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
     BOOST_LOG_TRIVIAL(info) << "Undo / Redo snapshot taken: " << snapshot_name << ", Undo / Redo stack memory: " << Slic3r::format_memsize_MB(this->undo_redo_stack().memsize()) << log_memory_info();
 }
 
+// A background job holds the model it is working on: the texture displacement bake, for one, hands its
+// result to the volume when it finishes, and it was queued against the geometry as it was at the time.
+// Undoing while it runs restores an older state under it - a different transform, a different mesh -
+// and the result then lands on geometry it was never computed for. Undo and redo therefore wait for
+// the job, and say so rather than doing nothing.
+bool Plater::priv::undo_redo_blocked_by_job()
+{
+    if (m_worker.is_idle())
+        return false;
+    notification_manager->push_notification(NotificationType::CustomNotification,
+                                            NotificationManager::NotificationLevel::RegularNotificationLevel,
+                                            _u8L("Cannot undo or redo while an operation is running. Stop it first."));
+    return true;
+}
+
 void Plater::priv::undo()
 {
+    if (this->undo_redo_blocked_by_job())
+        return;
     const std::vector<UndoRedo::Snapshot> &snapshots = this->undo_redo_stack().snapshots();
     auto it_current = std::lower_bound(snapshots.begin(), snapshots.end(), UndoRedo::Snapshot(this->undo_redo_stack().active_snapshot_time()));
     // BBS: undo-redo until modify record
@@ -14565,6 +14584,8 @@ void Plater::priv::undo()
 
 void Plater::priv::redo()
 {
+    if (this->undo_redo_blocked_by_job())
+        return;
     const std::vector<UndoRedo::Snapshot> &snapshots = this->undo_redo_stack().snapshots();
     auto it_current = std::lower_bound(snapshots.begin(), snapshots.end(), UndoRedo::Snapshot(this->undo_redo_stack().active_snapshot_time()));
     // BBS: undo-redo until modify record
@@ -22382,8 +22403,9 @@ bool Plater::can_copy_to_clipboard() const
     return true;
 }
 
-bool Plater::can_undo() const { return IsShown() && p->is_view3D_shown() && p->undo_redo_stack().has_undo_snapshot(); }
-bool Plater::can_redo() const { return IsShown() && p->is_view3D_shown() && p->undo_redo_stack().has_redo_snapshot(); }
+// The job check keeps the buttons in step with priv::undo()/redo(), which refuse while one runs.
+bool Plater::can_undo() const { return IsShown() && p->is_view3D_shown() && p->m_worker.is_idle() && p->undo_redo_stack().has_undo_snapshot(); }
+bool Plater::can_redo() const { return IsShown() && p->is_view3D_shown() && p->m_worker.is_idle() && p->undo_redo_stack().has_redo_snapshot(); }
 bool Plater::can_reload_from_disk() const { return p->can_reload_from_disk(); }
 //BBS
 bool Plater::can_fillcolor() const { return p->can_fillcolor(); }
