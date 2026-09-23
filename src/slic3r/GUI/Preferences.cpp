@@ -1932,6 +1932,15 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_phong);
 
+    auto item_realistic_preview = create_item_checkbox(
+        _L("Enable in Preview"),
+        _L("Also applies realistic view to the Preview canvas, not just Prepare.\n"
+           "Preview draws the full toolpath geometry, so shadows and SSAO cost considerably"
+           " more there than on a plain model."),
+        SETTING_OPENGL_REALISTIC_PREVIEW
+    );
+    g_sizer->Add(item_realistic_preview);
+
     auto item_realistic_ssao = create_item_checkbox(
         _L("SSAO ambient occlusion"),
         _L("Applies SSAO in realistic view."),
@@ -2018,6 +2027,23 @@ void PreferencesDialog::create_items()
 
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
+
+    // ORCA: view type the preview opens with
+    std::vector<wxString>    PreviewViewTypeLabels;
+    std::vector<std::string> PreviewViewTypeValues;
+    for (const auto& [value, label] : GCodeViewer::default_view_type_choices()) {
+        PreviewViewTypeValues.push_back(value);
+        PreviewViewTypeLabels.push_back(from_u8(label));
+    }
+    auto item_preview_view_type = create_item_combobox(
+        _L("Default view type"),
+        _L("The color scheme the sliced preview opens with.\n"
+           "Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+           "Last used: the view type you selected last.\n"
+           "Any other value always opens that view type.\n"
+           "You can still switch the view type in the preview afterwards."),
+        "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
+    g_sizer->Add(item_preview_view_type);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),

@@ -43,6 +43,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 
 #include <slic3r/GUI/GUI_Utils.hpp>
 
@@ -2199,8 +2200,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     // Recorded by PartPlate::render_icons() below, when it runs.
     wxGetApp().plater()->get_partplate_list().clear_hover_tooltip();
     glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
-    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
+    // Invalidate the shadow map each frame; the View3D and Preview paths below rebuild it. This
+    // keeps the Assemble canvas from sampling a stale map with an outdated light matrix.
     m_shadow_map_valid = false;
     _render_background();
 
@@ -2251,6 +2252,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         _render_selection();
         _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
         _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
+        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode(cnv_size.get_width(), cnv_size.get_height());
     }
@@ -5026,8 +5029,16 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
-    if (object_moved)
+    if (object_moved) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "moved";
+        if (done.size() == 1)
+            ctx.name = m_model->objects[done.begin()->first]->name;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+
         post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_MOVED));
+    }
 
     // BBS: support wipe-tower for multi-plates
     for (int plate_id = 0; plate_id < wipe_tower_origins.size(); plate_id++) {
@@ -5148,8 +5159,16 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
-    if (!done.empty())
+    if (!done.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "rotated";
+        if (done.size() == 1)
+            ctx.name = m_model->objects[done.begin()->first]->name;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+
         post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_ROTATED));
+    }
 
     m_dirty = true;
 }
@@ -5240,8 +5259,16 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
     //BBS: notify object info update
     wxGetApp().plater()->show_object_info();
 
-    if (!done.empty())
+    if (!done.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "scaled";
+        if (done.size() == 1)
+            ctx.name = m_model->objects[done.begin()->first]->name;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+
         post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_SCALED));
+    }
 
     m_dirty = true;
 }
@@ -7644,11 +7671,20 @@ bool GLCanvas3D::_is_fxaa_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_FXAA_ENABLED);
 }
 
+bool GLCanvas3D::_is_realistic_view_enabled() const
+{
+    const AppConfig* cfg = wxGetApp().app_config;
+    if (cfg == nullptr || !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE))
+        return false;
+    // Prepare and Assemble follow the umbrella toggle alone; Preview needs its own opt-in.
+    return m_canvas_type != ECanvasType::CanvasPreview || cfg->get_bool(SETTING_OPENGL_REALISTIC_PREVIEW);
+}
+
 bool GLCanvas3D::_is_ssao_enabled() const
 {
     if (wxGetApp().app_config == nullptr)
         return false;
-    return wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
+    return _is_realistic_view_enabled() &&
            wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
 }
 
@@ -7803,86 +7839,8 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
 
     const Camera& camera = wxGetApp().plater()->get_camera();
 
-    GLint prev_stencil_mask = 0xFF;
-    glsafe(::glGetIntegerv(GL_STENCIL_WRITEMASK, &prev_stencil_mask));
-    GLboolean prev_stencil_test = GL_FALSE;
-    glsafe(::glGetBooleanv(GL_STENCIL_TEST, &prev_stencil_test));
-    GLboolean prev_depth_mask = GL_TRUE;
-    glsafe(::glGetBooleanv(GL_DEPTH_WRITEMASK, &prev_depth_mask));
-    GLint prev_depth_func = GL_LESS;
-    glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &prev_depth_func));
-
     glsafe(::glDisable(GL_DEPTH_TEST));
     glsafe(::glDisable(GL_BLEND));
-
-    // Build stencil mask for bed/plate and apply SSAO only outside this mask.
-    glsafe(::glEnable(GL_STENCIL_TEST));
-    glsafe(::glStencilMask(0xFF));
-    glsafe(::glClearStencil(0));
-    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
-    glsafe(::glStencilFunc(GL_ALWAYS, 1, 0xFF));
-    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
-    // Mark only visible plate pixels (do not exclude objects in front of plate).
-    glsafe(::glEnable(GL_DEPTH_TEST));
-    glsafe(::glDepthMask(GL_FALSE));
-    glsafe(::glDepthFunc(GL_LEQUAL));
-
-    GLboolean prev_color_mask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
-    glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, prev_color_mask));
-    glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
-
-    if (const BuildVolume& build_volume = m_bed.build_volume(); build_volume.valid()) {
-        GLShaderProgram* flat = wxGetApp().get_shader("flat");
-        if (flat != nullptr) {
-            flat->start_using();
-            flat->set_uniform("projection_matrix", camera.get_projection_matrix());
-
-            GLModel plate_mask;
-            GLModel::Geometry mask;
-            mask.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
-
-            if (build_volume.type() == BuildVolume_Type::Rectangle) {
-                const BoundingBox3Base<Vec3d> bb = build_volume.bounding_volume();
-                mask.reserve_vertices(4);
-                mask.reserve_indices(6);
-                mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.min.y(), 0.0f));
-                mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.min.y(), 0.0f));
-                mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.max.y(), 0.0f));
-                mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.max.y(), 0.0f));
-                mask.add_triangle(0, 1, 2);
-                mask.add_triangle(0, 2, 3);
-            } else if (build_volume.type() == BuildVolume_Type::Circle) {
-                const Vec2f c = Vec2f(unscaled<float>(build_volume.circle().center.x()), unscaled<float>(build_volume.circle().center.y()));
-                const float r = unscaled<float>(build_volume.circle().radius);
-                const int segments = 64;
-                mask.reserve_vertices(segments + 1);
-                mask.reserve_indices(segments * 3);
-                mask.add_vertex(Vec3f(c.x(), c.y(), 0.0f));
-                for (int i = 0; i < segments; ++i) {
-                    const float a = (2.0f * float(PI) * float(i)) / float(segments);
-                    mask.add_vertex(Vec3f(c.x() + r * std::cos(a), c.y() + r * std::sin(a), 0.0f));
-                }
-                for (int i = 0; i < segments; ++i) {
-                    const unsigned int i1 = 1 + i;
-                    const unsigned int i2 = 1 + ((i + 1) % segments);
-                    mask.add_triangle(0, i1, i2);
-                }
-            }
-
-            if (mask.vertices_count() > 0 && mask.indices_count() > 0) {
-                plate_mask.init_from(std::move(mask));
-                flat->set_uniform("view_model_matrix", camera.get_view_matrix());
-                plate_mask.render(flat);
-            }
-            flat->stop_using();
-        }
-    }
-
-    glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
-    glsafe(::glDisable(GL_DEPTH_TEST));
-    glsafe(::glStencilMask(0x00));
-    glsafe(::glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
-    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
 
     shader->start_using();
     shader->set_uniform("view_model_matrix", Transform3d::Identity());
@@ -7890,8 +7848,14 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     shader->set_uniform("color_texture", 0);
     shader->set_uniform("depth_texture", 1);
     shader->set_uniform("inv_tex_size", Vec2f(1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height)));
-    shader->set_uniform("z_near", camera.get_near_z());
     shader->set_uniform("z_far", camera.get_far_z());
+    // The shader reconstructs the surface normal from the depth buffer, there being no normal
+    // target to read: it unprojects a pixel back into view space, then measures the result
+    // against world +Z expressed in view space to tell a top surface from a wall.
+    const Matrix4d inv_projection_matrix = camera.get_projection_matrix().matrix().inverse();
+    shader->set_uniform("inv_projection_matrix", inv_projection_matrix);
+    const Vec3d up_view = (camera.get_view_matrix().matrix().block<3, 3>(0, 0) * Vec3d::UnitZ()).normalized();
+    shader->set_uniform("up_view", up_view);
 
     glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
@@ -7903,13 +7867,6 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     shader->stop_using();
 
-    if (!prev_stencil_test)
-        glsafe(::glDisable(GL_STENCIL_TEST));
-    glsafe(::glStencilMask(prev_stencil_mask));
-    glsafe(::glColorMask(prev_color_mask[0], prev_color_mask[1], prev_color_mask[2], prev_color_mask[3]));
-
-    glsafe(::glDepthMask(prev_depth_mask));
-    glsafe(::glDepthFunc(prev_depth_func));
     glsafe(::glEnable(GL_DEPTH_TEST));
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -8154,15 +8111,19 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 {
     if (wxGetApp().app_config == nullptr)
         return;
-    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE))
+    if (!_is_realistic_view_enabled())
         return;
     if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
         return;
-    if (m_volumes.empty())
-        return;
 
-    GLShaderProgram* shader = wxGetApp().get_shader("flat");
-    if (shader == nullptr)
+    // The preview canvas holds no volumes of its own for FFF. Once slicing has run its printed
+    // geometry is the G-code toolpaths, which both cast into the map here and sample it back in
+    // _render_gcode; before slicing there are only shells, and nothing casts at all. View3D and
+    // SLA preview use m_volumes. The shells are deliberately never casters: they are a
+    // translucent ghost of the whole object, so they would drop the solid shadow of a print that
+    // has not been sliced, and at any layer below the last, one that is not there yet.
+    const bool toolpath_casters = m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data();
+    if (!toolpath_casters && m_volumes.empty())
         return;
 
     if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb) {
@@ -8174,10 +8135,30 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
         // Bounding box of the printable objects (the shadow casters).
         BoundingBoxf3 obj_bb;
-        for (const GLVolume* volume : m_volumes.volumes) {
-            if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
-                continue;
-            obj_bb.merge(volume->transformed_bounding_box());
+        if (toolpath_casters) {
+            // Merged corner by corner: BoundingBoxf3(min, max) marks itself undefined at zero
+            // Z extent, which a single layer print gives, and the check below would then drop
+            // every shadow in the frame.
+            const BoundingBoxf3& paths_bb = m_gcode_viewer.get_paths_bounding_box();
+            if ((paths_bb.min.array() <= paths_bb.max.array()).all()) {
+                obj_bb.merge(paths_bb.min);
+                obj_bb.merge(paths_bb.max);
+            }
+            // Only the enabled layers are drawn, so fitting the map to the whole print wastes
+            // its depth range and makes contact shadows shift as the slider moves. The z = 0
+            // shadow is enclosed separately below, so the plate shadow is unaffected.
+            const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
+            if (!layer_zs.empty()) {
+                const size_t top = std::min<size_t>(m_gcode_viewer.get_layers_z_range()[1], layer_zs.size() - 1);
+                obj_bb.max.z() = std::max(obj_bb.min.z(), std::min(obj_bb.max.z(), layer_zs[top]));
+            }
+        }
+        else {
+            for (const GLVolume* volume : m_volumes.volumes) {
+                if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+                    continue;
+                obj_bb.merge(volume->transformed_bounding_box());
+            }
         }
         if (!obj_bb.defined)
             return; // no objects to cast shadows
@@ -8299,16 +8280,21 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             glsafe(::glPolygonOffset(4.0f, 4.0f));
             glsafe(::glDisable(GL_CULL_FACE));
 
-            shader->start_using();
-            shader->set_uniform("projection_matrix", Transform3d(light_proj));
-            for (GLVolume* volume : m_volumes.volumes) {
-                if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
-                    continue;
-                const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
-                shader->set_uniform("view_model_matrix", view_model);
-                volume->model.render(shader);
+            if (toolpath_casters)
+                m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
+            // Only this branch draws through "flat"; the toolpaths bring their own program.
+            else if (GLShaderProgram* shader = wxGetApp().get_shader("flat"); shader != nullptr) {
+                shader->start_using();
+                shader->set_uniform("projection_matrix", Transform3d(light_proj));
+                for (GLVolume* volume : m_volumes.volumes) {
+                    if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+                        continue;
+                    const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
+                    shader->set_uniform("view_model_matrix", view_model);
+                    volume->model.render(shader);
+                }
+                shader->stop_using();
             }
-            shader->stop_using();
 
             // Restore state
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
@@ -8517,7 +8503,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         return;
     }
 
-    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+    const bool realistic_mode = _is_realistic_view_enabled();
     const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
     const std::string shader_name = (realistic_mode && realistic_phong) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
@@ -8741,7 +8727,34 @@ void GLCanvas3D::_render_wireframe_overlay()
 //BBS: GUI refactor: add canvas size as parameters
 void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
 {
+    // Realistic view: the toolpaths receive the same depth map they were rendered into by
+    // _render_shadows, which is what gives them object-on-object and self shadows. Intensity 0
+    // short-circuits the lookup in the shader, so this is inert whenever the map is missing.
+    const bool receive_shadows = m_shadow_map_valid && m_shadow_map_texture_id != 0 && m_shadow_map_size != 0;
+    if (receive_shadows) {
+        glsafe(::glActiveTexture(GL_TEXTURE4));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
+        glsafe(::glActiveTexture(GL_TEXTURE0));
+        m_gcode_viewer.set_shadow_map(4, m_shadow_light_vp, 0.35f, 1.0f / static_cast<float>(m_shadow_map_size));
+    }
+    else
+        m_gcode_viewer.set_shadow_map(4, Transform3d::Identity(), 0.0f, 0.0f);
+
+    // The lighting term leaves the print dimmer and duller than the legend colours. Saturation
+    // pays back the duller half in both modes; brightness only where something takes light off
+    // again - realistic view with at least one lossy pass on - else the lift would just clip.
+    const AppConfig* cfg = wxGetApp().app_config;
+    const bool lossy_passes = cfg != nullptr && _is_realistic_view_enabled() &&
+                              (cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) || cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
+    m_gcode_viewer.set_tone(lossy_passes ? 1.1f : 1.0f, 1.15f);
+
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
+
+    if (receive_shadows) {
+        glsafe(::glActiveTexture(GL_TEXTURE4));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+        glsafe(::glActiveTexture(GL_TEXTURE0));
+    }
 }
 
 void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
@@ -9831,7 +9844,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Realistic View")),
-            m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
+            true, // work on all
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
             [&cfg]{
                 cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));

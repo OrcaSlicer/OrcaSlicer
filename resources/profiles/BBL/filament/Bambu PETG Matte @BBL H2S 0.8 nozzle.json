@@ -1,0 +1,93 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Matte @BBL H2S 0.8 nozzle",
+    "inherits": "Bambu PETG Matte @base",
+    "from": "system",
+    "setting_id": "GFSG03_24",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10"
+    ],
+    "filament_density": [
+        "1.37"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "65",
+        "55",
+        "55"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_max_volumetric_speed": [
+        "21",
+        "28"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "0.4"
+    ],
+    "filament_tower_ironing_area": [
+        "8"
+    ],
+    "filament_wipe": [
+        "1",
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "2",
+        "2"
+    ],
+    "filament_z_hop": [
+        "0.2",
+        "0.2"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "Spiral Lift"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "245",
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245",
+        "245"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "supertack_plate_temp": [
+        "60"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2S 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

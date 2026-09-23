@@ -12347,6 +12347,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = L("If enabled, Arrange will allow rotation when placing objects.");
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("align_to_y_axis", coBool);
+    def->label = L("Align to Y axis when arranging");
+    def->tooltip = L("If enabled, Arrange will turn each object so its long side runs along the Y axis before placing it. "
+                     "When not given, it is on for i3 printers and off for the others, as in the GUI.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("avoid_extrusion_cali_region", coBool);
     def->label = L("Avoid extrusion calibrate region when arranging");
     def->tooltip = L("If enabled, Arrange will avoid extrusion calibrate region when placing objects.");
