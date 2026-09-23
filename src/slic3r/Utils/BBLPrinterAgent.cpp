@@ -5,6 +5,7 @@
 #include "NetworkAgent.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
