@@ -14,9 +14,14 @@ struct PluginHostFeatureContract {
     uint32_t    minor_version { 0 };
 };
 
-// Return the complete, deterministic set of semantic host contracts compiled
-// into this build.  Callers must require the feature and compatible major
-// version they need; a missing or incompatible entry is unavailable.
+// Advertise a contract only from the registrar that bound its corresponding
+// factory.  This is host-internal and never accepts plugin-supplied data.
+void advertise_plugin_host_feature_contract(
+    std::string feature_id, uint32_t major_version, uint32_t minor_version);
+
+// Return the complete, deterministic set of semantic host contracts advertised
+// by this build.  Callers must require the feature and compatible major version
+// they need; a missing or incompatible entry is unavailable.
 std::vector<PluginHostFeatureContract> plugin_host_feature_contracts();
 
 } // namespace Slic3r

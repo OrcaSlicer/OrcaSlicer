@@ -1,4 +1,5 @@
 #include "IsolatedSlicingJob.hpp"
+#include "PluginHostFeatureContracts.hpp"
 #include "PluginHostBindings.hpp"
 
 #include <pybind11/stl.h>
@@ -89,6 +90,7 @@ void register_isolated_slicing(py::module_& host)
 
     host.def("create_isolated_fff_slicing_job", &IsolatedSlicingJob::capture_live,
              "Capture the current FFF plate into an opaque, immutable isolated slicing job.");
+    advertise_plugin_host_feature_contract("isolated_fff_simulation", 1, 0);
 }
 
 } // namespace Slic3r::host_bindings

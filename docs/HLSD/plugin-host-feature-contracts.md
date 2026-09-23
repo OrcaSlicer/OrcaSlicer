@@ -1,7 +1,9 @@
 # Plugin Host Feature Contracts
 
 `orca.host.feature_contracts()` reports the semantic contracts implemented by
-the current host build.  It is a discovery API for plugin authors; it is not a
+the current host build. Each feature registrar advertises its own contract when
+it binds the corresponding factory, so a partial host reports only the features
+it actually provides. It is a discovery API for plugin authors; it is not a
 host version, build identity, plugin capability, or permission grant.
 
 Each result is a copied `FeatureContract` with these scalar fields:

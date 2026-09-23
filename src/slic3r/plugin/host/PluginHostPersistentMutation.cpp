@@ -1,5 +1,6 @@
 #include "PersistentPresetMutationTransaction.hpp"
 #include "FilamentSlotMutationTransaction.hpp"
+#include "PluginHostFeatureContracts.hpp"
 #include "PluginHostBindings.hpp"
 
 #include <pybind11/stl.h>
@@ -99,6 +100,10 @@ void register_persistent_mutation(py::module_& host)
              &FilamentSlotMutationTransaction::capture_live,
              py::arg("slot_index"),
              "Create an opaque, UI-thread-only, one-shot persistent Filament slot transaction.");
+
+    advertise_plugin_host_feature_contract("process_preset_transaction", 1, 0);
+    advertise_plugin_host_feature_contract("printer_preset_transaction", 1, 0);
+    advertise_plugin_host_feature_contract("filament_slot_transaction", 1, 0);
 }
 
 } // namespace Slic3r::host_bindings

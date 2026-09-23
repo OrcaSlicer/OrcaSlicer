@@ -128,10 +128,10 @@ TEST_CASE("Plugin host API advertises copied semantic feature contracts", "[Plug
     REQUIRE(py::len(contracts) == 4);
 
     const std::vector<std::string> expected {
-        "isolated_fff_simulation",
-        "process_preset_transaction",
-        "printer_preset_transaction",
         "filament_slot_transaction",
+        "isolated_fff_simulation",
+        "printer_preset_transaction",
+        "process_preset_transaction",
     };
     for (size_t index = 0; index < expected.size(); ++index) {
         py::object contract = contracts[index];
