@@ -160,7 +160,11 @@ void KBShortcutsDialog::fill_pages()
     if (wxGetApp().is_editor()) {
         page(_L("Global"), _L("Available anywhere in the window, even while typing in a text field."), ShortcutContext::Global, {
             fixed(Section::Application, { alt, "1-9, 0" }, L("Run a Speed Dial favorite while the dial is open")),
+            fixed(Section::Application, { ctrl, "B" }, L("Pin or unpin the highlighted action while the dial is open")),
+            // wx cycles notebook pages on Ctrl+Tab, which is Cmd+Tab on macOS and never arrives there.
+#ifndef __APPLE__
             fixed(Section::Application, { ctrl, key(L_CONTEXT("Tab", "Keyboard Shortcut")) }, L("Switch to the next main tab")),
+#endif
         });
 
         page(_L("Prepare"), _L("Available while the 3D view on the Prepare tab has focus."), ShortcutContext::Plater, {
