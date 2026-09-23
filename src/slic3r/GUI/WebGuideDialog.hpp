@@ -33,6 +33,7 @@
 #include <atomic>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -110,6 +111,9 @@ public:
     void on_dpi_changed(const wxRect &suggested_rect) {}
 
 private:
+    int GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList, const std::string& filepath,
+                        std::string& sVendor, std::string& sType, std::unordered_set<std::string>& visiting);
+
     GUI_App *m_MainPtr;
     AppConfig m_appconfig_new;
 
