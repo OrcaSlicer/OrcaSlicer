@@ -4,6 +4,8 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "libslic3r/Utils.hpp"
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -76,10 +78,13 @@ void IdleScheduler::tick()
     };
     const char* const fn = __FUNCTION__;
     m_in_slice           = true;
-    const auto slice     = m_queue.run_slice(slice_ms, now_ms, input_pending, [fn](const std::string& name, long long ms) {
-        BOOST_LOG_TRIVIAL(debug) << fn << ": " << name << ": unit took " << ms << " ms";
-    });
-    m_in_slice = false;
+    PrebuildQueue::Slice slice;
+    {
+        ScopeGuard in_slice([this] { m_in_slice = false; });
+        slice = m_queue.run_slice(slice_ms, now_ms, input_pending, [fn](const std::string& name, long long ms) {
+            BOOST_LOG_TRIVIAL(debug) << fn << ": " << name << ": unit took " << ms << " ms";
+        });
+    }
     if (slice.completed)
         BOOST_LOG_TRIVIAL(info) << fn << ": task complete: " << slice.name << ", " << slice.units << " unit(s) in " << slice.ms << " ms this slice";
     else

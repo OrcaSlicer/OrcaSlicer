@@ -39,8 +39,8 @@ so the holder is unit-tested.
 - `pending()` says whether the idle prebuild has work here: not built, and the factory
   has not returned null. A null factory result is logged and the holder stays unbuilt.
 - A unit that pumps the event loop cannot re-enter the holder; a nested `build_step()`
-  does nothing and a nested `ensure()` returns the object as it is, which is null while the
-  factory itself has not returned.
+  does nothing and a nested `ensure()` returns null.
+- After a unit throws, the holder and the scheduler still run the next one.
 
 The holder does not own the object; its wx parent does, as for any window. A type with
 one instance in the app derives from `LazyInstance<T>`, which points at that instance's

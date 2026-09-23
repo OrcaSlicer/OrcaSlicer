@@ -86,7 +86,7 @@ public:
     T* get() const { return built() ? m_object : nullptr; }
 
     // Builds whatever is left now and returns the object, null if the factory returned null
-    // or has not returned yet.
+    // or a nested call finds the object mid-build.
     T* ensure()
     {
         if (!built() && !m_building) {
@@ -95,7 +95,7 @@ public:
                 build.unit();
             while (build_step());
         }
-        return m_object;
+        return get();
     }
 
     // Runs fn on the object now if it is built, otherwise once it is.
@@ -120,18 +120,21 @@ public:
         if (built() || m_building || m_failed)
             return false;
         m_building = true;
-        if (m_object == nullptr) {
-            m_object = m_make();
-            if (m_object == nullptr) {
-                m_failed   = true;
-                m_building = false;
-                log_null_factory(m_name);
-                return false;
-            }
-        } else {
-            step();
+        try {
+            if (m_object == nullptr)
+                m_object = m_make();
+            else
+                step();
+        } catch (...) {
+            m_building = false;
+            throw;
         }
         m_building = false;
+        if (m_object == nullptr) {
+            m_failed = true;
+            log_null_factory(m_name);
+            return false;
+        }
         if (steps_remain())
             return true;
         m_complete.store(true, std::memory_order_release);

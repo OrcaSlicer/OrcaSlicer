@@ -1,6 +1,8 @@
 #include <catch2/catch_all.hpp>
 
+#include <functional>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #include "slic3r/GUI/Lazy.hpp"
@@ -31,6 +33,7 @@ struct Staged : StagedBuild, LazyInstance<Staged>
         add_build_step([this] { ran.push_back(1); });
         add_build_step([this] { ran.push_back(2); });
     }
+    void add_step(std::function<void()> step) { add_build_step(std::move(step)); }
 };
 
 // Owns what the factories make, since a Lazy does not.
@@ -199,4 +202,39 @@ TEST_CASE("A nested ensure inside the factory returns null", "[Lazy]")
     Plain* built = lazy.ensure();
     REQUIRE(built == made.objects[0].get());
     REQUIRE(nested == nullptr);
+}
+
+TEST_CASE("A nested ensure during a staged step returns null", "[Lazy]")
+{
+    Made<Staged>  made;
+    Lazy<Staged>* self   = nullptr;
+    Staged*       nested = reinterpret_cast<Staged*>(1);
+    Lazy<Staged>  lazy("staged", 0, [&] {
+        Staged* s = made.make();
+        s->add_step([&] { nested = self->ensure(); }); // as if a step pumped the event loop into a caller
+        return s;
+    });
+    self = &lazy;
+    Staged* built = lazy.ensure();
+    REQUIRE(built == made.objects[0].get());
+    REQUIRE(nested == nullptr);
+}
+
+TEST_CASE("A unit that throws leaves the holder free to build the rest", "[Lazy]")
+{
+    Made<Staged> made;
+    bool         thrown = false;
+    Lazy<Staged> lazy("staged", 0, [&] {
+        Staged* s = made.make();
+        s->add_step([&] { thrown = true; throw std::runtime_error("step"); });
+        return s;
+    });
+    lazy.build_step();
+    lazy.build_step();
+    lazy.build_step();
+    REQUIRE_THROWS(lazy.build_step());
+    REQUIRE(thrown);
+    REQUIRE(lazy.pending());
+    REQUIRE_FALSE(lazy.build_step()); // the next unit runs
+    REQUIRE(lazy.built());
 }
