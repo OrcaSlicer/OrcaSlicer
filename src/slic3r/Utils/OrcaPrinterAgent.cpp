@@ -701,18 +701,19 @@ void OrcaPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud
 int OrcaPrinterAgent::send_message(std::string dev_id, std::string json_str, int /*qos*/, int /*flag*/)
 { return route_send(/*is_lan=*/false, dev_id, json_str); }
 
-int OrcaPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+int OrcaPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int tray_id, int sequence_id, bool lan_mode)
 {
-    int tray_number = 0;
-    if (!parse_nonnegative_command_id(tray_id, tray_number)) {
-        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: invalid RFID tray id=" << tray_id;
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    }
+    (void) ams_id;
+    // int tray_number = 0;
+    // if (!parse_nonnegative_command_id(tray_id, tray_number)) {
+    //     BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: invalid RFID tray id=" << tray_id;
+    //     return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    // }
 
     nlohmann::json j;
     j["print"]["command"]     = "ams_get_rfid";
     j["print"]["sequence_id"] = std::to_string(sequence_id);
-    j["print"]["tray_id"]     = tray_number;
+    j["print"]["tray_id"]     = tray_id;
     return route_send(lan_mode, dev_id, j.dump());
 }
 
