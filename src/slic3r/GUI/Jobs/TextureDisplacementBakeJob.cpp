@@ -177,12 +177,16 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
     // here, with the numbers, because it is the only place that knows them - and not as an error
     // dialog: the result is a usable mesh, just not the one the settings described.
     if (m_stats.budget_limited) {
-        const auto millions = [](size_t n) { return double(n) / 1000000.; };
+        // Thousands under a million, so a small budget is not reported as "0.1 M".
+        const auto count = [](size_t n) {
+            return n >= 1000000 ? Slic3r::format("%1$.1f M", double(n) / 1000000.) :
+                                  Slic3r::format("%1% k", (n + 500) / 1000);
+        };
         wxGetApp().notification_manager()->push_notification(
             NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
-            Slic3r::format(_u8L("The triangle budget limited the detail: this resolution needs %1$.1f M triangles, "
-                                "the budget kept %2$.1f M. Raise Budget or use a coarser Resolution for the full detail."),
-                           millions(m_stats.triangles_refined), millions(m_stats.triangles_out)));
+            Slic3r::format(_u8L("The triangle budget limited the detail: this resolution needs %1% triangles, "
+                                "the budget kept %2%. Raise Budget or use a coarser Resolution for the full detail."),
+                           count(m_stats.triangles_refined), count(m_stats.triangles_out)));
     }
 }
 

@@ -5974,8 +5974,11 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                "still push out - one image both embosses and engraves.\n\n"
                                "What cuts in has to fit: inside a sharp corner or through a thin wall, a deep "
                                "cut can pass through the other side."));
-                if (layer.midlevel > 0.f && layer.depth_mm > 1.f)
+                if (layer.midlevel > 0.f && layer.depth_mm > 1.f) {
+                    ImGui::PushTextWrapPos(content_rx - card_pad);
                     m_imgui->warning_text(_L("Deep inward displacement may self-intersect."));
+                    ImGui::PopTextWrapPos();
+                }
 
                 m_preview_params_dirty |= float_row("##smoothing", _L("Smoothing"), &layer.smoothing, 0.f, 1.f, "%.2f", false, card_pad);
                 hover_tip(_u8L("Blurs the image before it is used, which rounds off hard steps and removes "
@@ -6823,11 +6826,18 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             // a third high at coarse resolutions, where the mesh's own triangles are already near the
             // target, and a warning about a bake that would have fitted is worse than none.
             if (budget > 0 && needed > budget * 5 / 4) {
-                const auto to_m = [](size_t n) { return double(n) / 1000000.; };
-                m_imgui->warning_text(Slic3r::format(_u8L("This resolution needs about %1$.1f M triangles, "
-                                                          "budget %2$.1f M - the bake will simplify back to "
-                                                          "the budget and lose detail."),
-                                                     to_m(needed), to_m(budget)));
+                // Thousands under a million: a 119 k budget shown as "0.1 M" says nothing.
+                const auto count = [](size_t n) {
+                    return n >= 1000000 ? Slic3r::format("%1$.1f M", double(n) / 1000000.) :
+                                          Slic3r::format("%1% k", (n + 500) / 1000);
+                };
+                // Wrapped to the panel, like the note under the buttons: unwrapped text runs past the
+                // panel's edge and takes the window's width with it.
+                ImGui::PushTextWrapPos(x0 + panel_w);
+                m_imgui->warning_text(Slic3r::format(_u8L("Needs about %1% triangles, budget %2% - the bake "
+                                                          "will simplify back down and lose detail."),
+                                                     count(needed), count(budget)));
+                ImGui::PopTextWrapPos();
             }
         } else {
             m_imgui->text(_L("Triangles"));
@@ -6898,8 +6908,10 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
 
         // What Bake will produce, and which layers it will skip.
         if (mv != nullptr) {
-            std::string note = v2         ? Slic3r::format(_u8L("Model: %1% k triangles - the bake refines to the resolution above, up to its budget"), base_k) :
-                               pro_mode() ? Slic3r::format(_u8L("Bake moves existing vertices - the model stays at %1% k triangles"), base_k) :
+            const std::string base_count = base_k > 0 ? Slic3r::format(_u8L("%1% k"), base_k) :
+                                                        std::to_string(mv->mesh().facets_count());
+            std::string note = v2         ? Slic3r::format(_u8L("Model: %1% triangles - the bake refines to the resolution above, up to its budget"), base_count) :
+                               pro_mode() ? Slic3r::format(_u8L("Bake moves existing vertices - the model stays at %1% triangles"), base_count) :
                                             Slic3r::format(_u8L("Bake result up to ~%1% k triangles"), base_k + m_subdivide_budget_k);
             if (mv->is_texture_displacement_painted()) {
                 std::vector<std::string> skipped;
