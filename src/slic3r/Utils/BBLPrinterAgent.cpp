@@ -254,13 +254,13 @@ int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int 
     return -1;
 }
 
-int BBLPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_connect_printer();
     if (func && agent) {
-        return func(agent, dev_id, dev_ip, username, password, use_ssl);
+        return func(agent, params.dev_id, params.host, params.username, params.password, params.use_ssl);
     }
     return -1;
 }

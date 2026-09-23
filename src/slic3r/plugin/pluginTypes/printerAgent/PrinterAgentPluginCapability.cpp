@@ -97,6 +97,16 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def_readwrite("task_ext_change_assist", &PrintParams::task_ext_change_assist)
         .def_readwrite("try_emmc_print", &PrintParams::try_emmc_print);
 
+    py::class_<PrinterConnectionParams>(printer_agent_module, "PrinterConnectionParams")
+        .def(py::init<>())
+        .def_readwrite("dev_id", &PrinterConnectionParams::dev_id)
+        .def_readwrite("host", &PrinterConnectionParams::host)
+        .def_readwrite("port", &PrinterConnectionParams::port)
+        .def_readwrite("username", &PrinterConnectionParams::username)
+        .def_readwrite("password", &PrinterConnectionParams::password)
+        .def_readwrite("use_ssl", &PrinterConnectionParams::use_ssl)
+        .def_readwrite("ca_file", &PrinterConnectionParams::ca_file);
+
     py::class_<PrinterAgentPluginCapability, PluginCapabilityInterface, PyPrinterAgentPluginCapabilityTrampoline, std::shared_ptr<PrinterAgentPluginCapability>>(
         printer_agent_module, "PrinterAgentBase")
         .def(py::init<>())

@@ -20,6 +20,7 @@
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
+#include <wx/filedlg.h>
 #include <miniz.h>
 #include <algorithm>
 #include "Plater.hpp"
@@ -29,6 +30,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
 #include "md4c/src/md4c-html.h"
+#include "../Utils/Http.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -1461,6 +1463,45 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_input_top_sizer->Add(0, 0, 0, wxTOP, FromDIP(4));
     m_input_top_sizer->Add(m_input_area, 0, wxRIGHT | wxEXPAND, FromDIP(18));
 
+    m_tips_cafile = new Label(ip_input_top_panel, _L("HTTPS CA File"));
+    m_input_cafile = new wxTextCtrl(ip_input_top_panel, wxID_ANY);
+    m_input_cafile->SetMinSize(wxSize(FromDIP(260), FromDIP(28)));
+    m_input_cafile->SetMaxSize(wxSize(FromDIP(260), FromDIP(28)));
+
+    m_button_cafile = new Button(ip_input_top_panel, _L("Browse") + " " + dots);
+    m_button_cafile->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    m_button_cafile->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        static const auto filemasks = _L("Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*");
+        wxFileDialog openFileDialog(this, _L("Open CA certificate file"), "", "", filemasks,
+                                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (openFileDialog.ShowModal() != wxID_CANCEL)
+            m_input_cafile->SetValue(openFileDialog.GetPath());
+    });
+
+    auto cafile_input_sizer = new wxBoxSizer(wxHORIZONTAL);
+    cafile_input_sizer->Add(m_input_cafile, 1, wxALIGN_CENTER_VERTICAL);
+    cafile_input_sizer->Add(m_button_cafile, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+
+    m_cafile_hint = new Label(ip_input_top_panel, _L("HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."));
+    m_cafile_hint->Wrap(FromDIP(352));
+
+    m_input_top_sizer->Add(m_tips_cafile, 0, wxTOP | wxEXPAND, FromDIP(10));
+    m_input_top_sizer->Add(cafile_input_sizer, 0, wxTOP | wxEXPAND, FromDIP(4));
+    m_input_top_sizer->Add(m_cafile_hint, 0, wxTOP | wxEXPAND, FromDIP(4));
+
+    if (!Http::ca_file_supported()) {
+        m_input_cafile->Disable();
+        m_button_cafile->Disable();
+        m_cafile_hint->SetLabel(_L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
+        m_cafile_hint->Wrap(FromDIP(352));
+    }
+
+    if (wxGetApp().preset_bundle) {
+        const auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (config.has("printhost_cafile"))
+            m_input_cafile->SetValue(from_u8(config.opt_string("printhost_cafile")));
+    }
+
     ip_input_top_panel->SetSizer(m_input_top_sizer);
     ip_input_top_panel->Layout();
     ip_input_top_panel->Fit();
@@ -1823,6 +1864,12 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
     Layout();
     Fit();
 
+    if (wxGetApp().preset_bundle) {
+        auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (Http::ca_file_supported())
+            config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
+    }
+
     token_.reset(this, nop_deleter);
     m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name));
 }
@@ -2093,7 +2140,7 @@ InputIpAddressDialog::~InputIpAddressDialog()
 
 void InputIpAddressDialog::on_dpi_changed(const wxRect& suggested_rect)
 {
-
+    m_button_cafile->Rescale();
 }
 
 

@@ -13,11 +13,9 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include <cstdint>
 #include <cmath>
 #include <nlohmann/json.hpp>
 #include <boost/format.hpp>
-#include "ICameraSignalingChannel.hpp"
 
 namespace Slic3r {
 
@@ -34,6 +32,16 @@ struct AgentInfo {
     std::string name;       ///< Human-readable agent name, e.g. "Orca", "Bambu Lab"
     std::string version;    ///< Agent version string, e.g. "1.0.0"
     std::string description; ///< Brief description of the agent's capabilities, e.g. "Orca printer agent"
+};
+
+struct PrinterConnectionParams {
+    std::string dev_id;
+    std::string host;
+    std::string port;
+    std::string username;
+    std::string password;
+    bool        use_ssl = false;
+    std::string ca_file;
 };
 
 /**
@@ -205,7 +213,7 @@ public:
     /**
      * Establish a direct LAN connection to a printer.
      */
-    virtual int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) = 0;
+    virtual int connect_printer(const PrinterConnectionParams& params) = 0;
 
     /**
      * Tear down the active LAN printer connection.

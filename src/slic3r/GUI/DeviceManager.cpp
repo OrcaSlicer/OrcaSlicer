@@ -4,6 +4,7 @@
 #include "I18N.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
+#include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
@@ -2625,9 +2626,32 @@ int MachineObject::connect(bool use_openssl)
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
     std::string password = get_access_code();
 
+    std::string port;
+    std::string host = Http::get_host_from_url(get_dev_ip(), &port);
+    std::string ca_file;
+
+    if (GUI::wxGetApp().preset_bundle) {
+        const auto& config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (port.empty())
+            port = config.opt_string("printhost_port");
+        ca_file = config.opt_string("printhost_cafile");
+    }
+
+    if (host.empty())
+        host = get_dev_ip();
+
     if (m_agent) {
         try {
-            return m_agent->connect_printer(get_dev_id(), get_dev_ip(), username, password, use_openssl);
+            PrinterConnectionParams params{
+                get_dev_id(),
+                host,
+                port,
+                username,
+                password,
+                use_openssl,
+                ca_file
+            };
+            return m_agent->connect_printer(params);
         } catch (...) {
             ;
         }

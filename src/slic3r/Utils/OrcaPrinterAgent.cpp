@@ -1,4 +1,5 @@
 #include "OrcaPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 
 namespace Slic3r {
@@ -26,7 +27,7 @@ int OrcaPrinterAgent::send_message(std::string dev_id, std::string json_str, int
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
     return BAMBU_NETWORK_SUCCESS;
 }
