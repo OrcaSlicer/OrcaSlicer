@@ -1324,6 +1324,7 @@ private:
     void _picking_pass();
     void _rectangular_selection_picking_pass();
     bool _is_fxaa_enabled() const;
+    bool _is_realistic_view_enabled() const;
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
