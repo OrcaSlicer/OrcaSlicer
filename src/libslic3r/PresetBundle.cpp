@@ -1371,7 +1371,7 @@ static bool check_local_bundle(PresetBundleMetadata& bundles, const fs::path& us
     {
         std::shared_lock<std::shared_mutex> lock(bundles.RWMtx);
         const auto it = bundles.m_bundles.find(bundle_id);
-        if (it != bundles.m_bundles.end() && it->second.bundle_type == BundleType::Subscribed) {
+        if (it != bundles.m_bundles.end() && (it->second.bundle_type == BundleType::Subscribed || it->second.is_subscribed)) {
             error = "A subscribed bundle already uses this id";
             return false;
         }
@@ -1437,6 +1437,8 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
         if (!check_local_bundle(bundles, user_dir, bundle_id, metadata, check_error))
             return fail(check_error);
 
+        // Keep background preset sync from changing the collections between copying and committing them.
+        std::scoped_lock collection_lock(prints.m_mutex, filaments.m_mutex, printers.m_mutex);
         const std::string target_prefix = std::string(PRESET_LOCAL_DIR) + "/" + bundle_id + "/";
         const auto is_target = [&](const Preset& preset) {
             return preset.bundle_id == bundle_id && boost::starts_with(preset.name, target_prefix);
@@ -1455,7 +1457,7 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
                 if (preset.name == selection.name) {
                     selection.base = preset;
                     selection.edited = collection.get_edited_preset();
-                    selection.dirty_options = PresetCollection::dirty_options(&selection.edited, &selection.base, true);
+                    selection.dirty_options = PresetCollection::dirty_options(&selection.edited, &selection.base);
                     return true;
                 }
             }
@@ -1466,7 +1468,13 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
         if (!snapshot(prints, print_selection) || !snapshot(filaments, filament_selection) || !snapshot(printers, printer_selection))
             return fail("Preset selections are not initialized");
 
-        PresetBundle staged(*this);
+        PresetBundle staged;
+        // Collection copies keep vendor pointers into the live vendor map, which is not replaced by this reload.
+        staged.prints           = prints;
+        staged.filaments        = filaments;
+        staged.printers         = printers;
+        staged.filament_presets = filament_presets;
+        staged.project_config.apply_only(project_config, {"flush_volumes_matrix", "flush_volumes_vector", "flush_multiplier"});
         auto remove_target = [&](PresetCollection& collection) {
             auto begin = collection.m_presets.begin() + collection.m_num_default_presets;
             collection.m_presets.erase(std::remove_if(begin, collection.m_presets.end(), is_target), collection.m_presets.end());
@@ -1497,57 +1505,48 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
             return fail("A modified selected preset was removed or renamed");
 
         auto external_child_name = [&](const PresetCollection& collection) {
-            for (const Preset& preset : collection.get_presets()) {
+            auto depends_on_target = [&](const Preset& preset) {
                 if (is_target(preset))
-                    continue;
+                    return false;
                 const Preset* parent = &preset;
                 std::unordered_set<const Preset*> visited;
                 while ((parent = collection.get_preset_parent(*parent)) != nullptr && visited.insert(parent).second)
                     if (is_target(*parent))
-                        return preset.name;
-            }
+                        return true;
+                for (const char* key : {"compatible_prints", "compatible_printers"}) {
+                    const auto* names = preset.config.option<ConfigOptionStrings>(key);
+                    if (names == nullptr)
+                        continue;
+                    const PresetCollection& referenced = std::string(key) == "compatible_printers" ? printers : prints;
+                    for (const std::string& name : names->values) {
+                        const Preset* dependency = referenced.find_preset(name, false);
+                        if (dependency != nullptr && is_target(*dependency))
+                            return true;
+                    }
+                }
+                return false;
+            };
+            for (const Preset& preset : collection.get_presets())
+                if (depends_on_target(preset))
+                    return preset.name;
+            if (depends_on_target(collection.get_edited_preset()))
+                return collection.get_edited_preset().name;
             return std::string();
         };
-        for (const PresetCollection* collection : {
-                 static_cast<const PresetCollection*>(&prints),
-                 static_cast<const PresetCollection*>(&filaments),
-                 static_cast<const PresetCollection*>(&printers)}) {
+        for (const PresetCollection* collection : std::array<const PresetCollection*, 3>{&prints, &filaments, &printers}) {
             const std::string child_name = external_child_name(*collection);
             if (!child_name.empty())
-                return fail("Preset outside this bundle inherits from it: " + child_name);
+                return fail("Preset outside this bundle depends on it: " + child_name);
         }
 
-        auto install_target = [&](PresetCollection& live, const PresetCollection& candidate) {
-            std::map<std::string, Preset> replacements;
-            for (const Preset& preset : candidate.get_presets())
-                if (is_target(preset))
-                    replacements.emplace(preset.name, preset);
-
-            for (auto it = live.m_presets.begin() + live.m_num_default_presets; it != live.m_presets.end();) {
-                if (!is_target(*it)) {
-                    ++it;
-                    continue;
-                }
-                auto replacement = replacements.find(it->name);
-                if (replacement == replacements.end())
-                    it = live.m_presets.erase(it);
-                else {
-                    *it = std::move(replacement->second);
-                    replacements.erase(replacement);
-                    ++it;
-                }
-            }
-            for (auto& replacement : replacements)
-                live.m_presets.emplace_back(std::move(replacement.second));
-            live.sort_presets();
-            live.update_vendor_ptrs_after_copy(vendors);
-        };
         auto restore_selection = [](PresetCollection& collection, const Selection& selection) {
             if (collection.find_preset(selection.name, false, true) == nullptr) {
                 collection.select_preset(collection.first_visible_idx());
                 return false;
             }
             collection.select_preset_by_name(selection.name, true);
+            if (collection.get_selected_preset_name() != selection.name)
+                return false;
             Preset& edited = collection.get_edited_preset();
             for (const std::string& key : selection.dirty_options) {
                 if (const ConfigOption* option = selection.edited.config.option(key))
@@ -1559,33 +1558,116 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
             return true;
         };
 
-        install_target(prints, staged.prints);
-        install_target(filaments, staged.filaments);
-        install_target(printers, staged.printers);
-        prints.update_map_alias_to_profile_name();
-        filaments.update_map_alias_to_profile_name();
-        printers.update_map_alias_to_profile_name();
-        const bool printer_preserved  = restore_selection(printers, printer_selection);
-        const bool print_preserved    = restore_selection(prints, print_selection);
-        const bool filament_preserved = restore_selection(filaments, filament_selection);
+        staged.prints.update_map_alias_to_profile_name();
+        staged.filaments.update_map_alias_to_profile_name();
+        staged.printers.update_map_alias_to_profile_name();
+        const bool printer_preserved  = restore_selection(staged.printers, printer_selection);
+        const bool print_preserved    = restore_selection(staged.prints, print_selection);
+        const bool filament_preserved = restore_selection(staged.filaments, filament_selection);
         const auto selection_mode = [printer_preserved](bool selection_preserved) {
             if (!selection_preserved)
                 return PresetSelectCompatibleType::Always;
             return printer_preserved ? PresetSelectCompatibleType::Never : PresetSelectCompatibleType::OnlyIfWasCompatible;
         };
-        update_compatible(selection_mode(print_preserved), selection_mode(filament_preserved));
-        for (std::string& name : filament_presets)
-            if (boost::starts_with(name, target_prefix) && filaments.find_preset(name, false) == nullptr)
-                name = filaments.first_compatible().name;
-        update_multi_material_filament_presets();
+        if (staged.printers.get_edited_preset().printer_technology() != ptFFF)
+            return fail("Local bundle reload requires an FFF printer selection");
+        staged.update_compatible(selection_mode(print_preserved), selection_mode(filament_preserved));
+        for (std::string& name : staged.filament_presets)
+            if (boost::starts_with(name, target_prefix) && staged.filaments.find_preset(name, false) == nullptr)
+                name = staged.filaments.first_compatible().name;
+        staged.update_multi_material_filament_presets();
+
+        struct Collection
+        {
+            PresetCollection& live;
+            PresetCollection& candidate;
+            size_t original_size;
+        };
+        std::array<Collection, 3> collections{{{prints, staged.prints, prints.size()},
+                                               {filaments, staged.filaments, filaments.size()},
+                                               {printers, staged.printers, printers.size()}}};
+        for (size_t i = 0; i < collections.size(); ++i) {
+            const auto& collection   = collections[i];
+            const auto dirty_options = collection.live.current_dirty_options();
+            if (dirty_options.empty())
+                continue;
+            if (collection.live.get_selected_preset_name() != collection.candidate.get_selected_preset_name())
+                return fail("Reload would discard a modified selected preset");
+            for (const std::string& key : dirty_options) {
+                const ConfigOption* before = collection.live.get_edited_preset().config.option(key);
+                const ConfigOption* after  = collection.candidate.get_edited_preset().config.option(key);
+                if ((before == nullptr) != (after == nullptr) || (before != nullptr && *before != *after))
+                    return fail("Reload would discard a modified preset option: " + key);
+            }
+        }
+
+        if (calibrate_printer != nullptr && staged.printers.find_preset(calibrate_printer->name, false, true) != nullptr)
+            staged.set_calibrate_printer(calibrate_printer->name);
+        std::array<std::pair<ConfigOptionFloats*, ConfigOptionFloats*>, 3> flush_options;
+        size_t i = 0;
+        for (const char* key : {"flush_volumes_matrix", "flush_volumes_vector", "flush_multiplier"})
+            flush_options[i++] = {project_config.option<ConfigOptionFloats>(key), staged.project_config.option<ConfigOptionFloats>(key)};
 
         metadata.bundle_type = BundleType::Local;
         metadata.is_subscribed = false;
         metadata.update_available = false;
         metadata.path = metadata_file.string();
-        dir_user_presets_local = user_dir / PRESET_LOCAL_DIR;
+        fs::path local_dir        = user_dir / PRESET_LOCAL_DIR;
         std::unique_lock<std::shared_mutex> lock(bundles.RWMtx);
-        bundles.m_bundles[bundle_id] = std::move(metadata);
+        const auto existing = bundles.m_bundles.find(bundle_id);
+        if (existing != bundles.m_bundles.end() &&
+            (existing->second.bundle_type == BundleType::Subscribed || existing->second.is_subscribed))
+            return fail("A subscribed bundle already uses this id");
+
+        std::set<const Preset*> calibration_filaments;
+        const Preset* calibration_printer = nullptr;
+        try {
+            // Growing a deque preserves existing objects. Roll back appended copies if preparation fails.
+            for (size_t i = 0; i < collections.size(); ++i) {
+                auto& collection = collections[i];
+                while (collection.live.size() < collection.candidate.size())
+                    collection.live.m_presets.emplace_back(collection.candidate.m_presets[collection.live.size()]);
+            }
+            auto calibration_preset = [](const Preset* preset, PresetCollection& live, PresetCollection& candidate) -> const Preset* {
+                if (preset == nullptr)
+                    return nullptr;
+                if (preset == &candidate.get_edited_preset())
+                    return &live.get_edited_preset();
+                const auto it = candidate.find_preset_internal(preset->name);
+                return &live.m_presets[it - candidate.m_presets.begin()];
+            };
+            calibration_printer = calibration_preset(staged.calibrate_printer, printers, staged.printers);
+            for (const Preset* preset : staged.calibrate_filaments)
+                calibration_filaments.insert(calibration_preset(preset, filaments, staged.filaments));
+            // Insertion is the last allocating operation. Replacing metadata only moves its members.
+            bundles.m_bundles.insert_or_assign(bundle_id, std::move(metadata));
+        } catch (...) {
+            for (size_t i = 0; i < collections.size(); ++i)
+                while (collections[i].live.size() > collections[i].original_size)
+                    collections[i].live.m_presets.pop_back();
+            throw;
+        }
+        auto install_target = [](PresetCollection& live, PresetCollection& candidate) noexcept {
+            // Keep stored Preset references alive when the collection's layout is unchanged.
+            // Adding/removing presets retains the collection's usual sorted-position semantics.
+            for (size_t i = 0; i < candidate.size(); ++i)
+                live.m_presets[i] = std::move(candidate.m_presets[i]);
+            while (live.size() > candidate.size())
+                live.m_presets.pop_back();
+            live.m_map_alias_to_profile_name.swap(candidate.m_map_alias_to_profile_name);
+            // Move assignment does not allocate (including Semver); swapping Presets would construct temporary containers.
+            live.m_edited_preset = std::move(candidate.m_edited_preset);
+            live.m_saved_preset  = std::move(candidate.m_saved_preset);
+            live.m_idx_selected  = candidate.m_idx_selected;
+        };
+        for (size_t i = 0; i < collections.size(); ++i)
+            install_target(collections[i].live, collections[i].candidate);
+        filament_presets.swap(staged.filament_presets);
+        for (const auto& options : flush_options)
+            options.first->values.swap(options.second->values);
+        calibrate_printer = calibration_printer;
+        calibrate_filaments.swap(calibration_filaments);
+        dir_user_presets_local.swap(local_dir);
         return true;
     } catch (const std::exception& exception) {
         return fail(std::string("Failed to reload local bundle: ") + exception.what());
