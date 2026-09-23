@@ -2852,6 +2852,17 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         } else if (j_pre["print"]["msg"].get<int>() == 1) {    //diff message
                             if (print_json.diff2all(j_pre, j) == 0) {
                                 restored_json = true;
+                                // A MachineObject recreation (login/refresh) resets
+                                // m_full_msg_count to 0, and incremental frames cannot
+                                // rebuild it. Until a msg:0 arrives, is_info_ready()
+                                // stays false (dead AMS/controls), so request one now.
+                                // command_request_push_all() rate-limits to
+                                // REQUEST_PUSH_MIN_TIME internally.
+                                if (m_full_msg_count == 0) {
+                                    GUI::wxGetApp().CallAfter([this] {
+                                        this->command_request_push_all();
+                                    });
+                                }
                             } else {
                                 BOOST_LOG_TRIVIAL(trace) << "parse_json: restore failed! count = " << parse_msg_count;
                                 if (print_json.is_need_request()) {
