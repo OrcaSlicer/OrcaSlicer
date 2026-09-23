@@ -4,7 +4,9 @@
 #include "I18N.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
+#include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
 
@@ -2597,7 +2599,15 @@ void MachineObject::reset()
 
 void MachineObject::set_print_state(std::string status)
 {
+    const bool changed = (print_status != status);
     print_status = status;
+    if (changed) {
+        LifecycleEventContext ctx;
+        ctx.name  = dev_id;
+        ctx.code  = LifecycleEvtCode::Ok;
+        ctx.msg   = print_status;
+        fire_lifecycle_event(LifecycleEvent::PrintStateChanged, ctx);
+    }
 }
 
 // why: printer agents can report progress without BBL cloud task identity.
@@ -2625,9 +2635,32 @@ int MachineObject::connect(bool use_openssl)
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
     std::string password = get_access_code();
 
+    std::string port;
+    std::string host = Http::get_host_from_url(get_dev_ip(), &port);
+    std::string ca_file;
+
+    if (GUI::wxGetApp().preset_bundle) {
+        const auto& config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (port.empty())
+            port = config.opt_string("printhost_port");
+        ca_file = config.opt_string("printhost_cafile");
+    }
+
+    if (host.empty())
+        host = get_dev_ip();
+
     if (m_agent) {
         try {
-            return m_agent->connect_printer(get_dev_id(), get_dev_ip(), username, password, use_openssl);
+            PrinterConnectionParams params{
+                get_dev_id(),
+                host,
+                port,
+                username,
+                password,
+                use_openssl,
+                ca_file
+            };
+            return m_agent->connect_printer(params);
         } catch (...) {
             ;
         }
@@ -2638,7 +2671,10 @@ int MachineObject::connect(bool use_openssl)
 int MachineObject::disconnect()
 {
     if (m_agent) {
-        return m_agent->disconnect_printer();
+        const int result = m_agent->disconnect_printer();
+        if (result == 0)
+            set_online_state(false);
+        return result;
     }
     return -1;
 }
@@ -2668,8 +2704,16 @@ bool MachineObject::is_connecting()
 
 void MachineObject::set_online_state(bool on_off)
 {
+    const bool changed = (m_is_online != on_off);
     m_is_online = on_off;
     if (!on_off) m_active_state = NotActive;
+    if (changed) {
+        LifecycleEventContext ctx;
+        ctx.name  = dev_id;
+        ctx.code  = LifecycleEvtCode::Ok;
+        ctx.msg   = on_off ? "online" : "offline";
+        fire_lifecycle_event(on_off ? LifecycleEvent::DeviceOnline : LifecycleEvent::DeviceOffline, ctx);
+    }
 }
 
 bool MachineObject::is_info_ready(bool check_version) const
@@ -2804,13 +2848,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
     parse_msg_count++;
     std::chrono::system_clock::time_point clock_start = std::chrono::system_clock::now();
-    this->set_online_state(true);
-
-    std::chrono::system_clock::time_point curr_time = std::chrono::system_clock::now();
-    auto diff1 = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - last_update_time);
-
-    /* update last received time */
-    last_update_time = std::chrono::system_clock::now();
 
     json j_pre;
     bool parse_ok = false;
@@ -2823,7 +2860,28 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
         /* post process payload */
         sanitizeToUtf8(payload);
         BOOST_LOG_TRIVIAL(info) << "parse_json: sanitize to utf8";
+        try {
+            j_pre = json::parse(payload);
+            parse_ok = true;
+        }
+        catch (...) {}
     }
+
+    bool client_disconnected = false;
+    if (parse_ok && j_pre.is_object() && j_pre.contains("event") && j_pre["event"].is_object() &&
+        j_pre["event"].contains("event") && j_pre["event"]["event"].is_string()) {
+        client_disconnected = j_pre["event"]["event"].get<std::string>() == "client.disconnected";
+    }
+
+    // A disconnect notification is a transport message too, but it must not first mark an
+    // already-offline device as online through the generic message-received path.
+    set_online_state(!client_disconnected);
+
+    std::chrono::system_clock::time_point curr_time = std::chrono::system_clock::now();
+    auto diff1 = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - last_update_time);
+
+    /* update last received time */
+    last_update_time = std::chrono::system_clock::now();
 
     try {
         bool restored_json = false;
@@ -4604,19 +4662,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 ;
             }
         }
-
-        // event info
-        try {
-            if (j.contains("event")) {
-                if (j["event"].contains("event")) {
-                    if (j["event"]["event"].get<std::string>() == "client.disconnected")
-                        set_online_state(false);
-                    else if (j["event"]["event"].get<std::string>() == "client.connected")
-                        set_online_state(true);
-                }
-            }
-        }
-        catch (...)  {}
 
         if (!key_field_only) {
             BOOST_LOG_TRIVIAL(trace) << "parse_json  m_active_state =" << m_active_state;

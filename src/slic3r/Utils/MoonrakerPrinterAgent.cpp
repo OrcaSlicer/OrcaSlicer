@@ -341,9 +341,9 @@ int MoonrakerPrinterAgent::send_message_to_printer(std::string dev_id, std::stri
     return handle_request(dev_id, json_str);
 }
 
-int MoonrakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
-    if (dev_id.empty() || dev_ip.empty()) {
+    if (params.dev_id.empty() || params.host.empty()) {
         BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: connect_printer missing dev_id or dev_ip";
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
@@ -352,7 +352,7 @@ int MoonrakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_i
     uint64_t gen;
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
-        init_device_info(dev_id, dev_ip, username, password, use_ssl);
+        init_device_info(params.dev_id, params.host, params.username, params.password, params.use_ssl, params.port);
         gen = ++connect_generation;
         base_url = device_info.base_url;
         api_key  = device_info.api_key;
@@ -379,7 +379,7 @@ int MoonrakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_i
     // Launch connection in background thread (capture by value to avoid data races)
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
-        connect_thread = std::thread([this, dev_id, base_url, api_key, gen]() { perform_connection_async(dev_id, base_url, api_key, gen); });
+        connect_thread = std::thread([this, params, base_url, api_key, gen]() { perform_connection_async(params.dev_id, base_url, api_key, gen); });
     }
 
     return BAMBU_NETWORK_SUCCESS;
@@ -427,7 +427,7 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
     // so the name falls back to the IP instead of blank. (matches
     // feature/printer-agent-port-pristine; the IP is what shipped before the port)
     // note: dummy id/creds; use_ssl false because Moonraker/print-host is http.
-    init_device_info(dev_ip, dev_ip, "", "", false);
+    init_device_info(dev_ip, dev_ip, "", "", false, "");
 
     detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
     detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
@@ -1488,7 +1488,7 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
     return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 }
 
-bool MoonrakerPrinterAgent::init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port)
 {
     device_info         = MoonrakerDeviceInfo{};
     auto* preset_bundle = GUI::wxGetApp().preset_bundle;
@@ -1498,13 +1498,15 @@ bool MoonrakerPrinterAgent::init_device_info(std::string dev_id, std::string dev
 
     auto&       preset      = preset_bundle->printers.get_edited_preset();
     const auto& printer_cfg = preset.config;
-    device_info.dev_ip      = dev_ip;
 
+    device_info.dev_ip     = dev_ip;
     device_info.api_key    = password;
     device_info.use_ssl    = use_ssl;
     device_info.model_name = printer_cfg.opt_string("printer_model");
     device_info.model_id   = preset.get_printer_type(preset_bundle);
-    device_info.base_url   = use_ssl ? "https://" + dev_ip : "http://" + dev_ip;
+    device_info.base_url   = normalize_base_url(dev_ip, port);
+    if (use_ssl && boost::istarts_with(device_info.base_url, "http://"))
+        device_info.base_url.replace(0, 7, "https://");
     device_info.dev_id     = dev_id;
     device_info.version    = "";
     device_info.dev_name   = device_info.dev_id;

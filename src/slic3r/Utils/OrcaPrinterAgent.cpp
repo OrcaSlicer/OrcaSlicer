@@ -1,16 +1,23 @@
 #include "OrcaPrinterAgent.hpp"
-#include "Http.hpp"
+
 #include "IPrinterAgent.hpp"
+#include "Http.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "bambu_networking.hpp"
-#include "json_diff.hpp"
-#include <algorithm>
-#include <atomic>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
+#include <atomic>
 #include <array>
 #include <chrono>
 #include <cctype>
@@ -18,23 +25,15 @@
 #include <cstdio>
 #include <condition_variable>
 #include <cmath>
-#include <fstream>
-#include <iterator>
 #include <limits>
 #include <mutex>
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <random>
-#include <ratio>
 #include <set>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <utility>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 
 namespace Slic3r {
 
@@ -997,19 +996,19 @@ void OrcaPrinterAgent::on_connected(const std::string& dev_id, OrcaMqttConnectio
         [conn, dev_id](const std::string& body) { conn->send_request(dev_id, body); }); // dev_id captured BY VALUE
 }
 
-int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
-    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: connect_printer requested dev_id=" << dev_id << " dev_ip=" << dev_ip
-                            << " username=" << (username.empty() ? "<default>" : username) << " password_present=" << (!password.empty())
-                            << " use_ssl=" << use_ssl;
-    (void) use_ssl; // OrcaSonar LAN is plaintext ws://
-    if (dev_id.empty() || dev_ip.empty()) {
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: connect_printer requested dev_id=" << params.dev_id << " dev_ip=" << params.host
+                            << " username=" << (params.username.empty() ? "<default>" : params.username) << " password_present=" << (!params.password.empty())
+                            << " use_ssl=" << params.use_ssl;
+    (void) params.use_ssl; // OrcaSonar LAN is plaintext ws://
+    if (params.dev_id.empty() || params.host.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: connect_printer rejected missing dev_id or dev_ip";
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
     std::string host, port;
-    if (!parse_lan_endpoint(dev_ip, host, port)) {
-        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: connect_printer rejected unparsable LAN endpoint dev_ip=" << dev_ip;
+    if (!parse_lan_endpoint(params.host, host, port)) {
+        BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: connect_printer rejected unparsable LAN endpoint dev_ip=" << params.host;
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
     disconnect_printer();
@@ -1018,9 +1017,9 @@ int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, st
     OrcaMqttConnection::Config cfg;
     cfg.url               = "ws://" + host + ":" + port + "/mqtt";
     cfg.use_tls           = false;
-    cfg.username          = username.empty() ? std::string("orcasonar") : username;
-    cfg.password          = password;
-    cfg.client_id         = make_lan_client_id(dev_id);
+    cfg.username          = params.username.empty() ? std::string("orcasonar") : params.username;
+    cfg.password          = params.password;
+    cfg.client_id         = make_lan_client_id(params.dev_id);
     cfg.keepalive_seconds = 60;
 
     BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN connection prepared generation=" << gen << " host=" << host << " port=" << port
@@ -1032,7 +1031,7 @@ int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, st
     {
         std::lock_guard<std::mutex> l(state_mutex);
         previous_connection  = m_current_connection;
-        m_lan_dev_id         = dev_id;
+        m_lan_dev_id         = params.dev_id;
         m_lan_url            = cfg.url;
         m_camera_stream_mode = CameraStreamMode::none;
         m_camera_url.clear();
@@ -1040,20 +1039,20 @@ int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, st
         lan_mqtt_connection  = std::make_unique<OrcaMqttConnection>();
         conn                 = lan_mqtt_connection.get();
     }
-    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: selected LAN printer dev_id=" << dev_id
+    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: selected LAN printer dev_id=" << params.dev_id
                             << " transport=" << connection_type_name(previous_connection) << "->LAN";
 
     if (m_lan_connect_thread.joinable())
         m_lan_connect_thread.join(); // disconnect_printer() above already stopped the old conn, so this is fast
-    m_lan_connect_thread = std::thread([this, conn, cfg, dev_id, gen] {
-        BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN connect worker started generation=" << gen << " dev_id=" << dev_id
+    m_lan_connect_thread = std::thread([this, conn, cfg, params, gen] {
+        BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN connect worker started generation=" << gen << " dev_id=" << params.dev_id
                                 << " url=" << cfg.url;
         if (gen != m_lan_generation.load()) {
             BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN connect worker abandoned before start generation=" << gen
                                     << " current_generation=" << m_lan_generation.load();
             return; // superseded before we ran: never raise a socket nobody will tear down
         }
-        const bool ok = conn->start(cfg, make_lan_message_handler(gen), [this, gen, dev_id, conn](bool connected, bool initial) {
+        const bool ok = conn->start(cfg, make_lan_message_handler(gen), [this, gen, params, conn](bool connected, bool initial) {
             BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN MQTT state callback connected=" << connected << " initial=" << initial
                                     << " generation=" << gen << " current_generation=" << m_lan_generation.load()
                                     << " connack_rc=" << conn->last_connack_rc();
@@ -1062,18 +1061,18 @@ int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, st
                 return;
             }
             if (connected && !initial) {
-                on_connected(dev_id, conn, gen);
-                dispatch_local_connect(ConnectStatusOk, dev_id, "0");
+                on_connected(params.dev_id, conn, gen);
+                dispatch_local_connect(ConnectStatusOk, params.dev_id, "0");
             } else if (!connected && !initial) {
-                dispatch_local_connect(ConnectStatusLost, dev_id, "connection_lost");
+                dispatch_local_connect(ConnectStatusLost, params.dev_id, "connection_lost");
             }
         });
         BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN MQTT start returned ok=" << ok << " generation=" << gen
                                 << " current_generation=" << m_lan_generation.load() << " connected=" << conn->is_connected()
                                 << " running=" << conn->is_running() << " connack_rc=" << conn->last_connack_rc();
         if (ok && gen == m_lan_generation.load()) {
-            on_connected(dev_id, conn, gen);
-            dispatch_local_connect(ConnectStatusOk, dev_id, "0");
+            on_connected(params.dev_id, conn, gen);
+            dispatch_local_connect(ConnectStatusOk, params.dev_id, "0");
         } else if (!ok && gen == m_lan_generation.load() && !conn->is_running()) {
             // A refusal with rc 4/5 terminates the transport. Network errors keep
             // retrying in OrcaMqttConnection, so leave the UI in its connecting state.
@@ -1081,7 +1080,7 @@ int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, st
             const std::string reason = rc >= 0 ? std::to_string(rc) : "initial_connect_failed";
             BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: LAN MQTT connection terminated before readiness"
                                        << " generation=" << gen << " connack_rc=" << rc << " reason=" << reason;
-            dispatch_local_connect(ConnectStatusFailed, dev_id, reason);
+            dispatch_local_connect(ConnectStatusFailed, params.dev_id, reason);
         } else if (!ok && gen == m_lan_generation.load()) {
             BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: LAN MQTT initial attempt failed but worker is retrying"
                                        << " generation=" << gen << " connack_rc=" << conn->last_connack_rc();

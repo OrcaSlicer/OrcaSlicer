@@ -28,6 +28,7 @@
 #include <csignal>
 #include <atomic>
 #include <new>
+#include <optional>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -1614,6 +1615,10 @@ int CLI::run(int argc, char **argv)
     ConfigOptionBool* allow_rotations_option = m_config.option<ConfigOptionBool>("allow_rotations");
     if (allow_rotations_option)
         allow_rotations = allow_rotations_option->value;
+    // Only an explicit --align-to-y-axis overrides the printer-structure default.
+    std::optional<bool> align_to_y_axis;
+    if (m_given_option_keys.count("align_to_y_axis") > 0)
+        align_to_y_axis = m_config.opt_bool("align_to_y_axis");
 
     ConfigOptionBool* skip_modified_gcodes_option = m_config.option<ConfigOptionBool>("skip_modified_gcodes");
     if (skip_modified_gcodes_option)
@@ -5298,7 +5303,9 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
                     arrange_cfg.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
                 }
-                if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
+                if (align_to_y_axis.has_value()) {
+                    arrange_cfg.align_to_y_axis = *align_to_y_axis;
+                } else if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
@@ -5748,7 +5755,9 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
                     arrange_cfg.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
                 }
-                if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
+                if (align_to_y_axis.has_value()) {
+                    arrange_cfg.align_to_y_axis = *align_to_y_axis;
+                } else if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
@@ -7942,6 +7951,8 @@ bool CLI::setup(int argc, char **argv)
     // opens these files in post_init(), and a relative path would then resolve against that.
     for (std::string &input_file : m_input_files)
         input_file = resolve_cli_input_path(input_file);
+
+    m_given_option_keys.insert(opt_order.begin(), opt_order.end());
 
     // Parse actions and transform options.
     for (auto const &opt_key : opt_order) {

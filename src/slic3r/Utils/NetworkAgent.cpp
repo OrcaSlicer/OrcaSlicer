@@ -1,13 +1,10 @@
-#include <stdio.h>
+#include "NetworkAgent.hpp"
+
 #include <stdlib.h>
-#include <set>
-#include <algorithm>
 
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 #include "IPrinterAgent.hpp"
-#include "libslic3r/Utils.hpp"
-#include "NetworkAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
@@ -867,10 +864,10 @@ int NetworkAgent::command_axis_control(std::string dev_id, std::string axis, dou
     return -1;
 }
 
-int NetworkAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int NetworkAgent::connect_printer(const PrinterConnectionParams& params)
 {
     if (m_printer_agent)
-        return m_printer_agent->connect_printer(dev_id, dev_ip, username, password, use_ssl);
+        return m_printer_agent->connect_printer(params);
     return -1;
 }
 
