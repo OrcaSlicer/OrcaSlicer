@@ -10,7 +10,7 @@
 	"cooling_tube_length": "20",
 	"cooling_tube_retraction": "45",
 	"default_filament_profile": "Prusament PLA @CORE One MMU3",
-	"default_print_profile": "0.20mm Speed @COREONE0.4 + MMU3",
+	"default_print_profile": "0.20mm SPEED @COREONE0.4 + MMU3",
 	"extra_loading_move": "-52",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n",
 	"machine_end_gcode": "{if layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+1, max_print_height)} F720 ; Move print head up{endif}\nM140 S0 ; turn off heatbed\nM141 S0 ; disable chamber control\nM107 ; turn off fan\nG1 X242 Y211 F10200 ; park\n{if layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+50, max_print_height)} F720 ; Move bed down{endif}\nM702 ; unload the current filament\nM104 S0 ; turn off temperature\nG4 ; wait\nM572 S0 ; reset PA\nM84 X Y E ; disable motors\n; max_layer_z = [max_layer_z]",
