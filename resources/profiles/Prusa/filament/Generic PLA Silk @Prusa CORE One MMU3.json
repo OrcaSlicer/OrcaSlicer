@@ -1,10 +1,9 @@
 {
 	"type": "filament",
-	"name": "Prusa Generic TPU @CORE One MMU3",
-	"inherits": "Generic TPU @Prusa CORE One",
+	"name": "Generic PLA Silk @Prusa CORE One MMU3",
+	"inherits": "Generic PLA Silk @Prusa CORE One",
 	"from": "system",
-	"setting_id": "zitcdYvQA8XKzPP9",
-	"filament_id": "OFbenYUK",
+	"setting_id": "MMarDGtK4f7u78gA",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa CORE One MMU3 0.4 nozzle",
@@ -13,42 +12,42 @@
 		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"filament_cooling_final_speed": [
-		"3.4"
+		"3.5"
 	],
 	"filament_cooling_initial_speed": [
-		"2.2"
+		"10"
 	],
 	"filament_cooling_moves": [
-		"4"
+		"2"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard"
 	],
 	"filament_loading_speed": [
-		"28"
+		"10"
 	],
 	"filament_loading_speed_start": [
-		"3"
+		"50"
 	],
 	"filament_ramming_parameters": [
-		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
+		"250 100 40.1613 40.3548 40.4516 40.3548 40.2581| 0.05 40.1483 0.45 40.3419 0.95 40.3419 1.45 40.3419 1.95 40.3419 2.45 40.3419 2.95 40.3419 3.45 40.3419 3.95 40.3419 4.45 40.3419 4.95 40.3419"
 	],
 	"filament_stamping_distance": [
-		"0"
+		"45"
 	],
 	"filament_stamping_loading_speed": [
-		"0"
+		"29"
 	],
 	"filament_start_gcode": [
-		"M900 K0 ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+		"M572 S{if nozzle_diameter[0]==0.4}0.03{elsif nozzle_diameter[0]==0.5}0.022{elsif nozzle_diameter[0]==0.6}0.018{elsif nozzle_diameter[0]==0.8}0.012{elsif nozzle_diameter[0]==0.25}0.12{elsif nozzle_diameter[0]==0.3}0.075{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
 	],
 	"filament_unloading_speed": [
-		"90"
+		"40"
 	],
 	"filament_unloading_speed_start": [
-		"100"
+		"30"
 	],
 	"idle_temperature": [
-		"150"
+		"170"
 	]
 }

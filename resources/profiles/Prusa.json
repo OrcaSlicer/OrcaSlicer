@@ -1573,10 +1573,6 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Generic ABS @MMU3",
-			"sub_path": "filament/Generic ABS @MMU3.json"
-		},
-		{
 			"name": "Generic ABS @Prusa CORE One",
 			"sub_path": "filament/Generic ABS @Prusa CORE One.json"
 		},
@@ -1619,10 +1615,6 @@
 		{
 			"name": "Generic ABS HF @Prusa base",
 			"sub_path": "filament/Generic ABS HF @Prusa base.json"
-		},
-		{
-			"name": "Generic ASA @MMU3",
-			"sub_path": "filament/Generic ASA @MMU3.json"
 		},
 		{
 			"name": "Generic ASA @Prusa",
@@ -1725,10 +1717,6 @@
 			"sub_path": "filament/Generic TPU @Prusa CORE One.json"
 		},
 		{
-			"name": "Generic PA @MMU3",
-			"sub_path": "filament/Generic PA @MMU3.json"
-		},
-		{
 			"name": "Generic PA @Prusa MK3.5",
 			"sub_path": "filament/Generic PA @Prusa MK3.5.json"
 		},
@@ -1781,8 +1769,6 @@
 			"sub_path": "filament/Prusament PA-CF @XL 5T.json"
 		},
 		{
-			"name": "Generic PC @MMU3",
-			"sub_path": "filament/Generic PC @MMU3.json"
 			"name": "Prusament PA11 Carbon Fiber @MK3S",
 			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK3S.json"
 		},
@@ -1895,10 +1881,6 @@
 			"sub_path": "filament/Prusament PC-CF @XL 5T.json"
 		},
 		{
-			"name": "Generic PETG @MMU3",
-			"sub_path": "filament/Generic PETG @MMU3.json"
-		},
-		{
 			"name": "Generic PETG @Prusa CORE One",
 			"sub_path": "filament/Generic PETG @Prusa CORE One.json"
 		},
@@ -1961,10 +1943,6 @@
 		{
 			"name": "Prusament PETG @base",
 			"sub_path": "filament/Prusament PETG @base.json"
-		},
-		{
-			"name": "Generic PLA @MMU3",
-			"sub_path": "filament/Generic PLA @MMU3.json"
 		},
 		{
 			"name": "Generic PLA @Prusa CORE One",
@@ -2135,10 +2113,6 @@
 			"sub_path": "filament/Prusament PVB @XL 5T.json"
 		},
 		{
-			"name": "Generic TPU @MMU3",
-			"sub_path": "filament/Generic TPU @MMU3.json"
-		},
-		{
 			"name": "Generic TPU @Prusa MK3.5",
 			"sub_path": "filament/Generic TPU @Prusa MK3.5.json"
 		},
@@ -2183,8 +2157,8 @@
 			"sub_path": "filament/Generic ABS @Prusa CORE One HF 0.8.json"
 		},
 		{
-			"name": "Prusa Generic ABS @CORE One MMU3",
-			"sub_path": "filament/Prusa Generic ABS @CORE One MMU3.json"
+			"name": "Generic ABS @Prusa CORE One MMU3",
+			"sub_path": "filament/Generic ABS @Prusa CORE One MMU3.json"
 		},
 		{
 			"name": "Generic ABS @Prusa MK4S 0.6",
@@ -2267,8 +2241,8 @@
 			"sub_path": "filament/Generic ASA @Prusa CORE One HF 0.8.json"
 		},
 		{
-			"name": "Prusa Generic ASA @CORE One MMU3",
-			"sub_path": "filament/Prusa Generic ASA @CORE One MMU3.json"
+			"name": "Generic ASA @Prusa CORE One MMU3",
+			"sub_path": "filament/Generic ASA @Prusa CORE One MMU3.json"
 		},
 		{
 			"name": "Generic ASA @Prusa MK4S 0.6",
@@ -2321,6 +2295,8 @@
 		{
 			"name": "Prusament ASA @CORE One MMU3",
 			"sub_path": "filament/Prusament ASA @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament ASA @MK4S 0.6",
 			"sub_path": "filament/Prusament ASA @MK4S 0.6.json"
 		},
@@ -2353,8 +2329,8 @@
 			"sub_path": "filament/Generic TPU @Prusa CORE One 0.8.json"
 		},
 		{
-			"name": "Prusa Generic TPU @CORE One MMU3",
-			"sub_path": "filament/Prusa Generic TPU @CORE One MMU3.json"
+			"name": "Generic TPU @Prusa CORE One MMU3",
+			"sub_path": "filament/Generic TPU @Prusa CORE One MMU3.json"
 		},
 		{
 			"name": "Generic PA @Prusa",
@@ -2407,6 +2383,8 @@
 		{
 			"name": "Prusament PA-CF @CORE One MMU3",
 			"sub_path": "filament/Prusament PA-CF @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament PA11 Carbon Fiber @MK4S 0.6",
 			"sub_path": "filament/Prusament PA11 Carbon Fiber @MK4S 0.6.json"
 		},
@@ -2469,6 +2447,8 @@
 		{
 			"name": "Prusament PC Blend @CORE One MMU3",
 			"sub_path": "filament/Prusament PC Blend @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament PC Blend @MK4S 0.6",
 			"sub_path": "filament/Prusament PC Blend @MK4S 0.6.json"
 		},
@@ -2503,6 +2483,8 @@
 		{
 			"name": "Prusament PC-CF @CORE One MMU3",
 			"sub_path": "filament/Prusament PC-CF @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament PC Blend Carbon Fiber @MK4S 0.6",
 			"sub_path": "filament/Prusament PC Blend Carbon Fiber @MK4S 0.6.json"
 		},
@@ -2551,8 +2533,8 @@
 			"sub_path": "filament/Generic PETG @Prusa CORE One HF 0.8.json"
 		},
 		{
-			"name": "Prusa Generic PETG @CORE One MMU3",
-			"sub_path": "filament/Prusa Generic PETG @CORE One MMU3.json"
+			"name": "Generic PETG @Prusa CORE One MMU3",
+			"sub_path": "filament/Generic PETG @Prusa CORE One MMU3.json"
 		},
 		{
 			"name": "Generic PETG @Prusa MK4S 0.6",
@@ -2637,6 +2619,8 @@
 		{
 			"name": "Prusament PETG @CORE One MMU3",
 			"sub_path": "filament/Prusament PETG @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament PETG @MK4S 0.6",
 			"sub_path": "filament/Prusament PETG @MK4S 0.6.json"
 		},
@@ -2693,8 +2677,8 @@
 			"sub_path": "filament/Generic PLA @Prusa CORE One HF 0.8.json"
 		},
 		{
-			"name": "Prusa Generic PLA @CORE One MMU3",
-			"sub_path": "filament/Prusa Generic PLA @CORE One MMU3.json"
+			"name": "Generic PLA @Prusa CORE One MMU3",
+			"sub_path": "filament/Generic PLA @Prusa CORE One MMU3.json"
 		},
 		{
 			"name": "Generic PLA @Prusa MK4S 0.6",
@@ -2765,8 +2749,8 @@
 			"sub_path": "filament/Generic PLA Silk @Prusa CORE One 0.8.json"
 		},
 		{
-			"name": "Prusa Generic PLA Silk @CORE One MMU3",
-			"sub_path": "filament/Prusa Generic PLA Silk @CORE One MMU3.json"
+			"name": "Generic PLA Silk @Prusa CORE One MMU3",
+			"sub_path": "filament/Generic PLA Silk @Prusa CORE One MMU3.json"
 		},
 		{
 			"name": "Generic PLA-CF @Prusa",
@@ -2815,6 +2799,8 @@
 		{
 			"name": "Prusament PLA @CORE One MMU3",
 			"sub_path": "filament/Prusament PLA @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament PLA @MK4S 0.6",
 			"sub_path": "filament/Prusament PLA @MK4S 0.6.json"
 		},
@@ -2857,6 +2843,8 @@
 		{
 			"name": "Prusament rPLA @CORE One MMU3",
 			"sub_path": "filament/Prusament rPLA @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament rPLA @MK4S 0.6",
 			"sub_path": "filament/Prusament rPLA @MK4S 0.6.json"
 		},
@@ -2931,6 +2919,8 @@
 		{
 			"name": "Prusament PVB @CORE One MMU3",
 			"sub_path": "filament/Prusament PVB @CORE One MMU3.json"
+		},
+		{
 			"name": "Prusament PVB @MK4S 0.6",
 			"sub_path": "filament/Prusament PVB @MK4S 0.6.json"
 		},
@@ -3033,14 +3023,6 @@
 		{
 			"name": "Generic PLA Silk @Prusa MK4S 0.8",
 			"sub_path": "filament/Generic PLA Silk @Prusa MK4S 0.8.json"
-		},
-		{
-			"name": "Generic PCTG @MMU3",
-			"sub_path": "filament/Generic PCTG @MMU3.json"
-		},
-		{
-			"name": "Generic PLA Silk @MMU3",
-			"sub_path": "filament/Generic PLA Silk @MMU3.json"
 		}
 	],
 	"machine_list": [

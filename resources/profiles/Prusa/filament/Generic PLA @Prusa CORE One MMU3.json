@@ -1,10 +1,9 @@
 {
 	"type": "filament",
-	"name": "Prusa Generic PLA Silk @CORE One MMU3",
-	"inherits": "Generic PLA Silk @Prusa CORE One",
+	"name": "Generic PLA @Prusa CORE One MMU3",
+	"inherits": "Generic PLA @Prusa CORE One",
 	"from": "system",
-	"setting_id": "7l9NrAHAynKreE34",
-	"filament_id": "OFHFZ1Te",
+	"setting_id": "haNaA1KFlYeqtfIg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa CORE One MMU3 0.4 nozzle",
@@ -40,7 +39,7 @@
 		"29"
 	],
 	"filament_start_gcode": [
-		"M572 S{if nozzle_diameter[0]==0.4}0.03{elsif nozzle_diameter[0]==0.5}0.022{elsif nozzle_diameter[0]==0.6}0.018{elsif nozzle_diameter[0]==0.8}0.012{elsif nozzle_diameter[0]==0.25}0.12{elsif nozzle_diameter[0]==0.3}0.075{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+		"M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.03{elsif nozzle_diameter[filament_extruder_id]==0.5}0.022{elsif nozzle_diameter[filament_extruder_id]==0.6}0.019{elsif nozzle_diameter[filament_extruder_id]==0.8}0.013{elsif nozzle_diameter[filament_extruder_id]==0.25}0.1{elsif nozzle_diameter[filament_extruder_id]==0.3}0.07{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
 	],
 	"filament_unloading_speed": [
 		"40"
