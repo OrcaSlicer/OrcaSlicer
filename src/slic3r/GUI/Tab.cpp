@@ -7542,8 +7542,9 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
             wxGetApp().get_tab(preset_type)->update_tab_ui();
     }
 
-    // update preset comboboxes in DiffPresetDlg
-    if (DiffPresetDialog* diff_dialog = DiffPresetDialog::if_built())
+    // show() reloads the presets, so only a visible Compare dialog needs updating.
+    DiffPresetDialog* diff_dialog = DiffPresetDialog::if_built();
+    if (diff_dialog != nullptr && diff_dialog->IsShown())
         diff_dialog->update_presets(m_type);
 }
 

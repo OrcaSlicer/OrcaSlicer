@@ -79,7 +79,8 @@ The Compare presets dialog is a holder without a page. `MainFrame` keeps a
 `Lazy<DiffPresetDialog>` whose factory constructs the dialog and binds its events, the
 dialog derives from `LazyInstance`, and its callers use
 `DiffPresetDialog::ensure()->show()` and `DiffPresetDialog::if_built()` like a tab's
-callers do.
+callers do. Saving a preset refreshes the dialog only while it is shown, since `show()`
+reloads the presets.
 
 ### StagedBuild: construction in units
 
