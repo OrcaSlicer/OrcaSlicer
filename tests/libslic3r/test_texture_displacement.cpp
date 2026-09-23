@@ -694,10 +694,10 @@ TEST_CASE("TextureDisplacement: feature-adaptive subdivision follows curvature, 
                      (its.vertices[t[0]].y() + its.vertices[t[1]].y() + its.vertices[t[2]].y()) / 3.f);
     };
 
-    SECTION("a sharp bump refines densely at its center and leaves flat corners coarse")
+    SECTION("a sharp hill refines densely at its center and leaves flat corners coarse")
     {
-        // A tight Gaussian bump at the sheet's center: strong curvature near (0.5, 0.5), flat far away.
-        HeightFieldSampler bump = [](const Vec3f &p, const Vec3f &) {
+        // A tight Gaussian hill at the sheet's center: strong curvature near (0.5, 0.5), flat far away.
+        HeightFieldSampler hill = [](const Vec3f &p, const Vec3f &) {
             const float r2 = (p.x() - 0.5f) * (p.x() - 0.5f) + (p.y() - 0.5f) * (p.y() - 0.5f);
             return 1.0f * std::exp(-r2 / 0.02f);
         };
@@ -706,12 +706,12 @@ TEST_CASE("TextureDisplacement: feature-adaptive subdivision follows curvature, 
         // here - this isolates the *curvature* contribution (the grid already meets the baseline).
         std::vector<int>           source;
         const indexed_triangle_set out =
-            subdivide_mesh_adaptive(grid, region, /*max edge*/ 0.3f, 200000, &source, bump, /*tol*/ 0.02f,
+            subdivide_mesh_adaptive(grid, region, /*max edge*/ 0.3f, 200000, &source, hill, /*tol*/ 0.02f,
                                     /*min_edge*/ 0.01f);
 
-        CHECK(out.indices.size() > grid.indices.size()); // the bump forced real refinement
+        CHECK(out.indices.size() > grid.indices.size()); // the hill forced real refinement
 
-        // The largest triangle near the bump's center must be much smaller than the largest in a flat
+        // The largest triangle near the hill's center must be much smaller than the largest in a flat
         // corner - i.e. triangles went where the curvature is, not spread evenly.
         float near_max = 0.f, far_max = 0.f;
         for (const auto &t : out.indices) {
@@ -1140,9 +1140,9 @@ TEST_CASE("TextureDisplacement: the step cutter turns a stepped field into walls
 
 TEST_CASE("TextureDisplacement: the step cutter passes a smooth field through untouched", "[TextureDisplacement]")
 {
-    // A wide bump: its mid-level contour runs through the sheet, but nowhere is it a step, so there is
+    // A wide hill: its mid-level contour runs through the sheet, but nowhere is it a step, so there is
     // nothing to cut - refinement is the right tool for it.
-    const HeightFieldSampler   bump = [](const Vec3f &p, const Vec3f &) {
+    const HeightFieldSampler   hill = [](const Vec3f &p, const Vec3f &) {
         const float r2 = (p.x() - 3.f) * (p.x() - 3.f) + (p.y() - 3.f) * (p.y() - 3.f);
         return 0.4f * std::exp(-r2 / 3.f);
     };
@@ -1151,7 +1151,7 @@ TEST_CASE("TextureDisplacement: the step cutter passes a smooth field through un
 
     std::vector<int>           source;
     size_t                     cuts = 0;
-    const indexed_triangle_set out  = cut_mesh_at_steps(sheet, region, bump, 0.05f, 0.075f, 0.f, &source, &cuts);
+    const indexed_triangle_set out  = cut_mesh_at_steps(sheet, region, hill, 0.05f, 0.075f, 0.f, &source, &cuts);
 
     CHECK(cuts == 0);
     CHECK(out.indices.size() == sheet.indices.size());
@@ -1363,7 +1363,7 @@ TEST_CASE("TextureDisplacement: edge flips lay a stepped field's wall along the 
 // Automatic resolution (v2 pipeline)
 // ---------------------------------------------------------------------------------------------
 
-TEST_CASE("TextureDisplacement: automatic resolution follows the model's size like bumpmesh.com", "[TextureDisplacement]")
+TEST_CASE("TextureDisplacement: automatic resolution follows the model's size", "[TextureDisplacement]")
 {
     // A 20 mm cube: diagonal 34.64 mm, so diagonal / 250 = 0.1386 mm, rounded up to 0.14.
     const indexed_triangle_set cube = its_make_cube(20.f, 20.f, 20.f);

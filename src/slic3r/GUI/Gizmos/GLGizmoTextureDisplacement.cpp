@@ -79,7 +79,7 @@ constexpr int THUMBNAIL_MAX_PX = 128;
 // Everything above is about drawing a ~48 px panel row, and none of it applies to the height texture
 // the fast-preview *shader* samples: that one is magnified across the model, not minified into a
 // row, and every texel it loses is relief the preview cannot show. It gets its own upload at (up to)
-// this size, so the bump preview reads the same height field the bake does instead of a 128 px box
+// this size, so the shaded preview reads the same height field the bake does instead of a 128 px box
 // blur of it - which is what made Fast look flatter and softer than the result it was previewing.
 constexpr int HEIGHT_TEX_MAX_PX = 2048;
 
@@ -224,11 +224,11 @@ constexpr int PALETTE_LUT_EDGE = 24;
 
 // Ceiling on the printable palette, which bounds that fill cost (and the shader's uniform array).
 constexpr int PALETTE_MAX_ENTRIES = 64;
-// Ceiling on the filaments the palette's entries can refer to (the bump shader's filament_rgb[]);
+// Ceiling on the filaments the palette's entries can refer to (the shaded preview shader's filament_rgb[]);
 // mmu segmentation stops at Extruder16 anyway.
 constexpr int PALETTE_MAX_FILAMENTS = 16;
 
-// sRGB (0..1) <-> CIELAB, D65. Exactly what the bump shader's srgb_to_lab() computes, so the CPU
+// sRGB (0..1) <-> CIELAB, D65. Exactly what the preview shader's srgb_to_lab() computes, so the CPU
 // quantizer, the mixed-palette entries and the per-fragment preview all match in the same space.
 // Not slic3r/Utils/ColorSpaceConvert: its RGB2Lab wants 0..1 but its Lab2RGB hands back linear
 // values on a 0..100 scale, and the earlier code fed the former 0..255 and divided the latter by 255 -
@@ -390,10 +390,10 @@ void GLGizmoTextureDisplacement::on_shutdown()
 {
     m_parent.toggle_model_objects_visibility(true);
     m_preview_glmodel.reset();
-    m_bump_preview_glmodel.reset();
+    m_shaded_preview_glmodel.reset();
     m_paint_overlay_glmodel.reset();
     m_paint_overlay_dirty = false;
-    // Any preview still in flight is superseded: bumping the shared counter makes it abort at its next
+    // Any preview still in flight is superseded: raising the shared counter makes it abort at its next
     // progress poll, and its completion handler then finds nothing to do.
     m_preview_generation->fetch_add(1);
     m_preview_job_pending = false;
@@ -410,9 +410,9 @@ void GLGizmoTextureDisplacement::on_shutdown()
     m_subdivide_editing       = false;
     m_subdivide_preview_tris = -1;
     m_subdivide_preview_glmodel.reset();
-    m_bump_active_chart  = -1;
-    m_bump_active_face.clear();
-    m_bump_island_delta  = Eigen::Matrix<float, 2, 3>::Identity();
+    m_shaded_active_chart  = -1;
+    m_shaded_active_face.clear();
+    m_shaded_island_delta  = Eigen::Matrix<float, 2, 3>::Identity();
     m_island_drag_active = false;
     m_island_move_set.clear();
     m_adjust_texture_mode = false;
@@ -461,39 +461,38 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // so it wins the depth test on the coincident (unpainted) surface - keeping the familiar
     // enforcer/blocker highlight for precise brush editing there. Where the surface has actually
     // been displaced, the raised preview geometry legitimately occludes the flat overlay - that
-    // visible bump is itself the "this is painted" indicator in that area.
+    // visible relief is itself the "this is painted" indicator in that area.
     //
-    // The bump preview is different: it never actually moves geometry (it's a shading trick), so
+    // The shaded preview is different: it never actually moves geometry (it only shades), so
     // its depth is identical to the overlay's *everywhere*, not just in the unpainted area - the
-    // depth-biased opaque overlay would win the depth test across the whole surface and hide the bump
+    // depth-biased opaque overlay would win the depth test across the whole surface and hide the relief
     // shading entirely. So render_triangles() is skipped for it. What is *not* skipped is
-    // render_paint_overlay(): leaving the bump shading as the only paint feedback meant a stroke that
+    // render_paint_overlay(): leaving the shading as the only paint feedback meant a stroke that
     // erased paint, or added it with no texture picked, changed nothing on screen until the whole
     // preview rebuilt at stroke end - and in the true-displacement view the opaque overlay is hidden
     // by the raised surface for the same reason. The translucent tint covers both cases.
-    // Coalesced bump rebuild from an in-progress UV island drag (see on_island_edited): done here, at
+    // Coalesced shaded-preview rebuild from an in-progress UV island drag (see on_island_edited): done here, at
     // most once per drawn frame, rather than synchronously in the UV canvas's mouse-move handler.
-    if (m_use_bump_preview && m_bump_preview_dirty) {
-        rebuild_bump_preview_mesh();
-        m_bump_preview_dirty = false;
+    if (m_use_shaded_preview && m_shaded_preview_dirty) {
+        rebuild_shaded_preview_mesh();
+        m_shaded_preview_dirty = false;
     }
     // Same coalescing for the paint tint, but on its own flag: a stroke marks this every mouse move
-    // (see on_mouse()) and it only costs the painted patch, whereas the bump mesh also carries every
-    // unpainted triangle of the volume and stays on the stroke-end cadence.
+    // (see on_mouse()) and it only costs the painted patch
     if (m_paint_overlay_dirty) {
         rebuild_paint_overlay();
         m_paint_overlay_dirty = false;
     }
     rebuild_other_paint_overlay(); // a no-op unless another layer's paint, the active layer or the preview changed
-    // is_initialized() alone is not enough: render_bump_preview_mesh() also needs an active layer
+    // is_initialized() alone is not enough: render_shaded_preview_mesh() also needs an active layer
     // with a decoded texture and a compiled shader, and bails silently without them. Hiding the real
-    // volume for a bump pass that then draws nothing is what made the model vanish - most obviously
+    // volume for a shaded pass that then draws nothing is what made the model vanish - most obviously
     // with zero layers, but equally with a layer that has no texture picked yet.
-    const bool use_bump = m_use_bump_preview && m_bump_preview_glmodel.is_initialized() && bump_preview_ready();
-    const bool use_true_preview = !use_bump && m_preview_glmodel.is_initialized();
+    const bool use_shaded = m_use_shaded_preview && m_shaded_preview_glmodel.is_initialized() && shaded_preview_ready();
+    const bool use_true_preview = !use_shaded && m_preview_glmodel.is_initialized();
     // In Checker/Distortion mode the UV-check overlay *is* the surface visualization the user is
     // looking at, so the opaque paint-selection highlight must not be drawn on top of it - same
-    // reasoning as skipping it for the bump preview (see bug #12). Without this the painted area
+    // reasoning as skipping it for the shaded preview (see bug #12). Without this the painted area
     // covers the checker/heatmap and it can't be seen.
     const bool show_paint_overlay = m_uv_check_mode == UVCheckMode::None;
 
@@ -501,14 +500,14 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // put it back. Getting this wrong leaves an invisible model, so it is decided once, here, rather
     // than per branch below.
     m_parent.toggle_model_objects_visibility(true);
-    if (use_bump || use_true_preview) {
+    if (use_shaded || use_true_preview) {
         if (ModelVolume *mv = texture_volume())
             m_parent.toggle_model_objects_visibility(false, m_c->selection_info()->model_object(),
                                                       m_c->selection_info()->get_active_instance(), mv);
     }
 
-    if (use_bump) {
-        render_bump_preview_mesh();
+    if (use_shaded) {
+        render_shaded_preview_mesh();
     } else if (use_true_preview) {
         render_preview_mesh();
 
@@ -527,11 +526,11 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     if (show_paint_overlay)
         render_paint_overlay(m_other_paint_glmodel);
 
-    // The translucent paint tint. Needed in the bump view because the opaque highlight above is
+    // The translucent paint tint. Needed in the shaded view because the opaque highlight above is
     // skipped there, and in the true-displacement view because the displaced surface rises *above*
     // the undisplaced overlay geometry and hides it exactly where the relief is strongest - in both
     // cases leaving an erase stroke with no visible effect until the next full preview rebuild.
-    if (show_paint_overlay && (use_bump || use_true_preview))
+    if (show_paint_overlay && (use_shaded || use_true_preview))
         render_paint_overlay(m_paint_overlay_glmodel);
 
     // The UV editor's island selection, shown on the model. Polled here rather than pushed: the pane
@@ -1123,9 +1122,9 @@ std::vector<Vec2f> GLGizmoTextureDisplacement::compute_layer_corner_uvs(const in
     return corner;
 }
 
-void GLGizmoTextureDisplacement::rebuild_bump_preview_mesh()
+void GLGizmoTextureDisplacement::rebuild_shaded_preview_mesh()
 {
-    m_bump_preview_glmodel.reset();
+    m_shaded_preview_glmodel.reset();
 
     const ModelVolume *mv = texture_volume();
     if (mv == nullptr || m_triangle_selectors.empty())
@@ -1141,13 +1140,13 @@ void GLGizmoTextureDisplacement::rebuild_bump_preview_mesh()
     // No "patch.vertices.size() == mesh vertex count" check here, and that is the point: a *brush*
     // stroke splits triangles, so the selector appends split vertices and the patch array is longer
     // than the mesh's. An earlier version bailed out on that as "shouldn't happen", which meant the
-    // bump model was never built while brushing and render_painter_gizmo() silently fell back to the
+    // shaded model was never built while brushing and render_painter_gizmo() silently fell back to the
     // Normal (true-displacement) preview - Fast looked broken for brush and fine for Face/Connected
     // area, because only the brush splits. Everything below indexes the patch's own vertex array, so
     // the extra vertices are simply carried through.
 
     // Unpainted triangles, so the surrounding surface still renders (the render path hides the real
-    // model in bump mode). get_facets_strict() returns the same vertex array whatever state is asked.
+    // model in shaded mode). get_facets_strict() returns the same vertex array whatever state is asked.
     const indexed_triangle_set rest = m_triangle_selectors[0]->get_facets_strict(EnforcerBlockerType::NONE);
 
     // For LSCM we hand the shader the finished per-vertex texture uv (island placement + tiling/
@@ -1159,22 +1158,22 @@ void GLGizmoTextureDisplacement::rebuild_bump_preview_mesh()
     // carry its own chart's UVs - see compute_layer_corner_uvs().
     const TextureDisplacementLayer *active = active_layer();
     std::vector<Vec2f> corner_uv = active != nullptr ? compute_layer_corner_uvs(patch, *active) : std::vector<Vec2f>{};
-    m_bump_preview_uses_vertex_uv = corner_uv.size() == patch.indices.size() * 3;
-    if (!m_bump_preview_uses_vertex_uv)
+    m_shaded_preview_uses_vertex_uv = corner_uv.size() == patch.indices.size() * 3;
+    if (!m_shaded_preview_uses_vertex_uv)
         corner_uv.clear();
-    m_bump_projection_mode = (active != nullptr && !m_bump_preview_uses_vertex_uv) ?
-                                 layer_projection_frame(patch, *active, m_bump_patch_center, m_bump_patch_axis) : 0;
+    m_shaded_projection_mode = (active != nullptr && !m_shaded_preview_uses_vertex_uv) ?
+                                 layer_projection_frame(patch, *active, m_shaded_patch_center, m_shaded_patch_axis) : 0;
 
     // Which triangles the in-flight UV drag moves. Computed here, against the very patch this mesh is
     // built from, so the flags can never be indexed by a different triangle count than they were sized
     // for (the drag starts from the flushed facet data, a brush stroke changes the live selector).
-    compute_bump_active_faces(m_bump_active_chart >= 0 ? m_island_move_set : std::vector<int>{}, patch.indices.size());
+    compute_shaded_active_faces(m_shaded_active_chart >= 0 ? m_island_move_set : std::vector<int>{}, patch.indices.size());
 
     // Colour is quantized per *fragment* in the shader now (see the .fs), so this mesh carries no
     // colour of its own - the palette and the colour texture are uniforms, and every pixel matches the
     // image rather than the facet it landed on. What the *bake* will produce, at facet resolution, is
     // what the Normal view shows.
-    m_bump_preview_palette = (active != nullptr && active->color_enabled) ? cached_palette()
+    m_shaded_preview_palette = (active != nullptr && active->color_enabled) ? cached_palette()
                                                                          : std::vector<PaletteEntry>{};
 
     GLModel::Geometry init_data;
@@ -1186,7 +1185,7 @@ void GLGizmoTextureDisplacement::rebuild_bump_preview_mesh()
     // painted face of a raw cube has no strictly-interior vertex (all 8 are shared), so per-vertex
     // weighting would either bleed onto the neighbours (boundary weight 1) or vanish outright (boundary
     // weight 0, which is what made a single face show nothing). Duplicating vertices costs no shading
-    // quality here because the bump shader takes its surface normal from screen-space derivatives of
+    // quality here because the preview shader takes its surface normal from screen-space derivatives of
     // position (dFdx/dFdy), not from a per-vertex normal. normal.y flags the UV-editor island being
     // dragged so the shader can move just that island via the island_delta uniform.
     const size_t   tri_total = patch.indices.size() + rest.indices.size();
@@ -1198,10 +1197,10 @@ void GLGizmoTextureDisplacement::rebuild_bump_preview_mesh()
             const stl_triangle_vertex_indices &tri = its.indices[f];
             // One value for the whole triangle: island_active is an interpolated varying, so the three
             // corners have to agree or the shader moves part of a triangle and not the rest.
-            const float act = (painted && f < m_bump_active_face.size() && m_bump_active_face[f]) ? 1.f : 0.f;
+            const float act = (painted && f < m_shaded_active_face.size() && m_shaded_active_face[f]) ? 1.f : 0.f;
             for (int i = 0; i < 3; ++i) {
                 const int   idx = tri[i];
-                const Vec2f uv  = (painted && m_bump_preview_uses_vertex_uv) ? corner_uv[f * 3 + size_t(i)]
+                const Vec2f uv  = (painted && m_shaded_preview_uses_vertex_uv) ? corner_uv[f * 3 + size_t(i)]
                                                                              : Vec2f::Zero();
                 init_data.add_vertex(its.vertices[size_t(idx)], Vec3f(weight, act, 0.f), uv);
             }
@@ -1209,50 +1208,50 @@ void GLGizmoTextureDisplacement::rebuild_bump_preview_mesh()
             vcount += 3;
         }
     };
-    emit_triangles(patch, 1.f, true); // painted -> bumped, and coloured by the shader
-    // Untouched surface: flat, so it still shows but isn't bumped - and uncoloured, which is what the
+    emit_triangles(patch, 1.f, true); // painted -> shaded as relief, and coloured by the shader
+    // Untouched surface: flat, so it still shows but carries no relief - and uncoloured, which is what the
     // bake leaves it as (EnforcerBlockerType::NONE, i.e. the volume's own filament).
     emit_triangles(rest, 0.f, false);
 
-    m_bump_preview_glmodel.init_from(std::move(init_data));
+    m_shaded_preview_glmodel.init_from(std::move(init_data));
     // GLModel::render() unconditionally re-sets the shader's "uniform_color" from this internal
     // color field right before drawing (see GLModel.cpp) - setting the uniform manually in
-    // render_bump_preview_mesh() would just get overwritten by it, so it must be set here instead.
+    // render_shaded_preview_mesh() would just get overwritten by it, so it must be set here instead.
     // GLModel::Geometry defaults to BLACK, which is exactly what showed up before this was added.
-    m_bump_preview_glmodel.set_color(GLVolume::NEUTRAL_COLOR);
+    m_shaded_preview_glmodel.set_color(GLVolume::NEUTRAL_COLOR);
 
     // The mesh now reflects the islands' current placement, so any live drag delta is measured from
     // here: reset it to identity and record the dragged island's baked transform.
-    m_bump_island_delta = Eigen::Matrix<float, 2, 3>::Identity();
+    m_shaded_island_delta = Eigen::Matrix<float, 2, 3>::Identity();
     const TextureDisplacementLayer *al = active_layer();
-    if (m_bump_active_chart >= 0 && al != nullptr) {
+    if (m_shaded_active_chart >= 0 && al != nullptr) {
         const std::vector<Eigen::Matrix<float, 2, 3>> xf = uv_editor_island_transforms(*al);
-        m_bump_baked_active_xf = (size_t(m_bump_active_chart) < xf.size()) ? xf[size_t(m_bump_active_chart)]
+        m_shaded_baked_active_xf = (size_t(m_shaded_active_chart) < xf.size()) ? xf[size_t(m_shaded_active_chart)]
                                                                            : Eigen::Matrix<float, 2, 3>::Identity();
     } else {
-        m_bump_baked_active_xf = Eigen::Matrix<float, 2, 3>::Identity();
+        m_shaded_baked_active_xf = Eigen::Matrix<float, 2, 3>::Identity();
     }
 }
 
-void GLGizmoTextureDisplacement::compute_bump_active_faces(const std::vector<int> &charts, size_t patch_face_count)
+void GLGizmoTextureDisplacement::compute_shaded_active_faces(const std::vector<int> &charts, size_t patch_face_count)
 {
-    m_bump_active_face.clear();
+    m_shaded_active_face.clear();
     if (charts.empty() || patch_face_count == 0)
         return;
     const PatchUnwrap &u = m_uv_editor_unwrap;
     if (u.source_face.size() != u.indices.size())
         return;
-    m_bump_active_face.assign(patch_face_count, 0);
+    m_shaded_active_face.assign(patch_face_count, 0);
     // Flag every triangle of every chart being moved. For a group/multi move that is more than one
     // chart, but since such a move is a pure translation the shader applies the same delta to them all
     // (see on_island_edited) - exactly the "joined islands move together" behaviour.
     for (size_t t = 0; t < u.indices.size(); ++t) {
         const int f  = u.source_face[t];
         const int v0 = u.indices[t][0]; // a triangle lies in one chart, so any corner names it
-        if (f < 0 || size_t(f) >= m_bump_active_face.size() || v0 < 0 || size_t(v0) >= u.vertex_chart.size())
+        if (f < 0 || size_t(f) >= m_shaded_active_face.size() || v0 < 0 || size_t(v0) >= u.vertex_chart.size())
             continue;
         if (std::find(charts.begin(), charts.end(), u.vertex_chart[size_t(v0)]) != charts.end())
-            m_bump_active_face[size_t(f)] = 1;
+            m_shaded_active_face[size_t(f)] = 1;
     }
 }
 
@@ -1313,11 +1312,11 @@ std::vector<int> GLGizmoTextureDisplacement::build_island_move_set(const Texture
     return set;
 }
 
-void GLGizmoTextureDisplacement::render_bump_preview_mesh()
+void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
 {
     const ModelObject *mo = m_c->selection_info()->model_object();
     const ModelVolume  *mv = texture_volume();
-    if (mo == nullptr || mv == nullptr || !m_bump_preview_glmodel.is_initialized())
+    if (mo == nullptr || mv == nullptr || !m_shaded_preview_glmodel.is_initialized())
         return;
 
     const TextureDisplacementLayer *layer = active_layer();
@@ -1334,7 +1333,7 @@ void GLGizmoTextureDisplacement::render_bump_preview_mesh()
     if (tex == nullptr || tex->get_width() <= 0 || tex->get_height() <= 0)
         return;
 
-    GLShaderProgram *shader = wxGetApp().get_shader("texture_displacement_bump");
+    GLShaderProgram *shader = wxGetApp().get_shader("texture_displacement_shaded");
     if (shader == nullptr)
         return;
 
@@ -1401,14 +1400,14 @@ void GLGizmoTextureDisplacement::render_bump_preview_mesh()
     shader->set_uniform("tex_anchor", Vec3f(tex_anchor.cast<float>()));
     shader->set_uniform("eye_model_pos", Vec3f((camera.get_position() - tex_anchor).cast<float>()));
     // When set, the shader samples at the per-vertex uv baked into the mesh (LSCM) rather than
-    // projecting; see rebuild_bump_preview_mesh().
-    shader->set_uniform("use_vertex_uv", m_bump_preview_uses_vertex_uv);
+    // projecting; see rebuild_shaded_preview_mesh().
+    shader->set_uniform("use_vertex_uv", m_shaded_preview_uses_vertex_uv);
     // Cylindrical/Spherical wrap around the painted patch's own centre, which no fragment can derive:
-    // captured with the mesh (see rebuild_bump_preview_mesh()) and handed over here. 0 is the planar
+    // captured with the mesh (see rebuild_shaded_preview_mesh()) and handed over here. 0 is the planar
     // projection every other in-shader path uses.
-    shader->set_uniform("projection_mode", m_bump_projection_mode);
-    shader->set_uniform("patch_center", m_bump_patch_center);
-    shader->set_uniform("patch_axis", m_bump_patch_axis);
+    shader->set_uniform("projection_mode", m_shaded_projection_mode);
+    shader->set_uniform("patch_center", m_shaded_patch_center);
+    shader->set_uniform("patch_axis", m_shaded_patch_axis);
 
     // The filament palette the mesh's per-triangle indices refer to. Count 0 means "no layer is
     // colouring", and the shader keeps the model's own colour for every fragment.
@@ -1416,13 +1415,13 @@ void GLGizmoTextureDisplacement::render_bump_preview_mesh()
     // matched on the CPU because the quantization is per fragment here.
     const GLTexture *color_tex = get_layer_color_texture(*layer);
     const int        palette_count =
-        (color_tex != nullptr) ? int(std::min(m_bump_preview_palette.size(), size_t(PALETTE_MAX_ENTRIES))) : 0;
+        (color_tex != nullptr) ? int(std::min(m_shaded_preview_palette.size(), size_t(PALETTE_MAX_ENTRIES))) : 0;
     shader->set_uniform("palette_count", palette_count);
     shader->set_uniform("has_color_tex", color_tex != nullptr);
     // A flat-colour image is matched against single filaments only, as the bake does.
     shader->set_uniform("pure_only", color_tex != nullptr && analyze_texture_detail(*layer).flat_colors);
     for (int i = 0; i < palette_count; ++i) {
-        const PaletteEntry &e   = m_bump_preview_palette[size_t(i)];
+        const PaletteEntry &e   = m_shaded_preview_palette[size_t(i)];
         const std::string   idx = "[" + std::to_string(i) + "]";
         shader->set_uniform(("palette_rgb" + idx).c_str(), e.rgb);
         shader->set_uniform(("palette_lab" + idx).c_str(), srgb_to_lab(e.rgb));
@@ -1434,7 +1433,7 @@ void GLGizmoTextureDisplacement::render_bump_preview_mesh()
     }
     // The filaments those indices refer to, and the interleave the shader resolves a mix with - the
     // same inputs make_mix_resolver() gets, so the preview shows the pattern that prints rather than
-    // the mix's smooth average colour. m_palette_filaments is what m_bump_preview_palette was built from.
+    // the mix's smooth average colour. m_palette_filaments is what m_shaded_preview_palette was built from.
     const int filament_count =
         (palette_count > 0) ? int(std::min(m_palette_filaments.size(), size_t(PALETTE_MAX_FILAMENTS))) : 0;
     shader->set_uniform("filament_count", filament_count);
@@ -1453,18 +1452,18 @@ void GLGizmoTextureDisplacement::render_bump_preview_mesh()
     }
     // The live UV-editor island drag rides this 2x3 affine (identity except mid-drag); only the flagged
     // island's vertices apply it, so a drag is a uniform update rather than a mesh rebuild.
-    const Eigen::Matrix<float, 2, 3> &d = m_bump_island_delta;
+    const Eigen::Matrix<float, 2, 3> &d = m_shaded_island_delta;
     shader->set_uniform("island_delta_lin", std::array<float, 4>{ d(0, 0), d(0, 1), d(1, 0), d(1, 1) });
     shader->set_uniform("island_delta_tr", Vec2f(d(0, 2), d(1, 2)));
-    m_bump_preview_glmodel.render();
+    m_shaded_preview_glmodel.render();
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     shader->stop_using();
 }
 
-bool GLGizmoTextureDisplacement::bump_preview_ready() const
+bool GLGizmoTextureDisplacement::shaded_preview_ready() const
 {
-    // Mirrors render_bump_preview_mesh()'s own preconditions. Kept as a separate query because the
-    // caller has to know whether the bump pass will draw *before* it hides the real volume for it.
+    // Mirrors render_shaded_preview_mesh()'s own preconditions. Kept as a separate query because the
+    // caller has to know whether the shaded pass will draw *before* it hides the real volume for it.
     if (m_c->selection_info() == nullptr || m_c->selection_info()->model_object() == nullptr)
         return false;
     if (texture_volume() == nullptr)
@@ -1472,12 +1471,12 @@ bool GLGizmoTextureDisplacement::bump_preview_ready() const
     const TextureDisplacementLayer *layer = active_layer();
     if (layer == nullptr || layer->empty())
         return false;
-    // The same texture render_bump_preview_mesh() will bind, not the panel thumbnail - the two are
+    // The same texture render_shaded_preview_mesh() will bind, not the panel thumbnail - the two are
     // separate caches and either can fail on its own.
     const GLTexture *tex = const_cast<GLGizmoTextureDisplacement *>(this)->get_layer_height_texture(*layer);
     if (tex == nullptr || tex->get_width() <= 0 || tex->get_height() <= 0)
         return false;
-    return wxGetApp().get_shader("texture_displacement_bump") != nullptr;
+    return wxGetApp().get_shader("texture_displacement_shaded") != nullptr;
 }
 
 // Appends a painted patch to an overlay, lifted onto the displaced surface where that has the base mesh's
@@ -1502,7 +1501,7 @@ void GLGizmoTextureDisplacement::rebuild_other_paint_overlay()
     // displaced positions it is lifted onto. Compared every frame, rebuilt only when it differs.
     std::string key;
     if (mv != nullptr) {
-        key = std::to_string(mv->id().id) + ":" + std::to_string(m_active_layer_slot) + (m_use_bump_preview ? ":b:" : ":t:") +
+        key = std::to_string(mv->id().id) + ":" + std::to_string(m_active_layer_slot) + (m_use_shaded_preview ? ":b:" : ":t:") +
               std::to_string(reinterpret_cast<uintptr_t>(m_preview_its.vertices.data())) + ":" +
               std::to_string(m_preview_its.vertices.size());
         for (const TextureDisplacementLayer &l : mv->texture_displacement_layers)
@@ -1517,7 +1516,7 @@ void GLGizmoTextureDisplacement::rebuild_other_paint_overlay()
         return;
 
     const std::vector<Vec3f> *displaced = nullptr;
-    if (!m_use_bump_preview && m_preview_its.vertices.size() == mv->mesh().its.vertices.size() &&
+    if (!m_use_shaded_preview && m_preview_its.vertices.size() == mv->mesh().its.vertices.size() &&
         !m_preview_its.vertices.empty())
         displaced = &m_preview_its.vertices;
 
@@ -1559,7 +1558,7 @@ void GLGizmoTextureDisplacement::rebuild_paint_overlay()
     // the brush split live past the end of that array and keep their flat position; they sit on the
     // patch boundary, where the displacement is smallest anyway.
     const std::vector<Vec3f> *displaced = nullptr;
-    if (!m_use_bump_preview && m_preview_its.vertices.size() == mv->mesh().its.vertices.size() &&
+    if (!m_use_shaded_preview && m_preview_its.vertices.size() == mv->mesh().its.vertices.size() &&
         !m_preview_its.vertices.empty())
         displaced = &m_preview_its.vertices;
 
@@ -1592,7 +1591,7 @@ void GLGizmoTextureDisplacement::render_paint_overlay(GLModel &overlay)
     shader->set_uniform("view_model_matrix", camera.get_view_matrix() * trafo_matrix);
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
     // Translucent, and pulled toward the camera so it wins the depth test against the coincident
-    // bump surface. Depth writes are off: this is a tint, and letting it own the depth buffer would
+    // shaded surface. Depth writes are off: this is a tint, and letting it own the depth buffer would
     // make the wireframe and seam overlays drawn after it fight with geometry that is not really
     // there. Blending is already enabled by render_painter_gizmo().
     glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
@@ -1703,7 +1702,7 @@ void GLGizmoTextureDisplacement::rebuild_uvcheck_mesh()
     m_uvcheck_uses_vertex_uv    = have_uvs;
     m_uvcheck_projection_mode   = have_uvs ? 0 :
                                       layer_projection_frame(patch, *layer, m_uvcheck_patch_center, m_uvcheck_patch_axis);
-    // Per corner as well, for the same reason the bump mesh takes them: under LSCM a seam vertex has a
+    // Per corner as well: under LSCM a seam vertex has a
     // different uv in each island it borders, so the shared-vertex form drew one triangle per face from
     // a neighbouring island's placement. Only the *drawing* needs this; the distortion metric below is
     // a per-vertex average by construction and keeps using `uv`.
@@ -1797,7 +1796,7 @@ void GLGizmoTextureDisplacement::render_uvcheck_mesh()
     const Matrix3d view_normal_matrix = camera.get_view_matrix().matrix().block(0, 0, 3, 3);
     shader->set_uniform("view_normal_matrix", view_normal_matrix);
     shader->set_uniform("volume_mirrored", trafo_matrix.matrix().determinant() < 0.0);
-    shader->set_uniform("tex_anchor", Vec3f(trafo_matrix.translation().cast<float>())); // see the bump shader
+    shader->set_uniform("tex_anchor", Vec3f(trafo_matrix.translation().cast<float>())); // see the preview shader
     shader->set_uniform("mode", m_uv_check_mode == UVCheckMode::Distortion ? 1 : 0);
     shader->set_uniform("checker_freq", 4.f); // squares per texture tile
     shader->set_uniform("tiling_scale", layer->tiling_scale);
@@ -1855,7 +1854,7 @@ void GLGizmoTextureDisplacement::rebuild_wireframe_overlay()
     if (its.indices.empty())
         return;
 
-    // Building from the base mesh (bump/paint mode); its topology only changes on bake/subdivide, and
+    // Building from the base mesh (shaded/paint mode); its topology only changes on bake/subdivide, and
     // this runs on every rebuild_preview(), so rebuild only when the vertex count actually changes.
     if (m_wireframe_overlay_glmodel.is_initialized() && m_wireframe_overlay_vcount == its.vertices.size())
         return;
@@ -1871,9 +1870,9 @@ void GLGizmoTextureDisplacement::refresh_wireframe()
     }
     // The wireframe has to sit on whatever mesh is actually on screen. In the true-displacement view
     // that is the raised preview geometry (m_preview_its) - drawing the flat base mesh's edges there
-    // leaves them buried inside the bumps, which is why the wireframe "didn't show in real mode". In
-    // Fast (bump) mode or with nothing painted, the surface is the undisplaced base mesh.
-    if (!m_use_bump_preview && !m_preview_its.indices.empty())
+    // leaves them buried inside the relief, which is why the wireframe "didn't show in real mode". In
+    // Fast (shaded) mode or with nothing painted, the surface is the undisplaced base mesh.
+    if (!m_use_shaded_preview && !m_preview_its.indices.empty())
         build_wireframe_from_its(m_preview_its);
     else
         rebuild_wireframe_overlay();
@@ -1907,13 +1906,13 @@ void GLGizmoTextureDisplacement::render_wireframe_overlay()
 
 void GLGizmoTextureDisplacement::rebuild_preview()
 {
-    // Bumped first: any in-flight job's result (captured generation from before this call) will
+    // Raised first: any in-flight job's result (captured generation from before this call) will
     // now compare unequal to m_preview_generation and be discarded when it completes, even if it
     // finishes after the job queued below - and, since the counter is shared with the worker, that
     // job also notices mid-run and aborts rather than computing a result nobody will use.
     m_preview_generation->fetch_add(1);
     update_uv_editor();
-    rebuild_bump_preview_mesh();
+    rebuild_shaded_preview_mesh();
     rebuild_paint_overlay();
     rebuild_uvcheck_mesh();
     rebuild_seam_overlay();
@@ -1939,7 +1938,7 @@ void GLGizmoTextureDisplacement::rebuild_preview()
     }
     // In Fast/paint modes the wireframe follows the base mesh and can be built now; the true-displacement
     // view's wireframe needs the displaced mesh, which only exists once the job below completes.
-    if (m_use_bump_preview) {
+    if (m_use_shaded_preview) {
         refresh_wireframe();
         // Fast view: the shader *is* the preview, and m_preview_glmodel is never drawn. Running the
         // full CPU displacement anyway - which is what happened on every stroke and slider release -
@@ -2040,7 +2039,7 @@ void GLGizmoTextureDisplacement::queue_preview_job()
             }
             if (m_preview_job_pending) {
                 m_preview_job_pending = false;
-                if (!m_use_bump_preview)
+                if (!m_use_shaded_preview)
                     queue_preview_job(); // no-ops if the gizmo has closed in the meantime
             }
             m_parent.set_as_dirty();
@@ -2310,12 +2309,12 @@ void GLGizmoTextureDisplacement::process_uv_commands()
 
 void GLGizmoTextureDisplacement::apply_view_mode(int mode)
 {
-    m_use_bump_preview = (mode == 1);
+    m_use_shaded_preview = (mode == 1);
     m_uv_check_mode    = (mode == 2) ? UVCheckMode::Checker :
                          (mode == 3) ? UVCheckMode::Distortion : UVCheckMode::None;
     rebuild_uvcheck_mesh();
-    if (m_use_bump_preview)
-        rebuild_bump_preview_mesh();
+    if (m_use_shaded_preview)
+        rebuild_shaded_preview_mesh();
     else
         // The Fast view skips the CPU displacement entirely (see rebuild_preview()), so leaving it means
         // m_preview_glmodel may be stale or absent - ask for it now.
@@ -2426,7 +2425,7 @@ void GLGizmoTextureDisplacement::run_uv_command(int cmd, float value)
     if (cmd == int(Command::SetBackground)) {
         // Height goes back to whichever of Normal / Fast was showing; Checker and Distortion are views of their own.
         const int background = std::clamp(int(std::lround(value)), 0, 2);
-        apply_view_mode(background == 1 ? 2 : background == 2 ? 3 : (m_use_bump_preview ? 1 : 0));
+        apply_view_mode(background == 1 ? 2 : background == 2 ? 3 : (m_use_shaded_preview ? 1 : 0));
         return;
     }
 
@@ -2838,10 +2837,10 @@ void GLGizmoTextureDisplacement::on_island_edited(int island, const Vec2f &offse
         m_island_move_set = is_move ? build_island_move_set(*layer, island) : std::vector<int>{ island };
         // Set up the GPU drag: bake the mesh once (via the dirty flag), which is also what flags the
         // moved islands' triangles. From then on the drag is a uniform update, no rebuild - see
-        // render_bump_preview_mesh().
-        m_bump_active_chart = island;
-        m_bump_island_delta  = Eigen::Matrix<float, 2, 3>::Identity();
-        m_bump_preview_dirty = true;
+        // render_shaded_preview_mesh().
+        m_shaded_active_chart = island;
+        m_shaded_island_delta  = Eigen::Matrix<float, 2, 3>::Identity();
+        m_shaded_preview_dirty = true;
     }
 
     // Apply the edit. A move goes to every island in the moved set (same offset -> they translate as
@@ -2865,10 +2864,10 @@ void GLGizmoTextureDisplacement::on_island_edited(int island, const Vec2f &offse
 
     if (finished) {
         m_island_drag_active = false;
-        m_bump_active_chart  = -1;
-        m_bump_active_face.clear();
+        m_shaded_active_chart  = -1;
+        m_shaded_active_face.clear();
         m_island_move_set.clear();
-        m_bump_island_delta  = Eigen::Matrix<float, 2, 3>::Identity();
+        m_shaded_island_delta  = Eigen::Matrix<float, 2, 3>::Identity();
         rebuild_preview(); // the real displaced geometry moved: recompute it once, at the end
     } else {
         const std::vector<Eigen::Matrix<float, 2, 3>> xf = uv_editor_island_transforms(*layer);
@@ -2879,15 +2878,15 @@ void GLGizmoTextureDisplacement::on_island_edited(int island, const Vec2f &offse
             uv_canvas->set_island_transforms(xf);
         }
         // Move the island on the model live through the shader's island_delta uniform - no mesh
-        // rebuild. delta = F_current * F_baked^-1 in final-uv space (the bump mesh bakes F_baked; the
-        // shader applies delta to the flagged island's uv). The one rebuild that bakes the flags is
+        // rebuild. delta = F_current * F_baked^-1 in final-uv space. 
+        // The one rebuild that bakes the flags is
         // scheduled at drag start above and consumed once per frame by render_painter_gizmo().
-        if (m_use_bump_preview && m_bump_active_chart == island && size_t(island) < xf.size()) {
+        if (m_use_shaded_preview && m_shaded_active_chart == island && size_t(island) < xf.size()) {
             Eigen::Matrix3f cur = Eigen::Matrix3f::Identity();
             cur.topRows<2>()    = xf[size_t(island)];
             Eigen::Matrix3f bak = Eigen::Matrix3f::Identity();
-            bak.topRows<2>()    = m_bump_baked_active_xf;
-            m_bump_island_delta = (cur * bak.inverse()).topRows<2>();
+            bak.topRows<2>()    = m_shaded_baked_active_xf;
+            m_shaded_island_delta = (cur * bak.inverse()).topRows<2>();
             m_parent.set_as_dirty();
         }
     }
@@ -3260,12 +3259,12 @@ void GLGizmoTextureDisplacement::update_model_object()
         updated |= facet.set(*m_triangle_selectors[idx]);
     }
 
-    // The fast (bump) preview reads the live selector, so it has to be rebuilt after any stroke that
+    // The fast (shaded) preview reads the live selector, so it has to be rebuilt after any stroke that
     // flushes here - not only when set() reports a change. Rebuilding it via rebuild_preview() below
     // is gated on `updated`, which misses e.g. the first paint into a slot; marking it dirty makes the
     // render loop (render_painter_gizmo) rebuild it next frame regardless. Without this, fast preview -
     // now the default view - stayed blank until a full reload (select-whole-model / reopen).
-    m_bump_preview_dirty = true;
+    m_shaded_preview_dirty = true;
 
     if (updated) {
         const ModelObjectPtrs &mos = wxGetApp().model().objects;
@@ -3337,7 +3336,7 @@ void GLGizmoTextureDisplacement::set_active_layer(int slot)
     // instead of leaving it pointing at the previous layer's (now stale) paint patch.
     if (m_adjust_texture_mode)
         update_adjust_anchor();
-    // Refresh every preview/overlay (bump, UV editor, seams, ...) for the newly active layer.
+    // Refresh every preview/overlay (shaded, UV editor, seams, ...) for the newly active layer.
     rebuild_preview();
 }
 
@@ -4166,7 +4165,7 @@ TextureColorSettings GLGizmoTextureDisplacement::color_settings_for(const ModelV
 
 const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDisplacement::cached_palette()
 {
-    // Rebuilt only when the loaded filaments or the mixing setting actually change. The bump preview
+    // Rebuilt only when the loaded filaments or the mixing setting actually change. The shaded preview
     // rebuilds on every paint stroke and the subdivide preview on every slider frame, and filling the
     // quantizer's lookup cube for a 64-entry palette is tens of milliseconds - paying that per stroke
     // is the difference between painting that keeps up and painting that stutters.
@@ -4795,7 +4794,7 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_thumbnail(const TextureDisplace
 
     // Reuses the already-decoded, already-cached grayscale pixels (see decode_height_texture()'s
     // own cache in TextureDisplacement.cpp) - only the gray-to-RGBA expansion and GPU upload below are
-    // new work. Rebuilt when the texture *or the smoothing* changes, so the fast/bump preview - which
+    // new work. Rebuilt when the texture *or the smoothing* changes, so the fast/shaded preview - which
     // samples this GPU texture directly - reflects the current smoothing rather than the raw image.
     std::unique_ptr<GLTexture> texture = upload_height_thumbnail(decode_height_texture(layer));
     if (!texture)
@@ -4831,7 +4830,7 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_height_texture(const TextureDis
     if (layer.empty())
         return nullptr;
 
-    // One slot, not one per layer: the bump shader only ever shades the *active* layer, so a single
+    // One slot, not one per layer: the preview shader only ever shades the *active* layer, so a single
     // full-resolution upload is enough and the VRAM cost stays at one texture rather than eight.
     if (m_height_tex && m_height_tex_source == layer.image_data.get() && m_height_tex_smoothing == layer.smoothing)
         return m_height_tex.get();
@@ -5033,7 +5032,7 @@ void GLGizmoTextureDisplacement::show_debug_stage(int index)
     m_debug_stage = index;
     // Drawn through the ordinary true-displacement preview, so the Fast view - a shader trick over
     // the base mesh that never draws m_preview_glmodel - has to be left first.
-    m_use_bump_preview = false;
+    m_use_shaded_preview = false;
     m_preview_color_runs.clear();
     m_preview_glmodel.reset();
 
@@ -5667,9 +5666,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     }
 
     // ---- View: Normal / Fast / Checker / Distortion as one group, Wireframe on its own ----
-    // The underlying state stays m_use_bump_preview + m_uv_check_mode.
+    // The underlying state stays m_use_shaded_preview + m_uv_check_mode.
     {
-        const int cur_mode = m_use_bump_preview                               ? 1 :
+        const int cur_mode = m_use_shaded_preview                               ? 1 :
                              m_uv_check_mode == UVCheckMode::Checker    ? 2 :
                              m_uv_check_mode == UVCheckMode::Distortion ? 3 : 0;
         int  new_mode  = cur_mode;
@@ -5692,7 +5691,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             new_mode = 0;
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(702, "texture_displacement_fast_preview.svg", cur_mode == 1, icon_md, _L("Fast"),
-                        _L("Fast - a bump-shaded approximation of the active layer only; quick to update, not exact")))
+                        _L("Fast - a shaded approximation of the active layer only; quick to update, not exact")))
             new_mode = 1;
         ImGui::SameLine(0.f, gap_s);
         if (icon_toggle(703, "texture_displacement_checker.svg", cur_mode == 2, icon_md, _L("Checker"),
@@ -6443,7 +6442,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             if (m_subdivide_feature) {
                 if (float_row("##subdiv_detail", _L("Detail"), &m_subdivide_detail_mm, 0.001f, 1.f, "%.3f mm", true, 0.f))
                     preview_live();
-                hover_tip(_u8L("How closely the mesh follows the texture's relief. Smaller captures finer bumps; "
+                hover_tip(_u8L("How closely the mesh follows the texture's relief. Smaller captures finer detail; "
                                "larger only chases the big features."));
                 if (float_row("##subdiv_min", _L("Min edge"), &m_subdivide_min_edge_mm, 0.001f, 20.f, "%.3f mm", true, 0.f))
                     preview_live();
@@ -6528,7 +6527,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                           _u8L("Refines the painted area to the target edge length and carries your paint onto "
                                "the finer mesh. The rest of the model is left as it is.") :
                           _u8L("Replaces the model's geometry with the subdivided mesh and clears any not-yet-baked "
-                               "paint on it (already-baked bumps are unaffected)."));
+                               "paint on it (already-baked relief is unaffected)."));
         }
 
         // Remesh: even out uneven triangle sizes (CGAL isotropic remeshing).
@@ -6569,7 +6568,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         hover_tip(_u8L("Rebuilds the whole model with triangles close to this edge length - splitting the big "
                        "ones and merging the small ones - so displacement has an even density to work with. "
                        "Replaces the geometry; your paint is carried onto the new triangles spatially, so it "
-                       "survives (already-baked bumps are kept too)."));
+                       "survives (already-baked relief is kept too)."));
 
         // Settings for the whole stack rather than one layer. Standard mode pins them instead of showing them.
         if (mv != nullptr) {
@@ -6751,7 +6750,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             }
             m_imgui->disabled_end();
             hover_tip(_u8L("Auto: the resolution follows the model's size and the budget is the standard "
-                           "750 k, the same defaults as bumpmesh.com. Untick to set them by hand."));
+                           "750 k. Untick to set them by hand."));
             ImGui::SameLine();
             ImGui::SetNextItemWidth(x0 + panel_w - ImGui::GetCursorPosX());
             float shown = auto_res ? rec.edge_mm : opts.v2_refine_mm;
@@ -6764,7 +6763,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             }
             m_imgui->disabled_end();
             if (auto_res && rec.edge_mm > 0.f)
-                hover_tip(Slic3r::format(_u8L("The model's diagonal / 250, as bumpmesh.com sets it. Budget %1% k."), rec.budget_k));
+                hover_tip(Slic3r::format(_u8L("The model's diagonal / 250. Budget %1% k."), rec.budget_k));
             else
                 hover_tip(_u8L("Triangle edge length the painted area is refined to before displacement. "
                                "Smaller carries finer texture detail and costs more triangles; the budget "

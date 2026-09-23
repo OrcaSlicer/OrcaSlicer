@@ -1,7 +1,7 @@
 #version 140
 
 // Fast, geometry-free preview of texture displacement: perturbs the *shading* normal from the
-// height texture's local gradient (a bump map), faded out by the per-vertex paint weight. The
+// height texture's local gradient, faded out by the per-vertex paint weight. The
 // true, exact result is what "Bake" produces via libslic3r/TextureDisplacement.cpp on the CPU.
 //
 // The bake displaces each surface point along its normal by H = +/- depth_mm * (h(uv) - midlevel),
@@ -13,7 +13,7 @@
 // derivatives. Two things have to be right for the preview's apparent depth to match the bake's:
 // the tangent frame the gradient is expressed in, and the uv->mm scale that turns a texel
 // difference into a slope. Getting the scale wrong is a uniform flattening (a raw texel difference
-// is dh over one texel step, not over one mm); getting the frame wrong tilts the bump along the
+// is dh over one texel step, not over one mm); getting the frame wrong tilts the relief along the
 // wrong axes.
 //
 // Two projection paths:
@@ -22,7 +22,7 @@
 //     formed analytically (there is a closed-form uv, so 1 uv unit is exactly tiling_scale mm). This
 //     path also runs a parallax step before shading, see below.
 //
-// Parallax. A pure bump map perturbs shading only, so the pattern is welded to the base surface: it
+// Parallax. Perturbing the normal alone shades only, so the pattern is welded to the base surface: it
 // does not shift as the camera orbits and it does not get any deeper as depth_mm grows, which is
 // exactly when the preview stops reading as real geometry. The triplanar path therefore shades at the
 // point the *displaced* surface would show at this pixel rather than at the pixel's own base position.
@@ -56,7 +56,7 @@
 //     assumption, which matters because an LSCM map is conformal, not isometric: the local mm-per-uv
 //     varies across the chart, so a single global 1/tiling factor (what an earlier version used) got
 //     the apparent depth wrong. This path is also what makes the fast preview follow the UV editor:
-//     move an island and its uv -- hence its bump -- moves with it.
+//     move an island and its uv -- hence its relief -- moves with it.
 
 #define INTENSITY_CORRECTION 0.6
 
@@ -124,7 +124,7 @@ uniform vec3       tex_anchor;    // the volume's origin in world space: the tex
 uniform bool       use_vertex_uv; // true: sample at vertex_uv with a derived tangent frame (LSCM)
 // A 2x3 affine (columns packed as lin = (m00, m01, m10, m11), tr = (m02, m12)) applied to the uv of
 // the island currently being dragged in the UV editor (island_active > 0.5). Identity when nothing is
-// dragged, so this whole path is a no-op then. Lets a UV island drag move the bump on the model with
+// dragged, so this whole path is a no-op then. Lets a UV island drag move the relief on the model with
 // only a uniform update 
 uniform vec4       island_delta_lin;
 uniform vec2       island_delta_tr;
@@ -377,7 +377,7 @@ void main()
     bool have_uv     = false;
 
     if (use_vertex_uv) {
-        // Precomputed-uv (LSCM) path - Mikkelsen's surface-gradient bump ("Bump Mapping
+        // Precomputed-uv (LSCM) path - Mikkelsen's surface-gradient normal mapping ("Bump Mapping
         // Unparametrized Surfaces on the GPU"). The perturbed normal is derived straight from the
         // screen-space derivatives of the *sampled height* and the position, so it is scale-exact
         // with no uv->mm assumption at all - which is the whole point here: an LSCM map is conformal,
@@ -388,7 +388,7 @@ void main()
         // use_vertex_uv is a uniform, so this whole branch is uniform control flow and the texture
         // derivatives are well defined; the paint weight gates the result by a plain multiply (k)
         // rather than a per-fragment branch, keeping it that way.
-        // The dragged island's uv rides a uniform affine so its bump moves without a rebuild; every
+        // The dragged island's uv rides a uniform affine so its relief moves without a rebuild; every
         // other vertex (island_active == 0) samples its baked uv unchanged.
         vec2 uv = (island_active > 0.5)
                     ? vec2(dot(island_delta_lin.xy, vertex_uv), dot(island_delta_lin.zw, vertex_uv)) + island_delta_tr

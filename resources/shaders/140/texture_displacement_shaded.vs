@@ -12,7 +12,7 @@ uniform vec4 clipping_plane;
 in vec3 v_position;
 // GLModel's P3N3T2 layout (position + normal + texcoord), reused so this mesh builds and renders
 // like any other GLModel rather than needing a bespoke vertex buffer. The two spare channels carry
-// what the bump preview actually needs per vertex:
+// what the shaded preview actually needs per vertex:
 //   v_normal.x   -- the active layer's paint weight, 0 (untouched) or 1 (painted).
 //   v_normal.y   -- 1 for a vertex of the island currently being dragged in the UV editor, else 0.
 //                   The fragment shader applies island_delta to those vertices' uv, so a UV drag is a

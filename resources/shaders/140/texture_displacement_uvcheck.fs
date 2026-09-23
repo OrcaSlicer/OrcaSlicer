@@ -8,7 +8,7 @@
 //             where the texture actually lands.
 //   mode 1 - Distortion heatmap: the per-vertex area-distortion carried in `distortion`, blue
 //             (compressed) -> green (ideal) -> red (stretched).
-// Both are lit with the same cheap two-light diffuse the bump preview uses, so the surface still
+// Both are lit with the same cheap two-light diffuse the shaded preview uses, so the surface still
 // reads as 3D.
 
 #define INTENSITY_CORRECTION 0.6
@@ -31,7 +31,7 @@ uniform vec2  uv_offset;
 uniform bool  use_vertex_uv;
 // The in-shader projection (0 Triplanar, 1 Cylindrical, 2 Spherical) and the painted patch's frame the
 // wrapping ones wrap around, in the texture frame - the same uniforms, and the same formulas, as
-// texture_displacement_bump.fs, so the checker reports the projection the bake will actually use.
+// texture_displacement_shaded.fs, so the checker reports the projection the bake will actually use.
 uniform int   projection_mode;
 uniform vec3  patch_center;
 uniform vec3  patch_axis;
@@ -103,7 +103,7 @@ void main()
     if (any(lessThan(clipping_planes_dots, ZERO)))
         discard;
 
-    // World space anchored at the volume's origin, like the bake and the bump preview.
+    // World space anchored at the volume's origin, like the bake and the shaded preview.
     vec3 triangle_normal = normalize(cross(dFdx(world_pos.xyz), dFdy(world_pos.xyz)));
     vec3 tex_pos = world_pos.xyz - tex_anchor;
     if (volume_mirrored)

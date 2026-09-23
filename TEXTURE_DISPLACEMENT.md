@@ -323,10 +323,10 @@ checkbox) that puts triangles where the *displaced surface actually bends*, not 
 a linear **ramp** needs no extra vertices (linear interpolation is exact for a ramp); what needs them is
 **curvature** - the *second* derivative, not the gradient. So the extra predicate is a **chord-error**
 test: sample the combined displacement at the triangle's three edge midpoints *and its centroid*
-(sampling the interior is what catches a bump sitting inside a triangle, the blind spot of an edge-only
+(sampling the interior is what catches a hill sitting inside a triangle, the blind spot of an edge-only
 test) and take the largest departure from the flat triangle's barycentric interpolation. Refine while
 that exceeds `chord_tolerance_mm` ("Detail (mm)"). Zero chord error on a ramp ⇒ untouched; high on a
-bump/ridge/noise ⇒ refined until captured. Same conformal machinery, so still crack-free. The
+hill/ridge/noise ⇒ refined until captured. Same conformal machinery, so still crack-free. The
 per-triangle error is cached and recomputed only for the children of a split.
 
 Four knobs bracket it, and all four matter:
@@ -351,9 +351,9 @@ heights are sampled lazily, so a small patch on a huge model never pays for the 
 
 ### Fast preview (GPU-only, no CPU meshing)
 
-`resources/shaders/{110,140}/texture_displacement_bump.{vs,fs}`, registered as
-`"texture_displacement_bump"`. Shades the *displaced* surface without moving geometry - active-layer
-only, selected from the View row, and the default when the gizmo opens (`m_use_bump_preview = true`).
+`resources/shaders/{110,140}/texture_displacement_shaded.{vs,fs}`, registered as
+`"texture_displacement_shaded"`. Shades the *displaced* surface without moving geometry - active-layer
+only, selected from the View row, and the default when the gizmo opens (`m_use_shaded_preview = true`).
 Vertex format is `GLModel::Geometry::EVertexLayout::P3N3T2`: `normal.x` carries the per-vertex paint
 weight (0/1), `normal.y` flags the UV island currently being dragged, and `tex_coord` carries a
 precomputed texture UV, so it can use `GLModel` normally instead of a hand-rolled VBO/VAO manager.
@@ -366,7 +366,7 @@ normal from screen-space derivatives of position, not from a per-vertex normal.
 
 **Both preview meshes work in the patch's vertex space, not the mesh's.** Those agree only until a
 *brush* stroke splits a triangle: `get_facets_strict()` then appends the split vertices, so the patch
-array is longer. `rebuild_bump_preview_mesh()` and `rebuild_uvcheck_mesh()` therefore index
+array is longer. `rebuild_shaded_preview_mesh()` and `rebuild_uvcheck_mesh()` therefore index
 `patch.vertices` throughout. The weight buffer is rebuilt at the same cadence as the true-displacement
 preview (stroke-end/slider-release) but from the **live** `TriangleSelector` state, not the flushed model
 facets, so it does not lag by a full model round-trip.
@@ -395,7 +395,7 @@ the bake's.
   captures the true on-screen rate of change however the chart is stretched. This path is also what makes
   the fast preview follow the UV editor: move an island and its uv - hence its shading - moves with it
   (the mesh rebuilds on drag-end, `on_island_edited(finished)` → `rebuild_preview()` →
-  `rebuild_bump_preview_mesh()`). The branch is uniform and the paint weight gates by multiply, so the
+  `rebuild_shaded_preview_mesh()`). The branch is uniform and the paint weight gates by multiply, so the
   texture derivatives stay well defined. A triangle straddling a seam has a discontinuous uv → the
   `det≈0` guard skips it (a localised preview-only artifact, never in the bake).
 
@@ -425,7 +425,7 @@ flow. Two uniforms exist for this: `midlevel` (parallax needs the real height, n
 and `eye_model_pos` (the camera in the volume's local frame).
 
 Parallax cannot change the model's silhouette or cast shadows; the View row's Normal mode is one click
-away for that. The LSCM path stays plain Mikkelsen bump - it has no closed-form uv, so there is no cheap
+away for that. The LSCM path stays plain Mikkelsen normal perturbation - it has no closed-form uv, so there is no cheap
 way to re-project a marched position. One further approximation: the GPU sampler's wrap mode stands in
 for `tile_enabled`/`tile_method`, so with tiling *off* the GPU repeats where the CPU returns 0 outside
 `[0,1)`.
@@ -558,8 +558,8 @@ gizmo via `CommandFn`; view-only ones (Frame, Snap) it handles directly.
 - `src/slic3r/GUI/UVEditorCanvas.hpp/.cpp` - the 2D UV unwrap viewer widget.
 - `src/slic3r/GUI/Plater.hpp/.cpp` - `uv_editor_canvas` member, AUI pane registration,
   `get_uv_editor_canvas()`/`show_uv_editor()`.
-- `src/slic3r/GUI/GLShadersManager.cpp` - registers `"texture_displacement_bump"`.
-- `resources/shaders/{110,140}/texture_displacement_bump.{vs,fs}` - the fast-preview shader.
+- `src/slic3r/GUI/GLShadersManager.cpp` - registers `"texture_displacement_shaded"`.
+- `resources/shaders/{110,140}/texture_displacement_shaded.{vs,fs}` - the fast-preview shader.
 - `src/slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp` - `PainterGizmoType::TEXTURE_DISPLACEMENT`.
 - `src/slic3r/GUI/Gizmos/GLGizmosManager.hpp/.cpp` - `EType::TextureDisplacement` registration.
 
@@ -571,7 +571,7 @@ modes (table-driven), the lowest layer ignoring its blend mode, border displace/
 smoothing and its mask guarantees, and adaptive subdivision: conformality (`every_edge_used_twice` on a
 partially-refined cube - an exact crack detector for a closed mesh), the target edge length actually
 being reached, the triangle budget capping the result without opening a crack, curvature-driven
-refinement (a Gaussian bump refines at its centre, a linear ramp adds nothing), and the max-edge
+refinement (a Gaussian hill refines at its centre, a linear ramp adds nothing), and the max-edge
 baseline.
 
 `BUILD_TESTS` is `OFF` in the checked-in build cache; flip it on to run them:

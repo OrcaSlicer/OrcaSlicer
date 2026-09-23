@@ -134,7 +134,7 @@ struct DecodedTextureCache
 };
 DecodedTextureCache g_decoded_texture_cache;
 
-// The smoothed copy is cached too, one per image: the thumbnail, the bump-preview height texture, the
+// The smoothed copy is cached too, one per image: the thumbnail, the shaded-preview height texture, the
 // colour texture, the projector texture, the UV editor's background and the preview job all ask for
 // the same (image, smoothing) pair in the same frame while the Smoothing slider moves, and each of them
 // blurring its own copy is what froze the UI. Keyed like the raw cache; a different smoothing value
@@ -428,10 +428,10 @@ V2Resolution recommend_v2_resolution(const indexed_triangle_set                 
                                      const std::vector<TextureDisplacementLayer> &layers,
                                      const Transform3d                           &volume_to_world)
 {
-    // bumpmesh.com's defaults on model load: edge = diagonal / 250 in [0.05, 5] mm, budget 750 k. A
-    // texture-driven variant (BumpMesh's smart resolution) was measured to give better walls on step
-    // textures at 2-10x the bake time and up to 2 M output triangles; the user preferred the site's
-    // defaults. The texel size and sharpness are still reported for the panel.
+    // The defaults on model load: edge = diagonal / 250 in [0.05, 5] mm, budget 750 k. A texture-driven
+    // variant (resolution from the texture's own detail) was measured to give better walls on step
+    // textures at 2-10x the bake time and up to 2 M output triangles, and was not worth that; these
+    // defaults stayed. The texel size and sharpness are still reported for the panel.
     constexpr double EDGE_MIN = 0.05, EDGE_MAX = 5.0, DIAG_DIVISOR = 250.0;
     constexpr int    BUDGET_K = 750;
 
@@ -3480,7 +3480,7 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
 
     // How far the *displaced* surface departs from the flat triangle, sampled across the WHOLE
     // triangle - the three edge midpoints and the centroid - not just one edge midpoint. Sampling the
-    // interior is what catches a bump that sits inside a triangle (the blind spot of an edge-only
+    // interior is what catches a hill that sits inside a triangle (the blind spot of an edge-only
     // test). Cached per triangle: it can only change when the triangle is split, and then both
     // children are fresh entries.
     std::vector<float> tri_err;

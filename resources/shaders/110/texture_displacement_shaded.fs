@@ -1,6 +1,6 @@
 #version 110
 
-// See resources/shaders/140/texture_displacement_bump.fs for full documentation; this is the
+// See resources/shaders/140/texture_displacement_shaded.fs for full documentation; this is the
 // GLSL 1.10 compatibility variant (same logic, older syntax).
 
 #define INTENSITY_CORRECTION 0.6
@@ -309,7 +309,7 @@ void main()
     bool have_uv     = false;
 
     if (use_vertex_uv) {
-        // Mikkelsen surface-gradient bump; see the 140 variant for the full rationale. Scale-exact
+        // Mikkelsen surface-gradient normal perturbation; see the 140 variant for the full rationale. Scale-exact
         // for a conformal LSCM map (no global 1/tiling assumption), and gated by the paint weight
         // via a multiply so the branch stays uniform (use_vertex_uv is a uniform).
         vec2 uv = (island_active > 0.5)

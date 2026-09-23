@@ -420,10 +420,9 @@ struct TextureDisplacementOptions
     }
 };
 
-// How much detail a height texture carries, as BumpMesh's smart resolution measures it: central
-// differences of the grey image, the mean gradient and the share of texels steeper than 30 grey
-// levels, mapped to how many texels one mesh edge may span (1 for a hard-edged image, 4 for a smooth
-// one). Cached per image, like the decode.
+// How much detail a height texture carries: central differences of the grey image, the mean gradient
+// and the share of texels steeper than 30 grey levels, mapped to how many texels one mesh edge may
+// span (1 for a hard-edged image, 4 for a smooth one). Cached per image, like the decode.
 struct TextureDetail
 {
     float mean_gradient   = 0.f;
@@ -438,8 +437,8 @@ struct TextureDetail
 TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer);
 
 // The default pipeline's automatic resolution and budget, when the options leave them at "auto":
-// bumpmesh.com's defaults - edge = the model's world-space diagonal / 250, clamped to [0.05, 5] mm and
-// rounded up to 0.01; budget 750 k. The texel size of the finest layer and its sharpness class are
+// edge = the model's world-space diagonal / 250, clamped to [0.05, 5] mm and rounded up to 0.01;
+// budget 750 k. The texel size of the finest layer and its sharpness class are
 // reported alongside for the panel. `edge_mm` is 0 for an empty mesh.
 struct V2Resolution
 {
@@ -946,10 +945,10 @@ indexed_triangle_set subdivide_mesh_uniform(const indexed_triangle_set &mesh, fl
 //              departs from the flat triangle by more than `chord_tolerance_mm`, measured as the max
 //              over the three edge midpoints AND the centroid of |sampled displacement - the flat
 //              triangle's barycentric interpolation|. Sampling the interior, not just edge midpoints,
-//              is what catches a bump that sits inside a triangle. This is a *curvature* test: it is
+//              is what catches a hill that sits inside a triangle. This is a *curvature* test: it is
 //              exactly zero on a plane or a linear ramp (barycentric interpolation is exact there, so
 //              those stay coarse - the case a gradient criterion would over-refine) and large on a
-//              bump/ridge/noise.
+//              hill/ridge/noise.
 // `min_edge_length_mm` is a hard floor under both: no triangle whose longest edge is already at or
 // below it is ever refined, which is also what guarantees termination across a sharp texture step
 // (where the chord error never falls below the tolerance no matter how fine the mesh gets).

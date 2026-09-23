@@ -1,6 +1,6 @@
 #version 110
 
-// See resources/shaders/140/texture_displacement_bump.vs for full documentation; this is the
+// See resources/shaders/140/texture_displacement_shaded.vs for full documentation; this is the
 // GLSL 1.10 compatibility variant.
 
 uniform mat4 view_model_matrix;

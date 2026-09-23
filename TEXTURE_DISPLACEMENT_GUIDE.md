@@ -79,7 +79,7 @@ radio group; **Wireframe** is an independent toggle. Hover any icon for its tool
 | View | Meaning |
 |------|---------|
 | **Normal** | The true displaced geometry — exactly what **Bake** produces. Rebuilt in the background. |
-| **Fast** | A GPU bump-shaded approximation of the *active layer only*. No real geometry movement — quick to update, not exact. Best while tuning or dragging islands. |
+| **Fast** | A GPU shaded approximation of the *active layer only*. No real geometry movement — quick to update, not exact. Best while tuning or dragging islands. |
 | **Checker** | A test grid painted over the unwrap so you can see stretching (squares stay square where the map isn't distorted). |
 | **Distortion** | A blue→green→red heatmap of how much each area is compressed or stretched in UV space. Needs the **Unwrap (LSCM)** projection. |
 | **Wireframe** | Overlays the mesh edges (white). Independent of the view above; in **Normal** view it sits on the displaced surface. |
@@ -315,7 +315,7 @@ Baking is the exact same algorithm as the **Normal** preview, so what you see is
 - **Not enough detail?** Subdivide or Remesh before painting fine textures.
 - **Inward cuts** (high Midlevel + big Depth) can self-intersect on thin walls or sharp concave
   corners — keep Depth modest there.
-- **Fast vs Normal:** Fast preview shades a bump and shows only the active layer; use it for quick
+- **Fast vs Normal:** Fast preview only shades the relief and shows only the active layer; use it for quick
   tuning and smooth UV dragging, but trust **Normal**/**Bake** for the exact result.
 - **Topology changes drop unbaked paint.** Subdivide-Apply, Remesh, and Simplify replace the mesh, and
   texture-displacement paint isn't remapped across that change (already-baked relief is unaffected).

@@ -303,7 +303,7 @@ private:
     GLTexture *get_layer_thumbnail(const TextureDisplacementLayer &layer);
 
     // The same texture at full resolution, for the fast-preview shader. One slot, shared by whichever
-    // layer is active, because that is the only one the bump shader ever shades.
+    // layer is active, because that is the only one the preview shader ever shades.
     GLTexture *get_layer_height_texture(const TextureDisplacementLayer &layer);
     // The layer's colour texture for the fast preview's per-fragment quantization. Null when the
     // layer is not colouring or its texture is grayscale.
@@ -389,13 +389,13 @@ private:
     void render_preview_mesh();
 
     // Alternate, GPU-only preview: perturbs shading normals from the active layer's height texture
-    // (a classic bump map) instead of actually moving vertices, using the
-    // resources/shaders/*/texture_displacement_bump.* shader. Faster than the true-displacement
-    // preview (no CPU meshing at all - just a per-vertex paint-weight buffer built at the same
-    // cadence as rebuild_preview()) but only shows the *active* layer, and any bump is a shading
-    // illusion, not real geometry - "Bake" always produces the true, exact result either way.
-    void rebuild_bump_preview_mesh();
-    void render_bump_preview_mesh();
+    // instead of actually moving vertices, using the resources/shaders/*/texture_displacement_shaded.*
+    // shader. Faster than the true-displacement preview (no CPU meshing at all - just a per-vertex
+    // paint-weight buffer built at the same cadence as rebuild_preview()) but only shows the *active*
+    // layer, and the relief it shows is a shading illusion, not real geometry - "Bake" always produces
+    // the true, exact result either way.
+    void rebuild_shaded_preview_mesh();
+    void render_shaded_preview_mesh();
 
     // Feeds the active layer's painted patch + LSCM unwrap (if it's using that projection method)
     // into Plater's docked UV-editor pane and shows it, or hides the pane if the active layer
@@ -636,16 +636,16 @@ private:
     // mouse button driving the drag hasn't been released yet - see on_render_input_window().
     bool m_preview_params_dirty = false;
 
-    // See rebuild_bump_preview_mesh()/render_bump_preview_mesh(). On by default: it is the cheap,
+    // See rebuild_shaded_preview_mesh()/render_shaded_preview_mesh(). On by default: it is the cheap,
     // instant-updating preview, so it is the better first impression while painting. The true-
     // displacement view (a background CPU remesh) is one click away in the View row when the user
     // wants an exact look at what Bake will produce.
-    bool    m_use_bump_preview = true;
-    // Set from the UV editor's per-move island edits instead of rebuilding the (potentially large) bump
+    bool    m_use_shaded_preview = true;
+    // Set from the UV editor's per-move island edits instead of rebuilding the (potentially large) shaded
     // mesh synchronously inside that mouse handler - doing the rebuild there stalled both the UV pane
     // and the 3D view. The rebuild is instead coalesced to once per 3D frame (render_painter_gizmo).
-    bool    m_bump_preview_dirty = false;
-    GLModel m_bump_preview_glmodel;
+    bool    m_shaded_preview_dirty = false;
+    GLModel m_shaded_preview_glmodel;
 
     // Translucent tint over the active layer's painted triangles, drawn on top of whichever preview
     // is showing. The base painter's own opaque paint highlight (render_triangles()) cannot be used
@@ -662,7 +662,7 @@ private:
     void             rebuild_island_overlay(const std::vector<int> &selection);
     void             render_island_overlay();
     // Set on every paint event, cleared when the overlay is rebuilt in render_painter_gizmo(). Kept
-    // separate from m_bump_preview_dirty so a stroke refreshes only the small painted patch per frame,
+    // separate from m_shaded_preview_dirty so a stroke refreshes only the small painted patch per frame,
     bool    m_paint_overlay_dirty = false;
     void    rebuild_paint_overlay();
     void    render_paint_overlay(GLModel &overlay);
@@ -671,33 +671,33 @@ private:
     GLModel     m_other_paint_glmodel;
     std::string m_other_paint_key;
     void        rebuild_other_paint_overlay();
-    // Whether render_bump_preview_mesh() would actually draw something. Checked before the real volume
-    // is hidden: with no layer, no texture or no shader the bump path draws nothing, and hiding the
+    // Whether render_shaded_preview_mesh() would actually draw something. Checked before the real volume
+    // is hidden: with no layer, no texture or no shader the shaded path draws nothing, and hiding the
     // volume for it left the model invisible.
-    bool    bump_preview_ready() const;
-    // Whether the current bump mesh carries a precomputed per-vertex uv (LSCM) that the shader
-    // should sample at directly, rather than projecting in-shader. Set by rebuild_bump_preview_mesh().
-    bool    m_bump_preview_uses_vertex_uv = false;
-    // The projection frame handed to the bump shader, captured when the mesh is built. Cylindrical and
+    bool    shaded_preview_ready() const;
+    // Whether the current displacement mesh carries a precomputed per-vertex uv (LSCM) that the shader
+    // should sample at directly, rather than projecting in-shader. Set by rebuild_shaded_preview_mesh().
+    bool    m_shaded_preview_uses_vertex_uv = false;
+    // The projection frame handed to the preview shader, captured when the mesh is built. Cylindrical and
     // Spherical are reconstructed in the fragment shader (there is no per-vertex uv for them) and wrap
     // around the whole patch, which no fragment can work out for itself. See layer_projection_frame().
-    int   m_bump_projection_mode = 0;
-    Vec3f m_bump_patch_center    = Vec3f::Zero();
-    Vec3f m_bump_patch_axis      = Vec3f::UnitZ();
+    int   m_shaded_projection_mode = 0;
+    Vec3f m_shaded_patch_center    = Vec3f::Zero();
+    Vec3f m_shaded_patch_axis      = Vec3f::UnitZ();
     // The palette the fast preview's per-triangle filament indices were built against, captured when
     // the mesh was. Empty when the active layer is not colouring, which is what tells the shader to
     // fall back to the model's own colour. Held rather than re-read at draw time so the indices baked
     // into the mesh can never be resolved against a different set of filaments than they were computed
     // from - loading a filament mid-session would otherwise recolour a stale preview at random.
-    std::vector<PaletteEntry> m_bump_preview_palette;
+    std::vector<PaletteEntry> m_shaded_preview_palette;
 
-    // GPU island drag: while an island is dragged in the UV editor, the bump mesh is baked once (with
+    // GPU island drag: while an island is dragged in the UV editor, the displacement mesh is baked once (with
     // the dragged island's vertices flagged, v_normal.y = 1) and then moved purely through the shader's
     // island_delta uniform - one uniform update per mouse move, no rebuild - so it tracks the cursor
-    // as smoothly as Adjust placement. m_bump_active_chart is the dragged island (or -1);
-    // m_bump_active_face flags the dragged islands' *triangles*, indexed by painted-patch face;
-    // m_bump_baked_active_xf is that island's placement baked into the current mesh, against which the
-    // live delta is measured; m_bump_island_delta is the resulting final-uv-space affine handed to the
+    // as smoothly as Adjust placement. m_shaded_active_chart is the dragged island (or -1);
+    // m_shaded_active_face flags the dragged islands' *triangles*, indexed by painted-patch face;
+    // m_shaded_baked_active_xf is that island's placement baked into the current mesh, against which the
+    // live delta is measured; m_shaded_island_delta is the resulting final-uv-space affine handed to the
     // shader (identity except mid-drag).
     //
     // Per triangle rather than per vertex deliberately: a seam vertex belongs to every chart touching
@@ -705,13 +705,13 @@ private:
     // island_active is an interpolated varying, so those neighbouring triangles then had island_delta
     // applied too - dragging one island moved every adjacent island's texture while the editor, which
     // is per chart, correctly moved only the one. A triangle belongs to exactly one chart.
-    int                        m_bump_active_chart = -1;
-    std::vector<uint8_t>       m_bump_active_face;
-    Eigen::Matrix<float, 2, 3> m_bump_baked_active_xf = Eigen::Matrix<float, 2, 3>::Identity();
-    Eigen::Matrix<float, 2, 3> m_bump_island_delta    = Eigen::Matrix<float, 2, 3>::Identity();
-    // Flags `charts`' triangles in m_bump_active_face, sized to `patch_face_count` (the painted patch
-    // the bump mesh is being built from). Cleared if the unwrap carries no face map.
-    void                       compute_bump_active_faces(const std::vector<int> &charts, size_t patch_face_count);
+    int                        m_shaded_active_chart = -1;
+    std::vector<uint8_t>       m_shaded_active_face;
+    Eigen::Matrix<float, 2, 3> m_shaded_baked_active_xf = Eigen::Matrix<float, 2, 3>::Identity();
+    Eigen::Matrix<float, 2, 3> m_shaded_island_delta    = Eigen::Matrix<float, 2, 3>::Identity();
+    // Flags `charts`' triangles in m_shaded_active_face, sized to `patch_face_count` (the painted patch
+    // the displacement mesh is being built from). Cleared if the unwrap carries no face map.
+    void                       compute_shaded_active_faces(const std::vector<int> &charts, size_t patch_face_count);
 
     // The set of islands the current UV-editor drag moves together: the pane's multi-selection unioned
     // with each selected island's join group (see build_island_move_set()). Populated at drag start and
@@ -729,7 +729,7 @@ private:
     // Final per-vertex texture uv for the projections the shader can't reconstruct itself - LSCM (an
     // unwrap) and ViewProjected (a projector plane the shader doesn't know). One entry per patch/base
     // vertex, already through apply_uv_transform(). Empty for Triplanar/Cylindrical/Spherical, which
-    // the shader projects on its own. Shared by the bump preview and the UV-check overlay.
+    // the shader projects on its own. Shared by the shaded preview and the UV-check overlay.
     std::vector<Vec2f> compute_layer_vertex_uvs(const indexed_triangle_set &patch,
                                                 const TextureDisplacementLayer &layer) const;
     // The same, but three UVs per patch triangle (corner 0..2 of triangle i at 3i..3i+2). This is what
@@ -757,7 +757,7 @@ private:
     UVCheckMode m_uv_check_mode = UVCheckMode::None;
     GLModel     m_uvcheck_glmodel;
     bool        m_uvcheck_uses_vertex_uv = false;
-    // As m_bump_projection_mode and friends, for the Checker overlay.
+    // As m_shaded_projection_mode and friends, for the Checker overlay.
     int         m_uvcheck_projection_mode = 0;
     Vec3f       m_uvcheck_patch_center    = Vec3f::Zero();
     Vec3f       m_uvcheck_patch_axis      = Vec3f::UnitZ();
@@ -798,14 +798,14 @@ private:
     bool    m_wireframe_overlay = false;
     GLModel m_wireframe_overlay_glmodel;
     size_t  m_wireframe_overlay_vcount = 0; // topology signature, so it rebuilds only on a real change
-    void rebuild_wireframe_overlay();       // from the base mesh (bump/paint mode)
+    void rebuild_wireframe_overlay();       // from the base mesh (shaded/paint mode)
     void build_wireframe_from_its(const indexed_triangle_set &its); // from an explicit mesh, no early-out
     void refresh_wireframe();               // pick base vs displaced source for the current view
     void render_wireframe_overlay();
     // The displaced preview geometry the last preview job produced, kept so the wireframe overlay can be
     // drawn on the raised surface actually shown in the true-displacement view (#: "wireframe in real mode").
     indexed_triangle_set m_preview_its;
-    // Bumped on every rebuild_preview() call; a background TextureDisplacementPreviewJob's result
+    // Raised on every rebuild_preview() call; a background TextureDisplacementPreviewJob's result
     // is only applied if this hasn't moved on since the job was queued (see rebuild_preview()),
     // so a burst of edits can't have an earlier, now-stale job clobber a later one's result.
     //
@@ -831,7 +831,7 @@ private:
     // The smoothing each cached thumbnail was built at, so a smoothing change re-uploads it.
     std::array<float, TEXTURE_DISPLACEMENT_MAX_LAYERS>                      m_thumbnail_smoothing{};
 
-    // Full-resolution height texture for the bump shader, keyed the same way (see
+    // Full-resolution height texture for the preview shader, keyed the same way (see
     // get_layer_height_texture()). A smoothing change re-uploads it, so the fast preview shows the
     // blur the bake will apply.
     std::unique_ptr<GLTexture> m_height_tex;
