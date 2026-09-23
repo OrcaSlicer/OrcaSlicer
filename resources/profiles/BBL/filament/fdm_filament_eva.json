@@ -1,12 +1,12 @@
 {
-    "type": "filament",
-    "name": "fdm_filament_eva",
-    "inherits": "fdm_filament_common",
-    "from": "system",
-    "instantiation": "false",
-    "filament_type": [
-        "EVA"
-    ],
+	"type": "filament",
+	"name": "fdm_filament_eva",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"filament_type": [
+		"EVA"
+	],
     "filament_dev_chamber_drying_bed_temperature": [
         "70"
     ],
@@ -35,13 +35,13 @@
     "filament_dev_drying_softening_temperature": [
         "50"
     ],
-    "supertack_plate_temp": [
-        "0"
-    ],
-    "supertack_plate_temp_initial_layer": [
-        "0"
-    ],
-    "filament_end_gcode": [
-        "; filament end gcode \n\n"
-    ]
+	"supertack_plate_temp": [
+		"0"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"0"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	]
 }

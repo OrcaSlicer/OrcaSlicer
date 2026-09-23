@@ -27,9 +27,21 @@
 		"50",
 		"50"
 	],
+	"initial_layer_infill_speed": [
+		"105",
+		"105"
+	],
 	"initial_layer_speed": [
 		"50",
 		"50"
+	],
+	"initial_layer_acceleration": [
+		"500",
+		"500"
+	],
+	"inner_wall_acceleration": [
+		"0",
+		"0"
 	],
 	"inner_wall_speed": [
 		"300",
@@ -43,21 +55,13 @@
 		"6000",
 		"6000"
 	],
-	"initial_layer_acceleration": [
-		"500",
-		"500"
+	"overhang_3_4_speed": [
+		"30",
+		"30"
 	],
-	"initial_layer_infill_speed": [
-		"105",
-		"105"
-	],
-	"inner_wall_acceleration": [
-		"0",
-		"0"
-	],
-	"outer_wall_speed": [
-		"120",
-		"500"
+	"overhang_4_4_speed": [
+		"10",
+		"10"
 	],
 	"outer_wall_acceleration": [
 		"5000",
@@ -71,16 +75,12 @@
 		"50",
 		"50"
 	],
-	"overhang_3_4_speed": [
-		"30",
-		"30"
+	"outer_wall_speed": [
+		"120",
+		"500"
 	],
-	"overhang_4_4_speed": [
-		"10",
-		"10"
-	],
-	"prime_tower_width": "60",
 	"prime_tower_flat_ironing": "1",
+	"prime_tower_width": "60",
 	"print_extruder_id": [
 		"1",
 		"1"
@@ -93,9 +93,17 @@
 		"350",
 		"600"
 	],
-	"support_interface_speed": [
-		"80",
-		"80"
+	"small_perimeter_speed": [
+		"50%",
+		"50%"
+	],
+	"small_perimeter_threshold": [
+		"0",
+		"0"
+	],
+	"sparse_infill_acceleration": [
+		"100%",
+		"100%"
 	],
 	"support_speed": [
 		"150",
@@ -125,38 +133,17 @@
 		"100000",
 		"100000"
 	],
-	"small_perimeter_speed": [
-		"50%",
-		"50%"
-	],
-	"small_perimeter_threshold": [
-		"0",
-		"0"
-	],
-	"sparse_infill_acceleration": [
-		"100%",
-		"100%"
-	],
-	"top_shell_layers": "4",
-	"top_surface_speed": [
-		"200",
-		"200"
-	],
-	"top_solid_infill_flow_ratio": [
-		"1",
-		"1"
-	],
-	"travel_acceleration": [
-		"10000",
-		"10000"
-	],
-	"travel_short_distance_acceleration": [
-		"250",
-		"250"
+	"support_interface_speed": [
+		"80",
+		"80"
 	],
 	"travel_speed": [
 		"1000",
 		"1000"
+	],
+	"top_surface_speed": [
+		"200",
+		"200"
 	],
 	"top_surface_acceleration": [
 		"2000",
@@ -166,11 +153,14 @@
 		"0",
 		"0"
 	],
+	"travel_acceleration": [
+		"10000",
+		"10000"
+	],
 	"vertical_shell_speed": [
 		"80%",
 		"80%"
 	],
-	"monotonic_travel_into_wall": "45.0",
 	"compatible_printers": [
 		"Bambu Lab H2S 0.8 nozzle"
 	]

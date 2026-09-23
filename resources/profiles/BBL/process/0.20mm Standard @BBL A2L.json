@@ -9,6 +9,7 @@
 	"default_acceleration": [
 		"6000"
 	],
+	"elefant_foot_compensation": "0.075",
 	"enable_arc_fitting": "0",
 	"enable_height_slowdown": [
 		"1"
@@ -25,6 +26,9 @@
 	],
 	"slowdown_start_acc": [
 		"8000"
+	],
+	"slowdown_start_height": [
+		"0"
 	],
 	"slowdown_start_speed": [
 		"500"

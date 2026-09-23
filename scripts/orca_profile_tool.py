@@ -138,13 +138,7 @@ PROFILE_SUBDIRS = ("filament", "process", "machine")
 PROFILE_TYPES = ("machine_model", "process", "filament", "machine")
 
 # Data files that sit under a vendor bundle but are not presets: no name, no type.
-NON_PROFILE_FILES = {
-    "filaments_color_codes.json",
-    "cli_config.json",
-    "filament_id_map.json",
-    "filament_name_map.json",
-    "support_recommended_params.json",
-}
+NON_PROFILE_FILES = {"filaments_color_codes.json", "cli_config.json"}
 
 # Mirror PrintConfigDef::handle_legacy's ignore set in PrintConfig.cpp; a test
 # checks parity. Used by normalize and check. Active options and

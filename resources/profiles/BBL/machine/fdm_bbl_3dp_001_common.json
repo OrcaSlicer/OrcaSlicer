@@ -113,6 +113,9 @@
 		"0",
 		"0"
 	],
+	"nozzle_type": [
+		"hardened_steel"
+	],
 	"nozzle_volume": [
 		"107"
 	],
