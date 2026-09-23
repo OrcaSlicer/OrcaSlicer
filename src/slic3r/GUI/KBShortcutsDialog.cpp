@@ -458,7 +458,9 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture_sizer->Add(m_chord_label, 0, wxALIGN_CENTER);
     capture_sizer->AddStretchSpacer();
     capture->SetSizer(capture_sizer);
-    capture->Bind(wxEVT_KEY_DOWN, &ShortcutCaptureDialog::on_key, this);
+    // The hook runs before the window procedure, so Windows does not open its window menu
+    // over the dialog on Alt+Space.
+    Bind(wxEVT_CHAR_HOOK, &ShortcutCaptureDialog::on_key, this);
     capture->Bind(wxEVT_CHAR, &ShortcutCaptureDialog::on_char, this);
     capture->Bind(wxEVT_LEFT_DOWN, [capture](wxMouseEvent&) { capture->SetFocus(); });
     sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
