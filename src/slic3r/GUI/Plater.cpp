@@ -5703,10 +5703,20 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     }
 
     auto build_tray_config = [](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id) {
+        // Type-only agents (OrcaSonar/Qidi Box) report the material but not the
+        // slicer's preset id. Resolve it from the type so AMS sync can match a
+        // preset instead of skipping every tray as "unknown".
+        std::string filament_id = tray.setting_id;
+        if (filament_id.empty() && !tray.m_fila_type.empty() && tray.is_exists) {
+            // Strict lookup: an unmatched material leaves filament_id empty so
+            // the sync flow reports it as unknown instead of binding Generic PLA.
+            if (auto *bundle = wxGetApp().preset_bundle)
+                bundle->filaments.filament_id_by_type(tray.m_fila_type, filament_id);
+        }
         BOOST_LOG_TRIVIAL(info) << boost::format("build_filament_ams_list: name %1% setting_id %2% type %3% color %4%")
-                    % name % tray.setting_id % tray.m_fila_type % tray.color;
+                    % name % filament_id % tray.m_fila_type % tray.color;
         DynamicPrintConfig tray_config;
-        tray_config.set_key_value("filament_id", new ConfigOptionStrings{tray.setting_id});
+        tray_config.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
         tray_config.set_key_value("tag_uid", new ConfigOptionStrings{tray.tag_uid});
         tray_config.set_key_value("ams_id", new ConfigOptionStrings{ams_id});
         tray_config.set_key_value("slot_id", new ConfigOptionStrings{slot_id});
@@ -5719,7 +5729,7 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{tray.is_slot_placeholder});
         std::optional<FilamentBaseInfo> info;
         if (wxGetApp().preset_bundle) {
-            info = wxGetApp().preset_bundle->get_filament_by_filament_id(tray.setting_id);
+            info = wxGetApp().preset_bundle->get_filament_by_filament_id(filament_id);
         }
         tray_config.set_key_value("filament_is_support", new ConfigOptionBools{ info.has_value() ? info->is_support : false});
         for (int i = 0; i < tray.cols.size(); ++i) {

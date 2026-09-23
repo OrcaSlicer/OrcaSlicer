@@ -5482,3 +5482,35 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
         CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
 }
+
+// OrcaSonar and the Qidi Box report a material type but no slicer preset id.
+// The Orca agent's AMS sync path fills one with filament_id_by_type, whose
+// modifier stripping ("PETG Basic" -> the PETG family) this locks in.
+TEST_CASE("filament_id_by_type resolves a modifier type to its generic family", "[Preset][Filament]")
+{
+    PresetBundle bundle;
+
+    Preset &pla = add_inmemory_preset(bundle.filaments, "Generic PLA @System");
+    pla.is_system     = true;
+    pla.is_visible    = true;
+    pla.is_compatible = true;
+    pla.filament_id   = "GFL99";
+    pla.config.option<ConfigOptionString>("filament_type")->value = "PLA";
+
+    Preset &petg = add_inmemory_preset(bundle.filaments, "Generic PETG @System");
+    petg.is_system     = true;
+    petg.is_visible    = true;
+    petg.is_compatible = true;
+    petg.filament_id   = "GFG99";
+    petg.config.option<ConfigOptionString>("filament_type")->value = "PETG";
+
+    CHECK(bundle.filaments.filament_id_by_type("PETG Basic") == "GFG99");
+    CHECK(bundle.filaments.filament_id_by_type("PLA") == "GFL99");
+
+    // The strict overload reports no match instead of binding a fallback.
+    std::string out = "unchanged";
+    CHECK_FALSE(bundle.filaments.filament_id_by_type("Kevlar", out));
+    CHECK(out == "unchanged");
+    CHECK(bundle.filaments.filament_id_by_type("PETG Basic", out));
+    CHECK(out == "GFG99");
+}

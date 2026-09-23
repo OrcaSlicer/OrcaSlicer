@@ -162,8 +162,10 @@ void DevCalib::ExtrusionCalibSetParse(const json & jj){
     int slot_id = tray_ams_slot_map.find(tray_id) != tray_ams_slot_map.end() ? tray_ams_slot_map[tray_id].second : -1;
 
     if(tray_id == VIRTUAL_TRAY_MAIN_ID) {
-        GetOwner()->vt_slot[MAIN_EXTRUDER_ID].k = jj.value("k_value", GetOwner()->vt_slot[MAIN_EXTRUDER_ID].k);
-        GetOwner()->vt_slot[MAIN_EXTRUDER_ID].n = jj.value("n_value", GetOwner()->vt_slot[MAIN_EXTRUDER_ID].n);
+        if (GetOwner()->vt_slot.size() > MAIN_EXTRUDER_ID) {
+            GetOwner()->vt_slot[MAIN_EXTRUDER_ID].k = jj.value("k_value", GetOwner()->vt_slot[MAIN_EXTRUDER_ID].k);
+            GetOwner()->vt_slot[MAIN_EXTRUDER_ID].n = jj.value("n_value", GetOwner()->vt_slot[MAIN_EXTRUDER_ID].n);
+        }
     }else{
         auto tray_item = GetOwner()->GetFilaSystem()->GetAmsTray(std::to_string(ams_id), std::to_string(slot_id));
         if (tray_item) {

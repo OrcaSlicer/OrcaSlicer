@@ -756,6 +756,11 @@ public:
     size_t first_visible_idx_by_type(const std::string& filament_type) const;
     // Return the filament_id of the best-matching visible preset for the given filament type.
     std::string filament_id_by_type(const std::string& filament_type) const;
+    // As above, but returns false (and leaves `out` untouched) when no preset
+    // matches instead of falling back to first_visible_idx(). The fallback is a
+    // plain first-visible/PLA preset, which would bind an unknown material to an
+    // unrelated default.
+    bool filament_id_by_type(const std::string& filament_type, std::string& out) const;
     // Return index of the first compatible preset. Certainly at least the '- default -' preset shall be compatible.
     // If one of the prefered_alternates is compatible, select it.
     template<typename PreferedCondition> size_t first_compatible_idx(PreferedCondition prefered_condition) const
@@ -889,6 +894,10 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    // Index of the first visible, compatible, system base preset matching
+    // filament_type (exact, then base type), or (size_t)-1 when none matches.
+    size_t first_matching_filament_idx(const std::string& filament_type) const;
+
     std::string canonical_preset_name(const std::string &name, const PresetOrigin &load_origin = PresetOrigin()) const;
 
     // Comparator that sorts "Generic " prefixed presets before others, then alphabetically within each group.

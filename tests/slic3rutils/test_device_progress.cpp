@@ -139,3 +139,5 @@ TEST_CASE("Zero progress replaces active shared progress", "[DeviceManager][Prog
     REQUIRE(machine.mc_print_percent == 0);
     CHECK(current_subtask->task_progress == 0);
 }
+
+

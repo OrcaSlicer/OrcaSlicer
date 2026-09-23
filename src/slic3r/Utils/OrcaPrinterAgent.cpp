@@ -444,15 +444,6 @@ OrcaPrinterAgent::~OrcaPrinterAgent()
     start_discovery(false, false);
     ++m_lan_generation; // fence any late worker callback
     ++m_cloud_generation;
-    {
-        std::lock_guard<std::mutex> lock(state_mutex);
-        m_shutting_down = true; // workers stop arming new HTTP fetches
-    }
-
-    // Drain the detached filament-refresh workers: the flag and generation bump
-    // above end their loops, so this waits at most one in-flight HTTP fetch.
-    while (m_filament_in_flight.load() > 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     // Drop the cloud status callback before anything else: it holds `this`, and the
     // cloud agent outlives the printer agent (NetworkAgent::set_printer_agent swaps
@@ -633,6 +624,9 @@ void OrcaPrinterAgent::register_ams_capabilities(const std::string& dev_id, cons
     if (info_it == envelope.end() || !info_it->is_object() || info_it->value("command", "") != "get_capabilities")
         return;
     const auto caps_it = info_it->find("capabilities");
+    // A reply that is not a complete capabilities answer is ignored: treating a
+    // transient malformed reply as "no capabilities" would gate every AMS write
+    // until a good one arrives. Stale state is cleared on disconnect instead.
     if (caps_it == info_it->end() || !caps_it->is_object())
         return;
     const auto proto_it = caps_it->find("protocol");
@@ -667,15 +661,20 @@ void OrcaPrinterAgent::register_ams_capabilities(const std::string& dev_id, cons
     if (!fms_known)
         has_ams = !ops.empty();
     register_ams_capability(dev_id, has_ams);
+
+    // features.filament_slots is the connector's slot model (REQ-FMS-001),
+    // independent of fms: a printer with no material hardware still has slots.
+    bool has_slots = false;
+    if (features_it != proto_it->end() && features_it->is_object()) {
+        const auto slots_it = features_it->find("filament_slots");
+        if (slots_it != features_it->end() && slots_it->is_boolean())
+            has_slots = slots_it->get<bool>();
+    }
+    register_filament_slots(dev_id, has_slots);
 }
 
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
 {
-    // Subscription doorbell, on the raw payload before the UI marshal so the
-    // (possibly blocking) lane_data refresh never queues behind it.
-    if (local && filament_doorbell_needed(dev_id, payload))
-        request_filament_refresh(dev_id);
-
     parse_ipcam_info(dev_id, payload);
     register_ams_capabilities(dev_id, payload);
     std::string merged_payload = merge_capabilities(dev_id, payload);
@@ -714,19 +713,6 @@ void OrcaPrinterAgent::dispatch_local_connect(int state, const std::string& dev_
 
     BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN connection callback state=" << state << " dev_id=" << dev_id << " message=" << message
                             << " callback=" << (callback ? "set" : "null") << " queue_on_main=" << (queue ? "set" : "null");
-
-    // Eager filament sync on every (re)connect, like the Moonraker agents: the
-    // cached DevFilaSystem may predate the drop. The doorbell cache resets too,
-    // so the post-connect frame re-arms if the lane content moved meanwhile.
-    // Runs before the callback check so it also fires when no GUI listener is
-    // installed yet.
-    if (state == ConnectStatusOk) {
-        {
-            std::lock_guard<std::mutex> lock(state_mutex);
-            m_material_hash.clear();
-        }
-        request_filament_refresh(dev_id);
-    }
 
     if (!callback)
         return;
@@ -803,9 +789,12 @@ int OrcaPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tr
     nlohmann::json j;
     j["print"]["command"]     = "ams_change_filament";
     j["print"]["sequence_id"] = std::to_string(sequence_id);
-    // tray_id here is the flat global lane (DevFilaSystem slot index).
+    // tray_id is the BBL tray id (ams_id*4 + tray). Send the coordinates, not a
+    // fabricated flat lane: the server's one resolver maps wide and sparse
+    // boxes correctly (REQ-STS-008 §7.8).
     j["print"]["selector"] = "lane";
-    j["print"]["lane"]     = tray_number;
+    j["print"]["ams_id"]   = tray_number / 4;
+    j["print"]["slot_id"]  = tray_number % 4;
     return route_send(lan_mode, dev_id, j.dump());
 }
 
@@ -870,146 +859,10 @@ FilamentSyncMode OrcaPrinterAgent::get_filament_sync_mode() const
         std::lock_guard<std::mutex> lock(state_mutex);
         dev_id = (m_current_connection == LAN) ? m_lan_dev_id : selected_machine;
     }
-    if (!dev_id.empty() && has_ams_capability(dev_id)) {
+    if (!dev_id.empty() && (has_ams_capability(dev_id) || has_filament_slots(dev_id))) {
         return FilamentSyncMode::subscription;
     }
     return FilamentSyncMode::none;
-}
-
-// Read the lane_data projection once and apply the REQ-STS-007 tri-state to
-// DevFilaSystem. Only LaneDataState::error arms the retry latch: 404 means
-// "not knowable yet" (pre-bootstrap or acknowledged-unknown topology) and {}
-// means "authoritatively no lanes" — both are settled states, and a printer
-// without a material system must not turn into a per-frame 404 poll.
-OrcaPrinterAgent::LaneDataState OrcaPrinterAgent::fetch_lane_data(const std::string& dev_id)
-{
-    std::string origin;
-    QueueOnMainFn queue_fn;
-    {
-        std::lock_guard<std::mutex> lock(state_mutex);
-        if (m_shutting_down || m_current_connection != LAN || m_lan_dev_id != dev_id)
-            return LaneDataState::unknown;
-        origin   = m_lan_http_origin;
-        queue_fn = queue_on_main_fn;
-    }
-    if (origin.empty())
-        return LaneDataState::unknown;
-    const std::string api_key = lan_api_key(origin);
-
-    // OrcaSonar serves the canonical topology's lane projection on its
-    // Moonraker-compatible façade. Called on the refresh worker (subscription
-    // mode), so the payload mutation is marshalled onto the main thread through
-    // queue_fn; a GUI-thread caller reads DevFilaSystem inline.
-    std::vector<AmsTrayData> trays;
-    int max_lane_index = 0;
-    switch (read_moonraker_lane_data(origin, api_key, trays, max_lane_index)) {
-    case LaneDataFetch::synced:
-        break;
-    case LaneDataFetch::none:
-        // Authoritative empty: flush stale trays so a removed AMS does not
-        // linger in the device panel.
-        clear_ams_payload_for_device(dev_id, queue_fn);
-        return LaneDataState::none;
-    case LaneDataFetch::unknown:
-        // 404: not knowable yet (pre-bootstrap or acknowledged-unknown topology).
-        // Never latched; the next doorbell or reconnect retries.
-        return LaneDataState::unknown;
-    case LaneDataFetch::error:
-        return LaneDataState::error;
-    }
-
-    // printer_type stays unset: push_status already carries the OrcaSonar printer
-    // type, and overwriting it here would clear it. build_ams_payload_for_device
-    // marshals the DevFilaSystem mutation through queue_fn when set.
-    build_ams_payload_for_device(dev_id, std::nullopt, ams_count_for_lanes(max_lane_index), max_lane_index, trays, queue_fn);
-    return LaneDataState::synced;
-}
-
-// Subscription scheduler for filament sync. A single detached worker drains
-// m_filament_wanted; extra requests arriving while it runs fold into its loop, so
-// a burst of topology_state doorbells costs one extra fetch that picks up the
-// trailing change. A failed fetch does not busy-retry: m_filament_failed makes
-// the next inbound LAN frame request again (an idle printer is silent, but it
-// cannot have changed lanes either), and a reconnect re-primes via the
-// ConnectStatusOk path in dispatch_local_connect().
-void OrcaPrinterAgent::request_filament_refresh(const std::string& dev_id)
-{
-    uint64_t gen;
-    {
-        std::lock_guard<std::mutex> lock(state_mutex);
-        if (m_current_connection != LAN || m_lan_dev_id != dev_id)
-            return;
-        gen               = m_lan_generation.load();
-        m_filament_wanted = true;
-        if (m_filament_working)
-            return; // the running worker will take the flag
-        m_filament_working = true;
-    }
-
-    m_filament_in_flight.fetch_add(1, std::memory_order_relaxed);
-    std::thread([this, dev_id, gen] {
-        struct InFlightGuard
-        {
-            std::atomic<int>& counter;
-            ~InFlightGuard() { counter.fetch_sub(1, std::memory_order_relaxed); }
-        } guard{m_filament_in_flight};
-
-        for (;;) {
-            bool needed;
-            {
-                std::lock_guard<std::mutex> lock(state_mutex);
-                needed = !m_shutting_down && m_filament_wanted && m_lan_generation.load() == gen && m_current_connection == LAN &&
-                         m_lan_dev_id == dev_id;
-                if (needed)
-                    m_filament_wanted = false;
-                else
-                    m_filament_working = false; // same critical section that saw no work: no lost wake-up
-            }
-            if (!needed)
-                return;
-            const auto state = fetch_lane_data(dev_id);
-            std::lock_guard<std::mutex> lock(state_mutex);
-            m_filament_failed = state == LaneDataState::error; // latch read by filament_doorbell_needed()
-        }
-    }).detach();
-}
-
-// A LAN frame is a refresh trigger when it carries an OrcaSonar material
-// change (a new print.topology_state.material_hash, spec REQ-STS-007 §7.7) or
-// when the last fetch errored and this frame is the retry beat. The substring
-// guard keeps the JSON parse off the steady temp-tick cadence, and hash
-// equality absorbs the tick's topology_state re-emissions.
-bool OrcaPrinterAgent::filament_doorbell_needed(const std::string& dev_id, const std::string& payload)
-{
-    {
-        std::lock_guard<std::mutex> lock(state_mutex);
-        if (m_current_connection != LAN || m_lan_dev_id != dev_id)
-            return false;
-        if (m_filament_failed)
-            return true;
-    }
-    // The cheap guard is the §7.7 doorbell token itself, so the steady
-    // temperature-only tick never reaches the JSON parse.
-    if (payload.find("material_hash") == std::string::npos)
-        return false;
-    auto json = nlohmann::json::parse(payload, nullptr, false);
-    if (json.is_discarded() || !json.is_object())
-        return false;
-    const auto print_it = json.find("print");
-    if (print_it == json.end() || !print_it->is_object())
-        return false;
-    const auto topo_it = print_it->find("topology_state");
-    if (topo_it == print_it->end() || !topo_it->is_object())
-        return false;
-    const auto hash_it = topo_it->find("material_hash");
-    if (hash_it == topo_it->end() || !hash_it->is_string())
-        return false;
-
-    std::lock_guard<std::mutex> lock(state_mutex);
-    if (hash_it->get<std::string>() == m_material_hash)
-        return false; // content unchanged: not a doorbell
-    m_material_hash = hash_it->get<std::string>();
-    return true;
 }
 
 // Moonraker's client bootstrap: /access/api_key hands the façade key to a
@@ -1251,7 +1104,6 @@ int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, st
         previous_connection = m_current_connection;
         m_lan_dev_id        = dev_id;
         m_lan_url           = cfg.url;
-        m_lan_http_origin   = http_origin_from_lan_ws(cfg.url);
         m_lan_password      = password; // access code; the façade key is bootstrapped lazily
         m_lan_api_key.clear();
         m_lan_api_key_gen    = gen;
@@ -1328,10 +1180,7 @@ int OrcaPrinterAgent::disconnect_printer()
         doomed              = std::move(lan_mqtt_connection);
         prev_dev            = m_lan_dev_id;
         m_lan_dev_id.clear();
-        m_lan_http_origin.clear();
         m_lan_api_key.clear();
-        m_filament_wanted = false; // a stale worker self-exits on the generation mismatch
-        m_filament_failed = false;
         if (m_current_connection == LAN) {
             m_current_connection = NONE;
             m_camera_stream_mode = CameraStreamMode::none;
@@ -1344,6 +1193,10 @@ int OrcaPrinterAgent::disconnect_printer()
                             << " connected=" << (doomed && doomed->is_connected() ? "yes" : "no")
                             << " transport=" << connection_type_name(previous_connection) << "->"
                             << connection_type_name(current_connection);
+    // Drop the device's declared capabilities so a reconnect starts from "no
+    // reply yet" instead of a stale declaration from the previous session.
+    if (!prev_dev.empty())
+        clear_ams_caps(prev_dev);
     // Tell the printer to stop pushing and drop the report topic before the socket
     // goes away (§3.2/§5.4: deselect issues pushing.stop on both transports).
     if (doomed && !prev_dev.empty() && doomed->is_connected()) {
@@ -1381,8 +1234,23 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
         const std::string cmd = print.value("command", std::string());
         if (cmd.empty() || (cmd.rfind("ams_", 0) != 0 && cmd != "auto_stop_ams_dry"))
             return json_str;
-        if (cmd == "ams_change_filament" && print.contains("selector"))
-            return json_str; // already canonical (e.g. command_ams_select_tray)
+
+        // filament_setting is exempt from the ams_ops union: it persists
+        // connector state through the filament-slot model, so filament_slots
+        // alone advertises it (OrcaSonar OPCP §7.8).
+        auto op_allowed = [&dev_id](const std::string& o) {
+            return o.empty() || ams_op_supported(dev_id, o) || (o == "filament_setting" && has_filament_slots(dev_id));
+        };
+
+        if (cmd == "ams_change_filament" && print.contains("selector")) {
+            // Already canonical (e.g. command_ams_select_tray): gate the op,
+            // but never rewrite the body.
+            const std::string sel = print.value("selector", std::string());
+            const std::string sel_op = (sel == "lane") ? "change_filament" : sel;
+            if (!op_allowed(sel_op) && unsupported)
+                *unsupported = true;
+            return json_str;
+        }
 
         auto int_or = [&print](const char* key, int fallback) {
             const auto it = print.find(key);
@@ -1394,34 +1262,45 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
             const int slot   = int_or("slot_id", -1);
             const int ams    = int_or("ams_id", -1);
             print.erase("target");
-            print.erase("slot_id");
             print.erase("tray_id");
-            print.erase("ams_id");
             if (target == 255 && slot == 255) {
+                print.erase("slot_id");
+                print.erase("ams_id");
                 print["selector"] = "unload";
                 op                = "unload";
             } else if (target == 255 || ams == 254 || ams == 255) {
+                print.erase("slot_id");
+                print.erase("ams_id");
                 print["selector"] = "external";
                 op                = "external";
             } else {
-                const int lane    = target >= 0 ? target : (ams >= 0 ? ams * 4 + slot : slot);
+                // Box change: forward the wire coordinates unchanged. Erase
+                // both first so a half-present coordinate pair from the client
+                // cannot leak into the body (a lone lane alias is untouched). A
+                // coordinate-less body is left for the server's own -19.
                 print["selector"] = "lane";
-                print["lane"]     = lane;
-                op                = "change_filament";
+                print.erase("ams_id");
+                print.erase("slot_id");
+                if (ams >= 0 && slot >= 0) {
+                    print["ams_id"]  = ams;
+                    print["slot_id"] = slot;
+                }
+                op = "change_filament";
             }
         } else if (cmd == "ams_filament_setting") {
+            op             = "filament_setting";
             const int ams  = int_or("ams_id", -1);
             const int slot = int_or("slot_id", -1);
-            op             = "filament_setting";
-            if (ams >= 254) {
-                if (unsupported)
-                    *unsupported = true; // no lane for a virtual tray
-                return json_str;
+            if (ams >= 0 && slot >= 0) {
+                // Coordinates are the server resolver's own form (REQ-FMS-001
+                // §6.2.13). Forward them unchanged for box and external spools;
+                // never fabricate a flat lane (tray id != layout lane).
+                print["ams_id"]  = ams;
+                print["slot_id"] = slot;
+                print.erase("tray_id");
             }
-            print["lane"] = ams * 4 + slot;
-            print.erase("slot_id");
-            print.erase("tray_id");
-            print.erase("ams_id");
+            // A lane-only or coordinate-less body is left as sent so the server
+            // applies the dual-form rule and its own -19, never -5.
         } else if (cmd == "ams_control") {
             std::string action = print.value("action", print.value("param", std::string()));
             op                 = action; // only "pause" is ever declared; the rest gate out
@@ -1441,10 +1320,8 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
         } else if (cmd == "auto_stop_ams_dry") {
             op = "stop_dry";
         }
-        if (!op.empty() && !ams_op_supported(dev_id, op)) {
-            if (unsupported)
-                *unsupported = true;
-        }
+        if (!op_allowed(op) && unsupported)
+            *unsupported = true;
         return envelope.dump();
     } catch (const std::exception&) {
         return json_str;

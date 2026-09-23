@@ -536,6 +536,23 @@ PrinterSeries MachineObject::get_printer_series() const
         return PrinterSeries::SERIES_P1P;
 }
 
+bool MachineObject::is_bbl_agent() const
+{
+    // Empty id means "unattributed", treated as BBL to preserve the RFID lock.
+    return printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty();
+}
+
+bool MachineObject::ams_filament_ack_failed(const nlohmann::json& jj, std::string& reason)
+{
+    reason.clear();
+    if (!jj.contains("result") || !jj["result"].is_string() ||
+        jj["result"].get<std::string>() == "success")
+        return false;
+    if (jj.contains("reason") && jj["reason"].is_string())
+        reason = jj["reason"].get<std::string>();
+    return true;
+}
+
 PrinterArch MachineObject::get_printer_arch() const
 {
     return DevPrinterConfigUtil::get_printer_arch(printer_type);
@@ -619,8 +636,7 @@ MachineObject::MachineObject(DeviceManager* manager, NetworkAgent* agent, std::s
     has_ipcam = true; // default true
 
 
-    auto vslot = DevAmsTray(std::to_string(VIRTUAL_TRAY_MAIN_ID));
-    vt_slot.push_back(vslot);
+    // vt_slot is seeded by reset() above; do not push a second copy here.
 
     {
         m_lamp = new DevLamp(this);
@@ -747,6 +763,7 @@ DevAmsTray *MachineObject::get_curr_tray()
 {
     const std::string& cur_ams_id = m_extder_system->GetCurrentAmsId();
     if (cur_ams_id.compare(std::to_string(VIRTUAL_TRAY_MAIN_ID)) == 0) {
+        if (vt_slot.empty()) return nullptr;
         return &vt_slot[0];
     }
 
@@ -2568,13 +2585,11 @@ void MachineObject::reset()
     json empty_j;
     print_json.diff2all_base_reset(empty_j);
 
-    for (auto i = 0; i < vt_slot.size(); i++) {
-        vt_slot[i].reset();
-
-        if (i == 1) {
-            vt_slot.erase(vt_slot.begin() + 1);
-        }
-    }
+    // Restore the ctor seed rather than only resetting what is left: an
+    // authoritative vir_slot:[] erases every tray, so reset must not leave
+    // vt_slot permanently empty.
+    vt_slot.clear();
+    vt_slot.push_back(DevAmsTray(std::to_string(VIRTUAL_TRAY_MAIN_ID)));
     // why: reset reuses MachineObject, so release its lazy subtask
     // before dropping the pointer to prevent reconnect leaks.
     if (subtask_) {
@@ -2749,6 +2764,7 @@ int MachineObject::local_publish_json(std::string json_str, int qos, int flag)
 std::string MachineObject::setting_id_to_type(std::string setting_id, std::string tray_type)
 {
     std::string type;
+    if (wxTheApp == nullptr) return tray_type;
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
@@ -3968,8 +3984,12 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     catch (...) {
                         ;
                     }
-                    update_printer_preset_name();
-                    update_filament_list();
+                    // Both read the GUI preset bundle; skip them in a headless
+                    // process (unit tests), where wxTheApp is null.
+                    if (wxTheApp != nullptr) {
+                        update_printer_preset_name();
+                        update_filament_list();
+                    }
                     if (jj.contains("ams")) {
                         DevFilaSystemParser::ParseV1_0(jj, this, m_fila_system.get(), key_field_only);
                     }
@@ -3978,6 +3998,19 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     if (!key_field_only) {
                         try {
                             if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
+
+                                if (jj["vir_slot"].empty()) {
+                                    // Authoritative empty: OrcaSonar pushes [] when the
+                                    // topology is known but has no slots; clear stale trays.
+                                    vt_slot.clear();
+                                    ams_support_virtual_tray = false;
+                                }
+                                else {
+                                    // A keyed, populated vir_slot means virtual trays
+                                    // are supported; without this a prior clear left
+                                    // the flag false and the trays were ignored.
+                                    ams_support_virtual_tray = true;
+                                }
 
                                 for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
                                     auto vslot = parse_vt_tray(it.value().get<json>());
@@ -3992,11 +4025,13 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                         }
                                     }
                                     else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-                                        auto it = std::next(vt_slot.begin(), 1);
-                                        if (it != vt_slot.end()) {
+                                        // vt_slot[1] is the deputy. Only the main
+                                        // branch creates index 0, so an orphan
+                                        // deputy (no main) is dropped, not indexed.
+                                        if (vt_slot.size() > 1) {
                                             vt_slot[1] = vslot;
                                         }
-                                        else {
+                                        else if (vt_slot.size() == 1) {
                                             vt_slot.push_back(vslot);
                                         }
                                     }
@@ -4004,6 +4039,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                             }
                             else if (jj.contains("vt_tray")) {
+                                ams_support_virtual_tray = true;
                                 auto main_slot = parse_vt_tray(jj["vt_tray"].get<json>());
                                 main_slot.id = std::to_string(VIRTUAL_TRAY_MAIN_ID);
 
@@ -4016,9 +4052,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     vt_slot.push_back(main_slot);
                                 }
                             }
-                            else {
-                                ams_support_virtual_tray = false;
-                            }
+                            // No virtual-tray key at all: leave the flag as-is. An
+                            // authoritative clear is an explicit vir_slot: [], and
+                            // incremental frames must not hide existing trays.
                         }
                         catch (...) {
                             ;
@@ -4057,13 +4093,28 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     // BBS trigger ams UI update
                     ams_version = -1;
 
-                    if (jj["ams_id"].is_number()) {
+                    // OPCP acks a rejected/failed write with result "fail" and an
+                    // errno (-19 validation, -4 persist). Without this the failure
+                    // looked like success and left the old spool on screen.
+                    std::string ack_reason;
+                    const bool ack_failed = ams_filament_ack_failed(jj, ack_reason);
+                    if (ack_failed) {
+                        BOOST_LOG_TRIVIAL(warning) << "ams_filament_setting rejected: errno="
+                                                   << (jj.contains("errno") ? jj["errno"].dump() : "?")
+                                                   << ", reason=" << ack_reason;
+                        wxString text = _L("Failed to set AMS filament");
+                        if (!ack_reason.empty())
+                            text += wxString::FromUTF8(": ") + wxString::FromUTF8(ack_reason);
+                        GUI::wxGetApp().push_notification(this, text);
+                    }
+
+                    if (!ack_failed && jj["ams_id"].is_number()) {
                         int ams_id = jj["ams_id"].get<int>();
                         int tray_id = 0;
                         if (jj.contains("tray_id")) {
                             tray_id = jj["tray_id"].get<int>();
                         }
-                        if (ams_id == 255 && tray_id == VIRTUAL_TRAY_MAIN_ID) {
+                        if (ams_id == 255 && tray_id == VIRTUAL_TRAY_MAIN_ID && !vt_slot.empty()) {
                             BOOST_LOG_TRIVIAL(info) << "ams_filament_setting, parse tray info";
                             vt_slot[0].nozzle_temp_max = std::to_string(jj["nozzle_temp_max"].get<int>());
                             vt_slot[0].nozzle_temp_min = std::to_string(jj["nozzle_temp_min"].get<int>());
@@ -4076,7 +4127,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         } else {
                             auto ams = m_fila_system->GetAmsById(std::to_string(ams_id));
                             if (ams) {
-                                tray_id = jj["tray_id"].get<int>();
                                 auto tray_it = ams->GetTrays().find(std::to_string(tray_id));
                                 if (tray_it != ams->GetTrays().end()) {
                                     BOOST_LOG_TRIVIAL(trace) << "ams_filament_setting, parse tray info";
@@ -4216,7 +4266,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             ;
                         }
                     }
-                    if (tray_id == VIRTUAL_TRAY_MAIN_ID) {
+                    if (tray_id == VIRTUAL_TRAY_MAIN_ID && !vt_slot.empty()) {
                         if (jj.contains("k_value"))
                             vt_slot[0].k = jj["k_value"].get<float>();
                         if (jj.contains("n_coef"))
@@ -5630,7 +5680,9 @@ int MachineObject::get_flag_bits(int num, int start, int count, int base) const
 
 void MachineObject::update_filament_list()
 {
+    if (wxTheApp == nullptr) return;
     PresetBundle *preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    if (preset_bundle == nullptr) return;
 
     // custom filament
     typedef std::map<std::string, std::pair<int, int>> map_pair;
@@ -5700,6 +5752,7 @@ void MachineObject::update_filament_list()
 void MachineObject::update_printer_preset_name()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << "start update preset_name";
+    if (wxTheApp == nullptr) return;
     PresetBundle *     preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
     if (!preset_bundle) return;
     auto               printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);

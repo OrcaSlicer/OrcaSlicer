@@ -3446,7 +3446,7 @@ size_t PresetCollection::first_visible_idx() const
     return first_visible;
 }
 
-size_t PresetCollection::first_visible_idx_by_type(const std::string& filament_type) const
+size_t PresetCollection::first_matching_filament_idx(const std::string& filament_type) const
 {
     size_t start = m_default_suppressed ? m_num_default_presets : 0;
 
@@ -3471,19 +3471,31 @@ size_t PresetCollection::first_visible_idx_by_type(const std::string& filament_t
     //    e.g. "PLA High Speed" -> "PLA"
     //    Dash-separated types like "PA-CF", "PET-CF" are distinct materials, not modifiers.
     auto sep = filament_type.find(' ');
-    if (sep != std::string::npos) {
-        idx = find_by_type(filament_type.substr(0, sep));
-        if (idx != size_t(-1))
-            return idx;
-    }
+    if (sep != std::string::npos)
+        return find_by_type(filament_type.substr(0, sep));
 
+    return size_t(-1);
+}
+
+size_t PresetCollection::first_visible_idx_by_type(const std::string& filament_type) const
+{
+    size_t idx = first_matching_filament_idx(filament_type);
     // 3. Any visible preset
-    return first_visible_idx();
+    return idx != size_t(-1) ? idx : first_visible_idx();
 }
 
 std::string PresetCollection::filament_id_by_type(const std::string& filament_type) const
 {
     return preset(first_visible_idx_by_type(filament_type)).filament_id;
+}
+
+bool PresetCollection::filament_id_by_type(const std::string& filament_type, std::string& out) const
+{
+    size_t idx = first_matching_filament_idx(filament_type);
+    if (idx == size_t(-1))
+        return false;
+    out = preset(idx).filament_id;
+    return true;
 }
 
 std::vector<std::string> PresetCollection::diameters_of_selected_printer()

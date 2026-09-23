@@ -2325,8 +2325,13 @@ void GUI_App::init_networking_callbacks()
 
                 if (MachineObject* obj = m_device_manager->get_my_machine(dev_id)) {
                     obj->parse_json("lan", msg);
-                    // Orca: skip it if it doesn't support subscription based filament sync
-                    if (this->m_device_manager->get_selected_machine() == obj &&
+                    // Orca: skip it if it doesn't support subscription based filament
+                    // sync, and skip frames that carry no filament state at all
+                    // (progress, temps, hms) so the AMS list is not rebuilt every push.
+                    const bool has_filament_state = msg.find("\"vir_slot\"") != std::string::npos ||
+                                                    msg.find("\"ams\":") != std::string::npos;
+                    if (has_filament_state &&
+                        this->m_device_manager->get_selected_machine() == obj &&
                         m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription) {
                         GUI::wxGetApp().sidebar().load_ams_list(obj);
                     }

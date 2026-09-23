@@ -4350,11 +4350,11 @@ void StatusPanel::on_ams_load_curr()
                 vt_slot_idx = 1;
             }
 
+            if (vt_slot_idx < 0 || vt_slot_idx >= (int)obj->vt_slot.size()) return;
+
             int old_temp = -1;
             int new_temp = -1;
             DevAmsTray* curr_tray = &obj->vt_slot[vt_slot_idx];
-
-            if (!curr_tray) return;
 
             try {
                 if (!curr_tray->nozzle_temp_max.empty() && !curr_tray->nozzle_temp_min.empty())
@@ -4602,7 +4602,11 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
                     m_filament_setting_dlg->set_colors(cols);
                 }
 
-                m_filament_setting_dlg->m_is_third = !DevFilaSystem::IsBBL_Filament(tray->tag_uid);
+                // A non-zero tag_uid is an RFID lock only on Bambu's own agent.
+                // Agent-managed printers (Orca/Qidi/Snapmaker) send it as
+                // metadata, and the spec says it must never be interpreted — so
+                // the tag alone must not make their trays read-only.
+                m_filament_setting_dlg->m_is_third = !obj->is_bbl_agent() || !DevFilaSystem::IsBBL_Filament(tray->tag_uid);
                 if (!m_filament_setting_dlg->m_is_third)
                 {
                     sn_number = tray->uuid;
@@ -4642,6 +4646,8 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
         m_filament_setting_dlg->slot_id  = slot_id;
         int nozzle_index = ams_id == VIRTUAL_TRAY_MAIN_ID ? 0 : 1;
 
+        if (nozzle_index < 0 || nozzle_index >= (int)obj->vt_slot.size()) return;
+
         try {
             std::string sn_number;
             std::string filament;
@@ -4668,7 +4674,7 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
                 m_filament_setting_dlg->set_colors(cols);
             }
 
-            m_filament_setting_dlg->m_is_third = !DevFilaSystem::IsBBL_Filament(obj->vt_slot[nozzle_index].tag_uid);
+            m_filament_setting_dlg->m_is_third = !obj->is_bbl_agent() || !DevFilaSystem::IsBBL_Filament(obj->vt_slot[nozzle_index].tag_uid);
             if (!m_filament_setting_dlg->m_is_third) {
                 sn_number = obj->vt_slot[nozzle_index].uuid;
                 filament  = obj->vt_slot[nozzle_index].sub_brands;

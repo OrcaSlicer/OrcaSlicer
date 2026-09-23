@@ -378,28 +378,18 @@ nlohmann::json build_bbl_ams_json(const std::vector<AmsTrayData>& trays,
 
 // --- Removal/absence state and op capability ---------------------------------
 
-// Last ams_count rendered per device: clear_ams_payload_for_device walks the
-// same unit set to mark them all absent.
 static std::mutex                         g_ams_state_mutex;
-static std::map<std::string, int>         g_ams_last_count;
 
 // One device's declaration from its get_capabilities reply. ops_known separates
 // "no reply yet" (never gate) from "answered without ops" (gate every write).
 struct AmsDeviceCaps
 {
     std::vector<std::string> ops;
-    bool                     ops_known = false;
-    bool                     has_ams   = false;
+    bool                     ops_known      = false;
+    bool                     has_ams        = false;
+    bool                     filament_slots = false;
 };
 static std::map<std::string, AmsDeviceCaps> g_ams_caps;
-
-static void remember_ams_count(const std::string& dev_id, int ams_count)
-{
-    if (dev_id.empty() || ams_count <= 0)
-        return;
-    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
-    g_ams_last_count[dev_id] = std::max(g_ams_last_count[dev_id], ams_count);
-}
 
 void register_ams_ops(const std::string& dev_id, const std::vector<std::string>& ops)
 {
@@ -435,6 +425,29 @@ bool has_ams_capability(const std::string& dev_id)
     return it != g_ams_caps.end() && it->second.has_ams;
 }
 
+void register_filament_slots(const std::string& dev_id, bool has_slots)
+{
+    if (dev_id.empty())
+        return;
+    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
+    g_ams_caps[dev_id].filament_slots = has_slots;
+}
+
+bool has_filament_slots(const std::string& dev_id)
+{
+    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
+    auto it = g_ams_caps.find(dev_id);
+    return it != g_ams_caps.end() && it->second.filament_slots;
+}
+
+void clear_ams_caps(const std::string& dev_id)
+{
+    if (dev_id.empty())
+        return;
+    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
+    g_ams_caps.erase(dev_id);
+}
+
 void build_ams_payload_for_device(const std::string& dev_id,
                                   const std::optional<std::string>& printer_type,
                                   int ams_count,
@@ -443,7 +456,6 @@ void build_ams_payload_for_device(const std::string& dev_id,
                                   const QueueOnMainFn& queue_fn,
                                   const TrayInfoResolver& vendor_resolver)
 {
-    remember_ams_count(dev_id, ams_count);
     // A caller on the GUI thread must mutate DeviceManager inline: invoking
     // queue_fn (CallAfter) would defer the work until after the caller has
     // already read DevFilaSystem. Background callers route through queue_fn.
@@ -511,58 +523,5 @@ void build_ams_payload_for_device(const std::string& dev_id,
     }
 }
 
-void clear_ams_payload_for_device(const std::string& dev_id, const QueueOnMainFn& queue_fn)
-{
-    int count = 0;
-    {
-        std::lock_guard<std::mutex> lock(g_ams_state_mutex);
-        auto it = g_ams_last_count.find(dev_id);
-        if (it != g_ams_last_count.end())
-            count = it->second;
-        g_ams_last_count[dev_id] = 0;
-    }
-    if (count == 0)
-        return; // nothing was ever rendered: nothing to clear
-
-    const bool on_main = wxIsMainThread();
-    auto apply = [dev_id, count]() {
-        auto* dev_manager = GUI::wxGetApp().getDeviceManager();
-        if (!dev_manager)
-            return;
-        MachineObject* obj = dev_manager->get_my_machine(dev_id);
-        if (!obj)
-            return;
-
-        // All units present-but-empty: exist bits 0 marks them absent while
-        // placeholder trays flush stale type/color data out of DevFilaSystem.
-        nlohmann::json units = nlohmann::json::array();
-        for (int ams_id = 0; ams_id < count; ++ams_id) {
-            nlohmann::json trays = nlohmann::json::array();
-            for (int slot_id = 0; slot_id < 4; ++slot_id) {
-                trays.push_back(nlohmann::json{
-                    {"id", std::to_string(slot_id)},
-                    {"tag_uid", "0000000000000000"},
-                    {"tray_info_idx", ""},
-                    {"tray_type", ""},
-                    {"tray_color", "00000000"},
-                    {"tray_slot_placeholder", "1"},
-                });
-            }
-            units.push_back(nlohmann::json{{"id", std::to_string(ams_id)}, {"info", "0002"}, {"tray", trays}});
-        }
-        nlohmann::json ams_json;
-        ams_json["ams"]                = units;
-        ams_json["ams_exist_bits"]     = "0";
-        ams_json["tray_exist_bits"]    = "0";
-        nlohmann::json print_json;
-        print_json["ams"] = ams_json;
-        DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem().get(), false);
-        BOOST_LOG_TRIVIAL(info) << "AmsPayload: cleared " << count << " AMS units for " << dev_id;
-    };
-    if (queue_fn && !on_main)
-        queue_fn(apply);
-    else
-        apply();
-}
 
 } // namespace Slic3r

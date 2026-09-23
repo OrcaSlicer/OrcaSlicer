@@ -658,10 +658,10 @@ int MoonrakerPrinterAgent::safe_array_int(const nlohmann::json& arr, int idx)
 // Fetch filament info from moonraker database
 bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
 {
-    // Shared with OrcaPrinterAgent's lane_data read; only the synced outcome
-    // matters here, since a missing namespace or an empty one both fall through
-    // to the Happy Hare query. tray_info_idx is resolved later, on the main
-    // thread, inside build_ams_payload_for_device.
+    // Only the synced outcome matters here: a missing namespace, an empty one,
+    // a transport error and an unreadable body all fall through to the Happy
+    // Hare query. tray_info_idx is resolved later, on the main thread, inside
+    // build_ams_payload_for_device.
     return read_moonraker_lane_data(device_info.base_url, device_info.api_key, trays, max_lane_index) ==
            LaneDataFetch::synced;
 }

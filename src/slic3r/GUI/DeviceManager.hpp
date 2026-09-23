@@ -161,6 +161,13 @@ public:
     void set_agent(NetworkAgent* agent) { m_agent = agent; }
     NetworkAgent* get_agent() const { return m_agent; } // Orca: needed by DeviceCore modules (DevAxisCtrl)
 
+    // Orca: true only for devices managed by Bambu's own agent, where a
+    // non-zero tag_uid is an RFID lock. Other agents report it as metadata.
+    bool is_bbl_agent() const;
+
+    // Orca: an OPCP failure ack (result != "success"). Fills reason when present.
+    static bool ams_filament_ack_failed(const nlohmann::json& jj, std::string& reason);
+
     // Orca: these DeviceCore module accessors are unwired on the read side — axis/chamber/status
     // are fed every MQTT push but no GUI consumer reads them yet, and for calib/upgrade the inline
     // parse in DeviceManager.cpp remains authoritative. Do not wire DevUpgrade naively: its

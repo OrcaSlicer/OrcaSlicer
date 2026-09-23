@@ -415,8 +415,6 @@ class DevFilaSystemParser
 {
 public:
     static void ParseV1_0(const json& print_json, MachineObject* obj, DevFilaSystem* system, bool key_field_only);
-
-    static void ParseAgentFilament(const json& data, MachineObject* obj, DevFilaSystem* system);
 };
 
 struct DevFilamentDryingPreset

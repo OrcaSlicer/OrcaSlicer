@@ -90,11 +90,6 @@ void build_ams_payload_for_device(const std::string& dev_id,
                                   const QueueOnMainFn& queue_fn,
                                   const TrayInfoResolver& vendor_resolver = {});
 
-// Clear the device's AMS view: render every previously-seen unit as absent
-// with placeholder trays so a removed/absent material system never leaves
-// stale filament data behind (lane_data read as authoritative empty).
-void clear_ams_payload_for_device(const std::string& dev_id, const QueueOnMainFn& queue_fn);
-
 // Process-wide canonical AMS write capability (OrcaSonar REQ-STS-008), parsed
 // from the info.get_capabilities reply. A device with no record (no reply yet;
 // non-OrcaSonar agents never register) reports every op supported: gating only
@@ -108,6 +103,17 @@ bool   ams_op_supported(const std::string& dev_id, const std::string& op);
 // false: an unconfirmed printer must not advertise filament sync.
 void   register_ams_capability(const std::string& dev_id, bool has_ams);
 bool   has_ams_capability(const std::string& dev_id);
+
+// Whether the device exposes the filament-slot model, from the
+// get_capabilities reply's protocol.features.filament_slots. The slot model is
+// connector state, independent of fms: a printer with no material hardware
+// still has slots, so this alone enables filament sync (REQ-FMS-001).
+void   register_filament_slots(const std::string& dev_id, bool has_slots);
+bool   has_filament_slots(const std::string& dev_id);
+
+// Forget a device's declared capabilities, so a reconnect starts from "no
+// reply yet" instead of a stale declaration.
+void   clear_ams_caps(const std::string& dev_id);
 
 } // namespace Slic3r
 

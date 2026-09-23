@@ -209,6 +209,14 @@ TEST_CASE("unit: AMS capability registry reports only declared material systems"
     // Later replies overwrite: a removed material system must clear the flag.
     register_ams_capability("cap-true", false);
     CHECK_FALSE(has_ams_capability("cap-true"));
+
+    // filament_slots is a separate connector flag: no record reads false, and
+    // a later reply clears it.
+    CHECK_FALSE(has_filament_slots("cap-slot-none"));
+    register_filament_slots("cap-slots", true);
+    CHECK(has_filament_slots("cap-slots"));
+    register_filament_slots("cap-slots", false);
+    CHECK_FALSE(has_filament_slots("cap-slots"));
 }
 
 // why: these builders preserve the Bambu firmware dialect byte-for-byte, including its trailing space.
