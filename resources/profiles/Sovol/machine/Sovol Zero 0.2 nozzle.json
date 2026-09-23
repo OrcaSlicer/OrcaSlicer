@@ -1,21 +1,21 @@
 {
 	"type": "machine",
-	"setting_id": "QclEa2nmpBiii6Y0",
-	"name": "Sovol Zero 0.4 nozzle",
+	"setting_id": "MAF2n6b8uoY92qVH",
+	"name": "Sovol Zero 0.2 nozzle",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_machine_common",
 	"printer_model": "Sovol Zero",
-	"default_print_profile": "0.20mm Standard @Sovol Zero 0.4 nozzle",
-	"printer_variant": "0.4",
+	"default_print_profile": "0.10mm Standard @Sovol Zero 0.2 nozzle",
+	"printer_variant": "0.2",
 	"nozzle_diameter": [
-		"0.4"
+		"0.2"
 	],
 	"min_layer_height": [
-		"0.08"
+		"0.04"
 	],
 	"max_layer_height": [
-		"0.32"
+		"0.2"
 	],
 	"retract_before_wipe": [
 		"0%"
