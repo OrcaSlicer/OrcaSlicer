@@ -171,7 +171,7 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
     // Launch connection in background thread (capture by value to avoid data races)
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
-        connect_thread = std::thread([this, params, base_url, api_key, gen]() { perform_connection_async(params.dev_id, base_url, api_key, gen); });
+        connect_thread = std::thread([this, dev_id = params.dev_id, base_url, api_key, gen]() { perform_connection_async(dev_id, base_url, api_key, gen); });
     }
 
     return BAMBU_NETWORK_SUCCESS;
