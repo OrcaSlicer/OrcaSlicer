@@ -7,6 +7,8 @@ add_executable(${_TEST_NAME}_tests
     test_filament_bitmap_utils.cpp
     test_device_progress.cpp
     test_device_manager.cpp
+    test_device_manager_integration.cpp
+    test_web_media_controller.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp
@@ -20,11 +22,13 @@ add_executable(${_TEST_NAME}_tests
     test_orca_printer_agent.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_printer_agent.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_shortcuts.cpp
     ../fff_print/test_helpers.cpp
     )
 

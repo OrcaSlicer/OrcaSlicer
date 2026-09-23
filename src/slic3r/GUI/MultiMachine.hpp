@@ -59,7 +59,6 @@ public:
 
     void selected();
     void unselected();
-    bool is_blocking_printing(MachineObject* obj_);
     void update_item(const DeviceItem* item);
 };
 

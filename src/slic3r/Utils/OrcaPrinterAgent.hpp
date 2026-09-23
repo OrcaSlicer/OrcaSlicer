@@ -115,6 +115,10 @@ public:
     // the live route_send path).
     static std::string canonicalize_ams_payload(const std::string& dev_id, const std::string& json_str, bool* unsupported);
 
+    // Test-only: the canonical ams_change_filament body for a BBL tray id
+    // (ams_id*4 + tray). command_ams_select_tray routes this exact body.
+    static std::string build_ams_change_filament_body(int tray_number, int sequence_id);
+
 protected:
     // Forward one inbound printer message to on_message_fn or on_local_message_fn (marshalled onto the UI
     // thread via queue_on_main_fn when set). Body of every connection's MessageHandler.

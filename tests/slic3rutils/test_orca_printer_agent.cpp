@@ -423,3 +423,21 @@ TEST_CASE("a filament_slots reply admits ams_filament_setting without ams_ops", 
         &unsupported);
     CHECK(unsupported);
 }
+
+// A box wider than 4 slots is shown as several 4-tray units, so the BBL tray id
+// a panel reports must split into that unit's own (ams_id, slot_id). A flat lane
+// would be the tray id, which is not the layout lane for a wide box
+// (REQ-STS-008 §7.8).
+TEST_CASE("an AMS tray selection sends the tray's ams_id and slot_id", "[OrcaPrinterAgent]") {
+    // Unit 2 tray 1 is BBL tray 9: a 6-slot box's slot 5 addressed as (2, 1).
+    auto body = nlohmann::json::parse(OrcaPrinterAgent::build_ams_change_filament_body(9, 123));
+    CHECK(body["print"]["selector"] == "lane");
+    CHECK(body["print"]["ams_id"] == 2);
+    CHECK(body["print"]["slot_id"] == 1);
+    CHECK_FALSE(body["print"].contains("lane"));
+
+    // Unit 0 tray 3 is tray 3.
+    body = nlohmann::json::parse(OrcaPrinterAgent::build_ams_change_filament_body(3, 124));
+    CHECK(body["print"]["ams_id"] == 0);
+    CHECK(body["print"]["slot_id"] == 3);
+}

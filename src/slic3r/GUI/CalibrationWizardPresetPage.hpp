@@ -152,7 +152,8 @@ enum CaliPresetPageStatus
     CaliPresetStatusInConnecting, 
     CaliPresetStatusFilamentIncompatible,
     CaliPresetStatusLanModeSDcardNotAvailable,
-    CaliPresetStatusDifferentNozzleDiameters
+    CaliPresetStatusDifferentNozzleDiameters,
+    CaliPresetStatusOptionalPrinterModel
 };
 
 class CalibrationPresetPage : public CalibrationWizardPage
@@ -268,7 +269,6 @@ protected:
     bool is_nozzle_info_synced() const;
     void show_status(CaliPresetPageStatus status);
     void Enable_Send_Button(bool enable);
-    bool is_blocking_printing();
     bool need_check_sdcard(MachineObject* obj);
     
     CaliPresetPageStatus  get_status() { return m_page_status; }

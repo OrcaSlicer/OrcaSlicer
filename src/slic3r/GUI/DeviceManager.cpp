@@ -16,6 +16,7 @@
 #include "ReleaseNote.hpp"
 #include <thread>
 #include <mutex>
+#include <charconv>
 #include <codecvt>
 #include <boost/foreach.hpp>
 #include <boost/typeof/typeof.hpp>
@@ -476,7 +477,7 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
 {
     this->access_code = code;
     if (only_refresh) {
-        AppConfig* config = GUI::wxGetApp().app_config;
+        AppConfig* config = m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config;
         if (config) {
             if (is_lan_mode_printer()) {
                 // why: LAN codes are scoped via BBLocalMachine::access_code, keyed by dev_id and
@@ -489,7 +490,7 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
                 // fresh from the cloud API's current response, so there's no cross-agent leakage
                 // risk to guard against there.
                 if (!code.empty()) {
-                    DeviceManager::update_local_machine(*this);
+                    DeviceManager::update_local_machine(*this, config);
                 } else {
                     // Only patch an existing record's code - don't persist a brand-new
                     // never-bound entry just because set_access_code("") was called on it.
@@ -1504,16 +1505,19 @@ int MachineObject::command_upgrade_module(std::string url, std::string module_ty
 
 int MachineObject::command_xyz_abs()
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_xyz_abs(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_auto_leveling()
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_auto_leveling(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_go_home()
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_go_home(get_dev_id(), this->is_in_printing(), m_support_mqtt_homing, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1636,11 +1640,13 @@ int MachineObject::command_stop_buzzer()
 
 int MachineObject::command_set_bed(int temp)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_set_bed(get_dev_id(), temp, m_support_mqtt_bet_ctrl, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_set_nozzle(int temp)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_set_nozzle(get_dev_id(), temp, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1746,6 +1752,7 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1784,6 +1791,7 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 
 int MachineObject::command_ams_refresh_rfid(std::string tray_id)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1806,6 +1814,7 @@ int MachineObject::command_start_camera()
 
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1965,6 +1974,7 @@ int MachineObject::command_ams_air_print_detect(bool air_print_detect)
 
 int MachineObject::command_axis_control(std::string axis, double unit, double input_val, int speed)
 {
+    if (!m_agent) return -1;
     return command_with_dialog(m_agent->command_axis_control(get_dev_id(), axis, unit, input_val, speed, is_core_xy(),
                                                              m_support_mqtt_axis_control, MachineObject::m_sequence_id++,
                                                              is_lan_mode_printer()));
@@ -2608,9 +2618,14 @@ void MachineObject::set_print_state(std::string status)
 // why: printer agents can report progress without BBL cloud task identity.
 void MachineObject::update_print_progress(const json& value)
 {
-    if (value.is_string())
-        mc_print_percent = stoi(value.get<std::string>());
-    else if (value.is_number_integer())
+    if (value.is_string()) {
+        const std::string progress = value.get<std::string>();
+        int              parsed_progress;
+        const auto       result = std::from_chars(progress.data(), progress.data() + progress.size(), parsed_progress);
+        if (result.ec != std::errc{} || result.ptr != progress.data() + progress.size())
+            return;
+        mc_print_percent = parsed_progress;
+    } else if (value.is_number_integer())
         mc_print_percent = value.get<int>();
     else
         return;
@@ -4667,7 +4682,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
     if (diff.count() > 10.0f) {
         BOOST_LOG_TRIVIAL(trace) << "parse_json timeout = " << diff.count();
     }
-    DeviceManager::update_local_machine(*this);
+    DeviceManager::update_local_machine(*this, m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config);
 
     return 0;
 }

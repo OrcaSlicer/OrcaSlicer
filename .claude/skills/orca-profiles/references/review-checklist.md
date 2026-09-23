@@ -15,6 +15,7 @@ The table highlights gaps that need human review. What CI *does* run:
 | Whether the intended default survived compatibility selection | The sweep can select a different compatible preset |
 | A dangling `compatible_printers` inside an `instantiation: "false"` base | A base never becomes a `Preset`, so the reference check never sees it (a bad `inherits` in a base *is* caught) |
 | A `renamed_from` whose old name is still a live preset | The redirect is inert while a live preset carries that name |
+| A preset differentiated only by color, or an all-printer library preset without `@System` | Per-color presets split one product across ids and the selector fills with near-duplicates; CI stays green |
 | Per-extruder vector length on a multi-nozzle printer | Silently padded (with the **first** value) or truncated |
 
 ## 1. Was the vendor `version` bumped?

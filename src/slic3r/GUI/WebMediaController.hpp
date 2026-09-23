@@ -23,7 +23,7 @@ public:
     void Stop() override;
 
 private:
-    wxWebView* m_webview;
+    wxWebView* m_webview = nullptr;
     std::string m_url;
     CameraStreamMode m_stream_mode = CameraStreamMode::http;
 };

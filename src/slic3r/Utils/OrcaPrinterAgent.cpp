@@ -778,14 +778,8 @@ int OrcaPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string t
     return route_send(lan_mode, dev_id, j.dump());
 }
 
-int OrcaPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+std::string OrcaPrinterAgent::build_ams_change_filament_body(int tray_number, int sequence_id)
 {
-    int tray_number = 0;
-    if (!parse_nonnegative_command_id(tray_id, tray_number)) {
-        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: invalid AMS target tray id=" << tray_id;
-        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    }
-
     nlohmann::json j;
     j["print"]["command"]     = "ams_change_filament";
     j["print"]["sequence_id"] = std::to_string(sequence_id);
@@ -795,7 +789,18 @@ int OrcaPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tr
     j["print"]["selector"] = "lane";
     j["print"]["ams_id"]   = tray_number / 4;
     j["print"]["slot_id"]  = tray_number % 4;
-    return route_send(lan_mode, dev_id, j.dump());
+    return j.dump();
+}
+
+int OrcaPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    int tray_number = 0;
+    if (!parse_nonnegative_command_id(tray_id, tray_number)) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: invalid AMS target tray id=" << tray_id;
+        return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    }
+
+    return route_send(lan_mode, dev_id, build_ams_change_filament_body(tray_number, sequence_id));
 }
 
 int OrcaPrinterAgent::command_set_bed(std::string dev_id, int temp, bool /*supports_mqtt_bed_ctrl*/, int sequence_id, bool lan_mode)

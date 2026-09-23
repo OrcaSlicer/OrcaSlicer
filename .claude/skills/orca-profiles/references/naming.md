@@ -46,12 +46,17 @@ to the first `@`; the target half is a label except for reserved forms:
 
 - `@base` — a non-instantiated product root. `@base` is convention; a base is really identified by
   `instantiation: "false"` and no `setting_id` ([the three-part shape](filament-profiles.md#the-three-part-shape)).
-- `@System` — the OrcaFilamentLibrary selectable shim. The literal `Generic <mat> @System` is
-  load-bearing for 3MF/project recovery, beyond the alias rule ([alias shadowing](filament-profiles.md#alias-shadowing)).
+- `@System` — the OrcaFilamentLibrary selectable shim, and the convention for an all-printer product
+  (`<Product> @System`, empty `compatible_printers`); not enforced, so a deviation is worth a review
+  comment. The literal `Generic <mat> @System` is load-bearing for 3MF/project recovery, beyond the
+  alias rule ([alias shadowing](filament-profiles.md#alias-shadowing)).
 - `@<Vendor>`, `@<Vendor> <Model>`, `@<Vendor> <Model> <nozzle> nozzle` — printer tunes, BBL's shape.
   Other vendors differ (a bare model, a printer serial, Creality's `@<Model>-all`). Specificity is judged
   from `compatible_printers`, not the name
   ([one variant, one profile](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product)).
+- Color is not part of the product name: `<Product> <Color>` presets are not authored; the color is
+  chosen at runtime
+  ([color is a runtime property](filament-profiles.md#color-is-a-runtime-property)).
 
 ## Not the same as the filename
 

@@ -10,6 +10,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -19,6 +20,35 @@
 namespace Slic3r {
 
 bool moonraker_is_light_name(const std::string& name);
+
+class MoonrakerWebsocket
+{
+public:
+    enum class ReadResult
+    {
+        message,
+        timeout,
+        closed,
+        error,
+    };
+
+    MoonrakerWebsocket(bool secure, std::string api_key);
+    ~MoonrakerWebsocket();
+
+    void connect(const std::string& host, const std::string& port, std::chrono::seconds timeout);
+    void tls_handshake(const std::string& host);
+    void handshake(const std::string& host, const std::string& target);
+    void text(bool enabled);
+    void write(const std::string& body);
+    ReadResult read(std::string& payload, std::string& error_message);
+    void close();
+    void expires_after(std::chrono::seconds timeout);
+    void abort();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
@@ -126,6 +156,10 @@ protected:
     bool send_ws_rpc(const std::string& method, const nlohmann::json& params);
 
     virtual void on_status_loop_tick(const std::string& dev_id) {}
+
+    // Queue work that may use agent state. The command worker is joined during
+    // destruction, so queued commands cannot outlive the agent.
+    void enqueue_command(std::function<void()> fn);
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
@@ -242,7 +276,6 @@ private:
     std::thread            connect_thread;
     mutable std::recursive_mutex connect_mutex;
 
-    void enqueue_command(std::function<void()> fn);
     void run_command_worker();
     std::thread cmd_thread;
     std::deque<std::function<void()>> cmd_queue;

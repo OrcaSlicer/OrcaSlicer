@@ -172,7 +172,29 @@ public:
 
     virtual int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
                                       bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
-    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    {
+        (void) supports_mqtt_axis_control;
+
+        double value = input_val;
+        if (!is_core_xy && (axis == "Y" || axis == "Z"))
+            value = -input_val;
+
+        std::string value_str = (boost::format("%.1f") % (value * unit)).str();
+        std::string gcode;
+        if (axis == "X" || axis == "Y" || axis == "Z") {
+            gcode = (boost::format("G91 \nG1 %1%%2% F%3%\nG90 \n") % axis % value_str % speed).str();
+        } else if (axis == "E") {
+            gcode = (boost::format("M83 \nG0 %1%%2% F%3%\n") % axis % value_str % speed).str();
+        } else {
+            return -1;
+        }
+
+        nlohmann::json j;
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = gcode;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish_command_json(dev_id, j, lan_mode);
+    }
 
     /**
      * Default LAN account username for this agent's protocol, if it has a fixed one.

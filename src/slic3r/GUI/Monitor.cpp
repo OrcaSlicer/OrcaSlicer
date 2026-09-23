@@ -261,7 +261,7 @@ void MonitorPanel::msw_rescale()
 
 void MonitorPanel::select_machine(std::string machine_sn)
 {
-    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: MonitorPanel::select_machine queueing machine_sn=" << machine_sn;
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: MonitorPanel::select_machine queueing machine_sn=" << machine_sn;
     wxCommandEvent *event = new wxCommandEvent(wxEVT_COMMAND_CHOICE_SELECTED);
     event->SetString(machine_sn);
     wxQueueEvent(this, event);
@@ -280,7 +280,7 @@ void MonitorPanel::on_select_printer(wxCommandEvent& event)
 {
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     const std::string requested_dev_id = event.GetString().ToStdString();
-    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: MonitorPanel::on_select_printer requested_dev_id="
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: MonitorPanel::on_select_printer requested_dev_id="
                             << requested_dev_id << " device_manager=" << (dev ? "set" : "null");
     if (!dev) return;
 
@@ -289,7 +289,7 @@ void MonitorPanel::on_select_printer(wxCommandEvent& event)
     }
 
     const bool selected = dev->set_selected_machine(requested_dev_id);
-    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: MonitorPanel::on_select_printer set_selected_machine result="
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: MonitorPanel::on_select_printer set_selected_machine result="
                             << selected << " selected_dev_id="
                             << (dev->get_selected_machine() ? dev->get_selected_machine()->get_dev_id() : "<null>");
     if (!selected)
