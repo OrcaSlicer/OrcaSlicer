@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Metal@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_3",
+	"filament_id": "OFANFm4x",
 	"instantiation": "false",
 	"filament_type": [
 		"PLA"

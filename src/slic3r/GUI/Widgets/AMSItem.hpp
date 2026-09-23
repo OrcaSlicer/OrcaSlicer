@@ -641,17 +641,11 @@ private:
     AMSRoadShowMode              m_road_mode      = {AMSRoadShowMode::AMS_ROAD_MODE_FOUR};
     AMSPassRoadSTEP              m_load_step      = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
 
-    bool     m_selected       = {false};
-    int      m_passroad_width = {6};
-    double   m_radius         = {4};
     wxColour m_road_def_color;
     wxColour m_road_color;
 
     std::vector<ScalableBitmap> ams_humidity_img;
 
-    int      m_humidity      = {0};
-    bool     m_show_humidity = {false};
-    bool     m_vams_loading{false};
     AMSModel m_ams_model;
 };
 
@@ -690,14 +684,10 @@ private:
 
     int             m_left_road_length     = {-1};
     int             m_right_road_length    = {-1};
-    int             m_passroad_width       = {6};
-    double          m_radius               = {4};
     AMSPassRoadSTEP m_pass_road_left_step  = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
     AMSPassRoadSTEP m_pass_road_right_step = {AMSPassRoadSTEP::AMS_ROAD_STEP_NONE};
 
     std::map<int, wxColour> m_road_color;
-    bool m_vams_loading{false};
-    AMSModel m_ams_model;
 };
 
 /*************************************************

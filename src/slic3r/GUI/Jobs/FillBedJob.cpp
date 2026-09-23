@@ -6,6 +6,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "libnest2d/common.hpp"
 
 #include <numeric>
@@ -184,7 +185,7 @@ void FillBedJob::prepare()
         ap.poly = m_selected.front().poly;
         ap.bed_idx = PartPlateList::MAX_PLATES_COUNT;
         ap.itemid = -1;
-        ap.setter = [this, mi, offset](const ArrangePolygon &p) {
+        ap.setter = [this, offset](const ArrangePolygon &p) {
             ModelObject *mo = m_plater->model().objects[m_object_idx];
             ModelObject *obj;
             if (m_instances) {
@@ -347,6 +348,13 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
             m_plater->arrange();
         }
         m_plater->update();
+
+        {
+            Slic3r::LifecycleEventContext ctx;
+            ctx.code = Slic3r::LifecycleEvtCode::Ok;
+            ctx.msg = "arranged";
+            Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+        }
     }
 
     m_plater->mark_plate_toolbar_image_dirty();

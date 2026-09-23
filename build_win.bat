@@ -52,6 +52,7 @@ call :add_section "Build configuration"
 call :add_arg config string "" config "release, debug, relwithdebinfo or minsizerel (default: release)"
 call :add_arg target_arch string "" arch "x64 or arm64 (default: the host architecture)"
 call :add_arg slicer_asan bool a asan "Build the slicer with ASAN enabled"
+call :add_arg no_pch bool "" no-pch "Build without the precompiled header, implied by --cache"
 
 call :add_section "Toolchain"
 call :add_arg use_clang_cl bool l clang-cl "Use clang-cl as the compiler"
@@ -60,6 +61,7 @@ call :add_arg use_ninja bool x ninja "Use the Ninja Multi-Config generator"
 call :add_arg use_msbuild bool "" msbuild "Use the Visual Studio generator (default)"
 call :add_arg vs_version string "" vs "Visual Studio release: 2019, 2022 or 2026 (default: autodetect)"
 call :add_arg clang_path string "" clang-path "Path to clang-cl.exe, requires -x (default: the one from Visual Studio)"
+call :add_arg cache string "" cache "Compiler cache: ccache, sccache or off, requires -l -x (default: off)"
 
 call :add_section "How much gets rebuilt"
 call :add_arg slicer_target string "" slicer-target "Build one slicer target instead of all, e.g. libslic3r"
@@ -370,13 +372,13 @@ if "%use_ninja%" == "ON" (
     set "using_ninja=ON"
 )
 
+call :resolve_clang_cl
+%repeat_error%
+
 if "%using_ninja%" == "ON" (
 	if "%use_clang_cl%" == "ON" (
-		REM Bare, so it resolves from the PATH the dev shell just set up, which
-		REM is the clang shipped with Visual Studio. --clang-path names another.
-		set "clang_exe=clang-cl.exe"
-		if not "%clang_path%" == "" set "clang_exe="%clang_path%""
-		set "gen_args=-DCMAKE_C_COMPILER=!clang_exe! -DCMAKE_CXX_COMPILER=!clang_exe!"
+		REM Quoted, because the resolved path has spaces in it.
+		set "gen_args=-DCMAKE_C_COMPILER="!clang_exe!" -DCMAKE_CXX_COMPILER="!clang_exe!""
 	)
 ) else (
 	set "gen_args=-A !arch!"
@@ -390,6 +392,49 @@ if not "%clang_path%" == "" if not "%using_ninja%" == "ON" (
     echo generator builds clang-cl through its own ClangCL toolset.
     exit /b 1
 )
+
+set "cache_args="
+if "%cache%" == "" goto :cache_ready
+if /I "%cache%" == "off" goto :cache_ready
+if /I "%cache%" == "ccache" goto :cache_named
+if /I "%cache%" == "sccache" goto :cache_named
+echo Unknown --cache value "%cache%". Expected ccache, sccache or off.
+exit /b 1
+
+REM CMake accepts a compiler launcher under any generator but only runs it
+REM under Makefile and Ninja. ccache also refuses cl.exe because the build
+REM passes /Zi.
+:cache_named
+REM Only a configure records the launcher, so --no-configure needs none.
+if "%no_configure%" == "ON" goto :cache_ready
+if "%build_deps%%build_slicer%" == "" goto :cache_ready
+if not "%using_ninja%" == "ON" goto :cache_needs_clang
+if not "%use_clang_cl%" == "ON" goto :cache_needs_clang
+goto :cache_tool
+
+:cache_needs_clang
+echo --cache needs clang-cl and Ninja; add -l -x.
+exit /b 1
+
+REM Name a full path, so the recorded launcher does not depend on PATH.
+:cache_tool
+set "cache_exe="
+for /f "tokens=*" %%i in ('where %cache% 2^>nul') do (
+    if not defined cache_exe set "cache_exe=%%i"
+)
+if not defined cache_exe (
+    echo %cache% is not on PATH. Install it, or leave --cache off.
+    exit /b 1
+)
+REM Forward slashes, so CMake does not read a backslash as an escape.
+set "cache_exe=%cache_exe:\=/%"
+set "cache_args=-DCMAKE_C_COMPILER_LAUNCHER="%cache_exe%" -DCMAKE_CXX_COMPILER_LAUNCHER="%cache_exe%""
+REM Neither cache stores a compile that uses a precompiled header. sccache
+REM refuses /Fp outright. ccache does too unless its sloppiness is loosened,
+REM and even then most hits fall back to the slower preprocessed mode.
+set "no_pch=ON"
+
+:cache_ready
 
 REM Ninja prints [123/456] by default, which says nothing about how far
 REM along it is or how long is left. %p is a percentage, %w and %W are
@@ -473,6 +518,9 @@ REM forward slashes, and anything that prints the directory has to show a
 REM real path rather than one glued onto the repository root.
 for %%p in ("!build_dir!") do set "build_full=%%~fp"
 echo Configuration: %build_type%, %arch%
+if not "%clang_exe%" == "" echo Compiler: %clang_exe%
+if "%no_pch%" == "ON" echo Precompiled header: off
+if not "%cache_args%" == "" echo Compiler cache: %cache_exe%
 
 set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
@@ -569,6 +617,10 @@ if "%build_deps%" == "ON" (
         %error_check%
     )
 
+    if not "!cache_args!" == "" (
+        set "deps_args=!deps_args! !cache_args!"
+    )
+
     if not "%no_configure%" == "ON" (
         call :print_and_run cmake -S deps -B "!DEP_TREE!" -G "%generator%" %gen_args% -DCMAKE_BUILD_TYPE=%build_type% !deps_args! %ORCA_DEPS_CMAKE_ARGS%
         %error_check%
@@ -638,6 +690,17 @@ if "%build_slicer%" == "ON" (
 
     if "%slicer_asan%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_ASAN=ON"
+    )
+
+    REM A later -DSLIC3R_PCH=ON in ORCA_SLICER_CMAKE_ARGS still wins, because
+    REM CMake takes the last definition on the command line.
+    if "%no_pch%" == "ON" (
+        set "slicer_args=!slicer_args! -DSLIC3R_PCH=OFF"
+    )
+
+    if not "!cache_args!" == "" (
+        REM Relative debug paths as well, so another tree can reuse the objects.
+        set "slicer_args=!slicer_args! !cache_args! -DSLIC3R_RELATIVE_DEBUG_PATHS=ON"
     )
 
     REM Configuring against a tree that was never built fails deep inside
@@ -734,6 +797,14 @@ REM worked out the same way in either run.
     set "slicer_exe=%build_dir%\src\%build_type%\orca-slicer.exe"
     if "%install_slicer%" == "ON" set "slicer_exe=%build_dir%\OrcaSlicer\orca-slicer.exe"
     for %%p in ("!slicer_exe!") do set "slicer_full=%%~fp"
+    REM The 2026 generator writes OrcaSlicer.slnx, the releases before it
+    REM OrcaSlicer.sln. A file already there wins, in case an older CMake
+    REM configured the build.
+    set "solution=OrcaSlicer.sln"
+    if "%vs_version%" == "2026" set "solution=OrcaSlicer.slnx"
+    if exist "!build_full!\OrcaSlicer.sln" set "solution=OrcaSlicer.sln"
+    if exist "!build_full!\OrcaSlicer.slnx" set "solution=OrcaSlicer.slnx"
+
     REM Naming a target builds it and its dependencies, not its dependents,
     REM so only a full build or the executable's own target relinks.
     set "linked=ON"
@@ -751,14 +822,14 @@ REM worked out the same way in either run.
     if "%build_deps%" == "ON" echo   Dependencies  !dep_full!
     if "%build_slicer%" == "ON" if "%linked%" == "ON" echo   OrcaSlicer    !slicer_full!
     if "%build_slicer%" == "ON" if not "%linked%" == "ON" echo   Target        %slicer_target%
-    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\OrcaSlicer.sln
+    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\!solution!
     if "%pack_deps%" == "ON" if defined bundle echo   Bundle        !bundle!
 
     echo.
     echo Next
     if "%build_slicer%" == "ON" (
         if "%linked%" == "ON" echo     Run it                !slicer_exe!
-        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\OrcaSlicer.sln
+        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\!solution!
         if "%linked%" == "ON" echo     Rebuild after edits   build_win.bat -s!recall! --no-configure
         if not "%linked%" == "ON" echo     Relink the binary     build_win.bat -s!recall! --no-configure
         if "%linked%" == "ON" if "%using_ninja%" == "ON" echo     Rebuild one target    build_win.bat -s!recall! --no-configure --slicer-target libslic3r
@@ -861,17 +932,18 @@ REM get_str_len <string> -> length in %ret%
     echo    %script_name% -s --no-configure -j 8    Rebuild quickly while iterating
     echo    %script_name% -s --slicer-target glad   Compile one target to check the toolchain
     echo    %script_name% -l -x --run-tests         Test that toolchain's build, not the default one
+    echo    %script_name% -s -l -x --cache ccache   Rebuild through a compiler cache
     echo.
     echo Environment:
     echo    ORCA_DEPS_CMAKE_ARGS      Extra arguments for the deps configure
     echo    ORCA_SLICER_CMAKE_ARGS    Extra arguments for the slicer configure
     echo    ORCA_UPDATER_SIG_KEY      Update signing key baked into the slicer
-    echo    git_commit_hash           Revision to stamp, so a commit does not rebuild everything
+    echo    git_commit_hash           Revision to stamp into the build, as CI does
     echo    NINJA_STATUS              Ninja progress format, if you want your own
     echo    debugscript               Set to ON to trace this script
     echo.
-    echo       set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_PCH=OFF -DSLIC3R_MSVC_PDB=OFF
-    echo       $env:ORCA_SLICER_CMAKE_ARGS = '-DSLIC3R_PCH=OFF'      (PowerShell)
+    echo       set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_BUILD_SANDBOXES=ON -DSLIC3R_WARNINGS=OFF
+    echo       $env:ORCA_SLICER_CMAKE_ARGS = '-DSLIC3R_BUILD_SANDBOXES=ON'      (PowerShell)
     echo.
     echo    --deps-args and --slicer-args cannot carry a value with spaces; use
     echo    these instead. Neither form supports a value containing an ampersand.
@@ -1077,6 +1149,62 @@ REM echo_var <variable>
 	:vs_path_found
 	call "%VS_PATH%\Common7\Tools\VsDevCmd.bat" -arch=!dev_arch! >nul 2>nul
 	set "VS_PATH="
+
+	exit /b 0
+
+REM resolve_clang_cl - set clang_exe to the clang-cl a Ninja build uses.
+REM VsDevCmd appends the Visual Studio LLVM directory to the end of PATH,
+REM so a standalone LLVM already there shadows it. Name a full path.
+:resolve_clang_cl
+	set "clang_exe="
+	if not "%using_ninja%" == "ON" exit /b 0
+	if not "%use_clang_cl%" == "ON" exit /b 0
+	REM Only a configure uses it, so -p and --no-configure need none.
+	if "%no_configure%" == "ON" exit /b 0
+	if "%build_deps%%build_slicer%" == "" exit /b 0
+
+	REM --clang-path wins. Forward slashes either way, so CMake does not
+	REM read a backslash as an escape.
+	if not "%clang_path%" == "" (
+		set "clang_exe=%clang_path:\=/%"
+		exit /b 0
+	)
+
+	setlocal
+
+	REM Keyed on the host, not %arch%, because the x64 compiler
+	REM cross-compiles to ARM64.
+	set "llvm_host=x64"
+	if /I "%PROCESSOR_ARCHITECTURE%" == "ARM64" set "llvm_host=ARM64"
+
+	set "found="
+	%VSWHERE% -nologo >nul 2>nul
+	if !errorlevel! == 0 (
+		for /f "tokens=*" %%i in ('%VSWHERE% -nologo -products * -latest -property resolvedInstallationPath') do (
+			if exist "%%i\VC\Tools\Llvm\!llvm_host!\bin\clang-cl.exe" (
+				set "found=%%i\VC\Tools\Llvm\!llvm_host!\bin\clang-cl.exe"
+			)
+		)
+	)
+
+	REM No clang toolset in Visual Studio. where lists every match, and the
+	REM first is the one PATH would resolve.
+	if "!found!" == "" (
+		for /f "tokens=*" %%i in ('where clang-cl.exe 2^>nul') do (
+			if "!found!" == "" set "found=%%i"
+		)
+		if not "!found!" == "" echo Visual Studio has no clang-cl; using !found! from PATH.
+	)
+
+	if "!found!" == "" (
+		echo No clang-cl found. Add the C++ Clang Compiler component with
+		echo     %script_name% --install-vs ide -l
+		echo or name a standalone one with --clang-path.
+		endlocal
+		exit /b 1
+	)
+
+	endlocal & set "clang_exe=%found:\=/%"
 
 	exit /b 0
 

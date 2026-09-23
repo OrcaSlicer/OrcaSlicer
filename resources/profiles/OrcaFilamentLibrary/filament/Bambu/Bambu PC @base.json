@@ -3,7 +3,7 @@
 	"name": "Bambu PC @base",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"filament_id": "OGFC00",
+	"filament_id": "OFKhMPeX",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Bambu Lab"

@@ -65,11 +65,13 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
         const bool                 smooth_supports        = support_params.support_style != smsGrid;
         SupportGeneratorLayersPtr &interface_layers       = base_and_interface_layers.first;
         SupportGeneratorLayersPtr &base_interface_layers  = base_and_interface_layers.second;
-        // The user-facing interface layer counts include the contact layer. Internally,
-        // contact layers are generated separately, so only the remaining layers are
-        // projected into intermediate interface/base-interface layers here.
-        const size_t num_top_interface_layers    = support_params.has_top_contacts    ? support_params.num_top_interface_layers    - 1 : 0;
-        const size_t num_bottom_interface_layers = support_params.has_bottom_contacts ? support_params.num_bottom_interface_layers - 1 : 0;
+        // Contacts printed separately consume one requested interface layer. Organic
+        // bottom contacts are projection seeds and are not printed separately.
+        const bool organic_tree = support_params.support_style == smsTreeOrganic;
+        const size_t num_top_interface_layers         = support_params.has_top_contacts ?
+                                                        support_params.num_top_interface_layers - 1 : 0;
+        const size_t num_bottom_interface_layers      = support_params.has_bottom_contacts ?
+                                                        support_params.num_bottom_interface_layers - (organic_tree ? 0 : 1) : 0;
         const size_t num_top_base_interface_layers    = std::min(support_params.num_top_base_interface_layers,    num_top_interface_layers);
         const size_t num_bottom_base_interface_layers = std::min(support_params.num_bottom_base_interface_layers, num_bottom_interface_layers);
         const size_t num_top_interface_layers_only    = num_top_interface_layers    - num_top_base_interface_layers;
@@ -132,7 +134,7 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
             return nullptr;
         };
         tbb::parallel_for(tbb::blocked_range<int>(0, int(intermediate_layers.size())),
-            [&bottom_contacts, &top_contacts, &top_interface_layers, &top_base_interface_layers, &intermediate_layers, &insert_layer, &support_params,
+            [&bottom_contacts, &top_contacts, &top_interface_layers, &top_base_interface_layers, &intermediate_layers, &insert_layer,
              num_top_interface_layers, num_bottom_interface_layers, num_top_base_interface_layers, num_bottom_base_interface_layers,
              num_top_interface_layers_only, num_bottom_interface_layers_only,
              snug_supports, &interface_layers, &base_interface_layers](const tbb::blocked_range<int>& range) {
@@ -1234,10 +1236,6 @@ static void modulate_extrusion_by_overlapping_layers(
                 (fragment_end.is_start ? &polyline.points.front() : &polyline.points.back());
         }
     private:
-        ExtrusionPathFragmentEndPointAccessor& operator=(const ExtrusionPathFragmentEndPointAccessor&) {
-            return *this;
-        }
-
         const std::vector<ExtrusionPathFragment> &m_path_fragments;
     };
     const coord_t search_radius = 7;
@@ -1656,28 +1654,32 @@ void generate_support_toolpaths(
                 if (top_contact_layer.could_merge(interface_layer) && ! raft_layer)
                     top_contact_layer.merge(std::move(interface_layer));
             }
-            if (!bottom_interfaces && support_params.can_merge_support_regions) {
-                if (base_layer.could_merge(bottom_contact_layer))
-                    base_layer.merge(std::move(bottom_contact_layer));
-                else if (base_layer.empty() && ! bottom_contact_layer.empty() && ! bottom_contact_layer.layer->bridging)
-                    base_layer = std::move(bottom_contact_layer);
-            } else if (bottom_contact_layer.could_merge(top_contact_layer) && ! raft_layer) {
-                if (top_interfaces && bottom_interfaces) {
-                    top_contact_layer.merge(std::move(bottom_contact_layer));
-                } else if (bottom_interfaces) {
-                    top_contact_layer.set_polygons_to_extrude(
-                        diff(top_contact_layer.polygons_to_extrude(), bottom_contact_layer.polygons_to_extrude()));
-                } else {
-                    bottom_contact_layer.set_polygons_to_extrude(
-                        diff(bottom_contact_layer.polygons_to_extrude(), top_contact_layer.polygons_to_extrude()));
-                }
-            } else if (bottom_contact_layer.could_merge(interface_layer) && ! organic_tree) {
-                const bool interface_layer_is_bottom = interface_layer.layer->layer_type == SupporLayerType::BottomInterface;
-                if (bottom_interfaces && interface_layer_is_bottom) {
-                    bottom_contact_layer.merge(std::move(interface_layer));
-                } else {
-                    bottom_contact_layer.set_polygons_to_extrude(
-                        diff(bottom_contact_layer.polygons_to_extrude(), interface_layer.polygons_to_extrude()));
+            // Orca: Organic bottom contacts are projection seeds, not same-layer toolpaths.
+            // Do not merge them into another same-layer support region.
+            if (!organic_tree) {
+                if (!bottom_interfaces && support_params.can_merge_support_regions) {
+                    if (base_layer.could_merge(bottom_contact_layer))
+                        base_layer.merge(std::move(bottom_contact_layer));
+                    else if (base_layer.empty() && ! bottom_contact_layer.empty() && ! bottom_contact_layer.layer->bridging)
+                        base_layer = std::move(bottom_contact_layer);
+                } else if (bottom_contact_layer.could_merge(top_contact_layer) && ! raft_layer) {
+                    if (top_interfaces && bottom_interfaces) {
+                        top_contact_layer.merge(std::move(bottom_contact_layer));
+                    } else if (bottom_interfaces) {
+                        top_contact_layer.set_polygons_to_extrude(
+                            diff(top_contact_layer.polygons_to_extrude(), bottom_contact_layer.polygons_to_extrude()));
+                    } else {
+                        bottom_contact_layer.set_polygons_to_extrude(
+                            diff(bottom_contact_layer.polygons_to_extrude(), top_contact_layer.polygons_to_extrude()));
+                    }
+                } else if (bottom_contact_layer.could_merge(interface_layer)) {
+                    const bool interface_layer_is_bottom = interface_layer.layer->layer_type == SupporLayerType::BottomInterface;
+                    if (bottom_interfaces && interface_layer_is_bottom) {
+                        bottom_contact_layer.merge(std::move(interface_layer));
+                    } else {
+                        bottom_contact_layer.set_polygons_to_extrude(
+                            diff(bottom_contact_layer.polygons_to_extrude(), interface_layer.polygons_to_extrude()));
+                    }
                 }
             }
 

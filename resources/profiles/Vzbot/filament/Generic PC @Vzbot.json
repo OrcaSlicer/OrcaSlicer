@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Vzbot",
+	"inherits": "fdm_filament_pc",
+	"renamed_from": "Vzbot Generic PC",
+	"from": "system",
+	"setting_id": "crcoB7BvhVnnHNaF",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"50"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"compatible_printers": [
+		"Vzbot 235 AWD 0.4 nozzle",
+		"Vzbot 330 AWD 0.4 nozzle",
+		"Vzbot 235 AWD 0.5 nozzle",
+		"Vzbot 235 AWD 0.6 nozzle",
+		"Vzbot 330 AWD 0.5 nozzle",
+		"Vzbot 330 AWD 0.6 nozzle"
+	]
+}

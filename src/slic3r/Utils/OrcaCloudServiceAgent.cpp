@@ -16,6 +16,7 @@
 #include <iostream>
 #include <libslic3r/Platform.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
@@ -859,9 +860,11 @@ std::string OrcaCloudServiceAgent::build_login_cmd()
             display_name = "unknown name";
         }
         json cmd;
-        cmd["command"]        = "orca_userlogin";
-        cmd["data"]["name"]   = display_name;
-        cmd["data"]["avatar"] = get_user_avatar();
+        cmd["command"]         = "orca_userlogin";
+        cmd["data"]["name"]    = display_name;
+        cmd["data"]["avatar"]  = get_user_avatar();
+        // The unique handle, shown under the display name in the homepage account menu.
+        cmd["data"]["account"] = get_user_name();
         return cmd.dump();
     }
 

@@ -43,6 +43,8 @@ namespace Slic3r { namespace GUI {
 class GuideFrame : public DPIDialog
 {
 public:
+    using json = nlohmann::json;
+
     GuideFrame(GUI_App *pGUI, long style = wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU);
     virtual ~GuideFrame();
 

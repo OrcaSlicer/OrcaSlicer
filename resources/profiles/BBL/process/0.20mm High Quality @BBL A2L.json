@@ -53,7 +53,6 @@
 	"slowdown_start_speed": [
 		"500"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_density": "25%",
 	"sparse_infill_speed": [
 		"200"

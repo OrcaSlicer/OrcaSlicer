@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @Prusa MK3.5 0.6",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "Prusa Generic PLA-CF @MK3.5 0.6;Prusa Generic PLA-CF MK3.5 0.6",
+	"from": "system",
+	"setting_id": "FGXPEP83zLoINOZy",
+	"filament_id": "OFWbdGsC",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_type": [
+		"PLA-CF"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.025"
+	],
+	"compatible_printers": [
+		"Prusa MK3.5 0.6 nozzle"
+	]
+}

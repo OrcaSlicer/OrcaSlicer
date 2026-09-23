@@ -7,6 +7,7 @@ BEGIN_EVENT_TABLE(StaticBox, wxWindow)
 
 // catch paint events
 //EVT_ERASE_BACKGROUND(StaticBox::eraseEvent)
+EVT_SIZE(StaticBox::sizeEvent)
 EVT_PAINT(StaticBox::paintEvent)
 
 END_EVENT_TABLE()
@@ -49,6 +50,13 @@ bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, cons
 void StaticBox::SetCornerRadius(double radius)
 {
     this->radius = radius;
+    Refresh();
+}
+
+// ORCA use when adding widgets to top to show it like LabeledStaticBox
+void StaticBox::SetTopMargin(int margin)
+{
+    this->top_margin = margin;
     Refresh();
 }
 
@@ -140,6 +148,12 @@ void StaticBox::eraseEvent(wxEraseEvent& evt)
 #endif
 }
 
+void StaticBox::sizeEvent(wxSizeEvent& evt)
+{
+    Refresh();
+    evt.Skip();
+}
+
 void StaticBox::paintEvent(wxPaintEvent& evt)
 {
     // depending on your system you may need to look at double-buffered dcs
@@ -191,7 +205,8 @@ void StaticBox::doRender(wxDC& dc)
     int states = state_handler.states();
     if (background_color2.count() == 0) {
         if ((border_width && border_color.count() > 0) || background_color.count() > 0) {
-            wxRect rc(0, 0, size.x, size.y);
+            int topM = top_margin > 0 ? top_margin : 0;
+            wxRect rc(0, topM, size.x, size.y - topM);
             if (border_width && border_color.count() > 0) {
                 const double scale = dc.GetContentScaleFactor();
 
@@ -238,6 +253,6 @@ void StaticBox::doRender(wxDC& dc)
 
     if (badge.bmp().IsOk()) {
         auto s = badge.bmp().GetScaledSize();
-        dc.DrawBitmap(badge.bmp(), size.x - s.x, 0);
+        dc.DrawBitmap(badge.bmp(), size.x - s.x, top_margin > 0 ? top_margin : 0);
     }
 }

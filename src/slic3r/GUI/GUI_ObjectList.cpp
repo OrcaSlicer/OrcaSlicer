@@ -1,14 +1,17 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
 //#include "GUI_ObjectLayers.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "BitmapComboBox.hpp"
 #include "MainFrame.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 
 #include "OptionsGroup.hpp"
 #include "Tab.hpp"
@@ -245,56 +248,15 @@ ObjectList::ObjectList(wxWindow* parent) :
     // Key events are not correctly processed by the wxDataViewCtrl on OSX.
     // Our patched wxWidgets process the keyboard accelerators.
     // On the other hand, using accelerators will break in-place editing on Windows & Linux/GTK (there is no in-place editing working on OSX for wxDataViewCtrl for now).
-//    Bind(wxEVT_KEY_DOWN, &ObjectList::OnChar, this);
-    {
-        // Accelerators
-        // 	wxAcceleratorEntry entries[25];
-        wxAcceleratorEntry entries[26];
-        int index = 0;
-        entries[index++].Set(wxACCEL_CTRL, (int)'C', wxID_COPY);
-        entries[index++].Set(wxACCEL_CTRL, (int)'X', wxID_CUT);
-        entries[index++].Set(wxACCEL_CTRL, (int)'V', wxID_PASTE);
-        entries[index++].Set(wxACCEL_CTRL, (int)'M', wxID_DUPLICATE);
-        entries[index++].Set(wxACCEL_CTRL, (int)'A', wxID_SELECTALL);
-        entries[index++].Set(wxACCEL_CTRL, (int)'Z', wxID_UNDO);
-        entries[index++].Set(wxACCEL_CTRL, (int)'Y', wxID_REDO);
-        entries[index++].Set(wxACCEL_NORMAL, WXK_BACK, wxID_DELETE);
-        //entries[index++].Set(wxACCEL_NORMAL, int('+'), wxID_ADD);
-        //entries[index++].Set(wxACCEL_NORMAL, WXK_NUMPAD_ADD, wxID_ADD);
-        //entries[index++].Set(wxACCEL_NORMAL, int('-'), wxID_REMOVE);
-        //entries[index++].Set(wxACCEL_NORMAL, WXK_NUMPAD_SUBTRACT, wxID_REMOVE);
-        //entries[index++].Set(wxACCEL_NORMAL, int('p'), wxID_PRINT);
-
-        int numbers_cnt = 0;
-        for (auto char_number : { '1', '2', '3', '4', '5', '6', '7', '8', '9' }) {
-            entries[index + numbers_cnt].Set(wxACCEL_NORMAL, int(char_number), wxID_LAST + numbers_cnt+1);
-            entries[index + 9 + numbers_cnt].Set(wxACCEL_NORMAL, WXK_NUMPAD0 + numbers_cnt - 1, wxID_LAST + numbers_cnt+1);
-            numbers_cnt++;
-            // index++;
-        }
-        wxAcceleratorTable accel(26, entries);
-        SetAcceleratorTable(accel);
-
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->copy();                      }, wxID_COPY);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->paste();                     }, wxID_PASTE);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->select_item_all_children();  }, wxID_SELECTALL);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->remove();                    }, wxID_DELETE);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->undo();  					}, wxID_UNDO);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->redo();                    	}, wxID_REDO);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->cut();                    	}, wxID_CUT);
-        this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->clone();                    	}, wxID_DUPLICATE);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->increase_instances();        }, wxID_ADD);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->decrease_instances();        }, wxID_REMOVE);
-        //this->Bind(wxEVT_MENU, [this](wxCommandEvent &evt) { this->toggle_printable_state();    }, wxID_PRINT);
-
-        for (int i = 1; i < 10; i++)
-            this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
-                if (filaments_count() > 1 && i <= filaments_count())
-                    this->set_extruder_for_selected_items(i);
-            }, wxID_LAST+i);
-
-        m_accel = accel;
-    }
+    m_shortcut_id_base = wxWindow::NewControlId(int(Shortcut::Count));
+    for (size_t i = 0; i < size_t(Shortcut::Count); ++i)
+        this->Bind(wxEVT_MENU, [this, shortcut = Shortcut(i)](wxCommandEvent&) { dispatch_shortcut(shortcut); }, m_shortcut_id_base + int(i));
+    for (int i = 1; i < 10; i++)
+        this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
+            if (filaments_count() > 1 && i <= filaments_count())
+                this->set_extruder_for_selected_items(i);
+        }, wxID_LAST+i);
+    update_shortcut_accelerators();
 #else //__WXOSX__
     Bind(wxEVT_CHAR, [this](wxKeyEvent& event) { key_event(event); }); // doesn't work on OSX
 #endif
@@ -1199,17 +1161,39 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
     if (m_objects_model->GetItemType(item) & itObject) {
         std::string name = m_objects_model->GetName(item).ToUTF8().data();
         if (obj->name != name) {
+            const std::string previous_name = obj->name;
             obj->name = name;
             // if object has just one volume, rename this volume too
             if (obj->volumes.size() == 1)
                 obj->volumes[0]->name = obj->name;
             Slic3r::save_object_mesh(*obj);
+
+            LifecycleEventContext ctx;
+            ctx.name = name;
+            ctx.previous_name = previous_name;
+            ctx.id = std::to_string(obj->id().id);
+            ctx.index = obj_idx;
+            ctx.source = "object";
+            fire_lifecycle_event(LifecycleEvent::ObjectRenamed, ctx);
         }
         return;
     }
 
     if (volume_id < 0) return;
-    obj->volumes[volume_id]->name = m_objects_model->GetName(item).ToUTF8().data();
+    std::string name = m_objects_model->GetName(item).ToUTF8().data();
+    if (obj->volumes[volume_id]->name == name)
+        return;
+
+    const std::string previous_name = obj->volumes[volume_id]->name;
+    obj->volumes[volume_id]->name = name;
+
+    LifecycleEventContext ctx;
+    ctx.name = name;
+    ctx.previous_name = previous_name;
+    ctx.id = std::to_string(obj->volumes[volume_id]->id().id);
+    ctx.index = volume_id;
+    ctx.source = "volume";
+    fire_lifecycle_event(LifecycleEvent::ObjectRenamed, ctx);
 }
 
 void ObjectList::update_name_in_list(int obj_idx, int vol_idx) const
@@ -1796,36 +1780,10 @@ void ObjectList::decrease_instances()
 #ifndef __WXOSX__
 void ObjectList::key_event(wxKeyEvent& event)
 {
-    //if (event.GetKeyCode() == WXK_TAB)
-    //    Navigate(event.ShiftDown() ? wxNavigationKeyEvent::IsBackward : wxNavigationKeyEvent::IsForward);
-    //else
-    if (event.GetKeyCode() == WXK_DELETE /*|| event.GetKeyCode() == WXK_BACK*/ )
-        remove();
-    //else if (event.GetKeyCode() == WXK_F5)
-    //    wxGetApp().plater()->reload_all_from_disk();
-    else if (wxGetKeyState(wxKeyCode('A')) && wxGetKeyState(WXK_CONTROL/*WXK_SHIFT*/))
-        select_item_all_children();
-    else if (wxGetKeyState(wxKeyCode('C')) && wxGetKeyState(WXK_CONTROL))
-        copy();
-    else if (wxGetKeyState(wxKeyCode('V')) && wxGetKeyState(WXK_CONTROL))
-        paste();
-    else if (wxGetKeyState(wxKeyCode('Y')) && wxGetKeyState(WXK_CONTROL))
-        redo();
-    else if (wxGetKeyState(wxKeyCode('Z')) && wxGetKeyState(WXK_CONTROL))
-        undo();
-    else if (wxGetKeyState(wxKeyCode('X')) && wxGetKeyState(WXK_CONTROL))
-        cut();
-    else if (wxGetKeyState(wxKeyCode('K')) && wxGetKeyState(WXK_CONTROL))
-        clone();
-    else if (event.GetUnicodeKey() == '+')
-        increase_instances();
-    else if (event.GetUnicodeKey() == '-')
-        decrease_instances();
-    else if (event.GetUnicodeKey() == 'p')
-        toggle_printable_state();
-    else if (event.GetUnicodeKey() == 'd')
-        toggle_auto_drop();
-    else if (filaments_count() > 1) {
+    const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::ObjectList, KeyChord::from_event(event));
+    if (shortcut.has_value() && dispatch_shortcut(*shortcut))
+        return;
+    if (filaments_count() > 1) {
         std::vector<wxChar> numbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         wxChar key_char = event.GetUnicodeKey();
         if (std::find(numbers.begin(), numbers.end(), key_char) != numbers.end()) {
@@ -1841,6 +1799,43 @@ void ObjectList::key_event(wxKeyEvent& event)
         event.Skip();
 }
 #endif /* __WXOSX__ */
+
+#ifdef __WXOSX__
+void ObjectList::update_shortcut_accelerators()
+{
+    std::vector<wxAcceleratorEntry> entries;
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    for (Shortcut shortcut : shortcuts_in(ShortcutContext::ObjectList))
+        if (const KeyChord chord = shortcuts.binding(shortcut); chord.valid())
+            entries.push_back(chord.to_accelerator_entry(m_shortcut_id_base + int(shortcut)));
+    for (int i = 1; i < 10; ++i) {
+        entries.emplace_back(wxACCEL_NORMAL, '0' + i, wxID_LAST + i);
+        entries.emplace_back(wxACCEL_NORMAL, WXK_NUMPAD0 + i, wxID_LAST + i);
+    }
+    m_accel = wxAcceleratorTable(int(entries.size()), entries.data());
+    SetAcceleratorTable(m_accel);
+}
+#endif /* __WXOSX__ */
+
+bool ObjectList::dispatch_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::DeleteSelected:  remove(); break;
+    case Shortcut::SelectAll:       select_item_all_children(); break;
+    case Shortcut::Copy:            copy(); break;
+    case Shortcut::Paste:           paste(); break;
+    case Shortcut::Cut:             cut(); break;
+    case Shortcut::Undo:            undo(); break;
+    case Shortcut::Redo:            redo(); break;
+    case Shortcut::CloneSelected:   clone(); break;
+    case Shortcut::AddInstance:     increase_instances(); break;
+    case Shortcut::RemoveInstance:  decrease_instances(); break;
+    case Shortcut::TogglePrintable: toggle_printable_state(); break;
+    case Shortcut::ToggleAutoDrop:  toggle_auto_drop(); break;
+    default: return false;
+    }
+    return true;
+}
 
 void ObjectList::OnBeginDrag(wxDataViewEvent &event)
 {
@@ -2324,7 +2319,7 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
                 bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                 model = Model::read_from_step(
                     input_file, LoadStrategy::LoadModel, nullptr, nullptr,
-                    [this, &is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
+                    [&is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
                                                                                      double& angle_value, bool& is_split) -> int {
                         if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                             StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
@@ -3317,7 +3312,7 @@ void ObjectList::boolean()
         }
     }
 
-    TriangleMesh mesh = Plater::combine_mesh_fff(*object, -1, [this](const std::string& msg) {return wxGetApp().notification_manager()->push_plater_error_notification(msg); });
+    TriangleMesh mesh = Plater::combine_mesh_fff(*object, -1, [](const std::string& msg) {return wxGetApp().notification_manager()->push_plater_error_notification(msg); });
 
     // add mesh to model as a new object, keep the original object's name and config
     Model* model = object->get_model();
@@ -3548,7 +3543,14 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
             obj->delete_connectors();
 
             if (obj->volumes.empty() || !obj->has_solid_mesh()) {
+                const std::string deleted_obj_name = obj->name;
                 model.delete_object(idx);
+                {
+                    Slic3r::LifecycleEventContext ctx;
+                    ctx.name = deleted_obj_name;
+                    ctx.code = Slic3r::LifecycleEvtCode::Ok;
+                    Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectDeleted, ctx);
+                }
                 m_objects_model->Delete(m_objects_model->GetItemById(idx));
                 continue;
             }
@@ -4116,6 +4118,13 @@ void ObjectList::add_object_to_list(size_t obj_idx, bool call_selection_changed,
     std::string warning_bitmap = get_warning_icon_name(model_object->mesh().stats());
     const auto item = m_objects_model->AddObject(model_object, warning_bitmap, model_object->is_cut());
     Expand(m_objects_model->GetParent(item));
+
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = model_object->name;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectAdded, ctx);
+    }
 
     if (!do_info_update)
         return;
@@ -6267,7 +6276,7 @@ void GUI::ObjectList::smooth_mesh()
     get_selection_indexes(obj_idxs, vol_idxs);
     auto object_idx = obj_idxs.front();
     ModelObject *obj{nullptr};
-    auto show_warning_dlg = [this](int cur_face_count,std::string name,bool is_part) {
+    auto show_warning_dlg = [](int cur_face_count,std::string name,bool is_part) {
         int limit_face_count = 1000000;
         if (cur_face_count > limit_face_count) {
             auto name_str = wxString::FromUTF8(name);
@@ -6280,7 +6289,7 @@ void GUI::ObjectList::smooth_mesh()
         }
         return false;
     };
-    auto show_smooth_mesh_error_dlg = [this](std::string name) {
+    auto show_smooth_mesh_error_dlg = [](std::string name) {
         auto name_str = wxString::FromUTF8(name);
         auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
         WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, wxEmptyString, wxOK);
