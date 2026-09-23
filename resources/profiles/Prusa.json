@@ -707,24 +707,24 @@
 			"sub_path": "process/0.25mm Speed @MINIIS.json"
 		},
 		{
-			"name": "0.15mm Balanced @COREONE0.4 + MMU3",
-			"sub_path": "process/0.15mm Balanced @COREONE0.4 + MMU3.json"
+			"name": "0.15mm BALANCED @COREONE0.4 + MMU3",
+			"sub_path": "process/0.15mm BALANCED @COREONE0.4 + MMU3.json"
 		},
 		{
-			"name": "0.20mm Balanced @COREONE0.4 + MMU3",
-			"sub_path": "process/0.20mm Balanced @COREONE0.4 + MMU3.json"
+			"name": "0.20mm BALANCED @COREONE0.4 + MMU3",
+			"sub_path": "process/0.20mm BALANCED @COREONE0.4 + MMU3.json"
 		},
 		{
-			"name": "0.25mm Balanced @COREONE0.4 + MMU3",
-			"sub_path": "process/0.25mm Balanced @COREONE0.4 + MMU3.json"
+			"name": "0.25mm BALANCED @COREONE0.4 + MMU3",
+			"sub_path": "process/0.25mm BALANCED @COREONE0.4 + MMU3.json"
 		},
 		{
-			"name": "0.25mm Speed @COREONE0.4 + MMU3",
-			"sub_path": "process/0.25mm Speed @COREONE0.4 + MMU3.json"
+			"name": "0.25mm SPEED @COREONE0.4 + MMU3",
+			"sub_path": "process/0.25mm SPEED @COREONE0.4 + MMU3.json"
 		},
 		{
-			"name": "0.25mm Structural @COREONE0.4 + MMU3",
-			"sub_path": "process/0.25mm Structural @COREONE0.4 + MMU3.json"
+			"name": "0.25mm STRUCTURAL @COREONE0.4 + MMU3",
+			"sub_path": "process/0.25mm STRUCTURAL @COREONE0.4 + MMU3.json"
 		},
 		{
 			"name": "0.05mm DETAIL @MK4S 0.25",
@@ -1196,7 +1196,7 @@
 		},
 		{
 			"name": "0.15mm SPEED @COREONE0.4 + MMU3",
-			"sub_path": "process/0.15mm Speed @COREONE0.4 + MMU3.json"
+			"sub_path": "process/0.15mm SPEED @COREONE0.4 + MMU3.json"
 		},
 		{
 			"name": "0.15mm SPEED @CORE One HF 0.4",
@@ -1220,7 +1220,7 @@
 		},
 		{
 			"name": "0.20mm SPEED @COREONE0.4 + MMU3",
-			"sub_path": "process/0.20mm Speed @COREONE0.4 + MMU3.json"
+			"sub_path": "process/0.20mm SPEED @COREONE0.4 + MMU3.json"
 		},
 		{
 			"name": "0.20mm SPEED @CORE One HF 0.5",
@@ -1284,7 +1284,7 @@
 		},
 		{
 			"name": "0.20mm STRUCTURAL @COREONE0.4 + MMU3",
-			"sub_path": "process/0.20mm Structural @COREONE0.4 + MMU3.json"
+			"sub_path": "process/0.20mm STRUCTURAL @COREONE0.4 + MMU3.json"
 		},
 		{
 			"name": "0.25mm STRUCTURAL @CORE One HF 0.4",
@@ -1436,7 +1436,7 @@
 		},
 		{
 			"name": "0.10mm FAST DETAIL @COREONE0.4 + MMU3",
-			"sub_path": "process/0.10mm Fast Detail @COREONE0.4 + MMU3.json"
+			"sub_path": "process/0.10mm FAST DETAIL @COREONE0.4 + MMU3.json"
 		},
 		{
 			"name": "0.25mm STRUCTURAL @CORE One 0.5",
@@ -1468,7 +1468,7 @@
 		},
 		{
 			"name": "0.15mm STRUCTURAL @COREONE0.4 + MMU3",
-			"sub_path": "process/0.15mm Structural @COREONE0.4 + MMU3.json"
+			"sub_path": "process/0.15mm STRUCTURAL @COREONE0.4 + MMU3.json"
 		},
 		{
 			"name": "0.25mm STRUCTURAL @COREONE0.6 + MMU3",

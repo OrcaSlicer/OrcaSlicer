@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"name": "0.25mm Structural @COREONE0.4 + MMU3",
+	"name": "0.25mm STRUCTURAL @COREONE0.4 + MMU3",
 	"inherits": "0.20mm Standard @MK4",
 	"from": "system",
-	"setting_id": "9SEN1pjoDQ2zVQLl",
+	"setting_id": "lBGry26X4a9IihAD",
 	"instantiation": "true",
 	"bridge_acceleration": "1500",
 	"brim_type": "no_brim",
