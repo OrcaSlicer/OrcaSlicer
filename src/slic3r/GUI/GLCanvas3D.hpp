@@ -814,6 +814,8 @@ public:
     bool         m_shadow_map_valid{ false };
     // Casters and light frustum the map was last rendered for, under a static light. 0 when none.
     size_t       m_shadow_map_key{ 0 };
+    // Plate rectangle a shadow can reach, min xy then max xy.
+    std::array<float, 4> m_shadow_plate_bounds{ { 0.0f, 0.0f, 0.0f, 0.0f } };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();

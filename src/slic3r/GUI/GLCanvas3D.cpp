@@ -8338,11 +8338,19 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             lmin = lmin.cwiseMin(lp);
             lmax = lmax.cwiseMax(lp);
         };
+        // The plate area a shadow can reach: the casters' footprint and where their corners land on z = 0.
+        Vec2d reach_min(DBL_MAX, DBL_MAX);
+        Vec2d reach_max(-DBL_MAX, -DBL_MAX);
+        auto reach = [&](const Vec3d& p) {
+            reach_min = reach_min.cwiseMin(Vec2d(p.x(), p.y()));
+            reach_max = reach_max.cwiseMax(Vec2d(p.x(), p.y()));
+        };
         for (int i = 0; i < 8; ++i) {
             const Vec3d corner((i & 1) ? obj_bb.max.x() : obj_bb.min.x(),
                                (i & 2) ? obj_bb.max.y() : obj_bb.min.y(),
                                (i & 4) ? obj_bb.max.z() : obj_bb.min.z());
             enclose(corner);
+            reach(corner);
             // Where this corner's shadow lands on z = 0, clamped to the plate so a grazing angle
             // (t -> infinity) stays bounded.
             if (ray_dir.z() < -1e-6) {
@@ -8352,6 +8360,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
                 s.y() = std::min(std::max(s.y(), plate_bb.min.y()), plate_bb.max.y());
                 s.z() = 0.0;
                 enclose(s);
+                reach(s);
             }
         }
 
@@ -8385,6 +8394,11 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
         // Create / resize the depth texture and FBO
         const unsigned int size = 2048;
+
+        // Padded by the filter's 2 texel reach, stretched where the light grazes the plate.
+        const double reach_margin = 3.0 * 2.0 * std::max(halfx, halfy) / size / std::max(0.1, std::abs(dir_to_light.z()));
+        m_shadow_plate_bounds = { float(reach_min.x() - reach_margin), float(reach_min.y() - reach_margin),
+                                  float(reach_max.x() + reach_margin), float(reach_max.y() + reach_margin) };
         if (m_shadow_map_texture_id == 0) {
             glsafe(::glGenTextures(1, &m_shadow_map_texture_id));
             glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
@@ -8577,6 +8591,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             plate_shader->set_uniform("shadow_light_vp", m_shadow_light_vp);
             plate_shader->set_uniform("shadow_intensity", 0.35f);
             plate_shader->set_uniform("shadow_map_texel", 1.0f / static_cast<float>(m_shadow_map_size));
+            plate_shader->set_uniform("shadow_bounds", m_shadow_plate_bounds);
             m_plate_shadow_mask.render(plate_shader);
             plate_shader->stop_using();
 
