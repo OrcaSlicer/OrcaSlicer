@@ -489,7 +489,11 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
-        c << j.dump(1, '\t') << std::endl;
+        // ORCA: file names and object names are arbitrary bytes on Linux, and nlohmann's
+        //       dump() throws type_error.316 on anything that is not valid UTF-8. That
+        //       throw is swallowed below, so one odd byte in a path would silently cost
+        //       the caller the whole result.json. Substitute U+FFFD and still write it.
+        c << j.dump(1, '\t', false, nlohmann::json::error_handler_t::replace) << std::endl;
         c.close();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%result_file;
