@@ -58,6 +58,9 @@ Paths below are relative to this skill. Commands run from the repository root.
 9. **Run the full profile checks before reporting completion.** A vendor-scoped pass is only a
    development loop. Review also covers version bumps, assets, non-default processes and hardware
    tuning that CI cannot establish.
+10. **One all-printer preset per product; color is a runtime property, never a preset.** Never ship
+    presets that differ only by color — CI accepts them, so this is a review call. See
+    [color is a runtime property](references/filament-profiles.md#color-is-a-runtime-property).
 
 ## Creating or modifying a profile
 
@@ -107,6 +110,7 @@ Paths below are relative to this skill. Commands run from the repository root.
 | A setting has no effect | Key spelling/type, `handle_legacy`, or a config key placed on a `machine_model` |
 | A preset exists but is not selectable | Index registration, `instantiation`, installation and compatibility |
 | A filament is missing, duplicated, or matches the wrong spool | [Compatibility and alias shadowing](references/filament-profiles.md#compatible_printers); [ids](references/ids.md) |
+| Presets differ only by color, or an all-printer library preset lacks `@System` | [Color is a runtime property](references/filament-profiles.md#color-is-a-runtime-property) |
 | A bed temperature is ignored | [Plate-specific temperature keys](references/filament-profiles.md#bed-temperature-is-twelve-keys-not-one) |
 | A change is absent from the running app | Version bump and [installed profile location](references/validation.md#testing-in-the-app) |
 | A check fails | [Error → remedy](references/validation.md#error--remedy) |

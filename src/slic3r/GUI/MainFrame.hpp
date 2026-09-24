@@ -26,6 +26,8 @@
 #include "Widgets/SideButton.hpp"
 #include "Widgets/SideMenuPopup.hpp"
 #include "FilamentGroupPopup.hpp"
+#include "LazyPage.hpp"
+#include "IdleScheduler.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -74,6 +76,8 @@ class DesignPanel;
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
+enum class Shortcut : uint8_t;
+struct KeyChord;
 #ifdef __WXGTK__
 class ResizeEdgePanel;
 #endif
@@ -134,6 +138,13 @@ class MainFrame : public DPIFrame
 #endif
     bool     m_loaded {false};
     wxTimer* m_reset_title_text_colour_timer{ nullptr };
+    IdleScheduler         m_idle;
+    bool                  m_prebuild_started{ false };
+    // Every LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    std::vector<LazyBase*> m_lazy_pages;
+    // The latest EVT_LOAD_PRINTER_URL, applied when the web Device view is built.
+    wxString              m_printer_url;
+    wxString              m_printer_api_key;
 
     wxString    m_qs_last_input_file = wxEmptyString;
     wxString    m_qs_last_output_file = wxEmptyString;
@@ -178,7 +189,7 @@ class MainFrame : public DPIFrame
     bool can_delete() const;
     bool can_delete_all() const;
     bool can_reslice() const;
-    void bind_diff_dialog();
+    DiffPresetDialog* make_diff_dialog();
 
     // BBS
     wxBoxSizer* create_side_tools();
@@ -194,6 +205,29 @@ class MainFrame : public DPIFrame
 
     // vector of a MenuBar items changeable in respect to printer technology
     std::vector<wxMenuItem*> m_changeable_menu_items;
+
+    // Menu items whose label shows a key binding; update_shortcut_labels() rewrites them.
+    struct ShortcutMenuItem
+    {
+        wxMenuItem* item;
+        Shortcut    shortcut;
+        wxString    label;
+        bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
+    };
+    std::vector<ShortcutMenuItem> m_shortcut_menu_items;
+
+    wxString shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator);
+    template<typename... Args>
+    wxMenuItem* append_shortcut_item(wxMenu* menu, Shortcut shortcut, bool accelerator, const wxString& label, Args&&... args)
+    {
+        wxMenuItem* item = append_menu_item(menu, wxID_ANY, shortcut_label(label, shortcut, accelerator), std::forward<Args>(args)...);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, accelerator });
+        return item;
+    }
+    // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
+    bool handle_global_shortcut(const KeyChord& chord);
+    void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
+    wxMenu* generate_help_menu();
 
     struct FileHistory : wxFileHistory
     {
@@ -352,8 +386,15 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
+    // post_init() needs the plater's canvas on screen to initialize OpenGL; this pass does not
+    // build the settings page.
+    void        select_prepare_for_gl_init();
+    // Builds the lazy tab pages while the user is idle; post_init() calls it once.
+    void        prebuild_pages_when_idle();
+    bool        Show(bool show = true) override;
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
+    void        update_shortcut_labels();
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);
@@ -409,27 +450,21 @@ public:
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+    // Lazy pages, created once and kept for the frame's life; their panels are reached
+    // through LazyInstance's statics, and show_device() only moves pages in and out of the book.
 #ifdef SLIC3R_CAD
-    // The tab page is the placeholder; m_design_panel stays null until the tab is first
-    // selected, so everything the Design panel builds stays off the startup path.
-    wxPanel*              m_design_page { nullptr };
-    DesignPanel*          m_design_panel { nullptr };
-    // Builds the Design panel if it does not exist yet and returns it (null only before the
-    // placeholder page itself exists). Main thread only -- it creates wx controls. Both the
-    // tab activation and the MCP socket go through this: the socket is driven headlessly,
-    // with nobody to click the tab, and without this every verb would answer "not ready".
-    DesignPanel*          ensure_design_panel();
+    LazyPage<DesignPanel>* m_design_page { nullptr };
 #endif
     //BBS: GUI refactor
-    MonitorPanel*         m_monitor{ nullptr };
+    LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
     //AuxiliaryPanel*       m_auxiliary{ nullptr };
-    MultiMachinePage*     m_multi_machine{ nullptr };
-    ProjectPanel*         m_project{ nullptr };
+    LazyPage<MultiMachinePage>* m_multi_machine_page{ nullptr };
+    LazyPage<ProjectPanel>* m_project_page{ nullptr };
 
-    CalibrationPanel*     m_calibration{ nullptr };
-    WebViewPanel*         m_webview { nullptr };
-    PrinterWebView*       m_printer_view{nullptr};
+    LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
+    LazyPage<WebViewPanel>* m_home_page { nullptr };
+    LazyPage<PrinterWebView>* m_printer_view_page{nullptr};
     PluginPages           m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS
@@ -440,7 +475,8 @@ public:
     ParamsDialog*         m_param_dialog{ nullptr };
     //BBS
     SettingsDialog        m_settings_dialog;
-    DiffPresetDialog      diff_dialog;
+    // The Compare presets dialog, built on first use or at idle through its holder.
+    Lazy<DiffPresetDialog> m_diff_dialog;
     wxWindow*             m_plater_page{ nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
 

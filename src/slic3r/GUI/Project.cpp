@@ -44,6 +44,7 @@ const std::vector<std::string> license_list = {
 
 ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style) : wxPanel(parent, id, pos, size, style)
 {
+    SetBackgroundColour(*wxWHITE);
     m_project_home_url = wxString::Format("file://%s/web/model/index.html", from_u8(resources_dir()));
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
@@ -67,6 +68,7 @@ ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
     m_auxiliary = new AuxiliaryPanel(this);
     m_auxiliary->Hide();
     main_sizer->Add(m_auxiliary, wxSizerFlags().Expand().Proportion(1));
+    add_build_steps_of(*m_auxiliary);
     Bind(EVT_AUXILIARY_DONE, [this](wxCommandEvent& e) { update_model_data();});
 
     SetSizer(main_sizer);
