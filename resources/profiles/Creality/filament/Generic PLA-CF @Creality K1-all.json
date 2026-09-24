@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @Creality K1-all",
+	"inherits": "Generic PLA-CF @Creality",
+	"renamed_from": "Creality Generic PLA-CF @K1-all;Creality Generic PLA-CF K1-all",
+	"from": "system",
+	"setting_id": "DoyvqW51z3o1vBSa",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"compatible_printers": [
+		"Creality K1 (0.4 nozzle)",
+		"Creality K1 (0.6 nozzle)",
+		"Creality K1 (0.8 nozzle)",
+		"Creality K1C 0.6 nozzle",
+		"Creality K1C 0.8 nozzle",
+		"Creality K1 Max (0.4 nozzle)",
+		"Creality K1 Max (0.6 nozzle)",
+		"Creality K1 Max (0.8 nozzle)"
+	]
+}

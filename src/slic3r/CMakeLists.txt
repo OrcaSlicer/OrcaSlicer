@@ -14,8 +14,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/2DBed.hpp
     GUI/3DBed.cpp
     GUI/3DBed.hpp
-    GUI/Widgets/StaticGroup.cpp
-    GUI/Widgets/StaticGroup.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
     GUI/Widgets/FilamentLoad.cpp
@@ -97,6 +95,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/ConfigManipulation.cpp
     GUI/ConfigManipulation.hpp
+    GUI/ConfigValueFormatter.cpp
+    GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
     GUI/ConfigWizard_private.hpp
@@ -123,10 +123,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginPickerDialog.hpp
     GUI/PluginsDialog.cpp
     GUI/PluginsDialog.hpp
+    GUI/Shortcuts.cpp
+    GUI/Shortcuts.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
     GUI/ActionRegistry.cpp
     GUI/ActionRegistry.hpp
+    GUI/NativeCommands.cpp
+    GUI/NativeCommands.hpp
     GUI/PluginsConfigDialog.cpp
     GUI/PluginsConfigDialog.hpp
     GUI/ProcessRunner.cpp
@@ -135,8 +139,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/TerminalDialog.hpp
     GUI/PluginProgressDialog.cpp
     GUI/PluginProgressDialog.hpp
-    GUI/PluginWebDialog.cpp
-    GUI/PluginWebDialog.hpp
+    GUI/WebDialog.cpp
+    GUI/WebDialog.hpp
+    GUI/DockPanel.cpp
+    GUI/DockPanel.hpp
+    GUI/WebPanel.cpp
+    GUI/WebPanel.hpp
+    GUI/Widgets/WebHosting.cpp
+    GUI/Widgets/WebHosting.hpp
+    GUI/AuiPaneLayout.cpp
+    GUI/AuiPaneLayout.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
@@ -274,6 +286,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentMapDialog.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
+    GUI/IdleScheduler.cpp
+    GUI/IdleScheduler.hpp
     GUI/ImageGrid.cpp
     GUI/ImageGrid.h
     GUI/ImGuiWrapper.cpp
@@ -333,6 +347,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/KeyChord.cpp
+    GUI/KeyChord.hpp
+    GUI/Lazy.cpp
+    GUI/Lazy.hpp
+    GUI/LazyPage.cpp
+    GUI/LazyPage.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/LinuxDisplayBackend.cpp
@@ -419,6 +439,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Plater.hpp
     GUI/PlateSettingsDialog.cpp
     GUI/PlateSettingsDialog.hpp
+    GUI/PrebuildQueue.hpp
     GUI/Preferences.cpp
     GUI/Preferences.hpp
     GUI/PresetBundleDialog.cpp
@@ -451,6 +472,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishDialog.cpp
     GUI/PublishDialog.hpp
+    GUI/PublishSettingsDialog.cpp
+    GUI/PublishSettingsDialog.hpp
     GUI/PurgeModeDialog.cpp
     GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
@@ -465,6 +488,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SavePresetDialog.hpp
     GUI/SceneRaycaster.cpp
     GUI/SceneRaycaster.hpp
+    GUI/SceneCache.cpp
+    GUI/SceneCache.hpp
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
@@ -472,6 +497,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SkipPartCanvas.hpp
     GUI/Search.cpp
     GUI/Search.hpp
+    GUI/SettingsIndex.cpp
+    GUI/SettingsIndex.hpp
     GUI/Selection.cpp
     GUI/Selection.hpp
     GUI/SelectMachine.cpp
@@ -492,6 +519,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/SliceInfoPanel.hpp
     GUI/SlicingProgressNotification.cpp
     GUI/SlicingProgressNotification.hpp
+    GUI/StagedBuild.hpp
     GUI/StatusPanel.cpp
     GUI/StatusPanel.hpp
     GUI/StepMeshDialog.cpp
@@ -676,6 +704,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/bambu_networking.hpp
     Utils/Bonjour.cpp
     Utils/Bonjour.hpp
+    Utils/MeshInspect.cpp
+    Utils/MeshInspect.hpp
+    Utils/PaintCLI.cpp
+    Utils/PaintCLI.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
     Utils/ColorSpaceConvert.cpp
@@ -764,6 +796,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/SimplyPrint.hpp
     Utils/TCPConsole.cpp
     Utils/TCPConsole.hpp
+    Utils/UltiMaker.cpp
+    Utils/UltiMaker.hpp
     Utils/UndoRedo.cpp
     Utils/UndoRedo.hpp
     Utils/WebSocketClient.hpp
@@ -779,6 +813,30 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
     Utils/wxInspectorPlugins/Registration.hpp
 )
+
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP control socket.
+# All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
+if (SLIC3R_CAD)
+    list(APPEND SLIC3R_GUI_SOURCES
+        GUI/CAD/DesignPanel.cpp
+        GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignCanvas.cpp
+        GUI/CAD/DesignCanvas.hpp
+        GUI/CAD/DesignSketchTool.cpp
+        GUI/CAD/DesignSketchTool.hpp
+        GUI/CAD/DesignOffer.hpp
+        GUI/CAD/DesignInteraction.hpp
+        GUI/CAD/SketchInlineEditor.cpp
+        GUI/CAD/SketchInlineEditor.hpp
+        GUI/CAD/McpControl.cpp
+        GUI/CAD/McpControl.hpp
+        GUI/Gizmos/GLGizmoSketch.cpp
+        GUI/Gizmos/GLGizmoSketch.hpp
+        # Needs GeometryEngine (make_primitive / apply_fillet / tessellate).
+        GUI/Gizmos/GLGizmoPrimitive.cpp
+        GUI/Gizmos/GLGizmoPrimitive.hpp
+    )
+endif ()
 
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)

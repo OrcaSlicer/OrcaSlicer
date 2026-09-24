@@ -1,8 +1,11 @@
 #include "libslic3r/libslic3r.h"
 #include "DeviceManager.hpp"
+#include "HMS.hpp"
+#include "I18N.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
 
@@ -110,7 +113,9 @@ bool Slic3r::is_stringing_prone_filament(const std::string& filament_id, float n
     if (filament_id.empty()) return false;
     const auto* set = pick_stringing_set(nozzle_diameter);
     if (!set) return false;
-    return set->count(filament_id) > 0;
+    // filament_id is one of our content-addressed OF ids; the table above is keyed by the printer's own.
+    auto* agent = Slic3r::GUI::wxGetApp().getAgent();
+    return set->count(agent ? agent->from_orca_filament_id(filament_id) : filament_id) > 0;
 }
 
 wxString Slic3r::get_stage_string(int stage)
@@ -2622,7 +2627,15 @@ void MachineObject::reset()
 
 void MachineObject::set_print_state(std::string status)
 {
+    const bool changed = (print_status != status);
     print_status = status;
+    if (changed) {
+        LifecycleEventContext ctx;
+        ctx.name  = dev_id;
+        ctx.code  = LifecycleEvtCode::Ok;
+        ctx.msg   = print_status;
+        fire_lifecycle_event(LifecycleEvent::PrintStateChanged, ctx);
+    }
 }
 
 int MachineObject::connect(bool use_openssl)
@@ -2644,7 +2657,10 @@ int MachineObject::connect(bool use_openssl)
 int MachineObject::disconnect()
 {
     if (m_agent) {
-        return m_agent->disconnect_printer();
+        const int result = m_agent->disconnect_printer();
+        if (result == 0)
+            set_online_state(false);
+        return result;
     }
     return -1;
 }
@@ -2674,8 +2690,16 @@ bool MachineObject::is_connecting()
 
 void MachineObject::set_online_state(bool on_off)
 {
+    const bool changed = (m_is_online != on_off);
     m_is_online = on_off;
     if (!on_off) m_active_state = NotActive;
+    if (changed) {
+        LifecycleEventContext ctx;
+        ctx.name  = dev_id;
+        ctx.code  = LifecycleEvtCode::Ok;
+        ctx.msg   = on_off ? "online" : "offline";
+        fire_lifecycle_event(on_off ? LifecycleEvent::DeviceOnline : LifecycleEvent::DeviceOffline, ctx);
+    }
 }
 
 bool MachineObject::is_info_ready(bool check_version) const
@@ -2802,13 +2826,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
     parse_msg_count++;
     std::chrono::system_clock::time_point clock_start = std::chrono::system_clock::now();
-    this->set_online_state(true);
-
-    std::chrono::system_clock::time_point curr_time = std::chrono::system_clock::now();
-    auto diff1 = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - last_update_time);
-
-    /* update last received time */
-    last_update_time = std::chrono::system_clock::now();
 
     json j_pre;
     bool parse_ok = false;
@@ -2821,7 +2838,28 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
         /* post process payload */
         sanitizeToUtf8(payload);
         BOOST_LOG_TRIVIAL(info) << "parse_json: sanitize to utf8";
+        try {
+            j_pre = json::parse(payload);
+            parse_ok = true;
+        }
+        catch (...) {}
     }
+
+    bool client_disconnected = false;
+    if (parse_ok && j_pre.is_object() && j_pre.contains("event") && j_pre["event"].is_object() &&
+        j_pre["event"].contains("event") && j_pre["event"]["event"].is_string()) {
+        client_disconnected = j_pre["event"]["event"].get<std::string>() == "client.disconnected";
+    }
+
+    // A disconnect notification is a transport message too, but it must not first mark an
+    // already-offline device as online through the generic message-received path.
+    set_online_state(!client_disconnected);
+
+    std::chrono::system_clock::time_point curr_time = std::chrono::system_clock::now();
+    auto diff1 = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - last_update_time);
+
+    /* update last received time */
+    last_update_time = std::chrono::system_clock::now();
 
     try {
         bool restored_json = false;
@@ -4593,19 +4631,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
             }
         }
 
-        // event info
-        try {
-            if (j.contains("event")) {
-                if (j["event"].contains("event")) {
-                    if (j["event"]["event"].get<std::string>() == "client.disconnected")
-                        set_online_state(false);
-                    else if (j["event"]["event"].get<std::string>() == "client.connected")
-                        set_online_state(true);
-                }
-            }
-        }
-        catch (...)  {}
-
         if (!key_field_only) {
             BOOST_LOG_TRIVIAL(trace) << "parse_json  m_active_state =" << m_active_state;
             parse_state_changed_event();
@@ -5048,10 +5073,13 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             vt_tray.setting_id = vtray["tray_info_idx"].get<std::string>();
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
-            if (vt_tray.setting_id == "GFS00") {
+            // vt_tray.setting_id is our OF id (translated on the way in); the two support ids below are the printer's own.
+            auto* agent = GUI::wxGetApp().getAgent();
+            const std::string printer_filament_id = agent ? agent->from_orca_filament_id(vt_tray.setting_id) : vt_tray.setting_id;
+            if (printer_filament_id == "GFS00") {
                 vt_tray.m_fila_type = "PLA-S";
             }
-            else if (vt_tray.setting_id == "GFS01") {
+            else if (printer_filament_id == "GFS01") {
                 vt_tray.m_fila_type = "PA-S";
             }
             else {
@@ -5592,7 +5620,10 @@ void MachineObject::update_filament_list()
 
         for (auto it = filament_list.begin(); it != filament_list.end(); it++) {
             if (m_filament_list.find(it->first) != m_filament_list.end()) {
-                assert(it->first.size() == 8 && it->first[0] == 'P');
+                // User roots may legitimately carry adopted system-shaped ids (GF*/OF*/P-hex
+                // system), so a non-'P' id here is expected, not an invariant violation.
+                if (it->first.size() != 8 || it->first[0] != 'P')
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": user-root filament_id is not user-shaped: " << it->first;
 
                 if (it->second.first != m_filament_list[it->first].first) {
                     BOOST_LOG_TRIVIAL(info) << "old min temp is not equal to new min temp and filament id: " << it->first;
@@ -5654,6 +5685,17 @@ void MachineObject::update_printer_preset_name()
 void MachineObject::check_ams_filament_valid()
 {
     PresetBundle * preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    // A tray id carried by ANY system filament preset is not a dangling user-preset id
+    // (ten shipped P-hex system ids pass the 'P' shape gates below), so the destructive
+    // tray-wipe / temp-rewrite handling must never fire for it.
+    auto is_system_filament_id = [preset_bundle](const std::string &id) {
+        if (!preset_bundle)
+            return false;
+        for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++)
+            if (it->is_system && it->filament_id == id)
+                return true;
+        return false;
+    };
     auto printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);
     std::map<std::string, std::set<std::string>> need_checked_filament_id;
     for (auto &ams_pair : m_fila_system->GetAmsList()) {
@@ -5675,6 +5717,8 @@ void MachineObject::check_ams_filament_valid()
         auto &checked_filament = data.checked_filament;
         for (const auto &[slot_id, curr_tray] : ams->GetTrays()) {
 
+            if (curr_tray->setting_id.size() == 8 && curr_tray->setting_id[0] == 'P' && is_system_filament_id(curr_tray->setting_id))
+                continue;
             if (curr_tray->setting_id.size() == 8 && curr_tray->setting_id[0] == 'P' && filament_list.find(curr_tray->setting_id) == filament_list.end()) {
                 if (checked_filament.find(curr_tray->setting_id) != checked_filament.end()) {
                     need_checked_filament_id[nozzle_diameter_str].insert(curr_tray->setting_id);
@@ -5735,6 +5779,8 @@ void MachineObject::check_ams_filament_valid()
         auto &data = m_nozzle_filament_data[nozzle_diameter_str];
         auto &checked_filament = data.checked_filament;
         auto &filament_list    = data.filament_list;
+        if (vt_tray.setting_id.size() == 8 && vt_tray.setting_id[0] == 'P' && is_system_filament_id(vt_tray.setting_id))
+            continue;
         if (vt_tray.setting_id.size() == 8 && vt_tray.setting_id[0] == 'P' && filament_list.find(vt_tray.setting_id) == filament_list.end()) {
             if (checked_filament.find(vt_tray.setting_id) != checked_filament.end()) {
                 need_checked_filament_id[nozzle_diameter_str].insert(vt_tray.setting_id);

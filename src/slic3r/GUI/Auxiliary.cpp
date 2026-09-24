@@ -863,17 +863,27 @@ void AuxiliaryPanel::init_tabpanel()
     m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF"));
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [](wxBookCtrlEvent &e) { /* Event handling */ });
 
-    m_designer_panel          = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
-    m_pictures_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
-    m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
-    m_assembly_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
-    m_others_panel            = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
-
-    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
-    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
-    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
-    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
-    m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
+    add_build_step([this] {
+        m_designer_panel = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
+        m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
+    });
+    add_build_step([this] {
+        m_pictures_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
+        m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
+    });
+    add_build_step([this] {
+        m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
+        m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
+    });
+    add_build_step([this] {
+        m_assembly_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
+        m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
+    });
+    add_build_step([this] {
+        m_others_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
+        m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
+        Layout();
+    });
 }
 
 wxWindow *AuxiliaryPanel::create_side_tools()

@@ -1,6 +1,6 @@
 {
 	"type": "filament",
-	"filament_id": "QD_4_1_30",
+	"filament_id": "OFKgmsqE",
 	"name": "QIDI PAHT-CF@X-Plus 5-Series",
 	"from": "system",
 	"instantiation": "false",
@@ -14,8 +14,14 @@
 	"box_temperature": [
 		"60"
 	],
+	"chamber_temperature": [
+		"55"
+	],
 	"close_fan_the_first_x_layers": [
 		"3"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
 		"80"

@@ -33,7 +33,6 @@ public:
 
 	void on_hyperlink(wxHyperlinkEvent& evt);
 private:
-	wxCheckBox *cbox;
 };
 
 

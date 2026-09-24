@@ -117,7 +117,6 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"manual_filament_change": "1",
 	"change_filament_gcode": "M600",
@@ -126,7 +125,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"RatRig Generic ABS"
+		"Generic ABS @RatRig"
 	],
 	"default_print_profile": "0.20mm Standard @RatRig",
 	"bed_exclude_area": [

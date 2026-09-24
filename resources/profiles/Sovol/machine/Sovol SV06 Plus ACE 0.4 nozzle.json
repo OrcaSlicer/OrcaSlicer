@@ -124,6 +124,6 @@
 	"machine_end_gcode": "END_PRINT\n",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Sovol SV06 Plus ACE PLA"
+		"Generic PLA @Sovol SV06 Plus ACE"
 	]
 }

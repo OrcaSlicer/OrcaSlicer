@@ -3,7 +3,7 @@
 	"name": "Polymaker PLA Pro Metallic @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL80",
+	"filament_id": "OFHknN4v",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

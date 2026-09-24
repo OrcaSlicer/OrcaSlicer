@@ -512,6 +512,10 @@ class Print;
             Wipe_Tower_Start,
             Wipe_Tower_End,
             PA_Change,
+            Print_Time_Total_Sec_Placeholder,
+            Print_Time_Day_Placeholder,
+            Print_Time_Hour_Placeholder,
+            Print_Time_Minute_Placeholder,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
         };
@@ -521,7 +525,7 @@ class Print;
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
         // checks the given gcode for reserved tags and returns true when finding any
         // (the first max_count found tags are returned into found_tag)
-        static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag);
+        static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag, bool is_bbl_printer);
 
         static int get_gcode_last_filament(const std::string &gcode_str);
         static bool get_last_z_from_gcode(const std::string& gcode_str, double& z);
@@ -1543,5 +1547,3 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
-
