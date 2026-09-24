@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ICameraSignalingChannel.hpp"
-#include "ICloudServiceAgent.hpp"
 #include "OrcaCloudServiceAgent.hpp"
+#include "Http.hpp"
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -52,6 +52,9 @@ private:
     static std::string encode_path_component(const std::string& value);
 
     OrcaCloudServiceAgent* m_cloud;
+
+    Http::Ptr m_inflight_requests{nullptr};
+
     std::string m_dev_id;
     std::atomic<bool> m_stop{false};
     std::atomic<bool> m_open{false};
