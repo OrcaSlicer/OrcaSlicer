@@ -163,6 +163,8 @@ public:
 
     // Configuration
     void configure_urls(AppConfig* app_config);
+    // Hostname only; cloud REST, MQTT, and WebRTC signaling use fixed TLS
+    // endpoints on port 443.
     void set_api_base_url(const std::string& url);
     void set_auth_base_url(const std::string& url);
     void set_cloud_base_url(const std::string& url);

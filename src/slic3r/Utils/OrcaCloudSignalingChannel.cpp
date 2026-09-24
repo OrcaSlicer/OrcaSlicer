@@ -91,17 +91,6 @@ std::string OrcaCloudSignalingChannel::encode_path_component(const std::string& 
     return encoded.str();
 }
 
-std::string OrcaCloudSignalingChannel::host_without_scheme(std::string value)
-{
-    const auto scheme = value.find("://");
-    if (scheme != std::string::npos)
-        value.erase(0, scheme + 3);
-    const auto slash = value.find('/');
-    if (slash != std::string::npos)
-        value.erase(slash);
-    return value;
-}
-
 void OrcaCloudSignalingChannel::unavailable(CameraUnavailableReason reason, std::string detail)
 {
     if (on_unavailable)
@@ -117,7 +106,10 @@ void OrcaCloudSignalingChannel::run()
             return;
         }
         const std::string token = m_cloud->get_access_token();
-        const std::string host = host_without_scheme(m_cloud->get_cloud_service_host());
+        // OrcaCloud exposes a bare API hostname. WebRTC signaling uses the
+        // fixed HTTPS/WSS endpoints on port 443; custom schemes, ports, and
+        // base paths are not supported by this agent.
+        const std::string host = m_cloud->get_cloud_service_host();
         if (token.empty() || host.empty()) {
             unavailable(CameraUnavailableReason::Error, "OrcaCloud session is unavailable");
             m_open.store(false);

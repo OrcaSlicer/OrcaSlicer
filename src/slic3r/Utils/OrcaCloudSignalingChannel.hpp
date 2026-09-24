@@ -50,7 +50,6 @@ private:
     void send_json(const std::string& message);
     void unavailable(CameraUnavailableReason reason, std::string detail);
     static std::string encode_path_component(const std::string& value);
-    static std::string host_without_scheme(std::string value);
 
     OrcaCloudServiceAgent* m_cloud;
     std::string m_dev_id;
