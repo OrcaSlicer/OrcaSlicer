@@ -4897,66 +4897,76 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                 plate_index = plate_idx;
                 this->m_plate_index = plate_idx;
             }
-            else {
-                std::string subtask_json;
-                unsigned http_code = 0;
-                std::string http_body;
-                if (m_agent->get_subtask_info(subtask_id, &subtask_json, &http_code, &http_body) == 0) {
-                    try {
-                        if (!subtask_json.empty()) {
 
-                            json task_j = json::parse(subtask_json);
-                            if (task_j.contains("content")) {
-                                std::string content_str = task_j["content"].get<std::string>();
-                                json content_j = json::parse(content_str);
+            std::string subtask_json;
+            unsigned http_code = 0;
+            std::string http_body;
+            if (m_agent->get_subtask_info(subtask_id, &subtask_json, &http_code, &http_body) == 0) {
+                try {
+                    if (!subtask_json.empty()) {
+
+                        json task_j = json::parse(subtask_json);
+                        if (plate_index < 0 && task_j.contains("content")) {
+                            std::string content_str = task_j["content"].get<std::string>();
+                            json content_j = json::parse(content_str);
+                            if (content_j.contains("info") && content_j["info"].contains("plate_idx")) {
                                 plate_index = content_j["info"]["plate_idx"].get<int>();
-                            }
-
-                            if (task_j.contains("context") && task_j["context"].contains("plates")) {
-                                for (int i = 0; i < task_j["context"]["plates"].size(); i++) {
-                                    if (task_j["context"]["plates"][i].contains("index") && task_j["context"]["plates"][i]["index"].get<int>() == plate_index) {
-                                        if (task_j["context"]["plates"][i].contains("thumbnail") && task_j["context"]["plates"][i]["thumbnail"].contains("url")) {
-                                            slice_info->thumbnail_url = task_j["context"]["plates"][i]["thumbnail"]["url"].get<std::string>();
-                                        }
-                                        if (task_j["context"]["plates"][i].contains("prediction")) {
-                                            slice_info->prediction = task_j["context"]["plates"][i]["prediction"].get<int>();
-                                        }
-                                        if (task_j["context"]["plates"][i].contains("weight")) {
-                                            slice_info->weight = task_j["context"]["plates"][i]["weight"].get<float>();
-                                        }
-                                        if (!task_j["context"]["plates"][i]["filaments"].is_null()) {
-                                            for (auto filament : task_j["context"]["plates"][i]["filaments"]) {
-                                                FilamentInfo f;
-                                                if(filament.contains("color")){
-                                                    f.color = filament["color"].get<std::string>();
-                                                }
-                                                if (filament.contains("type")) {
-                                                    f.type = filament["type"].get<std::string>();
-                                                }
-                                                if (filament.contains("used_g")) {
-                                                    f.used_g = stof(filament["used_g"].get<std::string>());
-                                                }
-                                                if (filament.contains("used_m")) {
-                                                    f.used_m = stof(filament["used_m"].get<std::string>());
-                                                }
-                                                slice_info->filaments_info.push_back(f);
-                                            }
-                                        }
-                                        BOOST_LOG_TRIVIAL(trace) << "task_info: thumbnail url=" << slice_info->thumbnail_url;
-                                    }
-                                }
-                            }
-                            else {
-                                BOOST_LOG_TRIVIAL(error) << "task_info: no context or plates";
+                                this->m_plate_index = plate_index;
                             }
                         }
-                    }
-                    catch (...) {
+
+                        if (task_j.contains("context") && task_j["context"].contains("plates")) {
+                            for (int i = 0; i < task_j["context"]["plates"].size(); i++) {
+                                const auto& plate_item = task_j["context"]["plates"][i];
+                                bool match = false;
+                                if (plate_item.contains("index") && plate_item["index"].get<int>() == plate_index) {
+                                    match = true;
+                                } else if (plate_index < 0 && task_j["context"]["plates"].size() == 1) {
+                                    match = true;
+                                }
+
+                                if (match) {
+                                    if (plate_item.contains("thumbnail") && plate_item["thumbnail"].contains("url")) {
+                                        slice_info->thumbnail_url = plate_item["thumbnail"]["url"].get<std::string>();
+                                    }
+                                    if (plate_item.contains("prediction")) {
+                                        slice_info->prediction = plate_item["prediction"].get<int>();
+                                    }
+                                    if (plate_item.contains("weight")) {
+                                        slice_info->weight = plate_item["weight"].get<float>();
+                                    }
+                                    if (!plate_item["filaments"].is_null()) {
+                                        for (auto filament : plate_item["filaments"]) {
+                                            FilamentInfo f;
+                                            if (filament.contains("color")) {
+                                                f.color = filament["color"].get<std::string>();
+                                            }
+                                            if (filament.contains("type")) {
+                                                f.type = filament["type"].get<std::string>();
+                                            }
+                                            if (filament.contains("used_g")) {
+                                                f.used_g = stof(filament["used_g"].get<std::string>());
+                                            }
+                                            if (filament.contains("used_m")) {
+                                                f.used_m = stof(filament["used_m"].get<std::string>());
+                                            }
+                                            slice_info->filaments_info.push_back(f);
+                                        }
+                                    }
+                                    BOOST_LOG_TRIVIAL(trace) << "task_info: thumbnail url=" << slice_info->thumbnail_url;
+                                }
+                            }
+                        }
+                        else {
+                            BOOST_LOG_TRIVIAL(error) << "task_info: no context or plates";
+                        }
                     }
                 }
-                else {
-                    BOOST_LOG_TRIVIAL(error) << "task_info: get subtask id failed!";
+                catch (...) {
                 }
+            }
+            else {
+                BOOST_LOG_TRIVIAL(error) << "task_info: get subtask id failed!";
             }
             // this->m_plate_index = plate_index;
             });
