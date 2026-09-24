@@ -516,23 +516,8 @@ bool GLGizmoBrimEars::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_p
         apply_radius_change();
     }
 
-    if (action == SLAGizmoEventType::MouseWheelUp && alt_down) {
-        double pos = m_c->object_clipper()->get_position();
-        pos        = std::min(1., pos + 0.01);
-        m_c->object_clipper()->set_position_by_ratio(pos, false, true);
-        return true;
-    }
-
-    if (action == SLAGizmoEventType::MouseWheelDown && alt_down) {
-        double pos = m_c->object_clipper()->get_position();
-        pos        = std::max(0., pos - 0.01);
-        m_c->object_clipper()->set_position_by_ratio(pos, false, true);
-        return true;
-    }
-
-    // reset clipper position
-    if (action == SLAGizmoEventType::ResetClippingPlane) {
-        m_c->object_clipper()->set_position_by_ratio(-1., false);
+    if ((action == SLAGizmoEventType::MouseWheelUp || action == SLAGizmoEventType::MouseWheelDown) && alt_down) {
+        m_parent.set_section_view_ratio(m_parent.get_section_view_ratio() + (action == SLAGizmoEventType::MouseWheelUp ? 0.01 : -0.01));
         return true;
     }
 
@@ -657,8 +642,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     float                 space_size      = m_imgui->get_style_scaling() * 8;
-    std::vector<wxString> text_list       = {m_desc["brim_ear_radius"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"],
-                                             m_desc["create"], m_desc["remove"]};
+    std::vector<wxString> text_list       = {m_desc["brim_ear_radius"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["create"],
+                                             m_desc["remove"]};
     float                 widest_text     = m_imgui->find_widest_text(text_list);
     float                 caption_size    = widest_text + space_size + ImGui::GetStyle().WindowPadding.x;
     float                 input_text_size = m_imgui->scaled(10.0f);
@@ -747,21 +732,6 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
     }
     m_imgui->disabled_end();
-        
-    ImGui::Separator();
-
-    ImGui::AlignTextToFramePadding();
-    float clp_dist = float(m_c->object_clipper()->get_position());
-    m_imgui->text(m_desc["section_view"]);
-    ImGui::SameLine(caption_size);
-    ImGui::PushItemWidth(slider_width);
-    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##section_view", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_clp_dist_input = ImGui::BBLDragFloat("##section_view_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) {
-        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true);
-    }
 
     ImGui::Separator();
 
