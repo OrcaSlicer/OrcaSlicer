@@ -10,8 +10,8 @@ tabs the user may never open.
 This subsystem builds a tab the first time it is shown, and builds the rest in small units
 while the user is idle after startup. Startup pays only for what the first frame shows,
 the other tabs are usually ready before anyone opens them, and a click that lands in the
-middle of the idle build waits for one unit at most. Objects that are not tabs, such as
-dialogs, use the same machinery.
+middle of the idle build waits for one unit at most. Work that is not a tab, such as a
+dialog or the 3D view's GL resources, uses the same machinery.
 
 ## The parts
 
@@ -77,14 +77,25 @@ When nothing is pending the timer stops and the subsystem costs nothing.
 
 The main window owns the scheduler because it owns what the tasks build, and clearing the
 queue with the window keeps a task from outliving its object. Each owner provides its own
-tasks, such as a tab, a dialog, or the Prepare tab's settings page one option group at a
-time.
+tasks, such as a tab, a dialog, the Prepare tab's settings page one option group at a
+time, or the 3D view's GL resources.
+
+### The 3D view's GL resources
+
+OpenGL is loaded on the Prepare tab's canvas. When the start page is not Prepare, loading
+it is an idle task that makes the context current on the hidden canvas, so the start page
+paints first and Prepare never appears. Loading it on a shown canvas under `Freeze()` holds
+back the start page's paint, and on GTK `Freeze()` cannot hide the canvas, which is a
+native child window or a Wayland subsurface drawn outside GTK. A hidden Windows child
+window keeps its device context, macOS attaches the context to a hidden view, and GTK
+creates the canvas's surface when the widget is realized, so on GTK the task realizes the
+canvas first. If the context cannot be made current, the canvas's first render loads the
+resources.
 
 ## Rules
 
 **Before the first frame.** Only the start page and the Prepare tab's plater are built
-before the first frame, the plater because startup initializes OpenGL on its canvas.
-Everything else goes through a holder.
+before the first frame. Everything else goes through a holder.
 
 **Reaching a lazy object.** Callers use the type's statics. Reading it if built is for
 things the object can live without, such as a rescale, a color change or a status refresh.

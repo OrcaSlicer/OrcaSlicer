@@ -81,6 +81,7 @@
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#include <wx/glcanvas.h>
 #endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
 
@@ -4008,11 +4009,47 @@ bool MainFrame::Show(bool show)
     return changed;
 }
 
+bool MainFrame::GLResourcesPrebuild::built() const
+{
+    return m_frame.m_plater != nullptr && m_frame.m_plater->canvas3D()->is_initialized();
+}
+
+bool MainFrame::GLResourcesPrebuild::build_step()
+{
+    GLCanvas3D* canvas = m_frame.m_plater->canvas3D();
+#ifdef __WXGTK__
+    // wx creates a GTK canvas's GL surface when the widget is realized, so the context can be
+    // made current on it while hidden.
+    gtk_widget_realize(canvas->get_wxglcanvas()->GetHandle());
+#endif
+    if (!canvas->make_current_for_postinit()) {
+        // The first render of the canvas loads everything instead.
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": cannot make the GL context current on the hidden canvas";
+        m_failed = true;
+        return false;
+    }
+    switch (m_step++) {
+    case 0:
+        m_failed = !wxGetApp().init_opengl();
+        return !m_failed;
+    case 1: {
+        const Size size = canvas->get_canvas_size();
+        wxGetApp().imgui()->set_display_size(float(std::max(1, size.get_width())), float(std::max(1, size.get_height())));
+        wxGetApp().imgui()->new_frame();
+        return true;
+    }
+    default:
+        m_failed = !canvas->init();
+        return false;
+    }
+}
+
 // A page out of the book stays registered and is passed over; a negative order is never
 // registered.
 void MainFrame::prebuild_pages_when_idle()
 {
     m_idle.clear();
+    m_idle.add(m_gl_prebuild);
     if (m_param_panel)
         m_idle.add(m_param_panel->settings_page_prebuild());
     for (LazyBase* page : m_lazy_pages)

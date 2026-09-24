@@ -857,7 +857,12 @@ void GUI_App::post_init()
         slow_bootup = true;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", slow bootup, won't render gl here.";
     }
-    if (!switch_to_3d) {
+    // Starting on Home, the GL resources load at idle so Home paints first and Prepare is never
+    // shown.
+    const bool gl_at_idle = !starts_on_prepare() && is_editor();
+    if (!switch_to_3d && gl_at_idle) {
+        plater_->select_view_3D("3D");
+    } else if (!switch_to_3d) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
 #ifndef __linux__
         mainframe->Freeze();
@@ -902,8 +907,6 @@ void GUI_App::post_init()
         }
         if (starts_on_prepare())
             mainframe->select_tab(TAB_ID_PREPARE);
-        else if (is_editor())
-            mainframe->select_tab(TAB_ID_HOME);
 #ifndef __linux__
         mainframe->Thaw();
 #endif
