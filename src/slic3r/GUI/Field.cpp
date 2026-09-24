@@ -961,7 +961,10 @@ void TextCtrl::BUILD() {
     auto temp = m_opt.multiline
         ? (wxWindow*)builder1.build(m_parent, wxID_ANY, "", wxDefaultPosition, size, wxTE_MULTILINE)
         : builder2.build(m_parent, "", "", "", wxDefaultPosition, size, wxTE_PROCESS_ENTER);
-    temp->SetLabel(_L(m_opt.sidetext));
+    // multiline: temp is a plain wxTextCtrl whose SetLabel() asserts in wx 3.3+.
+    // Only set the label on the TextInput composite.
+    if (!m_opt.multiline)
+        temp->SetLabel(_L(m_opt.sidetext));
 	auto text_ctrl = m_opt.multiline ? (wxTextCtrl *)temp : ((TextInput *) temp)->GetTextCtrl();
     text_ctrl->SetValue(text_value);
     temp->SetSize(size);
@@ -1341,7 +1344,8 @@ void SpinCtrl::BUILD() {
 		wxSP_ARROW_KEYS);
     temp->SetSize(size);
     temp->SetLabel(_L(m_opt.sidetext));
-    temp->GetTextCtrl()->SetLabel(text_value);
+    // SetLabel() asserts on a plain wxTextCtrl in wx 3.3+
+    temp->GetTextCtrl()->ChangeValue(text_value);
     temp->SetRange(min_val, max_val);
     temp->SetValue(default_value);
     m_combine_side_text = true;
