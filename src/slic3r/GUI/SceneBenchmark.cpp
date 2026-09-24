@@ -427,8 +427,8 @@ std::string SceneBenchmarkDialog::report() const
         << "Realistic:  ";
     if (config.get_bool(SETTING_OPENGL_REALISTIC_MODE))
         out << "on, Phong " << on_off(config.get_bool(SETTING_OPENGL_REALISTIC_PHONG)) << ", SSAO "
-            << on_off(config.get_bool(SETTING_OPENGL_PHONG_SSAO)) << ", plate shadows "
-            << on_off(config.get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS)) << ", in Preview " << on_off(config.get_bool(SETTING_OPENGL_REALISTIC_PREVIEW)) << '\n';
+            << on_off(config.get_bool(SETTING_OPENGL_PHONG_SSAO)) << ", shadows " << config.get(SETTING_OPENGL_REALISTIC_SHADOWS)
+            << ", in Preview " << on_off(config.get_bool(SETTING_OPENGL_REALISTIC_PREVIEW)) << '\n';
     else
         out << "off\n";
     out << "Scene:      OrcaSliced Combo, " << PASS_FRAMES << " frames per pass\n\n";
