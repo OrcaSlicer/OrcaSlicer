@@ -732,6 +732,19 @@ ViewerImpl::ViewerImpl()
     reset_default_options_colors();
 }
 
+void ViewerImpl::SegmentsUniforms::init(unsigned int shader_id)
+{
+    view_matrix            = glGetUniformLocation(shader_id, "view_matrix");
+    projection_matrix      = glGetUniformLocation(shader_id, "projection_matrix");
+    camera_position        = glGetUniformLocation(shader_id, "camera_position");
+    positions_tex          = glGetUniformLocation(shader_id, "position_tex");
+    height_width_angle_tex = glGetUniformLocation(shader_id, "height_width_angle_tex");
+    colors_tex             = glGetUniformLocation(shader_id, "color_tex");
+    segment_index_tex      = glGetUniformLocation(shader_id, "segment_index_tex");
+    reverse_order          = glGetUniformLocation(shader_id, "reverse_order");
+    instances_count        = glGetUniformLocation(shader_id, "instances_count");
+}
+
 void ViewerImpl::init(const std::string& opengl_context_version)
 {
     if (m_initialized)
@@ -751,18 +764,17 @@ void ViewerImpl::init(const std::string& opengl_context_version)
 
     // segments shader
 #ifdef ENABLE_OPENGL_ES
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader_ES, Segments_Fragment_Shader_ES);
+    const char* segments_vs        = Segments_Vertex_Shader_ES;
+    const char* segments_fs        = Segments_Fragment_Shader_ES;
+    const char* segments_caster_fs = Segments_Shadow_Caster_Fragment_Shader_ES;
 #else
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader);
+    const char* segments_vs        = Segments_Vertex_Shader;
+    const char* segments_fs        = Segments_Fragment_Shader;
+    const char* segments_caster_fs = Segments_Shadow_Caster_Fragment_Shader;
 #endif // ENABLE_OPENGL_ES
+    m_segments_shader_id = init_shader("segments", segments_vs, segments_fs);
 
-    m_uni_segments_view_matrix_id            = glGetUniformLocation(m_segments_shader_id, "view_matrix");
-    m_uni_segments_projection_matrix_id      = glGetUniformLocation(m_segments_shader_id, "projection_matrix");
-    m_uni_segments_camera_position_id        = glGetUniformLocation(m_segments_shader_id, "camera_position");
-    m_uni_segments_positions_tex_id          = glGetUniformLocation(m_segments_shader_id, "position_tex");
-    m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
-    m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
-    m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+    m_uni_segments.init(m_segments_shader_id);
     // ORCA: realistic view
     m_uni_segments_shadow_map_id             = glGetUniformLocation(m_segments_shader_id, "shadow_map");
     m_uni_segments_shadow_light_vp_id        = glGetUniformLocation(m_segments_shader_id, "shadow_light_vp");
@@ -770,15 +782,23 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_shadow_map_texel_id       = glGetUniformLocation(m_segments_shader_id, "shadow_map_texel");
     m_uni_segments_exposure_id               = glGetUniformLocation(m_segments_shader_id, "exposure");
     m_uni_segments_saturation_id             = glGetUniformLocation(m_segments_shader_id, "saturation");
-    m_uni_segments_bias_scale_id             = glGetUniformLocation(m_segments_shader_id, "bias_scale");
     glcheck();
-    assert(m_uni_segments_view_matrix_id != -1 &&
-           m_uni_segments_projection_matrix_id != -1 &&
-           m_uni_segments_camera_position_id != -1 &&
-           m_uni_segments_positions_tex_id != -1 &&
-           m_uni_segments_height_width_angle_tex_id != -1 &&
-           m_uni_segments_colors_tex_id != -1 &&
-           m_uni_segments_segment_index_tex_id != -1);
+    assert(m_uni_segments.view_matrix != -1 &&
+           m_uni_segments.projection_matrix != -1 &&
+           m_uni_segments.camera_position != -1 &&
+           m_uni_segments.positions_tex != -1 &&
+           m_uni_segments.height_width_angle_tex != -1 &&
+           m_uni_segments.colors_tex != -1 &&
+           m_uni_segments.segment_index_tex != -1 &&
+           m_uni_segments.reverse_order != -1 &&
+           m_uni_segments.instances_count != -1);
+
+    // ORCA: realistic view. The define goes right after the #version line, which must stay first.
+    std::string caster_vs = segments_vs;
+    caster_vs.insert(caster_vs.find('\n') + 1, "#define SHADOW_CASTER\n");
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", caster_vs.c_str(), segments_caster_fs);
+    m_uni_segments_caster.init(m_segments_caster_shader_id);
+    glcheck();
 
     m_segment_template.init();
 
@@ -867,6 +887,10 @@ void ViewerImpl::shutdown()
     if (m_segments_shader_id != 0) {
         glsafe(glDeleteProgram(m_segments_shader_id));
         m_segments_shader_id = 0;
+    }
+    if (m_segments_caster_shader_id != 0) {
+        glsafe(glDeleteProgram(m_segments_caster_shader_id));
+        m_segments_caster_shader_id = 0;
     }
     m_initialized = false;
     OpenGLWrapper::unload_opengl();
@@ -2064,7 +2088,10 @@ void ViewerImpl::update_heights_widths()
 
 void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position)
 {
-    if (m_segments_shader_id == 0)
+    // ORCA: realistic view. The shadow caster pass draws depth only.
+    const unsigned int shader_id = m_rendering_shadow_casters ? m_segments_caster_shader_id : m_segments_shader_id;
+    const SegmentsUniforms& uni = m_rendering_shadow_casters ? m_uni_segments_caster : m_uni_segments;
+    if (shader_id == 0)
         return;
 
 #ifdef ENABLE_OPENGL_ES
@@ -2081,24 +2108,27 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     const bool curr_cull_face = glIsEnabled(GL_CULL_FACE);
     glcheck();
 
-    glsafe(glUseProgram(m_segments_shader_id));
+    glsafe(glUseProgram(shader_id));
 
-    glsafe(glUniform1i(m_uni_segments_positions_tex_id, 0));
-    glsafe(glUniform1i(m_uni_segments_height_width_angle_tex_id, 1));
-    glsafe(glUniform1i(m_uni_segments_colors_tex_id, 2));
-    glsafe(glUniform1i(m_uni_segments_segment_index_tex_id, 3));
-    glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
-    glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
-    glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
-    // ORCA: realistic view. The depth pass writes the map it would otherwise read, so it shades
-    // with the lookup off.
-    glsafe(glUniform1i(m_uni_segments_shadow_map_id, m_shadow_map_texture_unit));
-    glsafe(glUniformMatrix4fv(m_uni_segments_shadow_light_vp_id, 1, GL_FALSE, m_shadow_light_vp.data()));
-    glsafe(glUniform1f(m_uni_segments_shadow_intensity_id, m_rendering_shadow_casters ? 0.0f : m_shadow_intensity));
-    glsafe(glUniform1f(m_uni_segments_shadow_map_texel_id, m_shadow_map_texel));
-    glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
-    glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
-    glsafe(glUniform1f(m_uni_segments_bias_scale_id, m_rendering_shadow_casters ? 0.0f : 1.0f));
+    glsafe(glUniform1i(uni.positions_tex, 0));
+    glsafe(glUniform1i(uni.height_width_angle_tex, 1));
+    glsafe(glUniform1i(uni.colors_tex, 2));
+    glsafe(glUniform1i(uni.segment_index_tex, 3));
+    glsafe(glUniformMatrix4fv(uni.view_matrix, 1, GL_FALSE, view_matrix.data()));
+    glsafe(glUniformMatrix4fv(uni.projection_matrix, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform3fv(uni.camera_position, 1, camera_position.data()));
+    // ORCA: view_matrix(2,2) > 0 is looking down, where the last segments printed are the nearest.
+    const bool reverse_order = view_matrix[10] > 0.0f;
+    glsafe(glUniform1i(uni.reverse_order, reverse_order ? 1 : 0));
+    if (!m_rendering_shadow_casters) {
+        // ORCA: realistic view
+        glsafe(glUniform1i(m_uni_segments_shadow_map_id, m_shadow_map_texture_unit));
+        glsafe(glUniformMatrix4fv(m_uni_segments_shadow_light_vp_id, 1, GL_FALSE, m_shadow_light_vp.data()));
+        glsafe(glUniform1f(m_uni_segments_shadow_intensity_id, m_shadow_intensity));
+        glsafe(glUniform1f(m_uni_segments_shadow_map_texel_id, m_shadow_map_texel));
+        glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
+        glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
+    }
 
     glsafe(glDisable(GL_CULL_FACE));
 
@@ -2106,7 +2136,9 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     int curr_bound_texture = 0;
     glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
 
-    for (size_t i = 0; i < m_texture_data.get_count(); ++i) {
+    const size_t tex_count = m_texture_data.get_count();
+    for (size_t n = 0; n < tex_count; ++n) {
+        const size_t i = reverse_order ? tex_count - 1 - n : n;
         const auto [id, count] = m_texture_data.get_enabled_segments_tex_id(i);
         if (count == 0)
             continue;
@@ -2118,6 +2150,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
+        glsafe(glUniform1i(uni.instances_count, static_cast<int>(count)));
         m_segment_template.render(count);
     }
 #else
@@ -2141,6 +2174,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
 
+    glsafe(glUniform1i(uni.instances_count, static_cast<int>(m_enabled_segments_count)));
     m_segment_template.render(m_enabled_segments_count);
 #endif // ENABLE_OPENGL_ES
 

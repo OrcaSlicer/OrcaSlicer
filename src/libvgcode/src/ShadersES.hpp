@@ -32,6 +32,9 @@ static const char* Segments_Vertex_Shader_ES =
 "uniform sampler2D height_width_angle_tex;\n"
 "uniform sampler2D color_tex;\n"
 "uniform usampler2D segment_index_tex;\n"
+// ORCA: draw last segment first, so looking down the top layers hide the rest from the fragment shader.
+"uniform bool reverse_order;\n"
+"uniform int instances_count;\n"
 "in float vertex_id_float;\n"
 "out vec3 color;\n"
 "// ORCA: realistic view - the light the shadow map is able to block, kept apart from the\n"
@@ -66,7 +69,8 @@ static const char* Segments_Vertex_Shader_ES =
 "}\n"
 "void main() {\n"
 "  int vertex_id = int(vertex_id_float);\n"
-"  int id_a = int(texelFetch(segment_index_tex, tex_coord_u(segment_index_tex, gl_InstanceID), 0).r);\n"
+"  int instance = reverse_order ? instances_count - 1 - gl_InstanceID : gl_InstanceID;\n"
+"  int id_a = int(texelFetch(segment_index_tex, tex_coord_u(segment_index_tex, instance), 0).r);\n"
 "  int id_b = id_a + 1;\n"
 "  vec3 pos_a = texelFetch(position_tex, tex_coord(position_tex, id_a), 0).xyz;\n"
 "  vec3 pos_b = texelFetch(position_tex, tex_coord(position_tex, id_b), 0).xyz;\n"
@@ -150,14 +154,22 @@ static const char* Segments_Vertex_Shader_ES =
 "    }\n"
 "  }\n"
 "  vec3 eye_position = (view_matrix * vec4(pos, 1.0)).xyz;\n"
+// ORCA: the shadow caster writes depth only.
+"#ifndef SHADOW_CASTER\n"
 "  vec3 eye_normal = (view_matrix * vec4(normalize(pos - endpoint_pos), 0.0)).xyz;\n"
 "  vec3 color_base = decode_color(texelFetch(color_tex, tex_coord(color_tex, id), 0).r);\n"
 "  color = color_base * (ambient + emission);\n"
 "  color_direct = color_base * direct_lighting(eye_position, eye_normal);\n"
 "  world_position = pos;\n"
 "  shadow_normal = eye_normal;\n"
+"#endif\n"
 "  gl_Position = projection_matrix * vec4(eye_position, 1.0);\n"
 "}\n";
+
+// ORCA: realistic view - paired with Segments_Vertex_Shader_ES compiled with SHADOW_CASTER defined.
+static const char* Segments_Shadow_Caster_Fragment_Shader_ES =
+"#version 300 es\n"
+"void main() {}\n";
 
 static const char* Segments_Fragment_Shader_ES =
 "#version 300 es\n"

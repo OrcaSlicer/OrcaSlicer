@@ -347,6 +347,8 @@ private:
     // OpenGL shaders ids
     //
     unsigned int m_segments_shader_id{ 0 };
+    // ORCA: realistic view. Depth-only build of the segments shader, for the shadow caster pass.
+    unsigned int m_segments_caster_shader_id{ 0 };
     unsigned int m_options_shader_id{ 0 };
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     unsigned int m_cog_marker_shader_id{ 0 };
@@ -355,20 +357,29 @@ private:
     //
     // Caches for OpenGL uniforms id for segments shader 
     //
-    int m_uni_segments_view_matrix_id{ -1 };
-    int m_uni_segments_projection_matrix_id{ -1 };
-    int m_uni_segments_camera_position_id{ -1 };
-    int m_uni_segments_positions_tex_id{ -1 };
-    int m_uni_segments_height_width_angle_tex_id{ -1 };
-    int m_uni_segments_colors_tex_id{ -1 };
-    int m_uni_segments_segment_index_tex_id{ -1 };
+    // ORCA: the ones the shaded and the shadow caster programs share.
+    struct SegmentsUniforms
+    {
+        int view_matrix{ -1 };
+        int projection_matrix{ -1 };
+        int camera_position{ -1 };
+        int positions_tex{ -1 };
+        int height_width_angle_tex{ -1 };
+        int colors_tex{ -1 };
+        int segment_index_tex{ -1 };
+        int reverse_order{ -1 };
+        int instances_count{ -1 };
+
+        void init(unsigned int shader_id);
+    };
+    SegmentsUniforms m_uni_segments;
+    SegmentsUniforms m_uni_segments_caster;
     int m_uni_segments_shadow_map_id{ -1 };
     int m_uni_segments_shadow_light_vp_id{ -1 };
     int m_uni_segments_shadow_intensity_id{ -1 };
     int m_uni_segments_shadow_map_texel_id{ -1 };
     int m_uni_segments_exposure_id{ -1 };
     int m_uni_segments_saturation_id{ -1 };
-    int m_uni_segments_bias_scale_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -510,8 +521,7 @@ private:
 
     //
     // ORCA: realistic view. Shadow map state set by set_shadow_map(), consumed by the segments
-    // shader. m_rendering_shadow_casters forces the intensity to 0 for the depth pass, which
-    // must not sample the very map it is writing.
+    // shader. m_rendering_shadow_casters switches render_segments() to the depth-only program.
     //
     // Defaults past the four texture units render_segments() binds itself, so the sampler never
     // aliases one of the buffer textures before the owner of the map has said where it lives.
