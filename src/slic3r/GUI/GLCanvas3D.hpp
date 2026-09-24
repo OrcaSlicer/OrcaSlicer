@@ -812,6 +812,8 @@ public:
     unsigned int m_shadow_map_size{ 0 };
     Transform3d  m_shadow_light_vp{ Transform3d::Identity() };
     bool         m_shadow_map_valid{ false };
+    // Casters and light frustum the map was last rendered for, under a static light. 0 when none.
+    size_t       m_shadow_map_key{ 0 };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -1346,6 +1348,9 @@ private:
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
     bool _is_render_timings_enabled() const;
+    enum class EShadowMode { Off, Static, Orbit };
+    EShadowMode _shadow_mode() const;
+    size_t _shadow_casters_signature(bool toolpath_casters) const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;
     bool _is_frame_skipping_enabled() const;
