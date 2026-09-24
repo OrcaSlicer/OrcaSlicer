@@ -3470,7 +3470,7 @@ void SelectMachineDialog::navigate_to_timelapse_page()
         main_frame->jump_to_monitor();
 
         // then switch to Storage (Media) tab inside Monitor
-        auto* monitor = dynamic_cast<MonitorPanel*>(main_frame->m_monitor);
+        MonitorPanel* monitor = MonitorPanel::if_built();
         if (monitor) {
             auto* tabpanel = monitor->get_tabpanel();
             if (tabpanel) {
