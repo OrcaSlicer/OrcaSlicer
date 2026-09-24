@@ -347,8 +347,9 @@ private:
     // OpenGL shaders ids
     //
     unsigned int m_segments_shader_id{ 0 };
-    // ORCA: realistic view. Depth-only build of the segments shader, for the shadow caster pass.
+    // ORCA: realistic view. Depth-only ribbons for the shadow caster pass, and the empty vertex array they draw with.
     unsigned int m_segments_caster_shader_id{ 0 };
+    unsigned int m_segments_caster_vao_id{ 0 };
     unsigned int m_options_shader_id{ 0 };
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     unsigned int m_cog_marker_shader_id{ 0 };

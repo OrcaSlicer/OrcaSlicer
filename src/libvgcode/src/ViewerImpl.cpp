@@ -764,15 +764,10 @@ void ViewerImpl::init(const std::string& opengl_context_version)
 
     // segments shader
 #ifdef ENABLE_OPENGL_ES
-    const char* segments_vs        = Segments_Vertex_Shader_ES;
-    const char* segments_fs        = Segments_Fragment_Shader_ES;
-    const char* segments_caster_fs = Segments_Shadow_Caster_Fragment_Shader_ES;
+    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader_ES, Segments_Fragment_Shader_ES);
 #else
-    const char* segments_vs        = Segments_Vertex_Shader;
-    const char* segments_fs        = Segments_Fragment_Shader;
-    const char* segments_caster_fs = Segments_Shadow_Caster_Fragment_Shader;
+    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader);
 #endif // ENABLE_OPENGL_ES
-    m_segments_shader_id = init_shader("segments", segments_vs, segments_fs);
 
     m_uni_segments.init(m_segments_shader_id);
     // ORCA: realistic view
@@ -793,11 +788,15 @@ void ViewerImpl::init(const std::string& opengl_context_version)
            m_uni_segments.reverse_order != -1 &&
            m_uni_segments.instances_count != -1);
 
-    // ORCA: realistic view. The define goes right after the #version line, which must stay first.
-    std::string caster_vs = segments_vs;
-    caster_vs.insert(caster_vs.find('\n') + 1, "#define SHADOW_CASTER\n");
-    m_segments_caster_shader_id = init_shader("segments_shadow_caster", caster_vs.c_str(), segments_caster_fs);
+    // ORCA: realistic view
+#ifdef ENABLE_OPENGL_ES
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", Segments_Shadow_Caster_Vertex_Shader_ES, Segments_Shadow_Caster_Fragment_Shader_ES);
+#else
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", Segments_Shadow_Caster_Vertex_Shader, Segments_Shadow_Caster_Fragment_Shader);
+#endif // ENABLE_OPENGL_ES
     m_uni_segments_caster.init(m_segments_caster_shader_id);
+    // The caster pulls its vertices from gl_VertexID, but a core profile needs a vertex array bound to draw.
+    glsafe(glGenVertexArrays(1, &m_segments_caster_vao_id));
     glcheck();
 
     m_segment_template.init();
@@ -891,6 +890,10 @@ void ViewerImpl::shutdown()
     if (m_segments_caster_shader_id != 0) {
         glsafe(glDeleteProgram(m_segments_caster_shader_id));
         m_segments_caster_shader_id = 0;
+    }
+    if (m_segments_caster_vao_id != 0) {
+        glsafe(glDeleteVertexArrays(1, &m_segments_caster_vao_id));
+        m_segments_caster_vao_id = 0;
     }
     m_initialized = false;
     OpenGLWrapper::unload_opengl();
@@ -2132,6 +2135,20 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
 
     glsafe(glDisable(GL_CULL_FACE));
 
+    auto draw = [this, &uni](size_t count) {
+        glsafe(glUniform1i(uni.instances_count, static_cast<int>(count)));
+        if (!m_rendering_shadow_casters) {
+            m_segment_template.render(count);
+            return;
+        }
+        // ORCA: realistic view. 6 vertices per caster ribbon.
+        int curr_vertex_array = 0;
+        glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
+        glsafe(glBindVertexArray(m_segments_caster_vao_id));
+        glsafe(glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(6 * count)));
+        glsafe(glBindVertexArray(curr_vertex_array));
+    };
+
 #ifdef ENABLE_OPENGL_ES
     int curr_bound_texture = 0;
     glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
@@ -2150,8 +2167,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
-        glsafe(glUniform1i(uni.instances_count, static_cast<int>(count)));
-        m_segment_template.render(count);
+        draw(count);
     }
 #else
     std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
@@ -2174,8 +2190,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
 
-    glsafe(glUniform1i(uni.instances_count, static_cast<int>(m_enabled_segments_count)));
-    m_segment_template.render(m_enabled_segments_count);
+    draw(m_enabled_segments_count);
 #endif // ENABLE_OPENGL_ES
 
     if (curr_cull_face)
