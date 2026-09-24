@@ -256,7 +256,9 @@ typedef struct _cli_callback_mgr {
         else
             j["message"] = m_message;
 
-        std::string notify_message = j.dump();
+        // ORCA: m_message can carry an object name, which may be invalid UTF-8 on Linux.
+        //       This runs on the callback thread with no handler, so a throw would abort.
+        std::string notify_message = j.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
         //notify_message = "Plate "+ std::to_string(m_plate_index) + "/" +std::to_string(m_plate_count)+  ": Percent " + std::to_string(m_progress) + ": "+m_message;
 
         char pipe_message[PIPE_BUFFER_SIZE] = {0};
@@ -489,7 +491,8 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
-        c << j.dump(1, '\t') << std::endl;
+        // ORCA: names can be invalid UTF-8 on Linux, write U+FFFD instead of throwing.
+        c << j.dump(1, '\t', false, nlohmann::json::error_handler_t::replace) << std::endl;
         c.close();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%result_file;
