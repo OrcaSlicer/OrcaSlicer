@@ -89,6 +89,8 @@ public:
     // caller decides which of the two it varies with the realistic view setting.
     //
     void set_tone(float exposure, float saturation);
+    // ORCA: section view, see Viewer::set_clipping_plane()
+    void set_clipping_plane(const std::array<float, 4>& plane) { m_clipping_plane = plane; }
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -369,6 +371,7 @@ private:
     int m_uni_segments_exposure_id{ -1 };
     int m_uni_segments_saturation_id{ -1 };
     int m_uni_segments_bias_scale_id{ -1 };
+    int m_uni_segments_clipping_plane_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -378,6 +381,7 @@ private:
     int m_uni_options_height_width_angle_tex_id{ -1 };
     int m_uni_options_colors_tex_id{ -1 };
     int m_uni_options_segment_index_tex_id{ -1 };
+    int m_uni_options_clipping_plane_id{ -1 };
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     //
     // Caches for OpenGL uniforms id for cog marker shader 
@@ -527,6 +531,9 @@ private:
     //
     float m_exposure{ 1.0f };
     float m_saturation{ 1.0f };
+
+    // ORCA: section view
+    std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
 
     void apply_pending_updates();
     void update_view_full_range();

@@ -771,6 +771,8 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_exposure_id               = glGetUniformLocation(m_segments_shader_id, "exposure");
     m_uni_segments_saturation_id             = glGetUniformLocation(m_segments_shader_id, "saturation");
     m_uni_segments_bias_scale_id             = glGetUniformLocation(m_segments_shader_id, "bias_scale");
+    // ORCA: section view
+    m_uni_segments_clipping_plane_id         = glGetUniformLocation(m_segments_shader_id, "clipping_plane");
     glcheck();
     assert(m_uni_segments_view_matrix_id != -1 &&
            m_uni_segments_projection_matrix_id != -1 &&
@@ -795,6 +797,8 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_options_height_width_angle_tex_id = glGetUniformLocation(m_options_shader_id, "height_width_angle_tex");
     m_uni_options_colors_tex_id             = glGetUniformLocation(m_options_shader_id, "color_tex");
     m_uni_options_segment_index_tex_id      = glGetUniformLocation(m_options_shader_id, "segment_index_tex");
+    // ORCA: section view
+    m_uni_options_clipping_plane_id         = glGetUniformLocation(m_options_shader_id, "clipping_plane");
     glcheck();
     assert(m_uni_options_view_matrix_id != -1 &&
            m_uni_options_projection_matrix_id != -1 &&
@@ -2099,6 +2103,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
     glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
     glsafe(glUniform1f(m_uni_segments_bias_scale_id, m_rendering_shadow_casters ? 0.0f : 1.0f));
+    glsafe(glUniform4fv(m_uni_segments_clipping_plane_id, 1, m_clipping_plane.data()));
 
     glsafe(glDisable(GL_CULL_FACE));
 
@@ -2186,6 +2191,7 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glUniform1i(m_uni_options_segment_index_tex_id, 3));
     glsafe(glUniformMatrix4fv(m_uni_options_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_options_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform4fv(m_uni_options_clipping_plane_id, 1, m_clipping_plane.data()));
 
     glsafe(glEnable(GL_CULL_FACE));
 

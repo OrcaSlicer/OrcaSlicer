@@ -76,6 +76,10 @@ public:
     // caller decides which of the two it varies with the realistic view setting.
     //
     void set_tone(float exposure, float saturation);
+    //
+    // ORCA: section view. Cuts away where dot(plane, (x, y, z, 1)) < 0; { 0, 0, 0, 1 } keeps all.
+    //
+    void set_clipping_plane(const std::array<float, 4>& plane);
 
     //
     // ************************************************************************

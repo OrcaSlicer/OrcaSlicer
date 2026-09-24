@@ -45,7 +45,6 @@ enum class SLAGizmoEventType : unsigned char {
 
 
 class CommonGizmosDataBase;
-class AssembleViewDataBase;
 namespace CommonGizmosDataObjects {
     class SelectionInfo;
     class InstancesHider;
@@ -53,11 +52,6 @@ namespace CommonGizmosDataObjects {
     class Raycaster;
     class ObjectClipper;
     class SupportsClipper;
-}
-
-namespace AssembleViewDataObjects {
-    class ModelObjectsInfo;
-    class ModelObjectsClipper;
 }
 
 // Some of the gizmos use the same data that need to be updated ocassionally.
@@ -238,7 +232,7 @@ public:
     void set_position_to_init_layer();
     const ClippingPlane* get_clipping_plane(bool ignore_hide_clipped = false) const;
     void render_cut(const std::vector<size_t>* ignore_idxs = nullptr) const;
-    void set_position_by_ratio(double pos, bool keep_normal, bool vertical_normal=false);
+    void set_position_by_ratio(double pos, const Vec3d& normal);
     void set_range_and_pos(const Vec3d& cpl_normal, double cpl_offset, double pos);
     void set_behavior(bool hide_clipped, bool fill_cut, double contour_width);
     
@@ -264,121 +258,6 @@ private:
 
 } // namespace CommonGizmosDataObjects
 
-
-enum class AssembleViewDataID {
-    None = 0,
-    ModelObjectsInfo = 1 << 0,
-    ModelObjectsClipper = 1 << 4,
-};
-
-class AssembleViewDataPool {
-public:
-    AssembleViewDataPool(GLCanvas3D* canvas);
-
-    // Update all resources and release what is not used.
-    // Accepts a bitmask of currently required resources.
-    void update(AssembleViewDataID required);
-
-    // Getters for the data that need to be accessed from the gizmos directly.
-    AssembleViewDataObjects::ModelObjectsInfo* model_objects_info() const;
-    AssembleViewDataObjects::ModelObjectsClipper* model_objects_clipper() const;
-
-    GLCanvas3D* get_canvas() const { return m_canvas; }
-
-private:
-    std::map<AssembleViewDataID, std::unique_ptr<AssembleViewDataBase>> m_data;
-    GLCanvas3D* m_canvas;
-
-#ifndef NDEBUG
-    bool check_dependencies(AssembleViewDataID required) const;
-#endif
-};
-
-// Base class for a wrapper object managing a single resource.
-// Each of the enum values above (safe None) will have an object of this kind.
-class AssembleViewDataBase {
-public:
-    // Pass a backpointer to the pool, so the individual
-    // objects can communicate with one another.
-    explicit AssembleViewDataBase(AssembleViewDataPool* cgdp)
-        : m_common{ cgdp } {}
-    virtual ~AssembleViewDataBase() {}
-
-    // Update the resource.
-    void update() { on_update(); m_is_valid = true; }
-
-    // Release any data that are stored internally.
-    void release() { on_release(); m_is_valid = false; }
-
-    // Returns whether the resource is currently maintained.
-    bool is_valid() const { return m_is_valid; }
-
-#ifndef NDEBUG
-    // Return a bitmask of all resources that this one relies on.
-    // The dependent resource must have higher ID than the one
-    // it depends on.
-    virtual AssembleViewDataID get_dependencies() const { return AssembleViewDataID::None; }
-#endif // NDEBUG
-
-protected:
-    virtual void on_release() = 0;
-    virtual void on_update() = 0;
-    AssembleViewDataPool* get_pool() const { return m_common; }
-
-
-private:
-    bool m_is_valid = false;
-    AssembleViewDataPool* m_common = nullptr;
-};
-
-namespace AssembleViewDataObjects
-{
-class ModelObjectsInfo : public AssembleViewDataBase
-{
-public:
-    explicit ModelObjectsInfo(AssembleViewDataPool* cgdp)
-        : AssembleViewDataBase(cgdp) {}
-
-    ModelObjectPtrs model_objects() const { return m_model_objects; }
-    //int get_active_instance() const;
-    float get_sla_shift() const { return m_z_shift; }
-
-protected:
-    void on_update() override;
-    void on_release() override;
-
-private:
-    ModelObjectPtrs m_model_objects;
-    float m_z_shift = 0.f;
-};
-
-class ModelObjectsClipper : public AssembleViewDataBase
-{
-public:
-    explicit ModelObjectsClipper(AssembleViewDataPool* cgdp)
-        : AssembleViewDataBase(cgdp) {}
-#ifndef NDEBUG
-    AssembleViewDataID get_dependencies() const override { return AssembleViewDataID::ModelObjectsInfo; }
-#endif // NDEBUG
-
-    void set_position(double pos, bool keep_normal);
-    double get_position() const { return m_clp_ratio; }
-    ClippingPlane* get_clipping_plane() const { return m_clp.get(); }
-    void render_cut() const;
-
-
-protected:
-    void on_update() override;
-    void on_release() override;
-
-private:
-    std::vector<const TriangleMesh*> m_old_meshes;
-    std::vector<std::unique_ptr<MeshClipper>> m_clippers;
-    std::unique_ptr<ClippingPlane> m_clp;
-    double m_clp_ratio = 0.;
-    double m_active_inst_bb_radius = 0.;
-};
-}
 
 } // namespace GUI
 } // namespace Slic3r

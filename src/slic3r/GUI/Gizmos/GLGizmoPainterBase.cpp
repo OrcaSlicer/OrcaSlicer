@@ -724,19 +724,9 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
             }
         }
         else if (alt_down) {
-            // BBS
-            double pos = m_c->object_clipper()->get_position();
-            pos = action == SLAGizmoEventType::MouseWheelDown
-                      ? std::max(0., pos - 0.01)
-                      : std::min(1., pos + 0.01);
-            m_c->object_clipper()->set_position_by_ratio(pos, true);
+            m_parent.set_section_view_ratio(m_parent.get_section_view_ratio() + (action == SLAGizmoEventType::MouseWheelDown ? -0.01 : 0.01));
             return true;
         }
-    }
-
-    if (action == SLAGizmoEventType::ResetClippingPlane) {
-        m_c->object_clipper()->set_position_by_ratio(-1., false);
-        return true;
     }
 
     if (action == SLAGizmoEventType::LeftDown

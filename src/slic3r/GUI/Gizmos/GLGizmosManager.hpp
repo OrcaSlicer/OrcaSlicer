@@ -12,6 +12,7 @@
 
 #include <wx/timer.h>
 #include <map>
+#include <optional>
 
 //BBS: GUI refactor: to support top layout
 #define BBS_TOOLBAR_ON_TOP 1
@@ -170,7 +171,6 @@ private:
     bool gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event);
 public:
 
-    std::unique_ptr<AssembleViewDataPool> m_assemble_view_data;
     enum MENU_ICON_NAME {
         IC_TOOLBAR_RESET            = 0,
         IC_TOOLBAR_RESET_HOVER,
@@ -187,6 +187,14 @@ public:
         IC_CANVAS_ZOOM_HOVER,
         IC_CANVAS_ZOOM_DARK,
         IC_CANVAS_ZOOM_DARK_HOVER,
+        IC_CANVAS_SECTION,
+        IC_CANVAS_SECTION_HOVER,
+        IC_CANVAS_SECTION_DARK,
+        IC_CANVAS_SECTION_DARK_HOVER,
+        IC_CANVAS_SECTION_ACTIVE,
+        IC_CANVAS_SECTION_ACTIVE_HOVER,
+        IC_CANVAS_SECTION_ACTIVE_DARK,
+        IC_CANVAS_SECTION_ACTIVE_DARK_HOVER,
     };
 
     explicit GLGizmosManager(GLCanvas3D& parent);
@@ -255,7 +263,8 @@ public:
     /// Should be called when selection changed
     /// </summary>
     void update_data();
-    void update_assemble_view_data();
+    // Passes the canvas' section view to the object clipper of the painting and brim ears gizmos.
+    void update_section_view();
 
     EType get_current_type() const { return m_current; }
     GLGizmoBase* get_current() const;
@@ -286,8 +295,8 @@ public:
 
     bool is_paint_gizmo();
     bool is_allow_select_all();
-    ClippingPlane get_clipping_plane() const;
-    ClippingPlane get_assemble_view_clipping_plane() const;
+    // Empty when the open gizmo has no object clipper.
+    std::optional<ClippingPlane> get_clipping_plane() const;
     bool wants_reslice_supports_on_undo() const;
 
     bool is_in_editing_mode(bool error_notification = false) const;
@@ -296,7 +305,6 @@ public:
     void on_change_color_mode(bool is_dark);
     void render_current_gizmo() const;
     void render_painter_gizmo();
-    void render_painter_assemble_view() const;
 
     void render_overlay();
     void render_overlay_input_window();

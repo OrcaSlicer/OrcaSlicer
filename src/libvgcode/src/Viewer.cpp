@@ -57,6 +57,11 @@ void Viewer::set_tone(float exposure, float saturation)
     m_impl->set_tone(exposure, saturation);
 }
 
+void Viewer::set_clipping_plane(const std::array<float, 4>& plane)
+{
+    m_impl->set_clipping_plane(plane);
+}
+
 EViewType Viewer::get_view_type() const
 {
     return m_impl->get_view_type();

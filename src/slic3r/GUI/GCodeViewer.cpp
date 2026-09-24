@@ -1735,6 +1735,15 @@ void GCodeViewer::set_tone(float exposure, float saturation)
     m_viewer.set_tone(exposure, saturation);
 }
 
+void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
+{
+    // Flipped to match ClippingPlane::distance().
+    const Vec3f normal = -plane.get_normal().cast<float>();
+    m_viewer.set_clipping_plane(plane.is_active() ?
+        std::array<float, 4>{ normal.x(), normal.y(), normal.z(), float(plane.get_offset()) } :
+        std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f });
+}
+
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
 {
     if (m_viewer.get_extrusion_roles().empty())
