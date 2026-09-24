@@ -57,6 +57,7 @@
 #include <wx/aui/aui.h>
 
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Format/STL.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include "libslic3r/Format/STEP.hpp"
@@ -7032,7 +7033,7 @@ struct Plater::priv
     void remove(size_t obj_idx);
     bool delete_object_from_model(size_t obj_idx, bool refresh_immediately = true); //BBS
     void delete_all_objects_from_model();
-    void reset(bool apply_presets_change = false);
+    void reset(bool apply_presets_change = false, bool reload_presets = true);
     void center_selection();
     void drop_selection();
     void mirror(Axis axis);
@@ -7890,7 +7891,8 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             
             if (this->q->get_project_filename().IsEmpty() && this->q->is_empty_project()) {
                 int skip_confirm = e.GetInt();
-                this->q->new_project(skip_confirm, true);
+                // Skips the preset reload; trigger_restore_project()'s callers load the presets first.
+                this->q->new_project(skip_confirm, true, wxString(), false);
             }
         });
         //wxPostEvent(this->q, wxCommandEvent{EVT_RESTORE_PROJECT});
@@ -10264,7 +10266,14 @@ void Plater::priv::remove(size_t obj_idx)
         view3D->enable_layers_editing(false);
 
     m_worker.cancel_all();
+    std::string obj_name = (obj_idx < model.objects.size()) ? model.objects[obj_idx]->name : std::to_string(obj_idx);
     model.delete_object(obj_idx);
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = obj_name;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectDeleted, ctx);
+    }
     //BBS: notify partplate the instance removed
     partplate_list.notify_instance_removed(obj_idx, -1);
     update();
@@ -10297,7 +10306,14 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
     if (obj->is_cut())
         sidebar->obj_list()->invalidate_cut_info_for_object(obj_idx);
 
+    std::string obj_name = obj->name;
     model.delete_object(obj_idx);
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = obj_name;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectDeleted, ctx);
+    }
     //BBS: notify partplate the instance removed
     partplate_list.notify_instance_removed(obj_idx, -1);
 
@@ -10341,12 +10357,24 @@ void Plater::priv::delete_all_objects_from_model()
     model.plates_custom_gcodes.clear();
 }
 
-void Plater::priv::reset(bool apply_presets_change)
+void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
 {
+    // TakeSnapshot below and load_current_presets() further down each re-evaluate the
+    // aggregate dirty flag against a baseline that hasn't been reset yet, so they can toggle
+    // is_dirty() back and forth several times before it settles; coalesce those into one event.
+    ProjectDirtyStateManager::NotificationSuppressor dirty_notify_suppressor(dirty_state);
+
     Plater::TakeSnapshot snapshot(q, _u8L("Reset Project"), UndoRedo::SnapshotType::ProjectSeparator);
 
     clear_warnings();
 
+    const std::string closed_project_name = into_u8(get_project_filename());
+    if (!closed_project_name.empty() || !model.objects.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = closed_project_name;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ProjectClosed, ctx);
+    }
     // A new project must not inherit the previous project's published selection (Feature A/B).
     m_has_pending_published   = false;
     m_pending_published_keys.clear();
@@ -10384,8 +10412,8 @@ void Plater::priv::reset(bool apply_presets_change)
     // Same reason, one level up: the Design tab keeps the editable document, not the Model, so
     // clearing the recipe alone leaves the tab showing the previous project's feature tree —
     // and its next edit syncs that tree straight back into the new project.
-    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->m_design_panel != nullptr)
-        wxGetApp().mainframe->m_design_panel->clear_document();
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->clear_document();
 #endif
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
@@ -10404,7 +10432,7 @@ void Plater::priv::reset(bool apply_presets_change)
     wxGetApp().preset_bundle->reset_project_embedded_presets();
     if (apply_presets_change)
         wxGetApp().apply_keeped_preset_modifications();
-    else
+    else if (reload_presets)
         wxGetApp().load_current_presets(false, false);
 
     //BBS
@@ -12774,11 +12802,15 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     notification_manager->set_slicing_progress_export_possible();
 
     // Reset the "export G-code path" name, so that the automatic background processing will be enabled again.
+    const std::string lifecycle_job_name = this->background_process.fff_print() ?
+        this->background_process.fff_print()->output_filename() : std::string();
     this->background_process.reset_export();
     // This bool stops showing export finished notification even when process_completed_with_error is false
     bool has_error = false;
+    std::string lifecycle_error_msg;
     if (evt.error()) {
         auto message = evt.format_error_message();
+        lifecycle_error_msg = message.first;
         if (evt.critical_error()) {
             if (q->m_tracking_popup_menu) {
                 // We don't want to pop-up a message box when tracking a pop-up menu.
@@ -12814,6 +12846,14 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", cancel event, status: %1%") % evt.status();
         this->notification_manager->set_slicing_progress_canceled(_u8L("Slicing Canceled"));
         is_finished = true;
+    }
+
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = lifecycle_job_name;
+        ctx.code = evt.cancelled() ? Slic3r::LifecycleEvtCode::Warn : (has_error ? Slic3r::LifecycleEvtCode::Error : Slic3r::LifecycleEvtCode::Ok);
+        ctx.msg  = evt.cancelled() ? "cancelled" : (has_error ? lifecycle_error_msg : std::string());
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::SlicingJobComplete, ctx);
     }
 
     //BBS: set the current plater's slice result to valid
@@ -13144,17 +13184,17 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
         // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
         // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode it holds
         // TAB_ID_MONITOR itself.
-        const bool selecting_web_device_tab = main_frame->m_printer_view &&
-            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view;
+        const bool selecting_web_device_tab = main_frame->m_printer_view_page &&
+            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view_page;
         if (selecting_web_device_tab) {
             // Use the selected discovered machine when the preset has no host.
             main_frame->load_printer_url();
         } else if (new_name == TAB_ID_MONITOR && wxGetApp().preset_bundle != nullptr) {
             auto     cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
             wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
-            if (main_frame->m_printer_view && url.empty()) {
+            if (PrinterWebView* view = PrinterWebView::if_built(); view != nullptr && url.empty()) {
                 // It's missing_connection page, reload so that we can replay the gif image
-                main_frame->m_printer_view->reload();
+                view->reload();
             }
         }
     }
@@ -13885,8 +13925,8 @@ void Plater::priv::unbind_canvas_event_handlers()
     // The Design tab's viewport is a fourth GLCanvas3D on the same shared GL context, owned by
     // MainFrame rather than by us — same reach as reset() uses for clear_document(). Null until
     // the tab has been opened once, so most sessions skip it.
-    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->m_design_panel != nullptr)
-        wxGetApp().mainframe->m_design_panel->unbind_canvas_event_handlers();
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->unbind_canvas_event_handlers();
 #endif
 }
 
@@ -13899,8 +13939,8 @@ void Plater::priv::reset_canvas_volumes()
         preview->get_canvas3d()->reset_volumes();
 
 #ifdef SLIC3R_CAD
-    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->m_design_panel != nullptr)
-        wxGetApp().mainframe->m_design_panel->reset_canvas_volumes();
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->reset_canvas_volumes();
 #endif
 }
 
@@ -15312,7 +15352,7 @@ Print&          Plater::fff_print()         { return p->fff_print; }
 const SLAPrint& Plater::sla_print() const   { return p->sla_print; }
 SLAPrint&       Plater::sla_print()         { return p->sla_print; }
 
-int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name)
+int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets)
 {
     model().calib_pa_pattern.reset(nullptr);
     model().plates_custom_gcodes.clear();
@@ -15349,21 +15389,33 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     //get_partplate_list().reinit();
     //get_partplate_list().update_slice_context_to_current_plate(p->background_process);
     //p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
-    reset(transfer_preset_changes);
-    reset_project_dirty_after_save();
-    reset_project_dirty_initial_presets();
-    wxGetApp().update_saved_preset_from_current_preset();
-    update_project_dirty_from_presets();
+    if (!silent) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::NewProject, ctx);
+    }
+    {
+        // Same rationale as in Plater::priv::reset(): the whole reset + preset-reload +
+        // baseline-reset sequence below settles into its final dirty state only once it
+        // completes, so hold notifications until then to avoid firing on transient flips.
+        ProjectDirtyStateManager::NotificationSuppressor dirty_notify_suppressor(p->dirty_state);
 
-    //reset project
-    p->project.reset();
-    //set project name
-    if (project_name.empty())
-        p->set_project_name(_L("Untitled"));
-    else
-        p->set_project_name(project_name);
+        reset(transfer_preset_changes, reload_presets);
+        reset_project_dirty_after_save();
+        reset_project_dirty_initial_presets();
+        wxGetApp().update_saved_preset_from_current_preset();
+        update_project_dirty_from_presets();
 
-    Plater::TakeSnapshot snapshot(this, "New Project", UndoRedo::SnapshotType::ProjectSeparator);
+        //reset project
+        p->project.reset();
+        //set project name
+        if (project_name.empty())
+            p->set_project_name(_L("Untitled"));
+        else
+            p->set_project_name(project_name);
+
+        Plater::TakeSnapshot snapshot(this, "New Project", UndoRedo::SnapshotType::ProjectSeparator);
+    }
 
     Model m;
     model().load_from(m); // new id avoid same path name
@@ -15481,6 +15533,13 @@ void Plater::load_project(wxString const& filename2,
         p->set_project_name(_L("Untitled"));
         }
 
+        {
+            Slic3r::LifecycleEventContext ctx;
+            ctx.name = into_u8(load_restore ? originfile : filename);
+            ctx.code = Slic3r::LifecycleEvtCode::Ok;
+            Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ProjectOpened, ctx);
+        }
+
     } else {
         if (using_exported_file()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " using ecported set project filename: " << filename;
@@ -15552,10 +15611,22 @@ int Plater::save_project(bool saveAs)
     if (full_pathnames) {
         save_strategy = save_strategy | SaveStrategy::FullPathSources;
     }
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = into_u8(filename);
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ProjectBeforeSave, ctx);
+    }
     if (export_3mf(into_path(filename), save_strategy) < 0) {
         MessageDialog(this, _L("Failed to save the project.\nPlease check whether the folder exists online or if other programs have the project file open."),
             _L("Save project"), wxOK | wxICON_WARNING).ShowModal();
         return wxID_CANCEL;
+    }
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = into_u8(filename);
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ProjectAfterSave, ctx);
     }
 
     Slic3r::remove_backup(model(), false);
@@ -17914,7 +17985,7 @@ void Plater::deselect_all() { p->deselect_all(); }
 void Plater::exit_gizmo() { p->exit_gizmo(); }
 
 void Plater::remove(size_t obj_idx) { p->remove(obj_idx); }
-void Plater::reset(bool apply_presets_change) { p->reset(apply_presets_change); }
+void Plater::reset(bool apply_presets_change, bool reload_presets) { p->reset(apply_presets_change, reload_presets); }
 void Plater::reset_with_confirm()
 {
     if (p->model.objects.empty() || MessageDialog(static_cast<wxWindow *>(this), _L("All objects will be removed, continue?"),
@@ -19931,7 +20002,7 @@ int Plater::export_config_3mf(int plate_idx, Export3mfProgressFn proFn)
 void Plater::send_calibration_job_finished(wxCommandEvent & evt)
 {
     p->main_frame->request_select_tab(TAB_ID_CALIBRATION);
-    auto calibration_panel = p->main_frame->m_calibration;
+    CalibrationPanel* calibration_panel = CalibrationPanel::ensure();
     if (calibration_panel) {
         auto curr_wizard = static_cast<CalibrationWizard*>(calibration_panel->get_tabpanel()->GetPage(evt.GetInt()));
         wxCommandEvent event(EVT_CALIBRATION_JOB_FINISHED);
@@ -19963,8 +20034,8 @@ void Plater::print_job_finished(wxCommandEvent &evt)
 
     dev->set_selected_machine(evt.GetString().ToStdString());
     p->main_frame->request_select_tab(TAB_ID_MONITOR);
-    //jump to monitor and select device status panel
-    MonitorPanel* curr_monitor = p->main_frame->m_monitor;
+    // Selects the status page on a built Device tab; one built by the switch starts there.
+    MonitorPanel* curr_monitor = MonitorPanel::if_built();
     if(curr_monitor)
        curr_monitor->get_tabpanel()->ChangeSelection(MonitorPanel::PrinterTab::PT_STATUS);
 }
@@ -20704,8 +20775,8 @@ void Plater::update_print_error_info(int code, std::string msg, std::string extr
     if (p->m_send_to_sdcard_dlg) {
         p->m_send_to_sdcard_dlg->update_print_error_info(code, msg, extra);
     }
-    if (p->main_frame->m_calibration)
-        p->main_frame->m_calibration->update_print_error_info(code, msg, extra);
+    if (CalibrationPanel* calibration = CalibrationPanel::if_built())
+        calibration->update_print_error_info(code, msg, extra);
 }
 
 wxString Plater::get_project_filename(const wxString& extension) const
@@ -20889,6 +20960,14 @@ void Plater::changed_object(ModelObject &object){
         
     // Check outside bed
     get_current_canvas3D()->requires_check_outside_state();
+
+    if (!is_loading_project()) {
+        LifecycleEventContext ctx;
+        ctx.name = object.name;
+        ctx.id = std::to_string(object.id().id);
+        ctx.source = "geometry";
+        fire_lifecycle_event(LifecycleEvent::ObjectChanged, ctx);
+    }
 }
 
 void Plater::changed_object(int obj_idx)
@@ -20925,6 +21004,20 @@ void Plater::changed_objects(const std::vector<size_t>& object_idxs)
 
     // update print
     this->p->schedule_background_process();
+
+    if (!is_loading_project()) {
+        for (size_t obj_idx : object_idxs) {
+            if (obj_idx >= p->model.objects.size() || p->model.objects[obj_idx] == nullptr)
+                continue;
+
+            LifecycleEventContext ctx;
+            ctx.name = p->model.objects[obj_idx]->name;
+            ctx.id = std::to_string(p->model.objects[obj_idx]->id().id);
+            ctx.index = static_cast<int>(obj_idx);
+            ctx.source = "geometry";
+            fire_lifecycle_event(LifecycleEvent::ObjectChanged, ctx);
+        }
+    }
 }
 
 void Plater::schedule_background_process(bool schedule/* = true*/)
@@ -20976,7 +21069,8 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
 {
     printer_name.Replace("Bambu Lab", "", false);
     wxString content;
-    bool device_page = (wxGetApp().mainframe == nullptr) && (wxGetApp().mainframe->m_monitor->IsShown());
+    MainFrame* frame       = wxGetApp().mainframe;
+    bool       device_page = frame != nullptr && frame->m_monitor_page->in_book();
     if (type == PrinterWarningType::NOT_CONNECTED) {
         if (device_page) {
             content = wxString::Format(_L("Printer not connected. Please go to the device page to connect %s before syncing."),

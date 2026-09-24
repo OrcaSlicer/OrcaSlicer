@@ -934,7 +934,8 @@ void wgtDeviceNozzleRackNozzleItem::OnBtnNozzleStatus(wxMouseEvent& evt)
         dlg.AddButton(wxID_OK,_L("Jump to the upgrade page"), true);
 
         if (dlg.ShowModal() == wxID_OK) {
-            wxGetApp().mainframe->m_monitor->jump_to_Upgrade();
+            if (MonitorPanel* monitor = MonitorPanel::if_built())
+                monitor->jump_to_Upgrade();
         };
     }
 }

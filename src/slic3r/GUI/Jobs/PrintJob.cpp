@@ -1,4 +1,5 @@
 #include "PrintJob.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/MTUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -152,6 +153,18 @@ void PrintJob::process(Ctl &ctl)
     int result = -1;
     std::string http_body;
 
+    const auto mark_lifecycle_started = [this]() {
+        if (m_lifecycle_started)
+            return;
+
+        LifecycleEventContext start_ctx;
+        start_ctx.name = m_project_name;
+        start_ctx.device_id = m_dev_id;
+        start_ctx.source = "print_job";
+        fire_lifecycle_event(LifecycleEvent::PrintJobStarted, start_ctx);
+        m_lifecycle_started = true;
+    };
+
     int total_plate_num = plate_data.plate_count;
     if (!plate_data.is_valid) {
         total_plate_num =  m_plater->get_partplate_list().get_plate_count();
@@ -173,7 +186,7 @@ void PrintJob::process(Ctl &ctl)
         }
     }
 
-    m_project_name = truncate_string(m_project_name, 100);
+    const std::string transport_project_name = truncate_string(m_project_name, 100);
     int curr_plate_idx = 0;
 
     if (m_print_type == "from_normal") {
@@ -372,11 +385,11 @@ void PrintJob::process(Ctl &ctl)
         }
     }
 
-    if (params.preset_name.empty() && m_print_type == "from_normal") { params.preset_name = wxString::Format("%s_plate_%d", m_project_name, curr_plate_idx).ToStdString(); }
-    if (params.project_name.empty()) {params.project_name = m_project_name;}
+    if (params.preset_name.empty() && m_print_type == "from_normal") { params.preset_name = wxString::Format("%s_plate_%d", transport_project_name, curr_plate_idx).ToStdString(); }
+    if (params.project_name.empty()) {params.project_name = transport_project_name;}
 
     if (m_is_calibration_task) {
-        params.project_name = m_project_name;
+        params.project_name = transport_project_name;
         params.origin_model_id = "";
     }
 
@@ -545,6 +558,7 @@ void PrintJob::process(Ctl &ctl)
     if (m_print_type == "from_sdcard_view") {
         BOOST_LOG_TRIVIAL(info) << "print_job: try to send with cloud, model is sdcard view";
         ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+        mark_lifecycle_started();
         result = m_agent->start_sdcard_print(params, update_fn, cancel_fn);
     } else if (params.connection_type != "lan") {
         if (params.dev_ip.empty())
@@ -568,6 +582,7 @@ void PrintJob::process(Ctl &ctl)
                 BOOST_LOG_TRIVIAL(info) << "print_job: use ftp send print only";
                 ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
                 is_try_lan_mode = true;
+                mark_lifecycle_started();
                 result = m_agent->start_local_print_with_record(params, update_fn, cancel_fn, wait_fn);
                 if (result < 0) {
                     error_text = wxString::Format(_L("Access code:%s IP address:%s"), params.password, params.dev_ip);
@@ -584,6 +599,7 @@ void PrintJob::process(Ctl &ctl)
                 // try to send local with record
                 BOOST_LOG_TRIVIAL(info) << "print_job: try to start local print with record";
                 ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+                mark_lifecycle_started();
                 result = m_agent->start_local_print_with_record(params, update_fn, cancel_fn, wait_fn);
                 if (result == 0) {
                     params.comments = "";
@@ -599,18 +615,21 @@ void PrintJob::process(Ctl &ctl)
                     // try to send with cloud
                     BOOST_LOG_TRIVIAL(warning) << "print_job: try to send with cloud";
                     ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+                    // Started was already emitted before the local attempt.
                     result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
                 }
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "print_job: send with cloud";
                 ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+                mark_lifecycle_started();
                 result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
             }
         }
     } else {
         if (this->could_emmc_print) {
             ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+            mark_lifecycle_started();
             result = m_agent->start_local_print(params, update_fn, cancel_fn);
         } else {
             switch(this->sdcard_state) {
@@ -621,6 +640,7 @@ void PrintJob::process(Ctl &ctl)
                     if(this->has_sdcard) {
                         // means the storage is abnormal but can be used option is enabled
                         ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                        mark_lifecycle_started();
                         result = m_agent->start_local_print(params, update_fn, cancel_fn);
                         break;
                     }
@@ -631,6 +651,7 @@ void PrintJob::process(Ctl &ctl)
                     return;
                 case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
                     ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+                    mark_lifecycle_started();
                     result = m_agent->start_local_print(params, update_fn, cancel_fn);
                     break;
                 default:
@@ -688,6 +709,7 @@ void PrintJob::process(Ctl &ctl)
         }
         wxQueueEvent(m_plater, evt);
         m_job_finished = true;
+        m_lifecycle_success = true;
     }
 }
 
@@ -698,6 +720,19 @@ void PrintJob::finalize(bool canceled, std::exception_ptr &eptr) {
         eptr = nullptr;
     } catch (...) {
         eptr = std::current_exception();
+    }
+
+    if (m_lifecycle_started && !m_lifecycle_finished) {
+        LifecycleEventContext finish_ctx;
+        finish_ctx.name = m_project_name;
+        finish_ctx.device_id = m_dev_id;
+        finish_ctx.source = "print_job";
+        finish_ctx.code = canceled ? LifecycleEvtCode::Warn :
+            (eptr || !m_lifecycle_success ? LifecycleEvtCode::Error : LifecycleEvtCode::Ok);
+        finish_ctx.msg = canceled ? "cancelled" : (eptr ? "exception" :
+            (m_lifecycle_success ? "" : "failed"));
+        fire_lifecycle_event(LifecycleEvent::PrintJobFinished, finish_ctx);
+        m_lifecycle_finished = true;
     }
 
     if (canceled || eptr)
