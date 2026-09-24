@@ -290,6 +290,16 @@ public:
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
     virtual bool fetch_filament_info(std::string dev_id) { return false; }
+
+    /**
+     * Translate one filament id across the printer boundary.
+     *
+     * Orca content-addresses every system filament; a printer, its AMS and its vendor cloud
+     * know only that vendor's own catalog ids. An agent whose printers already speak Orca's
+     * ids leaves them alone, and so does an id with no mapping.
+     */
+    virtual std::string to_orca_filament_id(const std::string& printer_filament_id) const { return printer_filament_id; }
+    virtual std::string from_orca_filament_id(const std::string& orca_filament_id) const { return orca_filament_id; }
 };
 
 } // namespace Slic3r

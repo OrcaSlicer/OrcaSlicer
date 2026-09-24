@@ -3,8 +3,12 @@
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/TriangleMesh.hpp>
+#include <slic3r/GUI/DockPanel.hpp>
+#include <slic3r/GUI/AuiPaneLayout.hpp>
+#include <slic3r/GUI/Widgets/WebHosting.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
 
+#include "plugin_test_utils.hpp"
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
@@ -141,6 +145,8 @@ TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app i
     CHECK(ui.attr("WINDOW_MODELESS").cast<long>() == 0);
     CHECK(ui.attr("WINDOW_MODAL").cast<long>() == 1);
     CHECK(has_attr(ui, "UiWindow"));
+    CHECK(has_attr(ui, "create_dock_panel"));
+    CHECK(has_attr(ui, "UiDockPanel"));
 
     // With no wx application the UI calls marshal to a main thread that does not
     // exist here; they must fail cleanly with a clear error, not crash.
@@ -151,6 +157,74 @@ TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app i
         CHECK(error.matches(PyExc_RuntimeError));
         CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
     }
+
+    try {
+        ui.attr("create_dock_panel")("<p>panel</p>");
+        FAIL("orca.host.ui.create_dock_panel unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    // Positional arguments follow create_window(): width and height come straight after the title.
+    try {
+        ui.attr("create_dock_panel")("<p>panel</p>", "Panel", 400, 300);
+        FAIL("orca.host.ui.create_dock_panel unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+    }
+
+    // An unknown dock position is rejected before the application is needed.
+    try {
+        ui.attr("create_dock_panel")("<p>panel</p>", py::arg("dock") = "top");
+        FAIL("orca.host.ui.create_dock_panel accepted an unknown dock position");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_ValueError));
+    }
+}
+
+TEST_CASE("Plugin pane names identify the plugin and title without layout delimiters", "[PluginHost]")
+{
+    using Slic3r::GUI::plugin_pane_name;
+
+    CHECK(plugin_pane_name("dock_demo", "Scene") == "plugin:dock_demo:Scene");
+    CHECK(plugin_pane_name("key", "a|b;c=d\\e").find_first_of("|;=\\") == std::string::npos);
+}
+
+TEST_CASE("A pane's saved layout entry is found by pane name", "[PluginHost]")
+{
+    using Slic3r::GUI::aui_pane_layout_entry;
+
+    const std::string sidebar = "name=sidebar;caption=;state=2099196;dir=4;layer=0;row=0;pos=0;bestw=390;besth=900";
+    // The caption holds an escaped '|', which must not end the entry.
+    const std::string plugin  = "name=plugin:demo:Scene;caption=Scene \\| stats;state=2099198;dir=2;layer=0;row=1;pos=0;bestw=320;besth=480";
+    const std::string layout  = "layout3|" + sidebar + "|" + plugin + "|dock_size(4,0,0)=392|";
+
+    CHECK(aui_pane_layout_entry(layout, "plugin:demo:Scene") == plugin);
+    CHECK(aui_pane_layout_entry(layout, "sidebar") == sidebar);
+    CHECK(aui_pane_layout_entry(layout, "plugin:demo").empty());
+    CHECK(aui_pane_layout_entry("", "plugin:demo:Scene").empty());
+}
+
+TEST_CASE("A reloaded plugin page is recognised by its base URL, fragment aside", "[PluginHost]")
+{
+    using namespace Slic3r::GUI::web_hosting;
+
+    // A resources path holding a space, which the web view reports escaped.
+    const Slic3r::ScopedResourcesDir resources("web content check");
+
+    // The swapped-in page, then after an in-page anchor and a reload.
+    CHECK(is_content_url(content_base_url()));
+    CHECK(is_content_url(content_base_url() + "#tab2"));
+    wxString escaped = content_base_url();
+    escaped.Replace(" ", "%20");
+    REQUIRE(escaped != content_base_url());
+    CHECK(is_content_url(escaped));
+    CHECK(is_content_url(escaped + "#tab2"));
+    // A page the plugin linked to keeps its own URL and must be left alone.
+    CHECK_FALSE(is_content_url(content_base_url() + "guide.html"));
+    CHECK_FALSE(is_content_url("https://example.com/"));
+    CHECK_FALSE(is_content_url(""));
 }
 
 TEST_CASE("Plugin host API exposes model geometry and structure to Python", "[PluginHost][Python]")

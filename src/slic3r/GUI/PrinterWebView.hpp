@@ -26,6 +26,7 @@
 #include "wx/textctrl.h"
 #include <wx/timer.h>
 #include <memory>
+#include "Lazy.hpp"
 
 
 namespace Slic3r {
@@ -34,7 +35,7 @@ namespace GUI {
 class PrinterWebViewHandler;
 
 
-class PrinterWebView : public wxPanel {
+class PrinterWebView : public wxPanel, public LazyInstance<PrinterWebView> {
 public:
     PrinterWebView(wxWindow *parent);
     virtual ~PrinterWebView();

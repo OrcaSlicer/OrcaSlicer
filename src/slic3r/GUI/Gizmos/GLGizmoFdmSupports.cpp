@@ -8,6 +8,7 @@
 //#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
@@ -78,7 +79,7 @@ std::string GLGizmoFdmSupports::on_get_name() const
 bool GLGizmoFdmSupports::on_init()
 {
     // BBS
-    m_shortcut_key = WXK_CONTROL_L;
+    m_shortcut = Shortcut::GizmoFdmSupports;
 
     m_desc["perform"]            = _L("Apply");
     m_desc["on_overhangs_only"]  = _L("On highlighted overhangs only");
@@ -122,7 +123,7 @@ bool GLGizmoFdmSupports::on_init()
         {ctrl + _L("Mouse wheel"), _L("Gap area")}
     };
 
-    memset(&m_print_instance, 0, sizeof(m_print_instance));
+    m_print_instance = PrintInstance();
     return true;
 }
 
@@ -149,25 +150,14 @@ void GLGizmoFdmSupports::render_painter_gizmo()
     glsafe(::glDisable(GL_BLEND));
 }
 
-// BBS
-bool GLGizmoFdmSupports::on_key_down_select_tool_type(int keyCode) {
-    switch (keyCode)
-    {
-    case 'F':
-        m_current_tool = ImGui::FillButtonIcon;
-        break;
-    case 'S':
-        m_current_tool = ImGui::SphereButtonIcon;
-        break;
-    case 'C':
-        m_current_tool = ImGui::CircleButtonIcon;
-        break;
-    case 'G':
-        m_current_tool = ImGui::GapFillIcon;
-        break;
-    default:
-        return false;
-        break;
+bool GLGizmoFdmSupports::on_tool_shortcut(Shortcut shortcut)
+{
+    switch (shortcut) {
+    case Shortcut::PaintToolFill:    m_current_tool = ImGui::FillButtonIcon; break;
+    case Shortcut::PaintToolSphere:  m_current_tool = ImGui::SphereButtonIcon; break;
+    case Shortcut::PaintToolCircle:  m_current_tool = ImGui::CircleButtonIcon; break;
+    case Shortcut::PaintToolGapFill: m_current_tool = ImGui::GapFillIcon; break;
+    default: return false;
     }
     return true;
 }

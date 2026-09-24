@@ -3,6 +3,11 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
+#include "DeviceManager.hpp"
+#include "DeviceCore/DevConfigUtil.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "libslic3r/Thread.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
@@ -13,6 +18,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/nowide/utf8_codecvt.hpp>
 #undef pid_t
 #include <boost/process.hpp>
@@ -71,7 +77,7 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const w
                 auto ip = str.find(' ', ik);
                 if (ip == wxString::npos) ip = str.Length();
                 auto v = str.Mid(ik, ip - ik);
-                if (k == "T:" && v.Length() == 8) {
+                if (strcmp(k, "T:") == 0 && v.Length() == 8) {
                     long h = 0,m = 0,s = 0;
                     v.Left(2).ToLong(&h);
                     v.Mid(3, 2).ToLong(&m);

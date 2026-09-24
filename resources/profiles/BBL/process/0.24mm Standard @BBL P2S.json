@@ -79,10 +79,6 @@
 		"10",
 		"10"
 	],
-	"overhang_totally_speed": [
-		"10",
-		"10"
-	],
 	"prime_tower_brim_width": "-1",
 	"prime_tower_width": "60",
 	"print_extruder_id": [
@@ -97,7 +93,6 @@
 		"270",
 		"270"
 	],
-	"smooth_coefficient": "4",
 	"slowdown_start_height": [
 		"0",
 		"0"
