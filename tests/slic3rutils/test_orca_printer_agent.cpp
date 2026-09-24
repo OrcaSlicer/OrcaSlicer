@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <nlohmann/json.hpp>
 #include <slic3r/Utils/AmsPayload.hpp>
+#include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
 
@@ -95,7 +96,10 @@ TEST_CASE("OrcaPrinterAgent::make_lan_client_id is stable and prefixed", "[OrcaP
 
 TEST_CASE("connect_printer wires up a LAN Config", "[OrcaPrinterAgent][.integration]") {
     Probe agent("/tmp");
-    const int rc = agent.connect_printer("dev-1", "10.255.255.1", "orcasonar", "code", false);
+    Slic3r::PrinterConnectionParams params{
+        "dev-1", "10.255.255.1", "", "orcasonar", "code", false, ""
+    };
+    const int rc = agent.connect_printer(params);
     CHECK(rc == BAMBU_NETWORK_SUCCESS);
     CHECK(agent.lan_connection_target() == "ws://10.255.255.1:8280/mqtt");
     CHECK(agent.get_user_selected_machine().empty());   // LAN path must not touch the cloud selection
@@ -111,7 +115,9 @@ TEST_CASE("filament sync follows the printer's AMS capability", "[OrcaPrinterAge
     Probe agent("/tmp");
     CHECK(agent.get_filament_sync_mode() == Slic3r::FilamentSyncMode::none);
 
-    REQUIRE(agent.connect_printer("dev-ams-1", "10.255.255.1", "orcasonar", "code", false) == BAMBU_NETWORK_SUCCESS);
+    REQUIRE(agent.connect_printer(Slic3r::PrinterConnectionParams{
+        "dev-ams-1", "10.255.255.1", "", "orcasonar", "code", false, ""
+    }) == BAMBU_NETWORK_SUCCESS);
     // Connected, but no capability reply yet: still none.
     CHECK(agent.get_filament_sync_mode() == Slic3r::FilamentSyncMode::none);
 
@@ -270,7 +276,7 @@ TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrint
     orca_mqtt_test::MockBroker broker;
     OrcaPrinterAgent agent("/tmp");
     const auto ep = broker.host_port();
-    agent.connect_printer("dev-1", ep.first + ":" + ep.second, "orcasonar", "code", false);
+    agent.connect_printer(Slic3r::PrinterConnectionParams{"dev-1", ep.first + ":" + ep.second, "", "orcasonar", "code", false, ""});
 
     for (int i = 0; i < 150 && broker.connect_count() == 0; ++i)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -293,7 +299,7 @@ TEST_CASE("send_message_to_printer publishes on the LAN connection", "[OrcaPrint
 TEST_CASE("destroying an agent mid-connect does not hang or crash", "[OrcaPrinterAgent]") {
     for (int i = 0; i < 20; ++i) {
         auto agent = std::make_unique<OrcaPrinterAgent>("/tmp");
-        agent->connect_printer("dev-1", "127.0.0.1:1", "orcasonar", "code", false);  // nothing listening: instant ECONNREFUSED
+        agent->connect_printer(Slic3r::PrinterConnectionParams{"dev-1", "127.0.0.1:1", "", "orcasonar", "code", false, ""});  // nothing listening: instant ECONNREFUSED
         agent.reset();   // ~OrcaPrinterAgent must stop the conn, join the thread, and not hang/crash
     }
     SUCCEED();
@@ -515,7 +521,9 @@ TEST_CASE("deselecting a cloud device keeps a live LAN declaration", "[OrcaPrint
     Slic3r::register_ams_ops("dev-lan-keep", {"change_filament"});
     Slic3r::register_filament_slots("dev-lan-keep", true);
 
-    REQUIRE(agent.connect_printer("dev-lan-keep", "10.255.255.1", "orcasonar", "code", false) == BAMBU_NETWORK_SUCCESS);
+    REQUIRE(agent.connect_printer(Slic3r::PrinterConnectionParams{
+        "dev-lan-keep", "10.255.255.1", "", "orcasonar", "code", false, ""
+    }) == BAMBU_NETWORK_SUCCESS);
     agent.set_user_selected_machine("dev-lan-keep");
     agent.set_user_selected_machine("");
 

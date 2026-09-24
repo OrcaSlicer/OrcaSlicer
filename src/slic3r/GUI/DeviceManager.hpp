@@ -685,7 +685,7 @@ public:
 
 
     /* machine mqtt apis */
-    int connect(bool use_openssl = true);
+    int connect();
     int disconnect();
 
     json_diff print_json;
@@ -803,8 +803,7 @@ public:
     int command_ams_calibrate(int ams_id);
     int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max);
     int command_ams_select_tray(std::string tray_id);
-    int command_ams_refresh_rfid(std::string tray_id);
-    int command_ams_refresh_rfid2(int ams_id, int slot_id);
+    int command_ams_refresh_rfid(int ams_id, int slot_id);
     int command_ams_control(std::string action);
     int command_ams_drying_stop();
     int command_start_extrusion_cali(int tray_index, int nozzle_temp, int bed_temp, float max_volumetric_speed, std::string setting_id = "");
@@ -890,6 +889,7 @@ public:
 
     bool is_connected();
     bool is_connecting();
+    // Emits DeviceOnline or DeviceOffline only when the reachability state changes.
     void set_online_state(bool on_off);
     bool is_online() { return m_is_online; }
     bool is_info_ready(bool check_version = true) const;

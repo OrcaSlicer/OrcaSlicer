@@ -1,13 +1,10 @@
-#include <stdio.h>
+#include "NetworkAgent.hpp"
+
 #include <stdlib.h>
-#include <set>
-#include <algorithm>
 
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 #include "IPrinterAgent.hpp"
-#include "libslic3r/Utils.hpp"
-#include "NetworkAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
@@ -796,10 +793,10 @@ int NetworkAgent::send_message(std::string dev_id, std::string json_str, int qos
     return -1;
 }
 
-int NetworkAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+int NetworkAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
     if (m_printer_agent)
-        return m_printer_agent->command_ams_refresh_rfid(dev_id, tray_id, sequence_id, lan_mode);
+        return m_printer_agent->command_ams_refresh_rfid(dev_id, ams_id, slot_id, sequence_id, lan_mode);
     return -1;
 }
 
@@ -867,10 +864,10 @@ int NetworkAgent::command_axis_control(std::string dev_id, std::string axis, dou
     return -1;
 }
 
-int NetworkAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int NetworkAgent::connect_printer(const PrinterConnectionParams& params)
 {
     if (m_printer_agent)
-        return m_printer_agent->connect_printer(dev_id, dev_ip, username, password, use_ssl);
+        return m_printer_agent->connect_printer(params);
     return -1;
 }
 

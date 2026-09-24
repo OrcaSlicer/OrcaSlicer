@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IMediaController.hpp"
-#include <slic3r/Utils/IPrinterAgent.hpp>
+#include <slic3r/Utils/ICameraSignalingChannel.hpp>
 
 #include <wx/image.h>
 

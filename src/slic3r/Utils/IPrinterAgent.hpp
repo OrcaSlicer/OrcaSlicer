@@ -13,11 +13,9 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include <cstdint>
 #include <cmath>
 #include <nlohmann/json.hpp>
 #include <boost/format.hpp>
-#include "ICameraSignalingChannel.hpp"
 
 namespace Slic3r {
 
@@ -34,6 +32,17 @@ struct AgentInfo {
     std::string name;       ///< Human-readable agent name, e.g. "Orca", "Bambu Lab"
     std::string version;    ///< Agent version string, e.g. "1.0.0"
     std::string description; ///< Brief description of the agent's capabilities, e.g. "Orca printer agent"
+};
+
+struct PrinterConnectionParams
+{
+    std::string dev_id;
+    std::string host; // host address, usually the IP address without the http/https protocol
+    std::string port; // optional
+    std::string username;
+    std::string password;
+    bool use_ssl = false; // indicates if http or https
+    std::string ca_file;
 };
 
 /**
@@ -103,7 +112,7 @@ public:
     // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
     // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
     // publish funnel turns into a dialog.
-    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    virtual int command_ams_refresh_rfid(std::string, int, int, int, bool)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
     virtual int command_ams_calibrate(std::string, int, int, bool)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
@@ -205,7 +214,7 @@ public:
     /**
      * Establish a direct LAN connection to a printer.
      */
-    virtual int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) = 0;
+    virtual int connect_printer(const PrinterConnectionParams& params) = 0;
 
     /**
      * Tear down the active LAN printer connection.

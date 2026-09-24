@@ -150,7 +150,7 @@ public:
     int set_on_local_message_fn(OnMessageFn fn);
     int set_server_callback(OnServerErrFn fn);
     int send_message(std::string dev_id, std::string json_str, int qos, int flag);
-    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode);
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode);
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode);
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode);
     int command_start_camera(std::string dev_id);
@@ -161,7 +161,7 @@ public:
     int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode);
     int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
                               bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode);
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
+    int connect_printer(const PrinterConnectionParams& params);
     int disconnect_printer();
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag);
     std::string default_lan_username() const;

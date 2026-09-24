@@ -51,9 +51,9 @@ public:
         ORCA_PY_AGENT_OVERRIDE(AgentInfo, get_agent_info);
     }
 
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override
+    int connect_printer(const PrinterConnectionParams& params) override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, connect_printer, dev_id, dev_ip, username, password, use_ssl);
+        ORCA_PY_AGENT_OVERRIDE(int, connect_printer, params);
     }
 
     int disconnect_printer() override
@@ -71,9 +71,9 @@ public:
         ORCA_PY_AGENT_OVERRIDE(int, send_message_to_printer, dev_id, json_str, qos, flag);
     }
 
-    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id,int slot_id, int sequence_id, bool lan_mode) override
     {
-        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_refresh_rfid, dev_id, tray_id, sequence_id, lan_mode);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, command_ams_refresh_rfid, dev_id, ams_id, slot_id, sequence_id, lan_mode);
     }
 
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override

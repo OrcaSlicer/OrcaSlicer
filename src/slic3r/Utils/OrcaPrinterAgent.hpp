@@ -41,7 +41,7 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
+    int connect_printer(const PrinterConnectionParams& params) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
 
@@ -81,7 +81,8 @@ public:
     int set_on_local_message_fn(OnMessageFn fn) override;
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
-    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id, int tray_id, int sequence_id, bool lan_mode) override;
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
     int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode) override;
     int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode) override;
