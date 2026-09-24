@@ -65,8 +65,10 @@ closes the open gizmo, so neither tab ever shows a stale cut.
   as the plane faces; otherwise it is discarded. The cut face keeps the depth of the fragment it
   replaces, which is safe: along that ray everything else still shown lies behind the plane. The
   shader writes no `gl_FragDepth`, so early depth testing survives. Option markers are cut away
-  whole, by their centres. The shadow casters share the segment shader, so what is cut away casts
-  no shadow either. Preview shells are drawn by another shader and are not clipped.
+  whole, by their centres. The shadow casters draw with a program of their own, which takes the
+  plane and discards the fragments on the clipped side, so what is cut away casts no shadow either.
+  Their cut faces are not drawn, since the part left behind casts the shadow of its own section.
+  Preview shells are drawn by another shader and are not clipped.
 - **Picking.** `get_raycaster_clipping_plane()` returns the same plane, so hover, selection and
   the perspective pan anchor ignore what the user cannot see.
 
