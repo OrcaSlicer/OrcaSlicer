@@ -42,10 +42,16 @@ void OrcaCloudSignalingChannel::close()
 {
     m_stop.store(true);
     std::shared_ptr<Connection> conn;
+    Http::Ptr request;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         conn = m_conn;
+        request = m_inflight_requests;
     }
+    // m_conn is installed only after the live-token request completes, so
+    // cancel the request independently before waiting for the worker.
+    if (request)
+        request->cancel();
     if (conn) {
         // Established session: close the socket on the io_context's own thread so
         // the pending async_read completes and io_context.run() unwinds.
@@ -123,8 +129,9 @@ void OrcaCloudSignalingChannel::run()
         nlohmann::json token_response;
         std::string token_body;
         unsigned int http_code = 0;
-        auto request = Http::post(live_token_url);
-        request.set_post_body(std::string("{}"))
+
+        auto request = std::make_shared<Slic3r::Http>(Http::post(live_token_url));
+        request->set_post_body(std::string("{}"))
             .header("Authorization", "Bearer " + token)
             .header("Content-Type", "application/json")
             .tls_verify(true)
@@ -135,8 +142,32 @@ void OrcaCloudSignalingChannel::run()
             })
             .on_error([&http_code](std::string, std::string, unsigned status) {
                 http_code = status;
-            })
-            .perform_sync();
+            });
+
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_inflight_requests = request;
+        }
+
+        // If close() raced with request setup, make sure this request is
+        // cancelled before entering the blocking call.
+        if (m_stop.load())
+            request->cancel();
+        try {
+            request->perform_sync();
+        } catch (...) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_inflight_requests == request)
+                m_inflight_requests.reset();
+            throw;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_inflight_requests == request)
+                m_inflight_requests.reset();
+        }
+
         try {
             token_response = nlohmann::json::parse(token_body);
         } catch (const std::exception&) {

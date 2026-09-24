@@ -1,10 +1,7 @@
 #include "Http.hpp"
 #include "libslic3r_version.h"
 
-#include <algorithm>
 #include <atomic>
-#include <boost/filesystem/operations.hpp>
-#include <cassert>
 #include <cstdlib>
 #include <curl/curlver.h>
 #include <fstream>
