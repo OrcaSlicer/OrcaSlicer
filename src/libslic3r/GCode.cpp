@@ -5326,7 +5326,7 @@ void GCode::compute_farthest_point(const std::vector<LayerToPrint> &layers, int 
         return role == erExternalPerimeter;
     };
     auto is_fallback_role = [](ExtrusionRole role) -> bool {
-        return role == erInternalInfill || role == erSolidInfill || role == erTopSolidInfill;
+        return role == erInternalInfill || role == erSolidInfill || role == erTopSolidInfill || role == erSubTopSolidInfill;
     };
     auto is_candidate_support_role = [](ExtrusionRole role) -> bool {
         return role == erSupportMaterial || role == erSupportMaterialInterface || role == erSupportTransition;
@@ -7928,6 +7928,7 @@ bool GCode::_needSAFC(const ExtrusionPath &path)
     return std::any_of(std::begin(supported_patterns), std::end(supported_patterns), [&](const InfillPattern pattern) {
         return (this->on_first_layer() && this->config().bottom_surface_pattern == pattern) ||
                (path.role() == erSolidInfill && this->config().internal_solid_infill_pattern == pattern) ||
+               (path.role() == erSubTopSolidInfill && this->config().sub_top_surface_pattern == pattern) ||
                (path.role() == erTopSolidInfill && this->config().top_surface_pattern == pattern);
     });
 }
@@ -8037,7 +8038,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             acceleration = m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
         } else if (m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erInternalInfill)) {
             acceleration = m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erSolidInfill)) {
+        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erSolidInfill || path.role() == erSubTopSolidInfill)) {
             acceleration = m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
         } else if (NOZZLE_CONFIG(outer_wall_acceleration) > 0 && is_external_perimeter(path.role())) {
             acceleration = NOZZLE_CONFIG(outer_wall_acceleration);
@@ -8104,7 +8105,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             _mm3_per_mm *= m_config.overhang_flow_ratio;
         } else if (path.role() == erInternalInfill) {
             _mm3_per_mm *= m_config.sparse_infill_flow_ratio;
-        } else if (path.role() == erSolidInfill) {
+        } else if (path.role() == erSolidInfill || path.role() == erSubTopSolidInfill) {
             _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
         } else if (path.role() == erGapFill) {
             _mm3_per_mm *= m_config.gap_fill_flow_ratio;
@@ -8152,7 +8153,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {
             speed = NOZZLE_CONFIG(sparse_infill_speed);
-        } else if (path.role() == erSolidInfill) {
+        } else if (path.role() == erSolidInfill || path.role() == erSubTopSolidInfill) {
             speed = NOZZLE_CONFIG(internal_solid_infill_speed);
         } else if (path.role() == erTopSolidInfill) {
             speed = NOZZLE_CONFIG(top_surface_speed);
@@ -8937,6 +8938,7 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
         case erInternalInfill: return "InternalInfill";
         case erSolidInfill: return "SolidInfill";
         case erTopSolidInfill: return "TopSolidInfill";
+        case erSubTopSolidInfill: return "SubTopSolidInfill";
         case erBottomSurface: return "BottomSurface";
         case erBridgeInfill:
         case erInternalBridgeInfill: return "BridgeInfill";

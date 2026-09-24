@@ -76,6 +76,7 @@ public:
     const SurfaceCollection     *slices;
     const LayerRegionPtrs       *compatible_regions;
     const ExPolygons            *upper_slices;
+    const ExPolygons            *upper_slices_above; // used for sub_top surface
     const SurfaceCollection     *upper_slices_same_region;
     const ExPolygons            *lower_slices;
     double                       layer_height;
@@ -127,7 +128,7 @@ public:
         SurfaceCollection*          fill_surfaces,
         //BBS
         ExPolygons*                 fill_no_overlap)
-        : slices(slices), compatible_regions(compatible_regions), upper_slices(nullptr), lower_slices(nullptr), layer_height(layer_height),
+        : slices(slices), compatible_regions(compatible_regions), upper_slices(nullptr), upper_slices_above(nullptr), lower_slices(nullptr), layer_height(layer_height),
             slice_z(slice_z), layer_id(-1), perimeter_flow(flow), ext_perimeter_flow(flow),
             overhang_flow(flow), solid_infill_flow(flow),
             config(config), object_config(object_config), print_config(print_config),
@@ -142,6 +143,7 @@ public:
     void        process_arachne();
 
     void        add_infill_contour_for_arachne( ExPolygons infill_contour, int loops, coord_t ext_perimeter_spacing, coord_t perimeter_spacing, coord_t min_perimeter_infill_spacing, coord_t spacing, bool is_inner_part );
+    bool        should_enable_top_one_wall(const ExPolygons& original_expolys, ExPolygons& top);
 
     double      ext_mm3_per_mm()        const { return m_ext_mm3_per_mm; }
     double      mm3_per_mm()            const { return m_mm3_per_mm; }
@@ -154,7 +156,7 @@ public:
 
 private:
     std::vector<Polygons>     generate_lower_polygons_series(float width);
-    void split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills, ExPolygons &non_top_polygons, ExPolygons &fill_clip) const;
+    void split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills, ExPolygons &non_top_polygons, ExPolygons &fill_clip, bool is_subtop = false) const;
     void apply_extra_perimeters(ExPolygons& infill_area);
     void process_no_bridge(Surfaces& all_surfaces, coord_t perimeter_spacing, coord_t ext_perimeter_width);
 

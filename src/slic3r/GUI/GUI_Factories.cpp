@@ -134,6 +134,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"infill_anchor", "", 1},
        {"infill_anchor_max", "", 1},
        {"top_surface_pattern", "", 1},
+       {"sub_top_surface_pattern", "", 1},
        {"top_surface_expansion", "", 1},
        {"top_surface_expansion_margin", "", 1},
        {"top_surface_expansion_direction", "", 1},
@@ -194,7 +195,7 @@ std::vector<SimpleSettingData> SettingsFactory::get_visible_options(const std::s
         //Shell
         "wall_loops", "top_shell_layers", "bottom_shell_layers", "top_shell_thickness", "bottom_shell_thickness", "top_surface_expansion", "top_surface_expansion_margin", "top_surface_expansion_direction",
         //Infill
-        "sparse_infill_density", "sparse_infill_pattern", "top_surface_pattern", "bottom_surface_pattern", "infill_combination", "infill_direction", "infill_wall_overlap",
+        "sparse_infill_density", "sparse_infill_pattern", "top_surface_pattern", "sub_top_surface_pattern", "bottom_surface_pattern", "infill_combination", "infill_direction", "infill_wall_overlap",
         //speed
         "inner_wall_speed", "outer_wall_speed", "sparse_infill_speed", "internal_solid_infill_speed", "top_surface_speed", "gap_infill_speed"
         };
@@ -626,7 +627,7 @@ void MenuFactory::load_handy_model(std::size_t index)
         wxGetApp().CallAfter([=] {
             DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
 
-            bool is_only_one_wall_top  = m_config->opt_bool("only_one_wall_top");
+            bool is_only_one_wall_top  = m_config->opt_enum<TopOneWallType>("top_one_wall_type") != TopOneWallType::None;
             auto min_width_top_surface = m_config->option<ConfigOptionFloatOrPercent>("min_width_top_surface")->value;
             if (is_only_one_wall_top && min_width_top_surface > 0) {
                 wxString msg_text = _L("This model features text embossment on the top surface. For optimal results, it is "

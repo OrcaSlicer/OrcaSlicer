@@ -139,6 +139,7 @@ enum class EGCodeExtrusionRole : uint8_t
 	  InternalInfill,
 	  SolidInfill,
 	  TopSolidInfill,
+      SubTopSolidInfill,
 	  Ironing,
 	  BridgeInfill,
 	  GapFill,

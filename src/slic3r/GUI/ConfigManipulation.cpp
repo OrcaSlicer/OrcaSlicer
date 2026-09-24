@@ -807,6 +807,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
     toggle_line("sparse_infill_smooth_factor", is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")));
     toggle_field("top_surface_pattern", has_top_shell);
+    toggle_field("sub_top_surface_pattern", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell_layers);
     toggle_field("bottom_surface_density", has_bottom_shell);
@@ -1125,8 +1126,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Orca: the one-wall options act on top/bottom surfaces, which exist only with a shell. An unfilled surface
     // (0% surface density) is still a surface, so these are gated on the layer counts alone.
     toggle_line("only_one_wall_first_layer", has_bottom_shell);
-    toggle_line("only_one_wall_top", has_top_shell_layers);
-    toggle_line("min_width_top_surface", (has_top_shell_layers && config->opt_bool("only_one_wall_top")) || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne)); // 0.5 is default value
+    toggle_line("top_one_wall_type", has_top_shell_layers);
+    toggle_line("min_width_top_surface", (has_top_shell_layers && config->opt_enum<TopOneWallType>("top_one_wall_type") != TopOneWallType::None) || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne)); // 0.5 is default value
 
     for (auto el : { "hole_to_polyhole_threshold", "hole_to_polyhole_twisted", "hole_to_polyhole_max_edges" })
         toggle_line(el, config->opt_bool("hole_to_polyhole"));

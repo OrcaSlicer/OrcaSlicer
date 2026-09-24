@@ -120,8 +120,11 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         fill_no_overlap
     );
     
-    if (this->layer()->upper_layer != NULL)
+    if (this->layer()->upper_layer != NULL) {
         g.upper_slices = &this->layer()->upper_layer->lslices;
+        if (this->layer()->upper_layer->upper_layer != NULL)
+            g.upper_slices_above = &this->layer()->upper_layer->upper_layer->lslices;
+    }
 
     int region_id = this->region().print_object_region_id();
     if (this->layer()->upper_layer != NULL)

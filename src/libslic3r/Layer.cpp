@@ -166,7 +166,7 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
         // generator. If two regions disagree on any of them, merging their slices into one shared make_perimeters
         // call would silently use the first region's flag for both.
         && config.only_one_wall_first_layer == other_config.only_one_wall_first_layer
-        && config.only_one_wall_top         == other_config.only_one_wall_top
+        && config.top_one_wall_type         == other_config.top_one_wall_type
         && config.min_width_top_surface     == other_config.min_width_top_surface
         && config.seam_slope_type         == other_config.seam_slope_type
         && config.seam_slope_conditional == other_config.seam_slope_conditional
