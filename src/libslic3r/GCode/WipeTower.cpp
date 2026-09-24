@@ -1934,8 +1934,6 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     // it is pushed in from Print via set_has_filament_switcher() instead of read here.
 {
     m_contact_speed                  = 20 * 60.f;
-    m_filaments_change_length.first = config.filament_change_length.values;
-    m_filaments_change_length.second = config.filament_change_length_nc.values;
     m_hotend_heating_rate            = config.hotend_heating_rate.values;
     m_hotend_cooling_rate            = config.hotend_cooling_rate.values;
     m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
@@ -1997,6 +1995,10 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     //while (m_filpar.size() < idx+1)   // makes sure the required element is in the vector
     m_filpar.push_back(FilamentParameters());
 
+    // Expand per-filament values through get_at(), including single-value defaults.
+    m_filaments_change_length.first.push_back(config.filament_change_length.get_at(idx));
+    m_filaments_change_length.second.push_back(config.filament_change_length_nc.get_at(idx));
+
     m_filpar[idx].material = config.filament_type.get_at(idx);
     // Orca: wipe_tower_filament (issue #10971) forces a specific filament to print the tower wall by
     // marking every other filament as "soluble"; 0 keeps the plain per-filament soluble flag.
@@ -2034,12 +2036,12 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
 
     //set extruder change and nozzle change ramming speed
     {
-        float ramming_vol_speed = float(config.filament_ramming_volumetric_speed.get_at(idx));
-        if (config.filament_ramming_volumetric_speed.is_nil(idx) || is_approx(config.filament_ramming_volumetric_speed.get_at(idx), -1.)) ramming_vol_speed = max_vol_speed;
+        float ramming_vol_speed = float(resolve_filament_override(config.filament_ramming_volumetric_speed, idx, -1.));
+        if (is_approx(ramming_vol_speed, -1.f)) ramming_vol_speed = max_vol_speed;
         m_filpar[idx].max_e_ramming_speed.first = (ramming_vol_speed / filament_area());
 
-        float ramming_vol_speed_nc = float(config.filament_ramming_volumetric_speed_nc.get_at(idx));
-        if (config.filament_ramming_volumetric_speed_nc.is_nil(idx) || is_approx(config.filament_ramming_volumetric_speed_nc.get_at(idx), -1.))
+        float ramming_vol_speed_nc = float(resolve_filament_override(config.filament_ramming_volumetric_speed_nc, idx, -1.));
+        if (is_approx(ramming_vol_speed_nc, -1.f))
             ramming_vol_speed_nc = max_vol_speed;
         m_filpar[idx].max_e_ramming_speed.second = (ramming_vol_speed_nc / filament_area());
     }
@@ -2053,29 +2055,28 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
         m_filpar[idx].precool_t_first_layer.second.resize(extruder_count, 0.f);
         m_filpar[idx].precool_target_temp.first     = 0;
         m_filpar[idx].precool_target_temp.second     = 0;
-        float nozzle_temp_first_layer = config.nozzle_temperature_initial_layer.is_nil(idx) ? -1.f : float(config.nozzle_temperature_initial_layer.get_at(idx));
-        float nozzle_temp_other_layer = config.nozzle_temperature.is_nil(idx) ? -1.f : float(config.nozzle_temperature.get_at(idx));
-        std::vector<double> hotend_cooling_rates    = config.hotend_cooling_rate.values;
+        float nozzle_temp_first_layer = resolve_filament_override(config.nozzle_temperature_initial_layer, idx, -1.f);
+        float nozzle_temp_other_layer = resolve_filament_override(config.nozzle_temperature, idx, -1.f);
         auto  is_need_precooling      = [&](bool extruder_change) -> bool
         {
             bool res = config.enable_pre_heating.value; 
-            if (extruder_change) return res &&!config.filament_pre_cooling_temperature.is_nil(idx) && config.filament_pre_cooling_temperature.get_at(idx) != 0;
-            return res &&!config.filament_pre_cooling_temperature_nc.is_nil(idx) && config.filament_pre_cooling_temperature_nc.get_at(idx) != 0;
+            if (extruder_change) return res && has_filament_override(&config.filament_pre_cooling_temperature, idx) && config.filament_pre_cooling_temperature.get_at(idx) != 0;
+            return res && has_filament_override(&config.filament_pre_cooling_temperature_nc, idx) && config.filament_pre_cooling_temperature_nc.get_at(idx) != 0;
         };
         if (is_need_precooling(true)) {
             for (int i = 0; i < m_filpar[idx].precool_t.first.size(); i++) {
-                if (config.hotend_cooling_rate.is_nil(i)) continue;
-                m_filpar[idx].precool_t.first[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature.get_at(idx))) / float(hotend_cooling_rates[i]);
-                m_filpar[idx].precool_t_first_layer.first[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature.get_at(idx))) /float(hotend_cooling_rates[i]);
+                if (!has_filament_override(&config.hotend_cooling_rate, i)) continue;
+                m_filpar[idx].precool_t.first[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature.get_at(idx))) / float(config.hotend_cooling_rate.get_at(i));
+                m_filpar[idx].precool_t_first_layer.first[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature.get_at(idx))) /float(config.hotend_cooling_rate.get_at(i));
             }
             m_filpar[idx].precool_target_temp.first = config.filament_pre_cooling_temperature.get_at(idx);
         }
 
         if (is_need_precooling(false)) {
             for (int i = 0; i < m_filpar[idx].precool_t.second.size(); i++) {
-                if (config.hotend_cooling_rate.is_nil(i)) continue;
-                m_filpar[idx].precool_t.second[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature_nc.get_at(idx))) / float(hotend_cooling_rates[i]);
-                m_filpar[idx].precool_t_first_layer.second[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature_nc.get_at(idx))) /float(hotend_cooling_rates[i]);
+                if (!has_filament_override(&config.hotend_cooling_rate, i)) continue;
+                m_filpar[idx].precool_t.second[i] = std::max(0.f, nozzle_temp_other_layer - float(config.filament_pre_cooling_temperature_nc.get_at(idx))) / float(config.hotend_cooling_rate.get_at(i));
+                m_filpar[idx].precool_t_first_layer.second[i] = std::max(0.f, nozzle_temp_first_layer -float(config.filament_pre_cooling_temperature_nc.get_at(idx))) /float(config.hotend_cooling_rate.get_at(i));
             }
             m_filpar[idx].precool_target_temp.second = config.filament_pre_cooling_temperature_nc.get_at(idx);
         }
@@ -2084,8 +2085,8 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     //set ramming reverse travel time during extruder change and nozzle change
     {
         m_filpar[idx].ramming_travel_time = {0, 0};
-        if (!config.filament_ramming_travel_time.is_nil(idx)) m_filpar[idx].ramming_travel_time.first = float(config.filament_ramming_travel_time.get_at(idx));
-        if (!config.filament_ramming_travel_time_nc.is_nil(idx)) m_filpar[idx].ramming_travel_time.second = float(config.filament_ramming_travel_time_nc.get_at(idx));
+        if (has_filament_override(&config.filament_ramming_travel_time, idx)) m_filpar[idx].ramming_travel_time.first = float(config.filament_ramming_travel_time.get_at(idx));
+        if (has_filament_override(&config.filament_ramming_travel_time_nc, idx)) m_filpar[idx].ramming_travel_time.second = float(config.filament_ramming_travel_time_nc.get_at(idx));
     }
     m_perimeter_width = nozzle_diameter * Width_To_Nozzle_Ratio; // all extruders are now assumed to have the same diameter
     // Orca: custom presets may use nozzle diameters outside the BBS table; fall back to the
@@ -2693,12 +2694,14 @@ void WipeTower::toolchange_Wipe(
 	float wipe_length)
 {
 	// Increase flow on first layer, slow down print.
-    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? m_first_layer_flow_ratio : 1.f))
+    const float first_layer_flow_ratio = m_first_layer_flow_ratios[
+        m_current_tool < m_first_layer_flow_ratios.size() ? m_current_tool : 0];
+    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? first_layer_flow_ratio : 1.f))
 		  .append("; CP TOOLCHANGE WIPE\n");
 
     // BBS: add the note for gcode-check, when the flow changed, the width should follow the change
     if (is_first_layer()) {
-        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + std::to_string(m_first_layer_flow_ratio * m_perimeter_width) + "\n");
+        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + std::to_string(first_layer_flow_ratio * m_perimeter_width) + "\n");
     }
 
 	const float& xl = cleaning_box.ld.x();
@@ -4134,7 +4137,9 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
 
 void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinates &cleaning_box, float wipe_length,bool solid_tool_toolchange)
 {
-    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? m_first_layer_flow_ratio : 1.f))
+    const float first_layer_flow_ratio = m_first_layer_flow_ratios[
+        m_current_tool < m_first_layer_flow_ratios.size() ? m_current_tool : 0];
+    writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? first_layer_flow_ratio : 1.f))
           // Orca: CP_TOOLCHANGE_WIPE is a standalone tag constant, not an ETags entry
           .append(";" + GCodeProcessor::Toolchange_Wipe_Tag + " CT" + std::to_string(solid_tool_toolchange) + " FL" + std::to_string(is_first_layer()) + "\n");
     if (!m_nozzle_change_result.gcode.empty())
@@ -4142,7 +4147,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
 
     // BBS: add the note for gcode-check, when the flow changed, the width should follow the change
     if (is_first_layer()) {
-        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + std::to_string(m_first_layer_flow_ratio * m_perimeter_width) + "\n");
+        writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) + std::to_string(first_layer_flow_ratio * m_perimeter_width) + "\n");
     }
 
     //if (solid_tool_toolchange && m_filpar[m_current_tool].filament_tower_interface_print_temp != m_filpar[m_current_tool].nozzle_temperature)
@@ -4407,9 +4412,9 @@ void WipeTower::set_nozzle_last_layer_id()
     }
 }
 
-void WipeTower::set_first_layer_flow_ratio(const float flow_ratio)
+void WipeTower::set_first_layer_flow_ratios(std::vector<float> flow_ratios)
 {
-    m_first_layer_flow_ratio = flow_ratio;
+    m_first_layer_flow_ratios = flow_ratios.empty() ? std::vector<float>{1.f} : std::move(flow_ratios);
 }
 
 // Orca: default/initial-layer/travel acceleration are object-scope options here (PrintConfig

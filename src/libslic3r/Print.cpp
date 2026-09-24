@@ -111,7 +111,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
 
     // Cache the plenty of parameters, which influence the G-code generator only,
     // or they are only notes not influencing the generated G-code.
-    static std::unordered_set<std::string> steps_gcode = {
+    static std::unordered_set<std::string> steps_gcode = with_filament_flow_overrides(std::unordered_set<std::string>{
         //BBS
         "additional_cooling_fan_speed",
         "reduce_crossing_wall",
@@ -263,7 +263,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "process_notes",
         "printer_notes",
         "use_3mf"
-    };
+    });
 
     static std::unordered_set<std::string> steps_ignore;
 
@@ -272,7 +272,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
     bool invalidated = false;
 
     for (const t_config_option_key &opt_key : opt_keys) {
-        if (steps_gcode.find(opt_key) != steps_gcode.end()) {
+        if (opt_key == "filament_set_other_flow_ratios" || opt_key == "filament_first_layer_flow_ratio") {
+            steps.emplace_back(psWipeTower);
+            steps.emplace_back(psGCodeExport);
+        } else if (steps_gcode.find(opt_key) != steps_gcode.end()) {
             // These options only affect G-code export or they are just notes without influence on the generated G-code,
             // so there is nothing to invalidate.
             steps.emplace_back(psGCodeExport);
@@ -4507,13 +4510,6 @@ void Print::_make_wipe_tower()
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
         WipeTower wipe_tower(m_config, m_plate_index, m_origin, m_wipe_tower_data.tool_ordering.first_extruder(),
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
-        // Orca: the tower's first-layer flow follows the user's first-layer flow ratio (BBS reads
-        // its initial_layer_flow_ratio here — STUDIO-14254; first_layer_flow_ratio is Orca's analog,
-        // default 1.0 in both). Honor the set_other_flow_ratios gate that governs the option
-        // everywhere else.
-        wipe_tower.set_first_layer_flow_ratio(m_default_object_config.set_other_flow_ratios
-                                                  ? float(m_default_region_config.first_layer_flow_ratio)
-                                                  : 1.f);
         wipe_tower.set_has_tpu_filament(this->has_tpu_filament());
         // Per-layer filament->nozzle grouping. sort_and_build_data() above publishes it on the Print
         // for by-layer prints; by-object prints publish only later (psSkirtBrim), so fall back to the
@@ -4522,6 +4518,24 @@ void Print::_make_wipe_tower()
         const MultiNozzleUtils::LayeredNozzleGroupResult &nozzle_group_result =
             print_group_result ? *print_group_result : m_wipe_tower_data.tool_ordering.get_layered_nozzle_group_result();
         wipe_tower.set_nozzle_group_result(nozzle_group_result);
+        // Resolve the first-layer variant for each filament, including by-object
+        // prints whose grouping is not published on Print until the skirt/brim step.
+        std::vector<float> first_layer_flow_ratios;
+        first_layer_flow_ratios.reserve(number_of_extruders);
+        for (size_t filament_id = 0; filament_id < number_of_extruders; ++filament_id) {
+            size_t slot = filament_id;
+            if (auto nozzle = nozzle_group_result.get_nozzle_for_filament(int(filament_id), 0))
+                slot = get_config_index_base(nozzle->volume_type, ExtruderType(m_config.extruder_type.get_at(nozzle->extruder_id)),
+                                             int(filament_id) + 1, m_config.filament_extruder_variant.values,
+                                             m_filament_self_index);
+            const bool enabled = resolve_filament_override(m_config.filament_set_other_flow_ratios, slot,
+                                                           m_default_object_config.set_other_flow_ratios.value);
+            first_layer_flow_ratios.push_back(enabled
+                ? float(resolve_filament_override(m_config.filament_first_layer_flow_ratio, slot,
+                                                  m_default_region_config.first_layer_flow_ratio.value))
+                : 1.f);
+        }
+        wipe_tower.set_first_layer_flow_ratios(std::move(first_layer_flow_ratios));
         {
             // Orca: acceleration options are object-scope (PrintConfig members in BBS), so resolve
             // the per-variant columns here; initial_layer_travel_acceleration is FloatOrPercent

@@ -16,6 +16,9 @@
 #ifndef slic3r_PrintConfig_hpp_
 #define slic3r_PrintConfig_hpp_
 
+#include <array>
+#include <string_view>
+
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
 #include "Config.hpp"
@@ -642,7 +645,55 @@ static std::string get_bed_temp_1st_layer_key(const BedType type)
 }
 
 extern const std::vector<std::string> filament_extruder_override_keys;
-// Full override-key check incl. filament_retract_length_nc (defined outside the generator list).
+struct FlowRatioOverride {
+    const char *key;
+    bool gated;
+};
+// Order also defines the bits in the derived object/region override masks.
+inline constexpr std::array<FlowRatioOverride, 13> flow_ratio_overrides = {{
+    {"top_solid_infill_flow_ratio", false},
+    {"bottom_solid_infill_flow_ratio", false},
+    {"brim_flow_ratio", false},
+    {"set_other_flow_ratios", false},
+    {"first_layer_flow_ratio", true},
+    {"outer_wall_flow_ratio", true},
+    {"inner_wall_flow_ratio", true},
+    {"overhang_flow_ratio", true},
+    {"sparse_infill_flow_ratio", true},
+    {"internal_solid_infill_flow_ratio", true},
+    {"gap_fill_flow_ratio", true},
+    {"support_flow_ratio", true},
+    {"support_interface_flow_ratio", true}
+}};
+constexpr int flow_ratio_override_bit(std::string_view key)
+{
+    for (size_t i = 0; i < flow_ratio_overrides.size(); ++i)
+        if (key == flow_ratio_overrides[i].key)
+            return 1 << i;
+    return 0;
+}
+
+template<class Keys>
+Keys with_filament_flow_overrides(Keys keys)
+{
+    for (const auto &override : flow_ratio_overrides)
+        keys.insert(keys.end(), std::string("filament_") + override.key);
+    return keys;
+}
+
+// Nullable vectors use the same first-element fallback as get_at(), including old profiles.
+inline bool has_filament_override(const ConfigOptionVectorBase *option, size_t index)
+{
+    return option && option->size() != 0 && !option->is_nil(index < option->size() ? index : 0);
+}
+
+template<class Option, class Value>
+Value resolve_filament_override(const Option &option, size_t index, Value fallback)
+{
+    return has_filament_override(&option, index) ? Value(option.get_at(index)) : fallback;
+}
+
+// Full override-key check, including flow and ironing overrides.
 extern bool is_filament_extruder_override_key(const std::string &opt_key);
 
 // for parse extruder_ams_count
@@ -1165,6 +1216,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
 
     // Orca: a flag enabling the ability to override flow ratios
+    ((ConfigOptionInt,      object_flow_ratio_override_mask))
     ((ConfigOptionBool,     set_other_flow_ratios))
     // Orca: support-related flow ratios (available for overriding, if set_other_flow_ratios is enabled)
     ((ConfigOptionFloat,    support_flow_ratio))
@@ -1427,6 +1479,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<WallDirection>,  wall_direction))
 
     // Orca: other flow ratios (available for overriding, if set_other_flow_ratios is enabled)
+    ((ConfigOptionInt,                  region_flow_ratio_override_mask))
     ((ConfigOptionFloat,                first_layer_flow_ratio))
     ((ConfigOptionFloat,                outer_wall_flow_ratio))
     ((ConfigOptionFloat,                inner_wall_flow_ratio))
@@ -1520,6 +1573,21 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,              machine_end_gcode))
     ((ConfigOptionStrings,             filament_end_gcode))
     ((ConfigOptionFloatsNullable,      filament_flow_ratio))
+    // Keep filament overrides in GCodeConfig so nozzle-group write-back updates
+    // their slots alongside filament_flow_ratio. Object/region configs hold the process fallbacks.
+    ((ConfigOptionBoolsNullable,       filament_set_other_flow_ratios))
+    ((ConfigOptionFloatsNullable,      filament_first_layer_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_top_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_bottom_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_outer_wall_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_inner_wall_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_overhang_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_sparse_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_internal_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_gap_fill_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_brim_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_support_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_support_interface_flow_ratio))
     ((ConfigOptionBools,               enable_pressure_advance))
     ((ConfigOptionFloats,              pressure_advance))
     // Orca: adaptive pressure advance and calibration model

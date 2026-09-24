@@ -329,3 +329,58 @@ TEST_CASE("A tower printed without a tool change is still validated against the 
     CHECK(print.wipe_tower_data(1).depth > 0.f);
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
 }
+
+
+TEST_CASE("Type 1 tower first-layer flow follows each filament gate", "[WipeTower][Flow][Regression]")
+{
+    const bool process_gate = GENERATE(false, true);
+    const std::string gates = GENERATE(std::string("nil,nil"), std::string("0,1"), std::string("1,0"));
+    auto config = multifilament_config(2, {
+        {"enable_prime_tower", "1"}, {"wipe_tower_type", "type1"},
+        {"wipe_tower_x", "50"}, {"wipe_tower_y", "50"},
+        {"layer_height", "0.2"}, {"initial_layer_print_height", "0.2"},
+        {"brim_type", "no_brim"}, {"skirt_loops", "0"}, {"first_layer_flow_ratio", "0.9"},
+        {"filament_first_layer_flow_ratio", "0.8,1.2"}, {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"}
+    });
+    // A short nullable vector must inherit its first entry for the second filament,
+    // just like get_at(). Exercise both concrete defaults and the nil sentinel.
+    const std::string ramming_speed = GENERATE(std::string("-1"), std::string("nil"));
+    for (const char *key : {"filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc"})
+        config.set_deserialize_strict(key, ramming_speed);
+    CAPTURE(process_gate, gates, ramming_speed);
+    config.set_deserialize_strict("set_other_flow_ratios", process_gate ? "1" : "0");
+    config.set_deserialize_strict("filament_set_other_flow_ratios", gates);
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> objects = {
+        {{"extruder", "1"}}, {{"extruder", "2"}}
+    };
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{cube(4), cube(4)}, print, model, config, &objects);
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE_FALSE(print.wipe_tower_data().tool_changes.empty());
+    const std::string width_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width);
+    size_t checked = 0;
+    for (const auto &change : print.wipe_tower_data().tool_changes.front()) {
+        const auto wipe = change.gcode.find(GCodeProcessor::Toolchange_Wipe_Tag);
+        if (wipe == std::string::npos)
+            continue;
+        const auto width = change.gcode.find(width_tag, wipe);
+        REQUIRE(width != std::string::npos);
+        REQUIRE(change.new_tool >= 0);
+        REQUIRE(change.new_tool < 2);
+        const bool enabled = gates == "nil,nil" ? process_gate :
+            (gates == "0,1" ? change.new_tool == 1 : change.new_tool == 0);
+        const double ratio = enabled ? (change.new_tool == 0 ? 0.8 : 1.2) : 1.;
+        // Type 1 uses 1.25 nozzle diameters as its unscaled perimeter width.
+        const double expected_width = 1.25 * 0.4 * ratio;
+        CHECK_THAT(std::stod(change.gcode.substr(width + width_tag.size())),
+                   Catch::Matchers::WithinAbs(expected_width, 1e-5));
+        ++checked;
+    }
+    REQUIRE(checked > 0);
+    config.set_deserialize_strict("filament_first_layer_flow_ratio", "0.7,1.1");
+    print.apply(model, config);
+    CHECK_FALSE(print.is_step_done(psWipeTower));
+}

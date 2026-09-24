@@ -12,7 +12,7 @@
 // The invariant asserted here is the inverse: every key declared on
 // PrintRegionConfig and PrintObjectConfig appears in Preset::print_options() or
 // Preset::filament_options(), the two preset key lists that seed a print preset's
-// DynamicConfig.
+// DynamicConfig, except for derived slicing state that must not be saved in presets.
 
 #include <catch2/catch_all.hpp>
 
@@ -33,6 +33,13 @@ const std::set<std::string> kDeprecatedRegionFields = {
     "wall_infill_order",
 };
 
+// These masks record which model settings were explicitly supplied, including values
+// equal to the process default. They are recomputed from the model for each object/region.
+const std::set<std::string> kDerivedFlowFields = {
+    "object_flow_ratio_override_mask",
+    "region_flow_ratio_override_mask",
+};
+
 void check_keys_are_in_a_preset(const t_config_option_keys& keys, const std::string& class_name)
 {
     REQUIRE_FALSE(keys.empty());
@@ -43,6 +50,11 @@ void check_keys_are_in_a_preset(const t_config_option_keys& keys, const std::str
     for (const std::string& key : keys) {
         DYNAMIC_SECTION(class_name << "::" << key)
         {
+            if (kDerivedFlowFields.count(key)) {
+                REQUIRE(in_print.count(key) == 0);
+                REQUIRE(in_filament.count(key) == 0);
+                continue;
+            }
             INFO("'" << key << "' on " << class_name
                      << " is missing from "
                         "Preset::print_options()/filament_options(); add it to "

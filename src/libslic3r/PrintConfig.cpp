@@ -89,13 +89,13 @@ const std::vector<std::string> filament_extruder_override_keys = {
     "filament_retraction_distances_when_cut"
 };
 
-// Some filament override parameters are generated from filament_extruder_override_keys,
-// while filament_retract_length_nc is defined separately. Keep the generator list
-// unchanged and use this helper for behavior checks that need the full override set.
 bool is_filament_extruder_override_key(const std::string &opt_key)
 {
     return std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(), opt_key) != filament_extruder_override_keys.end() ||
-           opt_key == "filament_retract_length_nc";
+           opt_key == "filament_retract_length_nc" ||
+           opt_key == "filament_ironing_flow" || opt_key == "filament_ironing_spacing" ||
+           opt_key == "filament_ironing_inset" || opt_key == "filament_ironing_speed" ||
+           (opt_key.compare(0, 9, "filament_") == 0 && flow_ratio_override_bit(opt_key.substr(9)) != 0);
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
@@ -8073,6 +8073,36 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_dev_drying_cooling_temperature", coFloats);
     def->set_default_value(new ConfigOptionFloats{0});
 
+    // Keep the filament controls consistent with their process counterparts.
+    for (const auto &override : flow_ratio_overrides) {
+        const auto &base = options.at(override.key);
+        const bool is_gate = base.type == coBool;
+        def = this->add_nullable(std::string("filament_") + override.key, is_gate ? coBools : coFloats);
+        def->label = base.label;
+        def->full_label = base.full_label;
+        def->category = base.category;
+        def->tooltip = is_gate
+            ? L("Enabling this option applies each filament flow ratio when set and the corresponding process ratio otherwise, even if the process option is disabled. When unset, the process toggle is used. Explicit object settings take precedence. Top surface, bottom surface and brim flow ratios are always applied.")
+            : L("Overrides the corresponding process flow ratio for this filament. When unset, the process value is used. Explicit object, part, modifier and height-range settings take precedence. The first-layer ratio is an additional multiplier and does not affect brims or skirts.");
+        def->sidetext = base.sidetext;
+        def->min = base.min;
+        def->max = base.max;
+        def->mode = base.mode;
+        if (is_gate)
+            def->set_default_value(new ConfigOptionBoolsNullable{ConfigOptionBoolsNullable::nil_value()});
+        else
+            def->set_default_value(new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    }
+
+    // Derived provenance participates in config equality, so regions with an explicit
+    // default-valued override cannot merge with regions inheriting filament settings.
+    for (const char *key : {"object_flow_ratio_override_mask", "region_flow_ratio_override_mask"}) {
+        def = this->add(key, coInt);
+        def->mode = comDevelop;
+        def->cli = ConfigOptionDef::nocli;
+        def->set_default_value(new ConfigOptionInt(0));
+    }
+
     // Declare retract values for filament profile, overriding the printer's extruder profile.
     for (auto& opt_key : filament_extruder_override_keys) {
         const std::string filament_prefix = "filament_";
@@ -9398,7 +9428,7 @@ std::set<std::string> print_options_with_variant = {
     "print_extruder_variant" //coStrings
 };
 
-std::set<std::string> filament_options_with_variant = {
+std::set<std::string> filament_options_with_variant = with_filament_flow_overrides(std::set<std::string>{
     "filament_flow_ratio",
     "filament_max_volumetric_speed",
     // Per-variant ramming / pre-cooling / nozzle-change filament overrides
@@ -9452,7 +9482,7 @@ std::set<std::string> filament_options_with_variant = {
     "activate_air_filtration_on_completion",
     "during_print_exhaust_fan_speed",
     "complete_print_exhaust_fan_speed"
-};
+});
 
 // Parameters that are the same as the number of extruders
 std::set<std::string> printer_extruder_options = {

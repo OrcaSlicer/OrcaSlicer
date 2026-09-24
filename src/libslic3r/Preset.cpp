@@ -1363,7 +1363,7 @@ static std::vector<std::string> s_Preset_print_options{
     "ironing_expansion",
 };
 
-static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
+static std::vector<std::string> s_Preset_filament_options = with_filament_flow_overrides(std::vector<std::string>{/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
                                                           "filament_soluble", "filament_is_support", "filament_printable", "filament_extruder_compatibility",
     "filament_max_volumetric_speed", "filament_adaptive_volumetric_speed",
     "filament_flow_ratio", "filament_density", "filament_adhesiveness_category", "filament_cost", "filament_minimal_purge_on_wipe_tower",
@@ -1425,8 +1425,8 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     //ams chamber
     "filament_dev_ams_drying_ams_limitations", "filament_dev_ams_drying_temperature", "filament_dev_ams_drying_time", "filament_dev_ams_drying_heat_distortion_temperature",
     "filament_dev_chamber_drying_bed_temperature", "filament_dev_chamber_drying_time",
-    "filament_dev_drying_softening_temperature", "filament_dev_drying_cooling_temperature"
-    };
+    "filament_dev_drying_softening_temperature", "filament_dev_drying_cooling_temperature",
+});
 
 static std::vector<std::string> s_Preset_machine_limits_options {
     "machine_max_acceleration_extruding", "machine_max_acceleration_retracting", "machine_max_acceleration_travel",
