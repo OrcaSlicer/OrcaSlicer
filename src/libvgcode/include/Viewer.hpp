@@ -80,6 +80,10 @@ public:
     // ORCA: section view. Cuts away where dot(plane, (x, y, z, 1)) < 0; { 0, 0, 0, 1 } keeps all.
     //
     void set_clipping_plane(const std::array<float, 4>& plane);
+    //
+    // ORCA: direction to the top light in eye space, shading the toolpaths and biasing their shadow lookup.
+    //
+    void set_light_top_dir(const Vec3& direction);
 
     //
     // ************************************************************************
