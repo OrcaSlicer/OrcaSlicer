@@ -1011,8 +1011,8 @@ bool CaliPASaveManualPanel::Show(bool show) {
                     default_name = recommend_name + "_" + default_name;
                 }
                 set_default_name(default_name);
-                m_k_val->GetTextCtrl()->SetLabel("");
-                m_n_val->GetTextCtrl()->SetLabel("");
+                m_k_val->GetTextCtrl()->ChangeValue("");
+                m_n_val->GetTextCtrl()->ChangeValue("");
             }
         }
         else {
@@ -1130,8 +1130,8 @@ bool CaliPASaveP1PPanel::get_result(float* out_k, float* out_n){
 
 bool CaliPASaveP1PPanel::Show(bool show) {
     if (show) {
-        m_k_val->GetTextCtrl()->SetLabel("");
-        m_n_val->GetTextCtrl()->SetLabel("");
+        m_k_val->GetTextCtrl()->ChangeValue("");
+        m_n_val->GetTextCtrl()->ChangeValue("");
     }
     return wxPanel::Show(show);
 }

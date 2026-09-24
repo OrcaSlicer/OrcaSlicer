@@ -1724,9 +1724,9 @@ void InputIpAddressDialog::update_title(wxString title)
 void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
 {
     m_obj = obj;
-    m_input_ip->GetTextCtrl()->SetLabelText(m_obj->get_dev_ip());
-    m_input_access_code->GetTextCtrl()->SetLabelText(m_obj->get_access_code());
-    m_input_printer_name->GetTextCtrl()->SetLabelText(m_obj->get_dev_name());
+    m_input_ip->GetTextCtrl()->ChangeValue(m_obj->get_dev_ip());
+    m_input_access_code->GetTextCtrl()->ChangeValue(m_obj->get_access_code());
+    m_input_printer_name->GetTextCtrl()->ChangeValue(m_obj->get_dev_name());
 
     std::string img_str = DevPrinterConfigUtil::get_printer_connect_help_img(m_obj->printer_type);
     auto diagram_bmp = create_scaled_bitmap(img_str + "_en", this, 198);
