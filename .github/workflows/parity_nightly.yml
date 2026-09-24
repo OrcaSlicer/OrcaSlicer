@@ -5,8 +5,9 @@
 #             re-sliced on its own to see whether it changes the G-code
 #   harness - the GUI-vs-CLI parity harness (metrics only, never fails)
 # Both test the latest successful build_all.yml Linux AppImage from main, with
-# sources checked out at the commit that build was made from. Nothing here
-# gates a build or a PR.
+# sources checked out at the commit that build was made from; a manual run can
+# name another branch, or pin one build by its run id. Nothing here gates a
+# build or a PR.
 name: Parity Nightly
 
 on:
@@ -20,9 +21,13 @@ on:
         required: false
         default: "main"
       build_branch:
-        description: "branch whose latest successful build_all artifact to test"
+        description: "branch whose newest successful build_all artifact to test (a PR build is the PR merged into its base; sources are checked out at the PR head)"
         required: false
         default: "main"
+      build_run_id:
+        description: "build_all run id to test instead of build_branch's newest (same PR caveat)"
+        required: false
+        default: ""
       fixtures:
         description: "harness fixture ids, space-separated (empty = all)"
         required: false
@@ -50,14 +55,53 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ inputs.build_branch || 'main' }}
+          RUN_ID: ${{ inputs.build_run_id }}
+          SCHEDULED: ${{ github.event_name == 'schedule' }}
         run: |
           set -euo pipefail
-          gh run list --workflow build_all.yml \
-            --branch "${{ inputs.build_branch || 'main' }}" \
-            --status success --limit 1 --json databaseId,headSha \
-            --jq '"run_id=\(.[0].databaseId)\nhead_sha=\(.[0].headSha)"' \
-            >> "$GITHUB_OUTPUT"
+          if [ -n "$RUN_ID" ]; then
+            [[ $RUN_ID =~ ^[0-9]+$ ]] || { echo "build_run_id must be a numeric run id, got '$RUN_ID'" >&2; exit 1; }
+            # a pinned build is read directly, not through a search; it must come
+            # from this repository, because the later jobs check out its commit here
+            found=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq \
+              'select(.path == ".github/workflows/build_all.yml" and .conclusion == "success"
+                      and .head_repository.full_name == env.GH_REPO)
+               | "\(.id) \(.head_sha) \(.created_at)"')
+            [ -n "$found" ] || { echo "run $RUN_ID is not a successful build_all run of $GH_REPO" >&2; exit 1; }
+          else
+            # GitHub serves filtered run listings (branch=, status=, head_sha=, ...)
+            # from a search index that has returned weeks-old results, while the
+            # unfiltered listing stays current, so list unfiltered and filter here.
+            # The repository check keeps out fork PRs whose branch has the same
+            # name. A feature branch is normally built only for its PR, and a PR
+            # build compiles the PR merged into its base rather than head_sha, so
+            # a build of the branch itself (push or dispatch) is preferred when
+            # the same page has one.
+            pick='([.workflow_runs[] | select(.head_branch == env.BRANCH and .conclusion == "success"
+                    and .head_repository.full_name == env.GH_REPO)]
+                   | map(select(.event != "pull_request"))[0] // .[0])
+                  | select(.) | "\(.id) \(.head_sha) \(.created_at)"'
+            # a page of 100 runs spans about a day and a half; a manual run may
+            # target a branch that last built weeks ago
+            pages=3
+            if [ "$SCHEDULED" != true ]; then pages=20; fi
+            found=""
+            for page in $(seq "$pages"); do
+              found=$(gh api "repos/$GH_REPO/actions/workflows/build_all.yml/runs?per_page=100&page=$page" --jq "$pick")
+              if [ -n "$found" ]; then break; fi
+            done
+            [ -n "$found" ] || { echo "no successful $BRANCH build among the last $((pages * 100)) build_all runs; pass build_run_id to test an older one" >&2; exit 1; }
+          fi
+          read -r run_id head_sha created <<< "$found"
+          # the nightly fails rather than report on a stale build
+          if [ "$SCHEDULED" = true ] && [ $(( $(date +%s) - $(date -d "$created" +%s) )) -gt 172800 ]; then
+            echo "newest $BRANCH build $run_id is from $created, over 48 hours old" >&2
+            exit 1
+          fi
+          printf 'run_id=%s\nhead_sha=%s\n' "$run_id" "$head_sha" >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
+          echo "Testing build [$run_id](https://github.com/$GH_REPO/actions/runs/$run_id) of \`$head_sha\`, built $created" >> "$GITHUB_STEP_SUMMARY"
 
   effect:
     name: Override sweep effect stage (shard ${{ matrix.shard }})

@@ -5,6 +5,10 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_dev_mapping.cpp
     test_filament_bitmap_utils.cpp
+    test_scene_raycaster.cpp
+    test_lazy.cpp
+    test_prebuild_queue.cpp
+    test_staged_build.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp
