@@ -4338,11 +4338,38 @@ int PrinterPresetCollection::migrate_user_models_for_variants(const std::string 
             if (auto *nd = dynamic_cast<const ConfigOptionFloats*>(preset.config.option("nozzle_diameter")))
                 if (!nd->values.empty())
                     variant = format_printer_variant(nd->values.front());
-        std::string new_model = model + " - " + copy_suffix;
+        // Prefer deriving the migrated model name from the USER'S OWN preset name. A legacy preset is
+        // typically "<system preset name><user suffix>" ("Voron Trident 300 0.5 nozzle - VT.1548");
+        // replacing the embedded system preset name with its model yields "Voron Trident 300 - VT.1548"
+        // — a model that keeps the user's suffix, groups sibling variants sharing it, and separates
+        // same-nozzle customizations by their own names instead of "Copy"/"Copy 2". Fall back to
+        // "<model> - <copy_suffix>" when the preset name doesn't embed the inherited preset's name or
+        // the derived name is degenerate (no suffix left, or shadowing a built-in model).
+        std::string new_model;
+        const std::string parent_name = Preset::inherits(preset.config);
+        if (!parent_name.empty()) {
+            const size_t pos = preset.name.find(parent_name);
+            if (pos != std::string::npos) {
+                std::string derived = preset.name;
+                derived.replace(pos, parent_name.size(), model);
+                // Normalize whitespace the splice may leave behind (doubled/leading/trailing spaces).
+                std::string norm;
+                norm.reserve(derived.size());
+                for (const char c : derived)
+                    if (c != ' ' || (!norm.empty() && norm.back() != ' '))
+                        norm.push_back(c);
+                while (!norm.empty() && norm.back() == ' ') norm.pop_back();
+                if (norm != model && !norm.empty() && system_models.count(norm) == 0)
+                    new_model = norm;
+            }
+        }
+        if (new_model.empty())
+            new_model = model + " - " + copy_suffix;
         if (taken.count(key(new_model, variant))) { // disambiguate same-model+same-nozzle collisions
+            const std::string base = new_model;
             int n = 2;
-            while (taken.count(key(model + " - " + copy_suffix + " " + std::to_string(n), variant))) ++n;
-            new_model = model + " - " + copy_suffix + " " + std::to_string(n);
+            while (taken.count(key(base + " " + std::to_string(n), variant))) ++n;
+            new_model = base + " " + std::to_string(n);
         }
         taken.insert(key(new_model, variant));
 

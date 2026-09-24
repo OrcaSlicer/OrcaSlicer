@@ -140,6 +140,39 @@ TEST_CASE("Migration backfills an empty printer_variant from nozzle_diameter", "
     CHECK(u->config.opt_string("printer_variant") == "0.4");
 }
 
+TEST_CASE("Migration derives the model name from the user's own preset name", "[Preset][Variants][12105]")
+{
+    TempPresetDir temp;
+    PresetBundle  bundle;
+    const auto   &def = bundle.printers.default_preset().config;
+    const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
+
+    write_printer_preset(def, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "0.4", 0.4);
+    write_printer_preset(def, sys, "Fixture Printer 0.5 nozzle", "Fixture Printer", "0.5", 0.5);
+    // Legacy names embedding the system preset name plus a user suffix: the migrated model keeps the
+    // suffix ("Fixture Printer - VT.1548"), sibling variants sharing a suffix group into one model,
+    // and same-nozzle customizations separate by their own suffixes instead of "Copy"/"Copy 2".
+    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - VT.1548", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    write_printer_preset(def, usr, "Fixture Printer 0.5 nozzle - VT.1548", "Fixture Printer", "0.5", 0.5, "Fixture Printer 0.5 nozzle");
+    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - VT.2048", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    // A custom name with no embedded system preset name falls back to "<model> - Copy".
+    write_printer_preset(def, usr, "Frankenprinter", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+
+    load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle", "Fixture Printer 0.5 nozzle"});
+
+    CHECK(bundle.printers.migrate_user_models_for_variants("Copy") == 4);
+
+    auto model_of = [&](const char *name) {
+        const Preset *p = bundle.printers.find_preset(name, false);
+        REQUIRE(p != nullptr);
+        return p->config.opt_string("printer_model");
+    };
+    CHECK(model_of("Fixture Printer 0.4 nozzle - VT.1548") == "Fixture Printer - VT.1548");
+    CHECK(model_of("Fixture Printer 0.5 nozzle - VT.1548") == "Fixture Printer - VT.1548"); // groups with its sibling
+    CHECK(model_of("Fixture Printer 0.4 nozzle - VT.2048") == "Fixture Printer - VT.2048"); // separate machine, own suffix
+    CHECK(model_of("Frankenprinter") == "Fixture Printer - Copy");                          // fallback
+}
+
 TEST_CASE("Migration disambiguates same-model/same-variant collisions with a numeric suffix", "[Preset][Variants][12105]")
 {
     TempPresetDir temp;
@@ -148,9 +181,10 @@ TEST_CASE("Migration disambiguates same-model/same-variant collisions with a num
     const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
 
     write_printer_preset(def, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "0.4", 0.4);
-    // Two distinct user presets both derived from the same system model + variant.
-    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - Copy", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
-    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - Copy (1)", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    // Two custom-named user presets (no embedded system preset name, so both fall back to the
+    // "<model> - Copy" path) sharing the same system model + variant.
+    write_printer_preset(def, usr, "Frankenprinter", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    write_printer_preset(def, usr, "Frankenprinter Mk2", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
 
     load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle"});
 
