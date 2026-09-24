@@ -96,19 +96,23 @@ private:
     static std::vector<uint8_t> make_ping_packet();
 
     // Transport dispatch: each forwards to conn.wss (TLS) or conn.ws (plaintext).
-    void        ws_write(Connection& conn, const std::vector<uint8_t>& packet); // locks write_mutex
+    // These synchronous operations are called only by the MQTT worker during
+    // connection setup. Once the MQTT session is established, all socket I/O is
+    // asynchronous and owned by that worker's io_context.
+    void        ws_write(Connection& conn, const std::vector<uint8_t>& packet);
     std::size_t ws_read(Connection& conn, boost::beast::flat_buffer& buffer, boost::system::error_code& ec);
     void        ws_handshake(Connection& conn, const Config& config, const Endpoint& endpoint);
-    void        ws_close(Connection& conn);
-    // Emit a queued SUBSCRIBE/UNSUBSCRIBE on the live socket right now (from the
-    // caller thread), so a selection change is applied without waiting for the
-    // blocking read loop to next return. No-op if no CONNACKed socket exists yet
-    // (the worker sends the set on connect). The WebSocket is never dropped for a
-    // subscription change.
+    void        close_connection(Connection& conn);
+    void        enqueue_packet(const std::shared_ptr<Connection>& conn, std::vector<uint8_t> packet);
+    void        start_async_write(const std::shared_ptr<Connection>& conn);
+    void        start_async_read(const std::shared_ptr<Connection>& conn);
+    void        schedule_keepalive(const std::shared_ptr<Connection>& conn);
+    void        post_packet(const std::shared_ptr<Connection>& conn, std::vector<uint8_t> packet);
+    // Ask the MQTT worker to emit subscription changes on its own io_context.
     void flush_subscription_change();
     void connect_and_read();
-    void send_current_subscriptions(Connection& conn);
-    void send_pending_subscriptions(Connection& conn);
+    void send_current_subscriptions(const std::shared_ptr<Connection>& conn);
+    void send_pending_subscriptions(const std::shared_ptr<Connection>& conn);
     void handle_packet(const std::string& packet);
     void notify_state(bool is_now_connected);
     void run();
@@ -122,7 +126,6 @@ private:
     std::thread worker;
     std::mutex mutex;
     std::mutex connection_mutex;
-    std::mutex write_mutex; // serialises every websocket write (worker + caller threads)
     std::shared_ptr<Connection> active_connection;
     std::condition_variable initial_cv;
     std::condition_variable state_cv;
