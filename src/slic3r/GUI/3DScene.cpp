@@ -1066,8 +1066,17 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
         );
     }
     else if (type == GLVolumeCollection::ERenderType::Opaque && list.size() > 1) {
+        // Orca: nearest first after the selected ones, so the depth test skips shading hidden surfaces.
+        for (GLVolumeWithIdAndZ& volume : list) {
+            volume.second.second = volume.first->transformed_bounding_box().transformed(view_matrix).max(2);
+        }
+
         std::sort(list.begin(), list.end(),
-            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool { return v1.first->selected && !v2.first->selected; }
+            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool {
+                if (v1.first->selected != v2.first->selected)
+                    return v1.first->selected;
+                return v1.second.second > v2.second.second;
+            }
         );
     }
 
