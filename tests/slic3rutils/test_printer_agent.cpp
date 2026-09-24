@@ -232,7 +232,7 @@ TEST_CASE("unit: default AMS commands report not supported", "[unit][moonraker]"
 {
     MoonrakerPrinterAgent agent("");
 
-    CHECK(agent.command_ams_refresh_rfid("dev", "123", 1, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.command_ams_refresh_rfid("dev", -1, 123, 1, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     CHECK(agent.command_ams_calibrate("dev", 1, 2, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     CHECK(agent.command_ams_select_tray("dev", "123", 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
 }

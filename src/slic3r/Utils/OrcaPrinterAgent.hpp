@@ -122,6 +122,9 @@ public:
     // (ams_id*4 + tray). command_ams_select_tray routes this exact body.
     static std::string build_ams_change_filament_body(int tray_number, int sequence_id);
 
+    // Build an RFID request from coordinates or a legacy flat tray id.
+    static std::string build_ams_refresh_rfid_body(int ams_id, int tray_or_slot_id, int sequence_id);
+
 protected:
     // Forward one inbound printer message to on_message_fn or on_local_message_fn (marshalled onto the UI
     // thread via queue_on_main_fn when set). Body of every connection's MessageHandler.

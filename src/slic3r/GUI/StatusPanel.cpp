@@ -4373,7 +4373,8 @@ void StatusPanel::on_ams_load_curr()
                     }
                 } catch (...) {}
             } else {
-                obj->command_ams_change_filament(true, "254", "0", old_temp, new_temp, extruder_id);
+                const std::string external_ams_id = obj->is_orca_agent() ? curr_ams_id : "254";
+                obj->command_ams_change_filament(true, external_ams_id, "0", old_temp, new_temp, extruder_id);
             }
         }
 

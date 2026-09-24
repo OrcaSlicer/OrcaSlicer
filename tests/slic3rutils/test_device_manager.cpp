@@ -26,9 +26,8 @@
 using json = nlohmann::json;
 using namespace Slic3r;
 
-// DeviceManager's push_status contract for the OrcaSonar virtual tray: an
-// authoritative empty clears, a populated key re-enables, and a frame that
-// omits the key leaves both the trays and the support flag alone.
+// Bambu virtual trays follow full-snapshot removals; Orca virtual trays are
+// retained after first observation until reconnect.
 
 // Contract: an authoritative empty vir_slot ([] = "known, no virtual slots")
 // clears the seeded virtual trays. The consumers were guarded so an empty
@@ -36,6 +35,7 @@ using namespace Slic3r;
 TEST_CASE("An empty vir_slot clears the virtual trays", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
     REQUIRE(machine.vt_slot.size() == 1);
     REQUIRE(machine.vt_slot[0].id == "255");
 
@@ -49,6 +49,7 @@ TEST_CASE("An empty vir_slot clears the virtual trays", "[DeviceManager]")
 TEST_CASE("A missing vir_slot keeps the virtual trays", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
     REQUIRE(machine.vt_slot.size() == 1);
 
     machine.parse_json("lan", R"({"print":{"command":"push_status"}})", false);
@@ -62,6 +63,7 @@ TEST_CASE("A missing vir_slot keeps the virtual trays", "[DeviceManager]")
 TEST_CASE("Virtual trays repopulate after an authoritative clear", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[]}})", false);
     REQUIRE(machine.vt_slot.empty());
@@ -79,6 +81,7 @@ TEST_CASE("Virtual trays repopulate after an authoritative clear", "[DeviceManag
 TEST_CASE("An orphan deputy virtual tray is dropped, not indexed", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[]}})", false);
     REQUIRE(machine.vt_slot.empty());
@@ -93,6 +96,7 @@ TEST_CASE("An orphan deputy virtual tray is dropped, not indexed", "[DeviceManag
 TEST_CASE("A configured vir_slot is present even with no material", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "orca";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
 
@@ -106,6 +110,7 @@ TEST_CASE("A configured vir_slot is present even with no material", "[DeviceMana
 TEST_CASE("A populated vir_slot prunes virtual trays it omits", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
     REQUIRE(machine.vt_slot.size() == 2);
@@ -121,6 +126,7 @@ TEST_CASE("A populated vir_slot prunes virtual trays it omits", "[DeviceManager]
 TEST_CASE("A delta vir_slot does not prune virtual trays it omits", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
     REQUIRE(machine.vt_slot.size() == 2);
@@ -138,6 +144,7 @@ TEST_CASE("A delta vir_slot does not prune virtual trays it omits", "[DeviceMana
 TEST_CASE("An empty delta vir_slot keeps the virtual trays", "[DeviceManager]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "bbl";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
     REQUIRE(machine.vt_slot.size() == 2);
@@ -148,6 +155,59 @@ TEST_CASE("An empty delta vir_slot keeps the virtual trays", "[DeviceManager]")
     CHECK(machine.vt_slot[0].id == "255");
     CHECK(machine.vt_slot[1].id == "254");
     CHECK(machine.ams_support_virtual_tray);
+}
+
+TEST_CASE("Orca retains seen virtual trays across full snapshots", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "orca";
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255","tag_uid":"0123456789ABCDEF"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+    CHECK(machine.vt_slot[0].tag_uid == "0123456789ABCDEF");
+    CHECK(machine.vt_slot[1].id == "254");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+    CHECK(machine.vt_slot[0].id == "255");
+    CHECK(machine.vt_slot[1].id == "254");
+    CHECK(machine.ams_support_virtual_tray);
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0}})", false);
+    CHECK(machine.vt_slot.size() == 2);
+}
+
+TEST_CASE("Orca forgets retained virtual trays at reconnect", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "orca";
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+
+    machine.reset_orca_virtual_trays_for_reconnect();
+    REQUIRE(machine.vt_slot.size() == 1);
+    CHECK(machine.vt_slot[0].id == "255");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[]}})", false);
+    CHECK(machine.vt_slot.empty());
+    CHECK_FALSE(machine.ams_support_virtual_tray);
+}
+
+TEST_CASE("Orca stores a deputy virtual tray at its stable index", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+    machine.printer_agent_id = "orca";
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"254"}]}})", false);
+
+    REQUIRE(machine.vt_slot.size() == 2);
+    CHECK(machine.vt_slot[0].id == "255");
+    CHECK_FALSE(machine.vt_slot[0].is_exists);
+    CHECK(machine.vt_slot[1].id == "254");
+    CHECK(machine.vt_slot[1].is_exists);
 }
 
 TEST_CASE("Capability flags parse without a DeviceManager", "[DeviceManager]")
@@ -196,9 +256,11 @@ TEST_CASE("Only the BBL agent is RFID-locking", "[DeviceManager]")
 
     machine.printer_agent_id = "bbl";
     CHECK(machine.is_bbl_agent());
+    CHECK_FALSE(machine.is_orca_agent());
 
     machine.printer_agent_id = "orca";
     CHECK_FALSE(machine.is_bbl_agent());
+    CHECK(machine.is_orca_agent());
 
     machine.printer_agent_id = "";
     CHECK(machine.is_bbl_agent());

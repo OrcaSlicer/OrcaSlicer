@@ -90,11 +90,9 @@ void build_ams_payload_for_device(const std::string& dev_id,
                                   const QueueOnMainFn& queue_fn,
                                   const TrayInfoResolver& vendor_resolver = {});
 
-// Process-wide canonical AMS write capability (OrcaSonar REQ-STS-008), parsed
-// from the info.get_capabilities reply. A device with no record (no reply yet;
-// non-OrcaSonar agents never register) reports every op supported: gating only
-// applies to OrcaSonar printers that answered. An answer without ams_ops
-// registers an empty op set, so it gates every write.
+// Process-wide AMS capabilities parsed from info.get_capabilities. Before a
+// reply, writes are permissive; afterward material operations require fms and
+// their ams_ops token, while filament_setting uses filament_slots alone.
 void   register_ams_ops(const std::string& dev_id, const std::vector<std::string>& ops);
 bool   ams_op_supported(const std::string& dev_id, const std::string& op);
 
@@ -104,9 +102,8 @@ bool   ams_op_supported(const std::string& dev_id, const std::string& op);
 void   register_ams_capability(const std::string& dev_id, bool has_ams);
 bool   has_ams_capability(const std::string& dev_id);
 
-// Whether the device has answered get_capabilities at all (any reply, even one
-// declaring no material system). Lets a client re-request capabilities only
-// while the topology is still unconfirmed, instead of on every filament frame.
+// Whether a valid protocol capability reply has been registered. Also separates
+// the permissive pre-reply write behavior from an explicit no-FMS declaration.
 bool   ams_caps_known(const std::string& dev_id);
 
 // Whether the device exposes the filament-slot model, from the

@@ -113,6 +113,7 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
+    std::unordered_set<std::string> m_orca_seen_virtual_trays;
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -164,6 +165,8 @@ public:
     // Orca: true only for devices managed by Bambu's own agent, where a
     // non-zero tag_uid is an RFID lock. Other agents report it as metadata.
     bool is_bbl_agent() const;
+    bool is_orca_agent() const;
+    void reset_orca_virtual_trays_for_reconnect();
 
     // Orca: an OPCP failure ack (result != "success"). Fills reason when present.
     static bool ams_filament_ack_failed(const nlohmann::json& jj, std::string& reason);

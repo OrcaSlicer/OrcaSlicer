@@ -150,11 +150,26 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // Communication
 // ============================================================================
 
+std::string BBLPrinterAgent::ams_refresh_rfid_gcode(const std::string& slot_id)
+{
+    return (boost::format("M620 R%1% \n") % slot_id).str();
+}
+
+std::string BBLPrinterAgent::ams_calibrate_gcode(int ams_id)
+{
+    return (boost::format("M620 C%1% \n") % ams_id).str();
+}
+
+std::string BBLPrinterAgent::ams_select_tray_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 P%1% \n") % tray_id).str();
+}
+
 int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
     nlohmann::json j;
     if (ams_id == -1) {
-        const std::string gcode   = (boost::format("M620 R%1% \n") % slot_id).str();
+        const std::string gcode   = ams_refresh_rfid_gcode(std::to_string(slot_id));
         j["print"]["command"]     = "gcode_line";
         j["print"]["param"]       = gcode;
         j["print"]["sequence_id"] = std::to_string(sequence_id);
@@ -170,7 +185,7 @@ int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, in
 
 int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = (boost::format("M620 C%1% \n") % ams_id).str();
+    const std::string gcode = ams_calibrate_gcode(ams_id);
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;
@@ -180,7 +195,7 @@ int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int s
 
 int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
 {
-    const std::string gcode = (boost::format("M620 P%1% \n") % tray_id).str();
+    const std::string gcode = ams_select_tray_gcode(tray_id);
     nlohmann::json j;
     j["print"]["command"] = "gcode_line";
     j["print"]["param"] = gcode;

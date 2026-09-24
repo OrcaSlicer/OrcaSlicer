@@ -546,6 +546,21 @@ bool MachineObject::is_bbl_agent() const
     return printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty();
 }
 
+bool MachineObject::is_orca_agent() const
+{
+    return printer_agent_id == ORCA_PRINTER_AGENT_ID;
+}
+
+void MachineObject::reset_orca_virtual_trays_for_reconnect()
+{
+    if (!is_orca_agent())
+        return;
+    m_orca_seen_virtual_trays.clear();
+    vt_slot.clear();
+    vt_slot.emplace_back(std::to_string(VIRTUAL_TRAY_MAIN_ID));
+    ams_support_virtual_tray = true;
+}
+
 bool MachineObject::ams_filament_ack_failed(const nlohmann::json& jj, std::string& reason)
 {
     reason.clear();
@@ -1700,8 +1715,8 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
         if (atoi(ams_id.c_str()) < 16) {
             tray_id = atoi(ams_id.c_str()) * 4 + atoi(slot_id.c_str());
         }
-        // TODO: Orca hack
-        if (ams_id == "254")
+        // Preserve the legacy alias outside Orca; OrcaSonar uses both ids for tool identity.
+        if (ams_id == "254" && !is_orca_agent())
             ams_id = "255";
 
         j["print"]["command"]     = "ams_change_filament";
@@ -2588,11 +2603,11 @@ void MachineObject::reset()
     json empty_j;
     print_json.diff2all_base_reset(empty_j);
 
-    // Restore the ctor seed rather than only resetting what is left: an
-    // authoritative vir_slot:[] erases every tray, so reset must not leave
-    // vt_slot permanently empty.
+    // Restore the constructor seed and clear Orca's per-connection retained IDs.
     vt_slot.clear();
     vt_slot.push_back(DevAmsTray(std::to_string(VIRTUAL_TRAY_MAIN_ID)));
+    m_orca_seen_virtual_trays.clear();
+    ams_support_virtual_tray = true;
     // why: reset reuses MachineObject, so release its lazy subtask
     // before dropping the pointer to prevent reconnect leaks.
     if (subtask_) {
@@ -2898,9 +2913,8 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
     try {
         bool restored_json = false;
-        // A frame is authoritative for removals only when it is a full snapshot
-        // (msg=0, or a LAN frame with no msg). Delta frames (msg=1) merge into
-        // the stored state and MUST NOT remove entries they omit (spec §7.3).
+        // msg=0 (or a LAN frame without msg) is parsed as a full snapshot;
+        // removal behavior remains field- and agent-specific.
         bool full_snapshot = true;
         json j;
         if (!parse_ok)
@@ -3313,23 +3327,35 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 m_nozzle_mapping_ptr->ParseAutoNozzleMapping(jj);
 
                 if (jj["command"].get<std::string>() == "ams_change_filament") {
-                    if (jj.contains("errno")) {
-                        if (jj["errno"].is_number()) {
-                            if (jj.contains("soft_temp")) {
-                                int soft_temp = jj["soft_temp"].get<int>();
-                                if (jj["errno"].get<int>() == -2) {
-                                    wxString text = wxString::Format(_L("The chamber temperature is too high, which may cause the filament to soften. Please wait until the chamber temperature drops below %d\u2103. You may open the front door or enable fans to cool down."), soft_temp);
-                                    GUI::wxGetApp().push_notification(this, text);
-                                } else if (jj["errno"].get<int>() == -4) {
-                                    wxString text = wxString::Format(_L("AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d\u2103."), soft_temp);
-                                    GUI::wxGetApp().push_notification(this, text);
-                                }
-                            } else {
-                                if (jj["errno"].get<int>() == -2) {
-                                    wxString text = _L("The current chamber temperature or the target chamber temperature exceeds 45\u2103. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded.");
-                                    GUI::wxGetApp().push_notification(this, text);
-                                }
-                            }
+                    const int ack_errno = jj.contains("errno") && jj["errno"].is_number()
+                        ? jj["errno"].get<int>() : 0;
+                    bool temperature_failure_notified = false;
+                    if (jj.contains("soft_temp") && jj["soft_temp"].is_number()) {
+                        const int soft_temp = jj["soft_temp"].get<int>();
+                        if (ack_errno == -2) {
+                            wxString text = wxString::Format(_L("The chamber temperature is too high, which may cause the filament to soften. Please wait until the chamber temperature drops below %d\u2103. You may open the front door or enable fans to cool down."), soft_temp);
+                            GUI::wxGetApp().push_notification(this, text);
+                            temperature_failure_notified = true;
+                        } else if (ack_errno == -4) {
+                            wxString text = wxString::Format(_L("AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d\u2103."), soft_temp);
+                            GUI::wxGetApp().push_notification(this, text);
+                            temperature_failure_notified = true;
+                        }
+                    } else if (ack_errno == -2) {
+                        wxString text = _L("The current chamber temperature or the target chamber temperature exceeds 45\u2103. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded.");
+                        GUI::wxGetApp().push_notification(this, text);
+                        temperature_failure_notified = true;
+                    }
+
+                    if (is_orca_agent() && !temperature_failure_notified) {
+                        std::string ack_reason;
+                        bool ack_failed = ams_filament_ack_failed(jj, ack_reason);
+                        ack_failed = ack_failed || ack_errno != 0;
+                        if (ack_failed) {
+                            wxString text = _L("Failed to change filament");
+                            if (!ack_reason.empty())
+                                text += wxString::FromUTF8(": ") + wxString::FromUTF8(ack_reason);
+                            GUI::wxGetApp().push_notification(this, text);
                         }
                     }
                 }
@@ -4069,60 +4095,99 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         DevFilaSystemParser::ParseV1_0(jj, this, m_fila_system.get(), key_field_only);
                     }
 
-                    /* vitrual tray*/
+                    /* virtual tray */
                     if (!key_field_only) {
                         try {
-                            if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
+                            if (is_orca_agent()) {
+                                auto clear_unseen_seed = [&]() {
+                                    if (m_orca_seen_virtual_trays.empty()) {
+                                        vt_slot.clear();
+                                        ams_support_virtual_tray = false;
+                                    } else {
+                                        ams_support_virtual_tray = true;
+                                    }
+                                };
+                                auto merge_orca_tray = [&](DevAmsTray vslot) {
+                                    if (vslot.id != std::to_string(VIRTUAL_TRAY_MAIN_ID)
+                                        && vslot.id != std::to_string(VIRTUAL_TRAY_DEPUTY_ID))
+                                        return;
 
+                                    m_orca_seen_virtual_trays.insert(vslot.id);
+                                    auto held = std::find_if(vt_slot.begin(), vt_slot.end(), [&](const DevAmsTray& tray) {
+                                        return tray.id == vslot.id;
+                                    });
+                                    if (held != vt_slot.end()) {
+                                        *held = std::move(vslot);
+                                    } else if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
+                                        vt_slot.insert(vt_slot.begin(), std::move(vslot));
+                                    } else {
+                                        auto main = std::find_if(vt_slot.begin(), vt_slot.end(), [](const DevAmsTray& tray) {
+                                            return tray.id == std::to_string(VIRTUAL_TRAY_MAIN_ID);
+                                        });
+                                        if (main == vt_slot.end()) {
+                                            vt_slot.insert(vt_slot.begin(), DevAmsTray(std::to_string(VIRTUAL_TRAY_MAIN_ID)));
+                                            main = vt_slot.begin();
+                                        }
+                                        auto deputy = std::find_if(vt_slot.begin(), vt_slot.end(), [](const DevAmsTray& tray) {
+                                            return tray.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID);
+                                        });
+                                        if (deputy == vt_slot.end())
+                                            vt_slot.insert(std::next(main), std::move(vslot));
+                                    }
+                                    ams_support_virtual_tray = true;
+                                };
+
+                                if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
+                                    if (jj["vir_slot"].empty()) {
+                                        if (full_snapshot)
+                                            clear_unseen_seed();
+                                    } else {
+                                        for (const auto& entry : jj["vir_slot"]) {
+                                            if (!entry.is_object() || !entry.contains("id") || !entry["id"].is_string())
+                                                continue;
+                                            const std::string id = entry["id"].get<std::string>();
+                                            if (id == std::to_string(VIRTUAL_TRAY_MAIN_ID)
+                                                || id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID))
+                                                merge_orca_tray(parse_vt_tray(entry.get<json>()));
+                                        }
+                                        if (full_snapshot)
+                                            clear_unseen_seed();
+                                    }
+                                } else if (jj.contains("vt_tray")) {
+                                    auto main_slot = parse_vt_tray(jj["vt_tray"].get<json>());
+                                    main_slot.id = std::to_string(VIRTUAL_TRAY_MAIN_ID);
+                                    merge_orca_tray(std::move(main_slot));
+                                } else if (full_snapshot) {
+                                    clear_unseen_seed();
+                                }
+                            } else if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
                                 if (jj["vir_slot"].empty()) {
-                                    // Only a full snapshot can authoritatively clear the layout.
                                     if (full_snapshot) {
                                         vt_slot.clear();
                                         ams_support_virtual_tray = false;
                                     }
-                                }
-                                else {
-                                    // A keyed, populated vir_slot means virtual trays
-                                    // are supported; without this a prior clear left
-                                    // the flag false and the trays were ignored.
+                                } else {
                                     ams_support_virtual_tray = true;
                                     if (full_snapshot) {
-                                        // A full snapshot is authoritative: rebuild
-                                        // from it so an id absent from the list is
-                                        // removed, not left stale (spec §7.3).
                                         std::vector<DevAmsTray> fresh;
-                                        for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
-                                            auto vslot = parse_vt_tray(it.value().get<json>());
-
+                                        for (const auto& entry : jj["vir_slot"]) {
+                                            auto vslot = parse_vt_tray(entry.get<json>());
                                             if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
-                                                if (fresh.empty()) {
+                                                if (fresh.empty())
                                                     fresh.push_back(vslot);
-                                                }
-                                                else {
+                                                else
                                                     fresh[0] = vslot;
-                                                }
-                                            }
-                                            else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-                                                // vt_slot[1] is the deputy. Only the main
-                                                // branch creates index 0, so an orphan
-                                                // deputy (no main) is dropped, not indexed.
-                                                if (!fresh.empty()) {
-                                                    if (fresh.size() > 1) {
-                                                        fresh[1] = vslot;
-                                                    }
-                                                    else {
-                                                        fresh.push_back(vslot);
-                                                    }
-                                                }
+                                            } else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID) && !fresh.empty()) {
+                                                if (fresh.size() > 1)
+                                                    fresh[1] = vslot;
+                                                else
+                                                    fresh.push_back(vslot);
                                             }
                                         }
                                         vt_slot = std::move(fresh);
-                                    }
-                                    else {
-                                        // A delta only updates the entries it names;
-                                        // an omitted entry stays held (spec §7.3).
-                                        for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
-                                            auto vslot = parse_vt_tray(it.value().get<json>());
+                                    } else {
+                                        for (const auto& entry : jj["vir_slot"]) {
+                                            auto vslot = parse_vt_tray(entry.get<json>());
                                             for (auto& held : vt_slot) {
                                                 if (held.id == vslot.id) {
                                                     held = vslot;
@@ -4132,9 +4197,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                         }
                                     }
                                 }
-
-                            }
-                            else if (jj.contains("vt_tray")) {
+                            } else if (jj.contains("vt_tray")) {
                                 ams_support_virtual_tray = true;
                                 auto main_slot = parse_vt_tray(jj["vt_tray"].get<json>());
                                 main_slot.id = std::to_string(VIRTUAL_TRAY_MAIN_ID);
@@ -4148,9 +4211,8 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     vt_slot.push_back(main_slot);
                                 }
                             }
-                            // No virtual-tray key at all: leave the flag as-is. An
-                            // authoritative clear is an explicit vir_slot: [], and
-                            // incremental frames must not hide existing trays.
+                            // For Bambu and legacy agents, missing keys do not change
+                            // the current tray state.
                         }
                         catch (...) {
                             ;

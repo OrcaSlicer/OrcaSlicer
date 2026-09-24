@@ -2173,6 +2173,7 @@ void GUI_App::init_networking_callbacks()
                 /* request_pushing */
                 MachineObject* obj = m_device_manager->get_my_machine(tunnel ? dev_id.substr(7) : dev_id);
                 if (obj) {
+                    obj->reset_orca_virtual_trays_for_reconnect();
                     obj->is_tunnel_mqtt = tunnel;
                     obj->command_request_push_all(true);
                     obj->command_get_version();
@@ -2215,6 +2216,7 @@ void GUI_App::init_networking_callbacks()
 
                         if (obj->is_lan_mode_printer()) {
                             if (state == ConnectStatus::ConnectStatusOk) {
+                                obj->reset_orca_virtual_trays_for_reconnect();
                                 obj->command_request_push_all(true);
                                 obj->command_get_version();
                                 event.SetInt(0);

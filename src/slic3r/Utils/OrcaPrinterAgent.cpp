@@ -41,6 +41,8 @@ const std::string OrcaPrinterAgent_VERSION = "0.0.1";
 namespace {
 
 namespace fs = boost::filesystem;
+constexpr int kVirtualTrayDeputyId = 254;
+constexpr int kVirtualTrayMainId   = 255;
 
 // params.filename is normally the exported .3mf archive; the sliced G-code sits
 // beside it with the same stem (".12345.0.3mf" -> ".12345.0.gcode"). params.dst_file,
@@ -779,18 +781,7 @@ int OrcaPrinterAgent::send_message(std::string dev_id, std::string json_str, int
 
 int OrcaPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int tray_id, int sequence_id, bool lan_mode)
 {
-    (void) ams_id;
-    // int tray_number = 0;
-    // if (!parse_nonnegative_command_id(tray_id, tray_number)) {
-    //     BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: invalid RFID tray id=" << tray_id;
-    //     return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    // }
-
-    nlohmann::json j;
-    j["print"]["command"]     = "ams_get_rfid";
-    j["print"]["sequence_id"] = std::to_string(sequence_id);
-    j["print"]["tray_id"]     = tray_id;
-    return route_send(lan_mode, dev_id, j.dump());
+    return route_send(lan_mode, dev_id, build_ams_refresh_rfid_body(ams_id, tray_id, sequence_id));
 }
 
 int OrcaPrinterAgent::command_ams_calibrate(std::string /*dev_id*/, int /*ams_id*/, int /*sequence_id*/, bool /*lan_mode*/)
@@ -808,8 +799,26 @@ std::string OrcaPrinterAgent::build_ams_change_filament_body(int tray_number, in
     // fabricated flat lane: the server's one resolver maps wide and sparse
     // boxes correctly (REQ-STS-008 §7.8).
     j["print"]["selector"] = "lane";
-    j["print"]["ams_id"]   = tray_number / 4;
-    j["print"]["slot_id"]  = tray_number % 4;
+    if (tray_number == kVirtualTrayMainId || tray_number == kVirtualTrayDeputyId) {
+        j["print"]["ams_id"]  = tray_number;
+        j["print"]["slot_id"] = 0;
+    } else {
+        j["print"]["ams_id"]  = tray_number / 4;
+        j["print"]["slot_id"] = tray_number % 4;
+    }
+    return j.dump();
+}
+
+std::string OrcaPrinterAgent::build_ams_refresh_rfid_body(int ams_id, int tray_or_slot_id, int sequence_id)
+{
+    const int tray_id = ams_id == -1
+        ? tray_or_slot_id
+        : (ams_id >= 240 && ams_id <= 255 ? ams_id : ams_id * 4 + tray_or_slot_id);
+
+    nlohmann::json j;
+    j["print"]["command"]     = "ams_get_rfid";
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    j["print"]["tray_id"]     = tray_id;
     return j.dump();
 }
 
@@ -1274,14 +1283,9 @@ int OrcaPrinterAgent::disconnect_printer()
 int OrcaPrinterAgent::send_message_to_printer(std::string dev_id, std::string json_str, int /*qos*/, int /*flag*/)
 { return route_send(/*is_lan=*/true, dev_id, json_str); }
 
-// Rewrite Bambu-convention print.ams_* payloads onto the canonical OrcaSonar
-// bodies (OPCP spec §7.8) and enforce the device's declared ams_ops. DevFilaSystem
-// is built from flat lane indices, so the Bambu encodings the shared
-// MachineObject command builders emit — ams_id/slot_id 4-tray pseudo-groups,
-// virtual tray ids 254/255 — are decoded here, at the single funnel all print
-// commands cross, and never reach the server. A command whose op token the
-// device did not declare short-circuits as *unsupported (CAP_NOT_AVAILABLE),
-// which publish_json already renders as the friendly unsupported dialog.
+// Rewrite recognized Bambu-coordinate requests to the canonical OrcaSonar
+// bodies (OPCP spec §7.8) and enforce the device's declared capabilities.
+// Explicit selectors and legacy target requests retain their wire semantics.
 std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id, const std::string& json_str, bool* unsupported)
 {
     if (unsupported)
@@ -1299,18 +1303,34 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
         // connector state through the filament-slot model, so filament_slots
         // alone advertises it (OrcaSonar OPCP §7.8).
         auto op_allowed = [&dev_id](const std::string& o) {
-            return o.empty() || ams_op_supported(dev_id, o) || (o == "filament_setting" && has_filament_slots(dev_id));
+            if (o == "filament_setting")
+                return !ams_caps_known(dev_id) || has_filament_slots(dev_id);
+            return o.empty() || ams_op_supported(dev_id, o);
         };
+        const bool fms_allowed = !ams_caps_known(dev_id) || has_ams_capability(dev_id);
 
         if (cmd == "ams_change_filament" && print.contains("selector")) {
             // Already canonical (e.g. command_ams_select_tray): gate the op,
             // but never rewrite the body.
             const std::string sel = print.value("selector", std::string());
-            // A lane can resolve to an external slot server-side (§7.8), so
-            // either write op admits it; other selectors gate on their own token.
-            const bool allowed = (sel == "lane")
-                ? (op_allowed("change_filament") || op_allowed("external"))
+            bool lane_has_coordinates = false;
+            bool coordinate_is_external = false;
+            if (sel == "lane") {
+                const auto ams_it  = print.find("ams_id");
+                const auto slot_it = print.find("slot_id");
+                lane_has_coordinates = ams_it != print.end() && ams_it->is_number_integer()
+                    && slot_it != print.end() && slot_it->is_number_integer();
+                if (lane_has_coordinates) {
+                    const int ams = ams_it->get<int>();
+                    coordinate_is_external = ams >= 240 && ams <= 255;
+                }
+            }
+            const bool selector_op_allowed = sel == "lane"
+                ? (lane_has_coordinates
+                    ? op_allowed(coordinate_is_external ? "external" : "change_filament")
+                    : (op_allowed("change_filament") || op_allowed("external")))
                 : op_allowed(sel);
+            const bool allowed = fms_allowed && selector_op_allowed;
             if (!allowed && unsupported)
                 *unsupported = true;
             return json_str;
@@ -1325,32 +1345,27 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
             const int target = int_or("target", -1);
             const int slot   = int_or("slot_id", -1);
             const int ams    = int_or("ams_id", -1);
+            const bool has_target = target >= 0 && target <= 255 && print.contains("target");
+            const bool legacy_unload = target == 255 && slot == 255;
+            const bool has_coordinates = ams >= 0 && slot >= 0;
+
+            // The old request path retains macro semantics. Only translate the
+            // Slicer-generated Bambu form when its coordinates identify a slot.
+            const bool ambiguous_external_target = target == 255 && ams < 240;
+            if (!has_target || legacy_unload || ambiguous_external_target || !has_coordinates || ams > 255) {
+                const bool legacy_op_allowed = op_allowed("change_filament")
+                    || op_allowed("external") || op_allowed("unload");
+                if ((!fms_allowed || !legacy_op_allowed) && unsupported)
+                    *unsupported = true;
+                return json_str;
+            }
+
             print.erase("target");
             print.erase("tray_id");
-            if (target == 255 && slot == 255) {
-                print.erase("slot_id");
-                print.erase("ams_id");
-                print["selector"] = "unload";
-                op                = "unload";
-            } else if (target == 255 || ams == 254 || ams == 255) {
-                print.erase("slot_id");
-                print.erase("ams_id");
-                print["selector"] = "external";
-                op                = "external";
-            } else {
-                // Box change: forward the wire coordinates unchanged. Erase
-                // both first so a half-present coordinate pair from the client
-                // cannot leak into the body (a lone lane alias is untouched). A
-                // coordinate-less body is left for the server's own -19.
-                print["selector"] = "lane";
-                print.erase("ams_id");
-                print.erase("slot_id");
-                if (ams >= 0 && slot >= 0) {
-                    print["ams_id"]  = ams;
-                    print["slot_id"] = slot;
-                }
-                op = "change_filament";
-            }
+            print["selector"] = "lane";
+            print["ams_id"]   = ams;
+            print["slot_id"]  = slot;
+            op = ams >= 240 ? "external" : "change_filament";
         } else if (cmd == "ams_filament_setting") {
             op             = "filament_setting";
             const int ams  = int_or("ams_id", -1);
@@ -1375,7 +1390,15 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
             if (!print.contains("tray_id")) {
                 const int ams  = int_or("ams_id", -1);
                 const int slot = int_or("slot_id", -1);
-                if (ams >= 0 && slot >= 0) {
+                if (ams == -1 && slot >= 0) {
+                    print["tray_id"] = slot;
+                    print.erase("ams_id");
+                    print.erase("slot_id");
+                } else if (ams >= 240 && ams <= 255 && slot >= 0) {
+                    print["tray_id"] = ams;
+                    print.erase("ams_id");
+                    print.erase("slot_id");
+                } else if (ams >= 0 && ams < 240 && slot >= 0) {
                     print["tray_id"] = ams * 4 + slot; // legacy ams+slot call shape
                     print.erase("ams_id");
                     print.erase("slot_id");
@@ -1384,7 +1407,8 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
         } else if (cmd == "auto_stop_ams_dry") {
             op = "stop_dry";
         }
-        if (!op_allowed(op) && unsupported)
+        const bool needs_fms = cmd != "ams_filament_setting" && !op.empty();
+        if (((needs_fms && !fms_allowed) || !op_allowed(op)) && unsupported)
             *unsupported = true;
         return envelope.dump();
     } catch (const std::exception&) {
