@@ -1410,60 +1410,74 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		update_print_status_msg(wxEmptyString, false, false);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
-	} else if (status == PrintDialogStatus::PrintStatusInvalidPrinter) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusInvalidPrinter) {
 		update_print_status_msg(wxEmptyString, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
-	} else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
 		wxString msg_text = _L("Connecting to server...");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
-    } else if (status == PrintDialogStatus::PrintStatusReading) {
+    }
+    else if (status == PrintDialogStatus::PrintStatusReading) {
         wxString msg_text = _L("Synchronizing device information...");
         update_print_status_msg(msg_text, false, true);
         Enable_Send_Button(false);
         Enable_Refresh_Button(false);
-    } else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
+    }
+
+	else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
 		update_print_status_msg(wxEmptyString, false, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
-	} else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
 		wxString msg_text = _L("Synchronizing device information timed out.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
-	} else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
 		wxString msg_text = _L("Cannot send print tasks when an update is in progress");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
-	} else if (status == PrintDialogStatus::PrintStatusUnsupportedPrinter) {
+	}
+    else if (status == PrintDialogStatus::PrintStatusUnsupportedPrinter) {
         wxString msg_text = _L("The selected printer is incompatible with the chosen printer presets.");
         update_print_status_msg(msg_text, true, true);
-        Enable_Send_Button(true);
+        Enable_Send_Button(false);
         Enable_Refresh_Button(true);
-    } else if (status == PrintDialogStatus::PrintStatusRefreshingMachineList) {
+    }
+	else if (status == PrintDialogStatus::PrintStatusRefreshingMachineList) {
 		update_print_status_msg(wxEmptyString, false, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(false);
-	} else if (status == PrintDialogStatus::PrintStatusSending) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusSending) {
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(false);
-	} else if (status == PrintDialogStatus::PrintStatusSendingCanceled) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusSendingCanceled) {
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
-	} else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
+	}
+	else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
 		wxString msg_text = _L("Storage needs to be inserted before send to printer.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
-    } else if (status == PrintDialogStatus::PrintStatusNotOnTheSameLAN) {
+    }
+    else if (status == PrintDialogStatus::PrintStatusNotOnTheSameLAN) {
         wxString msg_text = _L("The printer is required to be on the same LAN as Orca Slicer.");
         update_print_status_msg(msg_text, true, true);
         Enable_Send_Button(false);
         Enable_Refresh_Button(true);
-    } else if (status == PrintDialogStatus::PrintStatusNotSupportedSendToSDCard) {
+    }
+    else if (status == PrintDialogStatus::PrintStatusNotSupportedSendToSDCard) {
         wxString msg_text = _L("The printer does not support sending to printer storage.");
         update_print_status_msg(msg_text, true, true);
         Enable_Send_Button(false);

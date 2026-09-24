@@ -754,8 +754,12 @@ set(SLIC3R_GUI_SOURCES
     Utils/ICameraSignalingChannel.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
+    Utils/OrcaMqttConnection.cpp
+    Utils/OrcaMqttConnection.hpp
     Utils/OrcaPrinterAgent.cpp
     Utils/OrcaPrinterAgent.hpp
+    Utils/OrcaCloudSignalingChannel.cpp
+    Utils/OrcaCloudSignalingChannel.hpp
     Utils/QidiPrinterAgent.cpp
     Utils/QidiPrinterAgent.hpp
     Utils/SnapmakerPrinterAgent.cpp
@@ -896,7 +900,7 @@ target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DI
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
-    target_link_libraries(libslic3r_gui Advapi32)
+    target_link_libraries(libslic3r_gui Advapi32 Crypt32)
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})

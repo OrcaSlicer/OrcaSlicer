@@ -2,8 +2,8 @@
 #include "BBLNetworkPlugin.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
-#include "NetworkAgent.hpp"
 #include "libslic3r/Utils.hpp"
+#include "NetworkAgent.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
@@ -11,13 +11,14 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
-#include <cmath>
-#include <slic3r/GUI/DeviceManager.hpp>
 using json = nlohmann::json;
 
 #include <type_traits>
 #include <unordered_map>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <cmath>
+#include <slic3r/GUI/DeviceManager.hpp>
 
 namespace Slic3r {
 
@@ -197,8 +198,9 @@ int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, 
         int dir = input_val > 0 ? 1 : -1;
         // i3-arch printers move the bed for Y/Z, so the on-screen direction is
         // reversed -- same negation the g-code fallback below applies.
-        if (!is_core_xy && (axis == "Y" || axis == "Z"))
+        if (!is_core_xy && (axis == "Y" || axis == "Z")) {
             dir = -dir;
+        }
 
         j["print"]["command"] = "xyz_ctrl";
         j["print"]["axis"] = axis;
@@ -208,8 +210,9 @@ int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, 
     }
 
     double value = input_val;
-    if (!is_core_xy && (axis == "Y" || axis == "Z"))
-        value = -input_val;
+    if (!is_core_xy && (axis == "Y" || axis == "Z")) {
+        value = -1.0 * input_val;
+    }
 
     std::string value_str = (boost::format("%.1f") % (value * unit)).str();
     std::string gcode;
@@ -230,10 +233,11 @@ int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, 
 int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode)
 {
     const int rtn = lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0) : send_message(dev_id, j.dump(), 0, 0);
-    if (rtn == 0)
+    if (rtn == 0) {
         BOOST_LOG_TRIVIAL(info) << "publish_json: " << j.dump() << " code: " << rtn;
-    else
+    } else {
         BOOST_LOG_TRIVIAL(error) << "publish_json: " << j.dump() << " code: " << rtn;
+    }
     return rtn;
 }
 
@@ -579,8 +583,15 @@ int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateS
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    return dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
+    int result = dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
         BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
+    if (result != 0) {
+        BOOST_LOG_TRIVIAL(error) << "start_send_gcode_to_sdcard failed: result=" << result
+            << ", try_emmc_print=" << params.try_emmc_print
+            << ", legacy_mode=" << BBLNetworkPlugin::instance().use_legacy_network()
+            << ", dev_ip=" << params.dev_ip << ", dev_id=" << params.dev_id;
+    }
+    return result;
 }
 
 int BBLPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
