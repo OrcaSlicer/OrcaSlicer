@@ -123,10 +123,18 @@ void remap_mixed_components_on_delete(
     std::vector<std::string>         &comp_strs,
     unsigned int                      del_1based);
 
-// Check which mixed filament slots have type-mismatched components.
+// Whether two filament types may be blended into one mixed slot. The components alternate inside a
+// single printed body, so they have to bond - but "bond" is the adhesion question MaterialType
+// already answers, not string equality. A shared material family (PLA / PLA-CF) or a listed
+// cross-family bond (ABS / PC) is fine; only materials known not to bond are rejected. Pairs the
+// table has no data for are allowed rather than blocked, while a support-flagged "-S" type blends
+// only with itself.
+bool mixed_filament_types_compatible(const std::string &type_a, const std::string &type_b);
+
+// Check which mixed filament slots have components that cannot bond to each other.
 // filament_types: type strings for physical filaments (0-based, size == num_physical).
 // Component IDs in comp_strs are 1-based; the function converts to 0-based to look up types.
-// Returns 0-based config indices of mixed slots with mismatched component types.
+// Returns 0-based config indices of the offending mixed slots.
 std::vector<size_t> check_mixed_filament_type_consistency(
     const std::vector<unsigned char> &is_mixed,
     const std::vector<std::string>   &comp_strs,
