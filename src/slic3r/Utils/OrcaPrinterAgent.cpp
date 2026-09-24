@@ -1000,11 +1000,10 @@ void OrcaPrinterAgent::on_connected(const std::string& dev_id, OrcaMqttConnectio
 
 int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
-    BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: connect_printer requested dev_id=" << dev_id << " dev_ip=" << dev_ip
-                            << " username=" << (username.empty() ? "<default>" : username) << " password_present=" << (!password.empty())
-                            << " use_ssl=" << use_ssl;
-    (void) use_ssl; // OrcaSonar LAN is plaintext ws://
-    if (dev_id.empty() || dev_ip.empty()) {
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: connect_printer requested dev_id=" << params.dev_id << " dev_ip=" << params.host
+                            << " username=" << (params.username.empty() ? "<default>" : params.username) << " password_present=" << (!params.password.empty())
+                            << " use_ssl=" << params.use_ssl;
+    if (params.dev_id.empty() || params.host.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: connect_printer rejected missing dev_id or dev_ip";
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
@@ -1017,11 +1016,12 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     const uint64_t gen = ++m_lan_generation;
 
     OrcaMqttConnection::Config cfg;
-    cfg.url               = "ws://" + host + ":" + port + "/mqtt";
-    cfg.use_tls           = false;
-    cfg.username          = username.empty() ? std::string("orcasonar") : username;
-    cfg.password          = password;
-    cfg.client_id         = make_lan_client_id(dev_id);
+    cfg.url               = (params.use_ssl ? "wss://" : "ws://") + host + ":" + port + "/mqtt";
+    cfg.use_tls           = params.use_ssl;
+    cfg.ca_file           = params.ca_file;
+    cfg.username          = params.username.empty() ? std::string("orcasonar") : params.username;
+    cfg.password          = params.password;
+    cfg.client_id         = make_lan_client_id(params.dev_id);
     cfg.keepalive_seconds = 60;
 
     BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN connection prepared generation=" << gen << " host=" << host << " port=" << port
@@ -1035,6 +1035,8 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
         previous_connection  = m_current_connection;
         m_lan_dev_id         = dev_id;
         m_lan_url            = cfg.url;
+        m_lan_use_ssl       = params.use_ssl;
+        m_lan_ca_file       = params.ca_file;
         m_camera_stream_mode = CameraStreamMode::none;
         m_camera_url.clear();
         m_current_connection = LAN;
@@ -1108,6 +1110,8 @@ int OrcaPrinterAgent::disconnect_printer()
         doomed              = std::move(lan_mqtt_connection);
         prev_dev            = m_lan_dev_id;
         m_lan_dev_id.clear();
+        m_lan_use_ssl       = false;
+        m_lan_ca_file.clear();
         if (m_current_connection == LAN) {
             m_current_connection = NONE;
             m_camera_stream_mode = CameraStreamMode::none;
@@ -1447,9 +1451,17 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
         return BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED;
     }
 
+    bool        use_ssl = false;
+    std::string ca_file;
+    {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        use_ssl = m_lan_use_ssl;
+        ca_file = m_lan_ca_file;
+    }
+
     std::string host, port, origin;
     if (parse_lan_endpoint(params.dev_ip, host, port))
-        origin = "http://" + host;
+        origin = (use_ssl ? "https://" : "http://") + host;
     else
         origin = http_origin_from_lan_ws(lan_connection_target());
     if (origin.empty()) {
@@ -1470,7 +1482,11 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
     std::string response_body;
 
     // check if printer has enough storage
-    Http::get(origin + "/server/files/directory?path=gcodes")
+    auto directory_http = Http::get(origin + "/server/files/directory?path=gcodes");
+    directory_http.tls_verify(use_ssl);
+    if (!ca_file.empty())
+        directory_http.ca_file(ca_file);
+    directory_http
         .on_complete([&](std::string body, unsigned status) {
             if (body.empty()) {
                 http_status = 400;
@@ -1507,6 +1523,9 @@ int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params,
     }
 
     auto http = Http::post(origin + "/server/files/upload");
+    http.tls_verify(use_ssl);
+    if (!ca_file.empty())
+        http.ca_file(ca_file);
     if (!params.password.empty())
         http.header("X-Api-Key", params.password); // trusted LAN facades may not require it; harmless when they do not
     http.form_add("root", "gcodes")
