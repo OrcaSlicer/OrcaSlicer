@@ -104,6 +104,11 @@ bool   ams_op_supported(const std::string& dev_id, const std::string& op);
 void   register_ams_capability(const std::string& dev_id, bool has_ams);
 bool   has_ams_capability(const std::string& dev_id);
 
+// Whether the device has answered get_capabilities at all (any reply, even one
+// declaring no material system). Lets a client re-request capabilities only
+// while the topology is still unconfirmed, instead of on every filament frame.
+bool   ams_caps_known(const std::string& dev_id);
+
 // Whether the device exposes the filament-slot model, from the
 // get_capabilities reply's protocol.features.filament_slots. The slot model is
 // connector state, independent of fms: a printer with no material hardware

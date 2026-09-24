@@ -45,7 +45,8 @@ struct DevFilamentDryingPreset;
  * - color: Hex color string without '#' prefix (e.g., "FF0000")
  * - cols: Multi-color component list for gradient/multi-color filaments
  * - ctype: Color type indicator
- * - is_exists: Whether filament is currently loaded in the tray
+ * - is_exists: Whether the slot is present/configured (the user's layout wins);
+ *   not whether filament is loaded, so a configured empty slot stays present
  */
 class DevAmsTray
 {

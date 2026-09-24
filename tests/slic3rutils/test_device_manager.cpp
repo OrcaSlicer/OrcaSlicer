@@ -88,6 +88,92 @@ TEST_CASE("An orphan deputy virtual tray is dropped, not indexed", "[DeviceManag
     CHECK(machine.vt_slot.empty());
 }
 
+// OrcaSonar emits a virtual slot only when the layout has it, so it counts as
+// present even with no filament: the user's configuration wins.
+TEST_CASE("A configured vir_slot is present even with no material", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
+
+    REQUIRE(machine.vt_slot.size() == 2);
+    CHECK(machine.vt_slot[0].is_exists);
+    CHECK(machine.vt_slot[1].is_exists);
+}
+
+// A full vir_slot snapshot is authoritative: an id it omits is removed, so a
+// tool-count shrink does not leave a stale deputy tray.
+TEST_CASE("A populated vir_slot prunes virtual trays it omits", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[{"id":"255"}]}})", false);
+
+    REQUIRE(machine.vt_slot.size() == 1);
+    CHECK(machine.vt_slot[0].id == "255");
+}
+
+// A delta frame (msg=1) is not authoritative for removals: an entry it omits
+// stays held, and an entry it names is updated in place (spec §7.3).
+TEST_CASE("A delta vir_slot does not prune virtual trays it omits", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+
+    // Delta names only the deputy: the main must survive, the deputy updates.
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":1,"vir_slot":[{"id":"254","tag_uid":"ABCDEF0123456789"}]}})", false);
+
+    REQUIRE(machine.vt_slot.size() == 2);
+    CHECK(machine.vt_slot[0].id == "255");
+    CHECK(machine.vt_slot[1].id == "254");
+    CHECK(machine.vt_slot[1].tag_uid == "ABCDEF0123456789");
+}
+
+// An empty delta is not authoritative and must preserve the known layout.
+TEST_CASE("An empty delta vir_slot keeps the virtual trays", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"vir_slot":[{"id":"255"},{"id":"254"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 2);
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","msg":1,"vir_slot":[]}})", false);
+
+    REQUIRE(machine.vt_slot.size() == 2);
+    CHECK(machine.vt_slot[0].id == "255");
+    CHECK(machine.vt_slot[1].id == "254");
+    CHECK(machine.ams_support_virtual_tray);
+}
+
+TEST_CASE("Capability flags parse without a DeviceManager", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    machine.parse_json("lan",
+        R"({"info":{"command":"get_capabilities","capabilities":{"flags":{"support_tunnel_mqtt":true}}}})", false);
+
+    CHECK(machine.is_support_tunnel_mqtt);
+}
+
+// A filament setting landing on the virtual tray also marks it present.
+TEST_CASE("A virtual tray setting marks the tray present", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    machine.parse_json("lan", R"({"print":{"command":"push_status","vir_slot":[{"id":"255"}]}})", false);
+    REQUIRE(machine.vt_slot.size() == 1);
+    machine.vt_slot[0].is_exists = false;
+
+    machine.parse_json("lan", R"({"print":{"command":"ams_filament_setting","ams_id":255,"tray_id":255,"tray_color":"FF0000FF","tray_type":"PLA","tray_info_idx":"GFA00","nozzle_temp_min":190,"nozzle_temp_max":230}})", false);
+
+    CHECK(machine.vt_slot[0].is_exists);
+}
+
 // acks that target the virtual tray must survive an emptied vt_slot.
 TEST_CASE("Virtual tray acks are safe with no virtual tray", "[DeviceManager]")
 {

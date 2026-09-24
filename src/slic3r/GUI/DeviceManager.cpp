@@ -477,7 +477,8 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
 {
     this->access_code = code;
     if (only_refresh) {
-        AppConfig* config = m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config;
+        AppConfig* config = m_manager ? m_manager->get_app_config()
+                                     : (wxTheApp ? GUI::wxGetApp().app_config : nullptr);
         if (config) {
             if (is_lan_mode_printer()) {
                 // why: LAN codes are scoped via BBLocalMachine::access_code, keyed by dev_id and
@@ -2843,6 +2844,10 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
     try {
         bool restored_json = false;
+        // A frame is authoritative for removals only when it is a full snapshot
+        // (msg=0, or a LAN frame with no msg). Delta frames (msg=1) merge into
+        // the stored state and MUST NOT remove entries they omit (spec §7.3).
+        bool full_snapshot = true;
         json j;
         if (!parse_ok)
             j_pre = json::parse(payload);
@@ -2859,11 +2864,12 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             BOOST_LOG_TRIVIAL(trace) << "static: get push_all msg, dev_id=" << dev_id;
                             m_push_count++;
                             m_full_msg_count++;
-
+                            full_snapshot = true;
                             if (!printer_type.empty())
                                 print_json.load_compatible_settings(printer_type, "");
                             print_json.diff2all_base_reset(j_pre);
                         } else if (j_pre["print"]["msg"].get<int>() == 1) {    //diff message
+                            full_snapshot = false;
                             if (print_json.diff2all(j_pre, j) == 0) {
                                 restored_json = true;
                             } else {
@@ -3091,7 +3097,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
             }
 
             if (!key_field_only) {
-                if (!m_manager->IsMultiMachineEnabled() && !is_support_agora) {
+                if ((!m_manager || !m_manager->IsMultiMachineEnabled()) && !is_support_agora) {
                     if (jj.contains("support_tunnel_mqtt")) {
                         if (jj["support_tunnel_mqtt"].is_boolean()) {
                             is_support_tunnel_mqtt = jj["support_tunnel_mqtt"].get<bool>();
@@ -4015,39 +4021,60 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
 
                                 if (jj["vir_slot"].empty()) {
-                                    // Authoritative empty: OrcaSonar pushes [] when the
-                                    // topology is known but has no slots; clear stale trays.
-                                    vt_slot.clear();
-                                    ams_support_virtual_tray = false;
+                                    // Only a full snapshot can authoritatively clear the layout.
+                                    if (full_snapshot) {
+                                        vt_slot.clear();
+                                        ams_support_virtual_tray = false;
+                                    }
                                 }
                                 else {
                                     // A keyed, populated vir_slot means virtual trays
                                     // are supported; without this a prior clear left
                                     // the flag false and the trays were ignored.
                                     ams_support_virtual_tray = true;
-                                }
+                                    if (full_snapshot) {
+                                        // A full snapshot is authoritative: rebuild
+                                        // from it so an id absent from the list is
+                                        // removed, not left stale (spec §7.3).
+                                        std::vector<DevAmsTray> fresh;
+                                        for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
+                                            auto vslot = parse_vt_tray(it.value().get<json>());
 
-                                for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
-                                    auto vslot = parse_vt_tray(it.value().get<json>());
-
-                                    if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
-                                        auto it = std::next(vt_slot.begin(), 0);
-                                        if (it != vt_slot.end()) {
-                                            vt_slot[0] = vslot;
+                                            if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
+                                                if (fresh.empty()) {
+                                                    fresh.push_back(vslot);
+                                                }
+                                                else {
+                                                    fresh[0] = vslot;
+                                                }
+                                            }
+                                            else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
+                                                // vt_slot[1] is the deputy. Only the main
+                                                // branch creates index 0, so an orphan
+                                                // deputy (no main) is dropped, not indexed.
+                                                if (!fresh.empty()) {
+                                                    if (fresh.size() > 1) {
+                                                        fresh[1] = vslot;
+                                                    }
+                                                    else {
+                                                        fresh.push_back(vslot);
+                                                    }
+                                                }
+                                            }
                                         }
-                                        else {
-                                            vt_slot.push_back(vslot);
-                                        }
+                                        vt_slot = std::move(fresh);
                                     }
-                                    else if (vslot.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-                                        // vt_slot[1] is the deputy. Only the main
-                                        // branch creates index 0, so an orphan
-                                        // deputy (no main) is dropped, not indexed.
-                                        if (vt_slot.size() > 1) {
-                                            vt_slot[1] = vslot;
-                                        }
-                                        else if (vt_slot.size() == 1) {
-                                            vt_slot.push_back(vslot);
+                                    else {
+                                        // A delta only updates the entries it names;
+                                        // an omitted entry stays held (spec §7.3).
+                                        for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
+                                            auto vslot = parse_vt_tray(it.value().get<json>());
+                                            for (auto& held : vt_slot) {
+                                                if (held.id == vslot.id) {
+                                                    held = vslot;
+                                                    break;
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -4137,6 +4164,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             vt_slot[0].setting_id = jj["tray_info_idx"].get<std::string>();
                             //vt_tray.type = jj["tray_type"].get<std::string>();
                             vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
+                            vt_slot[0].is_exists = true;
                             // delay update
                             vt_slot[0].set_hold_count();
                         } else {
@@ -4682,7 +4710,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
     if (diff.count() > 10.0f) {
         BOOST_LOG_TRIVIAL(trace) << "parse_json timeout = " << diff.count();
     }
-    DeviceManager::update_local_machine(*this, m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config);
+    AppConfig* app_config = m_manager ? m_manager->get_app_config()
+                                      : (wxTheApp ? GUI::wxGetApp().app_config : nullptr);
+    DeviceManager::update_local_machine(*this, app_config);
 
     return 0;
 }
@@ -5084,6 +5114,9 @@ bool MachineObject::is_firmware_info_valid()
 DevAmsTray MachineObject::parse_vt_tray(json vtray)
 {
     auto vt_tray = DevAmsTray(std::to_string(VIRTUAL_TRAY_MAIN_ID));
+    // OrcaSonar emits a virtual slot only when the layout has it: the user's
+    // configuration wins, so it is present even with no material loaded.
+    vt_tray.is_exists = true;
 
     if (vtray.contains("id"))
         vt_tray.id = vtray["id"].get<std::string>();
@@ -5530,7 +5563,7 @@ void MachineObject::parse_new_info2(const json& info)
     parse_bool("support_build_plate_marker_detect", is_support_build_plate_marker_detect);
     parse_bool("support_nozzle_blob_detect", is_support_nozzle_blob_detection);
 
-    if (!m_manager->IsMultiMachineEnabled() && !is_support_agora)
+    if ((!m_manager || !m_manager->IsMultiMachineEnabled()) && !is_support_agora)
         parse_bool("support_tunnel_mqtt", is_support_tunnel_mqtt);
 
     const auto bed_leveling_it = flags.find("support_bed_leveling");

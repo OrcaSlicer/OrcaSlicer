@@ -152,6 +152,41 @@ The methods remain on the common interface so an agent that supports them can ov
 `sequence_id` remains part of the command contract because `DeviceManager` creates and tracks it as
 the command ID.
 
+## Filament and AMS synchronization
+
+The `OrcaPrinterAgent` bridges OrcaSonar's filament/AMS state. Its capability reply
+carries two independent signals: `protocol.features.fms` means a material system resolves,
+and `protocol.features.filament_slots` means the connector owns a filament-slot model that
+persists without any material hardware. Either one enables filament synchronization, so a
+printer with slots but no AMS still exposes the slot workflow. The agent also caches
+`protocol.ams_ops`, the canonical material write operations the resolved drivers implement,
+and uses it to gate AMS writes; `print.ams_filament_setting` is exempt because it persists
+connector state and is advertised by `filament_slots` alone. A write whose operation is not
+declared is refused with `CAP_NOT_AVAILABLE` before it reaches the wire.
+
+Printer state arrives as the pushed `ams`/`vir_slot` projection inside `push_status`; the
+Orca agent does not poll the Moonraker `lane_data` namespace, which exists for
+Moonraker-channel consumers. Slot presence is the user's declaration, not sensed material:
+`tray_exist_bits` and the presence of a `vir_slot` entry mark a slot as present even with an
+empty `tray_type`, which is the `is_exists` state the filament UI reads. A full status frame
+(`msg=0`, or a LAN frame with no `msg`) is authoritative for removals, so a virtual tray id
+absent from a populated `vir_slot` is dropped; a delta frame (`msg=1`) only updates the
+entries it names and leaves omitted entries held.
+
+Writes follow the same edge-translation rule as the rest of the agent. The shared
+`MachineObject` command builders emit Bambu-shaped `print.ams_*` payloads, and the agent's
+single send funnel decodes them into OrcaSonar's canonical bodies — `selector` with a flat
+lane or `ams_id`/`slot_id` coordinates for `ams_change_filament`, coordinates for
+`ams_filament_setting` — before publishing. The server resolves and rejects with its own
+`errno` backstop; the agent only withholds operations the device did not declare.
+
+A filament frame can arrive before the capability reply that decides synchronization mode,
+for example when the topology bootstraps after connect or Klipper restarts. While a device's
+capabilities are still unknown, the agent re-requests `get_capabilities` and a full status on
+a filament frame, throttled per device, and stops once an answer arrives. Dedicated
+capability state is cleared when a cloud device is deselected, while an independently active
+LAN session for the same device id keeps its declaration.
+
 ## Device ownership and stale responses
 
 Printer-agent ownership is represented by `printer_agent_id` on device records and `MachineObject`
@@ -233,6 +268,10 @@ inside the Bambu agent and the Orca agent's v1 sink adapter can be removed as a 
   cloud camera contract
 - [`NetworkAgent`](../../src/slic3r/Utils/NetworkAgent.hpp) — façade and dispatch between active agents
 - [`NetworkAgentFactory`](../../src/slic3r/Utils/NetworkAgentFactory.hpp) — built-in and Python agent registry
+- [`OrcaPrinterAgent`](../../src/slic3r/Utils/OrcaPrinterAgent.hpp) — OrcaSonar transport, capability
+  discovery, and Bambu-to-canonical command translation
+- [`AmsPayload`](../../src/slic3r/Utils/AmsPayload.hpp) — shared filament payload rendering and the
+  per-device AMS capability cache
 - [`DeviceManager`](../../src/slic3r/GUI/DeviceCore/DevManager.cpp) — device ownership, filtering, and
   stale-response checks
 - [`PrinterAgentPluginCapability`](../../src/slic3r/plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp)

@@ -394,6 +394,20 @@ TEST_CASE("OrcaPrinterAgent rewrites Bambu ams_* payloads onto the canonical Orc
     canon("dev-c2", R"({"print":{"command":"ams_change_filament","selector":"external"}})", &unsupported);
     CHECK(unsupported);
 
+    // A lane can resolve to an external slot server-side (§7.8), so a device
+    // that declares only external still admits a canonical lane write.
+    Slic3r::register_ams_ops("dev-c4", {"external"});
+    unsupported = false;
+    canon("dev-c4", R"({"print":{"command":"ams_change_filament","selector":"lane","lane":1}})", &unsupported);
+    CHECK(!unsupported);
+    unsupported = false;
+    canon("dev-c4", R"({"print":{"command":"ams_change_filament","selector":"external"}})", &unsupported);
+    CHECK(!unsupported);
+    // Other selectors still gate on their own token.
+    unsupported = false;
+    canon("dev-c4", R"({"print":{"command":"ams_change_filament","selector":"unload"}})", &unsupported);
+    CHECK(unsupported);
+
     // A device with no capabilities record is never gated (server backstops).
     unsupported = false;
     canon("dev-c3", R"({"print":{"command":"ams_user_setting","ams_id":0}})", &unsupported);
@@ -440,4 +454,73 @@ TEST_CASE("an AMS tray selection sends the tray's ams_id and slot_id", "[OrcaPri
     body = nlohmann::json::parse(OrcaPrinterAgent::build_ams_change_filament_body(3, 124));
     CHECK(body["print"]["ams_id"] == 0);
     CHECK(body["print"]["slot_id"] == 3);
+}
+
+// A filament frame can arrive after the get_capabilities reply was missed (the
+// topology resolved late, or Klipper restarted). While the device is still
+// unconfirmed, one filament frame must re-ask, throttled, and stop once a reply
+// arrives so the session can leave FilamentSyncMode::none.
+TEST_CASE("a filament frame re-requests capabilities while the topology is unconfirmed", "[OrcaPrinterAgent]") {
+    struct RefreshProbe : OrcaPrinterAgent {
+        using OrcaPrinterAgent::OrcaPrinterAgent;
+        using OrcaPrinterAgent::deliver_to_sink;
+        std::vector<std::string> refreshes;
+        void request_filament_capabilities(const std::string& dev_id, bool /*local*/) override {
+            refreshes.push_back(dev_id);
+        }
+    } agent("/tmp");
+    agent.set_on_message_fn([](std::string, std::string) {});
+
+    const std::string frame = R"({"print":{"command":"push_status","vir_slot":[{"id":"255"}]}})";
+    agent.deliver_to_sink("dev-refresh-1", frame, /*local=*/true);
+    REQUIRE(agent.refreshes.size() == 1);
+
+    // Throttled: a second frame immediately after does not ask again.
+    agent.deliver_to_sink("dev-refresh-1", frame, /*local=*/true);
+    CHECK(agent.refreshes.size() == 1);
+
+    // A capability reply confirms the topology: no further re-request.
+    agent.deliver_to_sink("dev-refresh-1",
+        R"({"info":{"command":"get_capabilities","capabilities":{"protocol":{"features":{"filament_slots":true}}}}})",
+        /*local=*/true);
+    agent.deliver_to_sink("dev-refresh-1", frame, /*local=*/true);
+    CHECK(agent.refreshes.size() == 1);
+
+    // A status without filament state never triggers a request.
+    agent.deliver_to_sink("dev-refresh-2", R"({"print":{"command":"push_status","mc_percent":10}})", /*local=*/true);
+    CHECK(agent.refreshes.size() == 1);
+}
+
+// Deselecting a cloud device forgets its declaration, so a later session starts
+// from "no reply yet" instead of a stale one. With no record an undeclared op is
+// admitted again, which is how a freshly selected device starts.
+TEST_CASE("deselecting a cloud device forgets its capabilities", "[OrcaPrinterAgent]") {
+    OrcaPrinterAgent agent("/tmp");
+    Slic3r::register_ams_ops("dev-cloud-clear", {"change_filament"});
+    Slic3r::register_filament_slots("dev-cloud-clear", true);
+    CHECK_FALSE(Slic3r::ams_op_supported("dev-cloud-clear", "external"));
+
+    agent.set_user_selected_machine("dev-cloud-clear");
+    agent.set_user_selected_machine("");
+
+    CHECK(Slic3r::ams_op_supported("dev-cloud-clear", "external"));
+    CHECK_FALSE(Slic3r::has_filament_slots("dev-cloud-clear"));
+}
+
+// A LAN feed for the same device id must keep its declaration when the cloud
+// selection is cleared: clearing it would strand an independently live session.
+// why hidden: spawns the LAN connect worker, like the other connect tests.
+TEST_CASE("deselecting a cloud device keeps a live LAN declaration", "[OrcaPrinterAgent][.integration]") {
+    OrcaPrinterAgent agent("/tmp");
+    Slic3r::register_ams_ops("dev-lan-keep", {"change_filament"});
+    Slic3r::register_filament_slots("dev-lan-keep", true);
+
+    REQUIRE(agent.connect_printer("dev-lan-keep", "10.255.255.1", "orcasonar", "code", false) == BAMBU_NETWORK_SUCCESS);
+    agent.set_user_selected_machine("dev-lan-keep");
+    agent.set_user_selected_machine("");
+
+    CHECK_FALSE(Slic3r::ams_op_supported("dev-lan-keep", "external"));
+    CHECK(Slic3r::has_filament_slots("dev-lan-keep"));
+
+    agent.disconnect_printer();
 }

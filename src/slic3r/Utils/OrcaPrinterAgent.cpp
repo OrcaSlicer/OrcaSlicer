@@ -112,6 +112,18 @@ std::string next_gcode_file_sequence_id()
     return std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
 }
 
+// pushall is replay-cached per (namespace, command, sequence_id), so a refresh
+// must not reuse the connect-band ids (20001..20004). Seed from the wall clock
+// like next_gcode_file_sequence_id and bump once per call within a run.
+std::string next_filament_refresh_sequence_id()
+{
+    static std::atomic<uint64_t> counter{[] {
+        const auto now = std::chrono::system_clock::now().time_since_epoch();
+        return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(now).count()) + 100000;
+    }()};
+    return std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
+}
+
 static constexpr const char* ORCASONAR_FALLBACK = "orcasonar";
 
 bool fetch_orcasonar_body(const std::string& url, std::string& body)
@@ -677,6 +689,7 @@ void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::str
 {
     parse_ipcam_info(dev_id, payload);
     register_ams_capabilities(dev_id, payload);
+    maybe_refresh_filament_capabilities(dev_id, payload, local);
     std::string merged_payload = merge_capabilities(dev_id, payload);
 
     OnMessageFn fn;
@@ -1061,6 +1074,38 @@ void OrcaPrinterAgent::emit_connect_sequence(const std::string& dev_id,
     request(build_get_capabilities(seq(4)));
 }
 
+void OrcaPrinterAgent::request_filament_capabilities(const std::string& dev_id, bool local)
+{
+    if (dev_id.empty())
+        return;
+    OrcaMqttConnection* conn = get_appropriate_mqtt_connection(local);
+    if (!conn)
+        return;
+    conn->send_request(dev_id, build_get_capabilities(next_filament_refresh_sequence_id()));
+    conn->send_request(dev_id, build_pushall(next_filament_refresh_sequence_id()));
+}
+
+void OrcaPrinterAgent::maybe_refresh_filament_capabilities(const std::string& dev_id, const std::string& payload, bool local)
+{
+    if (dev_id.empty() || ams_caps_known(dev_id))
+        return;
+    if (payload.find("push_status") == std::string::npos)
+        return;
+    // Only filament state is a reason to ask: ams_exist_bits/tray_exist_bits or
+    // the vir_slot array. A status without either cannot resolve topology.
+    if (payload.find("\"vir_slot\"") == std::string::npos && payload.find("\"ams\":") == std::string::npos)
+        return;
+    {
+        std::lock_guard<std::mutex> l(state_mutex);
+        const auto now = std::chrono::steady_clock::now();
+        const auto it  = m_filament_caps_refresh_at.find(dev_id);
+        if (it != m_filament_caps_refresh_at.end() && now - it->second < std::chrono::seconds(5))
+            return;
+        m_filament_caps_refresh_at[dev_id] = now;
+    }
+    request_filament_capabilities(dev_id, local);
+}
+
 void OrcaPrinterAgent::on_connected(const std::string& dev_id, OrcaMqttConnection* conn, uint64_t generation)
 {
     // Called from both connect paths with whichever epoch that path captured; the two
@@ -1251,8 +1296,12 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
             // Already canonical (e.g. command_ams_select_tray): gate the op,
             // but never rewrite the body.
             const std::string sel = print.value("selector", std::string());
-            const std::string sel_op = (sel == "lane") ? "change_filament" : sel;
-            if (!op_allowed(sel_op) && unsupported)
+            // A lane can resolve to an external slot server-side (§7.8), so
+            // either write op admits it; other selectors gate on their own token.
+            const bool allowed = (sel == "lane")
+                ? (op_allowed("change_filament") || op_allowed("external"))
+                : op_allowed(sel);
+            if (!allowed && unsupported)
                 *unsupported = true;
             return json_str;
         }
@@ -1465,11 +1514,13 @@ int OrcaPrinterAgent::set_user_selected_machine(std::string dev_id)
 {
     auto* cloud = get_orca_cloud_agent();
     std::string previous;
+    std::string lan_dev_id;
     CurrentConn previous_connection;
     CurrentConn current_connection;
     {
         std::lock_guard<std::mutex> lock(state_mutex);
         previous_connection = m_current_connection;
+        lan_dev_id          = m_lan_dev_id;
         // An empty cloud selection must not clear an independently active LAN
         // selection. Conversely, selecting a cloud machine with the same id
         // while LAN is active is still a transport switch and must proceed.
@@ -1498,6 +1549,10 @@ int OrcaPrinterAgent::set_user_selected_machine(std::string dev_id)
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::set_user_selected_machine: previous=" << previous << " new=" << dev_id
                             << " cloud=" << (cloud ? "set" : "<null>") << " transport=" << connection_type_name(previous_connection) << "->"
                             << connection_type_name(current_connection);
+    // Forget the deselected cloud device's declaration so a later session starts
+    // from "no reply yet". A LAN feed for the same id keeps its capabilities.
+    if (!previous.empty() && previous != dev_id && previous != lan_dev_id)
+        clear_ams_caps(previous);
     if (!cloud) {
         BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent::set_user_selected_machine: no Orca cloud agent";
         return BAMBU_NETWORK_SUCCESS;

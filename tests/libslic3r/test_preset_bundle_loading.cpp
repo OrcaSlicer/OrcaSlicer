@@ -5495,14 +5495,14 @@ TEST_CASE("filament_id_by_type resolves a modifier type to its generic family", 
     pla.is_visible    = true;
     pla.is_compatible = true;
     pla.filament_id   = "GFL99";
-    pla.config.option<ConfigOptionString>("filament_type")->value = "PLA";
+    pla.config.option<ConfigOptionStrings>("filament_type")->values = {"PLA"};
 
     Preset &petg = add_inmemory_preset(bundle.filaments, "Generic PETG @System");
     petg.is_system     = true;
     petg.is_visible    = true;
     petg.is_compatible = true;
     petg.filament_id   = "GFG99";
-    petg.config.option<ConfigOptionString>("filament_type")->value = "PETG";
+    petg.config.option<ConfigOptionStrings>("filament_type")->values = {"PETG"};
 
     CHECK(bundle.filaments.filament_id_by_type("PETG Basic") == "GFG99");
     CHECK(bundle.filaments.filament_id_by_type("PLA") == "GFL99");

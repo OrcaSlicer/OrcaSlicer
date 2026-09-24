@@ -6,12 +6,14 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "OrcaMqttConnection.hpp"
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <mutex>
 #include <memory>
 #include <thread>
+#include <unordered_map>
 
 namespace Slic3r {
 
@@ -165,6 +167,17 @@ protected:
     virtual void emit_connect_sequence(const std::string& dev_id,
                                        std::function<void(const std::string&)> subscribe,
                                        std::function<void(const std::string&)> request);
+
+    // Re-ask a device for its capabilities and a full status. Sent when a
+    // filament frame arrives before the capabilities reply (the topology
+    // bootstrapped after connect, or Klipper restarted), so a session that
+    // latched FilamentSyncMode::none can still reach subscription mode.
+    virtual void request_filament_capabilities(const std::string& dev_id, bool local);
+
+    // deliver_to_sink hook: re-request capabilities on a filament frame while
+    // the device's topology is still unconfirmed, throttled per device.
+    void maybe_refresh_filament_capabilities(const std::string& dev_id, const std::string& payload, bool local);
+
     static std::string seq(int n); // decimal string in the OrcaSlicer 20000..29999 band
     static std::string build_pushing_start(const std::string& sequence_id);
     static std::string build_pushing_stop(const std::string& sequence_id);
@@ -210,6 +223,10 @@ private:
     uint64_t m_lan_api_key_gen            = 0;                      // m_lan_generation the cached key belongs to
     CameraStreamMode m_camera_stream_mode = CameraStreamMode::none; // guarded by state_mutex
     std::string m_camera_url;                                       // guarded by state_mutex
+
+    // Last capability re-request per device; bounds the refresh to one per
+    // device while a filament frame keeps arriving without a reply.
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point> m_filament_caps_refresh_at; // guarded by state_mutex
 
     // The Moonraker-façade X-Api-Key, bootstrapped from /access/api_key (trusted
     // clients only) and cached per connection generation; falls back to the

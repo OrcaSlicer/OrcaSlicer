@@ -67,7 +67,9 @@ namespace Slic3r
 
     AppConfig* DeviceManager::get_app_config() const
     {
-        return m_app_config ? m_app_config : GUI::wxGetApp().app_config;
+        if (m_app_config)
+            return m_app_config;
+        return wxTheApp ? GUI::wxGetApp().app_config : nullptr;
     }
 
     void DeviceManager::load_local_machines_from_config()
@@ -459,7 +461,7 @@ namespace Slic3r
 
     void DeviceManager::update_local_machine(const MachineObject& m)
     {
-        update_local_machine(m, GUI::wxGetApp().app_config);
+        update_local_machine(m, wxTheApp ? GUI::wxGetApp().app_config : nullptr);
     }
 
     int DeviceManager::query_bind_status(std::string& msg, const std::string& provider)

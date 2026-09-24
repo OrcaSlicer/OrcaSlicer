@@ -425,6 +425,13 @@ bool has_ams_capability(const std::string& dev_id)
     return it != g_ams_caps.end() && it->second.has_ams;
 }
 
+bool ams_caps_known(const std::string& dev_id)
+{
+    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
+    auto it = g_ams_caps.find(dev_id);
+    return it != g_ams_caps.end() && it->second.ops_known;
+}
+
 void register_filament_slots(const std::string& dev_id, bool has_slots)
 {
     if (dev_id.empty())
