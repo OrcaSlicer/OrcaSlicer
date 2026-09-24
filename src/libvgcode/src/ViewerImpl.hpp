@@ -89,6 +89,7 @@ public:
     // caller decides which of the two it varies with the realistic view setting.
     //
     void set_tone(float exposure, float saturation);
+    void set_light_top_dir(const Vec3& direction) { m_light_top_dir = direction; }
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -381,6 +382,7 @@ private:
     int m_uni_segments_shadow_map_texel_id{ -1 };
     int m_uni_segments_exposure_id{ -1 };
     int m_uni_segments_saturation_id{ -1 };
+    int m_uni_segments_light_top_dir_id{ -1 };
     //
     // Caches for OpenGL uniforms id for options shader 
     //
@@ -538,6 +540,8 @@ private:
     //
     float m_exposure{ 1.0f };
     float m_saturation{ 1.0f };
+    // ORCA: the light the segments shader shades with, in eye space.
+    Vec3 m_light_top_dir{ -0.4574957f, 0.4574957f, 0.7624929f };
 
     void apply_pending_updates();
     void update_view_full_range();

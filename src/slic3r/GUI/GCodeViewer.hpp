@@ -287,6 +287,7 @@ public:
     // ORCA: tone applied to the shaded toolpaths, paying back the light the lighting term,
     // the shadow and the SSAO pass each take off. 1.0/1.0 is a no-op.
     void set_tone(float exposure, float saturation);
+    void set_light_top_dir(const Vec3d& direction);
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);

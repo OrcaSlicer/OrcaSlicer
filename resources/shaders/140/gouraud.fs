@@ -72,6 +72,10 @@ uniform float shadow_map_texel;
 
 // LIGHT_TOP_DIR in eye space (matches the diffuse light used for shading in gouraud.vs).
 const vec3 SHADOW_LIGHT_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
+// ORCA: realistic view - static shadows also light the scene from their fixed light.
+uniform bool use_static_light;
+uniform vec3 static_light_dir;
+vec3 top_light_dir() { return use_static_light ? static_light_dir : SHADOW_LIGHT_DIR; }
 
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
@@ -206,7 +210,7 @@ float shadow_shade()
     // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
     // suppresses self-shadow acne without discarding real shadows cast by other objects onto
     // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
-    float NdotL = dot(normalize(eye_normal), SHADOW_LIGHT_DIR);
+    float NdotL = dot(normalize(eye_normal), top_light_dir());
     float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
     // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
     float sum = 0.0;

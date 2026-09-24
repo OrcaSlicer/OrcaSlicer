@@ -1350,6 +1350,8 @@ private:
     bool _is_render_timings_enabled() const;
     enum class EShadowMode { Off, Static, Orbit };
     EShadowMode _shadow_mode() const;
+    // Direction to the static shadow light in eye space, when it lights the scene.
+    std::optional<Vec3d> _static_light_dir_eye() const;
     size_t _shadow_casters_signature(bool toolpath_casters) const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;

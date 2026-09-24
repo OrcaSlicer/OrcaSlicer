@@ -70,6 +70,10 @@ uniform sampler2D shadow_map;
 uniform mat4 shadow_light_vp;
 uniform float shadow_intensity;
 uniform float shadow_map_texel;
+// ORCA: realistic view - static shadows also light the scene from their fixed light.
+uniform bool use_static_light;
+uniform vec3 static_light_dir;
+vec3 top_light_dir() { return use_static_light ? static_light_dir : LIGHT_TOP_DIR; }
 
 varying vec3 clipping_planes_dots;
 varying float color_clip_plane_dot;
@@ -193,7 +197,7 @@ float shadow_shade()
     // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
     // suppresses self-shadow acne without discarding real shadows cast by other objects onto
     // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
-    float NdotL = dot(normalize(eye_normal), LIGHT_TOP_DIR);
+    float NdotL = dot(normalize(eye_normal), top_light_dir());
     float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
     // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
     float sum = 0.0;
@@ -248,9 +252,9 @@ void main()
     vec3 normal = normalize(eye_normal);
     vec3 view_dir = normalize(-eye_position);
 
-    float NdotL_top = max(dot(normal, LIGHT_TOP_DIR), 0.0);
+    float NdotL_top = max(dot(normal, top_light_dir()), 0.0);
     float diffuse = INTENSITY_AMBIENT + NdotL_top * LIGHT_TOP_DIFFUSE;
-    vec3 half_top = normalize(LIGHT_TOP_DIR + view_dir);
+    vec3 half_top = normalize(top_light_dir() + view_dir);
     float specular = LIGHT_TOP_SPECULAR * pow(max(dot(normal, half_top), 0.0), LIGHT_TOP_SHININESS);
 
     float NdotL_front = max(dot(normal, LIGHT_FRONT_DIR), 0.0);

@@ -76,6 +76,10 @@ public:
     // caller decides which of the two it varies with the realistic view setting.
     //
     void set_tone(float exposure, float saturation);
+    //
+    // ORCA: direction to the top light in eye space, shading the toolpaths and biasing their shadow lookup.
+    //
+    void set_light_top_dir(const Vec3& direction);
 
     //
     // ************************************************************************

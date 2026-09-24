@@ -1749,6 +1749,11 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
         intensity, texel_size);
 }
 
+void GCodeViewer::set_light_top_dir(const Vec3d& direction)
+{
+    m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
+}
+
 void GCodeViewer::set_tone(float exposure, float saturation)
 {
     m_viewer.set_tone(exposure, saturation);
