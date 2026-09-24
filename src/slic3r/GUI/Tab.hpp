@@ -71,6 +71,7 @@ class Page: public std::enable_shared_from_this<Page>// : public wxScrolledWindo
 	// BBS: new layout
 	wxStaticText*	m_page_title;
     bool            m_show = true;
+    bool            m_visibility_applied = false;
 public:
 	//BBS: GUI refactor
     Page(wxWindow* parent, const wxString& title, int iconID, wxPanel* tab_owner);
@@ -98,6 +99,8 @@ public:
     bool        build_pending() const;
     // Builds the next option group that has no controls yet; true while some remain.
     bool        build_step(ConfigOptionMode mode);
+    // Whether the controls have not been shown or hidden for a mode since they were built.
+    bool        visibility_pending() const { return !m_visibility_applied; }
     void        clear();
     void        msw_rescale();
     void        sys_color_changed();
@@ -443,8 +446,8 @@ public:
 	// BBS: new layout
 	void set_expanded(bool value);
 	void restore_last_select_item();
-	// page_build_pending() says whether the selected page has groups without controls, and
-	// page_build_step() builds one.
+	// page_build_pending() says whether the selected page has groups without controls or controls
+	// not yet shown for the mode, and page_build_step() does the next of those.
 	bool page_build_pending() const;
 	bool page_build_step();
 

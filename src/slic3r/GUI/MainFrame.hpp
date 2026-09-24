@@ -157,6 +157,21 @@ class MainFrame : public DPIFrame
         int         m_step{ 0 };
         bool        m_failed{ false };
     } m_gl_prebuild{ *this };
+    // Lays out the hidden Prepare page at the size the book gives its pages.
+    class PrepareLayoutPrebuild : public LazyBase
+    {
+    public:
+        explicit PrepareLayoutPrebuild(MainFrame& frame) : m_frame(frame) {}
+        const std::string& name() const override { return m_name; }
+        bool               built() const override;
+        bool               build_step() override;
+        int                prebuild_order() const override { return 0; }
+
+    private:
+        MainFrame&  m_frame;
+        std::string m_name{ "prepare_layout" };
+        wxSize      m_laid_out_size;
+    } m_prepare_layout_prebuild{ *this };
     // Every LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
     std::vector<LazyBase*> m_lazy_pages;
     // The latest EVT_LOAD_PRINTER_URL, applied when the web Device view is built.

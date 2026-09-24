@@ -511,6 +511,9 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         wxQueueEvent(wxGetApp().plater(), new SimpleEvent(EVT_NOTICE_CHILDE_SIZE_CHANGED));
 
         fit_tab_labels(); // ORCA on resize
+        // Restarts the idle build so a hidden Prepare page is laid out at the new size.
+        if (m_prebuild_started)
+            m_idle.start();
     });
 
     //BBS
@@ -4059,6 +4062,22 @@ bool MainFrame::GLResourcesPrebuild::build_step()
     return !m_failed;
 }
 
+bool MainFrame::PrepareLayoutPrebuild::built() const
+{
+    // The book lays out the page it shows.
+    const wxWindow* page = m_frame.m_tabpanel != nullptr ? m_frame.m_tabpanel->GetCurrentPage() : nullptr;
+    return page == nullptr || page == m_frame.m_plater || page->GetSize() == m_laid_out_size;
+}
+
+bool MainFrame::PrepareLayoutPrebuild::build_step()
+{
+    // Sized as the book sizes the page it selects, so the selection finds nothing to lay out.
+    const wxWindow* page = m_frame.m_tabpanel->GetCurrentPage();
+    m_laid_out_size      = page->GetSize();
+    m_frame.m_plater->SetSize(page->GetRect());
+    return false;
+}
+
 // A page out of the book stays registered and is passed over; a negative order is never
 // registered.
 void MainFrame::prebuild_pages_when_idle()
@@ -4067,6 +4086,7 @@ void MainFrame::prebuild_pages_when_idle()
     m_idle.add(m_gl_prebuild);
     if (m_param_panel)
         m_idle.add(m_param_panel->settings_page_prebuild());
+    m_idle.add(m_prepare_layout_prebuild);
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);

@@ -8205,10 +8205,12 @@ int GUI_App::input_idle_ms() const
     return int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_input).count());
 }
 
-// Every wxCommandEvent claims the user-input category, so only real mouse and key events count.
+// Every wxCommandEvent claims the user-input category, so only real mouse and key events count,
+// plus main window resizes, since a border drag produces no mouse events.
 int GUI_App::FilterEvent(wxEvent& event)
 {
-    if (!event.IsCommandEvent() && (event.GetEventCategory() & wxEVT_CATEGORY_USER_INPUT))
+    if ((!event.IsCommandEvent() && (event.GetEventCategory() & wxEVT_CATEGORY_USER_INPUT)) ||
+        (event.GetEventType() == wxEVT_SIZE && event.GetEventObject() == mainframe))
         m_last_input = std::chrono::steady_clock::now();
     return Event_Skip;
 }

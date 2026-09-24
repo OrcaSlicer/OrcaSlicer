@@ -78,7 +78,8 @@ When nothing is pending the timer stops and the subsystem costs nothing.
 The main window owns the scheduler because it owns what the tasks build, and clearing the
 queue with the window keeps a task from outliving its object. Each owner provides its own
 tasks, such as a tab, a dialog, the Prepare tab's settings page one option group at a
-time, or the 3D view's GL resources.
+time, the Prepare page's layout at the size the book gives its pages, or the 3D view's GL
+resources.
 
 ### The 3D view's GL resources
 

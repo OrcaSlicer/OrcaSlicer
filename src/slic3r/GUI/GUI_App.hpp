@@ -389,7 +389,7 @@ public:
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
     bool is_gcode_viewer() const { return m_app_mode == EAppMode::GCodeViewer; }
     bool is_recreating_gui() const { return m_is_recreating_gui; }
-    // Milliseconds since the last mouse or keyboard event the app processed.
+    // Milliseconds since the last mouse or keyboard event the app processed, or main window resize.
     int  input_idle_ms() const;
     int  FilterEvent(wxEvent& event) override;
     // The Preferences "Default page" choice, stored as its index: 0 Home, 1 Prepare.

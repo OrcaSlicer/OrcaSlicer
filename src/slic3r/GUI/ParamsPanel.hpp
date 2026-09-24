@@ -122,8 +122,8 @@ class ParamsPanel : public wxPanel
 
         wxPanel* m_current_tab { nullptr };
 
-        // Builds the selected page's option groups at idle; while no tab is selected yet,
-        // its first unit selects the default one.
+        // Builds the selected page's option groups at idle and then shows them for the mode;
+        // while no tab is selected yet, its first unit selects the default one.
         class SettingsPagePrebuild : public LazyBase
         {
         public:
