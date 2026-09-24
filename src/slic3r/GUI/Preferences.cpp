@@ -2024,6 +2024,16 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fps_overlay);
 
+    auto item_render_timings = create_item_checkbox(
+        _L("Show render timings"),
+        _L("Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport.") + "\n" +
+        _L("CPU: time spent issuing the drawing commands.") + "\n" +
+        _L("GPU: time the graphics card spent running them.") + "\n" +
+        _L("Adds a small overhead to each frame while enabled."),
+        SETTING_OPENGL_SHOW_RENDER_TIMINGS
+    );
+    g_sizer->Add(item_render_timings);
+
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
 

@@ -303,6 +303,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
 
+    if (get(SETTING_OPENGL_SHOW_RENDER_TIMINGS).empty())
+        set_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS, false);
+
     if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
         set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
 

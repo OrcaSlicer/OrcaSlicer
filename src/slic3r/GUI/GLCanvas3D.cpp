@@ -1241,6 +1241,7 @@ GLCanvas3D::~GLCanvas3D()
 {
     if (_set_current()) {
         m_scene_cache.reset();
+        m_frame_profiler.reset();
         if (m_fxaa_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
             m_fxaa_texture_id = 0;
@@ -2089,22 +2090,30 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
     const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
+    // Only frames that redraw the scene are profiled.
+    if (!reuse_scene && _is_render_timings_enabled())
+        m_frame_profiler.begin_frame();
+    Slic3r::ScopeGuard profiler_guard([this]() { m_frame_profiler.end_frame(); });
     if (!reuse_scene) {
         _render_scene(camera, cnv_size);
         if (!overlay_tick)
             m_render_stats.increment_scene_fps_counter();
     }
 
-    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
+        m_frame_profiler.mark("legend");
+    }
 
     // draw overlays
     _render_overlays();
+    m_frame_profiler.mark("ui");
 
     const int current_fps = m_render_stats.get_fps_and_reset_if_needed();
-    if (_is_fps_overlay_enabled()) {
+    if (_is_fps_overlay_enabled() || _is_render_timings_enabled())
         _render_fps_overlay(current_fps);
+    if (_is_fps_overlay_enabled()) {
         // The timer requests an overlay-only frame a second from now. A frame it requested
         // re-arms it only while a count is above zero.
         if (!overlay_tick || current_fps > 0 || m_render_stats.get_scene_fps() > 0)
@@ -2194,12 +2203,14 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
         wxGetApp().plater()->get_dailytips()->render();
     }
+    m_frame_profiler.mark("notifications");
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
         signature = _overlay_signature(draw_data);
+    m_frame_profiler.mark("imgui end");
 
     if (reuse_scene) {
         // A reused scene under an unchanged overlay is the frame already on screen.
@@ -2209,13 +2220,16 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     }
 
     _render_overlay_toolbars();
+    m_frame_profiler.mark("toolbars");
 
     wxGetApp().imgui()->render(draw_data);
+    m_frame_profiler.mark("imgui draw");
 
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
+        m_frame_profiler.mark("swap");
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
@@ -2260,32 +2274,42 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         // floating would read as a rendering fault rather than a deliberate view option.
         if (show_bed)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        m_frame_profiler.mark("bed");
         if (show_bed) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
         if (m_axes_at_bed_center && show_bed)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
+        m_frame_profiler.mark("plates");
         
         //BBS: add outline logic
         // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
         _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+        m_frame_profiler.mark("shadows");
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        m_frame_profiler.mark("objects");
         _render_sla_slices();
         _render_selection();
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
+        m_frame_profiler.mark("transparent");
     }
     /* preview render */
     else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
         _render_sla_slices();
         _render_selection();
+        m_frame_profiler.mark("objects");
         _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        m_frame_profiler.mark("bed");
         _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        m_frame_profiler.mark("plates");
         // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
         _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+        m_frame_profiler.mark("shadows");
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode(cnv_size.get_width(), cnv_size.get_height());
+        m_frame_profiler.mark("gcode");
     }
     /* assemble render*/
     else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
@@ -2302,6 +2326,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         // BBS: add outline logic
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
+        m_frame_profiler.mark("objects");
     }
 
     _render_sequential_clearance();
@@ -2324,12 +2349,17 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
 
     if (m_picking_enabled && m_rectangle_selection.is_dragging())
         m_rectangle_selection.render(*this);
+    m_frame_profiler.mark("gizmos");
 
-    if (_is_ssao_enabled())
+    if (_is_ssao_enabled()) {
         _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+        m_frame_profiler.mark("ssao");
+    }
 
-    if (_is_fxaa_enabled())
+    if (_is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+        m_frame_profiler.mark("fxaa");
+    }
 
     // Design tab: interactive 2D sketch overlay, drawn over the scene but
     // beneath the UI overlays (toolbars, labels).
@@ -2339,6 +2369,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
 #endif
 
     _capture_scene_cache(camera);
+    m_frame_profiler.mark("cache");
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
@@ -7760,6 +7791,11 @@ bool GLCanvas3D::_is_fps_overlay_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
 }
 
+bool GLCanvas3D::_is_render_timings_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS);
+}
+
 bool GLCanvas3D::_is_scene_cache_enabled() const
 {
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SCENE_CACHE);
@@ -7792,7 +7828,10 @@ bool GLCanvas3D::_is_frame_skipping_enabled() const
 
 void GLCanvas3D::_render_fps_overlay(int fps) const
 {
-    if (fps < 0)
+    const bool show_fps = _is_fps_overlay_enabled() && fps >= 0;
+    const std::vector<FrameProfiler::Section>& sections = m_frame_profiler.sections();
+    const bool show_timings = _is_render_timings_enabled() && !sections.empty();
+    if (!show_fps && !show_timings)
         return;
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
@@ -7809,9 +7848,35 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoInputs);
-    imgui.text(std::string("FPS: ") + std::to_string(fps));
-    // The subset of those frames that redrew the scene rather than reusing the cached one.
-    imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
+    if (show_fps) {
+        imgui.text(std::string("FPS: ") + std::to_string(fps));
+        // The subset of those frames that redrew the scene rather than reusing the cached one.
+        imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
+    }
+    if (show_timings && ImGui::BeginTable("frame_sections", 3, ImGuiTableFlags_SizingFixedFit)) {
+        ImGui::TableSetupColumn("ms");
+        ImGui::TableSetupColumn("CPU");
+        ImGui::TableSetupColumn("GPU");
+        ImGui::TableHeadersRow();
+        double cpu_ms = 0.0;
+        double gpu_ms = 0.0;
+        auto row = [](const char* name, double cpu, double gpu) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted(name);
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%.2f", cpu);
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%.2f", gpu);
+        };
+        for (const FrameProfiler::Section& section : sections) {
+            row(section.name, section.cpu_ms, section.gpu_ms);
+            cpu_ms += section.cpu_ms;
+            gpu_ms += section.gpu_ms;
+        }
+        row("total", cpu_ms, gpu_ms);
+        ImGui::EndTable();
+    }
     imgui.end();
 }
 

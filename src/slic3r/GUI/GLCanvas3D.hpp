@@ -19,6 +19,7 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -677,6 +678,7 @@ private:
     bool m_reload_delayed;
 
     RenderStats m_render_stats;
+    FrameProfiler m_frame_profiler;
     std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
@@ -1338,6 +1340,7 @@ private:
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
+    bool _is_render_timings_enabled() const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;
     bool _is_frame_skipping_enabled() const;
