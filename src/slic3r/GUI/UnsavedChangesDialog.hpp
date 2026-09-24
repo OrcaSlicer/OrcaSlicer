@@ -10,6 +10,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include "Lazy.hpp"
 
 class ScalableButton;
 class wxStaticText;
@@ -343,7 +344,7 @@ public:
     UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
     ~UnsavedChangesDialog() override = default;
 
-    int ShowModal();
+    int ShowModal() override;
 
     void        build(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, const wxString &header = "");
     void update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header);
@@ -416,7 +417,7 @@ public:
 //------------------------------------------
 //          DiffPresetDialog
 //------------------------------------------
-class DiffPresetDialog : public DPIDialog
+class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
 {
     DiffViewCtrl*           m_tree              { nullptr };
     wxBoxSizer*             m_presets_sizer     { nullptr };

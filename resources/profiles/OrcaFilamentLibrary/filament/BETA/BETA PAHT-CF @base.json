@@ -1,0 +1,102 @@
+{
+	"type": "filament",
+	"name": "BETA PAHT-CF @base",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"filament_id": "OF6qw3Wb",
+	"instantiation": "false",
+	"description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+	"fan_cooling_layer_time": [
+		"5"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"filament_cost": [
+		"94.99"
+	],
+	"filament_density": [
+		"1.06"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_type": [
+		"PA-CF"
+	],
+	"filament_vendor": [
+		"BETA"
+	],
+	"full_fan_speed_layer": [
+		"2"
+	],
+	"impact_strength_z": [
+		"13.3"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"overhang_fan_threshold": [
+		"0%"
+	],
+	"temperature_vitrification": [
+		"180"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
+	"nozzle_temperature": [
+		"290"
+	],
+	"nozzle_temperature_initial_layer": [
+		"290"
+	],
+	"retraction_distances_when_ec": [
+		"0"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0"
+	],
+	"filament_adhesiveness_category": [
+		"400"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
+	],
+	"filament_dev_chamber_drying_time": [
+		"18"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"165"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"150"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"65",
+		"85",
+		"65",
+		"85"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"150"
+	]
+}

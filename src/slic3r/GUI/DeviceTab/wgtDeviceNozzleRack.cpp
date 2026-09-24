@@ -6,7 +6,7 @@
 *  \n class wgtDeviceNozzleRackNozzleItem;
 *  \n class wgtDeviceNozzleRackToolHead;
 *  \n class wgtDeviceNozzleRackPos;
-//**********************************************************/
+************************************************************/
 
 #include "wgtDeviceNozzleRack.h"
 #include "wgtDeviceNozzleRackUpdate.h"
@@ -399,7 +399,7 @@ void wgtDeviceNozzleRackArea::UpdateNozzleItems(const std::unordered_map<int, wg
 {
     for (auto iter : nozzle_items)
     {
-        iter.second->Update(nozzle_rack);
+        iter.second->UpdateInfo(nozzle_rack);
     }
 
     /*update nozzle possition and background*/
@@ -837,7 +837,7 @@ void wgtDeviceNozzleRackNozzleItem::SetSelected(bool selected)
     }
 }
 
-void wgtDeviceNozzleRackNozzleItem::Update(const std::shared_ptr<DevNozzleRack> rack, bool on_rack /*= true*/)
+void wgtDeviceNozzleRackNozzleItem::UpdateInfo(const std::shared_ptr<DevNozzleRack> rack, bool on_rack /*= true*/)
 {
     m_rack = rack;
 
@@ -934,7 +934,8 @@ void wgtDeviceNozzleRackNozzleItem::OnBtnNozzleStatus(wxMouseEvent& evt)
         dlg.AddButton(wxID_OK,_L("Jump to the upgrade page"), true);
 
         if (dlg.ShowModal() == wxID_OK) {
-            wxGetApp().mainframe->m_monitor->jump_to_Upgrade();
+            if (MonitorPanel* monitor = MonitorPanel::if_built())
+                monitor->jump_to_Upgrade();
         };
     }
 }

@@ -11,6 +11,7 @@ namespace GUI {
 MultiMachinePage::MultiMachinePage(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
     : wxPanel(parent, id, pos, size, style)
 {
+    SetBackgroundColour(*wxWHITE);
     init_tabpanel();
     m_main_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxLEFT, 0);
@@ -80,7 +81,7 @@ void MultiMachinePage::init_tabpanel()
     sizer_side_tools->Add(m_side_tools, 1, wxEXPAND, 0);
     m_tabpanel = new Tabbook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, sizer_side_tools, wxNB_LEFT | wxTAB_TRAVERSAL | wxNB_NOPAGETHEME);
     m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF"));
-    m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {; });
+    m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [](wxBookCtrlEvent& e) {; });
 
     m_local_task_manager = new LocalTaskManagerPage(m_tabpanel);
     m_cloud_task_manager = new CloudTaskManagerPage(m_tabpanel);

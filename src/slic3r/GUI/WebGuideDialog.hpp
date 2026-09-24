@@ -33,6 +33,7 @@
 #include <atomic>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -43,6 +44,8 @@ namespace Slic3r { namespace GUI {
 class GuideFrame : public DPIDialog
 {
 public:
+    using json = nlohmann::json;
+
     GuideFrame(GUI_App *pGUI, long style = wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU);
     virtual ~GuideFrame();
 
@@ -108,11 +111,13 @@ public:
     void on_dpi_changed(const wxRect &suggested_rect) {}
 
 private:
+    int GetFilamentInfo(const std::string& VendorDirectory, json& pFilaList, const std::string& filepath,
+                        std::string& sVendor, std::string& sType, std::unordered_set<std::string>& visiting);
+
     GUI_App *m_MainPtr;
     AppConfig m_appconfig_new;
 
     wxWebView *m_browser;
-    wxButton * m_TestBtn;
 
     wxString m_SectionName;
 

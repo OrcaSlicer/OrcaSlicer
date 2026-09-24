@@ -2752,7 +2752,7 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     });
 
     if (wxLinux_gtk3)
-        this->Bind(wxEVT_SHOW, [this, vsizer](const wxShowEvent& e) {
+        this->Bind(wxEVT_SHOW, [](const wxShowEvent& e) {
             ;
         });
 

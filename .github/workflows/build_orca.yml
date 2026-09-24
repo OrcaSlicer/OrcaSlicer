@@ -13,6 +13,10 @@ on:
         arch:
           required: false
           type: string
+        compiler:
+          required: false
+          type: string
+          default: msvc
         macos-combine-only:
           required: false
           type: boolean
@@ -71,6 +75,69 @@ jobs:
           $cmakeBin = "$env:RUNNER_TEMP\cmake\cmake-$ver-windows-arm64\bin"
           if (-not (Test-Path "$cmakeBin\cmake.exe")) { throw "cmake.exe not found at $cmakeBin" }
           Add-Content -Path $env:GITHUB_PATH -Value $cmakeBin
+
+      # Compiler cache. Pushes save it, so main keeps it warm; pull requests
+      # restore it and discard what they compiled. Objects are keyed on the
+      # preprocessed source, the compiler and the flags, so a leg only ever
+      # hits its own entries. A failed install costs the caching, not the build.
+      - name: Name the compiler cache leg
+        if: ${{ !inputs.macos-combine-only }}
+        shell: bash
+        run: |
+          leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
+          # clang-cl refuses a precompiled header from another cl.exe build and ccache
+          # does not hash that build, so each one gets its own cache. The build number
+          # is read from cl.exe itself; the toolset directory keeps its name across patches.
+          if [ "${{ runner.os }}" = Windows ]; then
+            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
+            toolset=$(tr -d '\r\n' < "$("$vswhere" -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')")
+            cl=$("$vswhere" -latest -products '*' -find 'VC\Tools\MSVC\'"$toolset"'\**\cl.exe' | tr -d '\r' | head -1)
+            leg="$leg-vc$("$cl" 2>&1 | grep -o -E 'Version [0-9.]+' | cut -d' ' -f2)"
+          fi
+          echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
+          echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+
+      # The action only installs and configures ccache. Restore and save go
+      # through actions/cache with one path string, since the cache service
+      # only matches entries saved under the identical path and the action
+      # spells it differently on Windows.
+      - name: Compiler cache
+        id: ccache
+        if: ${{ !inputs.macos-combine-only }}
+        continue-on-error: true
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: ${{ env.CCACHE_LEG }}
+          max-size: 3G
+          restore: false
+          save: false
+          # ccache -s runs as its own step; no summary table per job.
+          job-summary: ''
+
+      - name: Restore compiler cache
+        id: ccache_restore
+        if: ${{ steps.ccache.outcome == 'success' }}
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ env.CCACHE_ENTRY }}
+          restore-keys: ccache-${{ env.CCACHE_LEG }}-
+
+      - name: Enable compiler cache
+        if: ${{ steps.ccache.outcome == 'success' }}
+        shell: bash
+        run: |
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          # Headers a fresh checkout has just written, the few files that
+          # use __DATE__ or __TIME__, and the precompiled header, whose
+          # macros ccache cannot see.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros,include_file_mtime,include_file_ctime" >> "$GITHUB_ENV"
+          # Hash the includes the compiler reports instead of preprocessing
+          # every miss before compiling it.
+          echo "CCACHE_DEPEND=1" >> "$GITHUB_ENV"
+          # The restored directory carries the previous run's counters.
+          ccache -z
 
       - name: Get the version and date on Ubuntu and macOS
         if: runner.os != 'Windows'
@@ -145,7 +212,7 @@ jobs:
         env:
           ORCA_TESTS_BUILD_ONLY: ${{ inputs.arch == 'arm64' && '1' || '' }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
+          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
 
       - name: Pack unit tests mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
@@ -204,7 +271,7 @@ jobs:
         if: runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15
+          ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a universal -t 10.15
 
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
@@ -381,9 +448,26 @@ jobs:
 
       - name: Install nsis
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        shell: pwsh
+        # The Chocolatey community feed intermittently 504s, and `choco install`
+        # exits 0 when package resolution fails that way. Unchecked, the job then
+        # builds for ~25 minutes before `cpack -G NSIS` reports a missing makensis.
+        # Retry the install and verify makensis itself, so a real failure stops here.
         run: |
           dir "C:/Program Files (x86)/Windows Kits/10/Include"
-          choco install nsis
+          $nsisDir = Join-Path ${env:ProgramFiles(x86)} 'NSIS'
+          $makensis = Join-Path $nsisDir 'makensis.exe'
+          for ($attempt = 1; $attempt -le 3 -and -not (Test-Path $makensis); $attempt++) {
+            if ($attempt -gt 1) { Start-Sleep -Seconds (15 * $attempt) }
+            Write-Host "::group::choco install nsis (attempt $attempt)"
+            choco install nsis --yes --no-progress
+            Write-Host "::endgroup::"
+          }
+          if (-not (Test-Path $makensis)) {
+            throw "NSIS install failed: $makensis not found after 3 attempts."
+          }
+          & $makensis /VERSION
+          $nsisDir | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Build slicer Win
         if: runner.os == 'Windows'
@@ -392,10 +476,13 @@ jobs:
         # env:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
-        # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
+        # --tests builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
-          $arch = "${{ inputs.arch }}"
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer tests }
+          # cache-path is the install directory inside the deps build directory.
+          $deps = (Split-Path "${{ inputs.cache-path }}").Replace('\', '/')
+          # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
+          $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
+          .\build_win.bat -s --tests -i --arch ${{ inputs.arch }} --build-dir $env:BUILD_DIR --deps-dir $deps @flags
         shell: pwsh
 
       - name: Build system preset cache (Windows)
@@ -615,6 +702,18 @@ jobs:
           name: OrcaSlicer_profile_validator_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
           path: './build/src/Release/OrcaSlicer_profile_validator'
 
+      # generate_system_cache is what scripts/build_preset_cache.sh bakes the
+      # <vendor>.opc caches with; it was already built by the "Build system
+      # preset cache (Linux)" step above. The .opc format is 64-bit
+      # little-endian native, i.e. identical across every platform Orca ships,
+      # so only the Linux binary is published.
+      - name: Upload generate_system_cache Ubuntu
+        if: ${{ ! env.ACT && runner.os == 'Linux' && !vars.SELF_HOSTED && inputs.arch != 'aarch64' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: generate_system_cache_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
+          path: './build/src/dev-utils/Release/generate_system_cache'
+
       - name: Deploy Ubuntu release
         if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && env.deploy_nightly == 'true' && runner.os == 'Linux' && !vars.SELF_HOSTED }}
         uses: WebFreak001/deploy-nightly@v3.2.0
@@ -645,6 +744,17 @@ jobs:
           asset_content_type: application/octet-stream
           max_releases: 1
 
+      - name: Deploy Ubuntu generate_system_cache release
+        if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED && inputs.arch != 'aarch64' }}
+        uses: WebFreak001/deploy-nightly@v3.2.0
+        with:
+          upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
+          release_id: 137995723
+          asset_path: ./build/src/dev-utils/Release/generate_system_cache
+          asset_name: generate_system_cache_Linux${{ env.ubuntu-ver-str }}_nightly
+          asset_content_type: application/octet-stream
+          max_releases: 1
+
       - name: Deploy orca_custom_preset_tests
         if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED && inputs.arch != 'aarch64' }}
         uses: WebFreak001/deploy-nightly@v3.2.0
@@ -655,3 +765,48 @@ jobs:
           asset_name: orca_custom_preset_tests.zip
           asset_content_type: application/octet-stream
           max_releases: 1
+
+      # The build has just touched everything it can use, so an object
+      # untouched for a week is dead, usually orphaned by a flag change.
+      - name: Compiler cache statistics
+        if: ${{ always() && steps.ccache.outcome == 'success' }}
+        shell: bash
+        run: |
+          ccache --evict-older-than 7d
+          ccache -s -v || ccache -s
+
+      # Entries are immutable, so the new one is saved first and the older
+      # ones for this leg on this ref are dropped afterwards: a failed save
+      # leaves the previous entry in place. A cancelled or failed build saves
+      # too, since what it compiled is still valid; a restore that did not
+      # finish does not, since the directory may be a truncated copy.
+      - name: Save compiler cache
+        id: ccache_save
+        if: ${{ always() && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ env.CCACHE_ENTRY }}
+
+      - name: Drop older compiler cache entries
+        if: ${{ always() && steps.ccache_save.outcome == 'success' }}
+        # A read-only token (fork PRs) cannot delete; that only costs storage.
+        # Older means a lower run id, so two runs finishing close together keep
+        # the newer entry whichever of them cleans up last.
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The save step reports success even when its tar failed, so keep
+          # the older entries unless the new one is listed.
+          if ! gh cache list --ref "$GITHUB_REF" --key "$CCACHE_ENTRY" --json key \
+              | jq -e --arg entry "$CCACHE_ENTRY" 'any(.[]; .key == $entry)' > /dev/null; then
+            echo "$CCACHE_ENTRY was not saved; keeping the older entries."
+            exit 0
+          fi
+          gh cache list --ref "$GITHUB_REF" --key "ccache-$CCACHE_LEG-" --limit 100 --json id,key \
+            | jq -r --arg prefix "ccache-$CCACHE_LEG-" --argjson run "$GITHUB_RUN_ID" \
+                '.[] | select((.key | ltrimstr($prefix) | split("-")[0] | tonumber?) < $run) | .id' \
+            | tr -d '\r' \
+            | while read -r id; do gh cache delete "$id"; done

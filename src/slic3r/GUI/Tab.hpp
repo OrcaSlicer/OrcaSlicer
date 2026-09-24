@@ -30,7 +30,6 @@
 #include <memory>
 
 //#include "BedShapeDialog.hpp"
-#include "Event.hpp"
 #include "wxExtensions.hpp"
 #include "ConfigManipulation.hpp"
 #include "OptionsGroup.hpp"
@@ -38,7 +37,6 @@
 //BBS: GUI refactor
 #include "Notebook.hpp"
 #include "ParamsPanel.hpp"
-#include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
 
@@ -96,6 +94,10 @@ public:
 	void		reload_config();
     void        update_visibility(ConfigOptionMode mode, bool update_contolls_visibility);
     void        activate(ConfigOptionMode mode, std::function<void()> throw_if_canceled);
+    // Whether an option group has no controls yet.
+    bool        build_pending() const;
+    // Builds the next option group that has no controls yet; true while some remain.
+    bool        build_step(ConfigOptionMode mode);
     void        clear();
     void        msw_rescale();
     void        sys_color_changed();
@@ -123,6 +125,8 @@ public:
     std::map<std::string, std::string> m_opt_id_map;
 
 protected:
+    size_t      next_group_to_build() const;
+    bool        activate_group(size_t i, ConfigOptionMode mode, std::function<void()> throw_if_canceled);
 	// Color of TreeCtrlItem. The wxColour will be updated only if the new wxColour pointer differs from the currently rendered one.
 	const wxColour*		m_item_color;
 };
@@ -403,6 +407,16 @@ public:
     void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
     void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
     void            set_option_label(const std::string &opt_key, const wxString &label, int opt_index = -1);
+
+    // Live state of the settings row that owns an option, read from the built pages.
+    struct SettingRowState
+    {
+        bool     visible{true}; // false when ConfigManipulation hides the row
+        wxString label;         // Line::label the row draws (may change at runtime)
+        bool     multi{false};  // row packs several options, so label is precomposed
+    };
+    SettingRowState setting_row_state(const std::string &opt_id) const;
+
 	wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
@@ -429,6 +443,10 @@ public:
 	// BBS: new layout
 	void set_expanded(bool value);
 	void restore_last_select_item();
+	// page_build_pending() says whether the selected page has groups without controls, and
+	// page_build_step() builds one.
+	bool page_build_pending() const;
+	bool page_build_step();
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();
@@ -472,6 +490,7 @@ protected:
     std::string m_last_sparse_infill_rotate_template_value;
     ConfigManipulation get_config_manipulation();
     friend class EditGCodeDialog;
+    friend class PublishSettingsDialog;
 };
 
 class TabPrint : public Tab
@@ -515,13 +534,13 @@ public:
 	bool has_key(std::string const &key);
 
 protected:
-	virtual void    activate_selected_page(std::function<void()> throw_if_canceled);
+	virtual void    activate_selected_page(std::function<void()> throw_if_canceled) override;
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
 
 	virtual void    notify_changed(ObjectBase * object) = 0;
 
-	virtual void	reload_config();
+	virtual void	reload_config() override;
 
 	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 
@@ -545,6 +564,8 @@ public:
 	void build() override;
 	void reset_model_config() override;
 	int show_spiral_mode_settings_dialog(bool is_object_config) { return m_config_manipulation.show_spiral_mode_settings_dialog(is_object_config); }
+	// Disables the user-defined filament print order while a mixed-color filament exists.
+	void update_mixed_filament_seq_state();
 
 protected:
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
@@ -624,13 +645,10 @@ private:
 	bool		m_rebuild_kinematics_page = false;
 	void        update_input_shaper_menu(GCodeFlavor flavor);
 
-	ogStaticText*	m_fff_print_host_upload_description_line {nullptr};
-	ogStaticText*	m_sla_print_host_upload_description_line {nullptr};
 
     std::vector<PageShp>			m_pages_fff;
     std::vector<PageShp>			m_pages_sla;
 
-    wxBoxSizer*         m_presets_sizer                 {nullptr};
 public:
 	ScalableButton*	m_reset_to_filament_color = nullptr;
 

@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <libslic3r/LifecycleEvents.hpp>
 #include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
@@ -12,8 +13,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <condition_variable>
 #include <fstream>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace Slic3r;
@@ -113,6 +117,72 @@ PluginDescriptor descriptor_of(PluginManager& manager, const std::string& plugin
 }
 
 } // namespace
+
+TEST_CASE("Lifecycle hook shutdown drains concurrent dispatch", "[PluginLifecycle][LifecycleEvents]")
+{
+    std::mutex              mutex;
+    std::condition_variable cv;
+    bool                    callback_entered = false;
+    bool                    release_callback = false;
+    bool                    shutdown_started = false;
+    bool                    shutdown_finished = false;
+
+    set_lifecycle_hook_fn([&](LifecycleEvent, const LifecycleEventContext&) {
+        std::unique_lock<std::mutex> lock(mutex);
+        callback_entered = true;
+        cv.notify_all();
+        cv.wait(lock, [&] { return release_callback; });
+    });
+
+    std::thread dispatch_thread([] {
+        LifecycleEventContext ctx;
+        fire_lifecycle_event(LifecycleEvent::ProjectOpened, ctx);
+    });
+
+    bool callback_was_entered = false;
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        callback_was_entered = cv.wait_for(lock, std::chrono::seconds(5), [&] { return callback_entered; });
+    }
+    if (!callback_was_entered) {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            release_callback = true;
+            cv.notify_all();
+        }
+        dispatch_thread.join();
+        set_lifecycle_hook_fn(nullptr);
+        FAIL("Lifecycle callback did not start");
+    }
+
+    std::thread shutdown_thread([&] {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            shutdown_started = true;
+            cv.notify_all();
+        }
+        set_lifecycle_hook_fn(nullptr);
+        std::lock_guard<std::mutex> lock(mutex);
+        shutdown_finished = true;
+        cv.notify_all();
+    });
+
+    bool shutdown_was_started = false;
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        shutdown_was_started = cv.wait_for(lock, std::chrono::seconds(5), [&] { return shutdown_started; });
+        if (shutdown_was_started)
+            CHECK_FALSE(cv.wait_for(lock, std::chrono::milliseconds(100), [&] { return shutdown_finished; }));
+        release_callback = true;
+        cv.notify_all();
+    }
+
+    dispatch_thread.join();
+    shutdown_thread.join();
+    if (!shutdown_was_started)
+        FAIL("Lifecycle hook shutdown did not start");
+    CHECK(shutdown_finished);
+}
 
 TEST_CASE("A discovered script plugin loads and materializes its capability", "[PluginLifecycle][Python]")
 {

@@ -155,6 +155,9 @@ public:
                 update_dark_config();
                 on_sys_color_changed();
                 event.Skip();
+#else
+                // Not calling Skip() is what stops the event propagating on Windows.
+                (void) this;
 #endif // __WINDOWS__
 
         });
@@ -475,6 +478,8 @@ int get_dpi_for_window(const wxWindow *window);
 #ifdef __WXOSX__
 void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
+// Clip a top-level window (and its webview) to a rounded rect with a native layer.
+void set_window_corner_radius(wxWindow* win, int radius);
 #endif
 
 #ifdef __WXGTK__

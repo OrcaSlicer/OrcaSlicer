@@ -3,7 +3,7 @@
 *  Description: The panel with rack updating
 *
 * \n class wgtDeviceNozzleRackUpdate
-//**********************************************************/
+************************************************************/
 
 #include "wgtDeviceNozzleRackUpdate.h"
 
@@ -344,7 +344,8 @@ void wgtDeviceNozzleRackHotendUpdate::OnStatusIconClick(wxMouseEvent& event)
 
             if (dlg.ShowModal() == wxID_OK) 
             {
-                wxGetApp().mainframe->m_monitor->jump_to_Upgrade();
+                if (MonitorPanel* monitor = MonitorPanel::if_built())
+                    monitor->jump_to_Upgrade();
 
                 wxCommandEvent evt(wxEVT_NOZZLE_JUMP_UPGRADE, GetId());
                 evt.SetEventObject(this);

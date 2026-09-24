@@ -306,6 +306,9 @@ class Print;
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
         std::vector<unsigned int> nozzle_change_sequence;
         std::vector<unsigned int> filament_change_sequence;
+        // 0-based mixed (virtual) filament slots actually used on this plate.
+        // Recorded before resolve_mixed_filaments expands them to physical components.
+        std::vector<unsigned int> used_mixed_filaments;
         std::vector<int> optimal_assignment;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
@@ -357,6 +360,7 @@ class Print;
             printer_extruder_id = other.printer_extruder_id;
             layer_filaments = other.layer_filaments;
             filament_change_sequence = other.filament_change_sequence;
+            used_mixed_filaments = other.used_mixed_filaments;
             nozzle_change_sequence = other.nozzle_change_sequence;
             optimal_assignment = other.optimal_assignment;
             filament_change_count_map = other.filament_change_count_map;
@@ -508,6 +512,10 @@ class Print;
             Wipe_Tower_Start,
             Wipe_Tower_End,
             PA_Change,
+            Print_Time_Total_Sec_Placeholder,
+            Print_Time_Day_Placeholder,
+            Print_Time_Hour_Placeholder,
+            Print_Time_Minute_Placeholder,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
         };
@@ -517,7 +525,7 @@ class Print;
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
         // checks the given gcode for reserved tags and returns true when finding any
         // (the first max_count found tags are returned into found_tag)
-        static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag);
+        static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag, bool is_bbl_printer);
 
         static int get_gcode_last_filament(const std::string &gcode_str);
         static bool get_last_z_from_gcode(const std::string& gcode_str, double& z);
@@ -1539,5 +1547,3 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
-
