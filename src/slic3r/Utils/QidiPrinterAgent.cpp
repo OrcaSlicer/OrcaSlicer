@@ -66,14 +66,13 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     // Snapshot only what the fetch needs, rather than reading device_info live from the
     // background thread below — device_info can be concurrently rewritten by a reconnect
     // on another thread while this fetch is still in flight.
-    std::string base_url   = device_info.base_url;
-    std::string api_key    = device_info.api_key;
+    ConnectionSettings connection = get_connection_settings();
     std::string model_id   = device_info.model_id;
     std::string model_name = device_info.model_name;
 
     filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
 
-    std::thread([this, base_url, api_key, model_id, model_name]() {
+    std::thread([this, connection = std::move(connection), model_id, model_name]() mutable {
         InFlightGuard guard{filament_fetch_in_flight};
 
         std::string error;
@@ -82,7 +81,7 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
         std::string series_id;
         {
             MoonrakerDeviceInfo info;
-            if (fetch_device_info(base_url, api_key, info, error)) {
+            if (fetch_device_info(connection, info, error)) {
                 series_id = infer_series_id(info.model_id, info.dev_name);
             }
         }
@@ -93,14 +92,14 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
 
         // 2. Fetch filament dictionary
         QidiFilamentDict dict;
-        if (!fetch_filament_dict(base_url, api_key, dict, error)) {
+        if (!fetch_filament_dict(connection, dict, error)) {
             BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
         }
 
         // 3. Fetch slot info and build AmsTrayData directly
         std::vector<AmsTrayData> trays;
         int box_count = 0;
-        if (!fetch_slot_info(base_url, api_key, dict, series_id, trays, box_count, error)) {
+        if (!fetch_slot_info(connection, dict, series_id, trays, box_count, error)) {
             BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
             return;
         }
@@ -186,15 +185,14 @@ int QidiPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn up
     return MoonrakerPrinterAgent::start_sdcard_print(std::move(params), update_fn, cancel_fn);
 }
 
-bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
-                                       const std::string&        api_key,
+bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
                                        const QidiFilamentDict&   dict,
                                        const std::string&        series_id,
                                        std::vector<AmsTrayData>& trays,
                                        int&                      box_count,
                                        std::string&              error)
 {
-    std::string url = join_url(base_url, "/printer/objects/query?save_variables=variables");
+    std::string url = join_url(connection.base_url, "/printer/objects/query?save_variables=variables");
     for (int i = 0; i < 16; ++i) {
         url += "&box_stepper%20slot" + std::to_string(i) + "=runout_button";
     }
@@ -204,8 +202,9 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
     std::string http_error;
 
     auto http = Http::get(url);
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
+    configure_http(http, connection);
+    if (!connection.api_key.empty()) {
+        http.header("X-Api-Key", connection.api_key);
     }
     http.timeout_connect(5)
         .timeout_max(10)
@@ -333,20 +332,20 @@ bool QidiPrinterAgent::parse_slot_response(const std::string& response_body,
     return true;
 }
 
-bool QidiPrinterAgent::fetch_filament_dict(const std::string& base_url,
-                                           const std::string& api_key,
+bool QidiPrinterAgent::fetch_filament_dict(const ConnectionSettings& connection,
                                            QidiFilamentDict& dict,
                                            std::string& error) const
 {
-    std::string url = join_url(base_url, "/server/files/config/officiall_filas_list.cfg");
+    std::string url = join_url(connection.base_url, "/server/files/config/officiall_filas_list.cfg");
 
     std::string response_body;
     bool        success = false;
     std::string http_error;
 
     auto http = Http::get(url);
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
+    configure_http(http, connection);
+    if (!connection.api_key.empty()) {
+        http.header("X-Api-Key", connection.api_key);
     }
     http.timeout_connect(5)
         .timeout_max(10)

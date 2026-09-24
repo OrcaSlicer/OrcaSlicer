@@ -38,12 +38,25 @@ wxString Moonraker::get_test_failed_msg(wxString &msg) const
 
 std::string Moonraker::make_url(const std::string &path) const
 {
-    if (m_host.find("http://") == 0 || m_host.find("https://") == 0) {
-        if (m_host.back() == '/')
-            return (boost::format("%1%%2%") % m_host % path).str();
-        return (boost::format("%1%/%2%") % m_host % path).str();
+    const bool has_scheme = m_host.find("http://") == 0 || m_host.find("https://") == 0;
+    const bool use_ssl    = m_host.find("https://") == 0;
+    std::string base      = has_scheme ? m_host : ("http://" + m_host);
+
+    const size_t authority_start = base.find("://") + 3;
+    const size_t authority_end   = base.find('/', authority_start);
+    const std::string authority  = base.substr(authority_start, authority_end - authority_start);
+    const size_t closing_bracket = authority.rfind(']');
+    const bool has_port = closing_bracket != std::string::npos
+        ? closing_bracket + 1 < authority.size() && authority[closing_bracket + 1] == ':'
+        : authority.find(':') != std::string::npos;
+    if (!has_port) {
+        const std::string default_port = use_ssl ? ":7130" : ":7125";
+        base.insert(authority_end == std::string::npos ? base.size() : authority_end, default_port);
     }
-    return (boost::format("http://%1%/%2%") % m_host % path).str();
+
+    if (base.back() == '/')
+        return (boost::format("%1%%2%") % base % path).str();
+    return (boost::format("%1%/%2%") % base % path).str();
 }
 
 void Moonraker::set_auth(Http &http) const
@@ -53,6 +66,8 @@ void Moonraker::set_auth(Http &http) const
     //      filled the user/password fields — those are PrusaLink/OctoPrint conventions.
     if (!m_apikey.empty())
         http.header("X-Api-Key", m_apikey);
+    const bool use_ssl = m_host.find("https://") == 0;
+    http.tls_verify(use_ssl);
     if (!m_cafile.empty())
         http.ca_file(m_cafile);
 }

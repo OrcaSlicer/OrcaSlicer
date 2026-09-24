@@ -47,14 +47,13 @@ private:
     };
 
     // Qidi-specific methods
-    bool fetch_slot_info(const std::string&        base_url,
-                         const std::string&        api_key,
+    bool fetch_slot_info(const ConnectionSettings& connection,
                          const QidiFilamentDict&   dict,
                          const std::string&        series_id,
                          std::vector<AmsTrayData>& trays,
                          int&                      box_count,
                          std::string&              error);
-    bool fetch_filament_dict(const std::string& base_url, const std::string& api_key, QidiFilamentDict& dict, std::string& error) const;
+    bool fetch_filament_dict(const ConnectionSettings& connection, QidiFilamentDict& dict, std::string& error) const;
     std::string normalize_filament_type(const std::string& filament_type);
     std::string infer_series_id(const std::string& model_id, const std::string& dev_name);
     std::string normalize_model_key(std::string value);

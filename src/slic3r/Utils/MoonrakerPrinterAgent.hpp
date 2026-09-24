@@ -18,6 +18,8 @@
 
 namespace Slic3r {
 
+class Http;
+
 bool moonraker_is_light_name(const std::string& name);
 
 class MoonrakerWebsocket
@@ -31,7 +33,7 @@ public:
         error,
     };
 
-    MoonrakerWebsocket(bool secure, std::string api_key);
+    MoonrakerWebsocket(bool secure, std::string api_key, std::string ca_file);
     ~MoonrakerWebsocket();
 
     void connect(const std::string& host, const std::string& port, std::chrono::seconds timeout);
@@ -99,6 +101,15 @@ public:
     std::string get_camera_url() const override;
 
 protected:
+    struct ConnectionSettings
+    {
+        std::string dev_id;
+        std::string base_url;
+        std::string api_key;
+        bool        use_ssl = false;
+        std::string ca_file;
+    };
+
     struct MoonrakerDeviceInfo
     {
         std::string dev_id;
@@ -112,6 +123,7 @@ protected:
         std::string klippy_state;
         float       nozzle_diameter = 0.0f;
         bool        use_ssl = false;
+        std::string ca_file;
     } device_info;
 
     // Tray data for AMS payload building
@@ -129,8 +141,10 @@ protected:
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
 
     // Methods that derived classes may need to override or access
-    virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
-    virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+    virtual bool init_device_info(const PrinterConnectionParams& params);
+    virtual bool fetch_device_info(const ConnectionSettings& connection, MoonrakerDeviceInfo& info, std::string& error) const;
+    ConnectionSettings get_connection_settings() const;
+    void configure_http(Http& http, const ConnectionSettings& connection) const;
     static float parse_nozzle_diameter(const nlohmann::json& response);
 
     // State access for derived classes
@@ -157,10 +171,10 @@ protected:
     // Send a G-code script via Moonraker (/printer/gcode/script)
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
     bool send_gcode(const std::string& dev_id, const std::string& gcode,
-                    const std::string& base_url, const std::string& api_key) const;
+                    const ConnectionSettings& connection) const;
     bool post_print_action(const std::string& action) const;
     bool post_print_action(const std::string& action,
-                           const std::string& base_url, const std::string& api_key) const;
+                           const ConnectionSettings& connection) const;
 
     bool send_ws_rpc(const std::string& method, const nlohmann::json& params);
 
@@ -175,8 +189,8 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
-    bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
-    bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
+    bool fetch_object_list(const ConnectionSettings& connection, std::set<std::string>& objects, std::string& error) const;
+    bool query_printer_status(const ConnectionSettings& connection, nlohmann::json& status, std::string& error) const;
     bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
     void send_gcode_async(const std::string& dev_id, const std::string& gcode,
                           std::function<void(bool)> on_result = {}) const;
@@ -185,11 +199,11 @@ private:
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
     void dispatch_printer_connected(const std::string& dev_id);
     void dispatch_message(const std::string& dev_id, const std::string& payload);
-    void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
+    void start_status_stream(const std::string& dev_id, ConnectionSettings connection);
     void stop_status_stream();
-    void run_status_stream(std::string dev_id, std::string base_url, std::string api_key);
-    void handle_ws_message(std::string dev_id, std::string payload, std::string base_url, std::string api_key);
-    void refresh_thumbnail_url(std::string base_url, std::string api_key);
+    void run_status_stream(std::string dev_id, ConnectionSettings connection);
+    void handle_ws_message(std::string dev_id, std::string payload, ConnectionSettings connection);
+    void refresh_thumbnail_url(const ConnectionSettings& connection);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
@@ -200,29 +214,28 @@ private:
 
     // File upload
     bool upload_gcode(const std::string& local_path, const std::string& filename,
-                      const std::string& base_url, const std::string& api_key,
+                      const ConnectionSettings& connection,
                       OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 
     // Start a print of a previously uploaded G-code file (path relative to the
     // Moonraker gcodes root).
-    bool start_print_file(const std::string& base_url, const std::string& api_key,
+    bool start_print_file(const ConnectionSettings& connection,
                           const std::string& filename, std::string& error_msg) const;
 
     // Connection thread management
     void perform_connection_async(const std::string& dev_id,
-                                   const std::string& base_url,
-                                   const std::string& api_key,
+                                   ConnectionSettings connection,
                                    uint64_t generation);
 
     // why: a printer with no /server/webcams/list entry can still name its stream directly;
     // subclasses (e.g. printers with a fixed webcam path) can override this instead.
     virtual std::string webcam_stream_override(const std::string& base_url) const { return {}; }
     void refresh_webcam_info() const;
-    bool fetch_webcam_info(const std::string& base_url, const std::string& api_key, uint64_t generation) const;
+    bool fetch_webcam_info(const ConnectionSettings& connection, uint64_t generation) const;
 
     // System-specific filament fetch methods
-    bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
-    bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_hh_filament_info(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_moonraker_filament_data(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
