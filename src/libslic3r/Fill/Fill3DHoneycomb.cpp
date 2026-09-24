@@ -112,7 +112,7 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t lengthX, coo
     std::swap(gridEndL, gridEndP);
   }
   // adjust spacing so that it starts and ends on exactly the right place
-  coordf_t region_count = floor((gridEndP - gridStartP) / spacing);
+  coordf_t region_count = floor((gridEndP - gridStartP) / (spacing * 0.5));
   spacing = (gridEndP - gridStartP) / region_count;
   for (x = offsetX, xm = 0; x <= (lengthX); x+= gridSize, xm = xm ^ 1) {
     for (y = offsetY, ym = 0; y <= (lengthY); y += gridSize, ym = ym ^ 1) {
