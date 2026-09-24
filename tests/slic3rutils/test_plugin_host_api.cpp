@@ -141,6 +141,16 @@ TEST_CASE("Plugin host API advertises copied semantic feature contracts", "[Plug
     }
 }
 
+TEST_CASE("Plugin host production API excludes acceptance-only Filament observation", "[PluginHost][Python]")
+{
+    py::object host = import_orca_module().attr("host");
+    REQUIRE(has_attr(host, "FilamentSlotPresetMutationTransaction"));
+    CHECK_FALSE(has_attr(host, "FilamentSlotMutationSnapshot"));
+    CHECK_FALSE(has_attr(host, "_TestFilamentSlotMappingSnapshot"));
+    CHECK_FALSE(has_attr(host, "_test_capture_filament_slot_mapping_snapshot"));
+    CHECK_FALSE(has_attr(host.attr("FilamentSlotPresetMutationTransaction"), "snapshot"));
+}
+
 TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initialization", "[PluginHost][Python]")
 {
     py::object host = import_orca_module().attr("host");

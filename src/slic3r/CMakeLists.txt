@@ -889,6 +889,13 @@ if(ORCA_UPDATER_SIG_KEY_B64)
     set(ORCA_UPDATER_SIG_KEY_AVAILABLE 1)
 endif()
 
+if(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API)
+    list(APPEND SLIC3R_GUI_SOURCES
+        plugin/host/PluginHostTestSupport.cpp
+        plugin/host/PluginHostTestSupport.hpp
+    )
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GeneratedConfig.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/GeneratedConfig.hpp
                @ONLY)
@@ -905,6 +912,10 @@ else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+
+if(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API)
+    target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_ENABLE_PLUGIN_HOST_TEST_API=1)
+endif()
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)

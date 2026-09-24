@@ -323,7 +323,8 @@ FilamentSlotMutationTransaction::FilamentSlotMutationTransaction(
 
 FilamentSlotMutationTransaction::~FilamentSlotMutationTransaction() = default;
 
-FilamentSlotMutationSnapshot FilamentSlotMutationTransaction::snapshot() const
+#if defined(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API)
+FilamentSlotMutationSnapshot FilamentSlotMutationTransaction::snapshot_for_test() const
 {
     FilamentSlotMutationSnapshot result;
     result.slot_index = m_before->slot_index;
@@ -355,6 +356,7 @@ FilamentSlotMutationSnapshot FilamentSlotMutationTransaction::snapshot() const
     result.collection_edited_dirty = m_before->collection.edited_dirty;
     return result;
 }
+#endif
 
 std::shared_ptr<FilamentSlotMutationTransaction>
 FilamentSlotMutationTransaction::capture_live(size_t slot_index)

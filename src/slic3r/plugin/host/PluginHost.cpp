@@ -45,6 +45,10 @@ void PluginHost::RegisterBindings(pybind11::module_& module)
     // Slicing print-graph data model (Print, Layer, Surface, ...).
     host_bindings::register_slicing(host);
 
+#if defined(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API)
+    host_bindings::register_test_support(host);
+#endif
+
     // Copied semantic contracts let plugins feature-detect host APIs without
     // inferring safety from a host version or build string.
     host_bindings::register_feature_contracts(host);

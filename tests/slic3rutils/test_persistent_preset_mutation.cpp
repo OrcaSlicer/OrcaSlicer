@@ -5,6 +5,7 @@
 #include "slic3r/plugin/host/PersistentPresetMutationTransaction.hpp"
 #include "test_utils.hpp"
 
+#include <algorithm>
 #include <vector>
 
 namespace {
@@ -254,19 +255,16 @@ TEST_CASE("Filament slot persistent mutation commits only a unique physical user
     const auto before_map = bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_map")->values;
     const auto before_nozzle_map = bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values;
     const auto before_volume_map = bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_volume_map")->values;
+    const std::string before_selected_name = bundle.filaments.get_selected_preset_name();
     const Slic3r::Preset* target_before = bundle.filaments.find_preset("Filament Transaction Target", false, true);
     REQUIRE(target_before != nullptr);
     const Slic3r::DynamicPrintConfig before_target = target_before->config;
     auto transaction = Slic3r::FilamentSlotMutationTransaction::create_for_testing(bundle, 1);
-    const auto captured = transaction->snapshot();
 
-    CHECK(captured.slot_index == 1);
-    CHECK(captured.active_slot_name == "Filament Transaction Target");
-    CHECK(captured.target_preset_name == "Filament Transaction Target");
-    CHECK(captured.shared_slot_indices == std::vector<size_t>{ 1 });
-    CHECK(captured.filament_presets == before_mapping);
-    CHECK(captured.physical_filament_config_indices == before_physical);
-    CHECK(captured.collection_selected_name == bundle.filaments.get_selected_preset_name());
+    CHECK(before_mapping.at(1) == "Filament Transaction Target");
+    CHECK(std::count(before_mapping.begin(), before_mapping.end(), "Filament Transaction Target") == 1);
+    CHECK(before_physical == std::vector<size_t>{ 0, 1 });
+    CHECK_FALSE(before_selected_name.empty());
 
     const auto result = transaction->execute({ { "filament_density", "1.30" } }, false);
 
@@ -284,6 +282,7 @@ TEST_CASE("Filament slot persistent mutation commits only a unique physical user
     CHECK(bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_nozzle_map")->values == before_nozzle_map);
     CHECK(bundle.project_config.option<Slic3r::ConfigOptionInts>("filament_volume_map")->values == before_volume_map);
     CHECK(bundle.filament_presets[0] == "Filament Transaction Slot Zero");
+    CHECK(bundle.filaments.get_selected_preset_name() == before_selected_name);
     CHECK(result.side_effects == std::vector<std::string>{
         "filament_preset_persisted", "filament_compatibility_recalculated" });
 

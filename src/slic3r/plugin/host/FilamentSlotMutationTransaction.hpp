@@ -28,9 +28,10 @@ struct FilamentSlotMutationResult {
     std::string error_code;
 };
 
-// Copied, immutable observation captured with a Filament slot transaction.
-// This exposes no Preset, PresetCollection, DynamicPrintConfig, or mutable
-// mapping container; it is solely for test-only acceptance verification.
+#if defined(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API)
+// Copied, immutable observation for an explicitly enabled native test build.
+// It is not part of the distributed Plugin Host API and exposes no live host
+// object or mutable container.
 struct FilamentSlotMutationSnapshot {
     size_t slot_index { size_t(-1) };
     std::string active_slot_name;
@@ -59,6 +60,7 @@ struct FilamentSlotMutationSnapshot {
     bool collection_selected_dirty { false };
     bool collection_edited_dirty { false };
 };
+#endif
 
 // Opaque, UI-thread-only, one-shot transaction for one unique physical user
 // Filament slot. It never exposes or retains live host handles across Python.
@@ -83,7 +85,10 @@ public:
 
     FilamentSlotMutationResult execute(
         const std::map<std::string, std::string>& patch, bool protected_approved);
-    FilamentSlotMutationSnapshot snapshot() const;
+#if defined(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API)
+    // Native test-build seam only; never registered on the production host API.
+    FilamentSlotMutationSnapshot snapshot_for_test() const;
+#endif
     PersistentPresetMutationState state() const noexcept { return m_state; }
 
 private:

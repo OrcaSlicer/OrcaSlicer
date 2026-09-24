@@ -293,6 +293,8 @@ endif ()
 option(SLIC3R_BUILD_SANDBOXES   "Build development sandboxes" OFF)
 option(BUILD_TESTS       "Build unit tests" OFF)
 option(ORCA_TOOLS       "Build Orca tools" OFF)
+option(SLIC3R_ENABLE_PLUGIN_HOST_TEST_API
+       "Expose test-only Plugin Host helpers; never enable for distributed builds" OFF)
 
 if (FLATPAK)
     set(SLIC3R_FHS ON CACHE BOOL "" FORCE)
