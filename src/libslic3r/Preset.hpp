@@ -484,6 +484,12 @@ std::string get_preset_canonical_name(const std::string &preset_bare_name, const
 // Tail segment of a canonical name — what's written to the bundle's .json filename and JSON "name" field.
 std::string get_preset_bare_name(const std::string &canonical_name);
 
+// Lock file guarding every user preset file under data_dir() against other
+// running instances and the preset sync thread. Empty without a data dir, and
+// for a read-only load (the CLI), which never rewrites or deletes and may run
+// many jobs on one data dir.
+std::string user_presets_lock_path(bool read_only = false);
+
 // Resolve an origin from a directory path when the caller passes Kind::Auto.
 PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const PresetOrigin &explicit_origin = PresetOrigin());
 
@@ -1053,7 +1059,7 @@ public:
 
     //BBS: change to json format
     //void                save() { this->config.save(this->file); }
-    void                save(DynamicPrintConfig* parent_config) { this->config.save_to_json(this->file, std::string("Physical_Printer"), std::string("User"), std::string(SLIC3R_VERSION)); }
+    void                save(DynamicPrintConfig* parent_config);
     void                save(const std::string& file_name_from, const std::string& file_name_to);
 
     void                update_from_preset(const Preset& preset);

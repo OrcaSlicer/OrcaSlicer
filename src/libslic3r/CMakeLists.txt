@@ -304,6 +304,8 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    InstanceLock.cpp
+    InstanceLock.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp

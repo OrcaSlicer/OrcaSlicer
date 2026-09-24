@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <ctime>
@@ -12,6 +13,7 @@
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
+#include "InstanceLock.hpp"
 #include "LocalesUtils.hpp"
 #include "Model.hpp"
 #include "TriangleSelector.hpp"
@@ -1227,6 +1229,13 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
 
     const auto user_load_t0 = std::chrono::steady_clock::now();
 
+    // Reads one bundle's metadata under the lock, per file, so the lock is never
+    // held when bundles.WriteLock() is taken afterwards.
+    auto load_bundle_metadata = [read_only](const fs::path &metadata_file, BundleMetadata &metadata) {
+        InstanceLock instance_lock(user_presets_lock_path(read_only));
+        return metadata.load_from_json(metadata_file.string());
+    };
+
     // Load bundle metadata from _local directory first
     fs::path local_dir(folder / PRESET_LOCAL_DIR);
     if (fs::exists(local_dir)) {
@@ -1240,7 +1249,7 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             if (!fs::exists(metadata_file)) continue;
 
             BundleMetadata metadata;
-            if (!metadata.load_from_json(metadata_file.string())) continue;
+            if (!load_bundle_metadata(metadata_file, metadata)) continue;
             metadata.print_presets.clear();
             metadata.filament_presets.clear();
             metadata.printer_presets.clear();
@@ -1275,7 +1284,7 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             if (!fs::exists(metadata_file)) continue;
 
             BundleMetadata metadata;
-            if (!metadata.load_from_json(metadata_file.string())) continue;
+            if (!load_bundle_metadata(metadata_file, metadata)) continue;
             metadata.print_presets.clear();
             metadata.filament_presets.clear();
             metadata.printer_presets.clear();
@@ -1609,10 +1618,12 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " create directory failed: " << ec.message();
             //create temp folder
             //std::string user_default_temp_dir = data_dir() + "/" + PRESET_USER_DIR + "/" + DEFAULT_USER_FOLDER_NAME + "/" + "temp";
-            fs::path temp_folder(configs_folder / "temp");
+            // Under cache/, per process and per import, so two instances importing
+            // at once do not clear each other's extraction and no preset scan reads it.
+            static std::atomic<unsigned> import_counter{0};
+            fs::path temp_folder(fs::path(data_dir()) / "cache" / ("import." + std::to_string(get_current_pid()) + "." + std::to_string(import_counter++)));
             std::string user_default_temp_dir = temp_folder.make_preferred().string();
-            if (fs::exists(temp_folder)) fs::remove_all(temp_folder);
-            fs::create_directory(temp_folder, ec);
+            fs::create_directories(temp_folder, ec);
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " create directory failed: " << ec.message();
 
             file = boost::filesystem::path(file).make_preferred().string();
@@ -1624,6 +1635,9 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
             status        = mz_zip_reader_init_cfile(&zip_archive, zipFile, 0, MZ_ZIP_FLAG_CASE_SENSITIVE | MZ_ZIP_FLAG_IGNORE_PATH);
             if (MZ_FALSE == status) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to initialize reader ZIP archive";
+                if (zipFile != nullptr)
+                    std::fclose(zipFile);
+                fs::remove_all(temp_folder, ec);
                 return substitutions;
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Success to initialize reader ZIP archive";
@@ -2231,10 +2245,9 @@ void PresetBundle::remove_user_presets_directory(const std::string preset_folder
         return;
     }
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, delete directory : %1%") % dir_user_presets;
-    fs::path folder(dir_user_presets);
-    if (fs::exists(folder)) {
-        fs::remove_all(folder);
-    }
+    boost::system::error_code ec;
+    InstanceLock instance_lock(user_presets_lock_path());
+    fs::remove_all(fs::path(dir_user_presets), ec);
 }
 
 void PresetBundle::update_system_preset_setting_ids(std::map<std::string, std::map<std::string, std::string>>& system_presets)
@@ -7932,9 +7945,13 @@ bool BundleMetadata::save_to_json(const std::string& path) const
         j["filament_presets"] = strip_prefix(this->filament_presets);                                                                                                                                                                                                                       
         j["printer_presets"] = strip_prefix(this->printer_presets);
 
-        boost::nowide::ofstream ofs(path);
-        ofs << j.dump(4);
-        return ofs.good();
+        const std::string content = j.dump(4);
+        InstanceLock instance_lock(user_presets_lock_path());
+        if (const std::error_code ec = write_file_atomically(path, content)) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to save bundle metadata to " << path << ": " << ec.message();
+            return false;
+        }
+        return true;
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "Failed to save bundle metadata to " << path << ": " << e.what();
         return false;

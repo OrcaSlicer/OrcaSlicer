@@ -48,6 +48,9 @@
 
 #include "libslic3r.h"
 #include "Utils.hpp"
+#include "InstanceLock.hpp"
+
+#include <sstream>
 #include "Time.hpp"
 #include "PlaceholderParser.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
@@ -102,6 +105,31 @@ std::string get_preset_canonical_name(const std::string &preset_bare_name, const
     default:
         return preset_bare_name;
     }
+}
+
+std::string user_presets_lock_path(bool read_only)
+{
+    return read_only || data_dir().empty() ? std::string() : (fs::path(data_dir()) / (PRESET_USER_DIR ".lock")).string();
+}
+
+// Removes a preset file the scan could not load, and its .info, under the lock.
+// Without the lock, in a cool-down, the file may be another instance's fresh
+// write that this scan merely raced, so it stays for the next scan to judge.
+static void remove_preset_files(const std::string &preset_file, bool read_only)
+{
+    if (read_only)
+        return;
+    const std::string lock_path = user_presets_lock_path();
+    InstanceLock      instance_lock(lock_path);
+    if (! lock_path.empty() && ! instance_lock.locked()) {
+        BOOST_LOG_TRIVIAL(warning) << "Leaving unreadable preset " << preset_file << " in place: the instance lock is not held";
+        return;
+    }
+    boost::system::error_code ec;
+    fs::path file_path(preset_file);
+    fs::remove(file_path, ec);
+    file_path.replace_extension(".info");
+    fs::remove(file_path, ec);
 }
 
 std::string get_preset_bare_name(const std::string &canonical_name)
@@ -646,18 +674,20 @@ void Preset::save_info(std::string file)
         file = idx_file.string();
     }
 
-    boost::nowide::ofstream c;
-    c.open(file, std::ios::out | std::ios::trunc);
     std::string sync_info_to_save;
     //BBS: hold is used for stop requesting to server this time
     if (this->sync_info.compare("hold") != 0)
         sync_info_to_save = this->sync_info;
+    std::ostringstream c;
     c << "sync_info" << " = " << sync_info_to_save << std::endl;
     c << "user_id" << " = " << this->user_id << std::endl;
     c << "setting_id" << " = " << this->setting_id << std::endl;
     c << "base_id" << " = " << this->base_id << std::endl;
     c << "updated_time" << " = " << std::to_string(this->updated_time) << std::endl;
-    c.close();
+
+    InstanceLock instance_lock(user_presets_lock_path());
+    if (const std::error_code ec = write_file_atomically(file, c.str()))
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to save " << file << ": " << ec.message();
 }
 
 void Preset::remove_files(bool cloud_already_deleted)
@@ -666,6 +696,7 @@ void Preset::remove_files(bool cloud_already_deleted)
     if (this->is_project_embedded) {
         return;
     }
+    InstanceLock instance_lock(user_presets_lock_path());
     // Erase the preset file.
     boost::nowide::remove(this->file.c_str());
     fs::path idx_path(this->file);
@@ -702,12 +733,16 @@ void Preset::save(DynamicPrintConfig* parent_config)
     else
         from_str = std::string("Default");
 
-    boost::filesystem::create_directories(fs::path(this->file).parent_path());
     const std::string bare_name = get_preset_bare_name(this->name);
+
+    // What gets written: the diff against the parent, the config plus its
+    // filament id, or the config as is. Built before the lock is taken so the
+    // exclusive window covers only the file writes.
+    DynamicPrintConfig        temp_config;
+    const DynamicPrintConfig *to_save = &this->config;
 
     //BBS: only save difference if it has parent
     if (parent_config) {
-        DynamicPrintConfig temp_config;
         std::vector<std::string> dirty_options = config.diff(*parent_config);
 
         std::string extruder_id_name, extruder_variant_name;
@@ -743,13 +778,22 @@ void Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
-        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        to_save = &temp_config;
     } else if (!filament_id.empty() && inherits().empty()) {
-        DynamicPrintConfig temp_config = config;
+        temp_config = config;
         temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
-        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
-    } else {
-        this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
+        to_save = &temp_config;
+    }
+
+    std::ostringstream json;
+    to_save->save_to_json(json, bare_name, from_str, this->version.to_string());
+
+    InstanceLock instance_lock(user_presets_lock_path());
+    boost::filesystem::create_directories(fs::path(this->file).parent_path());
+    if (const std::error_code ec = write_file_atomically(this->file, json.str())) {
+        // No .info either: one without its preset reads as a cloud deletion request.
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to save " << this->file << ": " << ec.message();
+        return;
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
 
@@ -770,6 +814,7 @@ void Preset::reload(Preset const &parent)
     std::string                        reason;
     ForwardCompatibilitySubstitutionRule substitution_rule    = ForwardCompatibilitySubstitutionRule::Disable;
     try {
+        InstanceLock instance_lock(user_presets_lock_path());
         ConfigSubstitutions                config_substitutions = config.load_from_json(file, substitution_rule, key_values, reason);
         this->config = parent.config;
         this->config.apply(std::move(config));
@@ -1707,6 +1752,9 @@ void PresetCollection::load_presets(
     //BBS: change to json format
     for (auto &dir_entry : boost::filesystem::directory_iterator(dir))
     {
+        // Per file, so a save on another thread or in another instance never
+        // waits for the whole scan.
+        InstanceLock instance_lock(user_presets_lock_path(read_only));
         std::string file_name = dir_entry.path().filename().string();
         //if (Slic3r::is_ini_file(dir_entry)) {
         if (Slic3r::is_json_file(file_name)) {
@@ -1725,30 +1773,26 @@ void PresetCollection::load_presets(
                 preset.file = dir_entry.path().string();
                 // Load the preset file, apply preset values on top of defaults.
                 try {
+                    DynamicPrintConfig config;
+                    std::map<std::string, std::string> key_values;
+                    std::string reason;
+                    ConfigSubstitutions config_substitutions;
                     fs::path idx_path(preset.file);
                     idx_path.replace_extension(".info");
                     if (fs::exists(idx_path)) {
                         preset.load_info(idx_path.string());
                     }
-                    DynamicPrintConfig config;
                     //BBS: change to json format
                     //ConfigSubstitutions config_substitutions = config.load_from_ini(preset.file, substitution_rule);
-                    std::map<std::string, std::string> key_values;
-                    std::string reason;
-                    ConfigSubstitutions config_substitutions = config.load_from_json(preset.file, substitution_rule, key_values, reason);
-                    if (! config_substitutions.empty())
-                        substitutions.push_back({ preset.name, m_type, PresetConfigSubstitutions::Source::UserFile, preset.file, std::move(config_substitutions) });
+                    config_substitutions = config.load_from_json(preset.file, substitution_rule, key_values, reason);
                     if (!reason.empty()) {
-                        fs::path file_path(preset.file);
-                        if (!read_only && fs::exists(file_path))
-                            fs::remove(file_path);
-                        file_path.replace_extension(".info");
-                        if (!read_only && fs::exists(file_path))
-                            fs::remove(file_path);
+                        remove_preset_files(preset.file, read_only);
                         BOOST_LOG_TRIVIAL(error) << boost::format("parse config %1% failed")%preset.file;
                         ++m_errors;
                         continue;
                     }
+                    if (! config_substitutions.empty())
+                        substitutions.push_back({ preset.name, m_type, PresetConfigSubstitutions::Source::UserFile, preset.file, std::move(config_substitutions) });
 
                     std::string version_str = key_values[BBL_JSON_KEY_VERSION];
                     boost::optional<Semver> version = Semver::parse(version_str);
@@ -1832,23 +1876,13 @@ void PresetCollection::load_presets(
                 } catch (const std::ifstream::failure &err) {
                     ++m_errors;
                     BOOST_LOG_TRIVIAL(error) << boost::format("The user-config cannot be loaded: %1%. Reason: %2%")%preset.file %err.what();
-                    fs::path file_path(preset.file);
-                    if (!read_only && fs::exists(file_path))
-                        fs::remove(file_path);
-                    file_path.replace_extension(".info");
-                    if (!read_only && fs::exists(file_path))
-                        fs::remove(file_path);
+                    remove_preset_files(preset.file, read_only);
                     //throw Slic3r::RuntimeError(std::string("The selected preset cannot be loaded: ") + preset.file + "\n\tReason: " + err.what());
                 } catch (const std::runtime_error &err) {
                     ++m_errors;
                     BOOST_LOG_TRIVIAL(error) << boost::format("Failed loading the user-config file: %1%. Reason: %2%")%preset.file %err.what();
                     //throw Slic3r::RuntimeError(std::string("Failed loading the preset file: ") + preset.file + "\n\tReason: " + err.what());
-                    fs::path file_path(preset.file);
-                    if (!read_only && fs::exists(file_path))
-                        fs::remove(file_path);
-                    file_path.replace_extension(".info");
-                    if (!read_only && fs::exists(file_path))
-                        fs::remove(file_path);
+                    remove_preset_files(preset.file, read_only);
                 }
 
                 if (preset_loaded_fn != nullptr)
@@ -4201,8 +4235,15 @@ void PhysicalPrinter::update_preset_names_in_config()
     }
 }
 
+void PhysicalPrinter::save(DynamicPrintConfig* /* parent_config */)
+{
+    InstanceLock instance_lock(user_presets_lock_path());
+    this->config.save_to_json(this->file, std::string("Physical_Printer"), std::string("User"), std::string(SLIC3R_VERSION));
+}
+
 void PhysicalPrinter::save(const std::string& file_name_from, const std::string& file_name_to)
 {
+    InstanceLock instance_lock(user_presets_lock_path());
     // rename the file
     boost::nowide::rename(file_name_from.data(), file_name_to.data());
     this->file = file_name_to;
@@ -4334,6 +4375,7 @@ void PhysicalPrinterCollection::load_printers(
                 continue;
             }
             try {
+                InstanceLock instance_lock(user_presets_lock_path());
                 PhysicalPrinter printer(name, this->default_config());
                 printer.file = dir_entry.path().string();
                 // Load the preset file, apply preset values on top of defaults.
@@ -4526,7 +4568,10 @@ bool PhysicalPrinterCollection::delete_printer(const std::string& name)
 
     const PhysicalPrinter& printer = *it;
     // Erase the preset file.
-    boost::nowide::remove(printer.file.c_str());
+    {
+        InstanceLock instance_lock(user_presets_lock_path());
+        boost::nowide::remove(printer.file.c_str());
+    }
     m_printers.erase(it);
     return true;
 }
@@ -4538,7 +4583,10 @@ bool PhysicalPrinterCollection::delete_selected_printer()
     const PhysicalPrinter& printer = this->get_selected_printer();
 
     // Erase the preset file.
-    boost::nowide::remove(printer.file.c_str());
+    {
+        InstanceLock instance_lock(user_presets_lock_path());
+        boost::nowide::remove(printer.file.c_str());
+    }
     // Remove the preset from the list.
     m_printers.erase(m_printers.begin() + m_idx_selected);
     // unselect all printers

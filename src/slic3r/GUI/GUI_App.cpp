@@ -85,6 +85,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/InstanceLock.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Utils.hpp"
@@ -3531,7 +3532,7 @@ bool GUI_App::on_init_inner()
             update_publish_status();
         }
 
-        if (m_post_initialized && app_config->dirty())
+        if (m_post_initialized && app_config->dirty() && app_config->save_due())
             app_config->save();
 
     });
@@ -7623,8 +7624,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 
                             // Delete the bundle folder and bundle
                             fs::path bundle_folder = fs::path(bundle.path.c_str()).parent_path();
-                            boost::system::error_code ec;
-                            boost::filesystem::remove_all(bundle_folder, ec);
+                            {
+                                boost::system::error_code ec;
+                                InstanceLock instance_lock(user_presets_lock_path());
+                                boost::filesystem::remove_all(bundle_folder, ec);
+                            }
 
                             preset_bundle->bundles.WriteLock();
                             preset_bundle->bundles.m_bundles.erase(bundle.id);
@@ -8889,6 +8893,7 @@ void GUI_App::preset_deleted_from_cloud(std::string setting_id)
 
     // Delete the .info file after cloud deletion is confirmed
     if (!preset_file_path.empty() && fs::exists(fs::path(preset_file_path))) {
+        InstanceLock instance_lock(user_presets_lock_path());
         boost::nowide::remove(preset_file_path.c_str());
         BOOST_LOG_TRIVIAL(info) << "Deleted .info file after cloud confirmation: " << preset_file_path;
     }
@@ -8951,15 +8956,19 @@ void GUI_App::scan_orphaned_info_files()
             fs::path preset_file = info_file;
             preset_file.replace_extension(".json");
 
-            // If .json doesn't exist, .info is orphaned
-            if (!fs::exists(preset_file)) {
-                // Extract setting_id from .info file
-                std::string setting_id = extract_setting_id_from_info(info_file.string());
-                if (!setting_id.empty()) {
-                    // Add to need_delete_presets
-                    delete_preset_from_cloud(setting_id, info_file.string());
-                    BOOST_LOG_TRIVIAL(info) << "Found orphaned .info file on startup: " << info_file.string();
-                }
+            // If .json doesn't exist, .info is orphaned. Read under the lock, so a
+            // remove_files() in another instance is seen whole or not at all; the
+            // delete queue's own mutex is taken after the lock is released.
+            std::string setting_id;
+            {
+                InstanceLock instance_lock(user_presets_lock_path());
+                if (!fs::exists(preset_file))
+                    setting_id = extract_setting_id_from_info(info_file.string());
+            }
+            if (!setting_id.empty()) {
+                // Add to need_delete_presets
+                delete_preset_from_cloud(setting_id, info_file.string());
+                BOOST_LOG_TRIVIAL(info) << "Found orphaned .info file on startup: " << info_file.string();
             }
         }
         if (ec)
