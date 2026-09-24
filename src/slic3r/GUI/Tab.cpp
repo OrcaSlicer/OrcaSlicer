@@ -7184,6 +7184,14 @@ void Tab::activate_selected_page(std::function<void()> throw_if_canceled)
     if (!m_active_page)
         return;
 
+#ifdef __WXGTK__
+    // Builds the page off screen, since GTK crashes when it desensitizes a multiline text view
+    // that was built on screen and hidden before its first size allocation.
+    const bool hide_view = m_active_page->build_pending() && m_page_view->IsShown();
+    if (hide_view)
+        m_page_view->Hide();
+    ScopeGuard show_view([this, hide_view] { if (hide_view) m_page_view->Show(); });
+#endif
     m_active_page->activate(m_mode, throw_if_canceled);
     update_changed_ui();
     update_description_lines();
