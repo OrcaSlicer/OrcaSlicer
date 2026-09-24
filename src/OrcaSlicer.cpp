@@ -446,6 +446,26 @@ static void cli_record_warning(sliced_info_t &sliced_info, const std::string &cl
     sliced_info.warnings.push_back(std::move(details));
 }
 
+// Reports values the config parser could not accept and replaced with the option's
+// default. This went only to Boost.Log, which the CLI does not show on the console --
+// it attaches no console sink, so the note was reachable only through --logfile. A
+// preset carrying e.g. an invalid ironing_type therefore loaded, printed nothing,
+// exited 0, and sliced with a setting the file never asked for. The exit status is
+// unchanged: --strict escalates only the NON_CRITICAL slicing warning.
+static void cli_report_config_substitutions(const std::string &file, const ConfigSubstitutions &substitutions,
+                                            sliced_info_t &sliced_info)
+{
+    for (const ConfigSubstitution &subst : substitutions) {
+        const std::string new_value = subst.new_value->serialize();
+        boost::nowide::cerr << "warning: " << file << ": value \"" << subst.old_value << "\" for "
+                            << subst.opt_def->opt_key << " is not valid, using \"" << new_value
+                            << "\" instead" << std::endl;
+        cli_record_warning(sliced_info, "config_value_substituted",
+                           nlohmann::json{{"file", file}, {"key", subst.opt_def->opt_key},
+                                          {"old_value", subst.old_value}, {"new_value", new_value}});
+    }
+}
+
 void record_exit_reson(std::string outputdir, int code, int plate_id, std::string error_message, sliced_info_t& sliced_info, std::map<std::string, std::string> key_values = std::map<std::string, std::string>())
 {
 #if defined(__linux__) || defined(__LINUX__)
@@ -1996,11 +2016,7 @@ int CLI::run(int argc, char **argv)
                     record_exit_reson(outfile_dir, CLI_INVALID_PRINTER_TECH, 0, cli_errors[CLI_INVALID_PRINTER_TECH], sliced_info);
                     flush_and_exit(CLI_INVALID_PRINTER_TECH);
                 }
-                if (!config_substitutions.substitutions.empty()) {
-                    BOOST_LOG_TRIVIAL(info) << "Found legacy configuration values, substituted when loading " << file << ":\n";
-                    for (const ConfigSubstitution &subst : config_substitutions.substitutions)
-                        BOOST_LOG_TRIVIAL(info) << "\tkey = \"" << subst.opt_def->opt_key << "\"\t old_value = \"" << subst.old_value << "\tnew_value = \"" << subst.new_value->serialize() << "\"\n";
-                }
+                cli_report_config_substitutions(file, config_substitutions.substitutions, sliced_info);
 
                 // config is applied to m_print_config before the current m_config values.
                 config += std::move(m_print_config);
@@ -2205,7 +2221,7 @@ int CLI::run(int argc, char **argv)
         return Slic3r::escape_strings_cstyle(keys);
     };
 
-    auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    auto load_config_file = [&resolve_preset, &sliced_info](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -2262,11 +2278,8 @@ int CLI::run(int argc, char **argv)
             }
             config.normalize_fdm();
 
-            if (! config_substitutions.empty()) {
-                BOOST_LOG_TRIVIAL(info) << "Found legacy configuration values, substituted when loading " << file << ":\n";
-                for (const ConfigSubstitution &subst : config_substitutions)
-                    BOOST_LOG_TRIVIAL(info) << "\tkey = \"" << subst.opt_def->opt_key << "\"\t old_value = \"" << subst.old_value << "\tnew_value = \"" << subst.new_value->serialize() << "\"\n";
-            }
+            if (! config_substitutions.empty())
+                cli_report_config_substitutions(file, config_substitutions, sliced_info);
             else {
                 BOOST_LOG_TRIVIAL(info) << "no substitutions performed from file " << file << "\n";
             }
