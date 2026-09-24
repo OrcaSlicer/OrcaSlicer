@@ -38,6 +38,7 @@ public:
     struct Config {
         std::string   url;
         bool          use_tls = false;
+        std::string   ca_file;
         TokenProvider bearer_provider;       // set => bearer on WS upgrade, CONNECT creds omitted
         std::string   username;
         std::string   password;

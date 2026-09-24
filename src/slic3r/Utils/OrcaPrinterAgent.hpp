@@ -191,6 +191,8 @@ private:
 
     std::string m_lan_dev_id; // guarded by state_mutex
     std::string m_lan_url;    // guarded by state_mutex — the Config.url of the live LAN session
+    bool m_lan_use_ssl = false; // guarded by state_mutex
+    std::string m_lan_ca_file; // guarded by state_mutex
     CameraStreamMode m_camera_stream_mode = CameraStreamMode::none; // guarded by state_mutex
     std::string m_camera_url; // guarded by state_mutex
 

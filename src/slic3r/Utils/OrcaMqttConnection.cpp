@@ -361,7 +361,10 @@ void OrcaMqttConnection::ws_handshake(Connection& conn, const Config& config, co
         auto& tls_stream = websocket.next_layer();
         if (!SSL_set_tlsext_host_name(tls_stream.native_handle(), endpoint.host.c_str()))
             throw std::runtime_error("failed to set Orca Cloud TLS server name");
-        conn.ssl_context.set_default_verify_paths();
+        if (!config.ca_file.empty())
+            conn.ssl_context.load_verify_file(config.ca_file);
+        else
+            conn.ssl_context.set_default_verify_paths();
         Http::add_platform_root_certificates(conn.ssl_context.native_handle());
         tls_stream.set_verify_mode(boost::asio::ssl::verify_peer);
         tls_stream.set_verify_callback(boost::asio::ssl::host_name_verification(endpoint.host));
