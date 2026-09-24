@@ -4011,7 +4011,8 @@ bool MainFrame::Show(bool show)
 
 bool MainFrame::GLResourcesPrebuild::built() const
 {
-    return m_frame.m_plater != nullptr && m_frame.m_plater->canvas3D()->is_initialized();
+    return m_frame.m_plater != nullptr && m_frame.m_plater->canvas3D()->is_initialized() &&
+           m_frame.m_plater->get_partplate_list().icon_textures_loaded();
 }
 
 bool MainFrame::GLResourcesPrebuild::build_step()
@@ -4028,20 +4029,34 @@ bool MainFrame::GLResourcesPrebuild::build_step()
         m_failed = true;
         return false;
     }
-    switch (m_step++) {
+    switch (m_step) {
     case 0:
         m_failed = !wxGetApp().init_opengl();
-        return !m_failed;
+        break;
     case 1: {
         const Size size = canvas->get_canvas_size();
         wxGetApp().imgui()->set_display_size(float(std::max(1, size.get_width())), float(std::max(1, size.get_height())));
+        canvas->set_imgui_scaling();
+        // Builds the font atlas without leaving a frame open at the hidden canvas's size.
         wxGetApp().imgui()->new_frame();
-        return true;
+        wxGetApp().imgui()->end_frame();
+        break;
     }
-    default:
+    case 2:
+        // One texture per unit until none remain.
+        if (m_frame.m_plater->get_partplate_list().load_next_plate_texture())
+            return true;
+        break;
+    case 3:
         m_failed = !canvas->init();
+        break;
+    default:
+        // Runs after init(), which sets the color mode the icons are drawn for.
+        m_frame.m_plater->get_partplate_list().load_icon_textures();
         return false;
     }
+    ++m_step;
+    return !m_failed;
 }
 
 // A page out of the book stays registered and is passed over; a negative order is never
