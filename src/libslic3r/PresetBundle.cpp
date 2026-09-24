@@ -3586,8 +3586,18 @@ size_t PresetBundle::num_mixed_filaments() const
 size_t PresetBundle::num_physical_filaments() const
 {
     const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? filament_presets.size()
-                          : size_t(std::count(opt->values.begin(), opt->values.end(), false));
+    if (opt == nullptr)
+        return filament_presets.size();
+
+    // Count physical filaments recorded in the array
+    size_t count = size_t(std::count(opt->values.begin(), opt->values.end(), false));
+
+    // If metadata array is shorter than the loaded filament presets,
+    // any unrecorded preset slots are physical filaments by default
+    if (opt->values.size() < filament_presets.size())
+        count += (filament_presets.size() - opt->values.size());
+
+    return count;
 }
 
 std::vector<size_t> PresetBundle::physical_filament_config_indices() const
