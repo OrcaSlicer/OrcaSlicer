@@ -182,6 +182,20 @@ static void run_round_trip(bool use_tls_flag_only) {
 TEST_CASE("OrcaMqtt round-trip — LAN-style config",   "[OrcaMqtt][.integration]") { run_round_trip(false); }
 TEST_CASE("OrcaMqtt round-trip — cloud-style config", "[OrcaMqtt][.integration]") { run_round_trip(true);  }
 
+TEST_CASE("OrcaMqtt keepalive runs while the connection is idle", "[OrcaMqtt][.integration]") {
+    orca_mqtt_test::MockBroker broker;
+    OrcaMqttConnection conn;
+    OrcaMqttConnection::Config cfg;
+    cfg.url = broker.ws_url();
+    cfg.keepalive_seconds = 2;
+
+    REQUIRE(conn.start(cfg, [](const std::string&, const std::string&) {}, [](bool, bool) {}));
+    for (int i = 0; i < 200 && broker.ping_count() == 0; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    CHECK(broker.ping_count() > 0);
+    conn.stop();
+}
+
 TEST_CASE("OrcaMqtt reconnects and re-subscribes after a socket drop", "[OrcaMqtt][.integration]") {
     orca_mqtt_test::MockBroker broker;
     OrcaMqttConnection conn;

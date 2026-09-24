@@ -23,6 +23,12 @@ struct OrcaMqttConnection::Connection {
     boost::asio::io_context io_context;
     boost::asio::ssl::context ssl_context;
     boost::asio::ip::tcp::resolver resolver;
+    boost::asio::steady_timer keepalive_timer;
+    boost::beast::flat_buffer read_buffer;
+    std::deque<std::shared_ptr<std::vector<uint8_t>>> outbound_packets;
+    boost::system::error_code terminal_error;
+    std::atomic_bool async_session_started{false};
+    bool write_in_progress{false};
     // Exactly one of these is engaged once ws_handshake() has run: wss for
     // wss:// endpoints, ws for plaintext ws://.
     std::optional<TlsWebSocket>   wss;
@@ -31,6 +37,7 @@ struct OrcaMqttConnection::Connection {
     Connection()
         : ssl_context(boost::asio::ssl::context::tls_client)
         , resolver(io_context)
+        , keepalive_timer(io_context)
     {}
 };
 
@@ -81,19 +88,31 @@ void OrcaMqttConnection::stop() {
     {
         std::lock_guard<std::mutex> lock(connection_mutex);
         if (active_connection) {
-            // Generic so it accepts either the TLS or the plaintext websocket.
-            auto shutdown_socket = [](auto& websocket) {
-                auto& socket = boost::beast::get_lowest_layer(websocket).socket();
-                boost::system::error_code socket_error;
-                socket.cancel(socket_error);
-                socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, socket_error);
-                socket.close(socket_error);
-            };
-            if (active_connection->wss)
-                shutdown_socket(*active_connection->wss);
-            else if (active_connection->ws)
-                shutdown_socket(*active_connection->ws);
-            active_connection->resolver.cancel();
+            if (active_connection->async_session_started.load()) {
+                // The worker owns the live WebSocket. Stop dispatching its
+                // asynchronous operations; the worker closes the socket after
+                // leaving the event loop.
+                active_connection->io_context.stop();
+            } else {
+                // Setup still uses synchronous operations on the worker. Wake a
+                // pending resolve/connect/CONNACK read without competing with a
+                // live asynchronous session.
+                auto shutdown_socket = [](auto& websocket) {
+                    auto& socket = boost::beast::get_lowest_layer(websocket).socket();
+                    boost::system::error_code socket_error;
+                    if (socket.cancel(socket_error))
+                        return;
+                    if (socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, socket_error))
+                        return;
+                    if (socket.close(socket_error))
+                        return;
+                };
+                if (active_connection->wss)
+                    shutdown_socket(*active_connection->wss);
+                else if (active_connection->ws)
+                    shutdown_socket(*active_connection->ws);
+                active_connection->resolver.cancel();
+            }
         }
     }
     if (worker.joinable())
@@ -130,13 +149,10 @@ void OrcaMqttConnection::flush_subscription_change() {
     }
     if (!conn || !connacked)
         return; // no live MQTT session yet — the worker sends the set on CONNACK
-
-    // beast permits a concurrent writer while the worker is blocked in
-    // websocket.read(); every write is serialised by write_mutex inside ws_write().
-    try {
-        send_pending_subscriptions(*conn);
-    } catch (const std::exception&) {
-    }
+    boost::asio::post(conn->io_context, [this, conn] {
+        if (!stopping.load() && connected.load())
+            send_pending_subscriptions(conn);
+    });
 }
 
 bool OrcaMqttConnection::subscribe(const std::string& dev_id) {
@@ -157,7 +173,7 @@ bool OrcaMqttConnection::subscribe(const std::string& dev_id) {
         pending_subscriptions.insert(topic);
     }
     state_cv.notify_all();
-    flush_subscription_change(); // emit SUBSCRIBE now on the live socket (no reconnect)
+    flush_subscription_change(); // ask the worker to emit SUBSCRIBE now (no reconnect)
     return true;
 }
 
@@ -183,7 +199,7 @@ bool OrcaMqttConnection::unsubscribe(const std::string& dev_id) {
         }
     }
     state_cv.notify_all();
-    flush_subscription_change(); // emit UNSUBSCRIBE now on the live socket (no reconnect)
+    flush_subscription_change(); // ask the worker to emit UNSUBSCRIBE now (no reconnect)
     return true;
 }
 
@@ -298,10 +314,6 @@ void OrcaMqttConnection::ws_write(Connection& conn, const std::vector<uint8_t>& 
     if (packet.empty()) {
         return;
     }
-    // Writes come from the worker thread AND, for dynamic (un)subscribes, the
-    // caller thread. Serialise them; the worker's concurrent read is fine (beast
-    // allows one reader + one writer).
-    std::lock_guard<std::mutex> lock(write_mutex);
     if (conn.wss) {
         conn.wss->binary(true);
         conn.wss->write(boost::asio::buffer(packet));
@@ -309,6 +321,110 @@ void OrcaMqttConnection::ws_write(Connection& conn, const std::vector<uint8_t>& 
         conn.ws->binary(true);
         conn.ws->write(boost::asio::buffer(packet));
     }
+}
+
+void OrcaMqttConnection::close_connection(Connection& conn) {
+    boost::system::error_code error;
+    if (conn.wss) {
+        auto& socket = boost::beast::get_lowest_layer(*conn.wss).socket();
+        if (socket.cancel(error))
+            return;
+        if (socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, error))
+            return;
+        if (socket.close(error))
+            return;
+    } else if (conn.ws) {
+        auto& socket = boost::beast::get_lowest_layer(*conn.ws).socket();
+        if (socket.cancel(error))
+            return;
+        if (socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, error))
+            return;
+        if (socket.close(error))
+            return;
+    }
+}
+
+void OrcaMqttConnection::enqueue_packet(const std::shared_ptr<Connection>& conn,
+                                        std::vector<uint8_t> packet) {
+    if (!conn || packet.empty())
+        return;
+    conn->outbound_packets.emplace_back(std::make_shared<std::vector<uint8_t>>(std::move(packet)));
+    start_async_write(conn);
+}
+
+void OrcaMqttConnection::start_async_write(const std::shared_ptr<Connection>& conn) {
+    if (!conn || conn->write_in_progress || conn->outbound_packets.empty() || stopping.load())
+        return;
+
+    conn->write_in_progress = true;
+    const auto packet = conn->outbound_packets.front();
+    auto on_write = [this, conn](const boost::system::error_code& error, std::size_t) {
+        conn->write_in_progress = false;
+        if (error) {
+            if (!stopping.load())
+                conn->terminal_error = error;
+            conn->io_context.stop();
+            return;
+        }
+        conn->outbound_packets.pop_front();
+        start_async_write(conn);
+    };
+    if (conn->wss) {
+        conn->wss->binary(true);
+        conn->wss->async_write(boost::asio::buffer(*packet), std::move(on_write));
+    } else if (conn->ws) {
+        conn->ws->binary(true);
+        conn->ws->async_write(boost::asio::buffer(*packet), std::move(on_write));
+    } else {
+        conn->write_in_progress = false;
+        conn->outbound_packets.pop_front();
+    }
+}
+
+void OrcaMqttConnection::start_async_read(const std::shared_ptr<Connection>& conn) {
+    if (!conn || stopping.load())
+        return;
+
+    auto on_read = [this, conn](const boost::system::error_code& error, std::size_t) {
+        if (error) {
+            if (!stopping.load())
+                conn->terminal_error = error;
+            conn->io_context.stop();
+            return;
+        }
+        const std::string packet = boost::beast::buffers_to_string(conn->read_buffer.data());
+        conn->read_buffer.consume(conn->read_buffer.size());
+        handle_packet(packet);
+        start_async_read(conn);
+    };
+    if (conn->wss)
+        conn->wss->async_read(conn->read_buffer, std::move(on_read));
+    else if (conn->ws)
+        conn->ws->async_read(conn->read_buffer, std::move(on_read));
+}
+
+void OrcaMqttConnection::schedule_keepalive(const std::shared_ptr<Connection>& conn) {
+    const int keepalive = current_config.keepalive_seconds;
+    if (!conn || keepalive <= 0 || stopping.load())
+        return;
+
+    conn->keepalive_timer.expires_after(std::chrono::seconds(std::max(1, keepalive / 2)));
+    conn->keepalive_timer.async_wait([this, conn](const boost::system::error_code& error) {
+        if (error || stopping.load())
+            return;
+        enqueue_packet(conn, make_ping_packet());
+        schedule_keepalive(conn);
+    });
+}
+
+void OrcaMqttConnection::post_packet(const std::shared_ptr<Connection>& conn,
+                                     std::vector<uint8_t> packet) {
+    if (!conn || packet.empty())
+        return;
+    boost::asio::post(conn->io_context, [this, conn, packet = std::move(packet)]() mutable {
+        if (!stopping.load())
+            enqueue_packet(conn, std::move(packet));
+    });
 }
 
 std::size_t OrcaMqttConnection::ws_read(Connection& conn, boost::beast::flat_buffer& buffer,
@@ -319,14 +435,6 @@ std::size_t OrcaMqttConnection::ws_read(Connection& conn, boost::beast::flat_buf
         return conn.ws->read(buffer, ec);
     ec = boost::asio::error::not_connected;
     return 0;
-}
-
-void OrcaMqttConnection::ws_close(Connection& conn) {
-    boost::system::error_code close_error;
-    if (conn.wss)
-        conn.wss->close(boost::beast::websocket::close_code::normal, close_error);
-    else if (conn.ws)
-        conn.ws->close(boost::beast::websocket::close_code::normal, close_error);
 }
 
 void OrcaMqttConnection::ws_handshake(Connection& conn, const Config& config, const Endpoint& endpoint) {
@@ -415,12 +523,7 @@ bool OrcaMqttConnection::send_request(const std::string& dev_id, const std::stri
             return true;
         }
     }
-    try {
-        // ws_write() serialises the write via write_mutex; do not lock it here.
-        ws_write(*conn, make_publish_packet(request_topic(dev_id), payload));
-    } catch (const std::exception&) {
-        return false;
-    }
+    post_packet(conn, make_publish_packet(request_topic(dev_id), payload));
     return true;
 }
 
@@ -429,94 +532,93 @@ void OrcaMqttConnection::connect_and_read() {
     {
         std::lock_guard<std::mutex> lock(connection_mutex);
         active_connection = connection;
-        if (stopping.load())
+        if (stopping.load()) {
+            active_connection.reset();
             return;
+        }
     }
 
-    Endpoint endpoint;
-    if (!parse_endpoint(current_config.url, endpoint)) {
-        throw std::runtime_error("invalid Orca Cloud WebSocket endpoint");
-    }
+    auto clear_connection = [this, connection] {
+        close_connection(*connection);
+        std::lock_guard<std::mutex> lock(connection_mutex);
+        if (active_connection == connection)
+            active_connection.reset();
+    };
+
+    try {
+        Endpoint endpoint;
+        if (!parse_endpoint(current_config.url, endpoint)) {
+            throw std::runtime_error("invalid Orca Cloud WebSocket endpoint");
+        }
 
 
-    ws_handshake(*connection, current_config, endpoint);
+        ws_handshake(*connection, current_config, endpoint);
 
-    expires_never(*connection);
-    // Auth precedence: a bearer_provider authenticates the WebSocket upgrade, so the
-    // CONNECT username/password fields are omitted entirely (the cloud form).
-    const bool use_bearer = static_cast<bool>(current_config.bearer_provider);
-    ws_write(*connection, make_connect_packet(current_config.client_id,
-                                              use_bearer ? std::string() : current_config.username,
-                                              use_bearer ? std::string() : current_config.password,
-                                              current_config.keepalive_seconds));
+        expires_never(*connection);
+        // Auth precedence: a bearer_provider authenticates the WebSocket upgrade, so the
+        // CONNECT username/password fields are omitted entirely (the cloud form).
+        const bool use_bearer = static_cast<bool>(current_config.bearer_provider);
+        ws_write(*connection, make_connect_packet(current_config.client_id,
+                                                  use_bearer ? std::string() : current_config.username,
+                                                  use_bearer ? std::string() : current_config.password,
+                                                  current_config.keepalive_seconds));
 
-    boost::beast::flat_buffer buffer;
-    expires_after(*connection, std::chrono::seconds(10));
-    boost::system::error_code connack_error;
-    ws_read(*connection, buffer, connack_error);
-    if (connack_error)
-        throw boost::system::system_error(connack_error, "read Orca MQTT CONNACK");
-    const std::string connack = boost::beast::buffers_to_string(buffer.data());
-    // rc: 0 accepted, 1..5 refusal, -1 malformed/not a CONNACK.
-    const int rc = (connack.size() == 4 && static_cast<uint8_t>(connack[0]) == 0x20)
-                       ? static_cast<int>(static_cast<uint8_t>(connack[3]))
-                       : -1;
-    m_last_connack_rc.store(rc);
-    if (rc != 0) {
-        if (rc == 4 || rc == 5) {
-            // Bad credentials / not authorized — retrying cannot help. Make run()'s
-            // loop exit and unblock any waiting start().
-            stopping.store(true);
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                initial_completed = true;
-                initial_result    = false;
+        boost::beast::flat_buffer buffer;
+        expires_after(*connection, std::chrono::seconds(10));
+        boost::system::error_code connack_error;
+        ws_read(*connection, buffer, connack_error);
+        if (connack_error)
+            throw boost::system::system_error(connack_error, "read Orca MQTT CONNACK");
+        const std::string connack = boost::beast::buffers_to_string(buffer.data());
+        // rc: 0 accepted, 1..5 refusal, -1 malformed/not a CONNACK.
+        const int rc = (connack.size() == 4 && static_cast<uint8_t>(connack[0]) == 0x20)
+                           ? static_cast<int>(static_cast<uint8_t>(connack[3]))
+                           : -1;
+        m_last_connack_rc.store(rc);
+        if (rc != 0) {
+            if (rc == 4 || rc == 5) {
+                // Bad credentials / not authorized — retrying cannot help. Make run()'s
+                // loop exit and unblock any waiting start().
+                stopping.store(true);
+                {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    initial_completed = true;
+                    initial_result    = false;
+                }
+                initial_cv.notify_all();
             }
-            initial_cv.notify_all();
+            throw std::runtime_error("Orca MQTT CONNECT refused rc=" + std::to_string(rc));
         }
-        throw std::runtime_error("Orca MQTT CONNECT refused rc=" + std::to_string(rc));
-    }
 
-    // The subscription acknowledgement belongs to this MQTT session. Clear
-    // the previous session's state before notifying the owner, because the
-    // reconnect callback immediately queues the printer's initial requests.
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        acknowledged_subscriptions.clear();
-        pending_subscribe_packets.clear();
-    }
-    notify_state(true);
-    reconnect_delay_seconds.store(1); // a fresh CONNACK resets the backoff
-    send_current_subscriptions(*connection);
-    std::chrono::steady_clock::time_point next_ping = std::chrono::steady_clock::now() + std::chrono::seconds(30);
-
-    while (!stopping.load()) {
-        send_pending_subscriptions(*connection);
-        // Keepalive is driven every iteration, not only from the read-timeout branch:
-        // a printer pushing faster than the 1s read deadline would otherwise keep the
-        // read hot and the broker would drop us at 1.5 x keepalive.
-        if (std::chrono::steady_clock::now() >= next_ping) {
-            ws_write(*connection, make_ping_packet());
-            next_ping = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        // The subscription acknowledgement belongs to this MQTT session. Clear
+        // the previous session's state before notifying the owner, because the
+        // reconnect callback immediately queues the printer's initial requests.
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            acknowledged_subscriptions.clear();
+            pending_subscribe_packets.clear();
         }
-        buffer.consume(buffer.size());
-        expires_after(*connection, std::chrono::seconds(1));
-        boost::system::error_code error;
-        ws_read(*connection, buffer, error);
-        if (error == boost::beast::error::timeout)
-            continue;
-        if (error) {
-            throw boost::system::system_error(error, "read Orca MQTT message");
-        }
-        handle_packet(boost::beast::buffers_to_string(buffer.data()));
+        connection->async_session_started.store(true);
+        notify_state(true);
+        reconnect_delay_seconds.store(1); // a fresh CONNACK resets the backoff
+        send_current_subscriptions(connection);
+        start_async_read(connection);
+        schedule_keepalive(connection);
+    const std::size_t handlers_run = connection->io_context.run();
+    if (handlers_run == 0 && !stopping.load())
+        throw std::runtime_error("Orca MQTT event loop stopped unexpectedly");
+        if (connection->terminal_error && !stopping.load())
+            throw boost::system::system_error(connection->terminal_error, "read Orca MQTT message");
+        clear_connection();
+        if (!stopping.load())
+            notify_state(false);
+    } catch (...) {
+        clear_connection();
+        throw;
     }
-
-    ws_close(*connection);
-    if (!stopping.load())
-        notify_state(false);
 }
 
-void OrcaMqttConnection::send_current_subscriptions(Connection& conn) {
+void OrcaMqttConnection::send_current_subscriptions(const std::shared_ptr<Connection>& conn) {
     std::vector<std::string> topics;
     {
         std::lock_guard<std::mutex> lock(mutex);
@@ -532,11 +634,11 @@ void OrcaMqttConnection::send_current_subscriptions(Connection& conn) {
             std::lock_guard<std::mutex> lock(mutex);
             pending_subscribe_packets[packet_id] = topic;
         }
-        ws_write(conn, make_subscribe_packet(packet_id, topic, 1));
+        enqueue_packet(conn, make_subscribe_packet(packet_id, topic, 1));
     }
 }
 
-void OrcaMqttConnection::send_pending_subscriptions(Connection& conn) {
+void OrcaMqttConnection::send_pending_subscriptions(const std::shared_ptr<Connection>& conn) {
     std::vector<std::string> subscribe_topics;
     std::vector<std::string> unsubscribe_topics;
     {
@@ -552,11 +654,11 @@ void OrcaMqttConnection::send_pending_subscriptions(Connection& conn) {
             std::lock_guard<std::mutex> lock(mutex);
             pending_subscribe_packets[packet_id] = topic;
         }
-        ws_write(conn, make_subscribe_packet(packet_id, topic, 1));
+        enqueue_packet(conn, make_subscribe_packet(packet_id, topic, 1));
     }
     for (const std::string& topic : unsubscribe_topics) {
         const uint16_t packet_id = next_packet_id++;
-        ws_write(conn, make_unsubscribe_packet(packet_id, topic));
+        enqueue_packet(conn, make_unsubscribe_packet(packet_id, topic));
     }
 }
 

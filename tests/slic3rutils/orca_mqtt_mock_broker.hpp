@@ -127,6 +127,9 @@ public:
     // MQTT CONNECTs seen; increments again after a reconnect.
     int connect_count() const { return m_connect_count.load(); }
 
+    // MQTT PINGREQs seen while the client has no other traffic.
+    int ping_count() const { return m_ping_count.load(); }
+
 private:
     void run()
     {
@@ -231,6 +234,7 @@ private:
             return true;
         }
         case 0xc0: // PINGREQ
+            ++m_ping_count;
             write_packet(stream, {0xd0, 0x00});
             return true;
         case 0xe0: // DISCONNECT
@@ -277,8 +281,8 @@ private:
     }
 
     // Every write - the worker's own replies and push_report() from the test
-    // thread - is serialised by m_mutex. beast permits a writer while the worker
-    // is blocked in read(), which is the same arrangement OrcaMqttConnection uses.
+    // thread - is serialised by m_mutex. The production client keeps all of its
+    // WebSocket operations on its MQTT worker instead.
     void write_packet(ws::stream<beast::tcp_stream>& stream, const std::vector<std::uint8_t>& packet)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -294,11 +298,14 @@ private:
         m_stream_ready = false;
         boost::system::error_code ec;
         auto&                     socket = beast::get_lowest_layer(*m_stream).socket();
-        socket.cancel(ec);
+        if (socket.cancel(ec))
+            return;
         // shutdown() before close() is what actually wakes a blocking read on the
         // worker thread; close() alone does not on POSIX.
-        socket.shutdown(tcp::socket::shutdown_both, ec);
-        socket.close(ec);
+        if (socket.shutdown(tcp::socket::shutdown_both, ec))
+            return;
+        if (socket.close(ec))
+            return;
     }
 
     const bool                                   m_refuse_auth;
@@ -308,6 +315,7 @@ private:
     std::thread                                  m_thread;
     std::atomic_bool                             m_stopping{false};
     std::atomic<int>                             m_connect_count{0};
+    std::atomic<int>                             m_ping_count{0};
     mutable std::mutex                           m_mutex;
     std::optional<ws::stream<beast::tcp_stream>> m_stream;      // guarded by m_mutex
     bool                                         m_stream_ready = false; // guarded by m_mutex
