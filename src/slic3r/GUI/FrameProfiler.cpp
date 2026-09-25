@@ -5,6 +5,7 @@
 
 #include <glad/gl.h>
 
+#include <algorithm>
 #include <cstring>
 
 namespace Slic3r {
@@ -17,7 +18,7 @@ void FrameProfiler::begin_frame()
     if (glQueryCounter == nullptr)
         return;
 
-    collect();
+    collect(false);
     Frame& frame = m_frames[m_next];
     // Every frame in flight still waits for the GPU: skip this one rather than stall.
     if (frame.pending)
@@ -27,6 +28,7 @@ void FrameProfiler::begin_frame()
         glsafe(::glGenQueries(GLsizei(frame.queries.size()), frame.queries.data()));
     glsafe(::glQueryCounter(frame.queries[0], GL_TIMESTAMP));
     frame.count = 0;
+    frame.averaged = m_averaging;
     m_recording = &frame;
     m_last_mark = std::chrono::steady_clock::now();
 }
@@ -57,7 +59,7 @@ void FrameProfiler::end_frame()
     m_next = (m_next + 1) % FRAMES_IN_FLIGHT;
 }
 
-void FrameProfiler::collect()
+void FrameProfiler::collect(bool wait)
 {
     constexpr double SMOOTHING = 0.1;
 
@@ -67,20 +69,34 @@ void FrameProfiler::collect()
         if (!frame.pending)
             continue;
 
-        GLint available = 0;
-        glsafe(::glGetQueryObjectiv(frame.queries[frame.count], GL_QUERY_RESULT_AVAILABLE, &available));
-        if (available == 0)
-            break;
+        if (!wait) {
+            GLint available = 0;
+            glsafe(::glGetQueryObjectiv(frame.queries[frame.count], GL_QUERY_RESULT_AVAILABLE, &available));
+            if (available == 0)
+                break;
+        }
 
         std::array<GLuint64, MAX_SECTIONS + 1> stamps{};
         for (size_t j = 0; j <= frame.count; ++j)
             glsafe(::glGetQueryObjectui64v(frame.queries[j], GL_QUERY_RESULT, &stamps[j]));
         frame.pending = false;
 
+        const bool averaged = frame.averaged && m_averaging;
+        if (averaged)
+            ++m_averaged_frames;
         std::vector<Section> sections;
         sections.reserve(frame.count);
         for (size_t j = 0; j < frame.count; ++j) {
             Section section{ frame.names[j], frame.cpu_ms[j], stamps[j + 1] > stamps[j] ? double(stamps[j + 1] - stamps[j]) * 1e-6 : 0.0 };
+            if (averaged) {
+                auto sum = std::find_if(m_sums.begin(), m_sums.end(), [&section](const Section& s) { return std::strcmp(s.name, section.name) == 0; });
+                if (sum == m_sums.end())
+                    m_sums.push_back(section);
+                else {
+                    sum->cpu_ms += section.cpu_ms;
+                    sum->gpu_ms += section.gpu_ms;
+                }
+            }
             for (const Section& prev : m_sections) {
                 if (std::strcmp(prev.name, section.name) == 0) {
                     section.cpu_ms = prev.cpu_ms + SMOOTHING * (section.cpu_ms - prev.cpu_ms);
@@ -94,6 +110,28 @@ void FrameProfiler::collect()
     }
 }
 
+void FrameProfiler::start_averaging()
+{
+    m_averaging = true;
+    m_sums.clear();
+    m_averaged_frames = 0;
+}
+
+std::vector<FrameProfiler::Section> FrameProfiler::finish_averaging(bool wait)
+{
+    if (wait && glQueryCounter != nullptr)
+        collect(true);
+    std::vector<Section> averages = std::move(m_sums);
+    for (Section& section : averages) {
+        section.cpu_ms /= double(m_averaged_frames);
+        section.gpu_ms /= double(m_averaged_frames);
+    }
+    m_averaging = false;
+    m_sums.clear();
+    m_averaged_frames = 0;
+    return averages;
+}
+
 void FrameProfiler::reset()
 {
     for (Frame& frame : m_frames) {
@@ -103,6 +141,9 @@ void FrameProfiler::reset()
     }
     m_recording = nullptr;
     m_sections.clear();
+    m_averaging = false;
+    m_sums.clear();
+    m_averaged_frames = 0;
 }
 
 } // namespace GUI

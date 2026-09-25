@@ -65,6 +65,7 @@
 #include <wx/types.h>
 #include <wx/timer.h>
 #include "NetworkTestDialog.hpp"
+#include "SceneBenchmark.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Shortcuts.hpp"
@@ -2085,6 +2086,16 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_SHOW_RENDER_TIMINGS
     );
     g_sizer->Add(item_render_timings);
+
+    if (wxGetApp().is_editor()) {
+        auto item_benchmark = create_item_button(_L("3D scene benchmark"), _L("Run") + " " + dots, "",
+            _L("Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview."),
+            [this]() {
+                EndModal(wxID_OK);
+                wxGetApp().CallAfter([] { run_scene_benchmark(); });
+            });
+        g_sizer->Add(item_benchmark);
+    }
 
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
