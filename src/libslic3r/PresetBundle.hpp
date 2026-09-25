@@ -656,6 +656,16 @@ private:
     // Clear every collection's m_printer_hold_alias, which reset() leaves alone.
     void clear_printer_hold_aliases();
 
+    // Grows or shrinks every per-slot mixed-filament project option (filament_is_mixed and its
+    // sibling arrays) to n slots, defaulting new slots to false/empty. Shared by set_num_filaments()
+    // and by loading a project file: a file's project_config is applied to this bundle verbatim
+    // (ConfigBase::apply_only does not know about filament_presets), so a file whose mixed arrays
+    // were never fully populated for every slot -- an older or hand-edited 3MF -- would otherwise
+    // leave them shorter than filament_presets. num_physical_filaments()/num_mixed_filaments() count
+    // off these arrays' own length, so a short array undercounts and a later Sidebar::add_filament()
+    // shrinks filament_presets to that wrong, smaller count.
+    void pad_mixed_filament_arrays(size_t n);
+
     // Whether to (re)write a per-vendor cache after a JSON parse.
     bool m_generate_vendor_caches { false };
     bool m_preserve_vendor_source_paths { false };
