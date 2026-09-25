@@ -182,11 +182,8 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
 
 std::string creality_print_make_url(const std::string &host, const std::string &path)
 {
-    // The native REST API always listens on its own fixed port (80), not whatever port the
-    // "Hostname, IP or URL" field may also carry for viewing the printer's web UI -- e.g.
-    // Mainsail/Nginx proxied on :4408, which 404s or serves its SPA index.html instead of JSON
-    // for these endpoints (#15675). Strip any port the same way ws_connect() already strips it
-    // before connecting to the native WebSocket API on its own hardcoded port.
+    // The native REST API listens on its own fixed port, not whatever port the host field may
+    // carry for the printer's (proxied) web UI; strip it, as ws_connect() already does.
     const bool        is_https  = host.find("https://") == 0;
     const std::string bare_host = Http::get_host_from_url(host);
     return (boost::format("%1%://%2%/%3%") % (is_https ? "https" : "http") % bare_host % path).str();
