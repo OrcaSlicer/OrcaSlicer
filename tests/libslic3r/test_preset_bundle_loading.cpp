@@ -1546,18 +1546,12 @@ TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slo
     }
 }
 
-// A project file's mixed-filament arrays (filament_is_mixed and its siblings) can be shorter than
-// filament_presets -- an older or hand-edited 3MF that never described every slot.
-// num_physical_filaments()/num_mixed_filaments() count off those arrays' own length, so a short
-// array undercounts, and the sidebar's "Add filament" then shrinks filament_presets to that wrong,
-// smaller count on the very next click, deleting a real filament (regression: #15717).
+// A short filament_is_mixed array undercounts num_physical_filaments(), so the sidebar's
+// "Add filament" shrinks filament_presets to that wrong count and deletes a real filament.
 TEST_CASE("Loading a project pads a short filament_is_mixed array to match filament_presets", "[Preset][Bundle][FilamentMixer]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    // Three real filament slots...
     config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00", "#0000FF" };
-    // ...but the file's mixed-filament metadata only describes the first -- the exact shape of the
-    // reporter's 3MF (filament_is_mixed = ["0"] alongside three filament_settings_id entries).
     config.opt<ConfigOptionBools>("filament_is_mixed")->values = { false };
     Preset::normalize(config);
 

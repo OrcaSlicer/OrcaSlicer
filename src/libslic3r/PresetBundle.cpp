@@ -5440,13 +5440,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
 
-        // apply_only() copies the file's mixed-filament arrays verbatim; a file whose arrays were
-        // never fully populated for every slot (an older or hand-edited 3MF) leaves them shorter
-        // than filament_presets. Pad them to match now, the same way set_num_filaments() does, so
-        // num_physical_filaments()/num_mixed_filaments() count the slots that actually exist instead
-        // of undercounting from a stale array length. Skipped for a published overlay: that path
-        // grows filament_presets itself, later, as part of its own slot-relocation reconciliation,
-        // which needs the arrays' pre-overlay lengths to detect a relocated slot's missing payload.
+        // An older/hand-edited 3MF's mixed-filament arrays can be shorter than filament_presets;
+        // pad them, unless published (that path grows filament_presets itself later and needs the
+        // pre-overlay lengths).
         if (!is_published)
             this->pad_mixed_filament_arrays(this->filament_presets.size());
 
