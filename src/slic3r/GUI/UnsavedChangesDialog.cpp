@@ -1006,9 +1006,13 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     // "Transfer" / "Keep" button
     if (ActionButtons::TRANSFER & m_buttons) {
         const PresetCollection* switched_presets = type == Preset::TYPE_INVALID ? nullptr : wxGetApp().get_tab(type)->get_presets();
-        if (dependent_presets && switched_presets && (type == dependent_presets->type() ?
-            dependent_presets->get_edited_preset().printer_technology() == dependent_presets->find_preset(new_selected_preset)->printer_technology() :
-            switched_presets->get_edited_preset().printer_technology() == switched_presets->find_preset(new_selected_preset)->printer_technology()))
+        const PresetCollection* technology_source = (dependent_presets && type == dependent_presets->type()) ? dependent_presets : switched_presets;
+        // find_preset() returns nullptr for a name that doesn't resolve in this collection (e.g.
+        // an alias, or a preset switched away from by the time this dialog opens); comparing
+        // printer_technology() against that was an unguarded null deref.
+        const Preset* target_preset = technology_source ? technology_source->find_preset(new_selected_preset) : nullptr;
+        if (dependent_presets && switched_presets && technology_source && target_preset &&
+            technology_source->get_edited_preset().printer_technology() == target_preset->printer_technology())
             add_btn(&m_transfer_btn, m_move_btn_id, "menu_paste", Action::Transfer, switched_presets->get_edited_preset().name == new_selected_preset ? _L("Transfer") : _L("Transfer"), true);
     }
     if (!m_transfer_btn && (ActionButtons::KEEP & m_buttons))
