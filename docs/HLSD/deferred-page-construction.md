@@ -69,8 +69,8 @@ A slice runs only once the user has been idle for a short quiet time, and each s
 own timer message, so paint, timers and input queued in between are handled before the
 next slice. Posting slices as pending events would not do that, because wx drains every
 pending event before the next native message. On GTK a timer that is always due starves
-the lower-priority sources that repaint and deliver posted events, so slices there are a
-few milliseconds apart. On Windows a slice also waits while the native queue holds input,
+the lower-priority sources that repaint and deliver posted events, so slices are a few
+milliseconds apart. On Windows a slice also waits while the native queue holds input,
 not counting mouse moves, which Windows synthesizes whenever a window appears under the
 cursor. A unit cannot be interrupted, so the largest unit bounds how long a click can wait.
 When nothing is pending the timer stops and the subsystem costs nothing.
