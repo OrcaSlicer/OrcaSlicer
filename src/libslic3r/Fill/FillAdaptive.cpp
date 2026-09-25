@@ -1499,9 +1499,11 @@ static std::pair<Vec2d, size_t> point_along(const std::vector<Vec2d> &pts, doubl
     return { pts.back(), pts.size() - 1 };
 }
 
-// Lines of the three 60 degree families, in world coordinates, to non-crossing paths d1 apart.
-static Polylines uncross(const Lines &lines_in, double d1, int sweep, const BoundingBox &cover)
+} // namespace noncrossing
+
+Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const BoundingBox &cover)
 {
+    using namespace noncrossing;
     const double             eps = scale_(0.002);
     const Eigen::Rotation2Dd to_sweep(-sweep * M_PI / 3.);
     const BoundingBoxf       box(cover.min.cast<double>(), cover.max.cast<double>());
@@ -1560,9 +1562,10 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
     auto length = [](const SweepLine &l) { return (l.b - l.a).norm(); };
 
     // Crossings, including the ends of lines stopping on another line.
-    struct Hit { Vec2d p; int i, j; };
-    std::vector<Hit> hits;
-    {
+    std::vector<Junction> junctions;
+    auto detect_junctions = [&]() {
+        struct Hit { Vec2d p; int i, j; };
+        std::vector<Hit> hits;
         std::vector<int> order(lines.size());
         std::iota(order.begin(), order.end(), 0);
         std::sort(order.begin(), order.end(), [&lines](int l, int r) { return lines[l].a.x() < lines[r].a.x(); });
@@ -1579,39 +1582,81 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
                     hits.push_back({ p, order[oi], order[oj] });
             }
         }
-    }
-    std::sort(hits.begin(), hits.end(), [](const Hit &l, const Hit &r) { return l.p.x() < r.p.x(); });
-    std::vector<Junction> junctions;
-    for (const Hit &hit : hits) {
-        int found = -1;
-        for (int k = int(junctions.size()) - 1; k >= 0 && junctions[k].p.x() > hit.p.x() - eps; --k)
-            if (std::abs(junctions[k].p.y() - hit.p.y()) < eps) {
-                found = k;
-                break;
+        std::sort(hits.begin(), hits.end(), [](const Hit &l, const Hit &r) { return l.p.x() < r.p.x(); });
+        junctions.clear();
+        for (const Hit &hit : hits) {
+            int found = -1;
+            for (int k = int(junctions.size()) - 1; k >= 0 && junctions[k].p.x() > hit.p.x() - eps; --k)
+                if (std::abs(junctions[k].p.y() - hit.p.y()) < eps) {
+                    found = k;
+                    break;
+                }
+            if (found < 0) {
+                found = int(junctions.size());
+                junctions.push_back({ hit.p, {}, {}, {} });
             }
-        if (found < 0) {
-            found = int(junctions.size());
-            junctions.push_back({ hit.p, {}, {}, {} });
+            std::vector<int> &jl = junctions[found].lines;
+            for (int li : { hit.i, hit.j })
+                if (std::find(jl.begin(), jl.end(), li) == jl.end())
+                    jl.push_back(li);
         }
-        std::vector<int> &jl = junctions[found].lines;
-        for (int li : { hit.i, hit.j })
-            if (std::find(jl.begin(), jl.end(), li) == jl.end())
-                jl.push_back(li);
-    }
-
-    // At every crossing the lines bounce off each other, so that every path keeps running left to right.
+        for (SweepLine &l : lines)
+            l.junctions.clear();
+        for (int ji = 0; ji < int(junctions.size()); ++ji)
+            for (int li : junctions[ji].lines)
+                lines[li].junctions.emplace_back(junctions[ji].p.x(), ji);
+        for (SweepLine &l : lines)
+            std::sort(l.junctions.begin(), l.junctions.end());
+    };
+    detect_junctions();
     auto has_arm = [&](int ji, int li, bool right) {
         const double t = along(lines[li], junctions[ji].p);
         return right ? t < length(lines[li]) - eps : t > eps;
     };
+
+    // Of two lines crossing just before both end on other lines, the one ending sooner stops at the crossing.
+    for (int pass = 0; pass < 3; ++pass) {
+        std::vector<bool> touched(lines.size(), false);
+        bool              changed = false;
+        for (int ji = 0; ji < int(junctions.size()); ++ji) {
+            const Junction &J = junctions[ji];
+            if (J.lines.size() != 2 || touched[J.lines[0]] || touched[J.lines[1]])
+                continue;
+            // Shortest arm of each line from J to where it ends on another line, and whether that is its end b.
+            const std::pair<double, bool>          none{ std::numeric_limits<double>::max(), false };
+            std::array<std::pair<double, bool>, 2> dead{ none, none };
+            for (int k = 0; k < 2; ++k) {
+                const int        li = J.lines[k];
+                const SweepLine &l  = lines[li];
+                if (!has_arm(ji, li, false) || !has_arm(ji, li, true))
+                    break;
+                const size_t at = std::find_if(l.junctions.begin(), l.junctions.end(), [ji](const std::pair<double, int> &j) { return j.second == ji; }) - l.junctions.begin();
+                const double t  = along(l, J.p);
+                if (at + 1 < l.junctions.size() && length(l) - along(l, junctions[l.junctions[at + 1].second].p) < eps)
+                    dead[k] = { length(l) - t, true };
+                if (at > 0 && along(l, junctions[l.junctions[at - 1].second].p) < eps && t < dead[k].first)
+                    dead[k] = { t, false };
+            }
+            if (dead[0].first >= 2. * d1 || dead[1].first >= 2. * d1)
+                continue;
+            const int  k = dead[0].first <= dead[1].first ? 0 : 1;
+            SweepLine &l = lines[J.lines[k]];
+            (dead[k].second ? l.b : l.a) = J.p;
+            touched[J.lines[0]] = touched[J.lines[1]] = true;
+            changed = true;
+        }
+        if (!changed)
+            break;
+        detect_junctions();
+    }
+
+    // At every crossing the lines bounce off each other, so that every path keeps running left to right.
     for (int ji = 0; ji < int(junctions.size()); ++ji) {
         Junction        &J = junctions[ji];
         std::vector<int> left, right;
-        for (int li : J.lines) {
-            lines[li].junctions.emplace_back(J.p.x(), ji);
+        for (int li : J.lines)
             if (has_arm(ji, li, false) && has_arm(ji, li, true))
                 left.push_back(li);
-        }
         right = left;
         std::sort(left.begin(), left.end(), [&lines](int l, int r) { return lines[l].lin.x() > lines[r].lin.x(); });
         std::sort(right.begin(), right.end(), [&lines](int l, int r) { return lines[l].lin.x() < lines[r].lin.x(); });
@@ -1619,8 +1664,6 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
             J.pairs.emplace_back(left[k], right[k]);
         J.bends.assign(J.pairs.size(), { -1, -1 });
     }
-    for (SweepLine &l : lines)
-        std::sort(l.junctions.begin(), l.junctions.end());
 
     std::vector<LevelPath> paths;
     for (int li = 0; li < int(lines.size()); ++li) {
@@ -1677,10 +1720,12 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
             hi.cuts[hb].push_back(cut(d1));
             continue;
         }
+        // Only the tip of a small triangle, between the two slanted families, stops at its neighbouring bends.
+        const bool sharp = lines[J.pairs.front().first].family != 0 && lines[J.pairs.front().second].family != 0;
         auto room = [&](const LevelPath &P, int b, int away, double sign) {
             double c = std::numeric_limits<double>::max();
             for (int nb : { b - 1, b + 1 })
-                if (nb >= 0 && nb < int(P.junctions.size()) && P.turn[nb] == away)
+                if (sharp && nb >= 0 && nb < int(P.junctions.size()) && P.turn[nb] == away)
                     c = std::min(c, sign * n.dot(junctions[P.junctions[nb]].p - J.p));
             if (b == 0 && P.start_term)
                 c = std::min(c, sign * n.dot(P.verts.front() - J.p));
@@ -1706,30 +1751,41 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
                         paths[W.bends[k].first].pushes.emplace_back(cut(offset), W.bends[k].second);
                 }
         };
-        propagate(lo, lb, 1, -1, -d_lo - d1);
-        propagate(hi, hb, -1, 1, d_hi + d1);
-    }
-
-    std::vector<std::vector<Vec2d>> geometry;
-    Linesf                          segments;
-    std::vector<int>                segment_path;
-    for (const LevelPath &path : paths) {
-        geometry.push_back(path.junctions.empty() ? std::vector<Vec2d>{ path.verts.front(), path.verts.back() } : path_points(path, lines, 4. * d1));
-        for (size_t i = 1; i < geometry.back().size(); ++i) {
-            segments.emplace_back(geometry.back()[i - 1], geometry.back()[i]);
-            segment_path.push_back(int(geometry.size()) - 1);
+        if (sharp) {
+            propagate(lo, lb, 1, -1, -d_lo - d1);
+            propagate(hi, hb, -1, 1, d_hi + d1);
         }
     }
 
-    // A path ending on another line stops a wall away from every other path.
+    std::vector<std::vector<Vec2d>>        geometry;
+    Linesf                                 segments;
+    std::vector<std::pair<int, double>>    segment_start; // path, distance along it
+    std::vector<std::pair<double, double>> kept;          // stretch of each path left by the trimming
+    for (const LevelPath &path : paths) {
+        geometry.push_back(path.junctions.empty() ? std::vector<Vec2d>{ path.verts.front(), path.verts.back() } : path_points(path, lines, 4. * d1));
+        double along_path = 0.;
+        for (size_t i = 1; i < geometry.back().size(); ++i) {
+            segments.emplace_back(geometry.back()[i - 1], geometry.back()[i]);
+            segment_start.emplace_back(int(geometry.size()) - 1, along_path);
+            along_path += (geometry.back()[i] - geometry.back()[i - 1]).norm();
+        }
+        kept.emplace_back(0., along_path);
+    }
+
+    // A path ending on another line stops a wall away from the other paths, as they stand after the paths trimmed before.
     AABBTreeLines::LinesDistancer<Linef> tree(segments);
     auto clearance = [&](int pi, const Vec2d &q) {
         double dist = std::numeric_limits<double>::max();
-        for (size_t s : tree.all_lines_in_radius(q, d1))
-            if (segment_path[s] != pi)
-                dist = std::min(dist, line_alg::distance_to(segments[s], q));
+        for (size_t s : tree.all_lines_in_radius(q, d1)) {
+            const auto [pj, start] = segment_start[s];
+            const Vec2d  a = segments[s].a, d = segments[s].b - a;
+            const double len = d.norm(), t0 = std::max(0., kept[pj].first - start), t1 = std::min(len, kept[pj].second - start);
+            if (pj != pi && len > 0. && t0 <= t1)
+                dist = std::min(dist, line_alg::distance_to(Linef(a + t0 / len * d, a + t1 / len * d), q));
+        }
         return dist;
     };
+    // Returns the length trimmed off.
     auto trim_front = [&](int pi, std::vector<Vec2d> &pts) {
         const double total = polyline_length(pts), step = d1 / 32.;
         double t = 0.;
@@ -1737,10 +1793,10 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
             t += step;
         if (t > total) {
             pts.clear();
-            return;
+            return total;
         }
         if (t == 0.)
-            return;
+            return 0.;
         for (double lo = std::max(0., t - step); t - lo > step / 256.;)
             if (const double mid = 0.5 * (lo + t); clearance(pi, point_along(pts, mid).first) < d1)
                 lo = mid;
@@ -1749,20 +1805,23 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
         const auto [q, seg] = point_along(pts, t);
         pts.erase(pts.begin(), pts.begin() + (seg - 1));
         pts.front() = q;
+        return t;
     };
     Polylines out;
     const Eigen::Rotation2Dd to_world = to_sweep.inverse();
     for (int pi = 0; pi < int(paths.size()); ++pi) {
         std::vector<Vec2d> &pts = geometry[pi];
         if (paths[pi].start_term)
-            trim_front(pi, pts);
+            kept[pi].first += trim_front(pi, pts);
         if (paths[pi].end_term && !pts.empty()) {
             std::reverse(pts.begin(), pts.end());
-            trim_front(pi, pts);
+            kept[pi].second -= trim_front(pi, pts);
             std::reverse(pts.begin(), pts.end());
         }
-        if (pts.size() < 2 || polyline_length(pts) < d1)
+        if (pts.size() < 2 || polyline_length(pts) < d1) {
+            kept[pi] = { 0., -1. };
             continue;
+        }
         Polyline pl;
         for (const Vec2d &p : pts) {
             const Vec2d w = to_world * p;
@@ -1772,8 +1831,6 @@ static Polylines uncross(const Lines &lines_in, double d1, int sweep, const Boun
     }
     return out;
 }
-
-} // namespace noncrossing
 
 void Filler::_fill_surface_single(
     const FillParams              &params,
@@ -1834,7 +1891,7 @@ void Filler::_fill_surface_single(
             cover.offset(coord_t(4. * d1));
             // Rotate the family the paths run along with the layer, like the other multiline patterns.
             const int sweep = int((this->layer_id / std::max(thickness_layers, 1u)) % 3);
-            if (Polylines paths = noncrossing::uncross(lines, d1, sweep, cover); !paths.empty())
+            if (Polylines paths = multiline_paths(lines, d1, sweep, cover); !paths.empty())
                 all_polylines = std::move(paths);
         }
 

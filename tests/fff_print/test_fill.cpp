@@ -12,6 +12,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
+#include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -1323,6 +1324,69 @@ TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing
     REQUIRE(paths > 0);
     // The lines run on through the cells instead of each cell getting its own loops.
     CHECK(loops < paths / 4);
+}
+
+TEST_CASE("Multiline adaptive cubic paths touch where they bounce off each other", "[Fill]")
+{
+    const int    sweep = GENERATE(0, 1, 2);
+    // Offset of the third family in walls, so the three meet in points or in small triangles.
+    const double shift = GENERATE(0., 0.1, 0.5, 1., 2.5);
+    CAPTURE(sweep, shift);
+
+    const double d1 = scale_(0.8), pitch = scale_(8.), inner = scale_(12.);
+    Lines        lines;
+    for (int k = 0; k < 3; ++k) {
+        const Vec2d dir(std::cos(k * M_PI / 3.), std::sin(k * M_PI / 3.)), normal(-dir.y(), dir.x());
+        for (int i = -6; i <= 6; ++i) {
+            const Vec2d mid = (i * pitch + (k == 2 ? shift * d1 : 0.)) * normal;
+            lines.emplace_back((mid - 10. * pitch * dir).cast<coord_t>(), (mid + 10. * pitch * dir).cast<coord_t>());
+        }
+    }
+    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, sweep, BoundingBox(Point::new_scale(-20., -20.), Point::new_scale(20., 20.)));
+    REQUIRE_FALSE(paths.empty());
+    CHECK(get_intersections(to_lines(paths)).empty());
+
+    Lines               pieces;
+    std::vector<size_t> owner;
+    for (size_t i = 0; i < paths.size(); ++i)
+        for (const Line &line : paths[i].lines()) {
+            pieces.push_back(line);
+            owner.push_back(i);
+        }
+    AABBTreeLines::LinesDistancer<Line> tree(pieces);
+    auto clearance = [&](size_t i) {
+        const Line &a        = pieces[i];
+        double      distance = std::numeric_limits<double>::max();
+        for (size_t j : tree.all_lines_in_radius(a.midpoint(), 0.5 * a.length() + 2. * d1))
+            if (owner[j] != owner[i]) {
+                const Line &b = pieces[j];
+                distance      = std::min({ distance, a.distance_to(b.a), a.distance_to(b.b), b.distance_to(a.a), b.distance_to(a.b) });
+            }
+        return distance;
+    };
+    auto inside = [inner](const Point &p) { return std::abs(p.x()) < inner && std::abs(p.y()) < inner; };
+
+    double closest = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < pieces.size(); ++i)
+        if (inside(pieces[i].midpoint()))
+            closest = std::min(closest, clearance(i));
+    CHECK(closest > 0.99 * d1);
+
+    // Each path at a crossing touches another one there, none stops short of it.
+    double widest = 0.;
+    for (size_t i = 0; i < lines.size(); ++i)
+        for (size_t j = i + 1; j < lines.size(); ++j)
+            if (Point crossing; line_alg::intersection(lines[i], lines[j], &crossing) && inside(crossing)) {
+                std::map<size_t, double> at;
+                for (size_t k : tree.all_lines_in_radius(crossing, 1.2 * d1))
+                    at.emplace(owner[k], std::numeric_limits<double>::max());
+                for (size_t k : tree.all_lines_in_radius(crossing, 2. * d1))
+                    if (auto it = at.find(owner[k]); it != at.end())
+                        it->second = std::min(it->second, clearance(k));
+                for (const auto &path : at)
+                    widest = std::max(widest, path.second);
+            }
+    CHECK(widest < 1.02 * d1);
 }
 
 TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")

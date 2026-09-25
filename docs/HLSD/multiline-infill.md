@@ -81,8 +81,8 @@ standing on a corner. On each layer every cube cuts its three mid-planes into
 segments of the same three 60° families as Cubic, but the pattern is not
 periodic. Smaller cubes near the surface add finer lines, and a finer line ends
 where it meets the wall of its coarser cube, so the lines form crossings and
-T-junctions. `noncrossing::uncross()` builds the paths from these segments
-directly, for each fill region and within `4 * d1` of it.
+T-junctions. `FillAdaptive::multiline_paths()` builds the paths from these
+segments directly, for each fill region and within `4 * d1` of it.
 
 At a crossing the two paths bounce as in Cubic. At a T-junction the through line
 runs straight on and the path of the ending line stops there. Every path still
@@ -94,15 +94,23 @@ a few `d1` are the corners of one small triangle of that lattice, as in Cubic.
 The cuts follow the Cubic rules without a closed formula:
 
 - The two bends of a crossing are cut `d1` apart, `d1 / 2` each, perpendicular
-  to their bisector. A cut goes no further than the neighbouring bend turning
-  the other way or the path end, and the other bend takes the rest of `d1`.
-- When a cut stops short, the path beyond that neighbouring bend is kept a wall
-  away from it.
+  to their bisector, so their walls touch. A cut goes no further than the path
+  end, and the other bend takes the rest of `d1`.
+- At the tip of a small triangle, between the two slanted families, a cut also
+  goes no further than the neighbouring bend turning the other way, and the
+  path beyond that bend is kept a wall away from it. The bends onto the
+  horizontal family are not limited this way: pushing their paths apart would
+  open gaps between walls that should touch.
 - A cut moves the path only where the cut line lies beyond it, near its bend.
   The sharp bends between the two slanted families are cut after the bends onto
   the horizontal family, so the tip of a small triangle wins, as in Cubic.
 - A path stopping at a T-junction is trimmed until it is `d1` from every other
-  path, and paths shorter than `d1` are left out.
+  path. The paths are trimmed one at a time against the others as already
+  trimmed, so two ends facing each other stop touching instead of both backing
+  off. Paths shorter than `d1` are left out.
+- Where two lines cross less than `2 * d1` before each ends on another line,
+  trimming both ends would leave a hole between the walls, so the line ending
+  sooner stops at the crossing instead.
 
 Short paths enclosed by coarser lines still print as closed outlines, but most
 paths run on across several cells.
