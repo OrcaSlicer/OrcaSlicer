@@ -458,6 +458,7 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture_sizer->Add(m_chord_label, 0, wxALIGN_CENTER);
     capture_sizer->AddStretchSpacer();
     capture->SetSizer(capture_sizer);
+    capture->Layout();   // the box is created at its final size, so nothing resizes it into laying the sizer out
     // The hook runs before the window procedure, so Windows does not open its window menu
     // over the dialog on Alt+Space.
     Bind(wxEVT_CHAR_HOOK, &ShortcutCaptureDialog::on_key, this);
