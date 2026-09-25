@@ -52,7 +52,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
     if (!ams) return false;
     this->ams_id = ams->GetAmsId();
 
-    if (ams->SupportHumidity()){
+    if (ams->SupportHumidityLevel()){
         this->ams_humidity = ams->GetHumidityLevel();
     }
     else{

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include "DevFilaSystem.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -10,6 +11,7 @@
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
+#include "DevExtruderSystem.h"
 
 using namespace nlohmann;
 
@@ -65,6 +67,7 @@ void DevAmsTray::reset()
     is_bbl              = false;
     hold_count          = 0;
     remain              = 0;
+    remain_g            = -1;
 }
 
 
@@ -110,6 +113,37 @@ std::string DevAmsTray::get_filament_type()
 std::optional<Slic3r::DevFilamentDryingPreset> DevAmsTray::get_ams_drying_preset() const
 {
     return DevUtilBackend::GetFilamentDryingPreset(setting_id);
+}
+
+std::optional<int> DevAmsTray::get_filament_remain_weight() const
+{
+    if (remain_g >= 0)
+    {
+        return remain_g > 0 ? std::optional<int>(remain_g) : std::nullopt;
+    }
+
+    if (weight.empty())
+    {
+        return std::nullopt;
+    }
+
+    std::optional<int> weight_int;
+    try
+    {
+        weight_int = stoi(weight) * remain / 100;
+    }
+    catch (...)
+    {
+        weight_int = std::nullopt;
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "invalid filament weight " << weight;
+    }
+
+    if (weight_int.has_value() && weight_int.value() > 0)
+    {
+        return weight_int;
+    }
+
+    return std::nullopt;
 }
 
 
@@ -334,6 +368,66 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
     return  tray_id_map;
 }
 
+int DevFilaSystem::GetTrayIdByAmsSlotId(int ams_id, int slot_id)
+{
+    auto tray_ams_slot_map = GetTrayIndexMap();
+    auto tray_it = std::find_if(tray_ams_slot_map.begin(), tray_ams_slot_map.end(),
+        [ams_id, slot_id](auto& item) { return ams_id == item.second.first && slot_id == item.second.second; });
+
+    return tray_it != tray_ams_slot_map.end() ? tray_it->first : -1;
+}
+
+std::string DevFilaSystem::GetTrayNameByTrayId(int tray_id)
+{
+    if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID)
+    {
+        return "Ext";
+    }
+
+    auto tray_ams_slot_map = GetTrayIndexMap();
+    auto it = tray_ams_slot_map.find(tray_id);
+    if (it == tray_ams_slot_map.end())
+    {
+        return "";
+    }
+
+    int ams_id  = it->second.first;
+    int slot_id = it->second.second;
+
+    if (ams_id >= 128 && ams_id < 153)
+    {
+        return std::string(1, char('A' + ams_id - 128));
+    }
+
+    return std::string(1, char('A' + ams_id)) + std::string(1, char('0' + 1 + slot_id));
+}
+
+std::optional<int> DevFilaSystem::GetCurrentExtruderIdByAmsId(const std::string& ams_id) const
+{
+    auto it = amsList.find(ams_id);
+    if (it == amsList.end())
+    {
+        return std::nullopt;
+    }
+
+    if (auto unique_id = it->second->GetUniqueBindedExtruderId())
+    {
+        return unique_id;
+    }
+
+    // Switch-bound AMS: several extruders may be able to feed from it, so fall back to
+    // reporting which extruder's active slot currently points at this AMS.
+    for (const auto& extruder : GetOwner()->GetExtderSystem()->GetExtruders())
+    {
+        if (extruder.GetSlotNow().ams_id == ams_id)
+        {
+            return extruder.GetExtId();
+        }
+    }
+
+    return std::nullopt;
+}
+
 bool DevFilaSystem::IsAmsSettingUp() const
 {
     int setting_up_stat = DevUtil::get_flag_bits(m_ams_cali_stat, 0, 8);
@@ -448,10 +542,12 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     /*ams info*/
                     std::set<int> binded_extruder_set;
                     std::optional<DevFilaSwitch::SwitchPos> binded_switcher_pos;
+                    DevAms::RemainEstimateVersion remain_estimate_version = DevAms::RemainEstimateVersion::Legacy;
                     if (it->contains("info")) {
                         const std::string& info = (*it)["info"].get<std::string>();
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
+                        remain_estimate_version = static_cast<DevAms::RemainEstimateVersion>(DevUtil::get_flag_bits(info, 30, 2));
                         if (extuder_id == 0xE && obj->GetFilaSwitch()->IsInstalled()) {
                             int bind_switch_in = DevUtil::get_flag_bits(info, 24, 4);
                             if (bind_switch_in == 0 || bind_switch_in == 1) {
@@ -520,6 +616,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     // the track position stays empty.
                     curr_ams->m_binded_extruder_set = binded_extruder_set;
                     curr_ams->m_binded_switcher_pos = binded_switcher_pos;
+                    curr_ams->m_remain_estimate_version = remain_estimate_version;
 
 
                     /*set ams exist flag*/
@@ -761,6 +858,23 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             else
                             {
                                 curr_tray->remain = -1;
+                            }
+                            if (tray_it->contains("remain_g"))
+                            {
+                                curr_tray->remain_g = (*tray_it)["remain_g"].get<int>();
+                            }
+                            else
+                            {
+                                curr_tray->remain_g = -1;
+                            }
+                            if (tray_it->contains("state"))
+                            {
+                                curr_tray->remain_fetch_status = static_cast<DevAmsTray::RemainFetchStatus>(
+                                    DevUtil::get_flag_bits((*tray_it)["state"].get<int>(), 5, 3));
+                            }
+                            else
+                            {
+                                curr_tray->remain_fetch_status = DevAmsTray::RemainFetchStatus::Done;
                             }
                             if (tray_it->contains("tray_slot_placeholder")) {
                                 curr_tray->is_slot_placeholder = true;
