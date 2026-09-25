@@ -4184,11 +4184,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         print.tool_ordering()));
     print.m_print_statistics.initial_tool = initial_extruder_id;
     if (!is_bbl_printers) {
-      // CONFIG_BLOCK first, the time estimate after: some firmwares (e.g. Elegoo's on the
-      // Neptune 4 Pro) only scan the last N lines of the file for "estimated printing time",
-      // and CONFIG_BLOCK's size grows with the config -- with the estimate written before it,
-      // a large enough config could already push the estimate outside that scan window (#15805).
-      // Writing the estimate last keeps it at a fixed, small distance from EOF instead.
+      // CONFIG_BLOCK first, time estimate after: some firmwares only scan the last N lines for
+      // "estimated printing time", and a large config could push an estimate written before it
+      // out of that window.
       if (!skip_config_block) {
           file.write("; CONFIG_BLOCK_START\n");
           std::string full_config;
