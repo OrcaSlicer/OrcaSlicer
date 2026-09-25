@@ -10,6 +10,7 @@
 #include "FilamentMixer.hpp"
 #include "LocalesUtils.hpp"
 #include "Utils.hpp"
+#include "format.hpp"
 #include "I18N.hpp"
 
 #include <boost/log/trivial.hpp>
@@ -82,8 +83,9 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
         int printable_status = print_config->filament_printable.get_at(filament_id);
         int extruder_idx = filament_maps[filament_id];
         if (!(printable_status >> extruder_idx & 1)) {
-            std::string extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
-            std::string error_msg     = _L("Grouping error: ") + filament_type + _L(" can not be placed in the ") + extruder_name + _L(" nozzle");
+            std::string error_msg = extruder_idx == 0 ?
+                                        Slic3r::format(_L("Grouping error: %1% cannot be placed in the left nozzle"), filament_type) :
+                                        Slic3r::format(_L("Grouping error: %1% cannot be placed in the right nozzle"), filament_type);
             throw Slic3r::RuntimeError(error_msg);
         }
     }

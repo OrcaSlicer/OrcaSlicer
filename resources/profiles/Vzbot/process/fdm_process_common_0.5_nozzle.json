@@ -3,7 +3,6 @@
 	"name": "fdm_process_common_0.5_nozzle",
 	"from": "system",
 	"instantiation": "false",
-	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "0",
 	"bridge_flow": "0.95",
 	"bridge_speed": "150",

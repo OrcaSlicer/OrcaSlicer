@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "GCode.hpp"
 #include "Exception.hpp"
+#include "LifecycleEvents.hpp"
 #include "ExtrusionEntity.hpp"
 #include "EdgeGrid.hpp"
 #include "Geometry/ConvexHull.hpp"
@@ -1028,11 +1029,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         double current_z = gcodegen.writer().get_position().z();
         if (z == -1.) // in case no specific z was provided, print at current_z pos
             z = current_z;
-        if (!is_approx(z, current_z)) {
+        // Orca: wipe_tower_no_sparse_layers crash guard. With sparse layers skipped the tower is
+        // compacted far below the object, so descending to it is only safe once the nozzle is parked
+        // over the tower - which is what the is_finish_first travel above does. Otherwise the nozzle
+        // is still over the model and this descent would drive it into the print, so defer it to the
+        // re-descents below, which run after the travel to the tower.
+        const bool defer_compacted_descend = m_sparse_layers_skipped
+            && !tcr.priming && !tcr.is_finish_first && (current_z - z) > EPSILON;
+        if (!is_approx(z, current_z) && !defer_compacted_descend) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
             gcode += gcodegen.writer().unretract();
         }
+        // Tower compacted below the object, so any extrusion emitted without an explicit z has to be
+        // pulled back down to it first.
+        const bool compacted_below_object = m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON;
 
         // Process the end filament gcode.
         bool        add_change_filament_624 = false;
@@ -1085,11 +1096,23 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string nozzle_change_gcode_trans;
         if (is_nozzle_change) {
             // move to start_pos before nozzle change
+            // Orca: travel_to() lifts to the object layer height to clear the print. That lift is
+            // needed when arriving from the model, but is a wasted full-height Z bounce when the
+            // nozzle already sits on the compacted tower, so travel at the compacted z instead.
+            const bool compact_intower_nc_travel = compacted_below_object
+                && (tcr.print_z - gcodegen.writer().get_position().z()) > EPSILON;
             std::string start_pos_str;
             start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(tcr.nozzle_change_result.start_pos) + plate_origin_2d), erMixed,
-                "Move to nozzle change start pos");
+                "Move to nozzle change start pos", compact_intower_nc_travel ? z : DBL_MAX);
             check_add_eol(start_pos_str);
             nozzle_change_gcode_trans += start_pos_str;
+            // The nozzle-change wipe below carries no explicit z, so it would extrude at the object
+            // layer height and float above the compacted tower. Descend unless the travel stayed down.
+            if (!compact_intower_nc_travel && compacted_below_object) {
+                std::string nc_z_descend = gcodegen.writer().travel_to_z(z, "Descend to compacted wipe tower z (no sparse layers)");
+                check_add_eol(nc_z_descend);
+                nozzle_change_gcode_trans += nc_z_descend;
+            }
             nozzle_change_gcode_trans += gcodegen.unretract();
             nozzle_change_gcode_trans += transform_gcode(tcr.nozzle_change_result.gcode, tcr.nozzle_change_result.start_pos, wipe_tower_offset, wipe_tower_rotation);
             gcodegen.set_last_pos(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(tcr.nozzle_change_result.end_pos) + plate_origin_2d));
@@ -1427,6 +1450,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         start_filament_gcode_str = start_filament_gcode_str + wipe_next_start_point_str + toolchange_unretract_str;
+
+        // Orca: the custom change_filament_gcode lifts to the object layer height and the unretract
+        // de-hops back to it, so every tower extrusion emitted after it (purge moves, and the wall
+        // when it prints after the toolchange) would float above the compacted tower. Descend first.
+        if (compacted_below_object) {
+            std::string z_descend = gcodegen.writer().travel_to_z(z, "Descend to compacted wipe tower z (no sparse layers)");
+            check_add_eol(z_descend);
+            start_filament_gcode_str += z_descend;
+        }
 
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
@@ -1915,11 +1947,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     // resulting in a wipe tower with sparse layers.
                     double wipe_tower_z  = -1;
                     bool   ignore_sparse = false;
-                    if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
+                    if (m_sparse_layers_skipped) {
                         wipe_tower_z  = m_last_wipe_tower_print_z;
-                        ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                         m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool &&
-                                         m_layer_idx != 0);
+                        ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]) && m_layer_idx != 0;
                         if (m_tool_change_idx == 0 && !ignore_sparse)
                         wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
                     }
@@ -1935,12 +1965,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // resulting in a wipe tower with sparse layers.
             double wipe_tower_z  = -1;
             bool   ignore_sparse = false;
-            if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-                wipe_tower_z  = m_last_wipe_tower_print_z;
-                ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                 m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
-                if (m_tool_change_idx == 0 && !ignore_sparse)
-                    wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
+            if (m_sparse_layers_skipped) {
+                ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
+                wipe_tower_z  = m_compacted_tower_z[m_layer_idx];
             }
 
             if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
@@ -1953,10 +1980,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
                     throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
 
-                if (!ignore_sparse) {
+                if (!ignore_sparse)
                     gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
-                    m_last_wipe_tower_print_z = wipe_tower_z;
-                }
             }
         }
 
@@ -1970,9 +1995,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             return true;
 
         bool   ignore_sparse = false;
-        if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-            ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 && m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
-        }
+        if (m_sparse_layers_skipped)
+            ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
 
         if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
             return false;
@@ -2355,9 +2379,9 @@ namespace DoExport {
         static const unsigned int MAX_TAGS_COUNT = 5;
         std::vector<std::pair<std::string, std::string>> ret;
 
-        auto check = [&ret](const std::string& source, const std::string& gcode) {
+        auto check = [&ret, is_bbl_printer = print.is_BBL_printer()](const std::string& source, const std::string& gcode) {
             std::vector<std::string> tags;
-            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags)) {
+            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags, is_bbl_printer)) {
                 if (!tags.empty()) {
                     size_t i = 0;
                     while (ret.size() < MAX_TAGS_COUNT && i < tags.size()) {
@@ -2453,6 +2477,15 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_writer.set_is_bbl_machine(print->is_BBL_printer());
     print->set_started(psGCodeExport);
 
+    {
+        LifecycleEventContext ctx;
+        ctx.name = std::to_string(print->model().id().id);
+        ctx.code = LifecycleEvtCode::Ok;
+        ctx.msg  = path;
+        ctx.cancellation_check = [print]() { return print->canceled(); };
+        fire_lifecycle_event(LifecycleEvent::GCodeExportStarted, ctx);
+    }
+
     // check if any custom gcode contains keywords used by the gcode processor to
     // produce time estimation and gcode toolpaths
     std::vector<std::pair<std::string, std::string>> validation_res = DoExport::validate_custom_gcode(*print);
@@ -2488,12 +2521,23 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.set_print(print);
     GCodeOutputStream file(boost::nowide::fopen(path_tmp.c_str(), "wb"), m_processor);
     if (! file.is_open()) {
-        BOOST_LOG_TRIVIAL(error) << std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n" << std::endl;
+        std::string err_msg = std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n";
+        BOOST_LOG_TRIVIAL(error) << err_msg << std::endl;
         if (!fs::exists(folder)) {
             //fs::create_directory(folder);
-            BOOST_LOG_TRIVIAL(error) << "the parent path " + folder.string() +" is not there!!!" << std::endl;
+            std::string add_err_msg = "the parent path " + folder.string() +" is not there!!!";
+            BOOST_LOG_TRIVIAL(error) << add_err_msg << std::endl;
+            err_msg += add_err_msg;
         }
-        throw Slic3r::RuntimeError(std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n");
+        {
+            LifecycleEventContext ctx;
+            ctx.name = std::to_string(print->model().id().id);
+            ctx.code = LifecycleEvtCode::Error;
+            ctx.msg  = std::string(path) + "\n" + err_msg;
+            ctx.cancellation_check = [print]() { return print->canceled(); };
+            fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+        }
+        throw Slic3r::RuntimeError(err_msg);
     }
 
     try {
@@ -2504,11 +2548,19 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
             boost::nowide::remove(path_tmp.c_str());
             throw Slic3r::RuntimeError(std::string("G-code export to ") + path + " failed\nIs the disk full?\n");
         }
-    } catch (std::exception & /* ex */) {
+    } catch (std::exception &ex) {
         // Rethrow on any exception. std::runtime_exception and CanceledException are expected to be thrown.
         // Close and remove the file.
         file.close();
         boost::nowide::remove(path_tmp.c_str());
+        {
+            LifecycleEventContext ctx;
+            ctx.name = std::to_string(print->model().id().id);
+            ctx.code = LifecycleEvtCode::Error;
+            ctx.msg  = std::string(path) + "\n" + ex.what();
+            ctx.cancellation_check = [print]() { return print->canceled(); };
+            fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+        }
         throw;
     }
     file.close();
@@ -2614,6 +2666,14 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     std::error_code ret = rename_file(path_tmp, path);
     if (ret) {
+        {
+            LifecycleEventContext ctx;
+            ctx.name = std::to_string(print->model().id().id);
+            ctx.code = LifecycleEvtCode::Error;
+            ctx.msg  = std::string(path) + "\nFailed to rename the output G-code file: " + ret.message();
+            ctx.cancellation_check = [print]() { return print->canceled(); };
+            fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+        }
         throw Slic3r::RuntimeError(
             std::string("Failed to rename the output G-code file from ") + path_tmp + " to " + path + '\n' + "error code " + ret.message() + '\n' +
             "Is " + path_tmp + " locked?" + '\n');
@@ -2624,7 +2684,16 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
-    
+
+    {
+        LifecycleEventContext ctx;
+        ctx.name = std::to_string(print->model().id().id);
+        ctx.code = LifecycleEvtCode::Ok;
+        ctx.msg  = path;
+        ctx.cancellation_check = [print]() { return print->canceled(); };
+        fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+    }
+
     // Orca: label_object_enabled reflects whether objects are labeled in the g-code (EXCLUDE_OBJECT /
     // M486), which is driven by exclude_object for every printer
     if(result != nullptr)
@@ -3009,6 +3078,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // file_start_gcode runs before the parser copy that normally restores these, so set them here.
             PlaceholderParser::update_timestamp(top_config);
             PlaceholderParser::update_user_name(top_config);
+            top_config.set_key_value("print_time_total_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder)));
+            top_config.set_key_value("print_time_day", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder)));
+            top_config.set_key_value("print_time_hour", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder)));
+            top_config.set_key_value("print_time_minute", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder)));
             top_config.set_key_value("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
             top_config.set_key_value("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
             std::string top_gcode = print.placeholder_parser().process(top_gcode_template, 0, &top_config);
@@ -3638,6 +3711,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("hold_chamber_temp_for_flat_print", new ConfigOptionBool(hold_chamber_temp_for_flat_print));
     }
 
+    this->placeholder_parser().set("print_time_total_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder)));
+    this->placeholder_parser().set("print_time_day", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder)));
+    this->placeholder_parser().set("print_time_hour", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder)));
+    this->placeholder_parser().set("print_time_minute", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder)));
     this->placeholder_parser().set("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
     this->placeholder_parser().set("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
 
@@ -5605,7 +5682,7 @@ LayerResult GCode::process_layer(
     m_layer = &layer;
     m_object_layer_over_raft = false;
 
-    if (!m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
+    if (!need_insert_timelapse_gcode_for_traditional && !m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
         DynamicConfig config;
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
@@ -6580,6 +6657,8 @@ LayerResult GCode::process_layer(
                         }
                         // Then print infill
                         gcode += this->extrude_infill(print, by_region_specific, false);
+                        // Then the walls left hanging in mid air, now that the infill can anchor them
+                        gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false, true);
                         // Then print perimeters of regions that has is_infill_first == true
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                     }
@@ -6875,6 +6954,7 @@ LayerResult GCode::process_layer(
                             has_insert_timelapse_gcode = true;
                         }
                         gcode += this->extrude_infill(print, by_region_specific, false);
+                        gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false, true);
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                         // ironing
                         gcode += this->extrude_infill(print, by_region_specific, true);
@@ -7615,7 +7695,7 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
 }
 
 // Extrude perimeters: Decide where to put seams (hide or align seams).
-std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first)
+std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only)
 {
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region)
@@ -7634,7 +7714,24 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 m_config.wipe_inward_distance.value > 0. &&
                 scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON)
                 wipe_support.emplace();
+
+            // ORCA: loops flagged as extruded in mid air, out of reach of the layer below, are held back
+            // for a second pass after the infill that anchors them. Infill already precedes infill first walls.
+            const bool defer_unsupported = !is_infill_first;
+            auto waits_for_infill = [](const ExtrusionEntity *ee) {
+                return ee->is_loop() && static_cast<const ExtrusionLoop *>(ee)->print_after_infill;
+            };
+
+            // The deferred pass runs after the infill, so the loops the first pass emitted are
+            // already down and belong in the prefix an inward wipe may land on.
+            if (wipe_support && defer_unsupported && unsupported_loops_only)
+                for (const ExtrusionEntity* ee : region.perimeters)
+                    if (!waits_for_infill(ee))
+                        wipe_support->append(*ee);
+
             for (const ExtrusionEntity* ee : region.perimeters) {
+                if (defer_unsupported && waits_for_infill(ee) != unsupported_loops_only)
+                    continue;
                 gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
                                              wipe_support ? &*wipe_support : nullptr);
                 if (wipe_support)
@@ -7987,7 +8084,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     _mm3_per_mm *= filament_flow_ratio;
 
     if (path.role() == erTopSolidInfill) {
-        _mm3_per_mm *= m_config.top_solid_infill_flow_ratio;
+        _mm3_per_mm *= NOZZLE_CONFIG(top_solid_infill_flow_ratio);
     } else if (path.role() == erBottomSurface) {
         _mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
     } else if (path.role() == erInternalBridgeInfill) {

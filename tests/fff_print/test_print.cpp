@@ -22,9 +22,58 @@
 #include <algorithm>
 #include <fstream>
 #include <iterator>
+#include <string_view>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
+
+TEST_CASE("Timelapse g-code is emitted once per layer for Bambu and non-Bambu printers", "[Print][Regression]")
+{
+    struct PrinterCase {
+        std::string name;
+        std::string structure;
+        bool        is_bbl;
+    };
+    const PrinterCase printer = GENERATE(from_range(std::vector<PrinterCase>{
+        { "non-BBL undefined", "undefine", false },
+        { "non-BBL CoreXY",    "corexy",   false },
+        { "non-BBL i3",        "i3",       false },
+        { "non-BBL H-Bot",     "hbot",     false },
+        { "non-BBL Delta",     "delta",    false },
+        { "Bambu CoreXY",      "corexy",   true },
+        { "Bambu i3",          "i3",       true },
+    }));
+    INFO("printer: " << printer.name);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode",          ";TEST_LAYER_CHANGE" },
+        { "layer_height",                0.2 },
+        { "printer_structure",           printer.structure },
+        { "spiral_mode",                 false },
+        { "time_lapse_gcode",            "TIMELAPSE_TAKE_FRAME" },
+    });
+    Print print;
+    print.is_BBL_printer() = printer.is_bbl;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    const auto count = [&gcode](std::string_view token) {
+        size_t occurrences = 0;
+        size_t pos = 0;
+        while ((pos = gcode.find(token, pos)) != std::string::npos) {
+            ++occurrences;
+            pos += token.size();
+        }
+        return occurrences;
+    };
+
+    const size_t layer_changes = count("\n;TEST_LAYER_CHANGE\n");
+    REQUIRE(layer_changes > 0);
+    CHECK(count("\nTIMELAPSE_TAKE_FRAME\n") == layer_changes);
+}
 
 SCENARIO("Changing the number of solid shell layers does not make all surfaces internal", "[Print]") {
     GIVEN("sliced 20mm cube and config with top_shell_layers = 2 and bottom_shell_layers = 1") {
@@ -455,4 +504,30 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         });
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
+}
+
+TEST_CASE("Slicing errors are reported per object with the object's name", "[Print]")
+{
+    Print print;
+    Model model;
+    init_print({Slic3r::Test::cube(20.)}, print, model);
+    // Lift the cube off the bed: its first layer is empty, which G-code export reports per object.
+    ModelObject *object = model.objects.front();
+    object->name = "floating cube";
+    object->instances.front()->set_offset(object->instances.front()->get_offset() + Vec3d(0., 0., 2.));
+    print.apply(model, DynamicPrintConfig::full_print_config());
+    print.set_status_silent();
+
+    ScopedTemporaryFile temp(".gcode");
+    std::string message;
+    try {
+        print.process();
+        print.export_gcode(temp.string(), nullptr, nullptr);
+        FAIL("slicing did not report the empty first layer");
+    } catch (const SlicingErrors &errors) {
+        REQUIRE(errors.errors_.size() == 1);
+        message = print.slicing_errors_message(errors);
+    }
+    CHECK(message.rfind("floating cube: ", 0) == 0);
+    CHECK(message.find("empty first layer") != std::string::npos);
 }

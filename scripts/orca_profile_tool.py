@@ -10,23 +10,21 @@ commands:
   normalize        rewrite profile files into their canonical shape
   trim             delete profile files no <vendor>.json list references
   update-index     regenerate the *_list sections of <vendor>.json
-  update-snapshot  re-record scripts/filament_id_snapshot.json
 
 options shared by several commands:
   --vendor VENDOR      act on one vendor bundle only; repeatable, empty means all
-                       (every command but update-snapshot)
   --profile-type TYPE  one of machine_model/process/filament/machine; repeatable
                        (normalize, trim, update-index)
   --dry-run            report what would change and write nothing (every command
                        that writes)
-  --profiles DIR       act on another profile tree (default: resources/profiles);
-                       check and update-snapshot then need --snapshot PATH too,
-                       since the snapshot describes resources/profiles alone
+  --profiles DIR       act on another profile tree (default: resources/profiles)
 
 After adding, renaming or deleting profile files, run:
-  normalize -> trim -> update-index -> generate-id -> update-snapshot -> check
-Each step feeds the next: normalize writes the "type" update-index files a
-profile by, and trim judges against the index update-index is about to rebuild.
+  normalize -> update-index -> generate-id -> check
+normalize supplies missing types; update-index registers presets before id
+generation.
+Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
+the current index and can delete newly added, unindexed presets.
 
 Run from anywhere; "python scripts/orca_profile_tool.py --help" repeats this list
 and "... <command> --help" documents one command in full.
@@ -53,8 +51,8 @@ filament_id policy (see docs/HLSD/filament_id.md):
         filament_id = "OF" + base62_6( uuid5(FILAMENT_ID_NAMESPACE,
             "filament_product/<filament_vendor>/<filament_type>/<filament_name>") )
     8 chars total, which satisfies the AMS length limit. Nobody invents ids by
-    hand, and nothing but the triple feeds the mint — not the rest of the tree,
-    not the snapshot. Two products whose triples mint one id (a base62
+    hand, and nothing but the triple feeds the mint — not the rest of the tree.
+    Two products whose triples mint one id (a base62
     collision; odds ~1e-5 over the whole tree) is an error --check reports and
     --generate refuses to write; the remedy is a rename so the triples differ,
     never a salted or hand-picked second id.
@@ -68,12 +66,6 @@ filament_id policy (see docs/HLSD/filament_id.md):
     the app applies at the printer boundary), the QD_* ids a Qidi box composes at
     runtime, and the P+7-hex ids CreatePresetsDialog.cpp gives user-created
     filaments all fail the format rule like any other stray value.
-  * scripts/filament_id_snapshot.json is the sanctioned-state snapshot: one
-    entry per id, carrying the product triple it is minted from and the
-    "Vendor/Filament" presets claiming it. It must exactly equal the tree-derived
-    state at all times, so any id/claim/triple change shows up as a reviewable
-    diff to that file (the maintainer gate). It sanctions state, never
-    exceptions: no check consults it to excuse a preset from the rules above.
 
 setting_id policy (see AGENTS.md "Critical Constraints"):
   * setting_id is a PRESET id, a pure function of the preset's identity:
@@ -121,13 +113,15 @@ FILAMENT_ID_LENGTH = 6  # base62 digits after the "OF" prefix -> 8 chars total
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROFILES_DIR = os.path.normpath(os.path.join(SCRIPTS_DIR, "..", "resources", "profiles"))
-SNAPSHOT_PATH = os.path.join(SCRIPTS_DIR, "filament_id_snapshot.json")
 # The single source of truth for the map path; update_bambu_filament_ids.py
 # imports this rather than recomputing it.
 BAMBU_MAP_PATH = os.path.normpath(
     os.path.join(SCRIPTS_DIR, "..", "resources", "printers", "bambu_filament_ids.json"))
 
 OFL = "OrcaFilamentLibrary"
+# The validator's data dir, created under resources/profiles by a local run;
+# not a vendor bundle, so an unscoped pass leaves it alone.
+USER_DIR = "user"
 
 # Bambu (BBL) is the only vendor exempt from the setting_id rule: it keeps its
 # authoritative "G*" cloud ids. No vendor is exempt from the filament_id rule.
@@ -144,9 +138,17 @@ PROFILE_SUBDIRS = ("filament", "process", "machine")
 PROFILE_TYPES = ("machine_model", "process", "filament", "machine")
 
 # Data files that sit under a vendor bundle but are not presets: no name, no type.
-NON_PROFILE_FILES = {"filaments_color_codes.json", "cli_config.json"}
+NON_PROFILE_FILES = {
+    "filaments_color_codes.json",
+    "cli_config.json",
+    "filament_id_map.json",
+    "filament_name_map.json",
+    "support_recommended_params.json",
+}
 
-# Settings dropped from PrintConfig.cpp. Reported by "check --obsolete-keys".
+# Mirror PrintConfigDef::handle_legacy's ignore set in PrintConfig.cpp; a test
+# checks parity. Used by normalize and check. Active options and
+# legacy aliases that the loader migrates do not belong here.
 OBSOLETE_KEYS = {
     "acceleration", "scale", "rotate", "duplicate", "duplicate_grid",
     "bed_size", "print_center", "g0", "wipe_tower_per_color_wipe",
@@ -158,10 +160,11 @@ OBSOLETE_KEYS = {
     "bed_temperature_initial_layer", "can_switch_nozzle_type", "can_add_auxiliary_fan",
     "extra_flush_volume", "spaghetti_detector", "adaptive_layer_height",
     "z_hop_type", "z_lift_type", "bed_temperature_difference", "long_retraction_when_cut",
-    "retraction_distance_when_cut", "extruder_type", "internal_bridge_support_thickness",
-    "extruder_clearance_max_radius", "top_area_threshold", "reduce_wall_solid_infill",
+    "retraction_distance_when_cut", "internal_bridge_support_thickness",
+    "top_area_threshold", "reduce_wall_solid_infill",
     "filament_load_time", "filament_unload_time", "smooth_coefficient",
-    "overhang_totally_speed", "silent_mode", "overhang_speed_classic"
+    "overhang_totally_speed", "silent_mode", "overhang_speed_classic",
+    "anisotropic_surfaces",
 }
 
 # Keys renamed at some point, whose old and new spellings must never co-exist:
@@ -185,7 +188,6 @@ _JSON_STR = r'"(?:[^"\\]|\\.)*"'
 
 GENERATE_CMD = "python scripts/orca_profile_tool.py generate-id"
 SETTING_ID_CMD = '"python scripts/orca_profile_tool.py generate-id --setting-id"'
-UPDATE_HINT = 'run "python scripts/orca_profile_tool.py update-snapshot" and commit the diff for maintainer review'
 BAMBU_MAP_HINT = 'regenerate the map with "python scripts/update_bambu_filament_ids.py" and commit the diff for maintainer review'
 NORMALIZE_HINT = 'try "python scripts/orca_profile_tool.py normalize" to fix common issues automatically'
 
@@ -238,8 +240,8 @@ def _base62_tail(n, length):
     """The low `length` base62 digits of n, most-significant first.
 
     The shared tail of both id rules. Its output bytes are pinned by the C++
-    golden vectors (tests/libslic3r/test_preset_setting_id.cpp) and by the
-    filament_id snapshot — never change it.
+    golden vectors (tests/libslic3r/test_preset_setting_id.cpp) and by every
+    filament_id in the tree — never change it.
     """
     digits = []
     for _ in range(length):
@@ -435,6 +437,7 @@ def resolve_filament_field(name, field, filaments, ofl_filaments, seen=None, in_
     the same hop semantics as resolve_filament_id: own value, else walk
     `inherits` in the vendor map with OFL base-bundle fallback. Values are list
     options — the first element counts; "" when the chain never defines one.
+    Templates pulled in by `include` are not consulted: none states either field.
     """
     if seen is None:
         seen = set()
@@ -475,9 +478,8 @@ def resolve_triple(name, filaments, ofl_filaments):
 def analyze_tree(profiles_dir):
     """Load every vendor bundle and derive the full filament_id state.
 
-    Returns a dict with the tree-derived snapshot sections plus the working data
-    the checks and the assign pass need. All claims are "Vendor/Filament" strings
-    over INSTANTIATED system filaments, tree-wide including OFL and BBL.
+    Returns a dict of the tree-derived state the checks and the assign pass need,
+    tree-wide including OFL and BBL.
     """
     profiles_dir = str(profiles_dir)
     vendor_names = list_vendor_names(profiles_dir)
@@ -499,11 +501,6 @@ def analyze_tree(profiles_dir):
             rec["id_source"] = src
         vendors[vendor] = filaments
 
-    # id -> set of "Vendor/Filament" claims over instantiated presets. Every id
-    # occurring in the tree is a key; ids only ever DECLARED (e.g. on a root
-    # none of whose descendants instantiate) keep an empty claim list, so that
-    # the snapshot exactly equals the tree-derived state.
-    ids = {}
     vendor_ids = {}             # vendor -> set of ids occurring there (declared or effective)
     declared_ids = {}           # vendor -> set of ids DECLARED in that vendor's own files
     missing_effective = []      # (vendor, name, file) instantiated presets resolving no id
@@ -524,7 +521,6 @@ def analyze_tree(profiles_dir):
                 fid = rec["filament_id"]
                 occurring.add(fid)
                 declared_ids.setdefault(vendor, set()).add(fid)
-                ids.setdefault(fid, set())
                 declarer_triples.append((vendor, rec, fid, triple))
                 triples.setdefault(fid, set()).add(triple)
                 filament_triples.setdefault(
@@ -537,11 +533,10 @@ def analyze_tree(profiles_dir):
                 missing_effective.append((vendor, rec["name"], rec["file"]))
                 continue
             occurring.add(eff)
-            ids.setdefault(eff, set()).add(f"{vendor}/{base_name(rec['name'])}")
             if not rec.get("filament_id") and OF_ID_RE.match(eff):
                 inherited.append((vendor, rec, eff, triple))
 
-    # Cross-bundle triple divergence (check 4, warning only): the same filament
+    # Cross-bundle triple divergence (check 3, warning only): the same filament
     # name declared in several bundles with different triples cannot converge
     # on one id until the divergence is fixed.
     name_bundles = {}
@@ -556,7 +551,6 @@ def analyze_tree(profiles_dir):
     return {
         "vendors": vendors,
         "read_errors": read_errors,
-        "ids": {fid: sorted(claims) for fid, claims in ids.items()},
         "vendor_ids": vendor_ids,
         "declared_ids": declared_ids,
         "missing_effective": sorted(missing_effective),
@@ -571,56 +565,15 @@ def analyze_tree(profiles_dir):
 
 
 # ---------------------------------------------------------------------------
-# Snapshot IO
-# ---------------------------------------------------------------------------
-
-def snapshot_from_analysis(analysis):
-    """One entry per id, in id order: the product triple it is minted from and
-    the "Vendor/Filament" claims on it. Requires exactly one declared triple per
-    id (update_snapshot refuses any other state; check 3 rejects it anyway)."""
-    ids = {}
-    for fid, claims in sorted(analysis["ids"].items()):
-        [(vendor, ftype, filament_name)] = analysis["triples"][fid]
-        ids[fid] = {"filaments": sorted(claims), "name": filament_name,
-                    "filament_type": ftype, "filament_vendor": vendor}
-    return {"ids": ids}
-
-
-def snapshot_triple(entry):
-    return [entry["filament_vendor"], entry["filament_type"], entry["name"]]
-
-
-def load_snapshot(path):
-    """Return the snapshot dict, or None when the file does not exist."""
-    if not os.path.exists(path):
-        return None
-    data = load_json(path)
-    data.setdefault("ids", {})
-    return data
-
-
-def write_snapshot(path, obj):
-    """Deterministic serialization: snapshot_from_analysis order, indent 1, LF,
-    trailing newline."""
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(obj, f, indent=1, ensure_ascii=False)
-        f.write("\n")
-
-
-# ---------------------------------------------------------------------------
 # filament_id validation
 # ---------------------------------------------------------------------------
 
-def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
-                       map_path=BAMBU_MAP_PATH):
+def check_filament_ids(profiles_dir=PROFILES_DIR, map_path=BAMBU_MAP_PATH):
     """Validate filament_id state across every vendor. Returns the error count.
 
     1. Format: every id occurring in the tree (declared or effective) must
-       match ^OF[0-9A-Za-z]{6}$. No exceptions: not the snapshot, not BBL.
-    2. Snapshot equality, both directions: every id in the tree, the filaments
-       claiming it and the triple its declarers resolve must equal the snapshot
-       entry exactly (the snapshot diff is the maintainer gate).
-    3. Identity: the id is a function of the triple alone, and there is no
+       match ^OF[0-9A-Za-z]{6}$. No exceptions, not even BBL.
+    2. Identity: the id is a function of the triple alone, and there is no
        second acceptable value. (a) A declared id must equal the one id the
        declarer's own triple mints; (b) the id an instantiated preset inherits
        must equal the one ITS own triple mints — how it inherits it (a root, a
@@ -628,30 +581,21 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
        filament resolves an effective id at all (an id-less one is a hard load
        error in C++); (d) no two products mint one id (a base62 collision,
        resolved by renaming one of them).
-    4. Triple integrity: (a) every declarer resolves non-empty filament_vendor
+    3. Triple integrity: (a) every declarer resolves non-empty filament_vendor
        and filament_type; (b) declarers of one (bundle, filament) resolve
        identical triples; cross-bundle divergence on the same filament name is a
        warning only.
-    5. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
+    4. Bambu catalog map: resources/printers/bambu_filament_ids.json must parse,
        carry source/bambustudio_commit/generated, key only OF-format ids, map
        each Bambu id at most once, and for every row whose key the tree claims,
        the tree's triple for that id must equal the row's (vendor, type, name).
-
-    Nothing is grandfathered: the snapshot sanctions state, never exceptions.
     """
     _utf8_console()
     errors = 0
     analysis = analyze_tree(profiles_dir)
-    snapshot = load_snapshot(snapshot_path)
-    if snapshot is None:
-        print_error(f"filament_id snapshot not found at {snapshot_path}; {UPDATE_HINT}")
-        return 1
     for msg in analysis["read_errors"]:
         print_error(msg)
         errors += 1
-
-    snap_ids = snapshot["ids"]
-    tree_ids = analysis["ids"]
 
     # -- 1. format ----------------------------------------------------------
     for vendor in sorted(analysis["vendor_ids"]):
@@ -663,47 +607,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 f'filament ids must come from "{GENERATE_CMD}"')
             errors += 1
 
-    # -- 2. snapshot equality (both directions) -----------------------------
-    tree_triples = analysis["triples"]
-    for fid in sorted(tree_ids):
-        entry = snap_ids.get(fid)
-        if entry is None:
-            print_error(
-                f'filament_id "{fid}" is not sanctioned by '
-                f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
-            errors += 1
-            continue
-        for claim in tree_ids[fid]:
-            if claim not in entry["filaments"]:
-                print_error(
-                    f'filament_id "{fid}" claim "{claim}" is not sanctioned by '
-                    f"scripts/filament_id_snapshot.json; {UPDATE_HINT}")
-                errors += 1
-        # Every tree id has at least one declarer; the snapshot records one
-        # triple per id, so a divergent declarer is a mismatch in both directions.
-        sanctioned = snapshot_triple(entry)
-        for t in tree_triples[fid]:
-            if t != sanctioned:
-                print_error(
-                    f'filament_id "{fid}" triple "{"/".join(t)}" is not sanctioned by '
-                    f'scripts/filament_id_snapshot.json, which records '
-                    f'"{"/".join(sanctioned)}"; {UPDATE_HINT}')
-                errors += 1
-    for fid in sorted(snap_ids):
-        if fid not in tree_ids:
-            print_error(
-                f'filament_id stability: snapshot id "{fid}" vanished from the tree; '
-                f"{UPDATE_HINT}")
-            errors += 1
-            continue
-        for claim in snap_ids[fid]["filaments"]:
-            if claim not in tree_ids[fid]:
-                print_error(
-                    f'filament_id stability: snapshot claim "{claim}" of id "{fid}" '
-                    f"vanished from the tree; {UPDATE_HINT}")
-                errors += 1
-
-    # -- 3. identity: the id is a function of the triple alone ---------------
+    # -- 2. identity: the id is a function of the triple alone ---------------
     # One triple, one id: a declaration must carry exactly the mint of its
     # triple, and there is no second acceptable value — not a salt, not a
     # hand-picked one, not whatever another preset of the product carries. Two
@@ -719,10 +623,9 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f'filament_id "{fid}" declared by "{rec["name"]}" ({rec["file"]}) does '
             f'not match the mint of its triple "{"/".join(triple)}": expected '
             f'"{want}"; paste the expected id, or fix the triple and run '
-            f'"{GENERATE_CMD} --vendor {vendor}" (preview with --dry-run), then '
-            f"--update-snapshot")
+            f'"{GENERATE_CMD} --vendor {vendor}" (preview with --dry-run)')
         errors += 1
-    # (3b) An inherited id is held to the same single value, and every preset
+    # (2b) An inherited id is held to the same single value, and every preset
     # missing it is listed — a variant under a wrong root as much as a preset
     # riding another product's root. Nothing is folded into the declarer's
     # error: the report names each preset whose id is wrong.
@@ -747,7 +650,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f'run "{GENERATE_CMD}" (expected id for filament '
             f'"{vendor}/{base_name(name)}": "{expected}")')
         errors += 1
-    # (3d) The mint is injective over the tree's products, or two of them are
+    # (2d) The mint is injective over the tree's products, or two of them are
     # indistinguishable to every device that matches on the id.
     for fid, ts in sorted(analysis["collisions"].items()):
         print_error(
@@ -756,7 +659,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"of them so their triples differ")
         errors += 1
 
-    # -- 4. triple integrity ---------------------------------------------------
+    # -- 3. triple integrity ---------------------------------------------------
     for vendor, rec, fid, triple in sorted(
             analysis["declarer_triples"], key=lambda x: (x[0], x[1]["file"])):
         if triple[0] and triple[1]:
@@ -789,7 +692,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
             f"({detail}); bundles of one product converge on one id only once "
             f"their triples agree")
 
-    # -- 6. Bambu catalog map --------------------------------------------------
+    # -- 4. Bambu catalog map --------------------------------------------------
     try:
         bambu_map = load_json(map_path)
         if not isinstance(bambu_map, dict):
@@ -830,7 +733,7 @@ def check_filament_ids(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH,
                 errors += 1
             else:
                 bambu_id_owners[bambu_id] = fid
-            claimed = tree_triples.get(fid)
+            claimed = analysis["triples"].get(fid)
             if not claimed:
                 continue  # a product BambuStudio ships that the tree does not (yet)
             row_triple = [row.get("vendor", ""), row.get("type", ""), row.get("name", "")]
@@ -922,6 +825,55 @@ def check_setting_id_uniqueness(profiles_dir):
     return errors
 
 
+def check_machine_model_name_uniqueness(profiles_dir):
+    """No two bundles may declare a machine_model with the same name.
+
+    A machine_model name is the key the whole tree resolves a printer type by:
+    Preset::get_printer_type (and get_current_printer_type) walk every vendor's
+    models and return the model_id of the first whose name equals the preset's
+    printer_model, so two models sharing a name make that lookup depend on vendor
+    order. The name is also what the Add Printer list shows, so a duplicate
+    renders the same printer twice.
+
+    Unlike preset names, which are per bundle - base profiles share one name
+    across dozens of bundles by design - a machine_model name is global. A vendor
+    copying another vendor's model (the Custom "Generic Klipper Printer" being the
+    usual source) is the common way this happens.
+
+    Cross-vendor by nature, so it always runs over the whole tree, never narrowed
+    by --vendor. Returns the error count.
+    """
+    errors = 0
+    owners = defaultdict(list)  # model name -> [relative path]
+    for vendor in list_profile_dirs(profiles_dir):
+        for path, _sub in iter_profile_files(os.path.join(profiles_dir, vendor)):
+            if os.path.basename(path) in NON_PROFILE_FILES:
+                continue
+            try:
+                data = load_json(path)
+            except (ValueError, OSError):
+                # Parse failures are reported by the checks that walk the same
+                # files; reporting them here too would double-count.
+                continue
+            if not isinstance(data, dict) or data.get("type") != "machine_model":
+                continue
+            name = data.get("name")
+            if name:
+                owners[name].append(
+                    os.path.relpath(path, profiles_dir).replace(os.sep, "/"))
+
+    for name, paths in sorted(owners.items()):
+        if len(paths) < 2:
+            continue
+        errors += 1
+        print_error(
+            f'machine_model name "{name}" is declared by {len(paths)} bundles '
+            f'({", ".join(sorted(paths))}); a machine model name is global, so the '
+            f"printer type resolves to whichever bundle is seen first and the Add "
+            f"Printer list shows it twice - rename or delete the duplicate")
+    return errors
+
+
 # ---------------------------------------------------------------------------
 # Per-vendor validation
 # ---------------------------------------------------------------------------
@@ -936,8 +888,8 @@ def _vendor_json_files(vendor_path):
 def check_preset_name_uniqueness(profiles_dir, vendor):
     """No two profiles in a bundle may share a type and a name, indexed or not.
 
-    The loader resolves "inherits" through a per-type map of the bundle's profiles
-    (PresetBundle.cpp load_subfiles), and std::map::emplace keeps the first
+    The loader resolves "inherits" and "include" through per-type maps of the bundle's
+    profiles (PresetBundle.cpp load_subfiles), and std::map::emplace keeps the first
     insertion: a second file claiming the name is silently dropped, and which one
     wins is nothing but index order. An unindexed twin counts too - it is one
     sub_path edit away from deciding that silently.
@@ -1050,13 +1002,12 @@ def load_available_filament_profiles(profiles_dir, vendor):
 def check_machine_default_materials(profiles_dir, vendor):
     """Every default material a machine names must exist, in the bundle or in OFL.
 
-    Returns (errors, warnings); the warning is the bundle having no machine/ at all.
+    Returns (errors, warnings); a bundle with no machine/ has nothing to check.
     """
     error_count = 0
     machine_dir = Path(profiles_dir) / vendor / "machine"
     if not machine_dir.exists():
-        print_warning(f"No machine profiles found for vendor: {vendor}")
-        return 0, 1
+        return 0, 0
 
     available = (load_available_filament_profiles(profiles_dir, vendor)
                  | load_available_filament_profiles(profiles_dir, OFL))
@@ -1246,7 +1197,7 @@ def check_filament_id_length(profiles_dir, vendor):
 
 
 def check_obsolete_keys(profiles_dir, vendor):
-    """Warn about settings PrintConfig.cpp no longer defines. Returns the count."""
+    """Warn about settings PrintConfig.cpp explicitly discards. Returns the count."""
     warn_count = 0
     profiles_path = Path(profiles_dir)
     vendor_path = profiles_path / vendor / "filament"
@@ -1337,11 +1288,11 @@ def check_normalized(profiles_dir, vendor):
 
     Those two commands define a profile file's canonical shape - identifying keys
     first, keys the slicer no longer reads gone, filament options that are vectors
-    written as vectors - and a <vendor>.json's canonical lists, ordered parents-first
-    so the loader resolves every "inherits" in one pass. Running them over a
-    contributed bundle has to be a no-op; where it would not be, the file that was
-    reviewed is not the file that ships, and the next maintainer to run normalize
-    carries an unrelated diff into their own change.
+    written as vectors - and a <vendor>.json's canonical lists, ordered
+    dependencies-first so the loader resolves every "inherits" and "include" in one
+    pass. Running them over a contributed bundle has to be a no-op; where it would
+    not be, the file that was reviewed is not the file that ships, and the next
+    maintainer to run normalize carries an unrelated diff into their own change.
 
     It asks the normalize and update-index sections below rather than restating what
     they do, because a second definition of normal is free to drift from the one that
@@ -1397,16 +1348,17 @@ def check_normalized(profiles_dir, vendor):
 # check
 # ---------------------------------------------------------------------------
 
-def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSHOT_PATH,
-                   materials=False, obsolete_keys=False):
+def check_profiles(profiles_dir=PROFILES_DIR, vendors=None):
     """Validate the whole profile tree. Returns the error count.
 
     The per-vendor checks honour `vendors`; the setting_id and filament_id checks are
     cross-vendor properties a narrowed run cannot answer, so they always cover the
-    whole tree. With no `vendors`, OrcaFilamentLibrary is left out of the per-vendor
-    pass: it is the shared base bundle, its filaments are generic by design, and they
-    are checked through the vendors that inherit them. Naming it explicitly checks it.
-    The normalization pass covers it either way - see the comment on that loop.
+    whole tree. With no `vendors`, every bundle is checked except the `user` directory
+    a local validator run leaves behind, being its data dir rather than a bundle;
+    naming it explicitly checks it. OrcaFilamentLibrary is checked like any other
+    bundle, its only exemption being that a library filament may leave
+    compatible_printers empty - what check_filament_compatible_printers applies. The
+    normalization pass takes its own vendor list - see the comment on that loop.
     """
     print_info("Checking profiles ...")
     errors_found = 0
@@ -1416,19 +1368,17 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
     if vendors:
         checked = list(vendors)
     else:
-        checked = [v for v in list_profile_dirs(profiles_dir) if v != OFL]
+        checked = [v for v in list_profile_dirs(profiles_dir) if v != USER_DIR]
 
     for vendor in checked:
         errors_found += check_preset_name_uniqueness(profiles_dir, vendor)
         errors_found += check_filament_compatible_printers(profiles_dir, vendor)
 
-        if materials:
-            new_errors, new_warnings = check_machine_default_materials(profiles_dir, vendor)
-            errors_found += new_errors
-            warnings_found += new_warnings
+        new_errors, new_warnings = check_machine_default_materials(profiles_dir, vendor)
+        errors_found += new_errors
+        warnings_found += new_warnings
 
-        if obsolete_keys:
-            warnings_found += check_obsolete_keys(profiles_dir, vendor)
+        warnings_found += check_obsolete_keys(profiles_dir, vendor)
 
         new_errors, new_warnings = check_name_consistency(profiles_dir, vendor)
         errors_found += new_errors
@@ -1445,12 +1395,11 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
         errors_found += new_errors
         remedies.update(gaps)
 
-    # normalize and update-index know nothing of the OrcaFilamentLibrary exemption
-    # above - that bundle sits out the per-vendor pass because its filaments are
-    # generic by design, which says nothing about the shape of its files - so this pass
-    # takes its own vendor list. Unscoped that is the bundles with an index, exactly
-    # what those two commands take; a --vendor is passed through as given, so a bundle
-    # whose index has not landed yet still has its files held to what normalize writes.
+    # normalize and update-index judge file and index shape, not the preset-content
+    # rules above, so this pass takes its own vendor list. Unscoped that is the
+    # bundles with an index, exactly what those two commands take; a --vendor is
+    # passed through as given, so a bundle whose index has not landed yet still has
+    # its files held to what normalize writes.
     for vendor in (vendors or list_vendor_names(profiles_dir)):
         new_errors, gaps = check_normalized(profiles_dir, vendor)
         errors_found += new_errors
@@ -1460,10 +1409,12 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
         if remedies[category]:
             print_warning(f"{remedies[category]} {hint}")
 
-    # Cross-vendor checks: setting_id uniqueness and the whole filament_id state,
-    # both validated over the entire tree regardless of --vendor.
+    # Cross-vendor checks: setting_id and machine_model name uniqueness and the
+    # whole filament_id state, all validated over the entire tree regardless of
+    # --vendor.
     errors_found += check_setting_id_uniqueness(profiles_dir)
-    errors_found += check_filament_ids(profiles_dir, snapshot_path)
+    errors_found += check_machine_model_name_uniqueness(profiles_dir)
+    errors_found += check_filament_ids(profiles_dir)
 
     print("\n==================== SUMMARY ====================")
     print_info(f"Checked vendors     : {len(checked)}")
@@ -1479,69 +1430,6 @@ def check_profiles(profiles_dir=PROFILES_DIR, vendors=None, snapshot_path=SNAPSH
     if errors_found > 0 or warnings_found > 0:
         print_warning(f"Issue(s) found, {NORMALIZE_HINT}")
     return errors_found
-
-
-# ---------------------------------------------------------------------------
-# update-snapshot
-# ---------------------------------------------------------------------------
-
-def update_snapshot(profiles_dir=PROFILES_DIR, snapshot_path=SNAPSHOT_PATH, dry_run=False):
-    """Regenerate the snapshot from the tree.
-
-    Refuses to sanction a tree it could not read whole, and an id declared under
-    more than one triple: neither state can be recorded truthfully, so writing it
-    would only hide the mistake until CI. It does not judge the ids themselves —
-    the snapshot records state and check judges it, so an id that is not a mint
-    lands in the diff and fails check 1.
-    Idempotent: a second run over an unchanged tree changes nothing. Returns 0
-    on success.
-    """
-    analysis = analyze_tree(profiles_dir)
-    # A tree that could not be read whole cannot be sanctioned: the snapshot
-    # would silently drop the unreadable bundle's ids and claims, and the diff
-    # would read as a deliberate removal.
-    refusals = len(analysis["read_errors"])
-    for msg in analysis["read_errors"]:
-        print_error(msg)
-
-    for fid, ts in sorted(analysis["triples"].items()):
-        if len(ts) > 1:
-            print_error(
-                f'refusing to sanction filament_id "{fid}": declared under {len(ts)} '
-                f'triples ({"; ".join("/".join(t) for t in ts)}); one id names one '
-                f"product (check 3)")
-            refusals += 1
-    if refusals:
-        return 1
-
-    new_snap = snapshot_from_analysis(analysis)
-    old_snap = load_snapshot(snapshot_path)
-    old_ids = old_snap["ids"] if old_snap else {}
-
-    # Diff summary.
-    added_ids = sorted(set(new_snap["ids"]) - set(old_ids))
-    removed_ids = sorted(set(old_ids) - set(new_snap["ids"]))
-    added_claims = sum(
-        len(set(entry["filaments"]) - set(old_ids.get(fid, {}).get("filaments", [])))
-        for fid, entry in new_snap["ids"].items())
-    removed_claims = sum(
-        len(set(entry["filaments"]) - set(new_snap["ids"].get(fid, {}).get("filaments", [])))
-        for fid, entry in old_ids.items())
-    changed = new_snap != (old_snap or {"ids": {}})
-
-    if changed and not dry_run:
-        write_snapshot(snapshot_path, new_snap)
-
-    print_info(f"snapshot ids      : {len(new_snap['ids'])} (+{len(added_ids)} / -{len(removed_ids)})")
-    print_info(f"claims added      : {added_claims}")
-    print_info(f"claims removed    : {removed_claims}")
-    if changed and dry_run:
-        print_success(f"dry run: {snapshot_path} would be rewritten; nothing written")
-    elif changed:
-        print_success(f"snapshot written to {snapshot_path}")
-    else:
-        print_success("snapshot already up to date; nothing changed")
-    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -1687,9 +1575,9 @@ def generate_filament_ids(profiles_dir=PROFILES_DIR, vendors=None, dry_run=False
       * an instantiated filament that resolves no id at all gets one inserted
         into its root(s): the id-less presets of the SAME filament its members
         inherit, or the member itself (a parent of another filament cannot carry
-        this filament's id — check 3).
+        this filament's id — check 2).
     A declaration is left alone exactly when it already equals the one id its
-    triple mints (check 3). Two products minting one id (check 3d) are reported
+    triple mints (check 2). Two products minting one id (check 2d) are reported
     and left unwritten: nothing salts past a collision, a rename resolves it.
 
     `vendors` restricts what is WRITTEN; the id is a function of the triple
@@ -1697,9 +1585,7 @@ def generate_filament_ids(profiles_dir=PROFILES_DIR, vendors=None, dry_run=False
     reports whatever it was not allowed to touch. `changed_paths`, when a set is
     passed, collects the files that changed. A file whose layout offers no
     anchor for the edit is reported and counted as an error, so one odd profile
-    cannot abort the pass over all the others. Never reads or touches the
-    snapshot — run --update-snapshot afterwards and review the diff. Returns
-    (files_changed, errors).
+    cannot abort the pass over all the others. Returns (files_changed, errors).
     """
     _utf8_console()
     analysis = analyze_tree(profiles_dir)
@@ -1954,9 +1840,9 @@ def run_generate_id(profiles_dir, vendors, filament_id, setting_id, dry_run):
     do_filament = filament_id or not setting_id
     do_setting = setting_id or not filament_id
     changed = set()  # one file the two passes both touch is still one file
-    filament_files = errors = 0
+    errors = 0
     if do_filament:
-        filament_files, e = generate_filament_ids(profiles_dir, vendors, dry_run, changed)
+        _n, e = generate_filament_ids(profiles_dir, vendors, dry_run, changed)
         errors += e
     if do_setting:
         _n, e = generate_setting_ids(profiles_dir, vendors, dry_run, changed)
@@ -1968,11 +1854,6 @@ def run_generate_id(profiles_dir, vendors, filament_id, setting_id, dry_run):
         print_error(f"{summary}; {errors} error(s)")
     else:
         print_success(summary)
-    if filament_files and not dry_run:
-        # A filament_id write may or may not move the sanctioned state (an id repaired
-        # back to the value the snapshot already records does not), so regenerate and
-        # let the diff - empty or not - say.
-        print_warning(f"now {UPDATE_HINT}")
     return 1 if errors else 0
 
 
@@ -2060,6 +1941,10 @@ def _normalize_profile(data, sub):
         if data.get(field):
             del data[field]
             changes.append(f"remove {field}")
+
+    for field in sorted(OBSOLETE_KEYS.intersection(data)):
+        del data[field]
+        changes.append(f"remove {field}")
 
     # BBS renamed extruder_clearance_radius to extruder_clearance_max_radius, but some
     # profiles carry both with different values, and the slicer cannot tell which one
@@ -2150,9 +2035,9 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
     cli_config.json carry no "type" - all of them stay. A file that cannot be parsed
     is reported and kept: never delete what could not be read.
 
-    An unindexed file that some surviving profile names in "inherits" is kept too,
-    and reported, UNLESS an indexed profile already carries that name: "inherits" is
-    resolved by preset name, so the indexed one is the parent every child actually
+    An unindexed file that some surviving profile names in "inherits" or "include" is
+    kept too, and reported, UNLESS an indexed profile already carries that name: both
+    are resolved by preset name, so the indexed one is the parent every child actually
     gets, and the unindexed file is a stale copy the loader never reaches. Where no
     indexed profile provides the name the inheriting preset really is broken, and
     deleting the file would destroy the only record of the settings it was written
@@ -2185,7 +2070,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
                     listed.add(posixpath.normpath(sub_path.replace("\\", "/")))
 
         candidates = {}    # path -> profile, for every unindexed preset
-        inherited = set()  # every name the files that stay claim as a parent
+        inherited = set()  # every name the files that stay claim as a parent or include
         provided = {}      # name -> sub_path, for the profiles the loader can see
         for sub in subs:
             for path in _walk_json(os.path.join(vendor_dir, sub)):
@@ -2200,8 +2085,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
                 if not isinstance(profile, dict):
                     continue
                 if sub_path in listed or profile.get("type") not in PROFILE_TYPES:
-                    if profile.get("inherits"):
-                        inherited.add(profile["inherits"])
+                    inherited.update(profile_dependencies(profile))
                     if sub_path in listed and profile.get("name"):
                         provided[profile["name"]] = sub_path
                     continue
@@ -2220,8 +2104,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
             for path, profile in rescued.items():
                 del candidates[path]
                 kept[path] = profile
-                if profile.get("inherits"):
-                    inherited.add(profile["inherits"])
+                inherited.update(profile_dependencies(profile))
 
         for path in sorted(kept):
             print_warning(f"{_rel(path, profiles_dir)}: not indexed by {vendor}.json but "
@@ -2258,40 +2141,48 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
 # update-index
 # ---------------------------------------------------------------------------
 
-def topological_sort(profiles):
-    """Order index entries parents-first, so the loader resolves inherits in one pass.
+def profile_dependencies(profile):
+    """The names a profile needs loaded before it: its parent and every include."""
+    include = profile.get("include") or []
+    if isinstance(include, str):
+        include = [include]
+    return [name for name in [profile.get("inherits"), *include] if name]
 
-    Entries whose parent is not in the same section keep their own (sorted) order at
-    the end; the loader finds those parents through the base bundle instead.
+
+def topological_sort(profiles):
+    """Order index entries dependencies-first, so the loader resolves every
+    "inherits" and "include" in one pass.
+
+    Entries that neither depend on nor are depended on by another in the same section
+    go at the end in name order; the loader finds their parents, if any, through the
+    base bundle instead. Every entry on a dependency cycle, which no order can satisfy,
+    goes there too.
     """
     graph = defaultdict(list)
     in_degree = defaultdict(int)
     by_name = {p["name"]: p for p in profiles}
     all_names = set(by_name)
 
-    placed = set()
     for profile in profiles:
-        parent = profile.get("inherits")
         child = profile["name"]
-        if parent in all_names:
-            graph[parent].append(child)
-            in_degree[child] += 1
-            in_degree.setdefault(parent, 0)
-            placed.add(child)
-            placed.add(parent)
+        for parent in profile_dependencies(profile):
+            if parent in all_names:
+                graph[parent].append(child)
+                in_degree[child] += 1
+                in_degree.setdefault(parent, 0)
 
     queue = sorted(name for name, degree in in_degree.items() if degree == 0)
     result = []
     while queue:
         current = queue.pop(0)
         result.append(by_name[current])
-        placed.add(current)
         for child in sorted(graph[current]):
             in_degree[child] -= 1
             if in_degree[child] == 0:
                 queue.append(child)
 
-    result.extend(by_name[name] for name in sorted(all_names - placed))
+    ordered = {p["name"] for p in result}
+    result.extend(by_name[name] for name in sorted(all_names - ordered))
     return result
 
 
@@ -2306,8 +2197,9 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
     one message each, for the caller to report. `sections` is None when two files claim
     one preset name: the bundle can only hold one profile under a name, so rebuilding
     would pick a winner by directory order and quietly drop the other, and the index has
-    to be left alone instead. Deleting the stale copy is trim's job, which is why it
-    runs before this.
+    to be left alone instead. Identify the intended preset and delete or rename the
+    duplicate before retrying. Use trim only for deliberate unindexed-file cleanup,
+    previewed with --dry-run.
     """
     vendor_dir = os.path.join(profiles_dir, vendor)
     sections = {}
@@ -2340,15 +2232,15 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
                 "name": name,
                 "sub_path": os.path.relpath(path, vendor_dir).replace(os.sep, "/"),
             }
-            if profile.get("inherits"):
-                entry["inherits"] = profile["inherits"]
+            for key in ("inherits", "include"):
+                if profile.get(key):
+                    entry[key] = profile[key]
             by_name[name].append(entry["sub_path"])
             entries.append(entry)
 
-        sorted_entries = topological_sort(entries)
-        for entry in sorted_entries:
-            entry.pop("inherits", None)  # ordering input only, not part of the index
-        sections[profile_type + "_list"] = sorted_entries
+        # inherits/include were ordering input only; the index holds name and sub_path
+        sections[profile_type + "_list"] = [{"name": e["name"], "sub_path": e["sub_path"]}
+                                            for e in topological_sort(entries)]
 
     for rel, found in sorted(unplaceable.items()):
         problems.append(f'{rel}: type {found!r} is not one of {list(PROFILE_TYPES)}, so it '
@@ -2360,8 +2252,8 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
         problems.append(f'{vendor}.json: {len(subs)} profiles are named "{name}" '
                         f'({", ".join(sorted(subs))}); only one can be indexed under '
                         f"that name, so delete or rename the others - "
-                        f'"python scripts/orca_profile_tool.py trim" removes an '
-                        f"unindexed copy")
+                        f"preview unindexed-file cleanup with "
+                        f'"python scripts/orca_profile_tool.py trim --dry-run"')
 
     return (None if clashes else sections), problems
 
@@ -2429,13 +2321,13 @@ examples:
       preview exactly that; writes nothing
   orca_profile_tool.py generate-id --setting-id --vendor Elegoo
       setting_id only, and only in that bundle
-  orca_profile_tool.py update-snapshot
-      re-record the sanctioned filament_id state after a generate-id run
 
 after adding, renaming or deleting profile files, run in this order:
-  normalize -> trim -> update-index -> generate-id -> update-snapshot -> check
-each step feeds the next: normalize writes the "type" update-index files a
-profile by, and trim judges against the index update-index is about to rebuild.
+  normalize -> update-index -> generate-id -> check
+normalize supplies missing types; update-index registers presets before id
+generation.
+Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
+the current index and can delete newly added, unindexed presets.
 """
 
 
@@ -2461,12 +2353,6 @@ def build_parser():
     dry_run_opt.add_argument("--dry-run", "--dryrun", dest="dry_run", action="store_true",
                              help="report what would change and write nothing")
 
-    snapshot_opt = argparse.ArgumentParser(add_help=False)
-    snapshot_opt.add_argument("--snapshot", default=None, metavar="PATH",
-                              help="the sanctioned filament_id state of that tree "
-                                   "(default: scripts/filament_id_snapshot.json, which "
-                                   "describes resources/profiles and no other tree)")
-
     parser = argparse.ArgumentParser(
         prog="orca_profile_tool.py", allow_abbrev=False,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -2483,23 +2369,18 @@ def build_parser():
             name, parents=parents, help=help_text, description=description,
             allow_abbrev=False, formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    check_cmd = add(
-        "check", [vendor_opt, snapshot_opt, profiles_opt],
+    add(
+        "check", [vendor_opt, profiles_opt],
         "validate the whole profile tree -- what CI runs",
         "Validate the whole profile tree: preset name uniqueness, index coverage\n"
-        "both ways, compatible_printers, conflicting and vector-typed keys,\n"
-        "filament_id length, that normalize and update-index would leave every\n"
-        "bundle alone, and the tree-wide setting_id and filament_id state.\n"
-        "Exits nonzero on errors.\n"
+        "both ways, compatible_printers, default-material references, obsolete,\n"
+        "conflicting and vector-typed keys, filament_id length, that normalize and\n"
+        "update-index would leave every bundle alone, and the tree-wide setting_id\n"
+        "and filament_id state. Exits nonzero on errors.\n"
         "\n"
         "--vendor narrows the per-vendor checks only: setting_id uniqueness and the\n"
         "filament_id state are cross-vendor properties a narrowed run cannot answer,\n"
         "so they always cover the whole tree.")
-    check_cmd.add_argument("--materials", action="store_true",
-                           help="also check that every default material a machine names "
-                                "exists")
-    check_cmd.add_argument("--obsolete-keys", action="store_true", dest="obsolete_keys",
-                           help="also warn about settings the slicer no longer defines")
 
     generate_cmd = add(
         "generate-id", [vendor_opt, dry_run_opt, profiles_opt],
@@ -2533,6 +2414,9 @@ def build_parser():
         "loader only ever reads the sub_paths listed there, so an unindexed preset\n"
         "never loads.\n"
         "\n"
+        "Use only for deliberate cleanup, previewed with --dry-run. Newly added,\n"
+        "unindexed presets can be deleted too; omit trim from the authoring workflow.\n"
+        "\n"
         "Assets and data files are kept, a file that cannot be parsed is kept and\n"
         "reported, and so is one a surviving profile inherits from that no indexed\n"
         "profile provides -- but a stale copy of an indexed profile goes, since\n"
@@ -2541,17 +2425,15 @@ def build_parser():
     add("update-index", [vendor_opt, type_opt, dry_run_opt, profiles_opt],
         "regenerate the *_list sections of <vendor>.json",
         "Rebuild the *_list sections of each <vendor>.json from the files on disk,\n"
-        "ordered parents-first so the loader resolves inherits in one pass.\n"
+        "ordered dependencies-first so the loader resolves inherits and include\n"
+        "in one pass.\n"
         "\n"
         "A profile is indexed under the section its own \"type\" names, so run\n"
         "normalize first: it is what writes a missing type. Two files claiming one\n"
         "preset name leave that index alone, because a rebuild could only keep one\n"
-        "of them; run trim first, which is what clears a stale copy.")
-
-    add("update-snapshot", [dry_run_opt, snapshot_opt, profiles_opt],
-        "re-record scripts/filament_id_snapshot.json",
-        "Re-record the sanctioned filament_id state after a generate-id run, and\n"
-        "commit the diff for maintainer review.")
+        "of them. Identify the intended preset and delete or rename the duplicate.\n"
+        "Use trim only for deliberate unindexed-file cleanup, previewed with\n"
+        "--dry-run; it can also delete newly authored presets.")
 
     return parser
 
@@ -2578,29 +2460,13 @@ def main(argv=None):
             return 1
     profile_types = tuple(getattr(args, "profile_type", []) or ()) or None
 
-    snapshot_path = getattr(args, "snapshot", None)
-    if snapshot_path is None:
-        if (args.command in ("check", "update-snapshot")
-                and os.path.abspath(profiles_dir) != os.path.abspath(PROFILES_DIR)):
-            # The repo snapshot is the sanctioned state of resources/profiles alone:
-            # checking another tree against it is meaningless, and re-recording one
-            # into it would overwrite the tracked file with a foreign tree's state.
-            parser.error(f"{args.command} reads and writes the sanctioned state of the "
-                         f"tree it is given, so --profiles needs --snapshot PATH for "
-                         f"that tree too")
-        snapshot_path = SNAPSHOT_PATH
-
     if args.command == "check":
-        errors = check_profiles(profiles_dir, vendors, snapshot_path,
-                                materials=args.materials, obsolete_keys=args.obsolete_keys)
+        errors = check_profiles(profiles_dir, vendors)
         return 1 if errors else 0
 
     if args.command == "generate-id":
         return run_generate_id(profiles_dir, vendors, args.filament_id, args.setting_id,
                                args.dry_run)
-
-    if args.command == "update-snapshot":
-        return update_snapshot(profiles_dir, snapshot_path, dry_run=args.dry_run)
 
     if args.command == "normalize":
         _changed, errors = normalize_profiles(profiles_dir, vendors, profile_types,

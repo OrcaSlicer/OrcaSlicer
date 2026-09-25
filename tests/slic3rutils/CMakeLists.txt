@@ -8,6 +8,10 @@ add_executable(${_TEST_NAME}_tests
     test_moonraker_discovery.cpp
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
+    test_scene_raycaster.cpp
+    test_lazy.cpp
+    test_prebuild_queue.cpp
+    test_staged_build.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp
@@ -16,11 +20,13 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_capabilities_in_use.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_printer_agent.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_shortcuts.cpp
     ../fff_print/test_helpers.cpp
     )
 

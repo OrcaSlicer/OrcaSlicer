@@ -617,6 +617,11 @@ public:
     // compatible_prints references a deleted (unknown) or renamed (old) preset name.
     bool check_preset_references() const;
 
+    // Validator-only: every system FFF printer variant needs a compatible system filament
+    // named in its model's default_materials, every name there and in the printer's
+    // default_filament_profile must resolve to a system filament.
+    bool check_printer_default_materials() const;
+
     // Merge one vendor's presets with the other vendor's presets, report duplicates.
     // Public so per-vendor-cache consumers (e.g. the setup wizard) can assemble a
     // bundle out of several per-vendor caches loaded into separate PresetBundle instances.
@@ -629,22 +634,24 @@ private:
     // load_vendor_configs_from_json reads a cache.
     bool load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle);
 
-    // Load one source-form preset entry into this bundle: resolve `inherits`,
-    // flatten, validate and register the preset. Returns the reason loading
-    // failed, empty on success. See the definition for the sharing contract
-    // between the JSON parse and the cache load.
-    // retain_configs, when non-null, names the only presets registered into
-    // config_maps (a full config copy each). The cache load passes the names its
-    // entries inherit — the only ones ever looked up again; the JSON parse
-    // retains all, not knowing what later subfiles inherit.
+    // Load one source-form preset entry into this bundle: resolve `inherits`
+    // and `include`, flatten, validate and register the preset. Returns the
+    // reason loading failed, empty on success. See the definition for the
+    // sharing contract between the JSON parse and the cache load.
+    // retain_configs / retain_includes, when non-null, name the only presets
+    // registered into config_maps / include_maps (a config copy each). The
+    // cache load passes the names its entries inherit / include — the only
+    // ones ever looked up again; the JSON parse retains all, not knowing what
+    // later subfiles name.
     std::string load_vendor_preset(const CachedPreset& entry,
         const std::string& path, const std::string& vendor_name,
         const PresetBundle* base_bundle,
         LoadConfigBundleAttributes flags,
         ConfigSubstitutionContext& substitution_context, PresetsConfigSubstitutions& substitutions,
-        std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, std::string>& filament_id_maps,
+        std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, DynamicPrintConfig>& include_maps,
+        std::map<std::string, std::string>& filament_id_maps,
         PresetCollection* presets_collection, size_t& count, bool is_from_lib,
-        const std::set<std::string>* retain_configs = nullptr);
+        const std::set<std::string>* retain_configs = nullptr, const std::set<std::string>* retain_includes = nullptr);
 
     // Clear every collection's m_printer_hold_alias, which reset() leaves alone.
     void clear_printer_hold_aliases();

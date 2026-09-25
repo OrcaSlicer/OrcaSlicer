@@ -25,6 +25,8 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 
+#include <boost/filesystem.hpp>
+
 class wxTimer;
 
 namespace Slic3r {
@@ -34,6 +36,184 @@ struct PluginCapabilityId;
 enum class PluginCapabilityType;
 
 namespace GUI {
+
+// Dialog-independent plugin-management actions, shared by the Plugins dialog and the speed dial:
+// they never require the webview dialog to be open.
+
+// Rescans local plugins and (optionally) re-fetches cloud metadata. Blocking: run off the UI
+// thread. Used by PluginsDialog (behind its progress dialog) and GUI_App::refresh_plugins().
+void refresh_plugin_metadata_blocking(bool fetch_cloud);
+
+// Opens the Cloud plugin hub in the default browser. No dialog needed.
+void open_plugin_hub();
+
+// Synchronously installs a local plugin package (.py/.whl). Runs on the UI thread but keeps it
+// responsive by performing the install on a worker behind a modal progress dialog. `parent` owns
+// the overwrite prompt and the progress dialog. On success `message` carries the localized
+// confirmation; on a user-cancelled overwrite it is empty; on failure it carries the reason.
+bool install_local_plugin_package(const boost::filesystem::path& package_file, wxWindow* parent, wxString& message);
+
+namespace detail {
+
+// Shared worker + modal-progress machinery: pulse a progress dialog while `run` executes on a
+// detached worker, then run `on_finish` back on the UI thread. `alive`, when non-null, gates both
+// the pulse and `on_finish` so a worker outliving its dialog can't touch freed windows; pass null
+// for a dialog-independent caller. `restore` runs after the progress dialog is destroyed and before
+// `on_finish`, so a webview host can re-raise itself. `finish_after_dialog_destroyed` still calls
+// `on_finish` (without touching the dialog) when the host died, so a waiting loop can exit.
+template<typename Run, typename OnFinish>
+void run_off_thread_with_progress(Run&& run,
+                                  OnFinish&& on_finish,
+                                  wxWindow* parent,
+                                  const wxString& title,
+                                  const wxString& message,
+                                  int maximum,
+                                  int style,
+                                  std::shared_ptr<std::atomic<bool>> alive,
+                                  bool finish_after_dialog_destroyed,
+                                  std::function<void()> restore)
+{
+    wxProgressDialog* progress = new wxProgressDialog(title, message, maximum, parent, style);
+    wxTimer* timer             = new wxTimer();
+
+    timer->Bind(wxEVT_TIMER, [alive, progress, message](wxTimerEvent&) {
+        if ((!alive || alive->load(std::memory_order_acquire)) && progress)
+            progress->Pulse(message);
+    });
+
+    timer->Start(100);
+
+    std::thread([alive,
+                 progress,
+                 timer,
+                 run                                            = std::forward<Run>(run),
+                 on_finish                                      = std::forward<OnFinish>(on_finish),
+                 finish_after_dialog_destroyed,
+                 restore                                        = std::move(restore)]() mutable {
+        try {
+            run();
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin dialog worker failed: " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin dialog worker failed with an unknown exception";
+        }
+
+        if (wxTheApp == nullptr)
+            return;
+
+        wxTheApp->CallAfter([alive,
+                             progress,
+                             timer,
+                             on_finish = std::move(on_finish),
+                             finish_after_dialog_destroyed,
+                             restore   = std::move(restore)]() mutable {
+            timer->Stop();
+            delete timer;
+
+            if (!alive || alive->load(std::memory_order_acquire)) {
+                progress->Destroy();
+                if (restore)
+                    restore();
+                on_finish();
+            } else if (finish_after_dialog_destroyed) {
+                on_finish();
+            }
+        });
+    }).detach();
+}
+
+// Wait for a worker behind a progress dialog, returning its result (or rethrowing). The waiting
+// loop stays responsive because it pumps the event loop the worker posts its completion into.
+template<typename Run>
+std::invoke_result_t<std::decay_t<Run>&> run_wait_with_progress(Run&& run,
+                                                                wxWindow* parent,
+                                                                const wxString& title,
+                                                                const wxString& message,
+                                                                int maximum,
+                                                                int style,
+                                                                std::shared_ptr<std::atomic<bool>> alive,
+                                                                std::function<void()> restore)
+{
+    using Result = std::invoke_result_t<std::decay_t<Run>&>;
+
+    bool finished = false;
+    wxEventLoop loop;
+    auto on_finish = [&finished, &loop]() {
+        finished = true;
+        if (loop.IsRunning())
+            loop.Exit();
+    };
+
+    if constexpr (std::is_void_v<Result>) {
+        struct WaitState
+        {
+            std::mutex mutex;
+            std::exception_ptr exception;
+        };
+
+        auto state = std::make_shared<WaitState>();
+        run_off_thread_with_progress(
+            [run = std::forward<Run>(run), state]() mutable {
+                try {
+                    run();
+                } catch (...) {
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    state->exception = std::current_exception();
+                }
+            },
+            on_finish, parent, title, message, maximum, style, std::move(alive), /*finish_after_dialog_destroyed=*/true, std::move(restore));
+
+        if (!finished)
+            loop.Run();
+
+        std::exception_ptr exception;
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            exception = state->exception;
+        }
+        if (exception)
+            std::rethrow_exception(exception);
+    } else {
+        using StoredResult = std::decay_t<Result>;
+        struct WaitState
+        {
+            std::mutex mutex;
+            std::optional<StoredResult> result;
+            std::exception_ptr exception;
+        };
+
+        auto state = std::make_shared<WaitState>();
+        run_off_thread_with_progress(
+            [run = std::forward<Run>(run), state]() mutable {
+                try {
+                    StoredResult result = run();
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    state->result.emplace(std::move(result));
+                } catch (...) {
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    state->exception = std::current_exception();
+                }
+            },
+            on_finish, parent, title, message, maximum, style, std::move(alive), /*finish_after_dialog_destroyed=*/true, std::move(restore));
+
+        if (!finished)
+            loop.Run();
+
+        std::optional<StoredResult> result;
+        std::exception_ptr exception;
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            if (state->result)
+                result.emplace(std::move(*state->result));
+            exception = state->exception;
+        }
+        if (exception)
+            std::rethrow_exception(exception);
+        return std::move(*result);
+    }
+}
+
+} // namespace detail
 
 class PluginsDialog : public Slic3r::GUI::WebViewHostDialog
 {
@@ -111,53 +291,8 @@ private:
                          int style   = wxPD_APP_MODAL | wxPD_AUTO_HIDE, // | wxPD_CAN_ABORT for cancel button
                          bool finish_after_dialog_destroyed = false)
     {
-        const auto alive = m_alive;
-        ProgressDialog* progress = new ProgressDialog(title, message, maximum, this, style);
-        wxTimer* timer           = new wxTimer();
-
-        timer->Bind(wxEVT_TIMER, [alive, progress, message](wxTimerEvent&) {
-            if (alive->load(std::memory_order_acquire) && progress)
-                progress->Pulse(message);
-        });
-
-        timer->Start(100);
-
-        std::thread([this,
-                     alive,
-                     progress,
-                     timer,
-                     run       = std::forward<Run>(run),
-                     on_finish = std::forward<OnFinish>(on_finish),
-                     finish_after_dialog_destroyed]() mutable {
-            try {
-                run();
-            } catch (const std::exception& ex) {
-                BOOST_LOG_TRIVIAL(error) << "Plugin dialog worker failed: " << ex.what();
-            } catch (...) {
-                BOOST_LOG_TRIVIAL(error) << "Plugin dialog worker failed with an unknown exception";
-            }
-
-            if (wxTheApp == nullptr)
-                return;
-
-            wxTheApp->CallAfter([this,
-                                 alive,
-                                 progress,
-                                 timer,
-                                 on_finish = std::move(on_finish),
-                                 finish_after_dialog_destroyed]() mutable {
-                timer->Stop();
-                delete timer;
-
-                if (alive->load(std::memory_order_acquire)) {
-                    progress->Destroy();
-                    restore_z_order();
-                    on_finish();
-                } else if (finish_after_dialog_destroyed) {
-                    on_finish();
-                }
-            });
-        }).detach();
+        detail::run_off_thread_with_progress(std::forward<Run>(run), std::forward<OnFinish>(on_finish), this, title, message, maximum, style,
+                                             m_alive, finish_after_dialog_destroyed, [this] { restore_z_order(); });
     }
 
     template<typename Run>
@@ -167,83 +302,7 @@ private:
                                                                   int maximum = 100,
                                                                   int style   = wxPD_APP_MODAL | wxPD_AUTO_HIDE)
     {
-        using Result = std::invoke_result_t<std::decay_t<Run>&>;
-
-        bool finished = false;
-        wxEventLoop loop;
-        auto on_finish = [&finished, &loop]() {
-            finished = true;
-            if (loop.IsRunning())
-                loop.Exit();
-        };
-
-        if constexpr (std::is_void_v<Result>) {
-            struct WaitState
-            {
-                std::mutex mutex;
-                std::exception_ptr exception;
-            };
-
-            auto state = std::make_shared<WaitState>();
-            run_with_dialog(
-                [run = std::forward<Run>(run), state]() mutable {
-                    try {
-                        run();
-                    } catch (...) {
-                        std::lock_guard<std::mutex> lock(state->mutex);
-                        state->exception = std::current_exception();
-                    }
-                },
-                on_finish, title, message, maximum, style, true);
-
-            if (!finished)
-                loop.Run();
-
-            std::exception_ptr exception;
-            {
-                std::lock_guard<std::mutex> lock(state->mutex);
-                exception = state->exception;
-            }
-            if (exception)
-                std::rethrow_exception(exception);
-        } else {
-            using StoredResult = std::decay_t<Result>;
-            struct WaitState
-            {
-                std::mutex mutex;
-                std::optional<StoredResult> result;
-                std::exception_ptr exception;
-            };
-
-            auto state = std::make_shared<WaitState>();
-            run_with_dialog(
-                [run = std::forward<Run>(run), state]() mutable {
-                    try {
-                        StoredResult result = run();
-                        std::lock_guard<std::mutex> lock(state->mutex);
-                        state->result.emplace(std::move(result));
-                    } catch (...) {
-                        std::lock_guard<std::mutex> lock(state->mutex);
-                        state->exception = std::current_exception();
-                    }
-                },
-                on_finish, title, message, maximum, style, true);
-
-            if (!finished)
-                loop.Run();
-
-            std::optional<StoredResult> result;
-            std::exception_ptr exception;
-            {
-                std::lock_guard<std::mutex> lock(state->mutex);
-                if (state->result)
-                    result.emplace(std::move(*state->result));
-                exception = state->exception;
-            }
-            if (exception)
-                std::rethrow_exception(exception);
-            return std::move(*result);
-        }
+        return detail::run_wait_with_progress(std::forward<Run>(run), this, title, message, maximum, style, m_alive, [this] { restore_z_order(); });
     }
 
     std::function<void()> m_open_terminal_dlg_fn;

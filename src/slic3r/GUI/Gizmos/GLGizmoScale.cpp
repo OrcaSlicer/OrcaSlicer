@@ -1,6 +1,7 @@
 #include "GLGizmoScale.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <glad/gl.h>
@@ -135,7 +136,7 @@ bool GLGizmoScale3D::on_init()
 
     // BBS
     m_grabbers[4].enabled = false;
-    m_shortcut_key = WXK_CONTROL_S;
+    m_shortcut = Shortcut::GizmoScale;
 
     return true;
 }
