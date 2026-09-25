@@ -3555,8 +3555,11 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
         shader->stop_using();
     }
 
-    if (wxGetApp().show_plate_gridlines() && show_grid)
+    if (wxGetApp().show_plate_gridlines() && show_grid) {
+        glsafe(::glDepthMask(bottom ? GL_TRUE : GL_FALSE));
         render_grid(bottom);
+        glsafe(::glDepthMask(GL_TRUE));
+    }
 
     if (!hide_chrome && !bottom && m_selected && !force_background_color) {
         if (m_partplate_list)

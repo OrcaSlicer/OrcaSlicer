@@ -1044,8 +1044,8 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
         else if (param == "hide_login_side_panel") {
-            if (wxGetApp().mainframe && wxGetApp().mainframe->m_webview) {
-                wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
+            if (WebViewPanel* home = WebViewPanel::if_built()) {
+                home->SendCloudProvidersInfo();
             }
         }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
@@ -1254,9 +1254,8 @@ wxBoxSizer *PreferencesDialog::create_item_bambu_cloud(wxString title, wxString 
         app_config->save();
 
         // Update homepage visibility immediately
-        auto *mainframe = wxGetApp().mainframe;
-        if (mainframe && mainframe->m_webview)
-            mainframe->m_webview->SendCloudProvidersInfo();
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendCloudProvidersInfo();
     });
 
     m_sizer->Add(cb, 0, wxALIGN_CENTER);

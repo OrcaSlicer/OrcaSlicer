@@ -1328,18 +1328,21 @@ StatusBasePanel::StatusBasePanel(wxWindow *parent, wxWindowID id, const wxPoint 
 
     wxBoxSizer *bSizer_left = new wxBoxSizer(wxVERTICAL);
 
-    auto m_monitoring_sizer = create_monitoring_page();
-    bSizer_left->Add(m_monitoring_sizer, 1, wxEXPAND | wxALL, 0);
+    // The sizers are nested here so each step only appends to its own.
+    add_build_step([this, bSizer_left] {
+        auto m_monitoring_sizer = create_monitoring_page();
+        bSizer_left->Add(m_monitoring_sizer, 1, wxEXPAND | wxALL, 0);
 
-    auto m_panel_separotor1 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    m_panel_separotor1->SetBackgroundColour(STATUS_PANEL_BG);
-    m_panel_separotor1->SetMinSize(wxSize(-1, PAGE_SPACING));
-    m_panel_separotor1->SetMaxSize(wxSize(-1, PAGE_SPACING));
-    m_monitoring_sizer->Add(m_panel_separotor1, 0, wxEXPAND, 0);
+        auto m_panel_separotor1 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+        m_panel_separotor1->SetBackgroundColour(STATUS_PANEL_BG);
+        m_panel_separotor1->SetMinSize(wxSize(-1, PAGE_SPACING));
+        m_panel_separotor1->SetMaxSize(wxSize(-1, PAGE_SPACING));
+        m_monitoring_sizer->Add(m_panel_separotor1, 0, wxEXPAND, 0);
 
-    m_project_task_panel = new PrintingTaskPanel(this, PrintingTaskType::PRINGINT);
-    m_project_task_panel->init_bitmaps();
-    m_monitoring_sizer->Add(m_project_task_panel, 0, wxALL | wxEXPAND , 0);
+        m_project_task_panel = new PrintingTaskPanel(this, PrintingTaskType::PRINGINT);
+        m_project_task_panel->init_bitmaps();
+        m_monitoring_sizer->Add(m_project_task_panel, 0, wxALL | wxEXPAND , 0);
+    });
 
 //    auto m_panel_separotor2 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 //    m_panel_separotor2->SetBackgroundColour(STATUS_PANEL_BG);
@@ -1359,8 +1362,10 @@ StatusBasePanel::StatusBasePanel(wxWindow *parent, wxWindowID id, const wxPoint 
     m_machine_ctrl_panel->SetDoubleBuffered(true);
     auto m_machine_control = create_machine_control_page(m_machine_ctrl_panel);
     m_machine_ctrl_panel->SetSizer(m_machine_control);
-    m_machine_ctrl_panel->Layout();
-    m_machine_control->Fit(m_machine_ctrl_panel);
+    add_build_step([this, m_machine_control] {
+        m_machine_ctrl_panel->Layout();
+        m_machine_control->Fit(m_machine_ctrl_panel);
+    });
 
     bSizer_status_below->Add(m_machine_ctrl_panel, 0, wxALL, 0);
 
@@ -1375,8 +1380,11 @@ StatusBasePanel::StatusBasePanel(wxWindow *parent, wxWindowID id, const wxPoint 
     m_panel_separotor_bottom->SetBackgroundColour(STATUS_PANEL_BG);
 
     bSizer_status->Add(m_panel_separotor_bottom, 0, wxEXPAND | wxALL, 0);
-    this->SetSizerAndFit(bSizer_status);
-    this->Layout();
+    this->SetSizer(bSizer_status);
+    add_build_step([this, bSizer_status] {
+        bSizer_status->SetSizeHints(this);
+        this->Layout();
+    });
 }
 
 StatusBasePanel::~StatusBasePanel()
@@ -1614,16 +1622,24 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
 
     wxBoxSizer *bSizer_control = new wxBoxSizer(wxVERTICAL);
 
-    auto temp_axis_ctrl_sizer = create_temp_axis_group(parent);
-    auto m_filament_load_sizer = create_filament_group(parent);
-
+    // The slot sizers keep each group's place in bSizer_control.
+    wxBoxSizer *temp_axis_slot = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer *filament_slot  = new wxBoxSizer(wxVERTICAL);
     /* ams control box or live nozzle-rack panel (rack printers switch between the two) */
     wxSizer *ams_rack_sizer = new wxBoxSizer(wxHORIZONTAL);
-    ams_rack_sizer->Add(create_ams_group(parent), 0, wxEXPAND | wxLEFT);
 
-    m_panel_nozzle_rack = new wgtDeviceNozzleRack(parent);
-    m_panel_nozzle_rack->Show(false);
-    ams_rack_sizer->Add(m_panel_nozzle_rack, 0, wxEXPAND | wxLEFT);
+    add_build_step([this, parent, temp_axis_slot, filament_slot] {
+        temp_axis_slot->Add(create_temp_axis_group(parent), 0, wxEXPAND);
+        filament_slot->Add(create_filament_group(parent), 0, wxEXPAND);
+    });
+    add_build_step([this, parent, ams_rack_sizer] {
+        ams_rack_sizer->Add(create_ams_group(parent), 0, wxEXPAND | wxLEFT);
+    });
+    add_build_step([this, parent, ams_rack_sizer] {
+        m_panel_nozzle_rack = new wgtDeviceNozzleRack(parent);
+        m_panel_nozzle_rack->Show(false);
+        ams_rack_sizer->Add(m_panel_nozzle_rack, 0, wxEXPAND | wxLEFT);
+    });
 
     m_ams_rack_switch = new SwitchBoard(parent, _L("Filament"), _L("Hotends"), wxSize(FromDIP(126), FromDIP(26)));
     m_ams_rack_switch->updateState("left");
@@ -1631,12 +1647,12 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     m_ams_rack_switch->Bind(wxCUSTOMEVT_SWITCH_POS, &StatusBasePanel::on_ams_rack_switch, this);
 
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(8));
-    bSizer_control->Add(temp_axis_ctrl_sizer,   0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
+    bSizer_control->Add(temp_axis_slot,         0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(m_ams_rack_switch,      0, wxALIGN_CENTRE|wxTOP, FromDIP(6));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
     bSizer_control->Add(ams_rack_sizer,         0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
-    bSizer_control->Add(m_filament_load_sizer,  0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
+    bSizer_control->Add(filament_slot,          0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(4));
 
     bSizer_right->Add(bSizer_control, 1, wxEXPAND | wxALL, 0);
@@ -2228,8 +2244,10 @@ void StatusBasePanel::expand_filament_loading(wxMouseEvent& e)
     m_filament_step->Show(tag_show);
     Layout();
     Fit();
-    wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
-    wxGetApp().mainframe->m_monitor->Layout();
+    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+        monitor->get_status_panel()->Layout();
+        monitor->Layout();
+    }
 }
 
 void StatusBasePanel::show_ams_group(bool show)
@@ -2240,7 +2258,8 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control->Fit();
         Layout();
         Fit();
-        wxGetApp().mainframe->m_monitor->Layout();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->Layout();
     }
 
     // On rack printers, don't clobber the rack view when the user has the switch on "Hotends".
@@ -2253,7 +2272,8 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control->Fit();
         Layout();
         Fit();
-        wxGetApp().mainframe->m_monitor->Layout();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->Layout();
     }
 }
 
@@ -2277,8 +2297,10 @@ void StatusBasePanel::show_filament_load_group(bool show)
         Layout();
         Fit();
 
-        wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
-        wxGetApp().mainframe->m_monitor->Layout();
+        if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+            monitor->get_status_panel()->Layout();
+            monitor->Layout();
+        }
     }
 }
 
@@ -2404,6 +2426,12 @@ void StatusPanel::update_camera_state(MachineObject* obj)
 StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style, const wxString &name)
     : StatusBasePanel(parent, id, pos, size, style)
 {
+    // Wires the controls the base class builds in steps, so it is the last step.
+    add_build_step([this] { wire_controls(); });
+}
+
+void StatusPanel::wire_controls()
+{
     init_scaled_buttons();
     m_buttons.push_back(m_bpButton_z_10);
     m_buttons.push_back(m_bpButton_z_1);
@@ -2514,47 +2542,50 @@ StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, co
 
 StatusPanel::~StatusPanel()
 {
-    // Disconnect Events
-    m_project_task_panel->get_bitmap_thumbnail()->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::refresh_thumbnail_webrequest), NULL, this);
-    m_project_task_panel->get_partskip_button()->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_subtask_partskip), NULL, this);
-    m_project_task_panel->get_pause_resume_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_pause_resume), NULL, this);
-    m_project_task_panel->get_abort_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_abort), NULL, this);
-    m_project_task_panel->get_market_scoring_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_market_scoring), NULL, this);
-    m_project_task_panel->get_market_retry_buttom()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_market_retry), NULL, this);
-    m_project_task_panel->get_clean_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_print_error_clean), NULL, this);
+    // The controls only exist once the last build step has run.
+    if (built()) {
+        // Disconnect Events
+        m_project_task_panel->get_bitmap_thumbnail()->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::refresh_thumbnail_webrequest), NULL, this);
+        m_project_task_panel->get_partskip_button()->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_subtask_partskip), NULL, this);
+        m_project_task_panel->get_pause_resume_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_pause_resume), NULL, this);
+        m_project_task_panel->get_abort_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_abort), NULL, this);
+        m_project_task_panel->get_market_scoring_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_market_scoring), NULL, this);
+        m_project_task_panel->get_market_retry_buttom()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_market_retry), NULL, this);
+        m_project_task_panel->get_clean_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_print_error_clean), NULL, this);
 
-    m_setting_button->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
-    m_setting_button->Disconnect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
-    m_tempCtrl_bed->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_kill_focus), NULL, this);
-    m_tempCtrl_bed->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_set_focus), NULL, this);
-    m_tempCtrl_nozzle->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
-    m_tempCtrl_nozzle->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
+        m_setting_button->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
+        m_setting_button->Disconnect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(StatusPanel::on_camera_enter), NULL, this);
+        m_tempCtrl_bed->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_kill_focus), NULL, this);
+        m_tempCtrl_bed->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_bed_temp_set_focus), NULL, this);
+        m_tempCtrl_nozzle->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
+        m_tempCtrl_nozzle->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
 
-    m_tempCtrl_nozzle_deputy->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
-    m_tempCtrl_nozzle_deputy->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
+        m_tempCtrl_nozzle_deputy->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
+        m_tempCtrl_nozzle_deputy->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
 
-    m_switch_lamp->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_lamp_switch), NULL, this);
-    /*m_switch_nozzle_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
-    m_switch_printing_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
-    m_switch_cham_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);*/
+        m_switch_lamp->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_lamp_switch), NULL, this);
+        /*m_switch_nozzle_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
+        m_switch_printing_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
+        m_switch_cham_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);*/
 
-    //m_switch_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
-    //m_switch_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
-    m_switch_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
+        //m_switch_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
+        //m_switch_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
+        m_switch_fan->Disconnect(wxEVT_COMMAND_TOGGLEBUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_nozzle_fan_switch), NULL, this);
 
-    m_bpButton_xy->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_xy), NULL, this);
-    m_bpButton_z_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_up_10), NULL, this);
-    m_bpButton_z_1->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_up_1), NULL, this);
-    m_bpButton_z_down_1->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_down_1), NULL, this);
-    m_bpButton_z_down_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_down_10), NULL, this);
-    m_bpButton_e_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_up_10), NULL, this);
-    m_bpButton_e_down_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_down_10), NULL, this);
-    m_nozzle_btn_panel->Disconnect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
-    m_switch_speed->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_switch_speed), NULL, this);
-    m_calibration_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_start_calibration), NULL, this);
-    m_options_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_print_options), NULL, this);
-    m_safety_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_safety_options), NULL, this);
-    m_parts_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_parts_options), NULL, this);
+        m_bpButton_xy->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_xy), NULL, this);
+        m_bpButton_z_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_up_10), NULL, this);
+        m_bpButton_z_1->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_up_1), NULL, this);
+        m_bpButton_z_down_1->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_down_1), NULL, this);
+        m_bpButton_z_down_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_z_down_10), NULL, this);
+        m_bpButton_e_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_up_10), NULL, this);
+        m_bpButton_e_down_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_down_10), NULL, this);
+        m_nozzle_btn_panel->Disconnect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
+        m_switch_speed->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_switch_speed), NULL, this);
+        m_calibration_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_start_calibration), NULL, this);
+        m_options_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_print_options), NULL, this);
+        m_safety_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_safety_options), NULL, this);
+        m_parts_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_parts_options), NULL, this);
+    }
 
     // remove warning dialogs
     if (abort_dlg != nullptr)
@@ -5216,7 +5247,9 @@ void StatusPanel::set_default()
     m_filament_step->Hide();
     error_info_reset();
 #ifndef __WXGTK__
-    SetFocus();
+    // Also reached while the panel is built off screen.
+    if (IsShownOnScreen())
+        SetFocus();
 #endif
 }
 
