@@ -128,6 +128,9 @@ public:
     // Prefers the accurate per-gram value reported by firmware (remain_g) over the coarse
     // weight * remain% estimate; nullopt when neither is available.
     std::optional<int> get_filament_remain_weight() const;
+
+    // Tolerance for comparing remaining weight against filament usage (CheckWarningFilamentRemain).
+    static double get_fila_remain_tolerance() { return 0.05; } // +- 5%
 };
 
 /**
