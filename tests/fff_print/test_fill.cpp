@@ -1242,6 +1242,8 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         const Polylines walls = fill(multiline, density, layer_id, z);
         REQUIRE_FALSE(walls.empty());
         CHECK(get_intersections(to_lines(walls)).empty());
+        // Long paths running out to the boundary, not loops around the cells.
+        CHECK(std::none_of(walls.begin(), walls.end(), [](const Polyline &path) { return path.first_point() == path.last_point(); }));
 
         // Single lines at the same spacing: the walls are drawn along them.
         const Polylines lines = fill(1, density / multiline, layer_id, z);
