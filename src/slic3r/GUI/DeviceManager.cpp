@@ -4872,7 +4872,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                 // project_id/profile_id/subtask_id come from the Bambu MQTT protocol, so this must go through
                 // the BBL cloud agent; the default (Orca) agent is a stub and would silently return "{}",
                 // leaving the Device panel thumbnail/weight/prediction unset.
-                if (m_agent->get_subtask_info(subtask_id, &subtask_json, &http_code, &http_body, BBL_CLOUD_PROVIDER) == 0) {
+                if (m_agent->get_subtask_info(subtask_id, &subtask_json, &http_code, &http_body, Slic3r::GUI::wxGetApp().get_printer_cloud_provider()) == 0) {
                     try {
                         if (!subtask_json.empty()) {
 
