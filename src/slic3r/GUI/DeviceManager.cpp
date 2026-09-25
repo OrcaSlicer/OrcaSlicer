@@ -4757,7 +4757,7 @@ void MachineObject::update_model_task()
             std::string  http_error;
             int          res = -1;
             // MakerWorld model ratings are a BBL cloud concept; the default (Orca) agent is a stub.
-            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error, BBL_CLOUD_PROVIDER);
+            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             request_model_result++;
             BOOST_LOG_TRIVIAL(info) << "request times: " << request_model_result << " http code: " << http_code;
             auto rating_info = new DevPrintTaskRatingInfo();
@@ -4947,7 +4947,7 @@ void MachineObject::get_firmware_info()
             if (!m_agent) return;
             // Firmware upgrade lists are synthesised by the BBL plugin from Bambu MQTT frames;
             // the default (Orca) agent is a stub.
-            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body, BBL_CLOUD_PROVIDER);
+            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             if (result < 0) {
                 // get upgrade list failed
                 return;
