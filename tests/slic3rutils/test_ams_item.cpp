@@ -20,16 +20,17 @@
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 
-TEST_CASE("Configured empty AMS trays remain distinct from unknown trays", "[AMSItem]")
+TEST_CASE("Configured empty and partial AMS trays remain distinct from unknown trays", "[AMSItem]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
     machine.printer_agent_id = "orca";
 
     machine.parse_json("lan", R"({"print":{"command":"push_status","msg":0,"ams":{
-        "ams_exist_bits":"1","tray_exist_bits":"3","ams":[
+        "ams_exist_bits":"1","tray_exist_bits":"7","ams":[
             {"id":"0","info":"0001","tray":[
                 {"id":"0","tag_uid":"0000000000000000","tray_info_idx":"","tray_type":"","tray_color":"00000000"},
-                {"id":"1"}
+                {"id":"1"},
+                {"id":"2","tag_uid":"0000000000000000","tray_info_idx":"","tray_type":"PLA","tray_color":"FF0000FF"}
             ]}
         ]
     }}})", false);
@@ -43,12 +44,14 @@ TEST_CASE("Configured empty AMS trays remain distinct from unknown trays", "[AMS
     CHECK(ams->GetTray("0")->is_exists);
     AMSinfo info;
     REQUIRE(info.parse_ams_info(&machine, ams));
-    REQUIRE(info.cans.size() == 2);
+    REQUIRE(info.cans.size() == 3);
 
     CHECK(info.cans[0].is_empty);
     CHECK(info.cans[0].material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND);
     CHECK_FALSE(info.cans[1].is_empty);
     CHECK(info.cans[1].material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND);
+    CHECK_FALSE(info.cans[2].is_empty);
+    CHECK(info.cans[2].material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND);
 }
 
 TEST_CASE("Empty external slots remain distinct from unknown slots", "[AMSItem]")

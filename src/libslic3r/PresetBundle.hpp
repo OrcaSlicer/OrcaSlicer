@@ -391,6 +391,7 @@ public:
 
     std::vector<std::vector<DynamicPrintConfig>> get_extruder_filament_info() const;
 
+    std::string get_printer_model_display_name(const std::string &model_id) const;
     std::set<std::string> get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only = true);
     // Orca: the root filament presets a connected machine can use, resolved with the rule the rest
     // of the app applies (is_compatible_with_printer): an empty compatible_printers means every

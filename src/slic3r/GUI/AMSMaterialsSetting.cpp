@@ -431,6 +431,10 @@ void AMSMaterialsSetting::update_filament_editing(bool is_printing)
         m_button_confirm->Show(true);
     }
 
+    const bool can_edit = !is_printing || obj->is_support_filament_setting_inprinting;
+    m_input_nozzle_min->Enable(m_is_third && can_edit);
+    m_input_nozzle_max->Enable(m_is_third && can_edit);
+
     if (!m_is_third) {
         m_tip_readonly->SetLabelText(wxEmptyString);
         m_tip_readonly->Hide();
@@ -453,6 +457,8 @@ void AMSMaterialsSetting::update_filament_editing(bool is_printing)
     if (m_view_only) { // Orca: view-only (2D laser/cut) — lock every edit control and hide apply/reset
         m_comboBox_filament->Enable(false);
         m_comboBox_cali_result->Enable(false);
+        m_input_nozzle_min->Enable(false);
+        m_input_nozzle_max->Enable(false);
         m_input_k_val->Enable(false);
         m_input_n_val->Enable(false);
         m_button_confirm->Hide();
@@ -940,6 +946,21 @@ static void _collect_filament_info(const wxString& shown_name,
     query_filament_types[shown_name] = filament.config.get_filament_type();
 }
 
+static std::string sGetFilamentPrinterModel(MachineObject *obj, PresetBundle *preset_bundle)
+{
+    if (!obj || !preset_bundle)
+        return {};
+
+    const wxString device_model = obj->get_printer_type_display_str();
+    if (!device_model.empty() && device_model != "OrcaSonar Printer" && device_model != _L("Unknown"))
+        return device_model.ToStdString();
+
+    // OrcaSonar's model ID is optional; use the selected profile when it is generic.
+    const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("printer_model");
+    const auto *model = dynamic_cast<const ConfigOptionString *>(opt);
+    return model ? model->value : std::string();
+}
+
 void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_min, wxString temp_max, wxString k, wxString n)
 {
     if (!obj) return;
@@ -952,6 +973,8 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 
     m_input_k_val->GetTextCtrl()->SetValue(k);
     m_input_n_val->GetTextCtrl()->SetValue(n);
+    m_input_nozzle_min->GetTextCtrl()->SetValue(wxEmptyString);
+    m_input_nozzle_max->GetTextCtrl()->SetValue(wxEmptyString);
 
     wxArrayString filament_items;
     wxString bambu_filament_name;
@@ -965,9 +988,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     map_filament_items.clear();
     PresetBundle *        preset_bundle = wxGetApp().preset_bundle;
     std::ostringstream    stream;
-    // Defensive: this dialog is opened only from StatusPanel (BBL-only) today, so the fallback fires
-    // only during the brief BBL startup window before firmware reports nozzle info. Without this,
-    // the "0.0" lookup string returns an empty set and the filament dropdown goes blank.
+    // Use the selected profile's nozzle diameter until the connected device reports one.
     float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
     if (machine_diameter == 0.0f && preset_bundle) {
         const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
@@ -975,11 +996,12 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     }
     stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
+    const std::string filament_printer_model = sGetFilamentPrinterModel(obj, preset_bundle);
 
-    if (preset_bundle) {
+    if (preset_bundle && !filament_printer_model.empty()) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
         for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
-                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+                 filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
             if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
             const std::string alias = preset_bundle->filaments.get_preset_alias(*filament_it, true);
@@ -1045,6 +1067,10 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
         else {
             m_comboBox_filament->Show();
             m_readonly_filament->Hide();
+            if (!temp_min.IsEmpty() && temp_min != "0")
+                m_input_nozzle_min->GetTextCtrl()->SetValue(temp_min);
+            if (!temp_max.IsEmpty() && temp_max != "0")
+                m_input_nozzle_max->GetTextCtrl()->SetValue(temp_max);
         }
 
         if (obj->cali_version >= 0) {
@@ -1182,15 +1208,13 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     }
 
     m_comboBox_filament->Set(filament_items);
+    m_comboBox_filament->SetClientData(new int(1));
     m_comboBox_filament->SetSelection(selection_idx);
     post_select_event(selection_idx);
 
     if (selection_idx < 0) {
         m_comboBox_filament->SetValue(wxEmptyString);
     }
-
-    // Set the flag whether to open the filament setting dialog from the device page
-    m_comboBox_filament->SetClientData(new int(1));
 
     update();
     Layout();
@@ -1222,15 +1246,14 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
 {
     // Get the flag whether to open the filament setting dialog from the device page
     int* from_printer = static_cast<int*>(m_comboBox_filament->GetClientData());
+    const bool initial_printer_selection = from_printer && *from_printer == 1;
 
     m_filament_type = "";
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle) {
         std::ostringstream stream;
         if (obj) {
-            // Defensive: this dialog is opened only from StatusPanel (BBL-only) today, so the fallback fires
-            // only during the brief BBL startup window before firmware reports nozzle info. Without this,
-            // the "0.0" lookup string returns an empty set and filament lookup yields no results.
+            // Use the selected profile's nozzle diameter until the connected device reports one.
             float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
             if (machine_diameter == 0.0f) {
                 const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
@@ -1239,30 +1262,32 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             stream << std::fixed << std::setprecision(1) << machine_diameter;
         }
         std::string nozzle_diameter_str = stream.str();
+        const std::string filament_printer_model = sGetFilamentPrinterModel(obj, preset_bundle);
         // Resolve the selection against the same list Popup() built the dropdown from, so the two
         // halves of the dialog cannot disagree about which filaments this machine can use.
         const std::string selected = m_comboBox_filament->GetValue().ToStdString();
-        if (!selected.empty()) {
+        if (!selected.empty() && !filament_printer_model.empty()) {
             const std::string filament_id = map_filament_items[selected].filament_id;
             for (Preset *it : preset_bundle->get_filament_presets_for_machine(
-                     DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+                     filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
                 if (it->filament_id != filament_id)
                     continue;
-                // ) if nozzle_temperature_range is found
-                ConfigOption* opt_min = it->config.option("nozzle_temperature_range_low");
-                if (opt_min) {
-                    ConfigOptionInts* opt_min_ints = dynamic_cast<ConfigOptionInts*>(opt_min);
-                    if (opt_min_ints) {
-                        wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(0));
-                        m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
+                if (!initial_printer_selection) {
+                    ConfigOption* opt_min = it->config.option("nozzle_temperature_range_low");
+                    if (opt_min) {
+                        ConfigOptionInts* opt_min_ints = dynamic_cast<ConfigOptionInts*>(opt_min);
+                        if (opt_min_ints) {
+                            wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(0));
+                            m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
+                        }
                     }
-                }
-                ConfigOption* opt_max = it->config.option("nozzle_temperature_range_high");
-                if (opt_max) {
-                    ConfigOptionInts* opt_max_ints = dynamic_cast<ConfigOptionInts*>(opt_max);
-                    if (opt_max_ints) {
-                        wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(0));
-                        m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
+                    ConfigOption* opt_max = it->config.option("nozzle_temperature_range_high");
+                    if (opt_max) {
+                        ConfigOptionInts* opt_max_ints = dynamic_cast<ConfigOptionInts*>(opt_max);
+                        if (opt_max_ints) {
+                            wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(0));
+                            m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
+                        }
                     }
                 }
                 ConfigOption* opt_type = it->config.option("filament_type");
@@ -1301,13 +1326,16 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
         m_button_confirm->Disable(); // ORCA No need to change style
         m_comboBox_cali_result->Clear();
         m_comboBox_cali_result->SetValue(wxEmptyString);
-        m_input_k_val->GetTextCtrl()->SetValue(wxEmptyString);
-        m_input_n_val->GetTextCtrl()->SetValue(wxEmptyString);
+        if (!initial_printer_selection) {
+            m_input_k_val->GetTextCtrl()->SetValue(wxEmptyString);
+            m_input_n_val->GetTextCtrl()->SetValue(wxEmptyString);
+        }
         m_comboBox_filament->SetClientData(new int(0));
         return;
     }
     else {
-        m_button_confirm->Enable(true);  // ORCA No need to change style
+        if (!m_view_only)
+            m_button_confirm->Enable(true);  // ORCA No need to change style
     }
 
     //filament id
@@ -1330,6 +1358,9 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             }
         }
     }
+
+    if (!ams_filament_id.empty())
+        m_clr_picker->is_empty(false);
 
     wxArrayString items;
     m_pa_profile_items.clear();
@@ -1437,7 +1468,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     else {
         if (!ams_filament_id.empty()) {
             //m_input_k_val->GetTextCtrl()->SetValue("0.00");
-            m_input_k_val->Enable(true);
+            m_input_k_val->Enable(!m_view_only);
         }
         else {
             //m_input_k_val->GetTextCtrl()->SetValue("0.00");

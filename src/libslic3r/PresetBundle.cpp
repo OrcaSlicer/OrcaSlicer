@@ -4255,9 +4255,19 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     return filament_infos;
 }
 
-// ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
-// printer_type: "Bambu Lab X2D", nozzle_diameter_str: "0.4 nozzle" => printer_name: "Bambu Lab X2D 0.4 nozzle". If the printer name does
-// not follow this pattern, the function may not work correctly.
+std::string PresetBundle::get_printer_model_display_name(const std::string &model_id) const
+{
+    for (const auto &vendor_entry : vendors) {
+        for (const auto &model : vendor_entry.second.models) {
+            if (model.model_id == model_id)
+                return model.name;
+        }
+    }
+    return {};
+}
+
+// ORCA TODO: this assumes printer names follow "<printer_model> <nozzle_diameter>", e.g.
+// "Bambu Lab X2D 0.4 nozzle". Other naming schemes may not resolve correctly.
 std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only)
 {
     std::set<std::string> printer_names;

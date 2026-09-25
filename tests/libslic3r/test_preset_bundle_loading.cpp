@@ -1407,6 +1407,21 @@ TEST_CASE("Filaments offered for a machine follow the app's compatibility rule",
     }
 }
 
+TEST_CASE("Printer model ids resolve to vendor display names", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    VendorProfile qidi("Qidi");
+    qidi.name = "Qidi";
+    VendorProfile::PrinterModel model;
+    model.model_id = "Qidi-Q1Pro";
+    model.name = "Qidi Q1 Pro";
+    qidi.models.push_back(model);
+    bundle.vendors.emplace(qidi.id, qidi);
+
+    CHECK(bundle.get_printer_model_display_name("Qidi-Q1Pro") == "Qidi Q1 Pro");
+    CHECK(bundle.get_printer_model_display_name("unknown-model").empty());
+}
+
 
 namespace {
 

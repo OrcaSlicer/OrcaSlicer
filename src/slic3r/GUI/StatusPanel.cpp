@@ -4593,7 +4593,7 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
                 m_filament_setting_dlg->set_ctype(tray->ctype);
                 m_filament_setting_dlg->ams_filament_id = tray->setting_id;
 
-                if (m_filament_setting_dlg->ams_filament_id.empty())
+                if (tray->is_empty)
                 {
                     m_filament_setting_dlg->set_empty_color(color);
                 }
@@ -4608,12 +4608,12 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
                 // metadata, and the spec says it must never be interpreted — so
                 // the tag alone must not make their trays read-only.
                 m_filament_setting_dlg->m_is_third = !obj->is_bbl_agent() || !DevFilaSystem::IsBBL_Filament(tray->tag_uid);
+                temp_max = tray->nozzle_temp_max;
+                temp_min = tray->nozzle_temp_min;
                 if (!m_filament_setting_dlg->m_is_third)
                 {
                     sn_number = tray->uuid;
                     filament = tray->sub_brands;
-                    temp_max = tray->nozzle_temp_max;
-                    temp_min = tray->nozzle_temp_min;
                 }
             }
 
@@ -4667,7 +4667,7 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
             }
             m_filament_setting_dlg->set_ctype(obj->vt_slot[nozzle_index].ctype);
 
-            if (m_filament_setting_dlg->ams_filament_id.empty()) {
+            if (obj->vt_slot[nozzle_index].is_empty) {
                 m_filament_setting_dlg->set_empty_color(color);
             }
             else {
@@ -4676,11 +4676,11 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
             }
 
             m_filament_setting_dlg->m_is_third = !obj->is_bbl_agent() || !DevFilaSystem::IsBBL_Filament(obj->vt_slot[nozzle_index].tag_uid);
+            temp_max = obj->vt_slot[nozzle_index].nozzle_temp_max;
+            temp_min = obj->vt_slot[nozzle_index].nozzle_temp_min;
             if (!m_filament_setting_dlg->m_is_third) {
                 sn_number = obj->vt_slot[nozzle_index].uuid;
                 filament  = obj->vt_slot[nozzle_index].sub_brands;
-                temp_max  = obj->vt_slot[nozzle_index].nozzle_temp_max;
-                temp_min  = obj->vt_slot[nozzle_index].nozzle_temp_min;
             }
 
             m_filament_setting_dlg->Move(wxPoint(current_position_x,current_position_y));
