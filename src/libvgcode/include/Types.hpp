@@ -178,11 +178,7 @@ enum class EReducedDetailMode : uint8_t
     // only the bottom and top layers of the visible range, for a caller that draws the print
     // itself some other way
     EndLayersOnly,
-    // one layer in every stride, every role kept
-    LayersOnly,
-    // one layer in every stride, outer walls only
-    OuterWallsOnly,
-    // every layer, every role but the infill under the skins and the gap fill: what can be seen from outside
+    // every role but the infill under the skins and the gap fill: what can be seen from outside
     ShellOnly,
     COUNT
 };
