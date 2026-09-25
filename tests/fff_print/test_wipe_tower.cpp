@@ -7,6 +7,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_helpers.hpp"
@@ -306,6 +307,59 @@ TEST_CASE("A single-filament plate reserves a tower only when one is actually pr
         REQUIRE(print.has_wipe_tower());
         CHECK(print.wipe_tower_data(1).depth > 0.f);
     }
+}
+
+// A SEMM/MMU print with ramming must still ram+unload the last filament at print end even when
+// the tower's last real toolchange isn't on the object's very last layer (the common case).
+TEST_CASE("The final unload ramming still prints when the wipe tower stops growing before the last layer", "[WipeTower]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",             true },
+        { "wipe_tower_x",                   50 },
+        { "wipe_tower_y",                   50 },
+        { "layer_height",                   0.3 },
+        { "gcode_flavor",                   "marlin" },
+        { "single_extruder_multi_material", "1" },
+        { "enable_filament_ramming",        "1" },
+        { "purge_in_prime_tower",           "1" },
+    });
+
+    // Filament 2 only for the bottom 2mm; nothing changes for the remaining ~8mm to the top, so
+    // the wipe tower's last active layer sits well below the object's last printed layer.
+    Model model;
+    auto *obj = model.add_object();
+    obj->add_volume(cube(10));
+    obj->add_instance();
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("extruder", new ConfigOptionInt(2));
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.3));
+    obj->layer_config_ranges[{0.0, 2.0}].assign_config(std::move(range_config));
+
+    Print print;
+    arrange_objects(model, InfiniteBed{}, ArrangeParams{ scaled(min_object_distance(config)) });
+    for (auto *mo : model.objects) {
+        mo->ensure_on_bed();
+        print.auto_assign_extruders(mo);
+    }
+    print.apply(model, config);
+    print.apply(model, config); // second apply, same reason as slice_with_prime_tower
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    const std::string g = Slic3r::Test::gcode(print);
+
+    // One ramming block for the mid-print toolchange, one more for the final end-of-print unload.
+    const size_t first_ramming = g.find("Ramming start");
+    REQUIRE(first_ramming != std::string::npos);
+    const size_t final_ramming = g.find("Ramming start", first_ramming + 1);
+    REQUIRE(final_ramming != std::string::npos);
+    CHECK(g.find("Ramming start", final_ramming + 1) == std::string::npos);
+
+    // The final unload comes after every per-layer "current Z" comment, i.e. after the object has
+    // finished printing, not interleaved with it.
+    const size_t last_layer_z_comment = g.rfind(";Z:");
+    REQUIRE(last_layer_z_comment != std::string::npos);
+    CHECK(last_layer_z_comment < final_ramming);
 }
 
 TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")

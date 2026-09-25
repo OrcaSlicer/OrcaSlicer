@@ -4471,6 +4471,15 @@ bool Print::enable_timelapse_print() const
     return m_config.timelapse_type.value == TimelapseType::tlSmooth;
 }
 
+// print_z of the tower's own last active layer, which is usually below the object's top layer.
+static coordf_t last_active_wipe_tower_layer_z(ToolOrdering &tool_ordering)
+{
+    for (auto it = tool_ordering.layer_tools().rbegin(); it != tool_ordering.layer_tools().rend(); ++it)
+        if (it->has_wipe_tower && it->wipe_tower_partitions > 0)
+            return it->print_z;
+    return tool_ordering.back().print_z;
+}
+
 void Print::_make_wipe_tower()
 {
     m_wipe_tower_data.clear();
@@ -4693,28 +4702,14 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.bbx = wipe_tower.get_bbx();
         m_wipe_tower_data.rib_offset = wipe_tower.get_rib_offset();
 
-        // Unload the current filament over the purge tower.
+        // Unload the current filament over the purge tower, lifting to a fresh layer first if
+        // the tower's current one is full.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
-        bool generate_final_purge = true;
-        if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
-            // The wipe tower goes up to the last layer of the print.
-            if (wipe_tower.layer_finished()) {
-                // The wipe tower is printed to the top of the print and it has no space left for the final extruder purge.
-                // Lift Z to the next layer.
-                wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z + layer_height), float(layer_height), 0, false,
-                                     true);
-            } else {
-                // There is yet enough space at this layer of the wipe tower for the final purge.
-            }
-        } else {
-            // The wipe tower does not reach the last print layer.
-            // Skip final purge to avoid generating purge lines in mid-air.
-            assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            generate_final_purge = false;
+        if (wipe_tower.layer_finished()) {
+            const coordf_t last_z = last_active_wipe_tower_layer_z(m_wipe_tower_data.tool_ordering);
+            wipe_tower.set_layer(float(last_z + layer_height), float(layer_height), 0, false, true);
         }
-        m_wipe_tower_data.final_purge = generate_final_purge
-            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
-            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
+        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)));
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
@@ -4809,28 +4804,14 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.bbx               = wipe_tower.get_bbx();
         m_wipe_tower_data.rib_offset        = wipe_tower.get_rib_offset();
 
-        // Unload the current filament over the purge tower.
+        // Unload the current filament over the purge tower, lifting to a fresh layer first if
+        // the tower's current one is full.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
-        bool generate_final_purge = true;
-        if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
-            // The wipe tower goes up to the last layer of the print.
-            if (wipe_tower.layer_finished()) {
-                // The wipe tower is printed to the top of the print and it has no space left for the final extruder purge.
-                // Lift Z to the next layer.
-                wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z + layer_height), float(layer_height), 0, false,
-                                     true);
-            } else {
-                // There is yet enough space at this layer of the wipe tower for the final purge.
-            }
-        } else {
-            // The wipe tower does not reach the last print layer.
-            // Skip final purge to avoid generating purge lines in mid-air.
-            assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            generate_final_purge = false;
+        if (wipe_tower.layer_finished()) {
+            const coordf_t last_z = last_active_wipe_tower_layer_z(m_wipe_tower_data.tool_ordering);
+            wipe_tower.set_layer(float(last_z + layer_height), float(layer_height), 0, false, true);
         }
-        m_wipe_tower_data.final_purge = generate_final_purge
-            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
-            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
+        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)));
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
