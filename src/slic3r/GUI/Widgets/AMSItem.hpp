@@ -15,6 +15,7 @@
 #include <optional>
 
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h" // Orca: DevFilaSwitch::SwitchPos for inlet-aware AMS placement
+#include "slic3r/GUI/DeviceCore/DevFilaSystem.h" // Orca: DevAmsTray::RemainFetchStatus for the tray remain-fetch tooltip
 
 #define AMS_CONTROL_BRAND_COLOUR wxColour(0, 150, 136)
 #define AMS_CONTROL_GRAY700 wxColour(107, 107, 107)
@@ -185,6 +186,8 @@ struct Caninfo
     AMSCanType      material_state;
     int             ctype=0;
     int             material_remain = 100;
+    std::optional<int> material_remain_weight_g; // Orca: accurate remaining weight (DevAmsTray::get_filament_remain_weight), for the tray tooltip
+    DevAmsTray::RemainFetchStatus remain_fetch_status = DevAmsTray::RemainFetchStatus::Done; // Orca: whether material_remain/material_remain_weight_g are still being fetched
     int             cali_idx = -1;
     std::string     filament_id;
     float           k = 0.0f;
@@ -200,6 +203,8 @@ public:
             material_state == other.material_state &&
             ctype == other.ctype &&
             material_remain == other.material_remain &&
+            material_remain_weight_g == other.material_remain_weight_g &&
+            remain_fetch_status == other.remain_fetch_status &&
             cali_idx == other.cali_idx &&
             filament_id == other.filament_id &&
             k == other.k &&
