@@ -39,7 +39,7 @@
 		"60"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
+		"; Elegoo PLA filament start gcode\n"
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"

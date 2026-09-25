@@ -94,6 +94,10 @@ public:
 	void		reload_config();
     void        update_visibility(ConfigOptionMode mode, bool update_contolls_visibility);
     void        activate(ConfigOptionMode mode, std::function<void()> throw_if_canceled);
+    // Whether an option group has no controls yet.
+    bool        build_pending() const;
+    // Builds the next option group that has no controls yet; true while some remain.
+    bool        build_step(ConfigOptionMode mode);
     void        clear();
     void        msw_rescale();
     void        sys_color_changed();
@@ -121,6 +125,8 @@ public:
     std::map<std::string, std::string> m_opt_id_map;
 
 protected:
+    size_t      next_group_to_build() const;
+    bool        activate_group(size_t i, ConfigOptionMode mode, std::function<void()> throw_if_canceled);
 	// Color of TreeCtrlItem. The wxColour will be updated only if the new wxColour pointer differs from the currently rendered one.
 	const wxColour*		m_item_color;
 };
@@ -437,6 +443,10 @@ public:
 	// BBS: new layout
 	void set_expanded(bool value);
 	void restore_last_select_item();
+	// page_build_pending() says whether the selected page has groups without controls, and
+	// page_build_step() builds one.
+	bool page_build_pending() const;
+	bool page_build_step();
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();

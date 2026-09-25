@@ -1,11 +1,12 @@
 {
 	"type": "filament",
+	"filament_id": "OFgbpcy9",
+	"setting_id": "MlY6WQ41FE8zDPSV",
 	"name": "Generic TPU @Sovol Zero",
-	"inherits": "Generic TPU @System",
 	"renamed_from": "Sovol Zero TPU",
 	"from": "system",
-	"setting_id": "MlY6WQ41FE8zDPSV",
 	"instantiation": "true",
+	"inherits": "fdm_filament_tpu",
 	"filament_flow_ratio": [
 		"0.98"
 	],
@@ -60,11 +61,55 @@
 	"filament_z_hop": [
 		"0.4"
 	],
-	"additional_cooling_fan_speed": "50",
-	"activate_air_filtration": "1",
-	"during_print_exhaust_fan_speed": "100",
-	"complete_print_exhaust_fan_speed": "50",
+	"additional_cooling_fan_speed": [
+		"50"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"during_print_exhaust_fan_speed": [
+		"100"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"50"
+	],
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle",
+		"Sovol Zero 0.2 Hardened Steel nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
 	]
 }

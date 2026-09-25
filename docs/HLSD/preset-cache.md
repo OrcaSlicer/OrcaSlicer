@@ -76,9 +76,10 @@ and the count of errors the original parse hit.
 
 Each entry is one preset **in source form**: what its JSON sub-file states and nothing
 that resolving it derives — the preset's own config diff, the name of the preset it
-inherits, and the parse metadata (name, sub-path, description, instantiation, setting
-and filament ids, renames). Non-instantiated base presets are stored too; the children
-that inherit from them cannot resolve without them.
+inherits, the names of the presets it includes, and the parse metadata (name, sub-path,
+description, instantiation, setting and filament ids, renames). Non-instantiated base
+presets are stored too; the children that inherit from or include them cannot resolve
+without them.
 
 **The payload names its own keys.** The dictionary holds the distinct `opt_key`s the
 file uses, the `ConfigOptionType` each was written as, and the distinct enum *value
@@ -161,9 +162,9 @@ cache nothing can invalidate is worse than no cache.
 
 Vendors load in a fixed order, because filament inheritance crosses exactly one
 boundary: any vendor's filament may inherit from the shared Orca filament library,
-and nothing else reaches across vendors. The library therefore goes first, alone;
-every other vendor follows in parallel, resolving against it; and the results are
-merged in a stable order:
+and nothing else reaches across vendors — an `include` is always vendor-local. The
+library therefore goes first, alone; every other vendor follows in parallel, resolving
+against it; and the results are merged in a stable order:
 
 ```mermaid
 flowchart LR
@@ -211,13 +212,16 @@ and its cache was never written back.
 
 Serving from a cache is not a memory-image restore. The entries are deserialized and
 then installed one by one — inheritance resolved against the presets installed before
-them and the currently loaded filament library, configs flattened onto the collection
-defaults, validated and registered — by the same function the JSON path calls straight
-after parsing a sub-file. The two paths share everything below the parse, which is what
-makes a cache-loaded bundle indistinguishable from a JSON-loaded one by construction
-rather than by test coverage. Installation also rebuilds each preset's file path from
-the local data directory, so a shipped cache never carries the generating machine's
-paths.
+them and the currently loaded filament library, includes layered in, configs flattened
+onto the collection defaults, validated and registered — by the same function the JSON
+path calls straight after parsing a sub-file. An `include` layers what the included
+base states, between the parent and the preset's own keys: the base's diff against the
+default, taken when the base itself was installed and before the per-variant padding
+`inherits` sees, so only what a template sets reaches the presets including it. The two
+paths share everything below the parse, which is what makes a cache-loaded bundle
+indistinguishable from a JSON-loaded one by construction rather than by test coverage.
+Installation also rebuilds each preset's file path from the local data directory, so a
+shipped cache never carries the generating machine's paths.
 
 App upgrades work because a cache normally survives one. Only a deliberate
 `CACHE_VERSION` bump makes an installed cache unreadable, and that is handled at

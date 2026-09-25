@@ -1,0 +1,104 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-CF @BBL P2S 0.6 nozzle",
+    "inherits": "Bambu PA6-CF @base",
+    "from": "system",
+    "setting_id": "GFSN05_25",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "0"
+    ],
+    "chamber_temperatures": [
+        "60"
+    ],
+    "counter_coef_2": [
+        "-0.0016"
+    ],
+    "counter_coef_3": [
+        "0.0031"
+    ],
+    "counter_limit_max": [
+        "0.0031"
+    ],
+    "counter_limit_min": [
+        "-0.038"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "85",
+        "65",
+        "85"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "8",
+        "8",
+        "8"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0"
+    ],
+    "hole_coef_2": [
+        "-0.0051"
+    ],
+    "hole_coef_3": [
+        "0.2194"
+    ],
+    "hole_limit_max": [
+        "0.2194"
+    ],
+    "hole_limit_min": [
+        "0.092"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual_e3d"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "275",
+        "275",
+        "275"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "275",
+        "275",
+        "275"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0",
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P2S 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

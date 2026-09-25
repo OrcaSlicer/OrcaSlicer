@@ -36,6 +36,7 @@
 #include "HMS.hpp"
 #include "PartSkipDialog.hpp"
 #include "DeviceErrorDialog.hpp"
+#include "StagedBuild.hpp"
 
 class StepIndicator;
 
@@ -375,7 +376,7 @@ public:
     void paint(wxPaintEvent&);
 };
 
-class StatusBasePanel : public wxScrolledWindow
+class StatusBasePanel : public wxScrolledWindow, public StagedBuild
 {
 protected:
     wxBitmap m_item_placeholder;
@@ -443,7 +444,7 @@ protected:
 
 
     wxMediaCtrl3 *  m_media_ctrl;
-    MediaPlayCtrl * m_media_play_ctrl;
+    MediaPlayCtrl * m_media_play_ctrl{nullptr};
 
     Label *         m_staticText_printing;
     wxStaticBitmap *m_bitmap_thumbnail;
@@ -629,6 +630,7 @@ class StatusPanel : public StatusBasePanel
 {
 private:
     friend class MonitorPanel;
+    void wire_controls();
 
 protected:
     std::shared_ptr<SliceInfoPopup> m_slice_info_popup;
@@ -679,7 +681,7 @@ protected:
     std::map<std::string, std::string> m_print_connect_types;
     std::vector<Button *>       m_buttons;
     int last_status;
-    ScoreData *m_score_data;
+    ScoreData *m_score_data = nullptr;
     wxBitmap* calib_bitmap = nullptr;
     CalibMode m_calib_mode;
     CalibrationMethod m_calib_method;

@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -70,6 +71,9 @@ namespace GUI{
 
 class RemovableDriveManager;
 class OtherInstanceMessageHandler;
+class ShortcutRegistry;
+enum class ShortcutContext : uint8_t;
+enum class PreferencesTab;
 class MainFrame;
 class Sidebar;
 class ObjectSettings;
@@ -245,6 +249,7 @@ private:
     bool            m_app_conf_exists{ false };
     EAppMode        m_app_mode{ EAppMode::Editor };
     bool            m_is_recreating_gui{ false };
+    std::chrono::steady_clock::time_point m_last_input{ std::chrono::steady_clock::now() };
 #ifdef __linux__
     bool            m_opengl_initialized{ false };
 #endif
@@ -286,6 +291,7 @@ private:
     std::unique_ptr<RemovableDriveManager> m_removable_drive_manager;
 
     std::unique_ptr<ImGuiWrapper> m_imgui;
+    std::unique_ptr<ShortcutRegistry> m_shortcuts;
     std::unique_ptr<PrintHostJobQueue> m_printhost_job_queue;
 	std::unique_ptr <OtherInstanceMessageHandler> m_other_instance_message_handler;
     std::unique_ptr <wxSingleInstanceChecker> m_single_instance_checker;
@@ -383,6 +389,11 @@ public:
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
     bool is_gcode_viewer() const { return m_app_mode == EAppMode::GCodeViewer; }
     bool is_recreating_gui() const { return m_is_recreating_gui; }
+    // Milliseconds since the last mouse or keyboard event the app processed.
+    int  input_idle_ms() const;
+    int  FilterEvent(wxEvent& event) override;
+    // The Preferences "Default page" choice, stored as its index: 0 Home, 1 Prepare.
+    bool starts_on_prepare() const;
     std::string logo_name() const { return is_editor() ? "OrcaSlicer" : "OrcaSlicer-gcodeviewer"; }
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
@@ -483,7 +494,7 @@ public:
 
     void            recreate_GUI(const wxString& message);
     void            system_info();
-    void            keyboard_shortcuts();
+    void            keyboard_shortcuts(ShortcutContext page, wxWindow* parent = nullptr);   // the main frame when null
     void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
     void            import_model(wxWindow *parent, wxArrayString& input_files) const;
@@ -639,7 +650,8 @@ public:
     wxString 		current_language_code_safe() const;
     bool            is_localized() const { return m_wxLocale->GetLocale() != "English"; }
 
-    void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_preferences();   // on the General tab
+    void            open_preferences(PreferencesTab tab, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
@@ -737,6 +749,9 @@ public:
 	size_t      get_instance_hash_int ()              { return m_instance_hash_int; }
 
     ImGuiWrapper* imgui() { return m_imgui.get(); }
+    ShortcutRegistry& shortcuts() { return *m_shortcuts; }
+    // Saves the bindings and refreshes every menu label, tooltip and accelerator table that shows one.
+    void          on_shortcuts_changed();
 
     PrintHostJobQueue& printhost_job_queue() { return *m_printhost_job_queue.get(); }
 

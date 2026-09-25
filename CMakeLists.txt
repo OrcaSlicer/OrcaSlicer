@@ -70,6 +70,9 @@ if (POLICY CMP0092)
     cmake_policy(SET CMP0092 NEW)
 endif ()
 
+# project() reads this, so set it first.
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/ClangClShowIncludes.cmake")
+
 project(OrcaSlicer)
 
 # Backward compatibility for old CMake versions
@@ -1122,7 +1125,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/swresample-5.dll
         ${_out_dir}/swscale-8.dll
         ${_out_dir}/avutil-59.dll
-        PARENT_SCOPE
     )
     list(APPEND _dll_list ${_occt_staged})
     set(${output_dlls} ${_dll_list} PARENT_SCOPE)
