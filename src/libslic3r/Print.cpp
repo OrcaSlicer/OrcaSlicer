@@ -2716,7 +2716,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.cancellation_check = [this]() { return canceled(); };
         fire_lifecycle_event(LifecycleEvent::SliceStarted, ctx);
@@ -3343,7 +3344,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.cancellation_check = [this]() { return canceled(); };
         fire_lifecycle_event(LifecycleEvent::SliceGeometryFinished, ctx);
@@ -4949,7 +4951,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 {
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = file;
         ctx.cancellation_check = [this]() { return canceled(); };
@@ -4979,7 +4982,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ <<  boost::format(": found errors when process gcode file %1%") %file.c_str();
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(m_model.id().id);
+            ctx.id = std::to_string(m_model.id().id);
+            ctx.name = get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = file + "\n" + ex.what();
             ctx.cancellation_check = [this]() { return canceled(); };
@@ -4993,7 +4997,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = file;
         ctx.cancellation_check = [this]() { return canceled(); };

@@ -2479,7 +2479,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(print->model().id().id);
+        ctx.id = std::to_string(print->model().id().id);
+        ctx.name = print->get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = path;
         ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2531,7 +2532,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         }
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(print->model().id().id);
+            ctx.id = std::to_string(print->model().id().id);
+            ctx.name = print->get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = std::string(path) + "\n" + err_msg;
             ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2555,7 +2557,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         boost::nowide::remove(path_tmp.c_str());
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(print->model().id().id);
+            ctx.id = std::to_string(print->model().id().id);
+            ctx.name = print->get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = std::string(path) + "\n" + ex.what();
             ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2668,7 +2671,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     if (ret) {
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(print->model().id().id);
+            ctx.id = std::to_string(print->model().id().id);
+            ctx.name = print->get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = std::string(path) + "\nFailed to rename the output G-code file: " + ret.message();
             ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2687,7 +2691,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(print->model().id().id);
+        ctx.id = std::to_string(print->model().id().id);
+        ctx.name = print->get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = path;
         ctx.cancellation_check = [print]() { return print->canceled(); };
