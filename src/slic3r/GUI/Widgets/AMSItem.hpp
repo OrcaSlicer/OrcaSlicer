@@ -183,6 +183,7 @@ struct Caninfo
     wxString        material_name;
     wxColour        material_colour = {*wxWHITE};
     AMSCanType      material_state;
+    bool            is_empty = false;
     int             ctype=0;
     int             material_remain = 100;
     int             cali_idx = -1;
@@ -198,6 +199,7 @@ public:
             material_name == other.material_name &&
             material_colour == other.material_colour &&
             material_state == other.material_state &&
+            is_empty == other.is_empty &&
             ctype == other.ctype &&
             material_remain == other.material_remain &&
             cali_idx == other.cali_idx &&

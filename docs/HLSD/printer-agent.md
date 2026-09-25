@@ -169,9 +169,12 @@ Orca agent does not poll the Moonraker `lane_data` namespace, which exists for
 Moonraker-channel consumers. Slot presence is the user's declaration, not sensed material:
 `tray_exist_bits` and the presence of a `vir_slot` entry mark a slot as present even with an
 empty `tray_type`, which is the `is_exists` state the filament UI reads. A full status frame
-(`msg=0`, or a LAN frame with no `msg`) is authoritative for removals, so a virtual tray id
-absent from a populated `vir_slot` is dropped; a delta frame (`msg=1`) only updates the
-entries it names and leaves omitted entries held.
+(`msg=0`, or a LAN frame with no `msg`) updates each virtual-tray ID it contains but does not
+remove IDs already observed during the current connection. An observed ID remains if omitted
+from a populated `vir_slot`, if `vir_slot` is empty, or if the field is absent. Before any
+virtual tray has been observed, a full frame with no virtual-tray entries clears the initial
+placeholder. `MachineObject::reset()` clears retained IDs on reconnect. Delta frames update
+named entries only. This retention rule is specific to the native Orca agent.
 
 Writes follow the same edge-translation rule as the rest of the agent. The shared
 `MachineObject` command builders emit Bambu-shaped `print.ams_*` payloads, and the agent's

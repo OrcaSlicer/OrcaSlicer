@@ -7,6 +7,7 @@ add_executable(${_TEST_NAME}_tests
     test_filament_bitmap_utils.cpp
     test_device_progress.cpp
     test_device_manager.cpp
+    test_ams_item.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
     test_network_versions.cpp
