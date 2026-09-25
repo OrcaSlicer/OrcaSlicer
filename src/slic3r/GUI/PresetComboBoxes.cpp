@@ -1011,13 +1011,8 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        // Skip re-selecting only when the Tab editor is already showing THIS slot: re-clicking
-        // the slot you're already editing must not reset in-progress changes. A DIFFERENT slot's
-        // own "(modified)" label is not proof of that -- every filament slot's combo box reads
-        // from the one shared PresetCollection, so its rows can show modified from an edit made
-        // in another slot entirely. Trusting that label here left the Tab still bound to the
-        // previous slot while this call reported success, so a later save wrote that slot's
-        // stale data into the new one (#15767).
+        // Skip re-selecting only when the Tab editor already shows this slot: a "(modified)" label
+        // isn't proof of that, since every slot's combo reads the same shared PresetCollection.
         TabPresetComboBox* tab_combo = tab->get_combo_box();
         if (tab_combo == nullptr || tab_combo->get_filament_idx() != m_filament_idx)
         {

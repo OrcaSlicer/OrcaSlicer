@@ -1007,9 +1007,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     if (ActionButtons::TRANSFER & m_buttons) {
         const PresetCollection* switched_presets = type == Preset::TYPE_INVALID ? nullptr : wxGetApp().get_tab(type)->get_presets();
         const PresetCollection* technology_source = (dependent_presets && type == dependent_presets->type()) ? dependent_presets : switched_presets;
-        // find_preset() returns nullptr for a name that doesn't resolve in this collection (e.g.
-        // an alias, or a preset switched away from by the time this dialog opens); comparing
-        // printer_technology() against that was an unguarded null deref.
+        // find_preset() can return nullptr (e.g. an unresolved alias); guard against a null deref.
         const Preset* target_preset = technology_source ? technology_source->find_preset(new_selected_preset) : nullptr;
         if (dependent_presets && switched_presets && technology_source && target_preset &&
             technology_source->get_edited_preset().printer_technology() == target_preset->printer_technology())
