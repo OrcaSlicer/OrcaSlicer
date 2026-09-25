@@ -1392,6 +1392,37 @@ TEST_CASE("Multiline adaptive cubic paths touch where they bounce off each other
     CHECK(widest < 1.02 * d1);
 }
 
+TEST_CASE("Multiline adaptive cubic paths reach the line they end on when another path ends on them", "[Fill]")
+{
+    const int    sweep = GENERATE(0, 1, 2);
+    // Where the 120 degree line starts on the horizontal one, in walls from the 60 degree line.
+    const double start = GENERATE(0.3, 0.6, 1., 2.);
+    CAPTURE(sweep, start);
+
+    const double d1 = scale_(0.8), length = scale_(30.);
+    const Vec2d  diagonal(0.5, 0.5 * std::sqrt(3.)), horizontal(1., 0.), steep(-0.5, 0.5 * std::sqrt(3.));
+    const Vec2d  on_horizontal = start * d1 * horizontal;
+    const Lines  lines{ Line((-length * diagonal).cast<coord_t>(), (length * diagonal).cast<coord_t>()),
+                        Line(Point(0, 0), (length * horizontal).cast<coord_t>()),
+                        Line(on_horizontal.cast<coord_t>(), (on_horizontal - length * steep).cast<coord_t>()) };
+    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, sweep, BoundingBox(Point::new_scale(-40., -40.), Point::new_scale(40., 40.)));
+
+    // The end of the path along each line nearest to where that line starts.
+    auto end_along = [&paths](const Line &line) {
+        for (const Polyline &path : paths)
+            if (line.distance_to(path.first_point()) < SCALED_EPSILON && line.distance_to(path.last_point()) < SCALED_EPSILON)
+                return (path.first_point() - line.a).cast<double>().norm() < (path.last_point() - line.a).cast<double>().norm() ? path.first_point() : path.last_point();
+        return Point(std::numeric_limits<coord_t>::max(), 0);
+    };
+    const Point horizontal_end = end_along(lines[1]), steep_end = end_along(lines[2]);
+    REQUIRE(horizontal_end.x() != std::numeric_limits<coord_t>::max());
+    REQUIRE(steep_end.x() != std::numeric_limits<coord_t>::max());
+    // Both touch the path they stop at, none stops a wall short of it.
+    CHECK_THAT(line_alg::distance_to_infinite(lines[0], horizontal_end) / d1, Catch::Matchers::WithinAbs(1., 0.01));
+    CHECK(lines[1].distance_to(steep_end) / d1 < 1.01);
+    CHECK(get_intersections(to_lines(paths)).empty());
+}
+
 TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")
 {
     auto shape_for = [](const std::string &smooth_factor) {

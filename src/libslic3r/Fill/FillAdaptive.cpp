@@ -15,7 +15,9 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include <functional>
 #include <numeric>
+#include <tuple>
 
 // Boost pool: Don't use mutexes to synchronize memory allocation.
 #define BOOST_POOL_NO_MT
@@ -1351,8 +1353,8 @@ struct LevelPath
     std::vector<int>                 turn;      // 1 turning up, -1 turning down
     std::vector<std::vector<Lin>>    cuts;
     std::vector<std::pair<Lin, int>> pushes;    // (line, bend) keeping a wall away from a neighbour's cut
-    bool                             start_term { false };
-    bool                             end_term { false };
+    int                              start_term { -1 }; // junction where the path stops on another line, or -1
+    int                              end_term { -1 };
 };
 
 // Moves f onto line c (side 1: from below) wherever c lies beyond it, over the stretches overlapping [w0, w1].
@@ -1671,7 +1673,7 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
         const SweepLine &l     = lines[li];
         const int        start = !l.junctions.empty() && !has_arm(l.junctions.front().second, li, false) ? l.junctions.front().second : -1;
         LevelPath        path;
-        path.start_term = start >= 0;
+        path.start_term = start;
         path.verts.push_back(start >= 0 ? junctions[start].p : l.a);
         path.lines.push_back(li);
         int    cur = li;
@@ -1687,7 +1689,7 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
             const size_t k = std::find_if(J.pairs.begin(), J.pairs.end(), [cur](const std::pair<int, int> &p) { return p.first == cur; }) - J.pairs.begin();
             if (k == J.pairs.size()) {
                 path.verts.push_back(J.p);
-                path.end_term = true;
+                path.end_term = it->second;
                 break;
             }
             if (const int next = J.pairs[k].second; next != cur) {
@@ -1728,9 +1730,9 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
             for (int nb : { b - 1, b + 1 })
                 if (sharp && nb >= 0 && nb < int(P.junctions.size()) && P.turn[nb] == away)
                     c = std::min(c, sign * n.dot(junctions[P.junctions[nb]].p - J.p));
-            if (b == 0 && P.start_term)
+            if (b == 0 && P.start_term >= 0)
                 c = std::min(c, sign * n.dot(P.verts.front() - J.p));
-            if (b + 1 == int(P.junctions.size()) && P.end_term)
+            if (b + 1 == int(P.junctions.size()) && P.end_term >= 0)
                 c = std::min(c, sign * n.dot(P.verts.back() - J.p));
             return std::max(c, 0.);
         };
@@ -1808,21 +1810,64 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
         pts.front() = q;
         return t;
     };
-    Polylines out;
-    const Eigen::Rotation2Dd to_world = to_sweep.inverse();
-    for (int pi = 0; pi < int(paths.size()); ++pi) {
-        std::vector<Vec2d> &pts = geometry[pi];
-        if (paths[pi].start_term)
+
+    // A path stopping on the line of another path is trimmed first, so that it gives way to that path.
+    std::vector<std::vector<std::tuple<double, double, int>>> carried(lines.size()); // x range and path of each piece
+    for (int pi = 0; pi < int(paths.size()); ++pi)
+        for (size_t i = 0; i < paths[pi].lines.size(); ++i)
+            carried[paths[pi].lines[i]].emplace_back(paths[pi].verts[i].x(), paths[pi].verts[i + 1].x(), pi);
+    std::vector<std::vector<int>> stopping_on(paths.size());
+    for (int pi = 0; pi < int(paths.size()); ++pi)
+        for (const auto [ji, own] : { std::make_pair(paths[pi].start_term, paths[pi].lines.front()), std::make_pair(paths[pi].end_term, paths[pi].lines.back()) })
+            if (ji >= 0)
+                for (int li : junctions[ji].lines)
+                    if (li != own)
+                        for (const auto &[x0, x1, pj] : carried[li])
+                            if (pj != pi && x0 - eps <= junctions[ji].p.x() && junctions[ji].p.x() <= x1 + eps)
+                                stopping_on[pj].push_back(pi);
+    std::vector<int>  order;
+    std::vector<bool> visited(paths.size(), false);
+    std::function<void(int)> visit = [&](int pi) {
+        if (visited[pi])
+            return;
+        visited[pi] = true;
+        for (int child : stopping_on[pi])
+            visit(child);
+        order.push_back(pi);
+    };
+    for (int pi = 0; pi < int(paths.size()); ++pi)
+        visit(pi);
+    std::vector<std::vector<Vec2d>> trimmed(paths.size());
+    auto trim = [&](int pi) {
+        std::vector<Vec2d> &pts = trimmed[pi];
+        if (paths[pi].start_term >= 0)
             kept[pi].first += trim_front(pi, pts);
-        if (paths[pi].end_term && !pts.empty()) {
+        if (paths[pi].end_term >= 0 && !pts.empty()) {
             std::reverse(pts.begin(), pts.end());
             kept[pi].second -= trim_front(pi, pts);
             std::reverse(pts.begin(), pts.end());
         }
         if (pts.size() < 2 || polyline_length(pts) < d1) {
+            pts.clear();
             kept[pi] = { 0., -1. };
-            continue;
         }
+    };
+    // Ends grow back where the ends they gave way to were trimmed later; the last pass only shortens them.
+    for (int pass = 0; pass < 3; ++pass)
+        for (int pi : order) {
+            if (pass < 2) {
+                trimmed[pi] = geometry[pi];
+                kept[pi]    = { 0., polyline_length(geometry[pi]) };
+            } else if (trimmed[pi].empty())
+                continue;
+            trim(pi);
+        }
+
+    Polylines out;
+    const Eigen::Rotation2Dd to_world = to_sweep.inverse();
+    for (const std::vector<Vec2d> &pts : trimmed) {
+        if (pts.empty())
+            continue;
         Polyline pl;
         for (const Vec2d &p : pts) {
             const Vec2d w = to_world * p;

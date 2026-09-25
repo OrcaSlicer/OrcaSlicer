@@ -107,7 +107,11 @@ The cuts follow the Cubic rules without a closed formula:
 - A path stopping at a T-junction is trimmed until it is `d1` from every other
   path. The paths are trimmed one at a time against the others as already
   trimmed, so two ends facing each other stop touching instead of both backing
-  off. Paths shorter than `d1` are left out.
+  off. A path stopping on the line of another is trimmed before that one, so it
+  gives way and the other still reaches the line it stops on. A second round
+  trims every path again from its full length, so an end grows back where the
+  ends it gave way to were trimmed later, and a last round only shortens them,
+  keeping them `d1` apart. Paths shorter than `d1` are left out.
 - A line that ends on another less than `2 * d1` past a crossing stops at that
   crossing instead, the shorter one where both do. The path along such a stub
   would be trimmed away, leaving a hole between the walls that were cut to
