@@ -104,14 +104,16 @@ The cuts follow the Cubic rules without a closed formula:
 - A cut moves the path only where the cut line lies beyond it, near its bend.
   The sharp bends between the two slanted families are cut after the bends onto
   the horizontal family, so the tip of a small triangle wins, as in Cubic.
-- A path stopping at a T-junction is trimmed until it is `d1` from every other
-  path. The paths are trimmed one at a time against the others as already
-  trimmed, so two ends facing each other stop touching instead of both backing
-  off. A path stopping on the line of another is trimmed before that one, so it
-  gives way and the other still reaches the line it stops on. A second round
-  trims every path again from its full length, so an end grows back where the
-  ends it gave way to were trimmed later, and a last round only shortens them,
-  keeping them `d1` apart. Paths shorter than `d1` are left out.
+- A path stopping at a T-junction is trimmed until it is `d1` less half a line
+  spacing from every other path, so that its end overlaps the wall it stops on
+  by half a line and bonds to it. The paths are trimmed one at a time against
+  the others as already trimmed, so two ends facing each other meet instead of
+  both backing off. A path stopping on the line of another is trimmed before
+  that one, so it gives way and the other still reaches the line it stops on. A
+  second round trims every path again from its full length, so an end grows
+  back where the ends it gave way to were trimmed later, and a last round only
+  shortens them, keeping them that far apart. Paths shorter than `d1` are left
+  out.
 - A line that ends on another less than `2 * d1` past a crossing stops at that
   crossing instead, the shorter one where both do. The path along such a stub
   would be trimmed away, leaving a hole between the walls that were cut to

@@ -1294,7 +1294,8 @@ TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing
         loops += std::count_if(printed.begin(), printed.end(), [](const Polyline &pl) { return pl.first_point() == pl.last_point(); });
         CHECK(get_intersections(to_lines(printed)).empty());
 
-        // Neighbouring lines stay a line spacing apart. Pieces of one line that meet end to end are one line.
+        // Neighbouring lines stay a line spacing apart, less the overlap of a line end with the wall it stops on.
+        // Pieces of one line that meet end to end are one line.
         std::vector<size_t> line_of(printed.size());
         std::iota(line_of.begin(), line_of.end(), 0);
         std::function<size_t(size_t)> find = [&](size_t i) { return line_of[i] == i ? i : line_of[i] = find(line_of[i]); };
@@ -1319,7 +1320,7 @@ TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing
                     for (size_t k : tree.all_lines_in_radius(p, scale_(spacing)))
                         if (owner[k] != find(i))
                             closest = std::min(closest, unscale<double>(lines[k].distance_to(p)));
-        CHECK(closest > 0.9 * spacing);
+        CHECK(closest > 0.45 * spacing);
     }
     REQUIRE(paths > 0);
     // The lines run on through the cells instead of each cell getting its own loops.
@@ -1345,7 +1346,7 @@ TEST_CASE("Multiline adaptive cubic paths touch where they bounce off each other
             lines.emplace_back((mid + start * dir).cast<coord_t>(), (mid + 10. * pitch * dir).cast<coord_t>());
         }
     }
-    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, sweep, BoundingBox(Point::new_scale(-20., -20.), Point::new_scale(20., 20.)));
+    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, 0., sweep, BoundingBox(Point::new_scale(-20., -20.), Point::new_scale(20., 20.)));
     REQUIRE_FALSE(paths.empty());
     CHECK(get_intersections(to_lines(paths)).empty());
 
@@ -1399,13 +1400,13 @@ TEST_CASE("Multiline adaptive cubic paths reach the line they end on when anothe
     const double start = GENERATE(0.3, 0.6, 1., 2.);
     CAPTURE(sweep, start);
 
-    const double d1 = scale_(0.8), length = scale_(30.);
+    const double d1 = scale_(0.8), overlap = 0.1 * d1, length = scale_(30.);
     const Vec2d  diagonal(0.5, 0.5 * std::sqrt(3.)), horizontal(1., 0.), steep(-0.5, 0.5 * std::sqrt(3.));
     const Vec2d  on_horizontal = start * d1 * horizontal;
     const Lines  lines{ Line((-length * diagonal).cast<coord_t>(), (length * diagonal).cast<coord_t>()),
                         Line(Point(0, 0), (length * horizontal).cast<coord_t>()),
                         Line(on_horizontal.cast<coord_t>(), (on_horizontal - length * steep).cast<coord_t>()) };
-    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, sweep, BoundingBox(Point::new_scale(-40., -40.), Point::new_scale(40., 40.)));
+    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, overlap, sweep, BoundingBox(Point::new_scale(-40., -40.), Point::new_scale(40., 40.)));
 
     // The end of the path along each line nearest to where that line starts.
     auto end_along = [&paths](const Line &line) {
@@ -1417,9 +1418,9 @@ TEST_CASE("Multiline adaptive cubic paths reach the line they end on when anothe
     const Point horizontal_end = end_along(lines[1]), steep_end = end_along(lines[2]);
     REQUIRE(horizontal_end.x() != std::numeric_limits<coord_t>::max());
     REQUIRE(steep_end.x() != std::numeric_limits<coord_t>::max());
-    // Both touch the path they stop at, none stops a wall short of it.
-    CHECK_THAT(line_alg::distance_to_infinite(lines[0], horizontal_end) / d1, Catch::Matchers::WithinAbs(1., 0.01));
-    CHECK(lines[1].distance_to(steep_end) / d1 < 1.01);
+    // Both reach the overlap into the wall of the path they stop at, none stops short of it.
+    CHECK_THAT(line_alg::distance_to_infinite(lines[0], horizontal_end) / d1, Catch::Matchers::WithinAbs(0.9, 0.01));
+    CHECK(lines[1].distance_to(steep_end) / d1 < 0.91);
     CHECK(get_intersections(to_lines(paths)).empty());
 }
 

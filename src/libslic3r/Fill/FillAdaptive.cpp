@@ -1503,7 +1503,7 @@ static std::pair<Vec2d, size_t> point_along(const std::vector<Vec2d> &pts, doubl
 
 } // namespace noncrossing
 
-Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const BoundingBox &cover)
+Polylines multiline_paths(const Lines &lines_in, double d1, double end_overlap, int sweep, const BoundingBox &cover)
 {
     using namespace noncrossing;
     const double             eps = scale_(0.002);
@@ -1775,7 +1775,8 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
         kept.emplace_back(0., along_path);
     }
 
-    // A path ending on another line stops a wall away from the other paths, as they stand after the paths trimmed before.
+    // A path ending on another line stops end_overlap inside the walls of the others, as trimmed so far.
+    const double end_clearance = d1 - end_overlap;
     AABBTreeLines::LinesDistancer<Linef> tree(segments);
     auto clearance = [&](int pi, const Vec2d &q) {
         double dist = std::numeric_limits<double>::max();
@@ -1792,7 +1793,7 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
     auto trim_front = [&](int pi, std::vector<Vec2d> &pts) {
         const double total = polyline_length(pts), step = d1 / 32.;
         double t = 0.;
-        while (t <= total && clearance(pi, point_along(pts, t).first) < d1)
+        while (t <= total && clearance(pi, point_along(pts, t).first) < end_clearance)
             t += step;
         if (t > total) {
             pts.clear();
@@ -1801,7 +1802,7 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
         if (t == 0.)
             return 0.;
         for (double lo = std::max(0., t - step); t - lo > step / 256.;)
-            if (const double mid = 0.5 * (lo + t); clearance(pi, point_along(pts, mid).first) < d1)
+            if (const double mid = 0.5 * (lo + t); clearance(pi, point_along(pts, mid).first) < end_clearance)
                 lo = mid;
             else
                 t = mid;
@@ -1937,7 +1938,8 @@ void Filler::_fill_surface_single(
             cover.offset(coord_t(4. * d1));
             // Rotate the family the paths run along with the layer, like the other multiline patterns.
             const int sweep = int((this->layer_id / std::max(thickness_layers, 1u)) % 3);
-            if (Polylines paths = multiline_paths(lines, d1, sweep, cover); !paths.empty())
+            // Line ends overlap the walls they stop on by half a line, so that they bond.
+            if (Polylines paths = multiline_paths(lines, d1, 0.5 * scale_(this->spacing), sweep, cover); !paths.empty())
                 all_polylines = std::move(paths);
         }
 
