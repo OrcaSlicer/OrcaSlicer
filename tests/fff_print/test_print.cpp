@@ -403,6 +403,21 @@ TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "
     CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
 }
 
+// Some firmwares (e.g. Elegoo's on the Neptune 4 Pro) only scan the last few hundred lines of
+// the file for "estimated printing time". The resolved-settings config block grows with the
+// config and used to be written after the time estimate, so a large enough config could push the
+// estimate outside that scan window. Written after the block instead, the estimate stays a fixed,
+// small distance from EOF regardless of the block's size (regression: #15805).
+TEST_CASE("The estimated printing time comment follows the resolved-settings config block", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {});
+    const size_t config_block_end = gcode.find("; CONFIG_BLOCK_END");
+    const size_t time_comment     = gcode.find("estimated printing time");
+    REQUIRE(config_block_end != std::string::npos);
+    REQUIRE(time_comment != std::string::npos);
+    CHECK(time_comment > config_block_end);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
