@@ -14,8 +14,9 @@ any other infill.
 Outlines of centerlines that cross each other overlap at every crossing, which
 over-extrudes the wall intersections. The line-crossing patterns Grid,
 Triangles, Tri-hexagon and Cubic therefore build centerlines that never cross
-(`FillRectilinear::fill_surface_trapezoidal()`); the other patterns outline
-their usual centerlines.
+(`FillRectilinear::fill_surface_trapezoidal()`), and so do Adaptive Cubic and
+Support Cubic (`FillAdaptive`); the other patterns outline their usual
+centerlines.
 
 ## Non-crossing centerlines
 
@@ -72,3 +73,36 @@ flattens toward its base line and lies on it once the triangle is under `d1 / 2`
 high, and the paths beside it are pushed `d1` away. The layout thus reaches the
 Triangles one where the families meet. Adjacent paths stay at least `d1` apart
 at every `tau` and at every density up to 100%.
+
+## Adaptive Cubic
+
+Adaptive Cubic and Support Cubic take their lines from an octree of cubes
+standing on a corner. On each layer every cube cuts its three mid-planes into
+segments of the same three 60° families as Cubic, but the pattern is not
+periodic. Smaller cubes near the surface add finer lines, and a finer line ends
+where it meets the wall of its coarser cube, so the lines form crossings and
+T-junctions. `noncrossing::uncross()` builds the paths from these segments
+directly, for each fill region and within `4 * d1` of it.
+
+At a crossing the two paths bounce as in Cubic. At a T-junction the through line
+runs straight on and the path of the ending line stops there. Every path still
+runs left to right in the frame where one family is horizontal, and that family
+rotates with the layer.
+
+Every line of every cube size lies on one fine lattice, so crossings closer than
+a few `d1` are the corners of one small triangle of that lattice, as in Cubic.
+The cuts follow the Cubic rules without a closed formula:
+
+- The two bends of a crossing are cut `d1` apart, `d1 / 2` each, perpendicular
+  to their bisector. A cut goes no further than the neighbouring bend turning
+  the other way or the path end, and the other bend takes the rest of `d1`.
+- When a cut stops short, the path beyond that neighbouring bend is kept a wall
+  away from it.
+- A cut moves the path only where the cut line lies beyond it, near its bend.
+  The sharp bends between the two slanted families are cut after the bends onto
+  the horizontal family, so the tip of a small triangle wins, as in Cubic.
+- A path stopping at a T-junction is trimmed until it is `d1` from every other
+  path, and paths shorter than `d1` are left out.
+
+Short paths enclosed by coarser lines still print as closed outlines, but most
+paths run on across several cells.
