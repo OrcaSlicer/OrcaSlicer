@@ -20,23 +20,31 @@ static int _hex_digit_to_int(const char c) { return (c >= '0' && c <= '9') ? c -
 
 wxColour DevAmsTray::decode_color(const std::string &color)
 {
-    std::array<int, 4> ret = {0, 0, 0, 0};
+    // 6 hex digits (RRGGBB) and 8 (RRGGBBAA) are both legal on the wire;
+    // normalize_ams_color pads the short form, so accept it here too.
+    const size_t hex_digits = (color.size() == 6 || color.size() == 8) ? color.size() : 0;
+    if (hex_digits == 0) return wxColour(255, 255, 255, 255);
+
+    std::array<int, 4> ret = {0, 0, 0, 255};
     const char *       c   = color.data();
-    if (color.size() == 8) {
-        for (size_t j = 0; j < 4; ++j) {
-            int digit1 = _hex_digit_to_int(*c++);
-            int digit2 = _hex_digit_to_int(*c++);
-            if (digit1 == -1 || digit2 == -1) break;
-            ret[j] = static_cast<float>(digit1 * 16 + digit2);
-        }
-    } else { return wxColour(255, 255, 255, 255); }
+    for (size_t j = 0; j < hex_digits / 2; ++j) {
+        int digit1 = _hex_digit_to_int(*c++);
+        int digit2 = _hex_digit_to_int(*c++);
+        if (digit1 == -1 || digit2 == -1) break;
+        ret[j] = digit1 * 16 + digit2;
+    }
 
     return wxColour(ret[0], ret[1], ret[2], ret[3]);
 }
 
 void DevAmsTray::UpdateColorFromStr(const std::string& color)
 {
-    if (color.empty()) return;
+    // An empty color clears, exactly like a payload that omits the key.
+    if (color.empty()) {
+        wx_color = wxColour();
+        this->color.clear();
+        return;
+    }
     if (this->color != color)
     {
         wx_color = "#" + wxString::FromUTF8(color);
@@ -729,7 +737,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             }
                             else
                             {
-                                curr_tray->color = "";
+                                // Absent and empty carry the same meaning.
+                                curr_tray->UpdateColorFromStr(std::string());
                             }
                             if (tray_it->contains("nozzle_temp_max"))
                             {

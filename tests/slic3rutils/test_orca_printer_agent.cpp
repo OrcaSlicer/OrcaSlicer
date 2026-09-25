@@ -351,6 +351,15 @@ TEST_CASE("OrcaPrinterAgent rewrites Bambu ams_* payloads onto the canonical Orc
     CHECK(!out["print"].contains("tray_id"));
     CHECK(out["print"]["tray_type"] == "PLA");
 
+    // tray_color is the one field this sync exists to carry: it must survive
+    // the funnel, both as a real color and as the empty-tray marker a reset
+    // sends.
+    out = nlohmann::json::parse(canon("dev-c1", R"({"print":{"command":"ams_filament_setting","ams_id":1,"slot_id":2,"tray_id":2,"tray_type":"PLA","tray_color":"00FF00FF","tray_info_idx":"GFL01"}})"));
+    CHECK(out["print"]["tray_color"] == "00FF00FF");
+    out = nlohmann::json::parse(canon("dev-c1", R"({"print":{"command":"ams_filament_setting","ams_id":1,"slot_id":2,"tray_id":2,"tray_type":"","tray_info_idx":"","tray_color":"00000000"}})"));
+    CHECK(out["print"]["tray_color"] == "00000000");
+    CHECK(out["print"]["tray_type"] == "");
+
     // Wide-box dual form: both addressings resolve to one slot server-side.
     out = nlohmann::json::parse(canon("dev-c1", R"({"print":{"command":"ams_filament_setting","ams_id":1,"slot_id":5,"tray_type":"PLA"}})"));
     CHECK(out["print"]["ams_id"] == 1);
@@ -469,6 +478,73 @@ TEST_CASE("filament slot writes remain independent of FMS", "[OrcaPrinterAgent]"
         R"({"print":{"command":"ams_filament_setting","ams_id":0,"slot_id":0,"tray_type":"PLA"}})",
         &unsupported);
     CHECK(unsupported);
+}
+
+// A fixed-vocabulary printer publishes the values it can hold, so the dialog
+// offers only those: an exact type and its variants pass the filter, a material
+// the printer lacks does not. A free-form driver and an unanswered device stay
+// unconstrained.
+TEST_CASE("A printer publishes its filament metadata values", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("dev-qidi",
+        R"({"info":{"command":"get_capabilities","capabilities":{"protocol":{
+            "filament_metadata":{"qidi_box":{"read":["material","color"],"write":["material","color"],
+            "values":{"material":["PLA","PETG"],"color":["FF0000FF","00FF00FF"]}}}}}}})",
+        /*local=*/true);
+
+    const Slic3r::FilamentMetadataValues values = Slic3r::filament_metadata_values("dev-qidi");
+    CHECK(values.constrained);
+    CHECK(values.materials.size() == 2);
+    CHECK(values.colors.size() == 2);
+
+    CHECK(Slic3r::filament_material_compatible("dev-qidi", "PLA"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi", "PETG"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi", "PLA+"));
+    CHECK_FALSE(Slic3r::filament_material_compatible("dev-qidi", "HIPS"));
+
+    CHECK(Slic3r::normalize_qidi_material_family("PCTG") == "PCTG");
+    CHECK(Slic3r::normalize_qidi_material_family("PPA") == "PPA");
+    CHECK(Slic3r::normalize_qidi_material_family("PLA-CF") == "PLA-CF");
+    CHECK(Slic3r::normalize_qidi_material_family("PA12-CF") == "PA");
+    CHECK(Slic3r::normalize_qidi_material_family("PC-ABS-FR") == "PC");
+
+    agent.deliver_to_sink("dev-qidi-polymer",
+        R"({"info":{"command":"get_capabilities","capabilities":{"protocol":{
+            "filament_metadata":{"qidi_box":{"read":["material","color"],"write":["material","color"],
+            "values":{"material":["PC","PA"],"color":["FF0000FF"]}}}}}}})",
+        /*local=*/true);
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PC"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PA Nylon"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PA-CF"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PA12-CF"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PAHT-CF"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PAHT-GF"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PAHT-S"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "UltraPA"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "UltraPA-CF25"));
+    CHECK(Slic3r::filament_material_compatible("dev-qidi-polymer", "PC-ABS-FR"));
+    CHECK_FALSE(Slic3r::filament_material_compatible("dev-qidi-polymer", "PCTG"));
+    CHECK_FALSE(Slic3r::filament_material_compatible("dev-qidi-polymer", "PPA"));
+
+    agent.deliver_to_sink("dev-happyhare",
+        R"({"info":{"command":"get_capabilities","capabilities":{"protocol":{
+            "filament_metadata":{"happy_hare":{"read":["material","color"],"write":["material","color"]}}}}}})",
+        /*local=*/true);
+    CHECK_FALSE(Slic3r::filament_metadata_values("dev-happyhare").constrained);
+    CHECK(Slic3r::filament_material_compatible("dev-happyhare", "HIPS"));
+
+    CHECK(Slic3r::filament_material_compatible("dev-unanswered", "HIPS"));
+}
+
+TEST_CASE("An unknown lane material does not bind to an arbitrary filament id", "[OrcaPrinterAgent]") {
+    AmsTrayData tray;
+    tray.has_filament = true;
+    tray.tray_type = "Unlisted polymer family";
+    std::vector<AmsTrayData> trays{tray};
+
+    Slic3r::resolve_tray_info_idx(trays);
+
+    CHECK(trays[0].tray_info_idx.empty());
 }
 
 // A box wider than 4 slots is shown as several 4-tray units, so the BBL tray id

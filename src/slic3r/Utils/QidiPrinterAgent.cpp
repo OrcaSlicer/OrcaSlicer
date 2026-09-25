@@ -1,6 +1,7 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
+#include "slic3r/Utils/AmsPayload.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -507,26 +508,7 @@ std::string QidiPrinterAgent::infer_series_id(const std::string& model_id, const
 
 std::string QidiPrinterAgent::normalize_filament_type(const std::string& filament_type)
 {
-    const std::string upper = trim_and_upper(filament_type);
-
-    if (upper.find("PLA") != std::string::npos)
-        return "PLA";
-    if (upper.find("ABS") != std::string::npos)
-        return "ABS";
-    if (upper.find("PETG") != std::string::npos)
-        return "PETG";
-    if (upper.find("TPU") != std::string::npos)
-        return "TPU";
-    if (upper.find("ASA") != std::string::npos)
-        return "ASA";
-    if (upper.find("PA") != std::string::npos || upper.find("NYLON") != std::string::npos)
-        return "PA";
-    if (upper.find("PC") != std::string::npos)
-        return "PC";
-    if (upper.find("PVA") != std::string::npos)
-        return "PVA";
-
-    return upper;
+	return normalize_qidi_material_family(filament_type);
 }
 
 } // namespace Slic3r

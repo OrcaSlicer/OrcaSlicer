@@ -686,6 +686,43 @@ void OrcaPrinterAgent::register_ams_capabilities(const std::string& dev_id, cons
             has_slots = slots_it->get<bool>();
     }
     register_filament_slots(dev_id, has_slots);
+
+    // filament_metadata.<driver>.values publishes what a fixed-vocabulary
+    // driver can hold. It constrains the picker only when every writing driver
+    // declared values: one free-form driver (Happy Hare, AFC) keeps the full
+    // color picker and preset list available. Registered on every reply so a
+    // later one without the key clears a stale palette.
+    FilamentMetadataValues metadata;
+    const auto             meta_it = proto_it->find("filament_metadata");
+    if (meta_it != proto_it->end() && meta_it->is_object() && !meta_it->empty()) {
+        const auto collect = [](std::vector<std::string>& out, const nlohmann::json& values, const char* key) {
+            const auto arr = values.find(key);
+            if (arr == values.end() || !arr->is_array())
+                return;
+            for (const auto& v : *arr) {
+                if (!v.is_string())
+                    continue;
+                const std::string entry = v.get<std::string>();
+                if (std::find(out.begin(), out.end(), entry) == out.end())
+                    out.push_back(entry);
+            }
+        };
+        bool all_constrained = true;
+        for (auto driver = meta_it->begin(); driver != meta_it->end() && all_constrained; ++driver) {
+            const auto values_it = driver.value().find("values");
+            if (values_it == driver.value().end() || !values_it->is_object() || values_it->empty()) {
+                all_constrained = false;
+                break;
+            }
+            collect(metadata.materials, *values_it, "material");
+            collect(metadata.colors, *values_it, "color");
+        }
+        if (all_constrained && (!metadata.materials.empty() || !metadata.colors.empty()))
+            metadata.constrained = true;
+        else
+            metadata = FilamentMetadataValues{};
+    }
+    register_filament_metadata(dev_id, metadata);
 }
 
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
@@ -1299,9 +1336,9 @@ std::string OrcaPrinterAgent::canonicalize_ams_payload(const std::string& dev_id
         if (cmd.empty() || (cmd.rfind("ams_", 0) != 0 && cmd != "auto_stop_ams_dry"))
             return json_str;
 
-        // filament_setting is exempt from the ams_ops union: it persists
-        // connector state through the filament-slot model, so filament_slots
-        // alone advertises it (OrcaSonar OPCP §7.8).
+        // filament_setting is exempt from the ams_ops union: filament_slots
+        // advertises the canonical slot write, while native metadata support is
+        // reported separately by the driver (OrcaSonar OPCP §7.8).
         auto op_allowed = [&dev_id](const std::string& o) {
             if (o == "filament_setting")
                 return !ams_caps_known(dev_id) || has_filament_slots(dev_id);

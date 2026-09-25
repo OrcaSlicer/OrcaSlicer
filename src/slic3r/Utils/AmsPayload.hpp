@@ -113,6 +113,26 @@ bool   ams_caps_known(const std::string& dev_id);
 void   register_filament_slots(const std::string& dev_id, bool has_slots);
 bool   has_filament_slots(const std::string& dev_id);
 
+// The values a fixed-vocabulary printer can hold for filament metadata, from
+// protocol.filament_metadata.<driver>.values. Materials are the strings the
+// status projection reports and colors are RRGGBBAA. `constrained` is true only
+// when every writing driver declared values: one free-form driver keeps the
+// full picker available.
+struct FilamentMetadataValues
+{
+    bool                     constrained = false;
+    std::vector<std::string> materials;
+    std::vector<std::string> colors;
+};
+void                     register_filament_metadata(const std::string& dev_id, const FilamentMetadataValues& values);
+FilamentMetadataValues   filament_metadata_values(const std::string& dev_id);
+std::string              normalize_qidi_material_family(const std::string& material);
+// Whether a preset's filament type can be represented by the device's declared
+// materials: an exact type, or the material category the two names share. An
+// unconstrained or unanswered device accepts everything, and a type the reply
+// never carried is kept rather than hidden.
+bool   filament_material_compatible(const std::string& dev_id, const std::string& preset_type);
+
 // Forget a device's declared capabilities, so a reconnect starts from "no
 // reply yet" instead of a stale declaration.
 void   clear_ams_caps(const std::string& dev_id);

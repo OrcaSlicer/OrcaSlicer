@@ -565,6 +565,37 @@ bool MachineObject::ams_filament_ack_failed(const nlohmann::json& jj, std::strin
     return true;
 }
 
+bool MachineObject::ams_filament_native_sync_pending(const nlohmann::json& jj)
+{
+    return jj.contains("native_sync") && jj["native_sync"].is_string() &&
+           jj["native_sync"].get<std::string>() == "pending";
+}
+
+bool MachineObject::ams_filament_connector_only(const nlohmann::json& jj)
+{
+    return jj.contains("native_sync") && jj["native_sync"].is_string() &&
+           jj["native_sync"].get<std::string>() == "connector_only";
+}
+
+void MachineObject::fill_ams_filament_ack_tray(DevAmsTray& tray, const nlohmann::json& jj)
+{
+    // Every field is optional: `jj` is a mutable copy, so a bare operator[]
+    // would insert null and the get<> below would throw type_error.
+    if (jj.contains("nozzle_temp_max") && jj["nozzle_temp_max"].is_number())
+        tray.nozzle_temp_max = std::to_string(jj["nozzle_temp_max"].get<int>());
+    if (jj.contains("nozzle_temp_min") && jj["nozzle_temp_min"].is_number())
+        tray.nozzle_temp_min = std::to_string(jj["nozzle_temp_min"].get<int>());
+    if (jj.contains("tray_color") && jj["tray_color"].is_string())
+        tray.color = jj["tray_color"].get<std::string>();
+    if (jj.contains("tray_info_idx") && jj["tray_info_idx"].is_string())
+        tray.setting_id = jj["tray_info_idx"].get<std::string>();
+    if (jj.contains("tray_type") || jj.contains("tray_info_idx")) {
+        const std::string type = (jj.contains("tray_type") && jj["tray_type"].is_string()) ? jj["tray_type"].get<std::string>() : tray.m_fila_type;
+        tray.m_fila_type = setting_id_to_type(tray.setting_id, type);
+    }
+    tray.set_hold_count();
+}
+
 PrinterArch MachineObject::get_printer_arch() const
 {
     return DevPrinterConfigUtil::get_printer_arch(printer_type);
@@ -1791,8 +1822,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
     j["print"]["tray_id"]       = tag_tray_id;
     j["print"]["tray_info_idx"] = filament_id;
     j["print"]["setting_id"]    = setting_id;
-    // format "FFFFFFFF"   RGBA
-    j["print"]["tray_color"]        = tray_color;
+    // Always present: Bambu firmware echoes it into the tray handler, and a
+    // slim request would make that echo throw. An empty value becomes the
+    // protocol's own empty-tray color.
+    j["print"]["tray_color"] = tray_color.empty() ? std::string("00000000") : tray_color;
     j["print"]["nozzle_temp_min"]   = nozzle_temp_min;
     j["print"]["nozzle_temp_max"]   = nozzle_temp_max;
     j["print"]["tray_type"]         = tray_type;
@@ -4257,6 +4290,10 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         if (!ack_reason.empty())
                             text += wxString::FromUTF8(": ") + wxString::FromUTF8(ack_reason);
                         GUI::wxGetApp().push_notification(this, text);
+                    } else if (ams_filament_native_sync_pending(jj)) {
+                        GUI::wxGetApp().push_notification(this, _L("Filament settings are saved and will be applied when the printer reconnects."));
+                    } else if (ams_filament_connector_only(jj)) {
+                        GUI::wxGetApp().push_notification(this, _L("Filament settings were saved by OrcaSonar but could not be applied to the printer."));
                     }
 
                     if (!ack_failed && jj["ams_id"].is_number()) {
@@ -4267,39 +4304,15 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         }
                         if (ams_id == 255 && tray_id == VIRTUAL_TRAY_MAIN_ID && !vt_slot.empty()) {
                             BOOST_LOG_TRIVIAL(info) << "ams_filament_setting, parse tray info";
-                            vt_slot[0].nozzle_temp_max = std::to_string(jj["nozzle_temp_max"].get<int>());
-                            vt_slot[0].nozzle_temp_min = std::to_string(jj["nozzle_temp_min"].get<int>());
-                            vt_slot[0].color = jj["tray_color"].get<std::string>();
-                            vt_slot[0].setting_id = jj["tray_info_idx"].get<std::string>();
-                            //vt_tray.type = jj["tray_type"].get<std::string>();
-                            vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
+                            fill_ams_filament_ack_tray(vt_slot[0], jj);
                             vt_slot[0].is_exists = true;
-                            // delay update
-                            vt_slot[0].set_hold_count();
                         } else {
                             auto ams = m_fila_system->GetAmsById(std::to_string(ams_id));
                             if (ams) {
                                 auto tray_it = ams->GetTrays().find(std::to_string(tray_id));
                                 if (tray_it != ams->GetTrays().end()) {
                                     BOOST_LOG_TRIVIAL(trace) << "ams_filament_setting, parse tray info";
-                                    tray_it->second->nozzle_temp_max = std::to_string(jj["nozzle_temp_max"].get<int>());
-                                    tray_it->second->nozzle_temp_min = std::to_string(jj["nozzle_temp_min"].get<int>());
-                                    //tray_it->second->type = jj["tray_type"].get<std::string>();
-                                    tray_it->second->color = jj["tray_color"].get<std::string>();
-
-                                    /*tray_it->second->cols.clear();
-                                    if (jj.contains("cols")) {
-                                        if (jj["cols"].is_array()) {
-                                            for (auto it = jj["cols"].begin(); it != jj["cols"].end(); it++) {
-                                                tray_it->second->cols.push_back(it.value().get<std::string>());
-                                            }
-                                        }
-                                    }*/
-
-                                    tray_it->second->setting_id = jj["tray_info_idx"].get<std::string>();
-                                    tray_it->second->m_fila_type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
-                                    // delay update
-                                    tray_it->second->set_hold_count();
+                                    fill_ams_filament_ack_tray(*tray_it->second, jj);
                                 } else {
                                     BOOST_LOG_TRIVIAL(warning) << "ams_filament_setting, can not find in trayList, tray_id=" << tray_id;
                                 }
@@ -5972,14 +5985,11 @@ void MachineObject::check_ams_filament_valid()
             if (curr_tray->setting_id.size() == 8 && curr_tray->setting_id[0] == 'P' && filament_list.find(curr_tray->setting_id) == filament_list.end()) {
                 if (checked_filament.find(curr_tray->setting_id) != checked_filament.end()) {
                     need_checked_filament_id[nozzle_diameter_str].insert(curr_tray->setting_id);
-                    wxColour color = *wxWHITE;
-                    char     col_buf[10];
-                    sprintf(col_buf, "%02X%02X%02XFF", (int) color.Red(), (int) color.Green(), (int) color.Blue());
                     try {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " ams settings_id is not exist in filament_list and reset, ams_id: " << ams_id << " tray_id"
                                                 << slot_id << "filament_id: " << curr_tray->setting_id;
 
-                        command_ams_filament_settings(std::stoi(ams_id), std::stoi(slot_id), "", "", std::string(col_buf), "", 0, 0);
+                        command_ams_filament_settings(std::stoi(ams_id), std::stoi(slot_id), "", "", "00000000", "", 0, 0);
                         continue;
                     } catch (...) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " stoi error and ams_id: " << ams_id << " tray_id" << slot_id;
@@ -6034,12 +6044,9 @@ void MachineObject::check_ams_filament_valid()
         if (vt_tray.setting_id.size() == 8 && vt_tray.setting_id[0] == 'P' && filament_list.find(vt_tray.setting_id) == filament_list.end()) {
             if (checked_filament.find(vt_tray.setting_id) != checked_filament.end()) {
                 need_checked_filament_id[nozzle_diameter_str].insert(vt_tray.setting_id);
-                wxColour color = *wxWHITE;
-                char     col_buf[10];
-                sprintf(col_buf, "%02X%02X%02XFF", (int) color.Red(), (int) color.Green(), (int) color.Blue());
                 try {
                     BOOST_LOG_TRIVIAL(info) << "vt_tray.setting_id is not exist in filament_list and reset vt_tray and the filament_id is: " << vt_tray.setting_id;
-                    command_ams_filament_settings(vt_id, 0, "", "", std::string(col_buf), "", 0, 0);
+                    command_ams_filament_settings(vt_id, 0, "", "", "00000000", "", 0, 0);
                     continue;
                 } catch (...) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " stoi error and tray_id" << vt_tray.id;

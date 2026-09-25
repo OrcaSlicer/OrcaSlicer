@@ -89,7 +89,8 @@ std::string map_filament_type_to_generic_id(const std::string& filament_type)
     if (it == type_to_ofl_family.end())
         return UNKNOWN_FILAMENT_ID;
 
-    if (auto* bundle = GUI::wxGetApp().preset_bundle) {
+    auto* bundle = wxTheApp != nullptr ? GUI::wxGetApp().preset_bundle : nullptr;
+    if (bundle) {
         const Preset* preset = bundle->filaments.find_preset("Generic " + it->second + " @System");
         if (preset != nullptr && preset->is_system && !preset->filament_id.empty())
             return preset->filament_id;
@@ -270,7 +271,7 @@ LaneDataFetch read_moonraker_lane_data(const std::string& origin,
 
 void resolve_tray_info_idx(std::vector<AmsTrayData>& trays)
 {
-    auto* bundle = GUI::wxGetApp().preset_bundle;
+    auto* bundle = wxTheApp != nullptr ? GUI::wxGetApp().preset_bundle : nullptr;
     for (auto& tray : trays) {
         // Absent lanes render as placeholders; resolving an empty type is busy
         // work at best and could bind a bogus id.
@@ -280,9 +281,15 @@ void resolve_tray_info_idx(std::vector<AmsTrayData>& trays)
         // what is still empty so the generic fallback cannot overwrite it.
         if (!tray.tray_info_idx.empty())
             continue;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        if (bundle) {
+            std::string filament_id;
+            if (bundle->filaments.filament_id_by_type(tray.tray_type, filament_id))
+                tray.tray_info_idx = std::move(filament_id);
+        } else {
+            const std::string filament_id = map_filament_type_to_generic_id(tray.tray_type);
+            if (filament_id != UNKNOWN_FILAMENT_ID)
+                tray.tray_info_idx = filament_id;
+        }
     }
 }
 
@@ -388,6 +395,7 @@ struct AmsDeviceCaps
     bool                     ops_known      = false;
     bool                     has_ams        = false;
     bool                     filament_slots = false;
+    FilamentMetadataValues   metadata;
 };
 static std::map<std::string, AmsDeviceCaps> g_ams_caps;
 
@@ -445,6 +453,84 @@ bool has_filament_slots(const std::string& dev_id)
     std::lock_guard<std::mutex> lock(g_ams_state_mutex);
     auto it = g_ams_caps.find(dev_id);
     return it != g_ams_caps.end() && it->second.filament_slots;
+}
+
+void register_filament_metadata(const std::string& dev_id, const FilamentMetadataValues& values)
+{
+    if (dev_id.empty())
+        return;
+    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
+    g_ams_caps[dev_id].metadata = values;
+}
+
+FilamentMetadataValues filament_metadata_values(const std::string& dev_id)
+{
+    std::lock_guard<std::mutex> lock(g_ams_state_mutex);
+    auto it = g_ams_caps.find(dev_id);
+    if (it == g_ams_caps.end())
+        return {};
+    return it->second.metadata;
+}
+
+static bool material_prefix(const std::string& value, const char* family)
+{
+    const std::string prefix(family);
+    if (value == prefix)
+        return true;
+    if (value.size() <= prefix.size() || value.compare(0, prefix.size(), prefix) != 0)
+        return false;
+    const char next = value[prefix.size()];
+    return next == ' ' || next == '+' || next == '-' || next == '/';
+}
+
+static bool qidi_pa_material(const std::string& value)
+{
+    return material_prefix(value, "PA") || material_prefix(value, "PA12") ||
+        material_prefix(value, "PAHT") || material_prefix(value, "ULTRAPA");
+}
+
+// Keep distinct material families separate; only known variants share a stem.
+std::string normalize_qidi_material_family(const std::string& value)
+{
+    const std::string upper = boost::algorithm::to_upper_copy(boost::algorithm::trim_copy(value));
+    if (material_prefix(upper, "PLA-CF")) return "PLA-CF";
+    if (material_prefix(upper, "PPA-CF")) return "PPA-CF";
+    if (material_prefix(upper, "PC-ABS")) return "PC";
+    if (material_prefix(upper, "PCTG")) return "PCTG";
+    if (material_prefix(upper, "PPA")) return "PPA";
+    if (material_prefix(upper, "PLA")) return "PLA";
+    if (material_prefix(upper, "ABS")) return "ABS";
+    if (material_prefix(upper, "PETG")) return "PETG";
+    if (material_prefix(upper, "TPU")) return "TPU";
+    if (material_prefix(upper, "ASA")) return "ASA";
+    if (qidi_pa_material(upper) || material_prefix(upper, "NYLON")) return "PA";
+    if (material_prefix(upper, "PC")) return "PC";
+    if (material_prefix(upper, "PVA")) return "PVA";
+    return upper;
+}
+
+bool filament_material_compatible(const std::string& dev_id, const std::string& preset_type)
+{
+    const FilamentMetadataValues values = filament_metadata_values(dev_id);
+    if (!values.constrained)
+        return true;
+    if (boost::algorithm::trim_copy(preset_type).empty())
+        return true; // a reply that never carried a type must not hide presets
+    std::vector<std::string> parts;
+    boost::algorithm::split(parts, preset_type, boost::algorithm::is_any_of(";"), boost::token_compress_on);
+    for (const std::string& part : parts) {
+        const std::string type = boost::algorithm::trim_copy(part);
+        if (type.empty())
+            continue;
+        const std::string category = normalize_qidi_material_family(type);
+        for (const std::string& declared : values.materials) {
+            if (boost::algorithm::iequals(boost::algorithm::trim_copy(declared), type))
+                return true;
+            if (normalize_qidi_material_family(declared) == category)
+                return true;
+        }
+    }
+    return false;
 }
 
 void clear_ams_caps(const std::string& dev_id)

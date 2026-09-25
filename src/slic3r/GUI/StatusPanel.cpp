@@ -4616,6 +4616,12 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
                     filament = tray->sub_brands;
                 }
             }
+            else
+            {
+                // No tray state for this slot: never show the previous slot's.
+                m_filament_setting_dlg->set_empty_color(AMS_MATERIALS_SETTING_DEF_COLOUR);
+                m_filament_setting_dlg->ams_filament_id = "";
+            }
 
             m_filament_setting_dlg->Move(wxPoint(current_position_x, current_position_y));
             m_filament_setting_dlg->Popup(filament, sn_number, temp_min, temp_max, k_val, n_val);

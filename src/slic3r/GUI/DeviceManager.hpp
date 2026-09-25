@@ -170,6 +170,11 @@ public:
 
     // Orca: an OPCP failure ack (result != "success"). Fills reason when present.
     static bool ams_filament_ack_failed(const nlohmann::json& jj, std::string& reason);
+    static bool ams_filament_native_sync_pending(const nlohmann::json& jj);
+    static bool ams_filament_connector_only(const nlohmann::json& jj);
+    // Orca: apply one ams_filament_setting echo to a tray. A slim ack omits
+    // fields; an unguarded get here would throw and drop the whole push frame.
+    static void fill_ams_filament_ack_tray(DevAmsTray& tray, const nlohmann::json& jj);
 
     // Orca: these DeviceCore module accessors are unwired on the read side — axis/chamber/status
     // are fed every MQTT push but no GUI consumer reads them yet, and for calib/upgrade the inline

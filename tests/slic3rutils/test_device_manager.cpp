@@ -285,6 +285,56 @@ TEST_CASE("AMS filament setting acks expose OPCP failures", "[DeviceManager]")
     CHECK_FALSE(MachineObject::ams_filament_ack_failed(plain, reason));
 }
 
+TEST_CASE("AMS filament acknowledgements report native sync state", "[DeviceManager]")
+{
+    CHECK(MachineObject::ams_filament_native_sync_pending(json::parse(R"({"native_sync":"pending"})")));
+    CHECK_FALSE(MachineObject::ams_filament_native_sync_pending(json::parse(R"({"native_sync":"applied"})")));
+    CHECK(MachineObject::ams_filament_connector_only(json::parse(R"({"native_sync":"connector_only"})")));
+    CHECK_FALSE(MachineObject::ams_filament_connector_only(json::parse(R"({"native_sync":"not_applicable"})")));
+}
+
+// Every tray field in the echo is optional: an unguarded get would throw
+// type_error into parse_json's frame-wide catch and drop the rest of the push.
+TEST_CASE("A slim AMS filament acknowledgement leaves the tray untouched", "[DeviceManager]")
+{
+    DevAmsTray tray("0");
+    tray.color          = "FF0000FF";
+    tray.nozzle_temp_min = "190";
+    tray.m_fila_type    = "PLA";
+
+    CHECK_NOTHROW(MachineObject::fill_ams_filament_ack_tray(
+        tray, json::parse(R"({"command":"ams_filament_setting","result":"success","errno":0})")));
+    CHECK(tray.color == "FF0000FF");
+    CHECK(tray.nozzle_temp_min == "190");
+    CHECK(tray.m_fila_type == "PLA");
+
+    CHECK_NOTHROW(MachineObject::fill_ams_filament_ack_tray(
+        tray, json::parse(R"({"tray_color":"0000FFFF","tray_type":"ABS","tray_info_idx":"GFA01","nozzle_temp_min":210,"nozzle_temp_max":240})")));
+    CHECK(tray.color == "0000FFFF");
+    CHECK(tray.setting_id == "GFA01");
+    CHECK(tray.nozzle_temp_min == "210");
+    CHECK(tray.nozzle_temp_max == "240");
+    CHECK(tray.m_fila_type == "ABS");
+}
+
+// An echo that carries no tray fields at all must leave the frame alive: the
+// frame-wide catch would silently swallow every later message in the push.
+TEST_CASE("An AMS filament acknowledgement without tray fields does not abort the frame", "[DeviceManager]")
+{
+    MachineObject machine(nullptr, nullptr, "test", "test-device", "127.0.0.1");
+
+    const json ams = json::parse(R"({"ams":{"tray_exist_bits":"1","ams":[
+        { "id": "0", "info": "00000001", "tray": [ { "id": "0" } ] } ]}})");
+    DevFilaSystemParser::ParseV1_0(ams, &machine, machine.GetFilaSystem().get(), false);
+    REQUIRE(machine.GetFilaSystem()->GetAmsTray("0", "0") != nullptr);
+
+    CHECK_NOTHROW(machine.parse_json("lan", R"({"print":{"command":"ams_filament_setting","result":"success","errno":0,"ams_id":0,"tray_id":0}})", false));
+
+    const DevAmsTray* tray = machine.GetFilaSystem()->GetAmsTray("0", "0");
+    REQUIRE(tray != nullptr);
+    CHECK(tray->color.empty());
+}
+
 // An ack that targets a tray but omits tray_id must not abort the frame: it
 // falls back to slot 0 instead of an unguarded get on a missing key.
 TEST_CASE("An AMS filament ack without a tray_id targets slot 0", "[DeviceManager]")

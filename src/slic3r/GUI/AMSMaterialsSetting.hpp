@@ -7,6 +7,8 @@
 #include "DeviceManager.hpp"
 #include "wx/clrpicker.h"
 #include "wx/colourdata.h"
+#include "wx/panel.h"
+#include "wx/stattext.h"
 #include "Widgets/RadioBox.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/RoundedRectangle.hpp"
@@ -77,12 +79,20 @@ public:
     std::vector<wxColour> m_ams_colors;
     std::vector<ColorPicker*> m_color_pickers;
     std::vector<ColorPicker*> m_ams_color_pickers;
+    // Sections a fixed-vocabulary printer hides in set_constrained: its own
+    // palette is the only color its screen can show.
+    std::vector<ColorPicker*> m_def_color_pickers;
+    wxStaticText*             m_title_other{nullptr};
+    wxPanel*                  m_other_line{nullptr};
+    wxStaticText*             m_title_custom{nullptr};
+    wxPanel*                  m_custom_line{nullptr};
 
 public:
     ColorPickerPopup(wxWindow* parent);
     ~ColorPickerPopup() {};
     void on_custom_clr_picker(wxMouseEvent& event);
     void set_ams_colours(std::vector<wxColour> ams);
+    void set_constrained(bool constrained);
     void set_def_colour(wxColour col);
     void paintEvent(wxPaintEvent& evt);
     virtual void OnDismiss() wxOVERRIDE;
@@ -123,6 +133,10 @@ public:
     std::string    ams_setting_id;
 
     bool           m_is_third;
+
+    // Marks whether the filament combo was seeded from the printer's own tray.
+    // Stored as a member so the combo's client data never owns an allocation.
+    int            m_comboBox_from_printer{0};
     // Orca: view-only mode (laser/cut). When set, the dialog is inspectable but every
     // editing control is disabled and no command is sent.
     bool           m_view_only = false;

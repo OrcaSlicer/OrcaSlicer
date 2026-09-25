@@ -4,6 +4,7 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/AmsPayload.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
 #include <algorithm>
@@ -146,6 +147,7 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
 #else
     m_comboBox_filament = new ::ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, AMS_MATERIALS_SETTING_COMBOX_WIDTH, 0, nullptr, wxCB_READONLY);
 #endif
+    m_comboBox_filament->SetClientData(&m_comboBox_from_printer);
 
     m_sizer_filament->Add(m_comboBox_filament, 1, wxALIGN_CENTER, 0);
 
@@ -483,10 +485,7 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
     m_filament_type = "";
     long nozzle_temp_min_int = 0;
     long nozzle_temp_max_int = 0;
-    wxColour color = *wxWHITE;
-    char col_buf[10];
-    sprintf(col_buf, "%02X%02X%02X00", (int)color.Red(), (int)color.Green(), (int)color.Blue());
-    std::string color_str;  // reset use empty string
+    std::string color_str; // empty; command_ams_filament_settings maps it to the empty-tray color
 
     std::string   selected_ams_id;
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
@@ -503,7 +502,7 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
 
     if (obj) {
         if(m_is_third){
-            obj->command_ams_filament_settings(ams_id, slot_id, ams_filament_id, ams_setting_id, std::string(col_buf), m_filament_type, nozzle_temp_min_int,
+            obj->command_ams_filament_settings(ams_id, slot_id, ams_filament_id, ams_setting_id, color_str, m_filament_type, nozzle_temp_min_int,
                                                nozzle_temp_max_int);
         }
 
@@ -674,7 +673,7 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 
     wxString nozzle_temp_max = m_input_nozzle_max->GetTextCtrl()->GetValue();
 
-    long nozzle_temp_min_int, nozzle_temp_max_int;
+    long nozzle_temp_min_int = 0, nozzle_temp_max_int = 0;
     nozzle_temp_min.ToLong(&nozzle_temp_min_int);
     nozzle_temp_max.ToLong(&nozzle_temp_max_int);
     wxColour color = m_clr_picker->m_colour;
@@ -878,12 +877,22 @@ void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
     }
 
     std::vector<wxColour> ams_colors;
-    obj->GetFilaSystem()->CollectAmsColors(ams_colors);
+    // A fixed-vocabulary printer can only show its own palette; anything else
+    // would offer a color its screen cannot hold.
+    const FilamentMetadataValues metadata = filament_metadata_values(obj->get_dev_id());
+    const bool constrained = metadata.constrained && !metadata.colors.empty();
+    if (constrained) {
+        for (const std::string& color : metadata.colors)
+            ams_colors.push_back(DevAmsTray::decode_color(color));
+    } else {
+        obj->GetFilaSystem()->CollectAmsColors(ams_colors);
+    }
 
     wxPoint img_pos = m_clr_picker->ClientToScreen(wxPoint(0, 0));
     wxPoint popup_pos(img_pos.x - m_color_picker_popup.GetSize().x - FromDIP(95), img_pos.y - FromDIP(65));
     m_color_picker_popup.Position(popup_pos, wxSize(0, 0));
     m_color_picker_popup.set_ams_colours(ams_colors);
+    m_color_picker_popup.set_constrained(constrained);
     m_color_picker_popup.set_def_colour(m_clr_picker->m_colour);
     m_color_picker_popup.Popup();
 }
@@ -1008,8 +1017,12 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             if (alias.empty())
                 continue;
 
-            filament_items.push_back(alias);
             _collect_filament_info(alias, *filament_it, query_filament_vendors, query_filament_types);
+            // A printer with a fixed vocabulary only offers the types it can
+            // hold, so an incompatible preset never reaches the list.
+            if (!filament_material_compatible(obj->get_dev_id(), query_filament_types[alias].ToStdString()))
+                continue;
+            filament_items.push_back(alias);
 
             FilamentInfos filament_infos;
             filament_infos.filament_id = filament_it->filament_id;
@@ -1208,7 +1221,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     }
 
     m_comboBox_filament->Set(filament_items);
-    m_comboBox_filament->SetClientData(new int(1));
+    m_comboBox_from_printer = 1;
     m_comboBox_filament->SetSelection(selection_idx);
     post_select_event(selection_idx);
 
@@ -1245,8 +1258,7 @@ void AMSMaterialsSetting::on_select_cali_result(wxCommandEvent &evt)
 void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
 {
     // Get the flag whether to open the filament setting dialog from the device page
-    int* from_printer = static_cast<int*>(m_comboBox_filament->GetClientData());
-    const bool initial_printer_selection = from_printer && *from_printer == 1;
+    const bool initial_printer_selection = m_comboBox_from_printer == 1;
 
     m_filament_type = "";
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
@@ -1330,7 +1342,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             m_input_k_val->GetTextCtrl()->SetValue(wxEmptyString);
             m_input_n_val->GetTextCtrl()->SetValue(wxEmptyString);
         }
-        m_comboBox_filament->SetClientData(new int(0));
+        m_comboBox_from_printer = 0;
         return;
     }
     else {
@@ -1417,7 +1429,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
 
         m_comboBox_cali_result->Set(items);
         if (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
-            if (from_printer && (*from_printer == 1)) {
+            if (m_comboBox_from_printer == 1) {
                 for (auto slot : obj->vt_slot) {
                     if (slot.id == std::to_string(ams_id))
                         cali_select_idx = CalibUtils::get_selected_calib_idx(m_pa_profile_items, slot.cali_idx);
@@ -1434,7 +1446,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             }
         }
         else {
-            if (from_printer && (*from_printer == 1)) {
+            if (m_comboBox_from_printer == 1) {
                 DevAmsTray* selected_tray = this->obj->GetFilaSystem()->GetAmsTray(std::to_string(ams_id), std::to_string(slot_id));
                 if (!selected_tray)
                 {
@@ -1476,7 +1488,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
         }
     }
 
-    m_comboBox_filament->SetClientData(new int(0));
+    m_comboBox_from_printer = 0;
 }
 
 void AMSMaterialsSetting::on_dpi_changed(const wxRect &suggested_rect)
@@ -1738,6 +1750,7 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
         cp->set_selected(false);
         cp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(238,238,238)));
         m_color_pickers.push_back(cp);
+        m_def_color_pickers.push_back(cp);
         fg_sizer->Add(cp, 0, wxALL, FromDIP(3));
         cp->Bind(wxEVT_LEFT_DOWN, [this, cp](auto& e) {
             set_def_colour(cp->m_colour);
@@ -1750,27 +1763,27 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     }
 
     wxBoxSizer* m_sizer_other = new wxBoxSizer(wxHORIZONTAL);
-    auto m_title_other = new wxStaticText(m_def_color_box, wxID_ANY, _L("Other Color"), wxDefaultPosition, wxDefaultSize, 0);
+    m_title_other = new wxStaticText(m_def_color_box, wxID_ANY, _L("Other Color"), wxDefaultPosition, wxDefaultSize, 0);
     m_title_other->SetFont(::Label::Body_14);
     m_title_other->SetBackgroundColour(wxColour(238, 238, 238));
     m_sizer_other->Add(m_title_other, 0, wxALL, 5);
-    auto other_line = new wxPanel(m_def_color_box, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    other_line->SetMinSize(wxSize(-1, 1));
-    other_line->SetMaxSize(wxSize(-1, 1));
-    other_line->SetBackgroundColour(wxColour("#CECECE"));
-    m_sizer_other->Add(other_line, 1, wxALIGN_CENTER, 0);
+    m_other_line = new wxPanel(m_def_color_box, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
+    m_other_line->SetMinSize(wxSize(-1, 1));
+    m_other_line->SetMaxSize(wxSize(-1, 1));
+    m_other_line->SetBackgroundColour(wxColour("#CECECE"));
+    m_sizer_other->Add(m_other_line, 1, wxALIGN_CENTER, 0);
 
     //custom color
     wxBoxSizer* m_sizer_custom = new wxBoxSizer(wxHORIZONTAL);
-    auto m_title_custom = new wxStaticText(m_def_color_box, wxID_ANY, _L("Custom Color"), wxDefaultPosition, wxDefaultSize, 0);
+    m_title_custom = new wxStaticText(m_def_color_box, wxID_ANY, _L("Custom Color"), wxDefaultPosition, wxDefaultSize, 0);
     m_title_custom->SetFont(::Label::Body_14);
     m_title_custom->SetBackgroundColour(wxColour(238, 238, 238));
-    auto custom_line = new wxPanel(m_def_color_box, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    custom_line->SetBackgroundColour(wxColour("#CECECE"));
-    custom_line->SetMinSize(wxSize(-1, 1));
-    custom_line->SetMaxSize(wxSize(-1, 1));
+    m_custom_line = new wxPanel(m_def_color_box, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
+    m_custom_line->SetBackgroundColour(wxColour("#CECECE"));
+    m_custom_line->SetMinSize(wxSize(-1, 1));
+    m_custom_line->SetMaxSize(wxSize(-1, 1));
     m_sizer_custom->Add(m_title_custom, 0, wxALL, 5);
-    m_sizer_custom->Add(custom_line, 1, wxALIGN_CENTER, 0);
+    m_sizer_custom->Add(m_custom_line, 1, wxALIGN_CENTER, 0);
 
     m_custom_cp =  new StaticBox(m_def_color_box);
     m_custom_cp->SetSize(FromDIP(60), FromDIP(25));
@@ -1906,6 +1919,22 @@ void ColorPickerPopup::set_ams_colours(std::vector<wxColour> ams)
         });
     }
     m_ams_fg_sizer->Layout();
+    Layout();
+    Fit();
+}
+
+// A printer with a fixed vocabulary only shows its own palette: the default
+// swatches and the custom picker would offer colors its screen cannot hold.
+void ColorPickerPopup::set_constrained(bool constrained)
+{
+    const bool show = !constrained;
+    m_title_other->Show(show);
+    m_other_line->Show(show);
+    for (ColorPicker* cp : m_def_color_pickers)
+        cp->Show(show);
+    m_title_custom->Show(show);
+    m_custom_line->Show(show);
+    m_custom_cp->Show(show);
     Layout();
     Fit();
 }
