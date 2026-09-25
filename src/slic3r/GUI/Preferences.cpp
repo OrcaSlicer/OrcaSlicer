@@ -743,12 +743,6 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     return m_sizer;
 }
 
-// the reduced-detail modes that keep one layer in every N, so the stride applies
-static bool reduced_detail_mode_skips_layers(const std::string& mode)
-{
-    return mode == "layers" || mode == "outer_walls";
-}
-
 wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange, const wxString wiki_url)
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
@@ -762,11 +756,6 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
     if (param == "preview_dim_previous_layers_brightness") {
         m_dim_previous_layers_brightness_input = input;
         input->Enable(app_config->get_bool("preview_dim_previous_layers"));
-    }
-    // only the toolpath modes skip layers
-    else if (param == "preview_reduced_detail_layer_stride") {
-        m_reduced_detail_layer_stride_input = input;
-        input->Enable(reduced_detail_mode_skips_layers(app_config->get("preview_reduced_detail_mode")));
     }
 
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
@@ -2186,18 +2175,14 @@ void PreferencesDialog::create_items()
            "Off: the full toolpaths.\n"
            "Solid model: the sliced objects and the prime tower as solid shapes in their filament colors, cut to the visible layer range, "
            "with its bottom and top layers drawn as toolpaths. Supports are not shown, and negative volumes are not cut out.\n"
-           "Skip layers: the toolpaths of one layer in every N, set below.\n"
-           "Outer walls: only the outer walls of one layer in every N. The prime tower and supports are left out.\n"
            "Shell only: every layer without its sparse infill, internal solid infill and gap fill, which lie under the walls and skins. "
            "Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so the print looks the same from outside.\n"
            "The bottom and top of the visible layer range are always drawn whole."),
         "preview_reduced_detail_mode",
-        {_L("Off"), _L("Solid model"), _L("Skip layers"), _L("Outer walls"), _L("Shell only")},
-        {"off", "solid", "layers", "outer_walls", "shell"},
+        {_L("Off"), _L("Solid model"), _L("Shell only")},
+        {"off", "solid", "shell"},
         // apply the new mode immediately to the currently loaded preview
-        [this](std::string value) {
-            if (m_reduced_detail_layer_stride_input)
-                m_reduced_detail_layer_stride_input->Enable(reduced_detail_mode_skips_layers(value));
+        [](std::string value) {
             if (Plater* plater = wxGetApp().plater()) {
                 if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
                     canvas->get_gcode_viewer().set_reduced_detail_mode(value);
@@ -2208,27 +2193,6 @@ void PreferencesDialog::create_items()
         }
     );
     g_sizer->Add(item_reduced_detail_mode);
-
-    auto item_reduced_detail_layer_stride = create_item_spinctrl(
-        _L("Draw one layer in every"),
-        "",
-        _L("layers"),
-        _L("How many layers the simplified preview keeps one of while dragging: 1 draws every layer, 4 draws every fourth."),
-        "preview_reduced_detail_layer_stride",
-        1,
-        20,
-        // apply the new stride immediately to the currently loaded preview
-        [](int value) {
-            if (Plater* plater = wxGetApp().plater()) {
-                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
-                    canvas->get_gcode_viewer().set_reduced_detail_layer_stride(static_cast<unsigned int>(value));
-                    canvas->set_as_dirty();
-                    canvas->request_extra_frame();
-                }
-            }
-        }
-    );
-    g_sizer->Add(item_reduced_detail_layer_stride);
 
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),

@@ -134,8 +134,6 @@ public:
     bool is_reduced_detail() const { return m_settings.reduced_detail; }
     EReducedDetailMode get_reduced_detail_mode() const { return m_settings.reduced_detail_mode; }
     void set_reduced_detail_mode(EReducedDetailMode mode);
-    uint32_t get_reduced_detail_layer_stride() const { return m_settings.reduced_detail_layer_stride; }
-    void set_reduced_detail_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -589,8 +587,6 @@ private:
 
     // The set the next draw reads from: the reduced one while dragging, if one is built.
     bool use_reduced_set() const { return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off; }
-    // Whether the extrusion segment starting at vertex v belongs to the reduced set under the current mode
-    bool reduced_set_keeps(const PathVertex& v) const;
     struct ActiveSet
     {
         size_t count{ 0 };

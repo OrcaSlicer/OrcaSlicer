@@ -9,8 +9,7 @@ let go.
 
 | Preference | Values | Effect |
 |---|---|---|
-| `preview_reduced_detail_mode` | `off`, `solid`, `layers`, `outer_walls`, `shell` | what is drawn while dragging |
-| `preview_reduced_detail_layer_stride` | 1–20 | one layer in every N is kept by the skip-layers and outer-walls modes |
+| `preview_reduced_detail_mode` | `off`, `solid`, `shell` | what is drawn while dragging |
 
 libvgcode (`src/libvgcode`) builds and binds the reduced toolpath set, `GCodeViewer` maps the
 preferences onto it and draws the solid model, and `GLCanvas3D` decides when the user is dragging.
@@ -21,7 +20,7 @@ The OpenGL ES path keeps a single set and ignores the preference.
 `ViewerImpl::update_enabled_entities()` walks the visible vertex range once and fills two segment
 index buffers side by side: the **full** set and the **reduced** set (segments and options).
 Building them together is what makes switching free: starting or ending a drag is a buffer
-binding, never a rebuild. A change of mode or stride does rebuild. Nothing is built while the mode
+binding, never a rebuild. A change of mode does rebuild. Nothing is built while the mode
 is off, and the reduced buffers are then uploaded empty so that the last set does not stay
 allocated.
 
@@ -32,13 +31,10 @@ are the faces the range cuts open, and the top is what the user is looking at.
 
 - `EndLayersOnly` (`solid` in the preference) keeps only the two end layers. `GCodeViewer` then
   draws the sliced objects and the prime tower as opaque solids, see below.
-- `LayersOnly` (`layers`) keeps every role of one layer in every stride.
-- `OuterWallsOnly` (`outer_walls`) keeps the outer and overhang perimeters of one layer in every
-  stride. The prime tower and supports have other roles and are left out.
-- `ShellOnly` (`shell`) keeps every layer, and every role but the sparse infill, internal solid
-  infill, internal bridge infill and gap fill, which lie under the skins or between the walls.
-  Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so from
-  outside the print looks as it does at rest, and the stride does not apply. The roles come from
+- `ShellOnly` (`shell`) keeps every role but the sparse infill, internal solid infill, internal
+  bridge infill and gap fill, which lie under the skins or between the walls. Walls, top and
+  bottom surfaces, bridges, supports and the prime tower are drawn whole, so from outside the
+  print looks as it does at rest. The roles come from
   the slicer, so the classification is exact wherever the slicer's is; what it cannot express is
   the inside of the prime tower and of a support, which share one role with their outside and are
   kept whole. A profile with no top or bottom shell layers exposes infill, which this mode hides.

@@ -354,7 +354,6 @@ private:
     bool m_legend_enabled{ true };
     // the reduced-detail preferences, pushed to libvgcode by apply_reduced_detail_settings()
     libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
-    unsigned int m_reduced_detail_layer_stride{ 4 };
     void read_reduced_detail_preferences();
     void apply_reduced_detail_settings();
     static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
@@ -531,9 +530,8 @@ public:
     // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
-    // the preference's string value: "off", "solid", "layers", "outer_walls" or "shell"
+    // the preference's string value: "off", "solid" or "shell"
     void set_reduced_detail_mode(const std::string& mode);
-    void set_reduced_detail_layer_stride(unsigned int value);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 

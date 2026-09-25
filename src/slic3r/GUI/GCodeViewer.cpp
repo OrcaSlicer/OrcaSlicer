@@ -2788,14 +2788,12 @@ void GCodeViewer::set_interacting(bool interacting)
 void GCodeViewer::read_reduced_detail_preferences()
 {
     m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
-    m_reduced_detail_layer_stride = static_cast<unsigned int>(std::max(1, std::stoi(get_app_config()->get("preview_reduced_detail_layer_stride"))));
     apply_reduced_detail_settings();
 }
 
 void GCodeViewer::apply_reduced_detail_settings()
 {
     m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
-    m_viewer.set_reduced_detail_layer_stride(m_reduced_detail_layer_stride);
 }
 
 void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
@@ -2806,20 +2804,10 @@ void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
     reload_shells_if_solid_model_changed(was_solid);
 }
 
-void GCodeViewer::set_reduced_detail_layer_stride(unsigned int value)
-{
-    m_reduced_detail_layer_stride = std::max(1u, value);
-    apply_reduced_detail_settings();
-}
-
 libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
 {
     if (mode == "solid")
         return libvgcode::EReducedDetailMode::EndLayersOnly;
-    if (mode == "layers")
-        return libvgcode::EReducedDetailMode::LayersOnly;
-    if (mode == "outer_walls")
-        return libvgcode::EReducedDetailMode::OuterWallsOnly;
     if (mode == "shell")
         return libvgcode::EReducedDetailMode::ShellOnly;
     return libvgcode::EReducedDetailMode::Off;
