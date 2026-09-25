@@ -27,9 +27,7 @@ TEST_CASE("AMSinfo::parse_ams_info carries the accurate remaining weight and fet
 {
     MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
 
-    // tag_uid must have a non-zero digit for DevFilaSystem::IsBBL_Filament() to treat the tray as
-    // real BBL filament; parse_ams_info only reports remain/weight/fetch-status for those trays.
-    // state bits[5-7]: Refreshing = 1 -> 1 << 5 = 32.
+    // tag_uid must be non-zero for IsBBL_Filament(); state bit 5 (value 32) = Refreshing.
     json print_push = json::parse(R"({
         "ams": {
             "tray_exist_bits": "1",
@@ -42,11 +40,7 @@ TEST_CASE("AMSinfo::parse_ams_info carries the accurate remaining weight and fet
     })");
     DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
 
-    // tray_info_idx/tray_type are intentionally omitted from the JSON above: resolving the display
-    // filament type goes through MachineObject::setting_id_to_type(), which reads the GUI preset
-    // bundle (wxGetApp().preset_bundle) - unavailable in this headless unit test (see
-    // test_dev_mapping.cpp). Set the type directly so is_tray_info_ready() (color + type both set)
-    // is true and parse_ams_info() takes the populated-tray branch.
+    // Set the type directly (see test_dev_mapping.cpp): setting_id_to_type() needs a live preset bundle.
     DevAmsTray* tray = obj.GetFilaSystem()->GetAmsTray("0", "0");
     REQUIRE(tray != nullptr);
     tray->m_fila_type = "PLA";

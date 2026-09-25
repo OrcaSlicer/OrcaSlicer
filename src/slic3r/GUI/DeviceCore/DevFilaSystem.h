@@ -386,9 +386,7 @@ public:
     // extruder
     int  GetExtruderIdByAmsId(const std::string& ams_id) const;
 
-    // Which extruder this AMS is feeding right now. For a single-bound AMS this is just the
-    // bound extruder; for a switch-bound AMS (both extruders bound) it's resolved by checking
-    // which extruder's active slot currently points at this AMS.
+    // Which extruder this AMS is feeding right now (vs. GetExtruderIdByAmsId's static binding).
     std::optional<int> GetCurrentExtruderIdByAmsId(const std::string& ams_id) const;
 
     // nozzle: untranslated flow-type string of the extruder bound to this ams (for blacklist matching)

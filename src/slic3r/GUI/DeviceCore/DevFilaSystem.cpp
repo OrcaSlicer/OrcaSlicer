@@ -415,8 +415,7 @@ std::optional<int> DevFilaSystem::GetCurrentExtruderIdByAmsId(const std::string&
         return unique_id;
     }
 
-    // Switch-bound AMS: several extruders may be able to feed from it, so fall back to
-    // reporting which extruder's active slot currently points at this AMS.
+    // Switch-bound AMS: find which extruder's active slot currently points here.
     for (const auto& extruder : GetOwner()->GetExtderSystem()->GetExtruders())
     {
         if (extruder.GetSlotNow().ams_id == ams_id)
