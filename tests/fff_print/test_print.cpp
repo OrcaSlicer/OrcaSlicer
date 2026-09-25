@@ -262,6 +262,17 @@ TEST_CASE("Print: {first_object_name} is not replaced by the saved-project file 
     CHECK(resolved_output_name(model, "{first_object_name}", "SavedProject") == "WidgetPart.gcode");
 }
 
+TEST_CASE("Using a print statistic in filename_format throws until the G-code is exported", "[Print]")
+{
+    // The G-code export is what fills the print statistics in; until then each one is the literal
+    // string of its own name, so any numeric use of it fails to parse.
+    Model model;
+    add_named_cube(model, "WidgetPart");
+    CHECK_THROWS_AS(resolved_output_name(model, "{filament_type[initial_tool]}"), PlaceholderParserError);
+    CHECK_NOTHROW(resolved_output_name(model, "{filament_type[0]}"));
+    CHECK_THROWS_AS(resolved_output_name(model, "{int(total_weight*10) / 10.0}"), PlaceholderParserError);
+}
+
 TEST_CASE("Print::validate stacks independent warnings", "[Print][validate]")
 {
     // Two unrelated checks (region precise-wall + machine acceleration) must each

@@ -12801,9 +12801,18 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     this->background_process.stop();
     notification_manager->set_slicing_progress_export_possible();
 
+    // Unless the slice finished, the print statistics are still placeholder strings, so a
+    // filename_format that uses one as a number, such as {filament_type[initial_tool]}, throws.
+    std::string lifecycle_job_name;
+    if (const Print* print = this->background_process.fff_print()) {
+        try {
+            lifecycle_job_name = print->output_filename();
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to name the slicing lifecycle event after the output file: " << ex.what();
+        }
+    }
+
     // Reset the "export G-code path" name, so that the automatic background processing will be enabled again.
-    const std::string lifecycle_job_name = this->background_process.fff_print() ?
-        this->background_process.fff_print()->output_filename() : std::string();
     this->background_process.reset_export();
     // This bool stops showing export finished notification even when process_completed_with_error is false
     bool has_error = false;
