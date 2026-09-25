@@ -1766,7 +1766,7 @@ void SendToPrinterDialog::GetConnection()
                     }
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : Tutk url error: ress = " << res;
                 }
-            });
+            }, wxGetApp().get_printer_cloud_provider());
         }
     }
 }
