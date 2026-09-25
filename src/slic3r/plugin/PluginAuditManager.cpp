@@ -842,11 +842,8 @@ int decide_audited_event(PluginAuditManager&             mgr,
             if (!has_permission(*permission_list, target))
                 unresolved.push_back(target);
         if (!targets.empty() && unresolved.empty()) {
-            // The target was already approved (persisted from a prior session), so no prompt is
-            // shown here. But the in-memory call-site cache that has_approved_ancestor() relies on
-            // is empty after a restart -- rebuild it here so nested events (e.g. socket.connect
-            // triggered by an already-approved urllib.request call) are still covered by the
-            // ancestor cascade instead of prompting again.
+            // Rebuild the call-site cache, which is empty after a restart, so the cascade covers
+            // this already-persisted target too.
             mgr.record_approved_call_sites(plugin_key, call_site_ids);
             return 0;
         }
