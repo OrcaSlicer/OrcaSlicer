@@ -8,6 +8,19 @@ name: Post-merge profiles
 # only then does it become a live OTA update - this workflow does none of that
 # last part (no changelog, no R2, no webhook).
 #
+# A workflow_dispatch carrying a `vendor` input (e.g. the daily OFL cron - OFL has
+# no FOLDER_MERGERS grant, since it isn't merged through the PR merge-bot delegation
+# scheme) publishes that vendor directly and skips the FOLDER_MERGERS check below.
+# workflow_dispatch is already a trusted, explicit trigger, unlike the automatic
+# push-diff path the FOLDER_MERGERS check exists to gate.
+#
+# Separately, an ordinary push whose diff touches an OrcaFilamentLibrary company
+# folder (resources/profiles/OrcaFilamentLibrary/filament/<Company>/**) records
+# that PR as pending via POST /api/v1/ota/ofl/pending, regardless of whether
+# OrcaFilamentLibrary as a whole is authorized to publish in this same run - a
+# partner's OTA Manager dashboard should see a merged PR immediately, well
+# before the daily cron actually builds and publishes it.
+#
 # Asset contract expected by OrcaCloud's release scanner:
 #   ^(\d+\.\d+\.\d+)_([^_]+)_(\d+(?:\.\d+){3})_(\d{12})\.zip$
 #     <orca_ver>_<vendor>_<profile_version>_<UTC yyyymmddHHMM>.zip   (zip root: <vendor>.opc)
@@ -17,16 +30,39 @@ name: Post-merge profiles
 on:
   push:
     branches:
+    # once v2.5.0 stable is released, this will be removed, so nightly won't receive OTA updates.
     - main
-    - release/*
+    # release/vX.Y.Z point-release branches only, not the release/vX.Y working
+    # branch profile PRs land on first - "v*.*.*" requires two literal dots,
+    # which release/vX.Y (one dot) doesn't have.
+    - release/v*.*.*
     paths:
     - 'resources/profiles/**'
     - '.github/workflows/post_merge_profiles.yml'
 
   workflow_dispatch:
+    inputs:
+      vendor:
+        description: >-
+          Publish only this vendor, bypassing the FOLDER_MERGERS grant check.
+          For trusted explicit dispatches only (e.g. the OFL nightly cron).
+          Leave empty to fall back to diffing the triggering commit.
+        required: false
+        type: string
+      auto_publish:
+        description: >-
+          After publishing, also call the OTA auto-publish API to go live
+          immediately, skipping the human changelog/Publish step. Separate
+          from `vendor` on purpose: a maintainer can dispatch with just
+          `vendor` set to rebuild/republish an asset without it going live.
+          Only the OFL nightly cron should set this to true.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  pull-requests: read  # commits/{sha}/pulls lookup in the OFL-pending step
 
 # One run per branch; let a run finish rather than cancel it, since it publishes.
 concurrency:
@@ -66,8 +102,38 @@ jobs:
         shell: bash
         env:
           FOLDER_MERGERS: ${{ vars.FOLDER_MERGERS }}
+          DISPATCH_VENDOR: ${{ github.event_name == 'workflow_dispatch' && inputs.vendor || '' }}
         run: |
           set -euo pipefail
+
+          # A vendor has a manifest plus either a preset directory or a version
+          # field; this drops non-vendor files such as blacklist.json. Shared by
+          # both the explicit-dispatch path below and the push-diff path further
+          # down, so the definition of "valid vendor" can't drift between them.
+          is_valid_vendor() {
+            local v="$1"
+            local json="resources/profiles/$v.json"
+            [ -f "$json" ] && { [ -d "resources/profiles/$v" ] || jq -e '.version' "$json" >/dev/null 2>&1; }
+          }
+
+          # Explicit vendor dispatch (e.g. the OFL cron): trust the caller and
+          # skip both the git-diff detection and the FOLDER_MERGERS check below.
+          if [ -n "$DISPATCH_VENDOR" ]; then
+            v="$DISPATCH_VENDOR"
+            # Becomes part of the release asset filename and the OTA API's
+            # payload; keep it to the same charset every real vendor name uses.
+            if ! [[ "$v" =~ ^[A-Za-z0-9]+$ ]]; then
+              echo "::error::vendor '$v' must be alphanumeric"
+              exit 1
+            fi
+            if ! is_valid_vendor "$v"; then
+              echo "::error::vendor '$v' has no resources/profiles/$v.json with a profile directory or version field"
+              exit 1
+            fi
+            echo "vendors=$v" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           base='${{ github.event.before }}'
           head='${{ github.sha }}'
           # Zero SHA (branch created / force push) or manual dispatch: fall back
@@ -75,6 +141,10 @@ jobs:
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
             base="$head^"
           fi
+          # Exposed so the OFL-pending step below can reuse this exact diff
+          # range instead of re-deriving it (and drifting from this logic).
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
           mapfile -t candidates < <(
             git diff --name-only "$base" "$head" -- resources/profiles \
               | sed -nE 's#^resources/profiles/([^/]+)/.*#\1#p; s#^resources/profiles/([^/]+)\.json$#\1#p' \
@@ -84,10 +154,7 @@ jobs:
           vendors=()
           for v in "${candidates[@]:-}"; do
             [ -n "$v" ] || continue
-            json="resources/profiles/$v.json"
-            # A vendor has a manifest plus either a preset directory or a version
-            # field; this drops non-vendor files such as blacklist.json.
-            if [ -f "$json" ] && { [ -d "resources/profiles/$v" ] || jq -e '.version' "$json" >/dev/null 2>&1; }; then
+            if is_valid_vendor "$v"; then
               vendors+=("$v")
             fi
           done
@@ -101,6 +168,9 @@ jobs:
           # sibling bundle JSON are covered by at least one FOLDER_MERGERS
           # grant. The account part is intentionally ignored here: this is a
           # post-merge safety check, not an authorization check for a command.
+          # An ineligible vendor (e.g. OrcaFilamentLibrary, which has no grant)
+          # is dropped on its own - it never blocks other vendors in the same
+          # push from publishing.
           grants=()
           while IFS= read -r raw_line; do
             line="${raw_line#"${raw_line%%[![:space:]]*}"}"
@@ -127,23 +197,29 @@ jobs:
             return 1
           }
 
+          authorized=()
           unauthorized=()
           for v in "${vendors[@]}"; do
-            if ! is_granted "resources/profiles/$v" || ! is_granted "resources/profiles/$v.json"; then
+            if is_granted "resources/profiles/$v" && is_granted "resources/profiles/$v.json"; then
+              authorized+=("$v")
+            else
               unauthorized+=("$v")
             fi
           done
 
           if [ "${#unauthorized[@]}" -ne 0 ]; then
-            echo "vendors=" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::warning::skipping vendor(s) with no FOLDER_MERGERS grant (no asset built or published for them this run): ${unauthorized[*]}"
           fi
 
-          echo "vendors=${vendors[*]}" >> "$GITHUB_OUTPUT"
+          echo "vendors=${authorized[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Resolve Orca version
         id: orca
-        if: steps.vendors.outputs.vendors != ''
+        # Unconditional: needed both by the vendor-publish pipeline below (only
+        # when vendors is non-empty) and by the OFL-pending step at the end
+        # (which runs whenever OFL itself changed, even if vendors ends up
+        # empty because OFL has no FOLDER_MERGERS grant). Cheap and harmless
+        # to always resolve - version.inc is present on every commit.
         shell: bash
         run: |
           set -euo pipefail
@@ -242,3 +318,132 @@ jobs:
             echo "### Published to \`$repo\` release \`$RELEASE_TAG\`"
             for f in "$ASSET_DIR"/*.zip; do echo "- \`$(basename "$f")\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify OTA auto-publish
+        # Gated on auto_publish specifically, not just "vendor was dispatched":
+        # a maintainer manually dispatching with vendor=OrcaFilamentLibrary (e.g.
+        # to rebuild/republish an asset while debugging) must not silently go
+        # live. Only a caller that explicitly opts in with auto_publish=true
+        # (the OFL nightly cron) skips the human changelog/Publish step.
+        if: >-
+          steps.vendors.outputs.vendors != '' && github.event_name == 'workflow_dispatch'
+          && (inputs.auto_publish == true || inputs.auto_publish == 'true')
+        shell: bash
+        env:
+          OTA_API_BASE_URL: ${{ vars.OTA_API_BASE_URL }}
+          OTA_API_KEY: ${{ secrets.OFL_OTA_PUBLISH_KEY }}
+          ASSET_DIR: ${{ steps.pkg.outputs.dir }}
+        run: |
+          set -euo pipefail
+          [ -n "$OTA_API_BASE_URL" ] || { echo "::error::vars.OTA_API_BASE_URL is not set"; exit 1; }
+          [ -n "$OTA_API_KEY" ] || { echo "::error::secrets.OFL_OTA_PUBLISH_KEY is not set"; exit 1; }
+
+          mapfile -t zip_files < <(cd "$ASSET_DIR" && ls -1 *.zip)
+          filenames_json="$(printf '%s\n' "${zip_files[@]}" | jq -R . | jq -s .)"
+          payload="$(jq -n --argjson filenames "$filenames_json" '{filenames: $filenames}')"
+
+          resp_file="$RUNNER_TEMP/ota-auto-publish-response.json"
+          status="$(curl -sS -o "$resp_file" -w '%{http_code}' -X POST \
+            "${OTA_API_BASE_URL%/}/api/v1/ota/auto-publish" \
+            -H "Authorization: Bearer $OTA_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d "$payload")"
+          body="$(cat "$resp_file")"
+          echo "$body"
+
+          if [ "$status" != "200" ]; then
+            echo "::error::OTA auto-publish call failed with HTTP $status"
+            exit 1
+          fi
+
+          # A 200 can still carry per-file "error" results (e.g. NOT_FOUND); the
+          # asset is already safely published to the profiles release above, but
+          # it never went live, so treat that as a failure worth surfacing loudly.
+          error_count="$(jq '[.results[] | select(.status == "error")] | length' <<< "$body")"
+          if [ "$error_count" != "0" ]; then
+            jq -r '.results[] | select(.status == "error") | "::error::\(.filename): \(.code) - \(.message)"' <<< "$body"
+            exit 1
+          fi
+
+      - name: Record OFL pending changes
+        # A real merge, never the cron's explicit-vendor dispatch (that's
+        # automation publishing, not a new merge to report). This covers two
+        # trigger shapes: an ordinary push, and a vendor-less workflow_dispatch
+        # - the latter is exactly what pr-merge-bot.yml's re-dispatch after a
+        # successful /bot merge looks like (a GITHUB_TOKEN-authored merge fires
+        # no push event at all, which is why that re-dispatch exists). Both
+        # land in the same diff-fallback path in "Resolve changed vendors", so
+        # base/head/orca_ver are already correctly populated either way - only
+        # this condition needs widening.
+        # Placed last in the job on purpose: a failure here must never block
+        # the vendor-publish pipeline above, which a step failing earlier in
+        # the job would do (subsequent steps without always() get skipped).
+        if: >-
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && !inputs.vendor)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OTA_API_BASE_URL: ${{ vars.OTA_API_BASE_URL }}
+          OTA_API_KEY: ${{ secrets.OFL_OTA_PUBLISH_KEY }}
+        run: |
+          set -euo pipefail
+          base='${{ steps.vendors.outputs.base }}'
+          head='${{ steps.vendors.outputs.head }}'
+          orca_ver='${{ steps.orca.outputs.orca_ver }}'
+
+          # Only real vendor subdirectories under filament/, e.g.
+          # .../filament/Qidi/x.json -> "Qidi". This naturally excludes loose
+          # top-level files (.../filament/Generic PLA @System.json - no further
+          # slash to match) and is further filtered below to drop "base", the
+          # shared @base/@System inheritance folder, not a partner company.
+          mapfile -t ofl_companies < <(
+            git diff --name-only "$base" "$head" -- resources/profiles/OrcaFilamentLibrary/filament \
+              | sed -nE 's#^resources/profiles/OrcaFilamentLibrary/filament/([^/]+)/.*#\1#p' \
+              | grep -vx 'base' \
+              | sort -u
+          )
+
+          if [ "${#ofl_companies[@]}" -eq 0 ]; then
+            echo "No OFL company folders changed in this push."
+            exit 0
+          fi
+
+          [ -n "$OTA_API_BASE_URL" ] || { echo "::error::vars.OTA_API_BASE_URL is not set"; exit 1; }
+          [ -n "$OTA_API_KEY" ] || { echo "::error::secrets.OFL_OTA_PUBLISH_KEY is not set"; exit 1; }
+
+          # The head commit's own merged PR, not a per-commit walk: this
+          # assumes the ordinary one-PR-per-push shape every other merge path
+          # in this repo already assumes (pr-merge-bot.yml's re-dispatch logic
+          # does the same). A merge commit's parents don't matter here - this
+          # API call works the same regardless of merge strategy.
+          pr_json="$(gh api "repos/${{ github.repository }}/commits/$head/pulls" \
+            --jq '[.[] | select(.merged_at != null)] | sort_by(.merged_at) | last // empty')"
+
+          if [ -z "$pr_json" ]; then
+            echo "::warning::push $head touches OFL compan(y/ies) (${ofl_companies[*]}) but has no associated merged PR; skipping pending record(s)"
+            exit 0
+          fi
+          pr_number="$(jq -r '.number' <<< "$pr_json")"
+          pr_url="$(jq -r '.html_url' <<< "$pr_json")"
+          pr_title="$(jq -r '.title' <<< "$pr_json")"
+
+          for company in "${ofl_companies[@]}"; do
+            payload="$(jq -n --arg vendor "$company" --arg ver "$orca_ver" --argjson pr "$pr_number" \
+              --arg url "$pr_url" --arg title "$pr_title" \
+              '{vendor: $vendor, orcaSlicerVersion: $ver, prNumber: $pr, prUrl: $url, prTitle: $title}')"
+
+            resp_file="$RUNNER_TEMP/ofl-pending-$company.json"
+            status="$(curl -sS -o "$resp_file" -w '%{http_code}' -X POST \
+              "${OTA_API_BASE_URL%/}/api/v1/ota/ofl/pending" \
+              -H "Authorization: Bearer $OTA_API_KEY" \
+              -H 'Content-Type: application/json' \
+              -d "$payload")"
+            body="$(cat "$resp_file")"
+            echo "$body"
+
+            if [ "$status" != "200" ]; then
+              echo "::error::OFL pending record failed for vendor=$company (PR #$pr_number): HTTP $status"
+              exit 1
+            fi
+          done

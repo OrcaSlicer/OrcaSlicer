@@ -57,6 +57,15 @@ public:
         FallbackGizmo = 2000000
     };
 
+    // Orca: Navigation needs the closest visible scene surface, without picking-specific
+    // gizmo and selected-volume priority.
+    enum class EHitMode : unsigned char
+    {
+        Picking,
+        SceneOnly,
+        VolumesOnly // Navigation when the bed is hidden.
+    };
+
     struct HitResult
     {
         EType type{ EType::None };
@@ -97,7 +106,8 @@ public:
 
     void set_gizmos_on_top(bool value) { m_gizmos_on_top = value; }
 
-    HitResult hit(const Vec2d& mouse_pos, const Camera& camera, const ClippingPlane* clipping_plane = nullptr) const;
+    HitResult hit(const Vec2d& mouse_pos, const Camera& camera, const ClippingPlane* clipping_plane = nullptr,
+        EHitMode mode = EHitMode::Picking) const;
 
 #if ENABLE_RAYCAST_PICKING_DEBUG
     void render_hit(const Camera& camera);

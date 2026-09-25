@@ -82,6 +82,20 @@ assert.equal(ctx.searchActions(pool, "layer").length >= 2, true,
 assert.equal(ctx.searchActions(pool, "surface")[0].id, "c2",
     "a later-but-precise match still ranks by relevance, not by pool type");
 
+const pluginPool = [
+    { id: "plugin-action", title: "Optimize G-code", source: "Gcode Optimizer", group: "", kind: "plugin" },
+    { id: "command-action", title: "Open Preferences", source: "OrcaSlicer", group: "Commands", kind: "command" }
+];
+assert.deepEqual(ctx.searchActions(pluginPool, "plugin").map(function (a) { return a.id; }), ["plugin-action"],
+    "the plugin kind makes runnable plugin actions searchable by plugin");
+assert.deepEqual(ctx.searchActions(pluginPool, "plugins").map(function (a) { return a.id; }), ["plugin-action"],
+    "the plural Plugins category also finds plugin actions");
+ctx.searchActions(pluginPool, "plugins");
+assert.deepEqual(ctx.matchIndex["plugin-action"].plugin, [[0, 7]],
+    "a category match highlights the visible Plugins label");
+assert.deepEqual(ctx.searchActions(pluginPool, "plugin optimize").map(function (a) { return a.id; }), ["plugin-action"],
+    "plugin kind can match one token while the action title matches another");
+
 // A perfect match (the needle as one contiguous run) outranks a fuzzy match of the same field - and a
 // contiguous GROUP/header hit ("Recent Projects") beats a scattered fuzzy TITLE hit ("Retraction Length"),
 // which is what the old flat title-bonus ranking got backwards.
@@ -188,6 +202,12 @@ assert.equal(ctx.actionCategory({ id: "s", group: "", source: "Filament : Coolin
     "a Filament setting groups under Filament");
 assert.equal(ctx.actionCategory({ id: "plugin_script_action:Foo:bar.py", group: "", source: "Gcode Optimizer", kind: "plugin" }), "Plugins",
     "every plugin shares one Plugins header");
+assert.equal(ctx.actionEyebrow({ group: "", source: "Gcode Optimizer", kind: "plugin" }, "plugin"), "Plugins",
+    "typed results show only the Plugins category");
+assert.equal(ctx.actionEyebrow({ group: "", source: "Gcode Optimizer", kind: "plugin" }, "", true), "Plugins",
+    "recent plugin actions show only the Plugins category");
+assert.equal(ctx.actionEyebrow({ group: "", source: "Gcode Optimizer", kind: "plugin" }, ""), "Gcode Optimizer",
+    "the unfiltered plugin section keeps the source name on non-recent rows");
 assert.equal(ctx.actionCategory({ id: "x", group: "", source: "", kind: "command" }), "Other",
     "a category-less action falls back to Other");
 
@@ -435,5 +455,10 @@ assert.equal(ctx.detailToggleVisible(null), false, "no selected action offers no
 assert.equal(ctx.stateFromPayload({}).tooltipExpanded, true, "expansion defaults to true when absent");
 assert.equal(ctx.stateFromPayload({ tooltip_expanded: false }).tooltipExpanded, false, "a collapsed payload is honored");
 assert.equal(ctx.stateFromPayload({ tooltip_expanded: true }).tooltipExpanded, true, "an expanded payload is honored");
+
+// resultCountText: a search counts the shown matches only ("Showing N actions"); the total is used
+// solely for the empty-query count.
+assert.equal(ctx.resultCountText(100, 3, "lay"), "Showing 3 actions", "a search reports the shown match count only");
+assert.equal(ctx.resultCountText(100, 100, ""), "100 actions", "an empty query reports the total");
 
 console.log("ok");
