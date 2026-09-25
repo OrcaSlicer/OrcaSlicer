@@ -120,7 +120,7 @@ static void market_model_scoring_page(int design_id)
     std::string url;
     std::string country_code   = GUI::wxGetApp().app_config->get_country_code();
     std::string model_http_url = GUI::wxGetApp().get_model_http_url(country_code);
-    if (GUI::wxGetApp().getAgent()->get_model_mall_detail_url(&url, std::to_string(design_id)) == 0) {
+    if (GUI::wxGetApp().getAgent()->get_model_mall_detail_url(&url, std::to_string(design_id), GUI::wxGetApp().get_printer_cloud_provider()) == 0) {
         std::string user_id = GUI::wxGetApp().getAgent()->get_user_id();
         boost::algorithm::replace_first(url, "models", "u/" + user_id + "/rating");
         // Prevent user_id from containing design_id
@@ -3668,7 +3668,7 @@ void StatusPanel::update_model_info()
                 curr_model_task->task_id = curr_task->task_id;
                 request_model_info_flag = true;
                 if (!curr_model_task->task_id.empty() && curr_model_task->task_id.compare("0") != 0) {
-                    wxGetApp().getAgent()->get_subtask(curr_model_task,  get_subtask_fn);
+                    wxGetApp().getAgent()->get_subtask(curr_model_task, get_subtask_fn, wxGetApp().get_printer_cloud_provider());
                 }
             }
         }
@@ -5952,7 +5952,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
 
         if (!need_upload_images.empty()) {
             std::string config;
-            int         ret = wxGetApp().getAgent()->get_oss_config(config, wxGetApp().app_config->get_country_code(), http_code, http_error);
+            int         ret = wxGetApp().getAgent()->get_oss_config(config, wxGetApp().app_config->get_country_code(), http_code, http_error, wxGetApp().get_printer_cloud_provider());
             if (ret == -1) {
                 error_info += into_u8(_L("Get oss config failed.")) + "\n\thttp code: " + std::to_string(http_code) + "\n\thttp error: " + http_error;
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": get oss config filed and http_error: " << http_error;
@@ -5967,7 +5967,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                     std::pair<wxStaticBitmap *, wxString> need_upload     = *it;
                     std::string need_upload_uf8 = into_u8(need_upload.second);
                     //Local path when incoming, cloud path when outgoing
-                    ret = wxGetApp().getAgent()->put_rating_picture_oss(config, need_upload_uf8, m_model_id, m_profile_id, http_code, http_error);
+                    ret = wxGetApp().getAgent()->put_rating_picture_oss(config, need_upload_uf8, m_model_id, m_profile_id, http_code, http_error, wxGetApp().get_printer_cloud_provider());
                     std::unordered_map<wxStaticBitmap *, ImageMsg>::iterator iter;
                     switch (ret) {
                     case 0:
@@ -6023,7 +6023,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
         }
 
         if (m_upload_status_code == StatusCode::UPLOAD_PROGRESS) {
-            int            ret = wxGetApp().getAgent()->put_model_mall_rating(m_rating_id, m_star_count, comment, m_image_url_paths, http_code, http_error);
+            int            ret = wxGetApp().getAgent()->put_model_mall_rating(m_rating_id, m_star_count, comment, m_image_url_paths, http_code, http_error, wxGetApp().get_printer_cloud_provider());
             MessageDialog *dlg_info;
             switch (ret) {
             case 0: EndModal(wxID_OK); break;
