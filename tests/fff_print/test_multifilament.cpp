@@ -303,6 +303,38 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
 
+// FanMover (fan speedup / kickstart) walks backward through the gcode looking for a place to
+// move a fan-speed command earlier in time, and can split a G1 move it finds along the way to
+// insert one mid-move. It has a guard against doing that inside custom gcode, keyed off an
+// "; custom gcode" / "; custom gcode end" comment pair that GCode::set_extruder() must emit
+// around change_filament_gcode's own output -- without it, a user's deliberately-authored
+// toolchange moves (e.g. routed around the printer's own hardware) can get an unrelated waypoint
+// spliced into the middle of them (#15789).
+TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", "[MultiFilament]")
+{
+    const std::string custom_gcode = "; fan full\nM106 P1 S255\nM400 S3\n\nG1 X77 F5000\nG1 X91 F3000\n";
+    const std::string gcode = slice_with_object_overrides(
+        { cube(20), cube(20) },
+        multifilament_config(2, {
+            { "skirt_loops",           0 },
+            { "brim_type",             "no_brim" },
+            { "print_sequence",        "by object" },
+            { "change_filament_gcode", custom_gcode },
+            { "fan_speedup_time",      0.5 },
+            { "fan_kickstart",         0.1 },
+        }),
+        { {}, { { "outer_wall_filament_id", 2 }, { "inner_wall_filament_id", 2 } } });
+
+    const size_t start = gcode.find("; custom gcode start");
+    REQUIRE(start != std::string::npos);
+    const size_t end = gcode.find("; custom gcode end", start);
+    REQUIRE(end != std::string::npos);
+
+    // The two travel moves must remain exactly adjacent: no foreign line (e.g. a split waypoint)
+    // inserted between them.
+    CHECK(gcode.substr(start, end - start).find("G1 X77 F5000\nG1 X91 F3000") != std::string::npos);
+}
+
 // With wait_for_temp_on_wipe_tower the blocking M109 moves from right after the Tn command to
 // a stop point parked beside the wipe tower (heat-up drool falls next to the tower, not onto
 // its top): tagged with _WAIT_FOR_TEMP_ON_WIPE_TOWER, after the toolchange and before the
