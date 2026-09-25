@@ -14,6 +14,12 @@ namespace Slic3r {
 
 class DynamicPrintConfig;
 class Http;
+
+// Builds a request URL against CrealityPrint's native REST API from a raw host string, stripping
+// any port `host` carries. Free function, not a CrealityPrint member, so it is reachable from
+// unit tests without constructing a full CrealityPrint/DynamicPrintConfig. See CrealityPrint::make_url().
+std::string creality_print_make_url(const std::string &host, const std::string &path);
+
 class CrealityPrint : public PrintHost
 {
 public:
