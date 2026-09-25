@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <boost/log/trivial.hpp>
+#include <wx/evtloop.h>
 
 #include "libslic3r/Utils.hpp"
 
@@ -39,6 +40,13 @@ bool input_pending()
 #endif
 }
 
+// True inside a wxYield(), where a slice would build pages in the middle of the code that yielded.
+bool yielding()
+{
+    const wxEventLoopBase* loop = wxEventLoopBase::GetActive();
+    return loop != nullptr && loop->IsYielding();
+}
+
 } // namespace
 
 IdleScheduler::IdleScheduler(std::function<int()> input_idle_ms) : m_input_idle_ms(std::move(input_idle_ms))
@@ -66,7 +74,7 @@ void IdleScheduler::tick()
         stop();
         return;
     }
-    if (m_input_idle_ms() < quiet_ms || input_pending()) {
+    if (m_input_idle_ms() < quiet_ms || input_pending() || yielding()) {
         start();
         return;
     }
