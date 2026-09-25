@@ -170,6 +170,9 @@ void TempInput::SetFinish()
     wxCommandEvent event(wxCUSTOMEVT_SET_TEMP_FINISH);
     event.SetInt(temp_type);
     event.SetString(wxString::Format("%d", m_input_type));
+    // N-extruder temp controls all share TEMP_OF_NORMAL_TYPE, so the string payload above can't
+    // tell them apart; carry widget identity so the listener can find which one fired.
+    event.SetEventObject(this);
     wxPostEvent(this->GetParent(), event);
 }
 

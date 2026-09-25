@@ -1199,19 +1199,24 @@ int MachineObject::get_bed_temperature_limit()
 
 bool MachineObject::is_filament_installed()
 {
-    if (m_extder_system->GetTotalExtderCount() > 0) {
-        // right//or single
-        auto ext = m_extder_system->m_extders[MAIN_EXTRUDER_ID];
-        if (ext.m_ext_has_filament) {
+    // if (m_extder_system->GetTotalExtderCount() > 0) {
+    //     // right//or single
+    //     auto ext = m_extder_system->m_extders[MAIN_EXTRUDER_ID];
+    //     if (ext.m_ext_has_filament) {
+    //         return true;
+    //     }
+    // }
+    // /*left*/
+    // if (m_extder_system->GetTotalExtderCount() > 1) {
+    //     auto ext = m_extder_system->m_extders[DEPUTY_EXTRUDER_ID];
+    //     if (ext.m_ext_has_filament) {
+    //         return true;
+    //     }
+    // }
+
+    for (auto& ext : m_extder_system->m_extders) {
+        if (ext.m_ext_has_filament)
             return true;
-        }
-    }
-    /*left*/
-    if (m_extder_system->GetTotalExtderCount() > 1) {
-        auto ext = m_extder_system->m_extders[DEPUTY_EXTRUDER_ID];
-        if (ext.m_ext_has_filament) {
-            return true;
-        }
     }
     return false;
 }

@@ -482,6 +482,10 @@ protected:
     int             m_temp_nozzle_timeout{ 0 };
     TempInput*      m_tempCtrl_nozzle_deputy;
     int             m_temp_nozzle_deputy_timeout{ 0 };
+
+    std::vector<TempInput*> m_tempCtrl_nozzles;
+    std::vector<int> m_temp_nozzle_timeouts;
+
     TempInput *     m_tempCtrl_bed;
     int             m_temp_bed_timeout {0};
     TempInput *     m_tempCtrl_chamber;
