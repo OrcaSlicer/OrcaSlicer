@@ -6,6 +6,7 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_dev_mapping.cpp
     test_dev_fila_system.cpp
+    test_ams_item_info.cpp
     test_filament_bitmap_utils.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
