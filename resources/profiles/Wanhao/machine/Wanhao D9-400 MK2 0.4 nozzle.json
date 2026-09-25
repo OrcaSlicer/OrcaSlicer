@@ -1,0 +1,20 @@
+{
+	"type": "machine",
+	"name": "Wanhao D9-400 MK2 0.4 nozzle",
+	"inherits": "fdm_wanhao_d9_common",
+	"from": "system",
+	"setting_id": "jn1FEJFeN7S2gEbD",
+	"instantiation": "true",
+	"printer_model": "Wanhao D9-400 MK2",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"400x0",
+		"400x400",
+		"0x400"
+	],
+	"printable_height": "400",
+	"default_print_profile": "0.20mm Standard @Wanhao D9"
+}

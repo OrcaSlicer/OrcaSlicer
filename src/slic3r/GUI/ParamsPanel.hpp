@@ -30,6 +30,7 @@
 #include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"
 #include "Widgets/Button.hpp"
+#include "Lazy.hpp"
 
 class ModeSwitchButton;
 class SwitchButton;
@@ -121,6 +122,22 @@ class ParamsPanel : public wxPanel
 
         wxPanel* m_current_tab { nullptr };
 
+        // Builds the selected page's option groups at idle; while no tab is selected yet,
+        // its first unit selects the default one.
+        class SettingsPagePrebuild : public LazyBase
+        {
+        public:
+            explicit SettingsPagePrebuild(ParamsPanel& panel) : m_panel(panel) {}
+            const std::string& name() const override { return m_name; }
+            bool               built() const override;
+            bool               build_step() override;
+            int                prebuild_order() const override { return 0; }
+
+        private:
+            ParamsPanel& m_panel;
+            std::string  m_name{ "settings_page" };
+        } m_settings_page_prebuild{ *this };
+
         bool m_has_object_config { false };
 
         struct Highlighter
@@ -149,6 +166,10 @@ class ParamsPanel : public wxPanel
         //clear the right page
         void clear_page();
         void OnActivate();
+        // The print tab, or the filament tab without one.
+        void select_default_tab();
+        // The settings page's prebuild task.
+        LazyBase& settings_page_prebuild() { return m_settings_page_prebuild; }
         void set_active_tab(wxPanel*tab);
         bool is_active_and_shown_tab(wxPanel*tab);
         void update_mode();

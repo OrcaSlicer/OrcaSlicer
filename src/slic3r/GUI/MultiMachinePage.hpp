@@ -7,6 +7,7 @@
 #include "MultiTaskManagerPage.hpp"
 #include "MultiMachineManagerPage.hpp"
 #include "Tabbook.hpp"
+#include "Lazy.hpp"
 
 #include "wx/button.h"
 
@@ -19,7 +20,7 @@ namespace GUI {
 #define PICK_LEFT_DEV_STATUS 250
 #define PICK_DEVICE_MAX 6
     
-class MultiMachinePage : public wxPanel
+class MultiMachinePage : public wxPanel, public LazyInstance<MultiMachinePage>
 {
 private:
     wxTimer*                    m_refresh_timer      = nullptr;

@@ -15,6 +15,6 @@
 		"Elegoo"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
+		"; Elegoo PLA filament start gcode\n"
 	]
 }
