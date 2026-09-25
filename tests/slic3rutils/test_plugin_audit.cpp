@@ -315,13 +315,8 @@ TEST_CASE("Plugin audit a read-only allowed root blocks writes but not reads", "
 
 TEST_CASE("Plugin audit rebuilds the call-site cascade for an already-persisted target", "[audit]")
 {
-    // Regression test for: after a restart, a target restored from a persisted permission (no
-    // prompt shown) used to skip rebuilding the in-memory call-site cache, so a nested event on
-    // the same call chain (e.g. socket.connect nested inside an approved urllib.request) would
-    // still prompt every time. decide_audited_event() must record the call-site chain on this
-    // already-approved path too, not only when the user is freshly prompted.
     PluginAuditManager& mgr = PluginAuditManager::instance();
-    PluginInstallState  state; // unused here: an already-approved target never reaches persist_permission()
+    PluginInstallState  state;
 
     const std::string        plugin_key = "test_plugin_cascade_restart";
     const std::string        target     = "https://example.invalid/api";
@@ -335,7 +330,6 @@ TEST_CASE("Plugin audit rebuilds the call-site cascade for an already-persisted 
                                                                 {target}, &permission_list, call_site_ids);
 
     CHECK(result == 0);
-    // A nested event sharing this call-site chain must now be auto-approved instead of prompting again.
     CHECK(mgr.has_approved_ancestor(plugin_key, call_site_ids));
 }
 

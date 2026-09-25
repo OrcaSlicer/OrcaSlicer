@@ -202,9 +202,7 @@ private:
     std::vector<AllowedRoot>      m_previous_scoped_roots;
 };
 
-// Internal decision logic behind audit_hook(), exposed only so unit tests can exercise the
-// already-approved-target path (the one decide_audited_event() takes without ever showing the
-// wxMessageDialog) without a live GUI. Not part of the plugin system's public API otherwise.
+// audit_hook()'s decision logic, exposed for unit tests only.
 namespace PluginAuditDetail {
 
 int decide_audited_event(PluginAuditManager&              mgr,
