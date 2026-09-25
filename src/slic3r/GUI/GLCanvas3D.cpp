@@ -2354,6 +2354,13 @@ void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
     render_thumbnail(thumbnail_data, w, h, thumbnail_params, model_objects, m_volumes, camera_type, camera_view_angle_type, for_picking, ban_light);
 }
 
+bool GLCanvas3D::_set_shown_canvas_current()
+{
+    // Thumbnails also render outside render(), where another library's GL context (e.g. WebKitGTK's) can be current.
+    // Inside render(), the shown canvas is the one already bound.
+    return wxGetApp().plater()->get_current_canvas3D()->_set_current();
+}
+
 void GLCanvas3D::render_thumbnail(ThumbnailData &           thumbnail_data,
                                   unsigned int              w,
                                   unsigned int              h,
@@ -2365,6 +2372,9 @@ void GLCanvas3D::render_thumbnail(ThumbnailData &           thumbnail_data,
                                   bool                      for_picking,
                                   bool                      ban_light)
 {
+    if (!_set_shown_canvas_current())
+        return;
+
     GLShaderProgram* shader = nullptr;
     if (for_picking)
         shader = wxGetApp().get_shader("flat");
@@ -2403,6 +2413,9 @@ void GLCanvas3D::render_thumbnail(ThumbnailData &                    thumbnail_d
                                   bool                               for_picking,
                                   bool                               ban_light)
 {
+    if (!_set_shown_canvas_current())
+        return;
+
     GLShaderProgram *shader = wxGetApp().get_shader("thumbnail");
     switch (OpenGLManager::get_framebuffers_type()) {
         case OpenGLManager::EFramebufferType::Arb: {
