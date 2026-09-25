@@ -1858,14 +1858,8 @@ int CLI::run(int argc, char **argv)
 
                     BOOST_LOG_TRIVIAL(info) << boost::format("current_printer_name %1%, current_process_name %2%")%current_printer_name %current_process_name;
                     ConfigOptionStrings* option_strings = config.option<ConfigOptionStrings>("inherits_group");
-                    // inherits_group is expected to hold filament_count + 2 entries: the process,
-                    // one per filament, then the printer, and the code below indexes it on that
-                    // assumption. An empty vector makes size - 1 wrap around; a single entry makes
-                    // size - 2 wrap in the resize; a longer one reads current_filaments_name past
-                    // its end; a shorter one leaves current_filaments_system_name smaller than
-                    // filament_count for the --uptodate-filaments check that indexes it later.
-                    // Treat any mis-sized vector the same as a missing one and fall back to the
-                    // current names.
+                    // Expected size is filament_count + 2 (process, per-filament, printer); the
+                    // indexing below assumes it, so treat any other size as missing.
                     if (option_strings && option_strings->values.size() == current_filaments_name.size() + 2) {
                         current_inherits_group = option_strings->values;
                         size_t size = current_inherits_group.size();
