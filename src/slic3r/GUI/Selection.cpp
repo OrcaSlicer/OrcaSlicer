@@ -445,7 +445,11 @@ void Selection::add_curr_plate()
 
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-        if (plate && plate->contain_instance_totally(obj_idx, 0)) {
+        // Membership in the plate, not contain_instance_totally(): an instance that no longer
+        // fits the bed (too big, dragged outside) still belongs to this plate and is exactly the
+        // kind of object the user needs Ctrl+A to reach, e.g. to move or delete it. remove_curr_plate()
+        // below uses the same plain membership check for its own "every object on this plate" loop.
+        if (plate && plate->contain_instance(obj_idx, 0)) {
             std::vector<unsigned int> volume_idxs = get_volume_idxs_from_object(obj_idx);
             do_add_volumes(volume_idxs);
         }
