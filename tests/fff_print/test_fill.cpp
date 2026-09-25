@@ -13,6 +13,7 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/IntersectionPoints.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -1194,6 +1195,60 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
     REQUIRE(single_sharp.point_count > 0);
     REQUIRE(single_smooth.point_count == single_sharp.point_count);
     REQUIRE(single_smooth.length == single_sharp.length);
+}
+
+TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
+{
+    const int    multiline = GENERATE(2, 3);
+    const double spacing   = 0.45;
+    const double density   = 0.3;
+    const double wall      = multiline * spacing;
+    CAPTURE(multiline);
+
+    const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
+                                            Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
+    auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
+        filler->spacing  = spacing;
+        filler->angle    = float(M_PI / 7.);
+        filler->layer_id = layer_id;
+        filler->z        = z;
+
+        FillParams params;
+        params.density           = float(density);
+        params.multiline         = lines;
+        params.dont_adjust       = true;
+        params.anchor_length_max = 0.f; // The bare pattern, without connections along the boundary.
+        Slic3r::Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary, where a line is clipped earlier than the side of its wall.
+    const Polygons inner = shrink(to_polygons(region), scale_(3.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+
+    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing.
+    const double z_period = std::sqrt(2.) * wall / density;
+    const size_t layers   = 30;
+    for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
+        const double z = z_period * (layer_id + 0.5) / layers;
+        CAPTURE(layer_id, z);
+        const Polylines walls = fill(multiline, density, layer_id, z);
+        REQUIRE_FALSE(walls.empty());
+        CHECK(get_intersections(to_lines(walls)).empty());
+
+        // Single lines at the same spacing: the walls are drawn along them.
+        const Polylines lines = fill(1, density / multiline, layer_id, z);
+        REQUIRE_FALSE(lines.empty());
+        CHECK(farthest(lines, walls) < 0.5 * wall);
+        CHECK(farthest(walls, lines) < 1.5 * wall);
+    }
 }
 
 TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")
