@@ -9786,13 +9786,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         toolchange_gcode_parsed = placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &dyn_config);
         check_add_eol(toolchange_gcode_parsed);
-        // FanMover (fan speedup / kickstart) walks backward through the gcode stream and can
-        // split any G1 move it finds to reposition a fan command earlier in time. It already has
-        // a guard against doing that inside custom gcode -- but that guard keys off an
-        // "; custom gcode" / "; custom gcode end" comment pair that nothing ever emitted, so it
-        // never activated. Emit it around the user's own change_filament_gcode moves, which are
-        // deliberately choreographed (e.g. to route around a printer's own hardware) and must not
-        // be cut into by an unrelated waypoint (#15789).
+        // FanMover's guard against splitting a G1 inside custom gcode keys off this marker pair,
+        // which nothing previously emitted; without it, a fan waypoint could land mid-move here.
         gcode += "; custom gcode start\n" + toolchange_gcode_parsed + "; custom gcode end\n";
 
         //BBS
