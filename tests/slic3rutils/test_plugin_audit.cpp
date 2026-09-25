@@ -3,6 +3,7 @@
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/libslic3r.h>         // GCODEVIEWER_APP_KEY, SLIC3R_APP_KEY (via libslic3r_version.h)
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include <slic3r/plugin/PluginFsUtils.hpp> // PluginInstallState
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp> // secret_constants::USER_SECRET_FILENAME
 
 #include "plugin_test_utils.hpp"
@@ -310,6 +311,32 @@ TEST_CASE("Plugin audit a read-only allowed root blocks writes but not reads", "
         CHECK_FALSE(decision.allowed);
         CHECK(decision.reason == "denied path keyword");
     }
+}
+
+TEST_CASE("Plugin audit rebuilds the call-site cascade for an already-persisted target", "[audit]")
+{
+    // Regression test for: after a restart, a target restored from a persisted permission (no
+    // prompt shown) used to skip rebuilding the in-memory call-site cache, so a nested event on
+    // the same call chain (e.g. socket.connect nested inside an approved urllib.request) would
+    // still prompt every time. decide_audited_event() must record the call-site chain on this
+    // already-approved path too, not only when the user is freshly prompted.
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+    PluginInstallState  state; // unused here: an already-approved target never reaches persist_permission()
+
+    const std::string        plugin_key = "test_plugin_cascade_restart";
+    const std::string        target     = "https://example.invalid/api";
+    std::vector<std::string> permission_list{target}; // simulates a permission restored from disk
+    const std::vector<std::string> call_site_ids{"urllib.request:send:42"};
+
+    REQUIRE_FALSE(mgr.has_approved_ancestor(plugin_key, call_site_ids));
+
+    const int result = PluginAuditDetail::decide_audited_event(mgr, state, plugin_key, "Test Plugin",
+                                                                "http.client.connect", AuditEventCategory::Http,
+                                                                {target}, &permission_list, call_site_ids);
+
+    CHECK(result == 0);
+    // A nested event sharing this call-site chain must now be auto-approved instead of prompting again.
+    CHECK(mgr.has_approved_ancestor(plugin_key, call_site_ids));
 }
 
 TEST_CASE("Plugin audit a scoped root can also be registered read-only", "[audit]")

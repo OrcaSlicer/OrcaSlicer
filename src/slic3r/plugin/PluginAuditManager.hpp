@@ -14,6 +14,8 @@
 
 namespace Slic3r {
 
+struct PluginInstallState; // defined in PluginFsUtils.hpp
+
 struct AuditDecision {
     bool        allowed = true;
     std::string reason;
@@ -199,6 +201,23 @@ private:
     std::string                   m_previous_capability;
     std::vector<AllowedRoot>      m_previous_scoped_roots;
 };
+
+// Internal decision logic behind audit_hook(), exposed only so unit tests can exercise the
+// already-approved-target path (the one decide_audited_event() takes without ever showing the
+// wxMessageDialog) without a live GUI. Not part of the plugin system's public API otherwise.
+namespace PluginAuditDetail {
+
+int decide_audited_event(PluginAuditManager&              mgr,
+                         PluginInstallState&               state,
+                         const std::string&                plugin_key,
+                         const std::string&                plugin_name,
+                         const std::string&                event_name,
+                         AuditEventCategory                category,
+                         const std::vector<std::string>&   targets,
+                         std::vector<std::string>*         permission_list,
+                         const std::vector<std::string>&   call_site_ids);
+
+} // namespace PluginAuditDetail
 
 } // namespace Slic3r
 
