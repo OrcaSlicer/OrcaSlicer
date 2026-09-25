@@ -207,7 +207,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     wxGetApp().UpdateDarkUI(scrollable_panel);
     const wxColour page_colour = StateColor::darkModeColorFor(*wxWHITE);
     scrollable_panel->SetBackgroundColour(page_colour);
-    scrollable_panel->SetScrollRate(0, 20);
+    scrollable_panel->SetScrollRate(0, FromDIP(20));
     const int page_width = FromDIP(PAGE_WIDTH);
     scrollable_panel->SetInitialSize(wxSize(page_width, FromDIP(450)));
 

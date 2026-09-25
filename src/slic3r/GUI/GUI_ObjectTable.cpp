@@ -2764,12 +2764,12 @@ ObjectTablePanel::ObjectTablePanel( wxWindow* parent, wxWindowID id, const wxPoi
     //m_object_grid->AssignTable(m_object_grid_table);
 
     m_side_window = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(440),FromDIP(480)), wxVSCROLL);
-    m_side_window->SetScrollRate( 0, 5 );
+    m_side_window->SetScrollRate(0, FromDIP(20));
     m_page_sizer = new wxBoxSizer(wxVERTICAL);
     //m_page_top_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_side_window->SetBackgroundColour(wxColour(0xff, 0xff, 0xff));
     m_side_window->SetSizer(m_page_sizer);
-    m_side_window->SetScrollbars(1, 20, 1, 2);
+    m_side_window->SetScrollbars(1, FromDIP(20), 1, 2);
     //m_side_window->ShowScrollbars(wxSHOW_SB_NEVER, wxSHOW_SB_NEVER);
 
     //m_side_window->EnableScrolling(false, true);

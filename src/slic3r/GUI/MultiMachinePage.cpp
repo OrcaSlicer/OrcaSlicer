@@ -323,7 +323,7 @@ MultiMachinePickPage::MultiMachinePickPage(Plater* plater /*= nullptr*/)
     scroll_macine_list->SetMinSize(wxSize(FromDIP(400), FromDIP(10 * 30)));
     scroll_macine_list->SetMaxSize(wxSize(FromDIP(400), FromDIP(10 * 30)));
     scroll_macine_list->SetBackgroundColour(*wxWHITE);
-    scroll_macine_list->SetScrollRate(0, 5);
+    scroll_macine_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
 
     sizer_machine_list = new wxBoxSizer(wxVERTICAL);
     scroll_macine_list->SetSizer(sizer_machine_list);
