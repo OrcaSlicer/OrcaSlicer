@@ -303,13 +303,8 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
 
-// FanMover (fan speedup / kickstart) walks backward through the gcode looking for a place to
-// move a fan-speed command earlier in time, and can split a G1 move it finds along the way to
-// insert one mid-move. It has a guard against doing that inside custom gcode, keyed off an
-// "; custom gcode" / "; custom gcode end" comment pair that GCode::set_extruder() must emit
-// around change_filament_gcode's own output -- without it, a user's deliberately-authored
-// toolchange moves (e.g. routed around the printer's own hardware) can get an unrelated waypoint
-// spliced into the middle of them (#15789).
+// FanMover's guard against splitting a G1 inside custom gcode keys off the "; custom gcode
+// start/end" markers GCode::set_extruder() must emit around change_filament_gcode's output.
 TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", "[MultiFilament]")
 {
     const std::string custom_gcode = "; fan full\nM106 P1 S255\nM400 S3\n\nG1 X77 F5000\nG1 X91 F3000\n";
