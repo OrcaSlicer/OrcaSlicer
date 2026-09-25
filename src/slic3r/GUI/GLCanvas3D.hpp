@@ -1336,6 +1336,7 @@ private:
     bool _init_collapse_toolbar();
 
     bool _set_current();
+    bool _set_shown_canvas_current();
     void _resize(unsigned int w, unsigned int h);
 
     //BBS: add part plate related logic

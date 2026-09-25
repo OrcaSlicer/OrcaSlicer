@@ -1,10 +1,14 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstdlib>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "nlohmann/json.hpp"
 
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
@@ -726,20 +730,41 @@ static std::string slice_two_object_bbl(DynamicPrintConfig &config)
 }
 
 // The real change_filament_gcode of a shipped "<printer> 0.4 nozzle" machine profile.
+// The profile does not state it inline any more: it names the template carrying it in
+// `include`, and the loader layers that template under the preset. Follow the same list
+// - so a profile that stops naming one fails here instead of silently slicing G-code it
+// no longer ships.
 static std::string shipped_change_filament_gcode(const std::string &printer)
 {
-    const std::string path = std::string(PROFILES_DIR) + "/BBL/machine/Bambu Lab " + printer + " 0.4 nozzle.json";
+    const std::string machine_dir   = std::string(PROFILES_DIR) + "/BBL/machine/";
+    const std::string machine_path  = machine_dir + "Bambu Lab " + printer + " 0.4 nozzle.json";
+    const std::string template_name = "Bambu Lab " + printer + " 0.4 nozzle template change_filament_gcode";
     // PROFILES_DIR is an absolute path baked in at build time; a sparse test checkout
     // without resources/ leaves it missing. Skip rather than dereference a config that
     // never loaded - this is the only fff_print test that reads a shipped profile.
-    if (!boost::filesystem::exists(path))
-        SKIP("shipped profile not present in this checkout: " << path);
-    DynamicPrintConfig                 config;
-    std::map<std::string, std::string> key_values;
-    std::string                        reason;
-    config.load_from_json(path, ForwardCompatibilitySubstitutionRule::Enable, key_values, reason);
-    // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
-    INFO("profile: " << path << (reason.empty() ? "" : ("  load reason: " + reason)));
+    if (!boost::filesystem::exists(machine_path))
+        SKIP("shipped profile not present in this checkout: " << machine_path);
+
+    auto load = [](const std::string &file, std::map<std::string, std::string> &key_values) {
+        DynamicPrintConfig        config;
+        ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+        std::string               reason;
+        // false: `inherits` and `include` stay out of the config and land in key_values,
+        // for the loader to resolve - neither is a slicing setting.
+        config.load_from_json(file, substitutions, false, key_values, reason);
+        // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
+        INFO("profile: " << file << (reason.empty() ? "" : ("  load reason: " + reason)));
+        return config;
+    };
+
+    std::map<std::string, std::string> machine_values;
+    load(machine_path, machine_values);
+    REQUIRE(machine_values.count("include") == 1);
+    const nlohmann::json includes = nlohmann::json::parse(machine_values["include"]);
+    REQUIRE(std::find(includes.begin(), includes.end(), nlohmann::json(template_name)) != includes.end());
+
+    std::map<std::string, std::string> template_values;
+    const DynamicPrintConfig           config = load(machine_dir + template_name + ".json", template_values);
     REQUIRE(config.has("change_filament_gcode"));
     return config.opt_string("change_filament_gcode");
 }
