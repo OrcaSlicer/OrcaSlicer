@@ -1403,7 +1403,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable,           small_perimeter_threshold))
     ((ConfigOptionFloatsOrPercentsNullable, small_support_perimeter_speed))
     ((ConfigOptionFloatsNullable,           small_support_perimeter_threshold))
-    ((ConfigOptionFloat,                top_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       top_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                bottom_solid_infill_flow_ratio))
     ((ConfigOptionFloatOrPercent,       infill_anchor))
     ((ConfigOptionFloatOrPercent,       infill_anchor_max))

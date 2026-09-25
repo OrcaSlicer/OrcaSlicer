@@ -70,6 +70,9 @@ if (POLICY CMP0092)
     cmake_policy(SET CMP0092 NEW)
 endif ()
 
+# project() reads this, so set it first.
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/ClangClShowIncludes.cmake")
+
 project(OrcaSlicer)
 
 # Backward compatibility for old CMake versions

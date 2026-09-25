@@ -17,6 +17,7 @@ The table highlights gaps that need human review. What CI *does* run:
 | A `renamed_from` whose old name is still a live preset | The redirect is inert while a live preset carries that name |
 | A preset differentiated only by color, or an all-printer library preset without `@System` | Per-color presets split one product across ids and the selector fills with near-duplicates; CI stays green |
 | Per-extruder vector length on a multi-nozzle printer | Silently padded (with the **first** value) or truncated |
+| A name that ignores its type's convention — a model in a `process` quality slot, or an unrelated target label left in a copied preset | The selector misrepresents the preset's quality or intended printer |
 
 ## 1. Was the vendor `version` bumped?
 
@@ -168,6 +169,15 @@ vendor, and a filename that disagrees with the preset's `name` (common; the load
 
 Check for Windows-invalid characters, reserved device names, trailing path-component spaces/dots,
 and case mismatches in `sub_path` or asset paths. See [cross-platform paths](validation.md#cross-platform-paths).
+
+## 16. Do the preset names follow the conventions?
+
+Check **every newly added profile and intentional name change**, including models and bases,
+against [the naming conventions](naming.md#checking-names). Preserve shipped names during
+ordinary tuning; renaming a shipped selectable preset requires the migration in item 4.
+
+*Why:* CI checks name uniqueness, but does not enforce the naming conventions. Catch naming
+mistakes before the names ship and existing projects depend on them.
 
 ---
 

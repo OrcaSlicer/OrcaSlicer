@@ -317,7 +317,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // BBS
     , m_recent_projects(18)
     , m_settings_dialog(this)
-    , diff_dialog(this)
+    , m_idle([] { return wxGetApp().input_idle_ms(); })
+    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -737,9 +738,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
     wxGetApp().persist_window_geometry(this, true);
     wxGetApp().persist_window_geometry(&m_settings_dialog, true);
-    // bind events from DiffDlg
-
-    bind_diff_dialog();
 }
 
 bool MainFrame::handle_global_shortcut(const KeyChord& chord)
@@ -832,8 +830,10 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
     return true;
 }
 
-void MainFrame::bind_diff_dialog()
+DiffPresetDialog* MainFrame::make_diff_dialog()
 {
+    auto* dialog = new DiffPresetDialog(this);
+
     auto get_tab = [](Preset::Type type) {
         Tab* null_tab = nullptr;
         for (Tab* tab : wxGetApp().tabs_list)
@@ -842,23 +842,24 @@ void MainFrame::bind_diff_dialog()
         return null_tab;
     };
 
-    auto transfer = [this, get_tab](Preset::Type type) {
-        get_tab(type)->transfer_options(diff_dialog.get_left_preset_name(type),
-                                        diff_dialog.get_right_preset_name(type),
-                                        diff_dialog.get_selected_options(type));
+    auto transfer = [dialog, get_tab](Preset::Type type) {
+        get_tab(type)->transfer_options(dialog->get_left_preset_name(type),
+                                        dialog->get_right_preset_name(type),
+                                        dialog->get_selected_options(type));
     };
 
-    auto process_options = [this](std::function<void(Preset::Type)> process) {
-        const Preset::Type diff_dlg_type = diff_dialog.view_type();
+    auto process_options = [dialog](std::function<void(Preset::Type)> process) {
+        const Preset::Type diff_dlg_type = dialog->view_type();
         if (diff_dlg_type == Preset::TYPE_INVALID) {
-            for (const Preset::Type& type : diff_dialog.types_list() )
+            for (const Preset::Type& type : dialog->types_list() )
                 process(type);
         }
         else
             process(diff_dlg_type);
     };
 
-    diff_dialog.Bind(EVT_DIFF_DIALOG_TRANSFER,      [process_options, transfer](SimpleEvent&)         { process_options(transfer); });
+    dialog->Bind(EVT_DIFF_DIALOG_TRANSFER, [process_options, transfer](SimpleEvent&) { process_options(transfer); });
+    return dialog;
 }
 
 
@@ -1186,8 +1187,9 @@ void MainFrame::update_edge_panels()
 void MainFrame::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "MainFrame::shutdown enter";
-    if (m_project != nullptr)
-        m_project->shutdown();
+    m_idle.stop();
+    if (ProjectPanel* project = ProjectPanel::if_built())
+        project->shutdown();
     m_plugin_pages.shutdown();
     if (m_plater != nullptr)
         m_plater->remove_dock_panes();
@@ -1314,19 +1316,6 @@ void MainFrame::show_option(bool show)
     }
 }
 
-#ifdef SLIC3R_CAD
-DesignPanel* MainFrame::ensure_design_panel()
-{
-    if (m_design_panel == nullptr && m_design_page != nullptr) {
-        wxBusyCursor busy;
-        m_design_panel = new DesignPanel(m_design_page);
-        m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
-        m_design_page->Layout();
-    }
-    return m_design_panel;
-}
-#endif
-
 void MainFrame::init_tabpanel() {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on
     // Windows 10 with multiple high resolution displays connected.
@@ -1369,23 +1358,20 @@ void MainFrame::init_tabpanel() {
         //    m_param_panel->OnActivate();
 #ifdef SLIC3R_CAD
         else if (m_design_page != nullptr && panel == m_design_page) {
-            // Built on first activation, never at startup: the panel creates several hundred
-            // controls and its own GL canvas, which a user who does not open the tab should
-            // not pay for.
-            ensure_design_panel();
             // Re-sync the Design bed to the active printer: the panel is built before the
             // printer profile is fully applied, so its bed must refresh on activation or the
             // grid (true bed) spills past the stale default bed quad.
-            m_design_panel->on_tab_shown();
+            DesignPanel::ensure()->on_tab_shown();
         }
 #endif
-        else if (panel == m_monitor) {
+        else if (panel == m_monitor_page) {
             //monitor
         }
 #ifdef SLIC3R_CAD
         // Any page that is not Design takes the Design status line down with it — see
         // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
-        if (m_design_panel != nullptr && panel != m_design_page) m_design_panel->on_tab_hidden();
+        if (DesignPanel* design = DesignPanel::if_built(); design != nullptr && panel != m_design_page)
+            design->on_tab_hidden();
 #endif
 #ifndef __APPLE__
         if (m_last_selected_tab == TAB_ID_PREPARE) {
@@ -1401,13 +1387,14 @@ void MainFrame::init_tabpanel() {
     });
 
     if (wxGetApp().is_editor()) {
-        m_webview         = new WebViewPanel(m_tabpanel);
+        m_home_page = new LazyPage<WebViewPanel>(m_tabpanel, TAB_ID_HOME, 10);
+        m_lazy_pages.push_back(m_home_page);
         Bind(EVT_LOAD_URL, [this](wxCommandEvent &evt) {
             wxString url = evt.GetString();
             select_tab(TAB_ID_HOME);
-            m_webview->load_url(url);
+            WebViewPanel::ensure()->load_url(url);
         });
-        m_tabpanel->AddPage(TAB_ID_HOME, m_webview, "", "tab_home_active");
+        m_tabpanel->AddPage(TAB_ID_HOME, m_home_page, "", "tab_home_active");
         m_param_panel = new ParamsPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL);
     }
 
@@ -1418,15 +1405,13 @@ void MainFrame::init_tabpanel() {
     wxGetApp().plater_ = m_plater;
 
 #ifdef SLIC3R_CAD
-    // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
-    // the tab is selected (see the page-changed handler above), so nothing it constructs sits
-    // on the startup path. The experimental feature is off by default, and when it is off the
-    // page is never created, so the tab does not appear at all (the preference takes effect on
-    // the next start, like the other feature toggles).
+    // The experimental feature is off by default, and when it is off the page is never
+    // created, so the tab does not appear at all (the preference takes effect on the next
+    // start, like the other feature toggles).
     if (wxGetApp().is_enable_cad_feature()) {
-        m_design_page = new wxPanel(this);
-        m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
-        m_design_page->Hide();
+        // Experimental and heavy enough that building it unasked would cost more than it saves.
+        m_design_page = new LazyPage<DesignPanel>(this, TAB_ID_DESIGN, -1);
+        m_lazy_pages.push_back(m_design_page);
         start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
     }
 #endif
@@ -1434,33 +1419,41 @@ void MainFrame::init_tabpanel() {
     create_preset_tabs();
 
         //BBS add pages
-    m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_monitor->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor, _L("Device"), "tab_monitor_active");
+    m_monitor_page = new LazyPage<MonitorPanel>(m_tabpanel, TAB_ID_MONITOR, 20);
+    m_lazy_pages.push_back(m_monitor_page);
+    m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor_page, _L("Device"), "tab_monitor_active");
 
-    m_printer_view = new PrinterWebView(m_tabpanel);
-    Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
-        wxString url = evt.GetString();
-        wxString key = evt.GetAPIkey();
-        //select_tab(MainFrame::tpMonitor);
-        m_printer_view->load_url(url, key);
+    m_printer_view_page = new LazyPage<PrinterWebView>(m_tabpanel, TAB_ID_MONITOR_WEB, 50, [this](wxWindow* parent) {
+        auto* view = new PrinterWebView(parent);
+        if (!m_printer_url.empty())
+            view->load_url(m_printer_url, m_printer_api_key);
+        return view;
     });
-    m_printer_view->Hide();
+    m_lazy_pages.push_back(m_printer_view_page);
+    Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
+        //select_tab(MainFrame::tpMonitor);
+        m_printer_url     = evt.GetString();
+        m_printer_api_key = evt.GetAPIkey();
+        if (PrinterWebView* view = PrinterWebView::if_built())
+            view->load_url(m_printer_url, m_printer_api_key);
+    });
 
+    m_multi_machine_page = new LazyPage<MultiMachinePage>(m_tabpanel, TAB_ID_MULTI_DEVICE, 40);
+    m_lazy_pages.push_back(m_multi_machine_page);
     if (wxGetApp().is_enable_multi_machine()) {
-        m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-        m_multi_machine->SetBackgroundColour(*wxWHITE);
         // TODO: change the bitmap
-        m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
+        m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
     }
 
-    m_project = new ProjectPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_project->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_PROJECT, m_project, _L("Project"), "tab_auxiliary_active");
+    m_project_page = new LazyPage<ProjectPanel>(m_tabpanel, TAB_ID_PROJECT, 60);
+    m_lazy_pages.push_back(m_project_page);
+    m_tabpanel->AddPage(TAB_ID_PROJECT, m_project_page, _L("Project"), "tab_auxiliary_active");
 
-    m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_calibration->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_CALIBRATION, m_calibration, _L("Calibration"), "tab_calibration_active");
+    // show_device() removes this tab for printers without the Bambu device tab, and the page
+    // then never builds its panel.
+    m_calibration_page = new LazyPage<CalibrationPanel>(m_tabpanel, TAB_ID_CALIBRATION, 30);
+    m_lazy_pages.push_back(m_calibration_page);
+    m_tabpanel->AddPage(TAB_ID_CALIBRATION, m_calibration_page, _L("Calibration"), "tab_calibration_active");
 
     // Plugin pages are appended after the built-in tabs; their ids are namespaced
     // (plugin.<plugin_key>.<name>) so they can't collide with the built-in TAB_ID_* constants.
@@ -1495,67 +1488,44 @@ void MainFrame::show_device(bool should_use_native) {
     // Remove the extra page before switching to any layout that shouldn't have it.
     if (!want_web_device_tab) {
         if ((idx = m_tabpanel->FindPageByName(TAB_ID_MONITOR_WEB)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+            m_printer_view_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
     }
 
     if (use_printer_agents) {
-        if (!m_monitor) {
-            m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_monitor->SetBackgroundColour(*wxWHITE);
-        }
-
-        if (m_tabpanel->FindPage(m_monitor) == wxNOT_FOUND) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-                m_printer_view->Show(false);
+        if (!m_monitor_page->in_book()) {
+            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
                 m_tabpanel->RemovePage(idx);
             }
-            m_monitor->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor,
+            m_monitor_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                    _L("Device"), "tab_monitor_active");
         }
 
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
-        }
-
         if (wxGetApp().is_enable_multi_machine()) {
-            if (!m_multi_machine) {
-                m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-                m_multi_machine->SetBackgroundColour(*wxWHITE);
-            }
             // TODO: change the bitmap
-            if (m_tabpanel->FindPage(m_multi_machine) == wxNOT_FOUND) {
-                m_multi_machine->Show(false);
+            if (!m_multi_machine_page->in_book()) {
+                m_multi_machine_page->Show(false);
                 // Past the web Device tab when it is already there, so enabling multi-machine
                 // later can't wedge this page between the two Device tabs.
                 m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR_WEB, TAB_ID_MONITOR}),
-                                       TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
+                                       TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
             }
         }
-        if (!m_calibration) {
-            m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_calibration->SetBackgroundColour(*wxWHITE);
-        }
-        if (m_tabpanel->FindPage(m_calibration) == wxNOT_FOUND) {
-            m_calibration->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration,
+        if (!m_calibration_page->in_book()) {
+            m_calibration_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                    _L("Calibration"), "tab_calibration_active");
         }
 
         if (want_web_device_tab) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view)) == wxNOT_FOUND) {
-                m_printer_view->Show(false);
+            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) == wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
                 // Immediately right of the native Device tab, not at the end of the tab bar.
                 m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MONITOR_WEB,
-                                       m_printer_view, _L("Device (Web)"), "tab_monitor_active");
+                                       m_printer_view_page, _L("Device (Web)"), "tab_monitor_active");
             } else {
                 m_tabpanel->SetPageText(idx, _L("Device (Web)"));
             }
@@ -1567,48 +1537,37 @@ void MainFrame::show_device(bool should_use_native) {
 
         fit_tab_labels(); // ORCA on printer change
         m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
-
+        if (m_prebuild_started)
+            m_idle.start();
         return;
     }
 
     if (should_use_native) {
-        if (m_tabpanel->FindPage(m_monitor) != wxNOT_FOUND) {
+        if (m_monitor_page->in_book()) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
         // Remove printer view
-        if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+            m_printer_view_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
 
-        // Create/insert monitor page
-        if (!m_monitor) {
-            m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_monitor->SetBackgroundColour(*wxWHITE);
-        }
-        m_monitor->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor,
+        // Insert monitor page
+        m_monitor_page->Show(false);
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                _L("Device"), "tab_monitor_active");
 
         if (wxGetApp().is_enable_multi_machine()) {
-            if (!m_multi_machine) {
-                m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-                m_multi_machine->SetBackgroundColour(*wxWHITE);
-            }
             // TODO: change the bitmap
-            m_multi_machine->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine,
+            m_multi_machine_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine_page,
                                    _L("Multi-device"), "tab_multi_active");
         }
-        if (!m_calibration) {
-            m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_calibration->SetBackgroundColour(*wxWHITE);
-        }
-        m_calibration->Show(false);
+        m_calibration_page->Show(false);
         // Last of the built-in tabs, but plugin tabs already sit past it — anchor rather than
         // append, so its position doesn't depend on the relayout() below running afterwards.
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration,
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                _L("Calibration"), "tab_calibration_active");
 
 #ifdef _MSW_DARK_MODE
@@ -1616,37 +1575,30 @@ void MainFrame::show_device(bool should_use_native) {
 #endif // _MSW_DARK_MODE
 
     } else {
-        if (m_tabpanel->FindPage(m_printer_view) != wxNOT_FOUND) {
+        if (m_printer_view_page->in_book()) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
-        if ((idx = m_tabpanel->FindPage(m_calibration)) != wxNOT_FOUND) {
-            m_calibration->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_calibration_page)) != wxNOT_FOUND) {
+            m_calibration_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if ((idx = m_tabpanel->FindPage(m_multi_machine)) != wxNOT_FOUND) {
-            m_multi_machine->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_multi_machine_page)) != wxNOT_FOUND) {
+            m_multi_machine_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if ((idx = m_tabpanel->FindPage(m_monitor)) != wxNOT_FOUND) {
-            m_monitor->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_monitor_page)) != wxNOT_FOUND) {
+            m_monitor_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
-        }
-        m_printer_view->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view,
+        m_printer_view_page->Show(false);
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view_page,
                                _L("Device"), "tab_monitor_active");
     }
     fit_tab_labels(); // ORCA on printer change
     m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
+    if (m_prebuild_started)
+        m_idle.start();
 }
 
 bool MainFrame::is_prepare_or_preview_tab() const
@@ -2692,13 +2644,11 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     //BBS GUI refactor: remove unused layout new/dlg
     //if (m_layout != ESettingsLayout::Dlg) // Do not update tabs if the Settings are in the separated dialog
     m_param_panel->msw_rescale();
-    m_project->msw_rescale();
-    if(m_monitor)
-        m_monitor->msw_rescale();
-    if(m_multi_machine)
-        m_multi_machine->msw_rescale();
-    if(m_calibration)
-        m_calibration->msw_rescale();
+    // A panel mid-build gets the pass once it is complete.
+    ProjectPanel::when_built([](ProjectPanel& project) { project.msw_rescale(); });
+    MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
+    MultiMachinePage::when_built([](MultiMachinePage& multi_machine) { multi_machine.msw_rescale(); });
+    CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.msw_rescale(); });
 
     // BBS
 #if 0
@@ -2752,7 +2702,8 @@ void MainFrame::on_sys_color_changed()
 #endif
 #endif
 
-    diff_dialog.on_sys_color_changed();
+    if (DiffPresetDialog* dialog = DiffPresetDialog::if_built())
+        dialog->on_sys_color_changed();
 
     // BBS
     m_tabpanel->Rescale();
@@ -2760,10 +2711,8 @@ void MainFrame::on_sys_color_changed()
 
     // update Plater
     wxGetApp().plater()->sys_color_changed();
-    if(m_monitor)
-        m_monitor->on_sys_color_changed();
-    if(m_calibration)
-        m_calibration->on_sys_color_changed();
+    MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.on_sys_color_changed(); });
+    CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.on_sys_color_changed(); });
     // update Tabs
     for (auto tab : wxGetApp().tabs_list)
         tab->sys_color_changed();
@@ -3696,7 +3645,8 @@ void MainFrame::set_max_recent_count(int max)
         }
         wxGetApp().app_config->set_recent_projects(recent_projects);
         wxGetApp().app_config->save();
-        m_webview->SendRecentList(-1);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendRecentList(-1);
     }
 }
 
@@ -4040,23 +3990,56 @@ void MainFrame::select_tab(wxPanel* panel)
     select_tab(page_name);
 }
 
+// Selects the Prepare page without the page-changed event, so the GL canvas is on screen
+// and nothing else is built for the pass.
+void MainFrame::select_prepare_for_gl_init()
+{
+    m_tabpanel->ChangeSelection(m_tabpanel->FindPageByName(TAB_ID_PREPARE));
+}
+
+// The book shows its first page as it is inserted, while the frame is hidden and nothing
+// may build; the first show completes that page.
+bool MainFrame::Show(bool show)
+{
+    const bool changed = DPIFrame::Show(show);
+    if (show && changed && m_tabpanel != nullptr)
+        if (wxWindow* page = m_tabpanel->GetCurrentPage())
+            page->Show(true);
+    return changed;
+}
+
+// A page out of the book stays registered and is passed over; a negative order is never
+// registered.
+void MainFrame::prebuild_pages_when_idle()
+{
+    m_idle.clear();
+    if (m_param_panel)
+        m_idle.add(m_param_panel->settings_page_prebuild());
+    for (LazyBase* page : m_lazy_pages)
+        if (page->prebuild_order() >= 0)
+            m_idle.add(*page);
+    m_idle.add(m_diff_dialog);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
+    m_idle.start();
+    m_prebuild_started = true;
+}
+
 //BBS
 void MainFrame::jump_to_monitor(std::string dev_id)
 {
-    if(!m_monitor)
-        return;
     m_tabpanel->SelectPageByName(TAB_ID_MONITOR);
     if (!dev_id.empty()) {
-        ((MonitorPanel*)m_monitor)->select_machine(dev_id);
+        MonitorPanel::ensure()->select_machine(dev_id);
     }
 }
 
 void MainFrame::jump_to_multipage()
 {
-    if(!m_multi_machine)
+    if (!m_multi_machine_page->in_book())
         return;
     m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE);
-    ((MultiMachinePage*)m_multi_machine)->jump_to_send_page();
+    if (MultiMachinePage* page = m_multi_machine_page->ensure())
+        page->jump_to_send_page();
 }
 
 
@@ -4105,8 +4088,8 @@ void MainFrame::request_select_tab(const wxString& id)
 }
 
 int MainFrame::get_calibration_curr_tab() {
-    if (m_calibration)
-        return m_calibration->get_tabpanel()->GetSelection();
+    if (CalibrationPanel* calibration = CalibrationPanel::if_built())
+        return calibration->get_tabpanel()->GetSelection();
     return -1;
 }
 
@@ -4215,7 +4198,8 @@ void MainFrame::add_to_recent_projects(const wxString& filename)
             recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
         }
         wxGetApp().app_config->set_recent_projects(recent_projects);
-        m_webview->SendRecentList(0);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendRecentList(0);
     }
 }
 
@@ -4331,7 +4315,8 @@ void MainFrame::open_recent_project(size_t file_id, wxString const & filename)
                 recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
             }
             wxGetApp().app_config->set_recent_projects(recent_projects);
-            m_webview->SendRecentList(-1);
+            if (WebViewPanel* home = WebViewPanel::if_built())
+                home->SendRecentList(-1);
         }
     }
 }
@@ -4354,7 +4339,8 @@ void MainFrame::remove_recent_project(size_t file_id, wxString const &filename)
         recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
     }
     wxGetApp().app_config->set_recent_projects(recent_projects);
-    m_webview->SendRecentList(-1);
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->SendRecentList(-1);
 }
 
 void MainFrame::load_url(wxString url)
@@ -4408,14 +4394,14 @@ bool MainFrame::is_printer_view() const { return m_tabpanel->GetSelectedPageName
 
 void MainFrame::refresh_plugin_tips()
 {
-    if (m_webview != nullptr)
-        m_webview->ShowNetpluginTip();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->ShowNetpluginTip();
 }
 
 void MainFrame::RunScript(wxString js)
 {
-    if (m_webview != nullptr)
-        m_webview->RunScript(js);
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->RunScript(js);
 }
 
 void MainFrame::technology_changed()
@@ -4524,7 +4510,8 @@ void MainFrame::update_side_preset_ui()
 
 
     //take off multi machine
-    if(m_multi_machine){m_multi_machine->clear_page();}
+    if (MultiMachinePage* multi_machine = MultiMachinePage::if_built())
+        multi_machine->clear_page();
 }
 
 void MainFrame::on_select_default_preset(SimpleEvent& evt)
