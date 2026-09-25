@@ -2065,7 +2065,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     wxGetApp().imgui()->new_frame();
 
-    if (m_picking_enabled) {
+    if (m_picking_enabled && !m_benchmarking) {
         if (m_rectangle_selection.is_dragging())
             // picking pass using rectangle selection
             _rectangular_selection_picking_pass();
@@ -2091,7 +2091,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     // below once it is known whether the frame differs from the one on screen.
     const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
     // Only frames that redraw the scene are profiled.
-    if (!reuse_scene && _is_render_timings_enabled())
+    if (!reuse_scene && (_is_render_timings_enabled() || m_frame_profiler.is_averaging()))
         m_frame_profiler.begin_frame();
     Slic3r::ScopeGuard profiler_guard([this]() { m_frame_profiler.end_frame(); });
     if (!reuse_scene) {
@@ -3363,7 +3363,7 @@ void GLCanvas3D::unbind_event_handlers()
 
 void GLCanvas3D::on_idle(wxIdleEvent& evt)
 {
-    if (!m_initialized)
+    if (!m_initialized || m_benchmarking)
         return;
 
     // Toolbar states, notifications and ImGui's own layout settling only touch the overlay.
@@ -7788,12 +7788,12 @@ int GLCanvas3D::_get_effective_fps_cap() const
 
 bool GLCanvas3D::_is_fps_overlay_enabled() const
 {
-    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
+    return !m_benchmarking && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
 }
 
 bool GLCanvas3D::_is_render_timings_enabled() const
 {
-    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS);
+    return !m_benchmarking && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS);
 }
 
 bool GLCanvas3D::_is_scene_cache_enabled() const

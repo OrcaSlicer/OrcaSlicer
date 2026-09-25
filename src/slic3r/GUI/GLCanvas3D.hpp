@@ -679,6 +679,7 @@ private:
 
     RenderStats m_render_stats;
     FrameProfiler m_frame_profiler;
+    bool m_benchmarking{ false };
     std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
@@ -1228,6 +1229,10 @@ public:
     void request_extra_frame() { m_extra_frame_requested = true; }
 
     void schedule_extra_frame(int milliseconds);
+
+    // The scene benchmark draws every frame itself, without picking or the FPS and timings overlays.
+    void set_benchmarking(bool benchmarking) { m_benchmarking = benchmarking; }
+    FrameProfiler& get_frame_profiler() { return m_frame_profiler; }
 
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }

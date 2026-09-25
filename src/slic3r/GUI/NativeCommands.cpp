@@ -17,6 +17,7 @@
 #include "Plater.hpp"
 #include "PluginsDialog.hpp"
 #include "PlateSettingsDialog.hpp"
+#include "SceneBenchmark.hpp"
 #include "DeviceCore/DevManager.h"
 
 #include <libslic3r/Model.hpp>
@@ -582,6 +583,10 @@ std::vector<NativeCommand> build_command_catalog()
     add("help_network_test", _u8L("Open Network Test"), _u8L("Help"), [](const std::string&) {
         NetworkTestDialog dlg(wxGetApp().mainframe);
         dlg.ShowModal();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add("help_benchmark_3d_scene", _u8L("Benchmark 3D Scene"), _u8L("Help"), [](const std::string&) {
+        run_scene_benchmark();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("help_tip_of_the_day", _u8L("Show Tip of the Day"), _u8L("Help"), "info", [](const std::string&) {

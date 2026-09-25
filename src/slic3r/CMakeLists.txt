@@ -492,6 +492,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SceneCache.hpp
     GUI/FrameProfiler.cpp
     GUI/FrameProfiler.hpp
+    GUI/SceneBenchmark.cpp
+    GUI/SceneBenchmark.hpp
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
