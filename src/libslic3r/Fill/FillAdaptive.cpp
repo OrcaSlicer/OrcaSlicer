@@ -1818,7 +1818,7 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
             carried[paths[pi].lines[i]].emplace_back(paths[pi].verts[i].x(), paths[pi].verts[i + 1].x(), pi);
     std::vector<std::vector<int>> stopping_on(paths.size());
     for (int pi = 0; pi < int(paths.size()); ++pi)
-        for (const auto [ji, own] : { std::make_pair(paths[pi].start_term, paths[pi].lines.front()), std::make_pair(paths[pi].end_term, paths[pi].lines.back()) })
+        for (&const auto [ji, own] : { std::make_pair(paths[pi].start_term, paths[pi].lines.front()), std::make_pair(paths[pi].end_term, paths[pi].lines.back()) })
             if (ji >= 0)
                 for (int li : junctions[ji].lines)
                     if (li != own)
