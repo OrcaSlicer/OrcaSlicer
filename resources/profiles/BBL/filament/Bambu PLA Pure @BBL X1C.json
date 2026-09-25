@@ -1,0 +1,70 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Pure @BBL X1C",
+    "inherits": "Bambu PLA Pure @base",
+    "from": "system",
+    "setting_id": "GFSA19_32",
+    "instantiation": "true",
+    "description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12",
+        "12"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_retract_before_wipe": [
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "0.4"
+    ],
+    "filament_wipe": [
+        "1",
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "1",
+        "1"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "Spiral Lift"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "220",
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220",
+        "220"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.4 nozzle",
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab P1S 0.4 nozzle",
+        "Bambu Lab X1E 0.4 nozzle"
+    ]
+}
