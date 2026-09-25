@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <map>
 #include <numeric>
 #include <sstream>
@@ -1251,6 +1252,77 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(farthest(lines, walls) < 0.5 * wall);
         CHECK(farthest(walls, lines) < 1.5 * wall);
     }
+}
+
+TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing them around the cells", "[Fill]")
+{
+    const std::string pattern   = GENERATE("adaptivecubic", "supportcubic");
+    const int         multiline = GENERATE(2, 3);
+    CAPTURE(pattern, multiline);
+
+    // A sphere refines the octree all around, so the finer lines end on the coarser ones at every layer.
+    TriangleMesh sphere = Slic3r::Test::mesh(Slic3r::Test::TestMesh::sphere_50mm);
+    sphere.scale(0.3f);
+    Print print;
+    Slic3r::Test::init_and_process_print({sphere}, print,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "40%"},
+                                         {"fill_multiline", multiline},
+                                         {"infill_anchor", 0},
+                                         {"infill_anchor_max", 0},
+                                         {"layer_height", 0.3}});
+
+    size_t paths = 0, loops = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        Polylines printed;
+        Polygons  sparse;
+        double    spacing = 0.;
+        for (const LayerRegion *region : layer->regions()) {
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (entity->role() == erInternalInfill)
+                    entity->collect_polylines(printed);
+            for (const Surface &surface : region->fill_surfaces.surfaces)
+                if (surface.surface_type == stInternal)
+                    append(sparse, shrink(to_polygons(surface.expolygon), scale_(1.)));
+            spacing = region->flow(frInfill).spacing();
+        }
+        if (printed.empty())
+            continue;
+        CAPTURE(layer->print_z);
+        paths += printed.size();
+        loops += std::count_if(printed.begin(), printed.end(), [](const Polyline &pl) { return pl.first_point() == pl.last_point(); });
+        CHECK(get_intersections(to_lines(printed)).empty());
+
+        // Neighbouring lines stay a line spacing apart. Pieces of one line that meet end to end are one line.
+        std::vector<size_t> line_of(printed.size());
+        std::iota(line_of.begin(), line_of.end(), 0);
+        std::function<size_t(size_t)> find = [&](size_t i) { return line_of[i] == i ? i : line_of[i] = find(line_of[i]); };
+        for (size_t i = 0; i < printed.size(); ++i)
+            for (size_t j = i + 1; j < printed.size(); ++j)
+                for (const Point &a : { printed[i].first_point(), printed[i].last_point() })
+                    for (const Point &b : { printed[j].first_point(), printed[j].last_point() })
+                        if ((a - b).cast<double>().norm() < SCALED_EPSILON)
+                            line_of[find(i)] = find(j);
+        Lines               lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < printed.size(); ++i)
+            for (const Line &line : printed[i].lines()) {
+                lines.push_back(line);
+                owner.push_back(find(i));
+            }
+        AABBTreeLines::LinesDistancer<Line> tree(lines);
+        double closest = spacing;
+        for (size_t i = 0; i < printed.size(); ++i)
+            for (const Point &p : printed[i].equally_spaced_points(scale_(0.1)))
+                if (contains(sparse, p))
+                    for (size_t k : tree.all_lines_in_radius(p, scale_(spacing)))
+                        if (owner[k] != find(i))
+                            closest = std::min(closest, unscale<double>(lines[k].distance_to(p)));
+        CHECK(closest > 0.9 * spacing);
+    }
+    REQUIRE(paths > 0);
+    // The lines run on through the cells instead of each cell getting its own loops.
+    CHECK(loops < paths / 4);
 }
 
 TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")
