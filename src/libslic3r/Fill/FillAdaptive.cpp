@@ -1614,35 +1614,36 @@ Polylines multiline_paths(const Lines &lines_in, double d1, int sweep, const Bou
         return right ? t < length(lines[li]) - eps : t > eps;
     };
 
-    // Of two lines crossing just before both end on other lines, the one ending sooner stops at the crossing.
+    // A line ending on another just past a crossing stops at the crossing, where its stub would leave a hole.
+    auto crosses = [&](int ji, int li) { return has_arm(ji, li, false) && has_arm(ji, li, true); };
     for (int pass = 0; pass < 3; ++pass) {
         std::vector<bool> touched(lines.size(), false);
         bool              changed = false;
         for (int ji = 0; ji < int(junctions.size()); ++ji) {
             const Junction &J = junctions[ji];
-            if (J.lines.size() != 2 || touched[J.lines[0]] || touched[J.lines[1]])
+            if (J.lines.size() != 2 || touched[J.lines[0]] || touched[J.lines[1]] || !crosses(ji, J.lines[0]) || !crosses(ji, J.lines[1]))
                 continue;
-            // Shortest arm of each line from J to where it ends on another line, and whether that is its end b.
-            const std::pair<double, bool>          none{ std::numeric_limits<double>::max(), false };
-            std::array<std::pair<double, bool>, 2> dead{ none, none };
+            // Shortest arm of each line from J to the junction where it ends on another line.
+            struct DeadArm { double length; bool at_b; int end; };
+            std::array<DeadArm, 2> dead;
+            dead.fill({ std::numeric_limits<double>::max(), false, -1 });
             for (int k = 0; k < 2; ++k) {
-                const int        li = J.lines[k];
-                const SweepLine &l  = lines[li];
-                if (!has_arm(ji, li, false) || !has_arm(ji, li, true))
-                    break;
-                const size_t at = std::find_if(l.junctions.begin(), l.junctions.end(), [ji](const std::pair<double, int> &j) { return j.second == ji; }) - l.junctions.begin();
-                const double t  = along(l, J.p);
+                const SweepLine &l  = lines[J.lines[k]];
+                const size_t     at = std::find_if(l.junctions.begin(), l.junctions.end(), [ji](const std::pair<double, int> &j) { return j.second == ji; }) - l.junctions.begin();
+                const double     t  = along(l, J.p);
                 if (at + 1 < l.junctions.size() && length(l) - along(l, junctions[l.junctions[at + 1].second].p) < eps)
-                    dead[k] = { length(l) - t, true };
-                if (at > 0 && along(l, junctions[l.junctions[at - 1].second].p) < eps && t < dead[k].first)
-                    dead[k] = { t, false };
+                    dead[k] = { length(l) - t, true, l.junctions[at + 1].second };
+                if (at > 0 && along(l, junctions[l.junctions[at - 1].second].p) < eps && t < dead[k].length)
+                    dead[k] = { t, false, l.junctions[at - 1].second };
             }
-            if (dead[0].first >= 2. * d1 || dead[1].first >= 2. * d1)
+            const int k = dead[0].length <= dead[1].length ? 0 : 1;
+            if (dead[k].length >= 2. * d1)
                 continue;
-            const int  k = dead[0].first <= dead[1].first ? 0 : 1;
             SweepLine &l = lines[J.lines[k]];
-            (dead[k].second ? l.b : l.a) = J.p;
-            touched[J.lines[0]] = touched[J.lines[1]] = true;
+            (dead[k].at_b ? l.b : l.a) = J.p;
+            // Only the shortened line and those it ended on have stale junctions until the next pass.
+            for (int li : junctions[dead[k].end].lines)
+                touched[li] = true;
             changed = true;
         }
         if (!changed)

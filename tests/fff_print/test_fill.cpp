@@ -1330,16 +1330,19 @@ TEST_CASE("Multiline adaptive cubic paths touch where they bounce off each other
 {
     const int    sweep = GENERATE(0, 1, 2);
     // Offset of the third family in walls, so the three meet in points or in small triangles.
-    const double shift = GENERATE(0., 0.1, 0.5, 1., 2.5);
-    CAPTURE(sweep, shift);
+    const double shift = GENERATE(0., 0.1, 0.5, 1., 2.5, -0.5, -1.);
+    // Like finer octree lines ending on coarser ones, the 60 degree lines may start on the horizontal line through 0.
+    const bool   starting = GENERATE(false, true);
+    CAPTURE(sweep, shift, starting);
 
     const double d1 = scale_(0.8), pitch = scale_(8.), inner = scale_(12.);
     Lines        lines;
     for (int k = 0; k < 3; ++k) {
         const Vec2d dir(std::cos(k * M_PI / 3.), std::sin(k * M_PI / 3.)), normal(-dir.y(), dir.x());
         for (int i = -6; i <= 6; ++i) {
-            const Vec2d mid = (i * pitch + (k == 2 ? shift * d1 : 0.)) * normal;
-            lines.emplace_back((mid - 10. * pitch * dir).cast<coord_t>(), (mid + 10. * pitch * dir).cast<coord_t>());
+            const Vec2d  mid   = (i * pitch + (k == 2 ? shift * d1 : 0.)) * normal;
+            const double start = k == 1 && starting ? -mid.y() / dir.y() : -10. * pitch;
+            lines.emplace_back((mid + start * dir).cast<coord_t>(), (mid + 10. * pitch * dir).cast<coord_t>());
         }
     }
     const Polylines paths = FillAdaptive::multiline_paths(lines, d1, sweep, BoundingBox(Point::new_scale(-20., -20.), Point::new_scale(20., 20.)));

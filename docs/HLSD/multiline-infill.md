@@ -108,9 +108,10 @@ The cuts follow the Cubic rules without a closed formula:
   path. The paths are trimmed one at a time against the others as already
   trimmed, so two ends facing each other stop touching instead of both backing
   off. Paths shorter than `d1` are left out.
-- Where two lines cross less than `2 * d1` before each ends on another line,
-  trimming both ends would leave a hole between the walls, so the line ending
-  sooner stops at the crossing instead.
+- A line that ends on another less than `2 * d1` past a crossing stops at that
+  crossing instead, the shorter one where both do. The path along such a stub
+  would be trimmed away, leaving a hole between the walls that were cut to
+  touch it.
 
 Short paths enclosed by coarser lines still print as closed outlines, but most
 paths run on across several cells.
