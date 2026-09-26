@@ -442,6 +442,81 @@ TEST_CASE("Toolchange temperature wait moves to the wipe tower when enabled", "[
     }
 }
 
+// A Type 1 prime tower assembles its own tool change in WipeTowerIntegration::append_tcr rather
+// than delegating to GCode::set_extruder, so the ooze prevention park has to be injected there as
+// well. Type 2 towers route through set_extruder and get it for free, which is why the tower type
+// is pinned here.
+TEST_CASE("A Type 1 prime tower parks the outgoing filament at its idle temperature", "[MultiFilament]")
+{
+    const int idle_temp[2] = { 150, 160 };
+
+    const std::string gcode = slice_with_object_overrides(
+        { cube(20), cube(20) },
+        multifilament_config(2, {
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "printer_extruder_id",            "1,2" },
+            { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+            { "extruder_printable_height",      "0,0" },
+            { "single_extruder_multi_material", 0 },
+            { "enable_prime_tower",             1 },
+            { "wipe_tower_type",                "type1" },
+            { "prime_tower_width",              35 },
+            { "wipe_tower_x",                   "50" },
+            { "wipe_tower_y",                   "50" },
+            { "ooze_prevention",                1 },
+            { "idle_temperature",               "150,160" },
+            // GCodeProcessor's pre-heat pass deletes a ;cooldown it can reach back to, which
+            // would hide the very command under test.
+            { "preheat_time",                   0 },
+        }),
+        // One filament per object -> a toolchange on every layer. Assigned at the object level:
+        // the used-filament count that gates the prime tower is derived from object configs on
+        // the harness's single apply (region filament ids are not counted there and the tower
+        // would be silently disabled).
+        { { { "extruder", 1 } }, { { "extruder", 2 } } });
+
+    // Guard the fixture itself: with no tower the tool changes fall back to set_extruder, which
+    // has always emitted the park, and the case would pass whatever append_tcr does.
+    REQUIRE(gcode.find("; CP TOOLCHANGE START") != std::string::npos);
+
+    std::vector<std::string> lines;
+    std::istringstream       gcode_stream(gcode);
+    for (std::string line; std::getline(gcode_stream, line);)
+        lines.emplace_back(std::move(line));
+
+    const auto is_tool_line = [](const std::string& l) { return l.size() >= 2 && l[0] == 'T' && std::isdigit((unsigned char) l[1]); };
+
+    int current_tool = -1, checked_blocks = 0;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (is_tool_line(lines[i])) {
+            current_tool = std::stoi(lines[i].substr(1));
+            continue;
+        }
+        if (lines[i].find("; CP TOOLCHANGE START") == std::string::npos)
+            continue;
+
+        size_t block_end = i;
+        while (block_end < lines.size() && lines[block_end].find("; CP TOOLCHANGE END") == std::string::npos)
+            ++block_end;
+        size_t tool_line = block_end;
+        for (size_t j = i; j < block_end; ++j)
+            if (is_tool_line(lines[j])) { tool_line = j; break; }
+        // Priming and the final unload carry no outgoing filament to park.
+        if (tool_line == block_end || current_tool < 0 || current_tool > 1)
+            continue;
+
+        const std::string park = "M104 S" + std::to_string(idle_temp[current_tool]) + " T" + std::to_string(current_tool);
+        size_t            park_line = block_end;
+        for (size_t j = i; j < tool_line; ++j)
+            if (lines[j].rfind(park, 0) == 0 && lines[j].find(";cooldown") != std::string::npos) { park_line = j; break; }
+
+        INFO("toolchange block at line " << i + 1 << ", outgoing filament " << current_tool);
+        CHECK(park_line < tool_line);
+        ++checked_blocks;
+    }
+    REQUIRE(checked_blocks > 0);
+}
+
 // Priming runs before the first layer is set up, so set_extruder sees no layer at all: its
 // on_first_layer() test is false and print_z is the initial layer height rather than 0. The
 // tower nonetheless blocks on the first layer temperature there, so the pre-heat raised ahead
