@@ -115,7 +115,7 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto scroll_window = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    scroll_window->SetScrollRate(5, 5);
+    scroll_window->SetScrollRate(5, FromDIP(20));
     scroll_window->SetBackgroundColour(*wxWHITE);
     scroll_window->SetMinSize(HISTORY_WINDOW_SIZE);
     scroll_window->SetSize(HISTORY_WINDOW_SIZE);

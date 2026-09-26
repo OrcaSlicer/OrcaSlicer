@@ -39,7 +39,7 @@ DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWin
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
 
     m_scroll_area = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_scroll_area->SetScrollRate(0, 5);
+    m_scroll_area->SetScrollRate(0, FromDIP(20));
     m_scroll_area->SetBackgroundColour(*wxWHITE);
     m_scroll_area->SetMinSize(wxSize(FromDIP(320), FromDIP(250)));
 

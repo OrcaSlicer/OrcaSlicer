@@ -534,7 +534,7 @@ public:
 
         m_content = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
         m_content->SetBackgroundColour(pop_bg);
-        m_content->SetScrollRate(0, FromDIP(5));
+        m_content->SetScrollRate(0, FromDIP(20));
         auto* outer = new wxBoxSizer(wxVERTICAL);
 
         const int pop_w   = std::max(FromDIP(213), popup_width);
@@ -2274,7 +2274,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
 
     m_mapping_scroll = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition,
                                              wxSize(-1, FromDIP(300)));
-    m_mapping_scroll->SetScrollRate(0, FromDIP(10));
+    m_mapping_scroll->SetScrollRate(0, FromDIP(20));
     m_mapping_scroll->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_mapping_scroll->Bind(wxEVT_MOUSEWHEEL, &TextureImportDialog::dismiss_filament_popup_on_wheel, this);
 
@@ -4335,7 +4335,7 @@ void TextureImportDialog::on_dpi_changed(const wxRect&)
 
     if (m_mapping_scroll) {
         m_mapping_scroll->SetMinSize(wxSize(-1, FromDIP(300)));
-        m_mapping_scroll->SetScrollRate(0, FromDIP(10));
+        m_mapping_scroll->SetScrollRate(0, FromDIP(20));
     }
 
     if (m_btn_skip) {

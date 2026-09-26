@@ -1222,7 +1222,7 @@ ImageTransientPopup::ImageTransientPopup( wxWindow *parent, bool scrolled, wxBit
         m_panel->SetSize(300, 300);
 
         // And also actually enable them.
-        m_panel->SetScrollRate(10, 10);
+        m_panel->SetScrollRate(10, FromDIP(20));
     }
     else
     {

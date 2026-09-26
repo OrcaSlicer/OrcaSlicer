@@ -3521,7 +3521,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_mate,        false, true);
 
     m_form->FitInside();
-    m_form->SetScrollRate(0, 10);   // vertical only, like Prepare's sidebar: never scroll labels out
+    m_form->SetScrollRate(0, FromDIP(20));   // vertical only, like Prepare's sidebar: never scroll labels out
     m_form->SetMinSize(wxSize(264, -1));
 
     // Right column: a small view toolbar over the live 3D viewport that mirrors

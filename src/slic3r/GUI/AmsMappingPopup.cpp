@@ -819,7 +819,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_scrolled_window = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
      m_scrolled_window->SetBackgroundColour(*wxWHITE);
-     m_scrolled_window->SetScrollRate(0, FromDIP(10));
+     m_scrolled_window->SetScrollRate(0, FromDIP(20));
 
      wxBoxSizer *title_sizer_h= new wxBoxSizer(wxHORIZONTAL);
      wxBoxSizer *title_sizer_v = new wxBoxSizer(wxVERTICAL);
@@ -1000,13 +1000,13 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
                   show_pos.x = screen_size.GetLeft();
                   m_scrolled_window->SetMaxSize(wxSize(screen_size.GetWidth(), popup_height));
                   m_scrolled_window->SetMinSize(wxSize(screen_size.GetWidth(), popup_height));
-                  m_scrolled_window->SetScrollRate(FromDIP(10), FromDIP(10));
+                  m_scrolled_window->SetScrollRate(FromDIP(10), FromDIP(20));
               }
               else
               {
                   m_scrolled_window->SetMaxSize(wxSize(popup_width, popup_height));
                   m_scrolled_window->SetMinSize(wxSize(popup_width, popup_height));
-                  m_scrolled_window->SetScrollRate(0, FromDIP(10));
+                  m_scrolled_window->SetScrollRate(0, FromDIP(20));
               }
 
               //Vertical Direction Processing
@@ -2117,7 +2117,7 @@ void AmsReplaceMaterialDialog::create()
     identical_filament->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688"))); // Orca: accent teal (not brand green)
 
     m_scrollview_groups = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrollview_groups->SetScrollRate(5, 5);
+    m_scrollview_groups->SetScrollRate(5, FromDIP(20));
     //m_scrollview_groups->SetMinSize(wxSize(400, 400));
     //m_scrollview_groups->SetMaxSize(wxSize(400, 400));
     m_scrollview_sizer = new wxBoxSizer(wxVERTICAL);

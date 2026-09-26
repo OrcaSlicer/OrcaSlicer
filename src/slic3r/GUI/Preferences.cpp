@@ -1475,7 +1475,7 @@ void PreferencesDialog::create()
     app_config = get_app_config();
 
     m_parent = new MyscrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_parent->SetScrollRate(5, 5);
+    m_parent->SetScrollRate(0, FromDIP(20));
     m_parent->SetBackgroundColour(*wxWHITE);
 
     m_sizer_body = new wxBoxSizer(wxVERTICAL);

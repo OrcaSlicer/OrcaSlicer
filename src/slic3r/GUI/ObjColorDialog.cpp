@@ -355,7 +355,7 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
         //new color table
         m_scrolledWindow = new wxScrolledWindow(m_page_simple, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
         m_scrolledWindow->SetBackgroundColour(*wxWHITE);
-        m_scrolledWindow->SetScrollRate(0, 20);
+        m_scrolledWindow->SetScrollRate(0, FromDIP(20));
         m_scrolledWindow->EnableScrolling(false, true);
         m_scrolledWindow->ShowScrollbars(wxScrollbarVisibility::wxSHOW_SB_NEVER, wxScrollbarVisibility::wxSHOW_SB_DEFAULT);
         draw_new_table();
