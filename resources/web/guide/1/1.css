@@ -1,32 +1,36 @@
-html
-{
-	background-color: #fff;
-}
-
 body
 {
 	text-align:center;
-	padding-top: 10%;
-	overflow: auto;
+	max-width: none;
+	max-height: none;
+	padding: var(--window-padding);
+	gap: 2%;
+	justify-content: center;  /* ensures all content fits */
+	box-sizing: border-box;
 }
 
 #SlicerIcon
 {
+	min-height: 1.5em;
+	max-height: 9em;
+}
 
+#SlicerIcon > img
+{
+	width: auto;
+	height: 100%;
 }
 
 #Title
 {
-	height:20mm;
-	line-height: 20mm;
-	font-size: 6mm;
-	color: #009688;
+	font-size: 1.5em;
+	line-height: 1.5em;
+	color: var(--main-color-fixed);
 }
 
 #STip
 {
-	padding:0mm 20mm;
-	height: 15%;
+	padding-bottom: 8%;
 }
 
 #BtnArea

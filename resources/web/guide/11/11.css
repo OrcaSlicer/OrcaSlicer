@@ -23,7 +23,7 @@
 
 #RegionList
 {
-	border: 3px solid #C7C7C7;
+	border: 1px solid var(--main-color);
 	width: 400px;
 	cursor: pointer;
 }
@@ -38,20 +38,19 @@
 
 .RegionItem:hover
 {
-	background-color: #ECECEC;
+	background-color:  var(--button-bg-hover);
 }
 
 
 .RegionSelected
 {
-	background-color:#009688;
-	color: #fff;
+	background-color: var(--main-color);
+	color:  var(--fg-light-fixed);
 }
 
 .RegionSelected:hover
 {
-	background-color:#009688;
-	color: #fff;	
+	background-color: var(--main-color-hover);
 }
 
 

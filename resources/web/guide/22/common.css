@@ -26,15 +26,14 @@
 
 .MItem {
 	width:33%;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
 	margin-right: 4px !important;
 	top: -100px; /* ORCA this will be activated when item filtered with position:absolute */
 }
 
-.MItem label {
-	margin-right: 0px !important;
+.MItem .CheckBoxLabel {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* ORCA COLUMN BROWSER */
@@ -204,47 +203,4 @@ input[onclear="1"] {
 
 .cbr-content div.cbr-no-items {
 	display: none;
-}
-
-/* NOTICE POPUP */
-#NoticeMask {
-	background-color: #000;
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	right: 0px;
-	bottom: 0px;
-	opacity: 0.05;
-	display: none;
-}
-
-#NoticeBody {
-	display: none;
-	width: 500px;
-	border-width: 1px;
-	border-style: solid;
-	border-radius: 4px;
-	background-color: inherit;	
-	position: absolute;
-	left: 50%;
-	top: 200px;
-	margin-left: -250px;
-}
-
-#NoticeBar {
-	background-color: var(--main-color);
-	height: 40px;
-	line-height: 40px;
-	color: #fff;
-	text-align: center;
-}
-
-#NoticeContent {
-	padding: 4mm 10mm;	
-}
-
-#NoticeBtns {
-	margin-top: 4mm;
-	display: flex;
-	justify-content:flex-end;
 }

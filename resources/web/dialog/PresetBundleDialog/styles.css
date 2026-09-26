@@ -2,8 +2,9 @@ html, body {
   height: 100%;
   margin: 0;
   font-family: sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-size: 15px;
+  background: var(--bg-color);
+  color: var(--fg-color-label);
   overflow: hidden;
 }
 
@@ -17,6 +18,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  padding: var(--window-padding);
 }
 
 /* Split panes */
@@ -24,8 +26,7 @@ body {
     height: 100%;                                                                                                                                                                                                                                                                      
     display: grid;                                                                                                                                                                                                                                                                     
     grid-template-rows: auto minmax(0, 1.25fr) minmax(140px, 0.75fr);                                                                                                                                                                                                                  
-    gap: 8px;                                                                                                                                                                                                                                                                          
-    padding: 8px;                                                                                                                                                                                                                                                                      
+    gap: var(--window-padding);                                                                                                                                                                                                                                                                          
     box-sizing: border-box;                                                                                                                                                                                                                                                            
     min-height: 0;                                                                                                                                                                                                                                                                     
     overflow: hidden;                                                                                                                                                                                                                                                                  
@@ -36,11 +37,6 @@ body {
     align-items: center;                                                                                                                                                                                                                                                               
     justify-content: space-between;                                                                                                                                                                                                                                                    
     gap: 12px;                                                                                                                                                                                                                                                                         
-    padding: 0 2px;                                                                                                                                                                                                                                                                    
-  }                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                                       
-  .toolbar-btn {                                                                                                                                                                                                                                                                       
-    min-width: 92px;                                                                                                                                                                                                                                                                   
   }                                                                                                                                                                                                                                                                                    
                                                                                                                                                                                                                                                                                        
   .auto-update-switch {                                                                                                                                                                                                                                                                
@@ -149,9 +145,9 @@ body {
 
 .pane {
   min-height: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: var(--panel);
+  background: var(--bg-color);
   display: grid;
   grid-template-rows: auto 1fr;
 }
@@ -159,19 +155,24 @@ body {
 .hdr {
   font-weight: 600;
   font-size: 12px;
-  border-bottom: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-color);
   padding: 8px 10px;
   display: grid;
   gap: 10px;
 }
 
-.top-cols { grid-template-columns: minmax(0, 2fr) 1fr 1fr 88px; }                                                                                                                                                                                                                                                                                              
-  .bot-cols { grid-template-columns: 2fr 1fr; }                                                                                                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                                                                                                                                                 
-  .top .row { grid-template-columns: minmax(0, 2fr) 1fr 1fr 88px; }                                                                                                                                                                                                                                                                                              
-  .bottom .row { grid-template-columns: 2fr 1fr; }
+.top-cols,
+.top .row {
+  grid-template-columns: minmax(0, 2fr) 120px 88px 88px;
+  align-items: center;
+}
 
-.body {
+.bot-cols,
+.bottom .row {
+  grid-template-columns: 2fr 1fr;
+}
+
+.profile-list {
   min-height: 0;
   overflow: hidden;
 }
@@ -179,11 +180,9 @@ body {
 .hdr > *,                                                                                                                                                                                                                                                                                                                                                      
   .row > * {                                                                                                                                                                                                                                                                                                                                                     
     min-width: 0;                                                                                                                                                                                                                                                                                                                                                
-    overflow: hidden;                                                                                                                                                                                                                                                                                                                                            
-    text-overflow: ellipsis;
-    white-space: nowrap;                                                                                                                                                                                                                                                                                                                                         
+    /* truncate */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     padding-right: 8px;                                                                                                                                                                                                                                                                                                                                          
-    border-right: 1px solid var(--col-sep);                                                                                                                                                                                                                                                                                                                      
+    border-right: 1px solid var(--border-color);
     box-sizing: border-box;                                                                                                                                                                                                                                                                                                                                      
   }                                                                                                                                                                                                                                                                                                                                                              
                                                                                                                                                                                                                                                                                                                                                                  
@@ -201,85 +200,38 @@ body {
                                                                                                                                                                                                                                                                                                                                                                  
   .bundle-name-text {                                                                                                                                                                                                                                                                                                                                            
     min-width: 0;                                                                                                                                                                                                                                                                                                                                                
-    overflow: hidden;                                                                                                                                                                                                                                                                                                                                            
-    text-overflow: ellipsis;                                                                                                                                                                                                                                                                                                                                     
-    white-space: nowrap;
+    font-size: 15px;
+    /* truncate */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
-  .bundle-cloud-link {
-    color: inherit;
-    cursor: pointer;
-    text-decoration: none;
-    text-underline-offset: 2px;
-  }
 
-  .bundle-cloud-link:hover,
-  .bundle-cloud-link:focus-visible {
-    color: inherit;
-    text-decoration: underline;
-  }
-                                                                                                                                                                                                                                                                                                                                                                 
-  .bundle-status-icon,                                                                                                                                                                                                                                                                                                                                           
-  .bundle-status-icon-spacer {                                                                                                                                                                                                                                                                                                                                   
-    flex: 0 0 14px;                                                                                                                                                                                                                                                                                                                                              
-    width: 14px;
-    height: 14px;                                                                                                                                                                                                                                                                                                                                                
-  }                                                                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                                                                 
-  .bundle-status-icon {
-    display: inline-flex;                                                                                                                                                                                                                                                                                                                                        
-    align-items: center;                                                                                                                                                                                                                                                                                                                                         
-    justify-content: center;
-    border-radius: 50%;                                                                                                                                                                                                                                                                                                                                         
-    background: #f59e0b;                                                                                                                                                                                                                                                                                                                                         
-    color: #fff;                                                                                                                                                                                                                                                                                                                                                 
-    font-size: 10px;                                                                                                                                                                                                                                                                                                                                             
-    font-weight: 700;                                                                                                                                                                                                                                                                                                                                            
-    line-height: 14px;                                                                                                                                                                                                                                                                                                                                          
-  }                                                                                                                                                                                                                                                                                                                                                              
 
-  .bundle-status-icon-unauthorized {
-    background: #dc2626;
-  }
 
-  .bundle-status-icon-update {
-    background: var(--main-color);
-    font-size: 12px;
-  }
-                                                                                                                                                                                                                                                                                                                                                                 
-  .bundle-update-cell {                                                                                                                                                                                                                                                                                                                                         
-    display: flex;                                                                                                                                                                                                                                                                                                                                               
-    align-items: center;                                                                                                                                                                                                                                                                                                                                         
-    justify-content: flex-start;                                                                                                                                                                                                                                                                                                                                 
-  }                                                                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                                                                 
-  .bundle-update-btn {                                                                                                                                                                                                                                                                                                                                           
-    box-sizing: border-box;                                                                                                                                                                                                                                                                                                                                      
-    min-width: 64px;                                                                                                                                                                                                                                                                                                                                             
-    height: 20px;                                                                                                                                                                                                                                                                                                                                                
-    line-height: 18px;                                                                                                                                                                                                                                                                                                                                           
-    padding: 0 8px;                                                                                                                                                                                                                                                                                                                                              
-    border-radius: 4px;
-    font-size: 11px;                                                                                                                                                                                                                                                                                                                                             
-    cursor: pointer;                                                                                                                                                                                                                                                                                                                                             
-    border: 1px solid transparent;                                                                                                                                                                                                                                                                                                                               
-  }                                                                                                                                                                                                                                                                                                                                                              
 
-  .bundle-update-btn.is-enabled {                                                                                                                                                                                                                                                                                                                                
-    background: var(--main-color);                                                                                                                                                                                                                                                                                                                               
-    color: var(--button-fg-light);                                                                                                                                                                                                                                                                                                                               
-  }                                                                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                                                                 
-  .bundle-update-btn.is-enabled:hover {                                                                                                                                                                                                                                                                                                                          
-    background: var(--main-color-hover);                                                                                                                                                                                                                                                                                                                         
-  }                                                                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                                                                 
-  .bundle-update-btn.is-disabled {                                                                                                                                                                                                                                                                                                                               
-    background: var(--button-bg-disabled);                                                                                                                                                                                                                                                                                                                       
-    color: var(--button-fg-disabled);                                                                                                                                                                                                                                                                                                                            
-    cursor: not-allowed;                                                                                                                                                                                                                                                                                                                                         
-  }
 
+.bundle-status-icon-spacer,
+.bundle-status-icon {
+  display: inline-flex;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dimmed-color);
+}
+
+.bundle-status-icon-unauthorized {
+  background: var(--tone-red);
+}
+
+.bundle-status-icon-update {
+  background: var(--main-color);
+}
+
+.bundle-update-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
 
 #topList,
 #bottomList {
@@ -292,20 +244,19 @@ body {
 
 .row {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-color);
   display: grid;
   gap: 10px;
-  font-size: 13px;
+  font-size: 15px;
   white-space: nowrap;
-  cursor: pointer;
 }
 
-
-.row:hover { background: var(--row-hover); }
+.row:hover {
+  box-shadow: inset 0 0 1px 1px var(--main-color); /* Shadow method adds border without changing content size */
+}
 
 .row.selected {
-  background: var(--row-selected);
-  outline: 1px solid var(--row-selected-outline);
+  background: var(--checked-bg);
 }
 
 /* Footer styling
@@ -330,42 +281,9 @@ body {
 
 .footer-btn:hover { background: var(--btn-hover); } */
 
-/* Context menu */
-.ctx {
-  position: fixed;
-  min-width: 180px;
-  background: var(--ctx-bg);
-  border: 1px solid var(--ctx-border);
-  border-radius: 6px;
-  box-shadow: 0 8px 20px rgba(0,0,0,.18);
-  padding: 4px;
-  z-index: 9999;
-}
-
-.ctx-item,
-.ctx-item-subscribed, .ctx-item-delete {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  padding: 8px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.ctx-item:hover,
-.ctx-item-subscribed:hover ,
-.ctx-item-delete:hover
-{ background: var(--ctx-hover); }
-
-.ctx-item[hidden],
-.ctx-item-subscribed[hidden] ,
-.ctx-item-delete[hidden]{
-  display: none;
-}
-
 #AcceptArea {
+  display: flex;
   flex: 0 0 auto;
+  margin: var(--window-padding);
+  margin-top: 0;
 }

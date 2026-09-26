@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Plugins</title>
+  <link rel="stylesheet" type="text/css" href="../../include/global.css" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./plugin-sort.css" />
   <link rel="stylesheet" href="./plugin-search.css" />
-  <link rel="stylesheet" type="text/css" href="../../include/global.css" />
-  <link rel="stylesheet" type="text/css" href="../css/common.css" />
-  <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <!-- <link rel="stylesheet" type="text/css" href="../css/common.css" /> -->
+  <!-- <link rel="stylesheet" type="text/css" href="../css/theme.css" /> -->
   <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
   <script type="text/javascript" src="../js/json2.js"></script>
   <script type="text/javascript" src="../../data/text.js"></script>
@@ -45,23 +45,22 @@
         <button id="plugin_search_w" class="plugin-search-toggle" type="button"
           aria-pressed="false" title="Match whole word"><span class="plugin-search-underline">ab</span></button>
       </div>
-<!--        <button id="open_terminal" class="ButtonStyleRegular ButtonTypeChoice left-btn">-->
+<!--        <button id="open_terminal" class="ButtonStyleRegular ButtonTypeParameter left-btn">-->
 <!--            Open Terminal-->
 <!--        </button>-->
-      <button id="refresh_btn" class="ButtonStyleRegular ButtonTypeChoice">
+      <button id="refresh_btn" class="ButtonStyleRegular ButtonTypeParameter">
         Refresh
       </button>
-      <div id="exploreDropdown" class="explore-dropdown">
-        <button id="explore_menu_btn" class="ButtonStyleConfirm ButtonTypeChoice explore-menu-btn" type="button"
-          aria-haspopup="true" aria-expanded="false" aria-controls="exploreMenu" title="More plugin install options">
-          <span class="explore-menu-icon" aria-hidden="true"></span>
+      <div id="exploreDropdown" class="SplitButton">
+        <button id="explore_menu_btn" class="ButtonStyleConfirm SplitButtonArrowButton explore-menu-btn" type="button"
+          aria-haspopup="menu" aria-expanded="false" aria-controls="exploreMenu" title="More plugin install options">
+          <div class="icon16"></div>
         </button>
-        <button id="explore_btn" class="ButtonStyleConfirm ButtonTypeChoice explore-main-btn" type="button">
-          Install plugin
+        <button id="explore_btn" class="ButtonStyleConfirm SplitButtonActionButton explore-main-btn" type="button">
         </button>
-        <div id="exploreMenu" class="explore-menu" role="menu" hidden>
-          <button type="button" class="explore-menu-item" role="menuitem" data-install-action="explore">Install plugin</button>
-          <button type="button" class="explore-menu-item" role="menuitem" data-install-action="install-local">Install local plugin</button>
+        <div id="exploreMenu" class="SplitButtonMenu" role="menu" hidden>
+          <button type="button" class="SplitButtonMenuItem" role="menuitem" data-install-action="explore">Install plugin</button>
+          <button type="button" class="SplitButtonMenuItem" role="menuitem" data-install-action="install-local">Install local plugin</button>
         </div>
       </div>
     </div>
@@ -69,40 +68,40 @@
     <main class="content">
       <section class="pane plugin-list-pane">
         <div class="hdr plugin-cols">
-          <span>Activate</span>
+          <span></span>
           <span class="sort-th" data-sort-field="name" role="button" tabindex="0"
             title="Sort by name">Name<span class="sort-tri" aria-hidden="true"></span></span>
           <span class="sort-th" data-sort-field="version" role="button" tabindex="0"
-            title="Sort by version">Plugin Version<span class="sort-tri" aria-hidden="true"></span></span>
+            title="Sort by version">Version<span class="sort-tri" aria-hidden="true"></span></span>
           <span class="sort-th" data-sort-field="source" role="button" tabindex="0"
             title="Sort by source">Source<span class="sort-tri" aria-hidden="true"></span></span>
           <span class="sort-th" data-sort-field="status" role="button" tabindex="0"
             title="Sort by status">Status<span class="sort-tri" aria-hidden="true"></span></span>
         </div>
-        <div id="pluginList" class="body thin-scroll"></div>
+        <div id="pluginList" class="plugin-list thin-scroll"></div>
       </section>
 
       <!-- Drag to redistribute the dialog's height between the list and the details pane; the hit
            area is the whole strip, the visible divider is the line drawn inside it. -->
-      <div id="paneSplitter" class="pane-splitter" role="separator" aria-orientation="horizontal"
+      <div id="paneSplitter" class="ResizeSplitter" role="separator" aria-orientation="horizontal"
         aria-label="Resize the plugin list" title="Drag to resize; double-click to reset"></div>
 
       <section class="pane details-pane">
-        <div class="detail-tabs" role="tablist" aria-label="Plugin details">
-          <button id="pluginInfoTab" class="detail-tab active" type="button" role="tab"
+        <div class="TabCtrl" role="tablist" aria-label="Plugin details">
+          <button id="pluginInfoTab" class="TabCtrlTab active" type="button" role="tab"
             aria-selected="true" aria-controls="pluginInfoPanel" data-tab="plugin-info">Plugin Info</button>
-          <button id="descriptionTab" class="detail-tab" type="button" role="tab" tabindex="-1"
+          <button id="descriptionTab" class="TabCtrlTab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="descriptionPanel" data-tab="description">Description</button>
-          <button id="configTab" class="detail-tab" type="button" role="tab" tabindex="-1"
+          <button id="configTab" class="TabCtrlTab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="configPanel" data-tab="config">Config</button>
-          <button id="changelogTab" class="detail-tab" type="button" role="tab" tabindex="-1"
+          <button id="changelogTab" class="TabCtrlTab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="changelogPanel" data-tab="changelog">Changelog</button>
-          <button id="diagnosticsTab" class="detail-tab" type="button" role="tab" tabindex="-1"
+          <button id="diagnosticsTab" class="TabCtrlTab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="diagnosticsPanel" data-tab="diagnostics">Diagnostics</button>
         </div>
 
         <div class="detail-tab-panels">
-          <section id="pluginInfoPanel" class="detail-tab-panel" role="tabpanel"
+          <section id="pluginInfoPanel" class="detail-tab-panel thin-scroll" role="tabpanel"
             aria-labelledby="pluginInfoTab" data-panel="plugin-info">
             <div class="plugin-info-layout">
               <div class="plugin-thumbnail">
@@ -131,9 +130,11 @@
                   <div class="detail-label">Latest Version</div>
                   <div class="detail-value detail-version-row">
                     <span id="detailLatestVersion">-</span>
-                    <span id="detailUpdateBadge" class="version-update-badge" hidden
-                      aria-label="Update available" title="Update available"></span>
-                    <button id="detailUpdateBtn" type="button" class="plugin-update-btn" hidden
+                    <span id="detailUpdateBadge" class="version-update-badge ButtonTypeIcon" hidden
+                      aria-label="Update available" title="Update available">
+                      <span class="icon16"></span>
+                    </span>
+                    <button id="detailUpdateBtn" type="button" class="plugin-update-btn ButtonTypeWindow ButtonFxBrighten ButtonFxDimDisabled" hidden 
                       title="Update to the latest version">Update</button>
                   </div>
                 </div>
@@ -147,16 +148,16 @@
             <div id="detailDescription" class="detail-description">No description available</div>
           </section>
 
-          <section id="configPanel" class="detail-tab-panel" role="tabpanel" tabindex="0"
+          <section id="configPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"
             aria-labelledby="configTab" data-panel="config" hidden>
             <div id="configEmpty" class="detail-empty">Select a plugin to configure its capabilities</div>
             <div id="configLayout" class="config-layout" hidden>
-              <div id="configSidebar" class="config-sidebar thin-scroll" role="listbox"
+              <div id="configSidebar" class="SideTabCtrl thin-scroll" role="listbox"
                 aria-label="Configurable capabilities"></div>
               <div class="config-view">
                 <div id="configError" class="config-error" role="status" aria-live="polite" hidden></div>
                 <div id="configEditor" class="config-editor" hidden>
-                  <textarea id="configText" class="config-textarea thin-scroll" spellcheck="false"
+                  <textarea id="configText" class="TextArea mono-font thin-scroll" spellcheck="false"
                     autocomplete="off" autocapitalize="off" aria-label="Capability configuration (JSON)"></textarea>
                 </div>
                 <!-- Custom capability UI. Sandboxed without allow-same-origin, so the plugin's HTML
@@ -173,6 +174,7 @@
                       title="Discard the settings saved for this capability and restore the plugin's defaults">
                       Restore defaults
                     </button>
+                    <div class="StretchSpacer"></div>
                     <button id="configSaveBtn" class="ButtonStyleConfirm ButtonTypeChoice" type="button">Save</button>
                   </div>
                 </div>
@@ -182,7 +184,7 @@
 
           <section id="changelogPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"
             aria-labelledby="changelogTab" data-panel="changelog" hidden>
-            <table id="changelogTable" class="detail-table changelog-table" aria-label="Plugin changelog">
+            <table id="changelogTable" class="DataTable changelog-table" aria-label="Plugin changelog">
               <thead>
                 <tr>
                   <th scope="col">Version</th>
@@ -205,10 +207,10 @@
   </div>
 
   <div id="statusBar" class="status-bar is-empty" role="status" aria-live="polite">
-    <span class="status-dot" aria-hidden="true"></span>
+    <span class="status-dot icon16" aria-hidden="true"></span>
     <span id="statusText" class="status-text"></span>
   </div>
 
-  <div id="ctxMenu" class="ctx" hidden></div>
+  <div id="ctxMenu" class="ContextMenu" hidden></div>
 </body>
 </html>

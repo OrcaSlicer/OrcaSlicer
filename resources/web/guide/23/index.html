@@ -8,7 +8,6 @@
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../22/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <link rel="stylesheet" type="text/css" href="23.css" />
-<link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../data/text.js"></script>	
@@ -22,7 +21,7 @@
 	<div id="SystemFilamentBtn" class="TitleSelected trans" tid="t109" onClick="OnSelectMenu(1)">System Filaments</div>
 	<div id="CustomFilamentBtn" class="TitleUnselected trans" tid="t110" onClick="OnSelectMenu(2)">Custom Filaments</div>
 </div>
-<div id="Content" class="ZScrol">
+<div id="Content" class="thin-scroll">
 	
 <div id="SystemFilamentsArea">
 
@@ -37,7 +36,7 @@
 		</div>
 		<div class="cbr-content thin-scroll" id="MachineList">
 			<div class="CValues">
-				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span class="trans" tid="t11">all</span></label>
+				<label class="CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl" mode="all" onClick="ChooseAllMachine()"/><span class="trans CheckBoxLabel" tid="t11">all</span></label>
 			</div>
 			<div class="cbr-no-items">No items</div>
 		</div>
@@ -52,7 +51,7 @@
 		</div>
 		<div class="cbr-content thin-scroll" id="FilatypeList">
 			<div class="CValues">
-				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllFilament()" /><span class="trans" tid="t11">all</span></label>	
+				<label class="CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl" onClick="ChooseAllFilament()"/><span class="trans CheckBoxLabel" tid="t11">all</span></label>	
 			</div>
 			<div class="cbr-no-items">No items</div>
 		</div>
@@ -67,7 +66,7 @@
 		</div>
 		<div class="cbr-content thin-scroll" id="VendorList">
 			<div class="CValues">
-				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllVendor()" /><span class="trans" tid="t11">all</span></label>
+				<label class="CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl" onClick="ChooseAllVendor()"/><span class="trans CheckBoxLabel" tid="t11">all</span></label>
 			</div>
 			<div class="cbr-no-items">No items</div>
 		</div>
@@ -82,7 +81,7 @@
 				<div class="clear-icon"></div>
 			</div>
 			<div class="ComboBox NoLabel">
-				<div class="arrow-icon"></div>
+				<div class="icon16"></div>
 				<select id="filter-tags">
 					<option value="0" disabled selected hidden></option>
 					<option value="1">Checked</option>
@@ -98,7 +97,7 @@
 			</div>	
 		</div>
 		<div class="cbr-content thin-scroll" id="ItemBlockArea">
-			<!-- <label class="MItem"><input type="checkbox" class="trans" tid="t11" onClick="SelectAllFilament()" /><span class="trans" tid="t11">all</span></label> -->
+			<!-- <label class="MItem CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl"/><span class="CheckBoxLabel"></span></label> -->
 			<div class="cbr-no-items">No items</div>
 		</div>
 	</div>
@@ -120,18 +119,19 @@
 	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t38" id="PreBtn"  onclick="CancelSelect()">Cancel</div>
 </div>
 <div id="NoticeMask">
-</div>
 	<div id="NoticeBody">
-	<div id="NoticeBar" class="trans" tid="t18">error</div>
-	<div id="NoticeContent">
-	<div id="NoticeText" class="trans" tid="t19">At least one filament must be selected. </div>
-	<div id="NoticeText" class="trans" tid="t20">Do you want to use default filament ?</div>
-	<div id="NoticeBtns">
-		<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t21" onClick="ChooseDefaultFilament()">yes</div>
-		<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t22" onClick="ShowNotice(0)">no</div>
+		<div id="NoticeBar" class="trans" tid="t18">error</div>
+		<div id="NoticeContent">
+		<div id="NoticeText" class="trans" tid="t19">At least one filament must be selected. </div>
+		<div id="NoticeText" class="trans" tid="t20">Do you want to use default filament ?</div>
+		<div id="NoticeBtns">
+			<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t21" onClick="ChooseDefaultFilament()">yes</div>
+			<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t22" onClick="ShowNotice(0)">no</div>
+		</div>
 	</div>
-	</div>
-	</div>
+</div>
+
+</div>
 
 </body>
 <script>
