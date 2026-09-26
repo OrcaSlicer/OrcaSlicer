@@ -9,6 +9,7 @@
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
 #include "Print.hpp"
+#include "TangentialHoleBridging.hpp"
 //BBS
 #include "ShortestPath.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
@@ -855,6 +856,9 @@ void PrintObject::slice()
 
     // BBS: the actual first layer slices stored in layers are re-sorted by volume group and will be used to generate brim
     groupingVolumesForBrim(this, m_layers, firstLayerReplacedBy);
+
+    // ORCA: Apply tangential sacrificial bridging pre-processing
+    TangentialHoleBridging::apply(this);
 
     // Update bounding boxes, back up raw slices of complex models.
     tbb::parallel_for(
