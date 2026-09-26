@@ -4184,20 +4184,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         print.tool_ordering()));
     print.m_print_statistics.initial_tool = initial_extruder_id;
     if (!is_bbl_printers) {
-        file.write_format("; total filament used [g] = %.2lf\n",
-            print.m_print_statistics.total_weight);
-        file.write_format("; total filament cost = %.2lf\n",
-            print.m_print_statistics.total_cost);
-        if (print.m_print_statistics.total_toolchanges > 0)
-            file.write_format("; total filament change = %i\n",
-                print.m_print_statistics.total_toolchanges);
-        file.write_format("; total layers count = %i\n", m_layer_count);
-        file.write_format(
-            ";%s\n",
-            GCodeProcessor::reserved_tag(
-                GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder)
-            .c_str());
-      file.write("\n");
+      // CONFIG_BLOCK first, time estimate after: some firmwares only scan the last N lines for
+      // "estimated printing time", and a large config could push an estimate written before it
+      // out of that window.
       if (!skip_config_block) {
           file.write("; CONFIG_BLOCK_START\n");
           std::string full_config;
@@ -4218,6 +4207,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
           file.write("; CONFIG_BLOCK_END\n\n");
       } // !skip_config_block
 
+        file.write_format("; total filament used [g] = %.2lf\n",
+            print.m_print_statistics.total_weight);
+        file.write_format("; total filament cost = %.2lf\n",
+            print.m_print_statistics.total_cost);
+        if (print.m_print_statistics.total_toolchanges > 0)
+            file.write_format("; total filament change = %i\n",
+                print.m_print_statistics.total_toolchanges);
+        file.write_format("; total layers count = %i\n", m_layer_count);
+        file.write_format(
+            ";%s\n",
+            GCodeProcessor::reserved_tag(
+                GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder)
+            .c_str());
+      file.write("\n");
     }
     file.write("\n");
 

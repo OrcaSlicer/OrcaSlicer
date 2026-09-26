@@ -403,6 +403,18 @@ TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "
     CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
 }
 
+// Some firmwares only scan the last N lines of the file for "estimated printing time", so it
+// must stay close to EOF regardless of the resolved-settings config block's size.
+TEST_CASE("The estimated printing time comment follows the resolved-settings config block", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {});
+    const size_t config_block_end = gcode.find("; CONFIG_BLOCK_END");
+    const size_t time_comment     = gcode.find("estimated printing time");
+    REQUIRE(config_block_end != std::string::npos);
+    REQUIRE(time_comment != std::string::npos);
+    CHECK(time_comment > config_block_end);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
