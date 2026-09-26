@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PETG @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PETG @U1",
+	"from": "system",
+	"setting_id": "T604QL6Utgbj4kLh",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 10 mm^3/s, from local standard fallback preset Snapmaker PETG @U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
+}

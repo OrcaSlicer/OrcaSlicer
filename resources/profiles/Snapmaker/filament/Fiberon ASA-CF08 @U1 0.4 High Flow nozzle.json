@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Fiberon ASA-CF08 @U1 0.4 High Flow nozzle",
+	"inherits": "Fiberon ASA-CF08 @Snapmaker U1",
+	"from": "system",
+	"setting_id": "b1SjanapSsHClohQ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_notes": [
+		"Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 8 mm^3/s, from local standard fallback preset Fiberon ASA-CF08 @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
+}

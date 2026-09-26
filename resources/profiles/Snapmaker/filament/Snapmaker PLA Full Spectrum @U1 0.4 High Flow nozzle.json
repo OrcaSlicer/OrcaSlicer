@@ -1,0 +1,32 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PLA Full Spectrum @U1 0.4 High Flow nozzle",
+	"inherits": "Snapmaker PLA Full Spectrum @U1 0.4 nozzle",
+	"from": "system",
+	"setting_id": "Si1HKTz9ZSM8dIaU",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 High Flow nozzle)"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_retract_length_toolchange": [
+		"5"
+	],
+	"filament_retraction_length": [
+		"0.5"
+	],
+	"filament_z_hop_types": [
+		"Slope Lift"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"filament_notes": [
+		"Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer snorca/main b1831e5dcb for 0.4 mm nozzles. Volumetric speed ceiling: 15 mm^3/s, from Snorca HF preset Snapmaker PLA Full Spectrum @U1 0.4 nozzle (snorca/main b1831e5dcb). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	]
+}

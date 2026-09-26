@@ -29,7 +29,6 @@
 	"detect_overhang_wall": "0",
 	"reduce_crossing_wall": "0",
 	"ensure_vertical_shell_thickness": "none",
-	"filename_format": "testBenchy_{print_time}.gcode",
 	"sparse_infill_density": "10%",
 	"sparse_infill_pattern": "alignedrectilinear",
 	"wall_generator": "classic",

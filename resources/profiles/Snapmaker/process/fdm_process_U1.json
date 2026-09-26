@@ -28,7 +28,7 @@
 	"interface_shells": "0",
 	"detect_overhang_wall": "0",
 	"reduce_infill_retraction": "0",
-	"filename_format": "{input_filename_base}.gcode",
+	"filename_format": "{input_filename_base}_{filament_type[initial_no_support_extruder]}_{int(total_weight*10) / 10.0}g_{print_time}.gcode",
 	"wall_loops": "2",
 	"inner_wall_line_width": "0.45",
 	"inner_wall_speed": "40",

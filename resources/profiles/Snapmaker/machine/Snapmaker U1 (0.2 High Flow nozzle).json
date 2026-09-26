@@ -1,0 +1,19 @@
+{
+	"type": "machine",
+	"name": "Snapmaker U1 (0.2 High Flow nozzle)",
+	"inherits": "Snapmaker U1 (0.2 nozzle)",
+	"from": "system",
+	"setting_id": "rypfKOLmPmXpR3Z9",
+	"instantiation": "true",
+	"printer_model": "Snapmaker U1",
+	"printer_variant": "0.2 High Flow",
+	"printer_notes": "High-flow nozzle preset for all four U1 tools. Uses the existing 0.2 mm geometry, motion limits and G-code. Matching High Flow filament presets use the source-specific volumetric speed ceilings documented in their filament notes. Calibrate for your nozzle and filament.",
+	"default_filament_profile": [
+		"Snapmaker PLA SnapSpeed @U1 0.2 High Flow nozzle",
+		"Snapmaker PLA SnapSpeed @U1 0.2 High Flow nozzle",
+		"Snapmaker PLA SnapSpeed @U1 0.2 High Flow nozzle",
+		"Snapmaker PLA SnapSpeed @U1 0.2 High Flow nozzle"
+	],
+	"default_print_profile": "0.10 Standard @Snapmaker U1 (0.2 High Flow nozzle)",
+	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n\n; U1 nozzle flow metadata, one value per logical filament\n; filament_volume_type = {regex_replace(regex_replace(zdigits(0, size(filament_type)), /0/, \"high_flow,\"), /,$/, \"\")}\n"
+}
