@@ -81,6 +81,8 @@ protected:
     wxBoxSizer* m_sizer_option_left{nullptr};
     wxBoxSizer* m_sizer_option_mid{nullptr};
     wxBoxSizer* m_sizer_option_right{nullptr};
+    // Orca: own row for the switcher glyph, between the routing graphic and the button row.
+    wxBoxSizer* m_sizer_switcher_option{nullptr};
 
 
     AmsIntroducePopup m_ams_introduce_popup;
