@@ -33,8 +33,10 @@ struct SupportParameters {
         const bool non_soluble_base_bottom = this->zero_gap_interface_bottom && soluble_interface_non_soluble_base;
 
 	    {
-	        this->num_top_interface_layers    = std::max(0, object_config.support_interface_top_layers.value);
-	        this->num_bottom_interface_layers = std::max(0, number_of_support_interface_bottom_layers(object_config));
+	        // Orca: fin support has its own interface layer count; it never prints bottom interfaces.
+	        const bool fin_support = object_config.support_type.value == stFins;
+	        this->num_top_interface_layers    = std::max(0, fin_support ? object_config.support_fin_interface_layers.value : object_config.support_interface_top_layers.value);
+	        this->num_bottom_interface_layers = fin_support ? 0 : std::max(0, number_of_support_interface_bottom_layers(object_config));
 	        this->has_top_contacts              = num_top_interface_layers    > 0;
 	        this->has_bottom_contacts           = num_bottom_interface_layers > 0;
             // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
@@ -193,6 +195,7 @@ struct SupportParameters {
                                                        object_config.tree_support_wall_count.value == 0 ? 0.25 * sqr(scaled<double>(5.0)) * M_PI :
                                                                                                           std::numeric_limits<double>::max();
 
+        this->fins = object_config.support_type.value == stFins;
         support_style = object_config.support_style;
         support_interface_pattern = object_config.support_interface_pattern;
         if (support_style != smsDefault) {
@@ -269,6 +272,8 @@ struct SupportParameters {
     // Density of the base support layers.
     coordf_t 				support_density;
     SupportMaterialStyle    support_style = smsDefault;
+    // Fin support (support_type == fins): base layers are printed solid.
+    bool                    fins = false;
     SupportMaterialInterfacePattern support_interface_pattern = smipAuto;
 
     // Pattern of the sparse infill including sparse raft layers.

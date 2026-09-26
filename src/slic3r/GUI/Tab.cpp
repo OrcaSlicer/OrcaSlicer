@@ -3019,6 +3019,15 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_base_pattern", "support_settings_advanced#base-pattern");
         optgroup->append_single_option_line("support_base_pattern_spacing", "support_settings_advanced#base-pattern-spacing");
         optgroup->append_single_option_line("support_angle", "support_settings_advanced#pattern-angle");
+        optgroup->append_single_option_line("support_fin_spacing", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_thickness", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_tine_spacing", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_tine_base_rows", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_tine_depth", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_height", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_lean_side_only", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_cross_spacing", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_interface_layers", "support_settings_advanced#fins");
         optgroup->append_single_option_line("support_interface_top_layers", "support_settings_advanced#interface-layers");
         optgroup->append_single_option_line("support_interface_bottom_layers", "support_settings_advanced#interface-layers");
         optgroup->append_single_option_line("support_interface_pattern", "support_settings_advanced#interface-pattern");
