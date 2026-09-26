@@ -656,6 +656,10 @@ private:
     // Clear every collection's m_printer_hold_alias, which reset() leaves alone.
     void clear_printer_hold_aliases();
 
+    // Grows or shrinks every per-slot mixed-filament project option to n slots, defaulting new
+    // slots to false/empty. Shared by set_num_filaments() and project-file loading.
+    void pad_mixed_filament_arrays(size_t n);
+
     // Whether to (re)write a per-vendor cache after a JSON parse.
     bool m_generate_vendor_caches { false };
     bool m_preserve_vendor_source_paths { false };

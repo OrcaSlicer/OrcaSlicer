@@ -1546,6 +1546,25 @@ TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slo
     }
 }
 
+// A short filament_is_mixed array undercounts num_physical_filaments(), so the sidebar's
+// "Add filament" shrinks filament_presets to that wrong count and deletes a real filament.
+TEST_CASE("Loading a project pads a short filament_is_mixed array to match filament_presets", "[Preset][Bundle][FilamentMixer]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00", "#0000FF" };
+    config.opt<ConfigOptionBools>("filament_is_mixed")->values = { false };
+    Preset::normalize(config);
+
+    PresetBundle    bundle;
+    PublishedConfig pub; // published == false: the plain project-open path
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    REQUIRE(bundle.filament_presets.size() == 3);
+    REQUIRE(bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values.size() == 3);
+    CHECK(bundle.num_physical_filaments() == 3);
+    CHECK(bundle.num_mixed_filaments() == 0);
+}
+
 // A "published" 3MF keeps the user's currently-selected presets and overlays only the
 // author-selected process keys onto the edited preset (mirrors the GUI load path: normalize
 // before load_config_model, then the overlay in load_config_file_config).
