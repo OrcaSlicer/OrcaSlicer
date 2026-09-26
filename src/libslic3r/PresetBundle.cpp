@@ -282,7 +282,7 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     // BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    static const char *keys[] = {"support_filament", "support_interface_filament", "brim_filament"};
     for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i) {
         std::string key = std::string(keys[i]);
         auto       *opt = dynamic_cast<ConfigOptionInt *>(out.option(key, false));
@@ -4135,6 +4135,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
 
         if (support_interface_filament_opt->value > filament_color_type->values.size())
             support_interface_filament_opt->value = 0;
+
+        if (auto brim_filament_opt = print_config.option<ConfigOptionInt>("brim_filament"); brim_filament_opt->value > filament_color_type->values.size())
+            brim_filament_opt->value = 0;
     }
     // Re-append mixed filament slots that were stripped before AMS sync
     if (!mixed_snapshots.empty()) {
@@ -4837,7 +4840,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     //BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char* keys[] = {"support_filament", "support_interface_filament", "wipe_tower_filament"};
+    static const char* keys[] = {"support_filament", "support_interface_filament", "brim_filament", "wipe_tower_filament"};
     for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++ i) {
         std::string key = std::string(keys[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));

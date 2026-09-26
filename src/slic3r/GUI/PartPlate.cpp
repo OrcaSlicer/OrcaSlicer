@@ -1562,6 +1562,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
+	const bool glb_brim = glb_config.opt_enum<BrimType>("brim_type") != btNoBrim;
+	int glb_brim_extr = glb_config.opt_int("brim_filament");
 
 	for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
 		// Any instance on the plate counts, as PrintApply does: after an arrange, instance 0
@@ -1674,6 +1676,12 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		else if (glb_bottom_surface_extr != 0)
 			plate_extruders.push_back(glb_bottom_surface_extr);
 
+		const ConfigOption* brim_type_opt = mo->config.option("brim_type");
+		if (brim_type_opt != nullptr ? BrimType(brim_type_opt->getInt()) != btNoBrim : glb_brim) {
+			const ConfigOption* brim_extr_opt = mo->config.option("brim_filament");
+			if (int obj_brim_extr = brim_extr_opt != nullptr ? brim_extr_opt->getInt() : glb_brim_extr; obj_brim_extr != 0)
+				plate_extruders.push_back(obj_brim_extr);
+		}
 	}
 
 	if (conside_custom_gcode) {

@@ -303,6 +303,79 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
 
+// A brim filament that the object prints nothing else with (filament 3) still gets scheduled on
+// the first layer; one the object also uses (filament 2) takes over the brim from the walls.
+TEST_CASE("Brim prints with its assigned filament", "[MultiFilament]")
+{
+    const int         brim_filament  = GENERATE(2, 3);
+    const std::string print_sequence = GENERATE("by layer", "by object");
+    DYNAMIC_SECTION("brim filament " << brim_filament << ", " << print_sequence) {
+        const std::string gcode = slice({ cube(20) },
+            multifilament_config(3, {
+                { "sparse_infill_filament_id",  2 },
+                { "internal_solid_filament_id", 2 },
+                { "top_surface_filament_id",    2 },
+                { "bottom_surface_filament_id", 2 },
+                { "outer_wall_filament_id",     1 },
+                { "inner_wall_filament_id",     1 },
+                { "skirt_loops",                0 },
+                { "brim_type",                  "outer_only" },
+                { "brim_width",                 5 },
+                { "brim_filament",              brim_filament },
+                { "print_sequence",             print_sequence },
+            }));
+        CHECK(tools_for_role(gcode, "brim")      == std::set<int>{ brim_filament - 1 });
+        CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 0 });
+    }
+}
+
+// The brim waits for its filament instead of going down with the object's first extrusion, so
+// the walls on filament 1 come first when the brim is assigned to the infill filament.
+TEST_CASE("Brim with its own filament prints when that filament is loaded", "[MultiFilament]")
+{
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "sparse_infill_filament_id",  2 },
+            { "internal_solid_filament_id", 2 },
+            { "top_surface_filament_id",    2 },
+            { "bottom_surface_filament_id", 2 },
+            { "outer_wall_filament_id",     1 },
+            { "inner_wall_filament_id",     1 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "outer_only" },
+            { "brim_width",                 5 },
+            { "brim_filament",              2 },
+        }));
+    // Roles in the order their first extrusion appears.
+    std::vector<std::string> first_seen;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        if (!line.extruding(self))
+            return;
+        for (const char* role : { "perimeter", "brim" })
+            if (std::string(line.comment()).find(role) != std::string::npos &&
+                std::find(first_seen.begin(), first_seen.end(), role) == first_seen.end())
+                first_seen.emplace_back(role);
+    });
+    CHECK(first_seen == std::vector<std::string>{ "perimeter", "brim" });
+}
+
+// Each object's brim follows its own setting: object 0 keeps the default (its wall filament),
+// object 1 overrides the brim to filament 2.
+TEST_CASE("Per-object brim filament override is honored", "[MultiFilament]")
+{
+    const std::string gcode = slice_with_object_overrides(
+        { cube(20), cube(20) },
+        multifilament_config(2, {
+            { "skirt_loops", 0 },
+            { "brim_type",   "outer_only" },
+            { "brim_width",  5 },
+        }),
+        { {}, { { "brim_filament", 2 } } });
+    CHECK(tools_for_role(gcode, "brim")      == std::set<int>{ 0, 1 });
+    CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 0 });
+}
+
 // With wait_for_temp_on_wipe_tower the blocking M109 moves from right after the Tn command to
 // a stop point parked beside the wipe tower (heat-up drool falls next to the tower, not onto
 // its top): tagged with _WAIT_FOR_TEMP_ON_WIPE_TOWER, after the toolchange and before the

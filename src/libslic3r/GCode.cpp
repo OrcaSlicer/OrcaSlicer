@@ -6495,6 +6495,22 @@ LayerResult GCode::process_layer(
         std::vector<InstanceToPrint>     &instances_to_print = filament_plan.first;
         const std::vector<InstanceVisit> &instance_visits    = filament_plan.second;
 
+        // Brims with their own filament print once that filament is loaded, ahead of this filament's object extrusions,
+        // including on objects this filament does not otherwise print.
+        if (first_layer) {
+            auto emit_own_filament_brim = [&](const PrintObject &object, size_t instance_id) {
+                if (object.brim_filament() == extruder_id + 1)
+                    gcode += generate_object_brim(print, object, instance_id, first_layer);
+            };
+            if (single_object_instance_idx != size_t(-1)) {
+                if (const PrintObject *object = layers.front().original_object)
+                    emit_own_filament_brim(*object, single_object_instance_idx);
+            } else if (ordering != nullptr) {
+                for (const PrintInstance *instance : *ordering)
+                    emit_own_filament_brim(*instance->print_object, size_t(instance - instance->print_object->instances().data()));
+            }
+        }
+
         // We are almost ready to print. However, we must go through all the objects twice to print the overridden extrusions first (infill/perimeter wiping feature):
         std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache;
         for (int print_wipe_extrusions = is_anything_overridden; print_wipe_extrusions>=0; --print_wipe_extrusions) {
@@ -6507,7 +6523,8 @@ LayerResult GCode::process_layer(
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
                 if (visit.first_visit && print_wipe_extrusions == (is_anything_overridden ? 1 : 0)) {
                     gcode += generate_object_skirt_group(print, instance_to_print.print_object, instance_to_print.instance_id, layer_tools, layer, extruder_id);
-                    gcode += generate_object_brim(print, instance_to_print.print_object, instance_to_print.instance_id, first_layer);
+                    if (instance_to_print.print_object.brim_filament() == 0)
+                        gcode += generate_object_brim(print, instance_to_print.print_object, instance_to_print.instance_id, first_layer);
                 }
 
                 // To control print speed of the 1st object layer printed over raft interface.

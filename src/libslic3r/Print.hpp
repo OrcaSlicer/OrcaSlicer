@@ -390,6 +390,8 @@ public:
             || (this->config().brim_type == btPainted && !this->model_object()->brim_points.empty()))
             && ! this->has_raft();
     }
+    // 1-based filament that prints this object's brim, or 0 when the brim takes the object's first-layer filament.
+    unsigned int                 brim_filament() const  { return this->has_brim() ? (unsigned int)this->config().brim_filament.value : 0; }
 
     // BBS
     const ExtrusionEntityCollection& object_skirt() const {
