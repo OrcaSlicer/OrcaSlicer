@@ -1,4 +1,5 @@
 #include "Model.hpp"
+#include "PeriodicRecolor.hpp"
 #include "libslic3r.h"
 #include "BuildVolume.hpp"
 #include "TexturePainting.hpp"
@@ -3508,6 +3509,22 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
         // id==0 means follow previous material, so need not be recorded
         if (op1 && (extruder_id = op1->getInt()) > 0) ret.extrude_ids.push_back(extruder_id);
         if (op2 && (extruder_id = op2->getInt()) > 0) ret.extrude_ids.push_back(extruder_id);
+    }
+
+    // Orca: add pattern filaments too. Arrange uses extrude_ids to decide whether to leave room for the prime tower, so
+    // without them objects could be placed where the tower will print. Read from the patterns, since nothing is sliced yet.
+    {
+        size_t num_filaments = 1;
+        if (const auto *diameters = config_global.option<ConfigOptionFloats>("filament_diameter"))
+            num_filaments = diameters->values.size();
+        std::vector<unsigned int> targets;
+        periodic_recolor_patterns_of(object->config.get()).collect_filaments(num_filaments, targets);
+        for (unsigned int target : targets) {
+            const int id = int(target) + 1;
+            // Skip ids already listed instead of sorting, which would reorder extrude_ids for prints without patterns.
+            if (! contains(ret.extrude_ids, id))
+                ret.extrude_ids.push_back(id);
+        }
     }
 
     ret.extrude_ids.erase(std::unique(ret.extrude_ids.begin(), ret.extrude_ids.end()), ret.extrude_ids.end());

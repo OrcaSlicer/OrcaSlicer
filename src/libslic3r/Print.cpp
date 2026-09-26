@@ -6,6 +6,7 @@
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"
+#include "PeriodicRecolor.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -1590,6 +1591,23 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
     return HighLowCompatible;
 }
 
+// Orca: extruders() plus every object's pattern filaments, sorted and deduplicated. Kept out of extruders(),
+// whose result feeds the don't-care support filament choice, where a pattern filament could end up printing support.
+static std::vector<unsigned int> logical_extruders_of(const Print &print)
+{
+    std::vector<unsigned int> out = print.extruders();
+    for (const PrintObject *object : print.objects())
+        periodic_recolor_append_targets(*object, out);
+    sort_remove_duplicates(out);
+    // Orca: extruders() adds the prime tower filament only when the print already held more than one filament, so a
+    // print whose second filament comes from a pattern leaves it out. The tower prints with it, so count it here.
+    if (out.size() > 1 && print.has_wipe_tower() && print.config().wipe_tower_filament > 0) {
+        out.emplace_back(unsigned(print.config().wipe_tower_filament - 1));
+        sort_remove_duplicates(out);
+    }
+    return out;
+}
+
 //BBS: this function is used to check whether multi filament can be printed
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
@@ -1660,7 +1678,7 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
         }
         return ret;
     }
-    std::vector<unsigned int> extruders = print.extruders();
+    std::vector<unsigned int> extruders = logical_extruders_of(print);
     std::vector<std::string> filament_types;
     std::vector<int> nozzle_temperatures;
     std::vector<int> nozzle_temperature_range_lows;
@@ -1761,7 +1779,40 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                  "enable_mixed_color_sublayer");
     }
 
-    if (nozzles < 2 && extruders.size() > 1) {
+    // Orca: patterns must name a physical filament, not a mixed filament slot. Checked before the temperature check
+    // below, which would otherwise report a confusing error about the mixed slot. The gizmo already blocks these, so
+    // this catches loaded projects and the CLI. The same scan records whether any enabled, valid pattern exists.
+    bool any_recolor_patterns = false;
+    {
+        const auto &is_mixed = m_config.filament_is_mixed.values;
+        std::vector<unsigned int> targets;
+        for (const PrintObject *object : m_objects) {
+            targets.clear();
+            periodic_recolor_append_targets(*object, targets);
+            any_recolor_patterns |= ! targets.empty();
+            for (unsigned int t : targets)
+                if (t < is_mixed.size() && is_mixed[t])
+                    return { L("Periodic recoloring cannot target a mixed filament."), object,
+                             "periodic_recolor_patterns" };
+        }
+    }
+
+    // Orca: By object prints plan filaments per object, and those plans leave out pattern filaments.
+    if (any_recolor_patterns && m_config.print_sequence == PrintSequence::ByObject)
+        return { L("Periodic recoloring cannot be used with the By object print sequence."), nullptr, "print_sequence" };
+
+    // Orca: a custom "Other layers filament sequence" keeps only the filaments it lists, so a pattern filament it
+    // leaves out would be dropped from the tool order. Rejected rather than guessing where it belongs, even when the
+    // sequence lists it. The first-layer sequence keeps every filament, so it is not checked. `_nums` because the
+    // sequence vector defaults to {0}, not empty.
+    if (any_recolor_patterns && m_config.other_layers_print_sequence_nums.value > 0)
+        return { L("Periodic recoloring is not supported with a custom filament sequence for the "
+                   "other layers. Set it to Auto in the plate settings, or disable periodic recoloring."),
+                 nullptr, "other_layers_print_sequence" };
+
+    const std::vector<unsigned int> logical_extruders = logical_extruders_of(*this);
+
+    if (nozzles < 2 && logical_extruders.size() > 1) {
         auto ret = check_multi_filament_valid(*this);
         if (!ret.string.empty())
         {
@@ -1823,6 +1874,19 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     } else {
         if (m_config.enable_wrapping_detection)
             warn(L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model."), "enable_prime_tower");
+    }
+
+    if (any_recolor_patterns) {
+        // Spiral vase rewrites Z continuously, so a band would smear over a whole turn
+        // rather than covering the layers it names.
+        if (m_config.spiral_mode)
+            return { L("Periodic recoloring cannot be used with spiral (vase) mode."), nullptr, "spiral_mode" };
+
+        const auto &diameters = m_config.nozzle_diameter.values;
+        if (diameters.size() > 1 && ! std::equal(diameters.begin() + 1, diameters.end(), diameters.begin()))
+            warn(L("This printer has nozzles of different sizes. Periodically recolored features keep the "
+                   "extrusion width of the feature they replace, the band may be printed in a different-sized "
+                   "nozzle than expected."), "periodic_recolor_patterns");
     }
 
     if (m_config.spiral_mode) {
@@ -2439,7 +2503,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 warn(L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."), "precise_outer_wall");
 
             // check adaptive pressure advance model
-            for (unsigned int extruder_id : extruders) {
+            for (unsigned int extruder_id : logical_extruders) {
                 if (m_config.adaptive_pressure_advance.get_at(extruder_id) && 
                     m_config.enable_pressure_advance.get_at(extruder_id)) {
                     

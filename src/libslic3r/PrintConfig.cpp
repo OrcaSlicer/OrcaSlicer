@@ -4737,6 +4737,14 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("periodic_recolor_patterns", coFloats);
+    def->label = L("Periodic recoloring");
+    def->tooltip = L("Per-object patterns that recolor selected printing feature types in "
+                     "periodic height bands. Set through the Color Painting tool.");
+    def->mode = comDevelop;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionFloats({0.}));
+
     def           = this->add("interlocking_beam", coBool);
     def->label    = L("Use beam interlocking");
     def->tooltip  = L("Generate interlocking beam structure at the locations where different filaments touch. This improves the adhesion between filaments, especially models printed in different materials.");

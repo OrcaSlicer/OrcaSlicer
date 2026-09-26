@@ -2,6 +2,7 @@
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
 #include "Layer.hpp"
+#include "../PeriodicRecolor.hpp"
 #include "ClipperUtils.hpp"
 #include "ParameterUtils.hpp"
 #include "GCode/ToolOrderUtils.hpp"
@@ -152,6 +153,20 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 
     unsigned int result = (extruder == 0) ? 0 : extruder - 1;
     return resolve_mixed(result);
+}
+
+bool LayerTools::wall_split_filaments(const ExtrusionEntityCollection &extrusions, const PrintRegion &region,
+                                      bool perimeters, int &outer, int &inner) const
+{
+    if (! perimeters ||
+        region.config().outer_wall_filament_id.value == region.config().inner_wall_filament_id.value ||
+        extrusions.role() != erMixed)
+        return false;
+    outer = this->extruder_override != 0 ? int(this->extruder_override) - 1 :
+                                           region.config().outer_wall_filament_id.value - 1;
+    inner = this->extruder_override != 0 ? int(this->extruder_override) - 1 :
+                                           region.config().inner_wall_filament_id.value - 1;
+    return true;
 }
 
 static double calc_max_layer_height(const PrintConfig &config, double max_object_layer_height)
@@ -562,6 +577,8 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     // Collect extruders reuqired to print the layers.
     for (auto object : print.objects())
         this->collect_extruders(*object, per_layer_extruder_switches);
+    for (auto object : print.objects())
+        this->collect_periodic_recolor_extruders(*object);
 
     // Reorder the extruders to minimize tool switches.
     std::vector<unsigned int> first_layer_tool_order;
@@ -982,6 +999,64 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     }
 }
 
+
+// Declare the filaments periodic recoloring needs, so the prime tower, flush volumes and
+// nozzle grouping plan for them. This runs after collect_extruders() and is additive.
+void ToolOrdering::collect_periodic_recolor_extruders(const PrintObject &object)
+{
+    const PeriodicRecolorPlan plan = PeriodicRecolorPlan::build(object);
+    if (plan.empty())
+        return;
+
+    for (const Layer *layer : object.layers()) {
+        LayerTools &layer_tools = this->tools_for_layer(layer->print_z);
+        if (layer_tools.extruder_override != 0)
+            continue;
+        const PeriodicRecolorLayerRules &rules = plan.rules_for(layer->print_z, layer->height);
+        if (! rules.active())
+            continue;
+
+        // `LayerTools::extruders` is 1 based until the end of handle_dontcare_extruder(), which runs after this.
+        auto declare = [&layer_tools, this](int filament_0based) {
+            layer_tools.extruders.emplace_back(unsigned(filament_0based + 1));
+            m_has_periodic_recolor = true;
+        };
+
+        for (const LayerRegion *layerm : layer->regions()) {
+            const PrintRegion &region = layerm->region();
+            auto declare_collection = [&](const ExtrusionEntityCollection &eec, bool perimeters) {
+                if (eec.entities.empty())
+                    return;
+                if (! eec.can_sort()) {
+                    const int target = rules.first_matching_filament(eec);
+                    if (target >= 0 && target != int(layer_tools.extruder(eec, region)))
+                        declare(target);
+                    return;
+                }
+                int outer = 0, inner = 0;
+                const bool split = layer_tools.wall_split_filaments(eec, region, perimeters, outer, inner);
+                const int  collection_filament = int(layer_tools.extruder(eec, region));
+                for (const ExtrusionEntity *child : eec.entities) {
+                    const ExtrusionRole role = child->role();
+                    // Skip the children the wall split drops, as GCode::process_layer does.
+                    if (split && ! is_perimeter(role))
+                        continue;
+                    const int baseline = ! split ? collection_filament :
+                        (is_internal_perimeter(role) ? inner : outer);
+                    const int target = rules.first_matching_filament(*child);
+                    if (target >= 0 && target != baseline)
+                        declare(target);
+                }
+            };
+            for (const ExtrusionEntity *ee : layerm->perimeters.entities)
+                declare_collection(static_cast<const ExtrusionEntityCollection &>(*ee), true);
+            for (const ExtrusionEntity *ee : layerm->fills.entities)
+                declare_collection(static_cast<const ExtrusionEntityCollection &>(*ee), false);
+        }
+        sort_remove_duplicates(layer_tools.extruders);
+    }
+
+}
 
 void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_t object_bottom_z, coordf_t max_layer_height)
 {

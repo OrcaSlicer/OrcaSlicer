@@ -4798,7 +4798,15 @@ void GCode::_print_first_layer_extruder_temperatures(GCodeOutputStream &file, Pr
                 file.write(m_writer.set_temperature(temp, wait, first_printing_extruder_id));
         } else {
             // Set temperatures of all the printing extruders.
-            for (unsigned int tool_id : print.extruders()) {
+            // Orca: print.extruders() leaves out a filament used only by a periodic recolor pattern. With ooze
+            // prevention off, nothing else is sure to heat that tool before it prints. Prints where no pattern
+            // recolors anything skip this, so their output is unchanged.
+            std::vector<unsigned int> preheat_filaments = print.extruders();
+            if (print.tool_ordering().has_periodic_recolor())
+                for (const Extruder &extruder : m_writer.extruders())
+                    if (! contains(preheat_filaments, extruder.id()))
+                        preheat_filaments.emplace_back(extruder.id());
+            for (unsigned int tool_id : preheat_filaments) {
                 int temp = print.config().nozzle_temperature_initial_layer.get_at(get_filament_config_index((int)tool_id));
                 if (m_ooze_prevention.enable && tool_id != first_printing_extruder_id) {
                     if (print.config().idle_temperature.get_at(tool_id) == 0)
@@ -5532,6 +5540,14 @@ std::string GCode::generate_timelapse_gcode(const Print &print, coordf_t print_z
     return timelapse_gcode;
 }
 
+const PeriodicRecolorPlan &GCode::periodic_recolor_plan(const PrintObject &object)
+{
+    auto it = m_periodic_recolor_plans.find(&object);
+    if (it == m_periodic_recolor_plans.end())
+        it = m_periodic_recolor_plans.emplace(&object, PeriodicRecolorPlan::build(object)).first;
+    return it->second;
+}
+
 // In sequential mode, process_layer is called once per each object and its copy,
 // therefore layers will contain a single entry and single_object_instance_idx will point to the copy of the object.
 // In non-sequential mode, process_layer is called per each print_z height with all object and support layers accumulated.
@@ -5929,7 +5945,9 @@ LayerResult GCode::process_layer(
     // compute_farthest_point (below, gated on m_farthest_point_timelapse.enabled). Populated alongside the
     // existing support-extruder assignment; unused (and thus output-neutral) when the subsystem is off.
     std::map<std::pair<const SupportLayer *, ExtrusionRole>, unsigned int> support_filaments;
-    std::vector<std::unique_ptr<ExtrusionEntityCollection>> split_perimeter_storage;
+    // Copies made when the wall split or a pattern divides a collection. by_region keeps pointers to them.
+    std::vector<std::unique_ptr<ExtrusionEntityCollection>> grouped_extrusion_storage;
+    static const PeriodicRecolorLayerRules s_periodic_recolor_none;
     bool is_anything_overridden = const_cast<LayerTools&>(layer_tools).wiping_extrusions().is_anything_overridden();
     for (const LayerToPrint &layer_to_print : layers) {
         if (layer_to_print.support_layer != nullptr) {
@@ -6046,6 +6064,21 @@ LayerResult GCode::process_layer(
 
         if (layer_to_print.object_layer != nullptr) {
             const Layer &layer = *layer_to_print.object_layer;
+            // Orca: this layer's pattern rules. A layer with an extruder override from custom G-code gets none, the
+            // same as in collect_periodic_recolor_extruders().
+            const PeriodicRecolorLayerRules &recolor_rules =
+                layer_tools.extruder_override == 0 ?
+                    this->periodic_recolor_plan(*layer_to_print.object()).rules_for(layer.print_z, layer.height) :
+                    s_periodic_recolor_none;
+            enum class WallGroup : uint8_t {
+                Whole, // collection not split; a split drops any child left here
+                Outer, // external and overhang perimeters
+                Inner  // internal perimeters
+            };
+            // Reuse these buffers across collections on the same layer.
+            std::vector<WallGroup> child_groups;
+            std::vector<int>       child_targets;
+            std::vector<int>       emitted_targets;
             // We now define a strategy for building perimeters and fills. The separation
             // between regions doesn't matter in terms of printing order, as we follow
             // another logic instead:
@@ -6095,14 +6128,30 @@ LayerResult GCode::process_layer(
                         if (extrusions->entities.empty()) // This shouldn't happen but first_point() would fail.
                             continue;
 
+                        // Orca: `overrides_key` is the collection the wiping overrides are keyed to, or null for a copy
+                        // that has none. `forced_extruder_id` is the filament to print with, or -1 for the collection's
+                        // usual one. `recolored` is true only when a pattern changed it; a wall split copy is forced but
+                        // not recolored.
                         auto process_extrusions = [&](const ExtrusionEntityCollection *current_extrusions,
                                                        const ExtrusionEntityCollection *overrides_key,
-                                                       bool                             use_overrides) {
+                                                       int                              forced_extruder_id,
+                                                       bool                             recolored) {
                             // This extrusion is part of certain Region, which tells us which extruder should be used for it.
-                            int correct_extruder_id = layer_tools.extruder(*current_extrusions, region);
+                            // Orca: map a forced filament through resolve_mixed() as LayerTools::extruder() does. A wall split
+                            // filament comes from region settings and can be a mixed filament slot, which is not a real tool.
+                            int correct_extruder_id = forced_extruder_id < 0 ?
+                                layer_tools.extruder(*current_extrusions, region) :
+                                int(layer_tools.resolve_mixed(unsigned(forced_extruder_id)));
 
                             const WipingExtrusions::ExtruderPerCopy *entity_overrides = nullptr;
                             if (! layer_tools.has_extruder(correct_extruder_id)) {
+                                // Orca: ToolOrdering plans pattern filaments with the same PeriodicRecolorPlan::build(), so a recolored
+                                // filament should be on this layer. If it isn't, fail rather than print the band in the wrong filament.
+                                if (recolored)
+                                    throw Slic3r::SlicingError(Slic3r::format(
+                                        _u8L("Periodic recoloring asked for filament %1% on layer at %2% mm, but it was not "
+                                             "planned for that layer."),
+                                        forced_extruder_id + 1, layer.print_z));
                                 // A mixed-color slot is absent from layer_tools.extruders by design:
                                 // resolve_mixed_filaments() replaced it with its physical components,
                                 // and the sublayer block emits its geometry separately. Reassigning it
@@ -6115,7 +6164,7 @@ LayerResult GCode::process_layer(
                                 }
                             }
                             printing_extruders.clear();
-                            if (is_anything_overridden && use_overrides) {
+                            if (is_anything_overridden && overrides_key != nullptr) {
                                 entity_overrides = const_cast<LayerTools&>(layer_tools).wiping_extrusions().get_extruder_overrides(overrides_key, layer_to_print.original_object, correct_extruder_id, layer_to_print.object()->instances().size());
                                 if (entity_overrides == nullptr) {
                                     printing_extruders.emplace_back(correct_extruder_id);
@@ -6153,32 +6202,87 @@ LayerResult GCode::process_layer(
                             }
                         };
 
-                        bool split_mixed_perimeters =
-                            entity_type == ObjectByExtruder::Island::Region::PERIMETERS &&
-                            region.config().outer_wall_filament_id.value != region.config().inner_wall_filament_id.value &&
-                            extrusions->role() == erMixed;
+                        // Orca: get the outer and inner wall filaments if this collection mixes walls and their filament settings differ.
+                        int outer_filament = -1, inner_filament = -1;
+                        const bool split_walls = layer_tools.wall_split_filaments(
+                            *extrusions, region,
+                            entity_type == ObjectByExtruder::Island::Region::PERIMETERS,
+                            outer_filament, inner_filament);
 
-                        if (split_mixed_perimeters) {
-                            auto outer_perimeters = std::make_unique<ExtrusionEntityCollection>();
-                            auto inner_perimeters = std::make_unique<ExtrusionEntityCollection>();
-                            for (const ExtrusionEntity *entity : extrusions->entities) {
-                                const ExtrusionRole role = entity->role();
-                                if (role == erExternalPerimeter || role == erOverhangPerimeter)
-                                    outer_perimeters->append(*entity);
-                                else if (role == erPerimeter)
-                                    inner_perimeters->append(*entity);
-                            }
+                        // If no wall split and no pattern on this layer: print the whole collection with its usual filament.
+                        if (! split_walls && ! recolor_rules.active()) {
+                            process_extrusions(extrusions, extrusions, -1, false);
+                            continue;
+                        }
 
-                            if (!outer_perimeters->entities.empty()) {
-                                split_perimeter_storage.emplace_back(std::move(outer_perimeters));
-                                process_extrusions(split_perimeter_storage.back().get(), nullptr, false);
+                        const int  collection_filament = int(layer_tools.extruder(*extrusions, region));
+                        const bool sortable = extrusions->can_sort();
+
+                        // An unsortable collection must print in order, so it can't be divided between filaments. If a pattern
+                        // matches any of it, print all of it with the pattern filament instead of splitting its walls.
+                        const int whole_recolor = ! sortable ?
+                            recolor_rules.first_matching_filament(*extrusions) : -1;
+
+                        const size_t n = extrusions->entities.size();
+                        bool all_one_target = true;
+                        if (whole_recolor < 0) {
+                            child_groups.assign(n, WallGroup::Whole);
+                            child_targets.assign(n, collection_filament);
+                            // n >= 1: empty collections are skipped above.
+                            for (size_t i = 0; i < n; ++i) {
+                                const ExtrusionEntity *child = extrusions->entities[i];
+                                const ExtrusionRole role = child->role();
+                                if (split_walls) {
+                                    // Match the children retained by collect_periodic_recolor_extruders().
+                                    if (! is_perimeter(role))
+                                        continue;
+                                    child_groups[i]  = is_internal_perimeter(role) ? WallGroup::Inner
+                                                                                   : WallGroup::Outer;
+                                    child_targets[i] = child_groups[i] == WallGroup::Outer ? outer_filament
+                                                                                           : inner_filament;
+                                }
+                                if (sortable) {
+                                    const int recolored = recolor_rules.first_matching_filament(*child);
+                                    if (recolored >= 0)
+                                        child_targets[i] = recolored;
+                                }
+                                all_one_target &= child_targets[i] == child_targets.front();
                             }
-                            if (!inner_perimeters->entities.empty()) {
-                                split_perimeter_storage.emplace_back(std::move(inner_perimeters));
-                                process_extrusions(split_perimeter_storage.back().get(), nullptr, false);
-                            }
+                        }
+
+                        // Preserve the original collection's order and wiping overrides when no split is needed.
+                        // Wall splits must keep using copies without overrides to preserve existing G-code.
+                        if (whole_recolor >= 0 || (! split_walls && all_one_target)) {
+                            const int  target    = whole_recolor >= 0 ? whole_recolor : child_targets.front();
+                            const bool recolored = target != collection_filament;
+                            process_extrusions(extrusions, extrusions, recolored ? target : -1, recolored);
                         } else {
-                            process_extrusions(extrusions, extrusions, true);
+                            // Emit outer walls first, then targets in order of first appearance within each group.
+                            auto emit_group = [&](WallGroup group, int baseline) {
+                                emitted_targets.clear();
+                                for (size_t i = 0; i < n; ++i) {
+                                    if (child_groups[i] != group)
+                                        continue;
+                                    if (contains(emitted_targets, child_targets[i]))
+                                        continue;
+                                    emitted_targets.emplace_back(child_targets[i]);
+                                    auto grouped = std::make_unique<ExtrusionEntityCollection>();
+                                    for (size_t j = i; j < n; ++j)
+                                        if (child_groups[j] == group && child_targets[j] == child_targets[i])
+                                            grouped->append(*extrusions->entities[j]);
+                                    grouped_extrusion_storage.emplace_back(std::move(grouped));
+                                    // Pass the filament in: a copy's role() can differ from the original's and map to another
+                                    // filament. Copies get no wiping overrides, which are keyed to the original collection.
+                                    process_extrusions(grouped_extrusion_storage.back().get(), nullptr,
+                                                       child_targets[i], child_targets[i] != baseline);
+                                }
+                            };
+                            if (split_walls) {
+                                emit_group(WallGroup::Outer, outer_filament);
+                                emit_group(WallGroup::Inner, inner_filament);
+                            } else {
+                                emit_group(WallGroup::Whole, collection_filament);
+                            }
                         }
                     }
                 }
@@ -7154,6 +7258,8 @@ void GCode::append_full_config(const Print &print, std::string &str)
         // loaded presets, never consumed by slicing or firmware. Keep it out of the G-code config block so
         // the config key stays inert to g-code (byte-identical output).
         "filament_extruder_compatibility"sv,
+        // Orca: periodic_recolor_patterns is per object (set in the Color Painting tool), so a print-wide value means nothing.
+        "periodic_recolor_patterns"sv,
         // The fast-purge / prime-volume-mode keys are new static-member registrations. Excluding them from
         // the config block keeps registration byte-identical for the shipping fleet (default
         // prime_volume_mode==Default leaves the slicing body unchanged; only the config-dump would otherwise
