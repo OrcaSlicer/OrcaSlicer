@@ -208,10 +208,21 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 		case coBool:
 			config.set_key_value(opt_key, new ConfigOptionBool(boost::any_cast<bool>(value)));
 			break;
-		case coBools:{
-            auto vec_new = std::make_unique<ConfigOptionBool>(boost::any_cast<unsigned char>(value) != 0);
-			config.option<ConfigOptionBools>(opt_key)->set_at(vec_new.get(), opt_index, 0);
-			break;}
+		case coBools: {
+            unsigned char val = 0;
+            if (value.type() == typeid(bool))
+                val = boost::any_cast<bool>(value) ? 1 : 0;
+            else
+                val = boost::any_cast<unsigned char>(value);
+
+            if (auto opt = config.option<ConfigOptionBools>(opt_key)) {
+                auto vec_new = std::make_unique<ConfigOptionBool>(val != 0);
+                opt->set_at(vec_new.get(), opt_index, 0);
+            } else {
+                config.set_key_value(opt_key, new ConfigOptionBools({val}));
+            }
+            break;
+        }
 		case coInt:
 			config.set_key_value(opt_key, new ConfigOptionInt(boost::any_cast<int>(value)));
 			break;
