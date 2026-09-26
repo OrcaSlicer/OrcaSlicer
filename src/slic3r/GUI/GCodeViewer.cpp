@@ -34,6 +34,7 @@
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -1712,6 +1713,24 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
     m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
 }
 
+size_t GCodeViewer::shadow_casters_signature() const
+{
+    size_t hash = m_viewer.get_vertices_count();
+    const libvgcode::Interval& visible = m_viewer.get_view_visible_range();
+    const libvgcode::Interval& layers  = m_viewer.get_layers_view_range();
+    for (size_t value : { size_t(visible[0]), size_t(visible[1]), size_t(layers[0]), size_t(layers[1]) })
+        boost::hash_combine(hash, value);
+    for (double value : { m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y(), m_paths_bounding_box.min.z(),
+                          m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
+        boost::hash_combine(hash, value);
+    boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
+        boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Wipes));
+    return hash;
+}
+
 void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position)
 {
     if (!has_data())
@@ -1728,6 +1747,11 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
     m_viewer.set_shadow_map(texture_unit,
         libvgcode::convert(static_cast<Matrix4f>(light_view_projection.matrix().cast<float>())),
         intensity, texel_size);
+}
+
+void GCodeViewer::set_light_top_dir(const Vec3d& direction)
+{
+    m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
 }
 
 void GCodeViewer::set_tone(float exposure, float saturation)

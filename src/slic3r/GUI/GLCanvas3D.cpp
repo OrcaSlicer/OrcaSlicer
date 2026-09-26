@@ -1239,6 +1239,7 @@ GLCanvas3D::~GLCanvas3D()
 {
     if (_set_current()) {
         m_scene_cache.reset();
+        m_frame_profiler.reset();
         if (m_fxaa_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
             m_fxaa_texture_id = 0;
@@ -2062,7 +2063,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     wxGetApp().imgui()->new_frame();
 
-    if (m_picking_enabled) {
+    if (m_picking_enabled && !m_benchmarking) {
         if (m_rectangle_selection.is_dragging())
             // picking pass using rectangle selection
             _rectangular_selection_picking_pass();
@@ -2087,22 +2088,30 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
     const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
+    // Only frames that redraw the scene are profiled.
+    if (!reuse_scene && (_is_render_timings_enabled() || m_frame_profiler.is_averaging()))
+        m_frame_profiler.begin_frame();
+    Slic3r::ScopeGuard profiler_guard([this]() { m_frame_profiler.end_frame(); });
     if (!reuse_scene) {
         _render_scene(camera, cnv_size);
         if (!overlay_tick)
             m_render_stats.increment_scene_fps_counter();
     }
 
-    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview)
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
+        m_frame_profiler.mark("legend");
+    }
 
     // draw overlays
     _render_overlays();
+    m_frame_profiler.mark("ui");
 
     const int current_fps = m_render_stats.get_fps_and_reset_if_needed();
-    if (_is_fps_overlay_enabled()) {
+    if (_is_fps_overlay_enabled() || _is_render_timings_enabled())
         _render_fps_overlay(current_fps);
+    if (_is_fps_overlay_enabled()) {
         // The timer requests an overlay-only frame a second from now. A frame it requested
         // re-arms it only while a count is above zero.
         if (!overlay_tick || current_fps > 0 || m_render_stats.get_scene_fps() > 0)
@@ -2192,12 +2201,14 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
         wxGetApp().plater()->get_dailytips()->render();
     }
+    m_frame_profiler.mark("notifications");
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
         signature = _overlay_signature(draw_data);
+    m_frame_profiler.mark("imgui end");
 
     if (reuse_scene) {
         // A reused scene under an unchanged overlay is the frame already on screen.
@@ -2207,13 +2218,16 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     }
 
     _render_overlay_toolbars();
+    m_frame_profiler.mark("toolbars");
 
     wxGetApp().imgui()->render(draw_data);
+    m_frame_profiler.mark("imgui draw");
 
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
+        m_frame_profiler.mark("swap");
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
@@ -2258,32 +2272,42 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         // floating would read as a rendering fault rather than a deliberate view option.
         if (show_bed)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        m_frame_profiler.mark("bed");
         if (show_bed) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
         if (m_axes_at_bed_center && show_bed)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
+        m_frame_profiler.mark("plates");
         
         //BBS: add outline logic
         // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
         _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+        m_frame_profiler.mark("shadows");
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        m_frame_profiler.mark("objects");
         _render_sla_slices();
         _render_selection();
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
+        m_frame_profiler.mark("transparent");
     }
     /* preview render */
     else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
         _render_sla_slices();
         _render_selection();
+        m_frame_profiler.mark("objects");
         _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        m_frame_profiler.mark("bed");
         _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+        m_frame_profiler.mark("plates");
         // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
         _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+        m_frame_profiler.mark("shadows");
         // BBS: GUI refactor: add canvas size as parameters
         _render_gcode(cnv_size.get_width(), cnv_size.get_height());
+        m_frame_profiler.mark("gcode");
     }
     /* assemble render*/
     else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
@@ -2300,6 +2324,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         // BBS: add outline logic
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
+        m_frame_profiler.mark("objects");
     }
 
     _render_sequential_clearance();
@@ -2322,12 +2347,17 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
 
     if (m_picking_enabled && m_rectangle_selection.is_dragging())
         m_rectangle_selection.render(*this);
+    m_frame_profiler.mark("gizmos");
 
-    if (_is_ssao_enabled())
+    if (_is_ssao_enabled()) {
         _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+        m_frame_profiler.mark("ssao");
+    }
 
-    if (_is_fxaa_enabled())
+    if (_is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+        m_frame_profiler.mark("fxaa");
+    }
 
     // Design tab: interactive 2D sketch overlay, drawn over the scene but
     // beneath the UI overlays (toolbars, labels).
@@ -2337,6 +2367,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
 #endif
 
     _capture_scene_cache(camera);
+    m_frame_profiler.mark("cache");
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
@@ -3330,7 +3361,7 @@ void GLCanvas3D::unbind_event_handlers()
 
 void GLCanvas3D::on_idle(wxIdleEvent& evt)
 {
-    if (!m_initialized)
+    if (!m_initialized || m_benchmarking)
         return;
 
     // Toolbar states, notifications and ImGui's own layout settling only touch the overlay.
@@ -7755,7 +7786,51 @@ int GLCanvas3D::_get_effective_fps_cap() const
 
 bool GLCanvas3D::_is_fps_overlay_enabled() const
 {
-    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
+    return !m_benchmarking && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
+}
+
+// Above the front left of the plate.
+static const Vec3d STATIC_LIGHT_DIR = Vec3d(-0.4, -0.6, 1.0).normalized();
+
+std::optional<Vec3d> GLCanvas3D::_static_light_dir_eye() const
+{
+    if (!_is_realistic_view_enabled() || _shadow_mode() != EShadowMode::Static)
+        return std::nullopt;
+    const Matrix3d view_rot = wxGetApp().plater()->get_camera().get_view_matrix().matrix().block<3, 3>(0, 0);
+    return Vec3d((view_rot * STATIC_LIGHT_DIR).normalized());
+}
+
+GLCanvas3D::EShadowMode GLCanvas3D::_shadow_mode() const
+{
+    const std::string mode = wxGetApp().app_config != nullptr ? wxGetApp().app_config->get(SETTING_OPENGL_REALISTIC_SHADOWS) : std::string();
+    return mode == "static" ? EShadowMode::Static : mode == "orbit" ? EShadowMode::Orbit : EShadowMode::Off;
+}
+
+size_t GLCanvas3D::_shadow_casters_signature(bool toolpath_casters) const
+{
+    if (toolpath_casters)
+        return m_gcode_viewer.shadow_casters_signature();
+
+    size_t hash = 1;
+    for (const GLVolume* volume : m_volumes.volumes) {
+        if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+            continue;
+        boost::hash_combine(hash, volume);
+        boost::hash_combine(hash, volume->model.vertices_count());
+        boost::hash_combine(hash, volume->model.indices_count());
+        const BoundingBoxf3& bb = volume->model.get_bounding_box();
+        for (double value : { bb.min.x(), bb.min.y(), bb.min.z(), bb.max.x(), bb.max.y(), bb.max.z() })
+            boost::hash_combine(hash, value);
+        const Transform3d world = volume->world_matrix();
+        for (int i = 0; i < 16; ++i)
+            boost::hash_combine(hash, world.matrix().data()[i]);
+    }
+    return hash;
+}
+
+bool GLCanvas3D::_is_render_timings_enabled() const
+{
+    return !m_benchmarking && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS);
 }
 
 bool GLCanvas3D::_is_scene_cache_enabled() const
@@ -7790,7 +7865,10 @@ bool GLCanvas3D::_is_frame_skipping_enabled() const
 
 void GLCanvas3D::_render_fps_overlay(int fps) const
 {
-    if (fps < 0)
+    const bool show_fps = _is_fps_overlay_enabled() && fps >= 0;
+    const std::vector<FrameProfiler::Section>& sections = m_frame_profiler.sections();
+    const bool show_timings = _is_render_timings_enabled() && !sections.empty();
+    if (!show_fps && !show_timings)
         return;
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
@@ -7807,9 +7885,35 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoInputs);
-    imgui.text(std::string("FPS: ") + std::to_string(fps));
-    // The subset of those frames that redrew the scene rather than reusing the cached one.
-    imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
+    if (show_fps) {
+        imgui.text(std::string("FPS: ") + std::to_string(fps));
+        // The subset of those frames that redrew the scene rather than reusing the cached one.
+        imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
+    }
+    if (show_timings && ImGui::BeginTable("frame_sections", 3, ImGuiTableFlags_SizingFixedFit)) {
+        ImGui::TableSetupColumn("ms");
+        ImGui::TableSetupColumn("CPU");
+        ImGui::TableSetupColumn("GPU");
+        ImGui::TableHeadersRow();
+        double cpu_ms = 0.0;
+        double gpu_ms = 0.0;
+        auto row = [](const char* name, double cpu, double gpu) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted(name);
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%.2f", cpu);
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%.2f", gpu);
+        };
+        for (const FrameProfiler::Section& section : sections) {
+            row(section.name, section.cpu_ms, section.gpu_ms);
+            cpu_ms += section.cpu_ms;
+            gpu_ms += section.gpu_ms;
+        }
+        row("total", cpu_ms, gpu_ms);
+        ImGui::EndTable();
+    }
     imgui.end();
 }
 
@@ -8160,7 +8264,8 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
         return;
     if (!_is_realistic_view_enabled())
         return;
-    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
+    const EShadowMode mode = _shadow_mode();
+    if (mode == EShadowMode::Off)
         return;
 
     // The preview canvas holds no volumes of its own for FFF. Once slicing has run its printed
@@ -8175,10 +8280,11 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
     if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb) {
 
-        // Light direction (same as used in shading and plate shading)
+        // Orbit: the light used for shading, fixed to the camera. Static: a world light, also used for shading.
         const Vec3d light_dir_eye = Vec3d(-0.4574957, 0.4574957, 0.7624929).normalized();
         const Matrix3d view_rot = view_matrix.matrix().block<3, 3>(0, 0);
-        const Vec3d dir_to_light = (view_rot.transpose() * light_dir_eye).normalized();
+        const Vec3d dir_to_light = mode == EShadowMode::Static ? STATIC_LIGHT_DIR :
+                                                                 Vec3d((view_rot.transpose() * light_dir_eye).normalized());
 
         // Bounding box of the printable objects (the shadow casters).
         BoundingBoxf3 obj_bb;
@@ -8230,11 +8336,19 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             lmin = lmin.cwiseMin(lp);
             lmax = lmax.cwiseMax(lp);
         };
+        // The plate area a shadow can reach: the casters' footprint and where their corners land on z = 0.
+        Vec2d reach_min(DBL_MAX, DBL_MAX);
+        Vec2d reach_max(-DBL_MAX, -DBL_MAX);
+        auto reach = [&](const Vec3d& p) {
+            reach_min = reach_min.cwiseMin(Vec2d(p.x(), p.y()));
+            reach_max = reach_max.cwiseMax(Vec2d(p.x(), p.y()));
+        };
         for (int i = 0; i < 8; ++i) {
             const Vec3d corner((i & 1) ? obj_bb.max.x() : obj_bb.min.x(),
                                (i & 2) ? obj_bb.max.y() : obj_bb.min.y(),
                                (i & 4) ? obj_bb.max.z() : obj_bb.min.z());
             enclose(corner);
+            reach(corner);
             // Where this corner's shadow lands on z = 0, clamped to the plate so a grazing angle
             // (t -> infinity) stays bounded.
             if (ray_dir.z() < -1e-6) {
@@ -8244,6 +8358,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
                 s.y() = std::min(std::max(s.y(), plate_bb.min.y()), plate_bb.max.y());
                 s.z() = 0.0;
                 enclose(s);
+                reach(s);
             }
         }
 
@@ -8277,6 +8392,11 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
         // Create / resize the depth texture and FBO
         const unsigned int size = 2048;
+
+        // Padded by the filter's 2 texel reach, stretched where the light grazes the plate.
+        const double reach_margin = 3.0 * 2.0 * std::max(halfx, halfy) / size / std::max(0.1, std::abs(dir_to_light.z()));
+        m_shadow_plate_bounds = { float(reach_min.x() - reach_margin), float(reach_min.y() - reach_margin),
+                                  float(reach_max.x() + reach_margin), float(reach_max.y() + reach_margin) };
         if (m_shadow_map_texture_id == 0) {
             glsafe(::glGenTextures(1, &m_shadow_map_texture_id));
             glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
@@ -8296,66 +8416,80 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
         if (m_shadow_map_fbo == 0)
             glsafe(::glGenFramebuffers(1, &m_shadow_map_fbo));
 
-        // Save OpenGL state that we will modify
-        GLint prev_viewport[4] = { 0, 0, 0, 0 };
-        glsafe(::glGetIntegerv(GL_VIEWPORT, prev_viewport));
-        GLint prev_fbo = 0;
-        glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prev_fbo));
-        GLboolean prev_color_mask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
-        glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, prev_color_mask));
-        const GLboolean prev_cull = ::glIsEnabled(GL_CULL_FACE);
-        GLint prev_depth_func = GL_LESS;
-        glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &prev_depth_func));
-        GLboolean prev_depth_mask = GL_TRUE;
-        glsafe(::glGetBooleanv(GL_DEPTH_WRITEMASK, &prev_depth_mask));
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_map_fbo));
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadow_map_texture_id, 0));
-        glsafe(::glDrawBuffer(GL_NONE));
-        glsafe(::glReadBuffer(GL_NONE));
-
-        if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prev_fbo)));
-            m_shadow_map_valid = false;
-        } else {
-            glsafe(::glViewport(0, 0, size, size));
-            glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
-            glsafe(::glEnable(GL_DEPTH_TEST));
-            glsafe(::glDepthMask(GL_TRUE));
-            glsafe(::glDepthFunc(GL_LESS));
-            glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
-            glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
-            glsafe(::glPolygonOffset(4.0f, 4.0f));
-            glsafe(::glDisable(GL_CULL_FACE));
-
-            if (toolpath_casters)
-                m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
-            // Only this branch draws through "flat"; the toolpaths bring their own program.
-            else if (GLShaderProgram* shader = wxGetApp().get_shader("flat"); shader != nullptr) {
-                shader->start_using();
-                shader->set_uniform("projection_matrix", Transform3d(light_proj));
-                for (GLVolume* volume : m_volumes.volumes) {
-                    if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
-                        continue;
-                    const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
-                    shader->set_uniform("view_model_matrix", view_model);
-                    volume->model.render(shader);
-                }
-                shader->stop_using();
-            }
-
-            // Restore state
-            glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
-            glsafe(::glColorMask(prev_color_mask[0], prev_color_mask[1], prev_color_mask[2], prev_color_mask[3]));
-            if (prev_cull)
-                glsafe(::glEnable(GL_CULL_FACE));
-            else
-                glsafe(::glDisable(GL_CULL_FACE));
-            glsafe(::glDepthFunc(prev_depth_func));
-            glsafe(::glDepthMask(prev_depth_mask));
-            glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prev_fbo)));
-            glsafe(::glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]));
-
+        // A static light keeps the map until its frustum or the casters change.
+        size_t cache_key = 0;
+        if (mode == EShadowMode::Static) {
+            cache_key = _shadow_casters_signature(toolpath_casters);
+            for (int i = 0; i < 16; ++i)
+                boost::hash_combine(cache_key, m_shadow_light_vp.matrix().data()[i]);
+        }
+        if (cache_key != 0 && cache_key == m_shadow_map_key)
             m_shadow_map_valid = true;
+        else {
+            m_shadow_map_key = 0;
+            // Save OpenGL state that we will modify
+            GLint prev_viewport[4] = { 0, 0, 0, 0 };
+            glsafe(::glGetIntegerv(GL_VIEWPORT, prev_viewport));
+            GLint prev_fbo = 0;
+            glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prev_fbo));
+            GLboolean prev_color_mask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+            glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, prev_color_mask));
+            const GLboolean prev_cull = ::glIsEnabled(GL_CULL_FACE);
+            GLint prev_depth_func = GL_LESS;
+            glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &prev_depth_func));
+            GLboolean prev_depth_mask = GL_TRUE;
+            glsafe(::glGetBooleanv(GL_DEPTH_WRITEMASK, &prev_depth_mask));
+            glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_map_fbo));
+            glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadow_map_texture_id, 0));
+            glsafe(::glDrawBuffer(GL_NONE));
+            glsafe(::glReadBuffer(GL_NONE));
+
+            if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prev_fbo)));
+                m_shadow_map_valid = false;
+            } else {
+                glsafe(::glViewport(0, 0, size, size));
+                glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+                glsafe(::glEnable(GL_DEPTH_TEST));
+                glsafe(::glDepthMask(GL_TRUE));
+                glsafe(::glDepthFunc(GL_LESS));
+                glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
+                glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+                glsafe(::glPolygonOffset(4.0f, 4.0f));
+                glsafe(::glDisable(GL_CULL_FACE));
+
+                if (toolpath_casters)
+                    m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
+                // Only this branch draws through "flat"; the toolpaths bring their own program.
+                else if (GLShaderProgram* shader = wxGetApp().get_shader("flat"); shader != nullptr) {
+                    shader->start_using();
+                    shader->set_uniform("projection_matrix", Transform3d(light_proj));
+                    for (GLVolume* volume : m_volumes.volumes) {
+                        if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+                            continue;
+                        const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
+                        shader->set_uniform("view_model_matrix", view_model);
+                        volume->model.render(shader);
+                    }
+                    shader->stop_using();
+                }
+
+                // Restore state
+                glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+                glsafe(::glColorMask(prev_color_mask[0], prev_color_mask[1], prev_color_mask[2], prev_color_mask[3]));
+                if (prev_cull)
+                    glsafe(::glEnable(GL_CULL_FACE));
+                else
+                    glsafe(::glDisable(GL_CULL_FACE));
+                glsafe(::glDepthFunc(prev_depth_func));
+                glsafe(::glDepthMask(prev_depth_mask));
+                glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prev_fbo)));
+                glsafe(::glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]));
+
+                m_shadow_map_valid = true;
+            }
+            if (m_shadow_map_valid)
+                m_shadow_map_key = cache_key;
         }
     } else {
         m_shadow_map_valid = false;
@@ -8455,6 +8589,7 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             plate_shader->set_uniform("shadow_light_vp", m_shadow_light_vp);
             plate_shader->set_uniform("shadow_intensity", 0.35f);
             plate_shader->set_uniform("shadow_map_texel", 1.0f / static_cast<float>(m_shadow_map_size));
+            plate_shader->set_uniform("shadow_bounds", m_shadow_plate_bounds);
             m_plate_shadow_mask.render(plate_shader);
             plate_shader->stop_using();
 
@@ -8582,6 +8717,10 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         }
         else
             shader->set_uniform("shadow_intensity", 0.0f);
+        const std::optional<Vec3d> static_light = _static_light_dir_eye();
+        shader->set_uniform("use_static_light", static_light.has_value());
+        if (static_light.has_value())
+            shader->set_uniform("static_light_dir", *static_light);
 
         const Size&   cvn_size = get_canvas_size();
         {
@@ -8679,6 +8818,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
             glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
             glsafe(::glActiveTexture(GL_TEXTURE0));
         }
+        shader->set_uniform("use_static_light", false);
 
         shader->stop_using();
     }
@@ -8792,8 +8932,9 @@ void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
     // again - realistic view with at least one lossy pass on - else the lift would just clip.
     const AppConfig* cfg = wxGetApp().app_config;
     const bool lossy_passes = cfg != nullptr && _is_realistic_view_enabled() &&
-                              (cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) || cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
+                              (_shadow_mode() != EShadowMode::Off || cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
     m_gcode_viewer.set_tone(lossy_passes ? 1.1f : 1.0f, 1.15f);
+    m_gcode_viewer.set_light_top_dir(_static_light_dir_eye().value_or(Vec3d(-0.4574957, 0.4574957, 0.7624929)));
 
     m_gcode_viewer.render_scene(canvas_width, canvas_height);
 

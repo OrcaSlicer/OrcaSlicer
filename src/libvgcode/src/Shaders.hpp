@@ -14,7 +14,7 @@ static const char* Segments_Vertex_Shader =
 "#version 150\n"
 "#define POINTY_CAPS\n"
 "#define FIX_TWISTING\n"
-"const vec3  light_top_dir = vec3(-0.4574957, 0.4574957, 0.7624929);\n"
+"uniform vec3 light_top_dir;\n"
 "const float light_top_diffuse = 0.6 * 0.8;\n"
 // ORCA: the specular was 0.6 * 0.125, too faint to give the filament any sheen.
 "const float light_top_specular = 0.6 * 0.25;\n"
@@ -31,9 +31,9 @@ static const char* Segments_Vertex_Shader =
 "uniform samplerBuffer height_width_angle_tex;\n"
 "uniform samplerBuffer color_tex;\n"
 "uniform usamplerBuffer segment_index_tex;\n"
-// ORCA: 0 during the shadow caster pass - the bias below shifts eye_position but not
-// world_position, so the caster would write a depth the receiver never looks up.
-"uniform float bias_scale;\n"
+// ORCA: draw last segment first, so looking down the top layers hide the rest from the fragment shader.
+"uniform bool reverse_order;\n"
+"uniform int instances_count;\n"
 "in int vertex_id;\n"
 "out vec3 color;\n"
 "// ORCA: realistic view - the light the shadow map is able to block, kept apart from the\n"
@@ -59,7 +59,8 @@ static const char* Segments_Vertex_Shader =
 "  return top_diffuse + front_diffuse + top_specular;\n"
 "}\n"
 "void main() {\n"
-"  int id_a = int(texelFetch(segment_index_tex, gl_InstanceID).r);\n"
+"  int instance = reverse_order ? instances_count - 1 - gl_InstanceID : gl_InstanceID;\n"
+"  int id_a = int(texelFetch(segment_index_tex, instance).r);\n"
 "  int id_b = id_a + 1;\n"
 "  vec3 pos_a = texelFetch(position_tex, id_a).xyz;\n"
 "  vec3 pos_b = texelFetch(position_tex, id_b).xyz;\n"
@@ -147,7 +148,7 @@ static const char* Segments_Vertex_Shader =
 "  }\n"
 "  vec3 eye_position = (view_matrix * vec4(pos, 1.0)).xyz;\n"
 "  // ORCA: Apply bias to z-position to avoid z-fighting\n"
-"  eye_position.z += bias * bias_scale;\n"
+"  eye_position.z += bias;\n"
 "  vec3 eye_normal = (view_matrix * vec4(normalize(pos - endpoint_pos), 0.0)).xyz;\n"
 "  vec3 color_base = decode_color(texelFetch(color_tex, id).r);\n"
 "  color = color_base * (ambient + emission);\n"
@@ -157,12 +158,53 @@ static const char* Segments_Vertex_Shader =
 "  gl_Position = projection_matrix * vec4(eye_position, 1.0);\n"
 "}\n";
 
+// ORCA: realistic view - shadow caster, one light facing ribbon per segment, not instanced as tiny instances are slow.
+static const char* Segments_Shadow_Caster_Vertex_Shader =
+"#version 150\n"
+"const vec3 UP = vec3(0, 0, 1);\n"
+"const int CORNERS[6] = int[](0, 1, 2, 0, 2, 3);\n"
+"uniform mat4 view_matrix;\n"
+"uniform mat4 projection_matrix;\n"
+"uniform samplerBuffer position_tex;\n"
+"uniform samplerBuffer height_width_angle_tex;\n"
+"uniform usamplerBuffer segment_index_tex;\n"
+"uniform bool reverse_order;\n"
+"uniform int instances_count;\n"
+"void main() {\n"
+"  int segment = gl_VertexID / 6;\n"
+"  int corner = CORNERS[gl_VertexID - 6 * segment];\n"
+"  int instance = reverse_order ? instances_count - 1 - segment : segment;\n"
+"  int id_a = int(texelFetch(segment_index_tex, instance).r);\n"
+"  int id = corner < 2 ? id_a : id_a + 1;\n"
+"  vec3 pos_a = texelFetch(position_tex, id_a).xyz;\n"
+"  vec3 pos_b = texelFetch(position_tex, id_a + 1).xyz;\n"
+"  vec3 line = pos_b - pos_a;\n"
+"  float line_len = length(line);\n"
+"  vec3 line_dir = line_len < 1e-4 ? vec3(1.0, 0.0, 0.0) : line / line_len;\n"
+"  vec3 line_right_dir = abs(dot(line_dir, UP)) > 0.9 ? normalize(cross(vec3(1, 0, 0), line_dir)) : normalize(cross(line_dir, UP));\n"
+"  vec3 line_up_dir = normalize(cross(line_right_dir, line_dir));\n"
+"  vec3 to_light = vec3(view_matrix[0][2], view_matrix[1][2], view_matrix[2][2]);\n"
+"  vec3 side_dir = cross(to_light, line_dir);\n"
+"  side_dir = dot(side_dir, side_dir) < 1e-8 ? line_right_dir : normalize(side_dir);\n"
+"  vec2 height_width = texelFetch(height_width_angle_tex, id).xy;\n"
+"  float half_extent = 0.5 * (height_width.y * abs(dot(line_right_dir, side_dir)) + height_width.x * abs(dot(line_up_dir, side_dir)));\n"
+"  float along = (corner < 2 ? -0.5 : 0.5) * height_width.y;\n"
+"  float side = (corner == 0 || corner == 3) ? -1.0 : 1.0;\n"
+"  vec3 pos = (corner < 2 ? pos_a : pos_b) + along * line_dir + side * half_extent * side_dir;\n"
+"  gl_Position = projection_matrix * (view_matrix * vec4(pos, 1.0));\n"
+"}\n";
+
+// ORCA: realistic view - the shadow caster writes depth only.
+static const char* Segments_Shadow_Caster_Fragment_Shader =
+"#version 150\n"
+"void main() {}\n";
+
 static const char* Segments_Fragment_Shader =
 "#version 150\n"
 "// ORCA: realistic view - object-on-object and self shadows, read from the same depth map the\n"
 "// rest of the 3D scene samples. shadow_intensity == 0, the default, short-circuits the lookup,\n"
 "// so the toolpaths shade exactly as before whenever realistic view is off.\n"
-"const vec3 SHADOW_LIGHT_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);\n"
+"uniform vec3 light_top_dir;\n"
 "uniform sampler2D shadow_map;\n"
 "uniform mat4 shadow_light_vp;\n"
 "uniform float shadow_intensity;\n"
@@ -189,7 +231,7 @@ static const char* Segments_Fragment_Shader =
 "    return 1.0;\n"
 "  // Slope-scaled bias, as in gouraud.fs. An extrusion is only a handful of shadow-map texels\n"
 "  // wide, so grazing faces need the larger bias to keep self-shadow acne off the top surfaces.\n"
-"  float NdotL = dot(normalize(shadow_normal), SHADOW_LIGHT_DIR);\n"
+"  float NdotL = dot(normalize(shadow_normal), light_top_dir);\n"
 "  float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));\n"
 "  float sum = 0.0;\n"
 "  for (int x = -2; x <= 2; ++x) {\n"

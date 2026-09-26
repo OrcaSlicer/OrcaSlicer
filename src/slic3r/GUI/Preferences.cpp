@@ -16,6 +16,7 @@
 #include <wx/listimpl.cpp>
 #include <wx/display.h>
 #include "NetworkTestDialog.hpp"
+#include "SceneBenchmark.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Shortcuts.hpp"
@@ -1947,11 +1948,14 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_realistic_ssao);
 
-    auto item_realistic_shadows = create_item_checkbox(
+    std::vector<wxString> ShadowsLabels = { _L("Off"), _L("Static"), _L("Orbit") };
+    std::vector<std::string> ShadowsValues = { "off", "static", "orbit" };
+    auto item_realistic_shadows = create_item_combobox(
         _L("Shadows"),
-        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."),
-        SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
-    );
+        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view.\n"
+           "Static: the light stays fixed in the world, so the shadows are only recomputed when the scene changes.\n"
+           "Orbit: the light turns with the camera, recomputing the shadows every frame the camera moves."),
+        SETTING_OPENGL_REALISTIC_SHADOWS, ShadowsLabels, ShadowsValues);
     g_sizer->Add(item_realistic_shadows);
 
     //// GRAPHICS > Anti-aliasing
@@ -2023,6 +2027,26 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);
+
+    auto item_render_timings = create_item_checkbox(
+        _L("Show render timings"),
+        _L("Displays how many milliseconds each part of a frame that redraws the 3D scene takes, in the top-right corner of the viewport.") + "\n" +
+        _L("CPU: time spent issuing the drawing commands.") + "\n" +
+        _L("GPU: time the graphics card spent running them.") + "\n" +
+        _L("Adds a small overhead to each frame while enabled."),
+        SETTING_OPENGL_SHOW_RENDER_TIMINGS
+    );
+    g_sizer->Add(item_render_timings);
+
+    if (wxGetApp().is_editor()) {
+        auto item_benchmark = create_item_button(_L("3D scene benchmark"), _L("Run") + " " + dots, "",
+            _L("Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview."),
+            [this]() {
+                EndModal(wxID_OK);
+                wxGetApp().CallAfter([] { run_scene_benchmark(); });
+            });
+        g_sizer->Add(item_benchmark);
+    }
 
     //// GRAPHICS > G-code Preview
     g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);

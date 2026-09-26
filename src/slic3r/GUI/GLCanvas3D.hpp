@@ -19,6 +19,7 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -675,6 +676,8 @@ private:
     bool m_reload_delayed;
 
     RenderStats m_render_stats;
+    FrameProfiler m_frame_profiler;
+    bool m_benchmarking{ false };
     std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
@@ -807,6 +810,10 @@ public:
     unsigned int m_shadow_map_size{ 0 };
     Transform3d  m_shadow_light_vp{ Transform3d::Identity() };
     bool         m_shadow_map_valid{ false };
+    // Casters and light frustum the map was last rendered for, under a static light. 0 when none.
+    size_t       m_shadow_map_key{ 0 };
+    // Plate rectangle a shadow can reach, min xy then max xy.
+    std::array<float, 4> m_shadow_plate_bounds{ { 0.0f, 0.0f, 0.0f, 0.0f } };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -1225,6 +1232,10 @@ public:
 
     void schedule_extra_frame(int milliseconds);
 
+    // The scene benchmark draws every frame itself, without picking or the FPS and timings overlays.
+    void set_benchmarking(bool benchmarking) { m_benchmarking = benchmarking; }
+    FrameProfiler& get_frame_profiler() { return m_frame_profiler; }
+
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
     void force_main_toolbar_right_action(int item_id) { m_main_toolbar.force_right_action(item_id, *this); }
@@ -1336,6 +1347,12 @@ private:
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
+    bool _is_render_timings_enabled() const;
+    enum class EShadowMode { Off, Static, Orbit };
+    EShadowMode _shadow_mode() const;
+    // Direction to the static shadow light in eye space, when it lights the scene.
+    std::optional<Vec3d> _static_light_dir_eye() const;
+    size_t _shadow_casters_signature(bool toolpath_casters) const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;
     bool _is_frame_skipping_enabled() const;
