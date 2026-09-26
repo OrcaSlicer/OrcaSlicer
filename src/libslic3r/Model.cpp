@@ -2059,6 +2059,11 @@ void ModelVolume::reset_extra_facets()
     this->seam_facets.reset();
     this->mmu_segmentation_facets.reset();
     this->fuzzy_skin_facets.reset();
+    // Texture-displacement paint data has no remap-across-topology-change support yet (see
+    // build_texture_displacement()'s documented limitation), so it must be dropped here rather
+    // than left referring to a mesh that no longer matches it.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        this->texture_displacement_facet(i).reset();
 }
 
 std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const
@@ -2941,6 +2946,11 @@ void ModelVolume::assign_new_unique_ids_recursive()
     seam_facets.set_new_unique_id();
     mmu_segmentation_facets.set_new_unique_id();
     fuzzy_skin_facets.set_new_unique_id();
+    // As set_new_unique_id() already does: the undo/redo stack stores FacetsAnnotation contents keyed
+    // by ObjectID, so a clone left sharing these ids with its source can be handed the source's mask
+    // on an undo - after which a paint mask and the mesh it was recorded against no longer match.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        texture_displacement_facet(i).set_new_unique_id();
 }
 
 void ModelVolume::rotate(double angle, Axis axis)

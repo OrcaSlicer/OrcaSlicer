@@ -19,11 +19,13 @@ public:
     
     MultiPoint() {}
     MultiPoint(const MultiPoint &other) : points(other.points) {}
-    MultiPoint(MultiPoint &&other) : points(std::move(other.points)) {}
+    MultiPoint(MultiPoint &&other) noexcept : points(std::move(other.points)) {}
     MultiPoint(std::initializer_list<Point> list) : points(list) {}
     explicit MultiPoint(const Points &_points) : points(_points) {}
+    // Without it, the derived classes' move constructors passing std::move(points) here copied them.
+    explicit MultiPoint(Points &&_points) noexcept : points(std::move(_points)) {}
     MultiPoint& operator=(const MultiPoint &other) { points = other.points; return *this; }
-    MultiPoint& operator=(MultiPoint &&other) { points = std::move(other.points); return *this; }
+    MultiPoint& operator=(MultiPoint &&other) noexcept { points = std::move(other.points); return *this; }
     virtual ~MultiPoint() = default;
     void scale(double factor);
     void scale(double factor_x, double factor_y);

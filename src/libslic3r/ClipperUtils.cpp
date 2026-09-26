@@ -1,6 +1,10 @@
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
+
+#include <tbb/parallel_for.h>
 
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
@@ -813,6 +817,69 @@ Slic3r::ExPolygons intersection_ex(const Slic3r::Surfaces &subject, const Slic3r
     { return _clipper_ex(ClipperLib::ctIntersection, ClipperUtils::SurfacesProvider(subject), ClipperUtils::SurfacesProvider(clip), do_safety_offset); }
 Slic3r::ExPolygons intersection_ex(const Slic3r::SurfacesPtr &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper_ex(ClipperLib::ctIntersection, ClipperUtils::SurfacesPtrProvider(subject), ClipperUtils::ExPolygonsProvider(clip), do_safety_offset); }
+
+namespace ClipperUtils {
+    std::vector<ExPolygonsTile> tile_expolygons(const ExPolygons &expolygons, size_t per_tile)
+    {
+        BoundingBox              extent;
+        std::vector<BoundingBox> bboxes;
+        bboxes.reserve(expolygons.size());
+        for (const ExPolygon &expoly : expolygons) {
+            bboxes.emplace_back(get_extents(expoly));
+            extent.merge(bboxes.back());
+        }
+        if (! extent.defined)
+            return {};
+        const int     tiles  = std::clamp(int(std::sqrt(double(expolygons.size()) / double(std::max<size_t>(per_tile, 1)))), 1, 32);
+        const Point   size   = extent.size();
+        const coord_t tile_w = std::max<coord_t>(1, size.x() / tiles + 1), tile_h = std::max<coord_t>(1, size.y() / tiles + 1);
+        std::vector<ExPolygonsTile> out(size_t(tiles * tiles));
+        for (size_t i = 0; i < expolygons.size(); ++ i) {
+            const Point c = bboxes[i].center();
+            ExPolygonsTile &tile = out[size_t(std::clamp(int((c.y() - extent.min.y()) / tile_h), 0, tiles - 1) * tiles +
+                                              std::clamp(int((c.x() - extent.min.x()) / tile_w), 0, tiles - 1))];
+            tile.members.emplace_back(i);
+            tile.bbox.merge(bboxes[i]);
+        }
+        out.erase(std::remove_if(out.begin(), out.end(), [](const ExPolygonsTile &tile) { return tile.members.empty(); }), out.end());
+        return out;
+    }
+}
+
+static Slic3r::ExPolygons clipper_ex_by_piece(ClipperLib::ClipType clipType, const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
+{
+    // A few dozen subject ExPolygons to a tile, each tile one ClipperLib call with the clip cut to the tile's box.
+    const std::vector<ClipperUtils::ExPolygonsTile> tiles = ClipperUtils::tile_expolygons(subject, 32);
+    std::vector<BoundingBox> clip_bboxes;
+    clip_bboxes.reserve(clip.size());
+    for (const Polygon &polygon : clip)
+        clip_bboxes.emplace_back(get_extents(polygon));
+
+    std::vector<Slic3r::ExPolygons> out_tiles(tiles.size());
+    tbb::parallel_for(size_t(0), tiles.size(), [&](size_t tile_idx) {
+        const ClipperUtils::ExPolygonsTile &tile = tiles[tile_idx];
+        Slic3r::ExPolygons local_subject;
+        local_subject.reserve(tile.members.size());
+        for (size_t i : tile.members)
+            local_subject.emplace_back(subject[i]);
+        // Grown so that the cut edges of the clip stay clear of the subject, also after the safety offset.
+        const BoundingBox bbox = tile.bbox.inflated(SCALED_EPSILON);
+        Polygons local_clip;
+        for (size_t i = 0; i < clip.size(); ++i)
+            if (clip_bboxes[i].overlap(bbox))
+                if (Polygon clipped = ClipperUtils::clip_clipper_polygon_with_subject_bbox(clip[i], bbox); ! clipped.empty())
+                    local_clip.emplace_back(std::move(clipped));
+        out_tiles[tile_idx] = _clipper_ex(clipType, ClipperUtils::ExPolygonsProvider(local_subject), ClipperUtils::PolygonsProvider(local_clip), do_safety_offset);
+    });
+    Slic3r::ExPolygons out;
+    for (Slic3r::ExPolygons &out_tile : out_tiles)
+        append(out, std::move(out_tile));
+    return out;
+}
+Slic3r::ExPolygons diff_ex_by_piece(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
+    { return clipper_ex_by_piece(ClipperLib::ctDifference, subject, clip, do_safety_offset); }
+Slic3r::ExPolygons intersection_ex_by_piece(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
+    { return clipper_ex_by_piece(ClipperLib::ctIntersection, subject, clip, do_safety_offset); }
 // May be used to "heal" unusual models (3DLabPrints etc.) by providing fill_type (pftEvenOdd, pftNonZero, pftPositive, pftNegative).
 Slic3r::ExPolygons union_ex(const Slic3r::Polygons &subject, ClipperLib::PolyFillType fill_type)
     { return _clipper_ex(ClipperLib::ctUnion, ClipperUtils::PolygonsProvider(subject), ClipperUtils::EmptyPathsProvider(), ApplySafetyOffset::No, fill_type); }

@@ -54,9 +54,43 @@ static void png_read_callback(png_struct *png_ptr,
     // Retrieve our input buffer through the png_ptr
     auto reader = static_cast<IStream *>(png_get_io_ptr(png_ptr));
 
-    if (!reader || !reader->is_ok()) return;
+    // libpng expects a short read to be reported through png_error(); returning quietly would leave
+    // it decoding whatever happened to be in outBytes.
+    if (!reader || !reader->is_ok() ||
+        reader->read(static_cast<std::uint8_t *>(outBytes), byteCountToRead) != byteCountToRead)
+        png_error(png_ptr, "PNG data is truncated");
+}
 
-    reader->read(static_cast<std::uint8_t *>(outBytes), byteCountToRead);
+// libpng reports a corrupt or truncated image by longjmp()ing back to the jump buffer set with
+// setjmp(). The frame it lands in must own nothing that needs destroying: with exceptions enabled
+// MSVC unwinds the stack as part of longjmp, and returning from a frame unwound that way crashes -
+// which is what a truncated texture did on Windows while working everywhere else. So the calls that
+// can fail live in these two helpers, which hold nothing but pointers, and every C++ object the
+// decoders need stays in their own frames.
+static bool png_read_header_guarded(png_struct *png, png_info *info, IStream *in_buf, int sig_bytes)
+{
+    if (setjmp(png_jmpbuf(png)))
+        return false;
+
+    png_set_read_fn(png, static_cast<void *>(in_buf), png_read_callback);
+    // Tell that we have already read the first bytes to check the signature
+    png_set_sig_bytes(png, sig_bytes);
+    png_read_info(png, info);
+    return true;
+}
+
+// `bottom_up` fills the buffer last row first, which is the order the colour decoder hands back.
+static bool png_read_rows_guarded(png_struct *png, png_info *info, png_bytep dst, size_t rows, size_t rowbytes,
+                                  bool bottom_up, bool read_end)
+{
+    if (setjmp(png_jmpbuf(png)))
+        return false;
+
+    for (size_t i = 0; i < rows; ++i)
+        png_read_row(png, dst + (bottom_up ? rows - 1 - i : i) * rowbytes, nullptr);
+    if (read_end)
+        png_read_end(png, info);
+    return true;
 }
 
 bool decode_png(IStream &in_buf, ImageGreyscale &out_img)
@@ -77,12 +111,8 @@ bool decode_png(IStream &in_buf, ImageGreyscale &out_img)
     dsc.info = png_create_info_struct(dsc.png);
     if(!dsc.info) return false;
 
-    png_set_read_fn(dsc.png, static_cast<void *>(&in_buf), png_read_callback);
-
-    // Tell that we have already read the first bytes to check the signature
-    png_set_sig_bytes(dsc.png, PNG_SIG_BYTES);
-
-    png_read_info(dsc.png, dsc.info);
+    if (!png_read_header_guarded(dsc.png, dsc.info, &in_buf, PNG_SIG_BYTES))
+        return false;
 
     out_img.cols = png_get_image_width(dsc.png, dsc.info);
     out_img.rows = png_get_image_height(dsc.png, dsc.info);
@@ -94,11 +124,8 @@ bool decode_png(IStream &in_buf, ImageGreyscale &out_img)
 
     out_img.buf.resize(out_img.rows * out_img.cols);
 
-    auto readbuf = static_cast<png_bytep>(out_img.buf.data());
-    for (size_t r = 0; r < out_img.rows; ++r)
-        png_read_row(dsc.png, readbuf + r * out_img.cols, nullptr);
-
-    return true;
+    return png_read_rows_guarded(dsc.png, dsc.info, static_cast<png_bytep>(out_img.buf.data()), out_img.rows,
+                                 out_img.cols, /* bottom_up */ false, /* read_end */ false);
 }
 
 bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img)
@@ -128,12 +155,10 @@ bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img)
         return false;
     }
 
-    png_set_read_fn(dsc.png, static_cast<void *>(&in_buf), png_read_callback);
-
-    // Tell that we have already read the first bytes to check the signature
-    png_set_sig_bytes(dsc.png, PNG_SIG_BYTES);
-
-    png_read_info(dsc.png, dsc.info);
+    if (!png_read_header_guarded(dsc.png, dsc.info, &in_buf, PNG_SIG_BYTES)) {
+        BOOST_LOG_TRIVIAL(error) << "decode_colored_png: corrupt or truncated PNG data";
+        return false;
+    }
 
     out_img.cols = png_get_image_width(dsc.png, dsc.info);
     out_img.rows = png_get_image_height(dsc.png, dsc.info);
@@ -162,13 +187,12 @@ bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img)
     int interlace_type = png_get_interlace_type(dsc.png, dsc.info);
     BOOST_LOG_TRIVIAL(info) << boost::format("filter_type %1%, compression_type %2%, interlace_type %3%, rowbytes %4%")%filter_type %compression_type %interlace_type %rowbytes;
 
-    auto readbuf = static_cast<png_bytep>(out_img.buf.data());
-    for (size_t r = out_img.rows; r > 0; r--)
-    {
-        png_read_row(dsc.png, readbuf + (r - 1) * rowbytes, nullptr);
+    if (!png_read_rows_guarded(dsc.png, dsc.info, static_cast<png_bytep>(out_img.buf.data()), out_img.rows, rowbytes,
+                               /* bottom_up */ true, /* read_end */ true)) {
+        BOOST_LOG_TRIVIAL(error) << "decode_colored_png: corrupt or truncated PNG data";
+        return false;
     }
 
-    png_read_end(dsc.png, dsc.info);
     png_destroy_read_struct(&dsc.png, &dsc.info, NULL);
 
     return true;

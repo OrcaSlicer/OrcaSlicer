@@ -27,7 +27,7 @@ public:
     explicit Polygon(const Points &points) : MultiPoint(points) {}
 	Polygon(std::initializer_list<Point> points) : MultiPoint(points) {}
     Polygon(const Polygon &other) : MultiPoint(other.points) {}
-    Polygon(Polygon &&other) : MultiPoint(std::move(other.points)) {}
+    Polygon(Polygon &&other) noexcept : MultiPoint(std::move(other.points)) {}
 	static Polygon new_scale(const std::vector<Vec2d> &points) { 
         Polygon pgn;
         pgn.points.reserve(points.size());
@@ -36,7 +36,7 @@ public:
 		return pgn;
 	}
     Polygon& operator=(const Polygon &other) { points = other.points; return *this; }
-    Polygon& operator=(Polygon &&other) { points = std::move(other.points); return *this; }
+    Polygon& operator=(Polygon &&other) noexcept { points = std::move(other.points); return *this; }
 
     Point& operator[](Points::size_type idx) { return this->points[idx]; }
     const Point& operator[](Points::size_type idx) const { return this->points[idx]; }
