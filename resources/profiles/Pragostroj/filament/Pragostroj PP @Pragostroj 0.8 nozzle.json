@@ -1,0 +1,45 @@
+{
+    "type": "filament",
+    "name": "Pragostroj PP @Pragostroj 0.8 nozzle",
+    "inherits": "fdm_filament_pp",
+    "from": "system",
+    "setting_id": "Pragostroj PP @Pragostroj 0.8 nozzle",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Pragostroj"
+    ],
+    "filament_settings_id": [
+        "Pragostroj PP @Pragostroj 0.8 nozzle"
+    ],
+    "filament_flow_ratio": [
+        "1.1"
+    ],
+    "filament_shrink": [
+        "101%"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.05"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "hot_plate_temp": [
+        "40"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "40"
+    ],
+    "filament_ramming_parameters": [
+        "120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
+    ],
+    "compatible_printers": [
+        "KINARB 1HB 0.8 nozzle",
+        "KINARB 2HB 0.8 nozzle"
+    ]
+}

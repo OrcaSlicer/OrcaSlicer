@@ -1,0 +1,120 @@
+{
+    "type": "machine",
+    "name": "kinarb_2hb_machine_common",
+    "from": "system",
+    "inherits": "kinarb_machine_common",
+    "instantiation": "false",
+    "extruder_offset": [
+        "0x0",
+        "0x0"
+    ],
+    "extruder_colour": [
+        "#FCE94F",
+        "#3465A4"
+    ],
+    "retraction_length": [
+        "1.6",
+        "1.6"
+    ],
+    "retract_length_toolchange": [
+        "2",
+        "2"
+    ],
+    "retraction_speed": [
+        "45",
+        "45"
+    ],
+    "deretraction_speed": [
+        "45",
+        "45"
+    ],
+    "retraction_minimum_travel": [
+        "1",
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%",
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "0",
+        "0"
+    ],
+    "retract_restart_extra": [
+        "0",
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0",
+        "0"
+    ],
+    "wipe": [
+        "0",
+        "0"
+    ],
+    "wipe_distance": [
+        "1",
+        "1"
+    ],
+    "z_hop": [
+        "0.2",
+        "0.2"
+    ],
+    "z_hop_types": [
+        "Spiral Lift",
+        "Spiral Lift"
+    ],
+    "retract_lift_above": [
+        "0",
+        "0"
+    ],
+    "retract_lift_below": [
+        "0",
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces",
+        "All Surfaces"
+    ],
+    "retraction_distances_when_cut": [
+        "18",
+        "18"
+    ],
+    "long_retractions_when_cut": [
+        "0",
+        "0"
+    ],
+    "travel_slope": [
+        "3",
+        "3"
+    ],
+    "single_extruder_multi_material": [
+        "0"
+    ],
+    "printable_area": [
+        "0x0",
+        "540x0",
+        "540x450",
+        "0x450"
+    ],
+    "extruder_printable_area": [
+		"0x0,540x0,540x450,0x450",
+		"0x0,540x0,540x450,0x450"
+	],
+	"extruder_printable_height": [
+		"500",
+		"500"
+	],
+    "nozzle_count": "2",
+    "machine_tool_change_time": "5",
+    "machine_start_gcode": "; --- DUAL-HEAD START G-CODE (placeholder, please verify with your RRF config) ---\nM104 S[nozzle_temperature_initial_layer_0] T0 ; preheat T0 (no tool select)\nM104 S[nozzle_temperature_initial_layer_1] T1 ; preheat T1 (no tool select)\nM116 ; wait for all temps\nG1 Z10 F6000 ;Move the platform down 10mm\nG1 X60 Y10 F10000\nG1 Z0.25 F6000 ;Move the platform down 0,25mm\nG92 E0\nG1 X200 E20 F1000\nG1 X450 E40 F1000\nG92 E0",
+    "change_filament_gcode": "; --- TOOL CHANGE (placeholder) ---\nT[next_extruder]\nG92 E0",
+    "extruders_count": "2",
+    "parking_pos_retraction": "0",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "extra_loading_move": "0",
+    "enable_filament_ramming": "0",
+    "high_current_on_filament_swap": "0",
+    "purge_in_prime_tower": "0"
+}
