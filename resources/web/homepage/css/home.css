@@ -4,7 +4,7 @@
 	border: 0px;
 	margin: 0px;
     font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
-	border-color: #D7D7D7;
+	border-color: var(--border-color);
 	user-select: none;
 }
 
@@ -16,27 +16,6 @@ html, body {
 	line-height: 20px;
     font-size: 16px;	
 }
-
-.ZScrol::-webkit-scrollbar {/*滚动条整体样式*/
-    width: 12px;     /*高宽分别对应横竖滚动条的尺寸*/
-    height: 1px;
-	padding: 2px;
-}
-
-.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
-    border-radius: 6px;
-    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    background-color: #AAAAAA;
-}
-
-.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
-        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-        border-radius: 10px;
-        background: #EDEDED;
-}
-
 
 .RedFont
 {
@@ -56,10 +35,13 @@ html, body {
 	text-decoration:underline;
 }
 
+.TextS1 {color:var(--fg-color-text) ;}
+.TextS2 {color:var(--fg-color-label);}
+
 /*------------------*/
 #DebugText
 {
-	height:30px;
+	max-height:30px; /* it will only takes space when it has content with max-height */
 }
 
 /*------------------*/
@@ -67,15 +49,17 @@ body
 {
 	display:flex;
 	justify-content: flex-start;
+	background: var(--bg-color);
 }
 
 #LeftBoard
 {
 	display: none;  /* shown by cloud_providers_info from backend */
-	border-right-width: 1px;
-	border-right-style: solid;
-	width:262px;
+	border-right: 1px solid var(--border-color);
+	width: 220px; /*Match sidebar width with Device / Project / Calibration tabs*/
+	min-width: 220px;
 	height: 100%;
+	background: var(--bg-color-sidebar);
 }
 
 /*------Account rows and account menu------*/
@@ -85,22 +69,8 @@ body
       SwitchDarkMode() injects from the app theme, so the two can disagree.----*/
 :root
 {
-	--row-hover            : #BFE1DE;
-	--warn-color           : #F07E4A;
 	--account-avatar-bg    : #E6EBEA;
 	--account-avatar-glyph : #9AA5A3;
-	--account-surface      : #FFFFFF;
-	--account-name         : #262E30;
-	--account-meta         : #7C8282;
-	--account-border       : #DBDBDB;
-	--account-divider      : #E2E4E4;
-	--account-action       : #00796B;
-	--account-danger       : #D33B3B;
-	--account-danger-bg    : rgba(211, 59, 59, 0.10);
-	--account-warn-bg      : rgba(240, 126, 74, 0.12);  /*----var(--warn-color) at 12%----*/
-	--account-dot-off      : #C4CBCA;
-	--account-dot-on       : #34A853;
-	--account-menu-shadow  : 0 10px 28px rgba(20, 30, 28, 0.18);
 
 	--glyph-account:
 		url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="12" r="5.6"/><path d="M4.9 29a11.1 11.1 0 0 1 22.2 0Z"/></svg>');
@@ -113,8 +83,8 @@ body
 	position: relative;
 	padding: 10px 8px;
 	box-sizing: border-box;
-	width: 262px;
-	border-bottom: 1px solid var(--account-divider);
+	width: 100%;
+	border-bottom: 1px solid var(--border-color);
 }
 
 .AccountRow
@@ -122,20 +92,19 @@ body
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 10px 8px 14px;  /*----label column lines up with the navigation below----*/
+	padding: 8px 10px;  /*----label column lines up with the navigation below----*/
 	border-radius: 8px;
-	cursor: pointer;
 	user-select: none;
 }
 
 .AccountRow:hover
 {
-	background-color: var(--row-hover);
+	background-color: var(--button-bg-hover);
 }
 
 .AccountRow:focus-visible
 {
-	outline: 2px solid var(--account-action);
+	outline: 2px solid var(--main-color);
 	outline-offset: -2px;
 }
 
@@ -209,7 +178,6 @@ body
 {
 	font-size: 15px;
 	line-height: 20px;
-	color: var(--account-name);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -219,6 +187,12 @@ body
 {
 	display: none;
 	font-weight: 600;
+	color: var(--fg-color-text);
+}
+
+.AccountSecondary
+{
+	color: var(--fg-color-label);
 }
 
 .AccountSignIn
@@ -226,7 +200,7 @@ body
 	flex: 0 0 auto;
 	font-size: 12px;
 	font-weight: 600;
-	color: var(--account-action);
+	color: var(--main-color-fixed);
 }
 
 .AccountChevron
@@ -235,7 +209,7 @@ body
 	flex: 0 0 auto;
 	width: 12px;
 	height: 12px;
-	color: var(--account-meta);
+	color: var(--icon-color);
 	transition: transform 0.15s ease;
 }
 
@@ -246,7 +220,6 @@ body
 {
 	font-size: 11px;
 	line-height: 14px;
-	color: var(--account-meta);
 }
 
 .AccountRow.MenuOpen .AccountChevron { transform: rotate(180deg); }
@@ -257,7 +230,7 @@ body
 	margin: 4px 0 2px;
 	padding: 8px 10px;
 	border-radius: 6px;
-	background-color: var(--account-warn-bg);
+	background-color: var(--warn-color-bg);
 }
 
 #NoPluginText
@@ -277,7 +250,7 @@ body
 	display: none;  /* shown by cloud_providers_info from backend */
 	margin-top: 8px;
 	padding-top: 6px;
-	border-top: 1px solid var(--account-divider);
+	border-top: 1px solid var(--border-color);
 }
 
 #BambuCloudHeader
@@ -286,22 +259,22 @@ body
 	align-items: center;
 	gap: 8px;
 	height: 28px;
-	padding: 0 10px 0 14px;
+	padding: 0 12px 0 8px;
 	border-radius: 6px;
 	font-size: 12px;
-	color: var(--account-meta);
+	color: var(--fg-color-label);
 	cursor: pointer;
 	user-select: none;
 }
 
 #BambuCloudHeader:hover
 {
-	color: var(--account-name);
+	color: var(--fg-color-text);
 }
 
 #BambuCloudHeader:focus-visible
 {
-	outline: 2px solid var(--account-action);
+	outline: 2px solid var(--main-color);
 	outline-offset: -2px;
 }
 
@@ -333,12 +306,12 @@ body
 	width: 7px;
 	height: 7px;
 	border-radius: 50%;
-	background-color: var(--account-dot-off);
+	background-color: var(--icon-color);
 }
 
 #BambuStatusDot.Online
 {
-	background-color: var(--account-dot-on);
+	background-color: var(--main-color-fixed);
 }
 
 #BambuCloudBody
@@ -356,7 +329,7 @@ body
 
 .AccountRowCompact
 {
-	padding: 6px 10px 6px 24px;
+	padding: 6px 10px;
 }
 
 .AccountRowCompact .AccountAvatar
@@ -370,11 +343,6 @@ body
 {
 	font-size: 13px;
 	line-height: 17px;
-}
-
-.AccountRowCompact .AccountSecondary
-{
-	color: var(--account-meta);
 }
 
 .AccountRowCompact.SignedIn .AccountSecondary  /*----the section header already names this provider----*/
@@ -392,9 +360,9 @@ body
 	z-index: 20;
 	padding: 4px;
 	border-radius: 10px;
-	border: 1px solid var(--account-border);
-	background-color: var(--account-surface);
-	box-shadow: var(--account-menu-shadow);
+	border: 1px solid var(--border-color);
+	background-color: var(--bg-color);
+	box-shadow: var(--menu-shadow);
 }
 
 #AccountMenu.Open
@@ -421,10 +389,10 @@ body
 {
 	display: none;
 	padding: 9px 10px;
-	border-bottom: 1px solid var(--account-border);
+	border-bottom: 1px solid var(--border-color);
 	font-size: 12px;
 	line-height: 16px;
-	color: var(--account-meta);
+	color: var(--fg-color-label);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -439,19 +407,18 @@ body
 	padding: 0 10px;
 	border-radius: 6px;
 	font-size: 13px;
-	color: var(--account-name);
-	cursor: pointer;
+	color: var(--fg-color-text);
 }
 
 #AccountMenuLogout:hover
 {
-	background-color: var(--account-danger-bg);
-	color: var(--account-danger);
+	background-color: var(--button-bg-alert);
+	color: var(--button-fg-light);
 }
 
 #AccountMenuLogout:focus-visible
 {
-	outline: 2px solid var(--account-action);
+	outline: 2px solid var(--main-color);
 	outline-offset: -2px;
 }
 
@@ -468,28 +435,32 @@ body
 /*------------------*/
 #BtnArea
 {
-	
+	margin-top: 30px;	
 }
-
 
 .BtnItem
 {
-    padding-left:40px;	
-	height:50px;
-	line-height: 50px;
+    padding-left:18px;
+	padding-right:10px;
+	height:44px;
 	display: flex;
-	justify-content:flex-start;
-	cursor: pointer;
+	justify-content:space-between;
+	align-items: center;
+	border: 1px Solid transparent;
+	color:var(--fg-color-label);
 }
 
 .BtnItem:hover
 {
-	background-color: var(--row-hover);
+	border-color: var(--main-color); /*ORCA color*/
 }
 
 .BtnItemSelected
 {
-	background-color: var(--row-hover);
+	background-color: var(--focus-bg-item); /*ORCA color with %25 opacity*/
+	border-color: var(--focus-bg-item);		/*ORCA color*/
+	font-weight: 700;
+	color:var(--fg-color-text);
 }
 
 .BtnIcon
@@ -498,6 +469,13 @@ body
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+}
+
+.NavArrow     {--icon-url:var(--icon-nav-arrow);}
+.ShortcutIcon {--icon-url:var(--icon-shortcut );}
+
+.BtnItem .icon16 {
+	background-color: var(--fg-color-text);
 }
 
 .LeftIcon
@@ -546,6 +524,7 @@ body
 	height: 100%;
 	min-width: 835px;
 	overflow-y:auto;
+	background-color: var(--bg-color-sidebar);
 }
 
 #ContentBoard
@@ -577,26 +556,28 @@ body
 {
 	border-width: 1px;
 	border-style: solid;
-	border-radius: 12px;
-	height: 101px;
+	border-radius: 13px; /* Same radius with buttons */
+	height: 100px;
 	width: 253px;
-	padding-left: 20px;
+	padding-left: 22px; /* for equal padding (100(height) - 56(MenuItem_icon_size)) / 2 */
 	display: flex;
 	justify-content: flex-start;
 	align-items: center;
 	margin-right: 16px;
-	cursor: pointer;
 }
 
 .MenuItem:hover
 {
-	border-color: #009688;		/*ORCA color*/
-	background-color: #E5F0EE; /*ORCA color with %25 opacity*/
+	border-color: var(--main-color);		/*ORCA color*/
+	background-color: var(--focus-bg-box); /*ORCA color with %25 opacity*/
 }
 
 .MenuIcon
 {
 	margin-right: 1em;
+	display: flex;
+	flex-direction: column;
+	justify-content: center; /* aligns text content vertically */
 }
 
 .MenuIcon img
@@ -607,7 +588,7 @@ body
 
 .MenuDesc
 {
-	color: #A8A8A8;
+	color: var(--fg-color-disabled);
 }
 
 
@@ -615,6 +596,7 @@ body
 {
 	line-height: 30px;
 	font-weight: 700;
+	margin: 8px 16px 8px 0; /*remove margin from left and Align contents with title*/
 }
 
 #HotspotWEB
@@ -697,8 +679,7 @@ body
     overflow: hidden;
     word-break: break-all;
 	position: relative;
-	cursor: pointer;
-	margin: 8px;
+	margin: 8px 16px 8px 0; /*remove margin from left and Align contents with title*/
 }
 
 .FileTip
@@ -713,11 +694,11 @@ body
 .FileImg
 {
 	text-align: center;
-	background-color: #E4E4E4;
-	border-radius: 8px;
+	background: var(--bg-color-secondary);
+	border-radius: 13px; /* Same radius with buttons */
 	width: 184px;
 	height: 184px;
-	position: relative;	
+	box-shadow: inset 0 0 1px 1px var(--border-color);
 }
 
 .FileItem img
@@ -727,6 +708,11 @@ body
 	border-radius: 8px;
 	display: inline-block;
 	object-fit: cover;
+}
+
+.FileItem:hover .FileImg {
+	background-color: var(--focus-bg-box); 
+	box-shadow: inset 0 0 1px 1px var(--main-color) ;
 }
 
 .FileImg .FileLogoBadge
@@ -742,16 +728,27 @@ body
 	border-radius: 50%;
 }
 
-.FileName
-{
+.FileName,
+.FileDate {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    word-break: break-all;	
+    word-break: break-all;
+	height: 20px;
+	line-height: 20px;
+}
+
+.FileName {
+	color:var(--fg-color-text);
+}
+
+.FileDate {
+	color: var(--fg-color-disabled);
 }
 
 .FileNamePack
 {
+	margin-top: 5px;
 	display: flex;
 	align-items: center;
 	min-width: 0;
@@ -764,6 +761,11 @@ body
 	min-width: 0;
 }
 
+.FileItem:hover .FileNamePack, 
+.FileItem:hover .FileDate {
+	display: none; 
+}
+
 .FilePublishedBadge
 {
 	flex: 0 0 auto;
@@ -773,17 +775,13 @@ body
 	line-height: 16px;
 	font-size: 10px;
 	font-weight: 600;
-	color: #FFFFFF;
-	background-color: #009688;
+	color: var(--button-fg-light);
+	background-color: var(--main-color);
 	border-radius: 2px;
 	white-space: nowrap;
 }
 
-.FileDate
-{
-	color: #A8A8A8;
-}
-
+/*
 #recnet_context_menu
 {
 	position: absolute;
@@ -811,7 +809,7 @@ body
 .CT_Item:hover
 {
 	cursor: pointer;
-	background-color:#009688; /*ORCA color*/
+	background-color:#009688;
 	border-radius: 4px;
 	color: #fff;
 }
@@ -864,6 +862,46 @@ body
 	height: 20px;	
 	display: block;
 }
+*/
+
+/*ORCA Hide filename and date on hover and show action buttons*/
+.FileActions {
+	position: relative; /* Allows mouse events for child elements and blocks parent evemts*/
+	display: none;
+	width: 100%;
+	margin-top: 5px;
+}
+
+.FileItem:hover .FileActions {
+	display: flex;
+	justify-content: space-between;
+}
+
+.FileActionsReveal,
+.FileActionsRemove {
+	position: relative; /* Allows mouse events for child elements and blocks parent evemts*/
+	border: 4px solid var(--bg-color-sidebar); /* increases hitbox size */
+	border-radius: 17px; /* 13 + 4 */
+}
+
+.FileActionsReveal {
+	margin-left: -4px;
+}
+
+.FileActionsRemove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding-left: 4px;
+	padding-right: 4px;
+	min-width: unset;
+	margin-right: -4px;
+	margin-left:auto;
+	--icon-url: var(--icon-cross);
+}
+
+.FileActionsRemove       .icon16 {background: var(--fg-color-text)}
+.FileActionsRemove:hover .icon16 {background: #FFF}
 
 /*--------Mall------*/
 #MallBoard
