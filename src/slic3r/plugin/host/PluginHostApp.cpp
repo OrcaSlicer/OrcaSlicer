@@ -4,6 +4,7 @@
 #include <libslic3r/PresetBundle.hpp>
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/GUI/MainFrame.hpp>
 #include <slic3r/GUI/Plater.hpp>
 
 #include <memory>
@@ -64,6 +65,29 @@ void host_bindings::register_app(py::module_& host)
         if (wxTheApp == nullptr)
             throw std::runtime_error("OrcaSlicer application is not initialized");
         return GUI::into_u8(GUI::wxGetApp().current_language_code_safe());
+    });
+    // Re-read user preset files from disk and refresh the filament dropdown,
+    // without restarting the app. Plugins that write preset/spool files (see
+    // preset_bundle().filaments) otherwise require a restart to make them
+    // visible. This mirrors exactly what OrcaCloud sync does after pulling
+    // presets (GUI_App: load_user_presets + update_side_preset_ui); the loader
+    // preserves the currently selected presets.
+    host.def("reload_presets", []() {
+        if (wxTheApp == nullptr)
+            throw std::runtime_error("OrcaSlicer application is not initialized");
+        auto& app = GUI::wxGetApp();
+        if (app.preset_bundle == nullptr)
+            throw std::runtime_error("Preset bundle is not available");
+        // Reload the active user's preset folder: a signed-in user's presets
+        // live under their user id, otherwise the default folder — same choice
+        // GUI_App makes when loading presets.
+        NetworkAgent* agent = app.getAgent();
+        const std::string user = (agent != nullptr && agent->is_user_login())
+                                     ? agent->get_user_id()
+                                     : DEFAULT_USER_FOLDER_NAME;
+        app.preset_bundle->load_user_presets(user, ForwardCompatibilitySubstitutionRule::Enable);
+        if (app.mainframe != nullptr)
+            app.mainframe->update_side_preset_ui();
     });
 }
 
