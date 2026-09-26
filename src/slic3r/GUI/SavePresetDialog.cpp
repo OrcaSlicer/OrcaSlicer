@@ -149,15 +149,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
             m_detach = detach_checkbox->GetValue();
             event.Skip(); // Let CheckBox update its bitmap for the new state.
         });
-
-        auto on_toggle = [detach_checkbox]() {
-            detach_checkbox->SetValue(!detach_checkbox->GetValue());
-            wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
-            ev.SetEventObject(detach_checkbox);
-            detach_checkbox->GetEventHandler()->ProcessEvent(ev);
-        };
-        detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-        detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+        detach_checkbox->BindLabel(detach_label);
     }
     
     m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {

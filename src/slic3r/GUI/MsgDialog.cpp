@@ -92,14 +92,7 @@ void MsgDialog::show_dsa_button(wxString const &title)
     });
 
     auto  m_text_dsa = new wxStaticText(this, wxID_ANY, title.IsEmpty() ? _L("Don't show again") : title, wxDefaultPosition, wxDefaultSize, 0);
-    auto on_toggle = [this]() {
-        m_checkbox_dsa->SetValue(!m_checkbox_dsa->GetValue());
-        wxCommandEvent ev(wxEVT_TOGGLEBUTTON, m_checkbox_dsa->GetId());
-        ev.SetEventObject(m_checkbox_dsa);
-        m_checkbox_dsa->GetEventHandler()->ProcessEvent(ev);
-    };
-    m_text_dsa->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-    m_text_dsa->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+    m_checkbox_dsa->BindLabel(m_text_dsa);
 
     m_dsa_sizer->Add(m_text_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
     m_dsa_sizer->AddSpacer(FromDIP(10)); // spacing after checkbox
@@ -808,6 +801,7 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     checkbox_title->SetForegroundColour(0x323A3C);
     checkbox_title->SetFont(::Label::Body_14);
     checkbox_title->Wrap(-1);
+    checkbox->BindLabel(checkbox_title);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {
         m_show_again = checkbox->GetValue();
