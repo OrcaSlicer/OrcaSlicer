@@ -247,9 +247,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     bSizer->Add(angle_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
     wxBoxSizer* check_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_split_compound_checkbox = new wxCheckBox(this, wxID_ANY, _L("Split compound and compsolid into multiple objects"), wxDefaultPosition, wxDefaultSize, 0);
-    m_split_compound_checkbox->SetFont(::Label::Body_14);
-    m_split_compound_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_split_compound_checkbox = new LabeledCheckBox(this, _L("Split compound and compsolid into multiple objects"));
     m_split_compound_checkbox->SetValue(wxGetApp().app_config->get_bool("is_split_compound"));
     check_sizer->Add(m_split_compound_checkbox, 0, wxALIGN_LEFT);
     bSizer->Add(check_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
@@ -266,18 +264,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
 
     wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
-    m_save_default_checkbox->SetFont(::Label::Body_14);
-    m_save_default_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_save_default_checkbox = new LabeledCheckBox(this, _L("Save these settings as default"));
     m_save_default_checkbox->SetToolTip(_L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
     save_default_sizer->Add(m_save_default_checkbox, 0, wxALIGN_LEFT);
     bSizer->Add(save_default_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
     wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
-    m_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-    m_checkbox->SetFont(::Label::Body_14);
-    m_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
     bSizer_button->Add(m_checkbox, 0, wxALIGN_LEFT | wxLEFT | wxALIGN_CENTER_VERTICAL, LEFT_RIGHT_PADING);
     bSizer_button->AddStretchSpacer(1);
 

@@ -36,20 +36,15 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     return text_size.x + parent->FromDIP(10);
 }
 
-CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
+LabeledCheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
 {
-    auto row  = new wxBoxSizer(wxHORIZONTAL);
-    auto cb   = new CheckBox(parent);
+    auto cb   = new LabeledCheckBox(parent, _L("Auto-scale for nozzle"));
     cb->SetValue(true);
-    auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
                       "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
                       " and an appropriate layer height, making the test both accurate and easy to read.\n"
                       "Turn scaling off only if you wish to print the reference model exactly as-is."));
-    text->SetToolTip(cb->GetToolTipText());
-    row->Add(cb  , 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
-    row->Add(text, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
-    settings_sizer->Add(row, 0, wxLEFT | wxTOP, parent->FromDIP(3));
+    settings_sizer->Add(cb, 0, wxLEFT | wxTOP, parent->FromDIP(3));
     return cb;
 }
 
@@ -719,16 +714,12 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     // Auto-adjust parameters to the filament's max volumetric speed
     auto auto_adjust_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cbAutoAdjust = new CheckBox(this);
+    m_cbAutoAdjust = new LabeledCheckBox(this, _L("Auto-adjust to max volumetric speed"));
     m_cbAutoAdjust->SetValue(true);
-    auto auto_adjust_text = new wxStaticText(this, wxID_ANY, _L("Auto-adjust to max volumetric speed"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     m_cbAutoAdjust->SetToolTip(_L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
                                   "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
                                   "minimum layer height is not enough, lower the end speed instead."));
-    auto_adjust_text->SetToolTip(m_cbAutoAdjust->GetToolTipText());
-    auto_adjust_sizer->Add(m_cbAutoAdjust  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    auto_adjust_sizer->Add(auto_adjust_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    settings_sizer->Add(auto_adjust_sizer, 0, wxLEFT | wxTOP, FromDIP(3));
+    settings_sizer->Add(m_cbAutoAdjust, 0, wxLEFT | wxTOP, FromDIP(3));
 
     settings_sizer->AddSpacer(FromDIP(5));
 
