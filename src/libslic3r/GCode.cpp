@@ -9786,7 +9786,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         toolchange_gcode_parsed = placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &dyn_config);
         check_add_eol(toolchange_gcode_parsed);
-        gcode += toolchange_gcode_parsed;
+        // FanMover's guard against splitting a G1 inside custom gcode keys off this marker pair,
+        // which nothing previously emitted; without it, a fan waypoint could land mid-move here.
+        gcode += "; custom gcode start\n" + toolchange_gcode_parsed + "; custom gcode end\n";
 
         //BBS
         {
