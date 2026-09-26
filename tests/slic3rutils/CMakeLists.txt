@@ -9,6 +9,10 @@ add_executable(${_TEST_NAME}_tests
     test_lazy.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
+    test_snapmaker_protocol.cpp
+    test_moonraker_filament_dialect.cpp
+    test_wondermaker_protocol.cpp
+    test_moonraker_storage.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp

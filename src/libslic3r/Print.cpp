@@ -262,7 +262,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filament_notes",
         "process_notes",
         "printer_notes",
-        "use_3mf"
+        "use_3mf",
+        // Bounds the plate in validate() only; the toolpaths are unaffected.
+        "device_tool_count",
+        // Drives the flushing dialog only; the blocks it writes are diffed on their own.
+        "flush_volumes_synced"
     };
 
     static std::unordered_set<std::string> steps_ignore;
@@ -367,6 +371,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "extruder_nozzle_stats"
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
+            || opt_key == "filament_physical_map"
             || opt_key == "filament_nozzle_map"
             || opt_key == "filament_volume_map"
             || opt_key == "filament_adhesiveness_category"
@@ -1759,6 +1764,27 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 return e < is_mixed.size() && is_mixed[e] && e < gradient.size() && gradient[e]; }))
             warn(L("A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."),
                  "enable_mixed_color_sublayer");
+    }
+
+    // Orca: when the PRINTER resolves the filament->tool assignment the project may hold more
+    // filaments than the printer has tools; a single plate is bounded by the printer's T
+    // namespace (filament_namespace_size). Numbering never matters here: a plate reaching past
+    // the namespace was renumbered densely on apply (FilamentCompaction), so what is left to
+    // check is the COUNT of distinct filaments the plate commands. Read from the FULL config,
+    // never from m_config: the protocol and the probe are printer options with no member in the
+    // static PrintConfig struct, so m_config.option() returns null for them.
+    const DynamicPrintConfig& printer_config = this->full_print_config();
+    if (device_resolves_filament_mapping(printer_config)) {
+        const size_t namespace_size = filament_namespace_size(printer_config, nozzles);
+        // A mixed (virtual) slot never reaches the printer: ToolOrdering resolves it to its
+        // component filaments and only those are commanded as tools.
+        const std::vector<unsigned int> physical_extruders = has_any_mixed_filament(m_config.filament_is_mixed.values)
+            ? expand_mixed_filaments(extruders, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values)
+            : extruders;
+        if (physical_extruders.size() > namespace_size)
+            return {(boost::format(L("This plate uses %1% filaments, but this printer can only print %2% filaments on one "
+                                     "plate. Reduce the number of filaments used on this plate."))
+                     % physical_extruders.size() % namespace_size).str()};
     }
 
     if (nozzles < 2 && extruders.size() > 1) {
@@ -4678,8 +4704,13 @@ void Print::_make_wipe_tower()
 
         wipe_tower.set_used_filament_ids(std::vector<int>(used_filament_ids.begin(), used_filament_ids.end()));
 
+        // filament_adhesiveness_category defaults to a single element, so a config that does
+        // not list every filament would hand the tower a short vector whose per-filament reads
+        // (wall-filament selection, skip points) index past the end -- heap-dependent wall
+        // choices, the same class as the change-length reads guarded in WipeTower.cpp. Size it
+        // to the filament count through get_at()'s clamping instead.
         std::vector<int> categories;
-        for (size_t i = 0; i < m_config.filament_adhesiveness_category.values.size(); ++i) {
+        for (size_t i = 0; i < number_of_extruders; ++i) {
             categories.push_back(m_config.filament_adhesiveness_category.get_at(i));
         }
         wipe_tower.set_filament_categories(categories);

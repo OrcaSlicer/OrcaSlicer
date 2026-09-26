@@ -217,10 +217,31 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 		static_cast<ConfigOptionVectorBase *>(config.option(key, true))->resize(filaments, defaults.option(key));
 
 	// flush_volumes_matrix must be sized filaments*filaments or export rejects it.
-	config.set_deserialize_strict({ { "filament_colour", colours }, { "flush_volumes_matrix", flush } });
+	// The prime tower defaults to y=220, off the 200x200 test bed; since upstream verifies the
+	// tower footprint at generation (81357695c5) that aborts the slice, so park it on the bed.
+	// A test's `extra` below still overrides it.
+	config.set_deserialize_strict({ { "filament_colour", colours }, { "flush_volumes_matrix", flush },
+	                                { "wipe_tower_x", "50" }, { "wipe_tower_y", "50" } });
 
 	if (extra.size() > 0)
 		config.set_deserialize_strict(extra);
+
+	// The g-code exporter slices flush_volumes_matrix into nozzle_diameter.size() per-head
+	// blocks of filaments^2 entries each (get_flush_volumes_matrix); the GUI maintains that
+	// heads x f^2 layout in update_multi_material_filament_presets, so real configs always
+	// satisfy it. The single-head matrix built above breaks the invariant the moment a test's
+	// `extra` overrides nozzle_diameter to a multi-nozzle printer: each sliced block is then
+	// f^2/heads entries and every toolchange reads past it (valgrind-caught out-of-bounds; the
+	// probable Windows-arm64 SEGFAULT). Replicate the block per head and size flush_multiplier
+	// to match, exactly as the GUI would have.
+	if (const auto *nozzles = config.option<ConfigOptionFloats>("nozzle_diameter"); nozzles != nullptr && nozzles->size() > 1) {
+		auto *matrix = config.option<ConfigOptionFloats>("flush_volumes_matrix", true);
+		const std::vector<double> one_head = matrix->values;
+		matrix->values.clear();
+		for (size_t head = 0; head < nozzles->size(); ++head)
+			matrix->values.insert(matrix->values.end(), one_head.begin(), one_head.end());
+		config.option<ConfigOptionFloats>("flush_multiplier", true)->values.assign(nozzles->size(), 1.);
+	}
 	return config;
 }
 

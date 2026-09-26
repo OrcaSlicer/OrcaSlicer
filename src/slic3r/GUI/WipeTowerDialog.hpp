@@ -52,12 +52,14 @@ public:
 	std::vector<double> GetFlattenMatrix()const;
 	std::vector<double> GetMultipliers()const;
 	bool GetSubmitFlag() const { return m_submit_flag; }
+	// The page's "same flushing volumes for all extruders" toggle as submitted.
+	bool GetSynced() const { return m_synced; }
 
 private:
 	static int CalcFlushingVolume(const wxColour& from_, const wxColour& to_, int min_flush_volume, int nozzle_flush_dataset);
 	wxString BuildTableObjStr();
 	wxString BuildTextObjStr(bool multi_language = true);
-	void StoreFlushData(int extruder_num, const std::vector<std::vector<double>>& flush_volume_vecs, const std::vector<double>& flush_multipliers);
+	void StoreFlushData(int extruder_num, const std::vector<std::vector<double>>& flush_volume_vecs, const std::vector<double>& flush_multipliers, bool synced);
 	// Maps the physical-only matrix shown in the table back onto the full config-indexed matrix.
 	std::vector<double> ExpandToFullMatrix(const std::vector<double>& sub_matrix, int nozzle_idx) const;
 
@@ -69,6 +71,7 @@ private:
 	// Config indices of the physical (non-mixed) filaments, in table order.
 	std::vector<size_t> m_physical_indices;
 	bool m_submit_flag{ false };
+	bool m_synced{ true };
 };
 
 #endif  // _WIPE_TOWER_DIALOG_H_
