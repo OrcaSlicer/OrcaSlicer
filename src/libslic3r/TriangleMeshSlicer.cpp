@@ -1062,6 +1062,23 @@ inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
             }
         }
     );
+    // As in slice_make_lines(): the facet loop is parallel, so the per-slab line order depends on
+    // thread scheduling, and make_slab_loops() derives loop order and start vertices from it.
+    // Sort canonically; edge_type and flags only break ties, std::sort being unstable.
+    auto sort_canonically = [](std::vector<IntersectionLines> &lines_per_slab) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, lines_per_slab.size()),
+            [&lines_per_slab](const tbb::blocked_range<size_t> &range) {
+                for (size_t i = range.begin(); i < range.end(); ++ i)
+                    std::sort(lines_per_slab[i].begin(), lines_per_slab[i].end(), [](const IntersectionLine &l, const IntersectionLine &r) {
+                        return std::make_tuple(l.edge_a_id, l.edge_b_id, l.a_id, l.b_id, l.a.x(), l.a.y(), l.b.x(), l.b.y(), l.edge_type, l.flags) <
+                               std::make_tuple(r.edge_a_id, r.edge_b_id, r.a_id, r.b_id, r.a.x(), r.a.y(), r.b.x(), r.b.y(), r.edge_type, r.flags);
+                    });
+            });
+    };
+    for (SlabLines *slab_lines : { &lines_top, &lines_bottom }) {
+        sort_canonically(slab_lines->at_slice);
+        sort_canonically(slab_lines->between_slices);
+    }
     return out;
 }
 

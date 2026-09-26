@@ -636,6 +636,8 @@ static std::vector<std::pair<size_t, size_t>> get_segments(const ColoredLines &p
     return segments;
 }
 
+
+
 static std::vector<PaintedLine> filter_painted_lines(const Line &line_to_process, const size_t start_idx, const size_t end_idx, const std::vector<PaintedLine> &painted_lines)
 {
     const int                filter_eps_value = scale_(0.1f);
@@ -688,15 +690,29 @@ static std::vector<std::vector<PaintedLine>> post_process_painted_lines(const st
     if (painted_lines.empty())
         return {};
 
+    // The painted lines were appended by parallel workers, so their order is arbitrary. The sort must
+    // therefore be a total order: two projections of the same span from facets of different colours
+    // tie on every geometric key, and whichever sorts first wins the span in filter_painted_lines().
+    // The colour and the end points break such ties so the result does not depend on scheduling.
     auto comp = [&contours](const PaintedLine &first, const PaintedLine &second) {
-        Point first_start_p = contours[first.contour_idx].segment_start(first.line_idx);
-        return first.contour_idx < second.contour_idx ||
-               (first.contour_idx == second.contour_idx &&
-                (first.line_idx < second.line_idx ||
-                 (first.line_idx == second.line_idx &&
-                  ((first.projected_line.a - first_start_p).cast<double>().squaredNorm() < (second.projected_line.a - first_start_p).cast<double>().squaredNorm() ||
-                   ((first.projected_line.a - first_start_p).cast<double>().squaredNorm() == (second.projected_line.a - first_start_p).cast<double>().squaredNorm() &&
-                    (first.projected_line.b - first.projected_line.a).cast<double>().squaredNorm() < (second.projected_line.b - second.projected_line.a).cast<double>().squaredNorm())))));
+        if (first.contour_idx != second.contour_idx)
+            return first.contour_idx < second.contour_idx;
+        if (first.line_idx != second.line_idx)
+            return first.line_idx < second.line_idx;
+        const Point  start_p     = contours[first.contour_idx].segment_start(first.line_idx);
+        const double first_dist  = (first.projected_line.a - start_p).cast<double>().squaredNorm();
+        const double second_dist = (second.projected_line.a - start_p).cast<double>().squaredNorm();
+        if (first_dist != second_dist)
+            return first_dist < second_dist;
+        const double first_len  = (first.projected_line.b - first.projected_line.a).cast<double>().squaredNorm();
+        const double second_len = (second.projected_line.b - second.projected_line.a).cast<double>().squaredNorm();
+        if (first_len != second_len)
+            return first_len < second_len;
+        if (first.color != second.color)
+            return first.color < second.color;
+        if (first.projected_line.a != second.projected_line.a)
+            return first.projected_line.a < second.projected_line.a;
+        return first.projected_line.b < second.projected_line.b;
     };
     std::sort(painted_lines.begin(), painted_lines.end(), comp);
 
@@ -1200,15 +1216,12 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     const size_t num_layers    = input_expolygons.size();
     const ConstLayerPtrsAdaptor layers = print_object.layers();
 
-    // Maximum number of top / bottom layers accounts for maximum overlap of one thread group into a neighbor thread group.
     int max_top_layers = 0;
     int max_bottom_layers = 0;
-    int granularity = 1;
     for (size_t i = 0; i < print_object.num_printing_regions(); ++ i) {
         const PrintRegionConfig &config = print_object.printing_region(i).config();
         max_top_layers    = std::max(max_top_layers, config.top_shell_layers.value);
         max_bottom_layers = std::max(max_bottom_layers, config.bottom_shell_layers.value);
-        granularity       = std::max(granularity, std::max(config.top_shell_layers.value, config.bottom_shell_layers.value) - 1);
     }
 
     // Project upwards pointing painted triangles over top surfaces,
@@ -1327,14 +1340,16 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
 
     std::vector<std::vector<ExPolygons>> triangles_by_color_bottom(num_facets_states);
     std::vector<std::vector<ExPolygons>> triangles_by_color_top(num_facets_states);
-    triangles_by_color_bottom.assign(num_facets_states, std::vector<ExPolygons>(num_layers * 2));
-    triangles_by_color_top.assign(num_facets_states, std::vector<ExPolygons>(num_layers * 2));
+    triangles_by_color_bottom.assign(num_facets_states, std::vector<ExPolygons>(num_layers));
+    triangles_by_color_top.assign(num_facets_states, std::vector<ExPolygons>(num_layers));
 
-    // BBS: use shell_triangles_by_color_bottom & shell_triangles_by_color_top to save the top and bottom embedded layers's color information
-    std::vector<std::vector<ExPolygons>> shell_triangles_by_color_bottom(num_facets_states);
-    std::vector<std::vector<ExPolygons>> shell_triangles_by_color_top(num_facets_states);
-    shell_triangles_by_color_bottom.assign(num_facets_states, std::vector<ExPolygons>(num_layers * 2));
-    shell_triangles_by_color_top.assign(num_facets_states, std::vector<ExPolygons>(num_layers * 2));
+    // BBS: the painted top / bottom surfaces are also projected onto the shell layers below / above them.
+    // Each layer only writes the projections it produced, keyed by the layer they land on, so the
+    // parallel loop shares nothing; they are gathered per target layer afterwards, in source-layer
+    // order, which keeps the result independent of how the layers were scheduled.
+    using ShellProjections = std::vector<std::pair<size_t, ExPolygons>>;  // (target layer, projection)
+    std::vector<std::vector<ShellProjections>> shell_triangles_by_color_bottom(num_facets_states, std::vector<ShellProjections>(num_layers));
+    std::vector<std::vector<ShellProjections>> shell_triangles_by_color_top(num_facets_states, std::vector<ShellProjections>(num_layers));
 
     struct LayerColorStat {
         // Number of regions for a queried color.
@@ -1378,11 +1393,9 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         return out;
     };
 
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers, granularity), [&granularity, &num_layers, &num_facets_states, &layer_color_stat, &top_raw, &triangles_by_color_top,
-                                                                               &throw_on_cancel_callback, &input_expolygons, &bottom_raw, &triangles_by_color_bottom,
-                                                                               &shell_triangles_by_color_top, &shell_triangles_by_color_bottom](const tbb::blocked_range<size_t> &range) {
-        size_t group_idx   = range.begin() / granularity;
-        size_t layer_idx_offset = (group_idx & 1) * num_layers;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&num_layers, &num_facets_states, &layer_color_stat, &top_raw, &triangles_by_color_top,
+                                                                  &throw_on_cancel_callback, &input_expolygons, &bottom_raw, &triangles_by_color_bottom,
+                                                                  &shell_triangles_by_color_top, &shell_triangles_by_color_bottom](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
             for (size_t color_idx = 0; color_idx < num_facets_states; ++color_idx) {
                 throw_on_cancel_callback();
@@ -1392,7 +1405,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                         // Clean up thin projections. They are not printable anyways.
                         top_ex = opening_ex(top_ex, stat.small_region_threshold);
                         if (! top_ex.empty()) {
-                            append(triangles_by_color_top[color_idx][layer_idx + layer_idx_offset], top_ex);
+                            append(triangles_by_color_top[color_idx][layer_idx], top_ex);
                             float offset = 0.f;
                             ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
                             for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_shell_layers), int(0)); --last_idx) {
@@ -1403,7 +1416,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                                 ExPolygons last = opening_ex(intersection_ex(top_ex, offset_ex(layer_slices_trimmed, offset)), stat.small_region_threshold);
                                 if (last.empty())
                                     break;
-                                append(shell_triangles_by_color_top[color_idx][last_idx + layer_idx_offset], std::move(last));
+                                shell_triangles_by_color_top[color_idx][layer_idx].emplace_back(size_t(last_idx), std::move(last));
                             }
                         }
                     }
@@ -1412,7 +1425,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                         // Clean up thin projections. They are not printable anyways.
                         bottom_ex = opening_ex(bottom_ex, stat.small_region_threshold);
                         if (! bottom_ex.empty()) {
-                            append(triangles_by_color_bottom[color_idx][layer_idx + layer_idx_offset], bottom_ex);
+                            append(triangles_by_color_bottom[color_idx][layer_idx], bottom_ex);
                             float offset = 0.f;
                             ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
                             for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_shell_layers, num_layers); ++last_idx) {
@@ -1423,7 +1436,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                                 ExPolygons last = opening_ex(intersection_ex(bottom_ex, offset_ex(layer_slices_trimmed, offset)), stat.small_region_threshold);
                                 if (last.empty())
                                     break;
-                                append(shell_triangles_by_color_bottom[color_idx][last_idx + layer_idx_offset], std::move(last));
+                                shell_triangles_by_color_bottom[color_idx][layer_idx].emplace_back(last_idx, std::move(last));
                             }
                         }
                     }
@@ -1431,19 +1444,28 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         }
     });
 
+    // Gather the shell projections per target layer, walking the source layers in order.
+    std::vector<std::vector<ExPolygons>> shell_top_by_layer(num_facets_states, std::vector<ExPolygons>(num_layers));
+    std::vector<std::vector<ExPolygons>> shell_bottom_by_layer(num_facets_states, std::vector<ExPolygons>(num_layers));
+    for (size_t color_idx = 0; color_idx < num_facets_states; ++color_idx)
+        for (size_t layer_idx = 0; layer_idx < num_layers; ++layer_idx) {
+            for (auto &[target, projection] : shell_triangles_by_color_top[color_idx][layer_idx])
+                append(shell_top_by_layer[color_idx][target], std::move(projection));
+            for (auto &[target, projection] : shell_triangles_by_color_bottom[color_idx][layer_idx])
+                append(shell_bottom_by_layer[color_idx][target], std::move(projection));
+        }
+
     std::vector<std::vector<ExPolygons>> triangles_by_color_merged(num_facets_states);
     triangles_by_color_merged.assign(num_facets_states, std::vector<ExPolygons>(num_layers));
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&triangles_by_color_merged, &triangles_by_color_bottom, &triangles_by_color_top, &num_layers, &throw_on_cancel_callback,
-                                                                  &shell_triangles_by_color_top, &shell_triangles_by_color_bottom](const tbb::blocked_range<size_t> &range) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&triangles_by_color_merged, &triangles_by_color_bottom, &triangles_by_color_top, &throw_on_cancel_callback,
+                                                                  &shell_top_by_layer, &shell_bottom_by_layer](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
             throw_on_cancel_callback();
             ExPolygons painted_exploys;
             for (size_t color_idx = 0; color_idx < triangles_by_color_merged.size(); ++color_idx) {
                 auto &self = triangles_by_color_merged[color_idx][layer_idx];
                 append(self, std::move(triangles_by_color_bottom[color_idx][layer_idx]));
-                append(self, std::move(triangles_by_color_bottom[color_idx][layer_idx + num_layers]));
                 append(self, std::move(triangles_by_color_top[color_idx][layer_idx]));
-                append(self, std::move(triangles_by_color_top[color_idx][layer_idx + num_layers]));
                 self = union_ex(self);
 
                 append(painted_exploys, self);
@@ -1455,13 +1477,8 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
             for (size_t color_idx = 0; color_idx < triangles_by_color_merged.size(); ++color_idx) {
                 auto &self = triangles_by_color_merged[color_idx][layer_idx];
 
-                auto top_area = diff_ex(union_ex(shell_triangles_by_color_top[color_idx][layer_idx],
-                                                 shell_triangles_by_color_top[color_idx][layer_idx + num_layers]),
-                                        painted_exploys);
-
-                auto bottom_area = diff_ex(union_ex(shell_triangles_by_color_bottom[color_idx][layer_idx],
-                                                    shell_triangles_by_color_bottom[color_idx][layer_idx + num_layers]),
-                                          painted_exploys);
+                auto top_area    = diff_ex(union_ex(shell_top_by_layer[color_idx][layer_idx]), painted_exploys);
+                auto bottom_area = diff_ex(union_ex(shell_bottom_by_layer[color_idx][layer_idx]), painted_exploys);
 
                 append(self, top_area);
                 append(self, bottom_area);
