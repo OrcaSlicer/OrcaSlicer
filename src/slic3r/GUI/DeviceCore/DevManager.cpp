@@ -280,6 +280,13 @@ namespace Slic3r
                     it->second->bind_sec_link       = sec_link;
                     it->second->dev_connection_type = connect_type;
                     it->second->bind_ssdp_version   = ssdp_version;
+                    // Persist IP so parse_user_print_info can load it on next
+                    // session, enabling LAN hybrid print before SSDP fires.
+                    if (!dev_ip.empty()) {
+                        AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
+                        if (config)
+                            config->set_str("ip_address", dev_id, dev_ip);
+                    }
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " UpdateUserMachineInfo"
                         << ", dev_id= " << dev_id
                         << ", ip = "  <<dev_ip
@@ -874,7 +881,9 @@ namespace Slic3r
 
                         if (obj->get_dev_ip().empty())
                         {
-                            obj->get_dev_ip() = Slic3r::GUI::wxGetApp().app_config->get("ip_address", dev_id);
+                            std::string cached_ip = Slic3r::GUI::wxGetApp().app_config->get("ip_address", dev_id);
+                            if (!cached_ip.empty())
+                                obj->set_dev_ip(cached_ip);
                         }
                         userMachineList.insert(std::make_pair(dev_id, obj));
                     }

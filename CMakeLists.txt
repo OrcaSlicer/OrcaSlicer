@@ -312,6 +312,12 @@ if (SLIC3R_GUI)
     add_definitions(-DSLIC3R_GUI)
 endif ()
 
+option(ORCA_OSS_NETWORK_PLUGIN "Build and bundle the open-source bambu-network-oss plugin and load it instead of downloading the proprietary network plugin" ON)
+if (ORCA_OSS_NETWORK_PLUGIN)
+    add_compile_definitions(ORCA_OSS_NETWORK_PLUGIN)
+    include(cmake/modules/OrcaOSSNetworkPlugin.cmake)
+endif ()
+
 if (SLIC3R_CAD)
     add_definitions(-DSLIC3R_CAD)
 endif ()

@@ -428,6 +428,7 @@ struct NetworkLibraryVersion {
 // is_supported_network_version() is the gate that keeps them from loading.
 static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
     {"02.08.01", "02.08.01", nullptr, true, nullptr, NetworkAbi::Current},
+    {"02.07.01", "02.07.01", nullptr, false, nullptr, NetworkAbi::Current},
     {"02.03.00", "02.03.00", nullptr, false,
      "An older plug-in series. Features that need newer plug-in support, such as print-failure "
      "snapshots in the device error dialog, are unavailable.", NetworkAbi::V0203},
@@ -442,6 +443,12 @@ inline const char* get_latest_network_version() {
             return AVAILABLE_NETWORK_VERSIONS[i].version;
     }
     return AVAILABLE_NETWORK_VERSIONS[0].version;
+}
+
+// True when version ends with .99 (convention for Open Bamboo Networking OSS builds)
+inline bool is_oss_plugin_version(const std::string& version) {
+    const auto pos = version.find_last_of('.');
+    return pos != std::string::npos && version.substr(pos + 1) == "99";
 }
 
 // The AA.BB.CC series of a modern version string - the plug-in's stored identity. The 4th
@@ -473,6 +480,7 @@ inline size_t find_network_version_index(const std::string& version) {
 
 // True when a whitelisted series can load the version through an ABI this build implements.
 inline bool is_supported_network_version(const std::string& version) {
+    if (is_oss_plugin_version(version)) return true;
     return find_network_version_index(version) < AVAILABLE_NETWORK_VERSIONS_COUNT;
 }
 
