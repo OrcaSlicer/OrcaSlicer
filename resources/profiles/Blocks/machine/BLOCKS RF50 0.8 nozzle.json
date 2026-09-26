@@ -51,7 +51,7 @@
 		"12"
 	],
 	"retraction_length": [
-		"1"
+		"1.2"
 	],
 	"retraction_speed": [
 		"60"
@@ -80,5 +80,10 @@
 	],
 	"retract_before_wipe": [
 		"0"
-	]
+	],
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_RF50"
+	],
+	"support_multi_bed_types": "1",
+	"default_bed_type": "Textured PEI Plate"
 }

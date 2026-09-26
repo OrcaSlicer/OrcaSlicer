@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Blocks PLA @Blocks_RD50_V2",
+	"inherits": "Blocks PLA @base",
+	"from": "system",
+	"setting_id": "y7y8NcXNdp17sJUs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"BLOCKS RD50 V2 0.4 nozzle",
+		"BLOCKS RD50 V2 0.6 nozzle",
+		"BLOCKS RD50 V2 0.8 nozzle"
+	]
+}

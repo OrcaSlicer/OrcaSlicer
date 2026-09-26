@@ -1,6 +1,6 @@
 {
 	"name": "Blocks",
-	"version": "02.04.00.04",
+	"version": "02.04.00.13",
 	"force_update": "0",
 	"description": "Blocks configurations",
 	"machine_model_list": [
@@ -43,8 +43,8 @@
 			"sub_path": "process/0.16mm Optimal 0.4 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.20mm Standard 0.4 nozzle @Blocks",
-			"sub_path": "process/0.20mm Standard 0.4 nozzle @Blocks.json"
+			"name": "0.20mm Standard 0.4 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.20mm Standard 0.4 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "0.20mm Standard 0.4 nozzle @Blocks_RD50_V2",
@@ -55,8 +55,8 @@
 			"sub_path": "process/0.20mm Standard 0.4 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.24mm Draft 0.4 nozzle @Blocks",
-			"sub_path": "process/0.24mm Draft 0.4 nozzle @Blocks.json"
+			"name": "0.24mm Draft 0.4 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.24mm Draft 0.4 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "0.24mm Draft 0.4 nozzle @Blocks_RD50_V2",
@@ -75,8 +75,8 @@
 			"sub_path": "process/0.28mm Extra Draft 0.4 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.30mm Extra Draft 0.4 nozzle @Blocks",
-			"sub_path": "process/0.30mm Extra Draft 0.4 nozzle @Blocks.json"
+			"name": "0.30mm Extra Draft 0.4 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.30mm Extra Draft 0.4 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "fdm_process_common 0.6 nozzle",
@@ -111,8 +111,8 @@
 			"sub_path": "process/0.26mm Standard 0.6 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.30mm Standard 0.6 nozzle @Blocks",
-			"sub_path": "process/0.30mm Standard 0.6 nozzle @Blocks.json"
+			"name": "0.30mm Standard 0.6 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.30mm Standard 0.6 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "0.32mm Draft 0.6 nozzle @Blocks_RD50_V2",
@@ -131,12 +131,12 @@
 			"sub_path": "process/0.38mm Extra Draft 0.6 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.40mm Draft 0.6 nozzle @Blocks",
-			"sub_path": "process/0.40mm Draft 0.6 nozzle @Blocks.json"
+			"name": "0.40mm Draft 0.6 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.40mm Draft 0.6 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.30mm Optimal 0.8 nozzle @Blocks",
-			"sub_path": "process/0.30mm Optimal 0.8 nozzle @Blocks.json"
+			"name": "0.30mm Optimal 0.8 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.30mm Optimal 0.8 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "0.30mm Optimal 0.8 nozzle @Blocks_RD50_V2",
@@ -155,8 +155,8 @@
 			"sub_path": "process/0.38mm Standard 0.8 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.40mm Standard 0.8 nozzle @Blocks",
-			"sub_path": "process/0.40mm Standard 0.8 nozzle @Blocks.json"
+			"name": "0.40mm Standard 0.8 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.40mm Standard 0.8 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "0.46mm Draft 0.8 nozzle @Blocks_RD50_V2",
@@ -167,8 +167,8 @@
 			"sub_path": "process/0.46mm Draft 0.8 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.50mm Draft 0.8 nozzle @Blocks",
-			"sub_path": "process/0.50mm Draft 0.8 nozzle @Blocks.json"
+			"name": "0.50mm Draft 0.8 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.50mm Draft 0.8 nozzle @Blocks_Pro_S100.json"
 		},
 		{
 			"name": "0.54mm Extra Draft 0.8 nozzle @Blocks_RD50_V2",
@@ -179,36 +179,36 @@
 			"sub_path": "process/0.54mm Extra Draft 0.8 nozzle @Blocks_RF50.json"
 		},
 		{
-			"name": "0.30mm Optimal 1.0 nozzle @Blocks",
-			"sub_path": "process/0.30mm Optimal 1.0 nozzle @Blocks.json"
+			"name": "0.30mm Optimal 1.0 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.30mm Optimal 1.0 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.50mm Standard 1.0 nozzle @Blocks",
-			"sub_path": "process/0.50mm Standard 1.0 nozzle @Blocks.json"
+			"name": "0.50mm Standard 1.0 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.50mm Standard 1.0 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.60mm Draft 1.0 nozzle @Blocks",
-			"sub_path": "process/0.60mm Draft 1.0 nozzle @Blocks.json"
+			"name": "0.60mm Draft 1.0 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.60mm Draft 1.0 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.70mm Extra Draft 1.0 nozzle @Blocks",
-			"sub_path": "process/0.70mm Extra Draft 1.0 nozzle @Blocks.json"
+			"name": "0.70mm Extra Draft 1.0 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.70mm Extra Draft 1.0 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.50mm Optimal 1.2 nozzle @Blocks",
-			"sub_path": "process/0.50mm Optimal 1.2 nozzle @Blocks.json"
+			"name": "0.50mm Optimal 1.2 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.50mm Optimal 1.2 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.60mm Standard 1.2 nozzle @Blocks",
-			"sub_path": "process/0.60mm Standard 1.2 nozzle @Blocks.json"
+			"name": "0.60mm Standard 1.2 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.60mm Standard 1.2 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.70mm Draft 1.2 nozzle @Blocks",
-			"sub_path": "process/0.70mm Draft 1.2 nozzle @Blocks.json"
+			"name": "0.70mm Draft 1.2 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.70mm Draft 1.2 nozzle @Blocks_Pro_S100.json"
 		},
 		{
-			"name": "0.80mm Extra Draft 1.2 nozzle @Blocks",
-			"sub_path": "process/0.80mm Extra Draft 1.2 nozzle @Blocks.json"
+			"name": "0.80mm Extra Draft 1.2 nozzle @Blocks_Pro_S100",
+			"sub_path": "process/0.80mm Extra Draft 1.2 nozzle @Blocks_Pro_S100.json"
 		}
 	],
 	"filament_list": [
@@ -249,48 +249,148 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Generic ABS @Blocks",
-			"sub_path": "filament/Generic ABS @Blocks.json"
+			"name": "Blocks ABS @base",
+			"sub_path": "filament/Blocks ABS @base.json"
 		},
 		{
-			"name": "Generic ASA @Blocks",
-			"sub_path": "filament/Generic ASA @Blocks.json"
+			"name": "Blocks ASA @base",
+			"sub_path": "filament/Blocks ASA @base.json"
 		},
 		{
-			"name": "Generic ASA-CF @Blocks",
-			"sub_path": "filament/Generic ASA-CF @Blocks.json"
+			"name": "Blocks ASA-CF @base",
+			"sub_path": "filament/Blocks ASA-CF @base.json"
 		},
 		{
-			"name": "Generic PA @Blocks",
-			"sub_path": "filament/Generic PA @Blocks.json"
+			"name": "Blocks PA @base",
+			"sub_path": "filament/Blocks PA @base.json"
 		},
 		{
-			"name": "Generic PA-CF @Blocks",
-			"sub_path": "filament/Generic PA-CF @Blocks.json"
+			"name": "Blocks PA-CF @base",
+			"sub_path": "filament/Blocks PA-CF @base.json"
 		},
 		{
-			"name": "Generic PC @Blocks",
-			"sub_path": "filament/Generic PC @Blocks.json"
+			"name": "Blocks PC @base",
+			"sub_path": "filament/Blocks PC @base.json"
 		},
 		{
-			"name": "Generic PETG @Blocks",
-			"sub_path": "filament/Generic PETG @Blocks.json"
+			"name": "Blocks PETG @base",
+			"sub_path": "filament/Blocks PETG @base.json"
 		},
 		{
-			"name": "Generic PLA @Blocks",
-			"sub_path": "filament/Generic PLA @Blocks.json"
+			"name": "Blocks PLA @base",
+			"sub_path": "filament/Blocks PLA @base.json"
 		},
 		{
-			"name": "Generic PLA-CF @Blocks",
-			"sub_path": "filament/Generic PLA-CF @Blocks.json"
+			"name": "Blocks PLA-CF @base",
+			"sub_path": "filament/Blocks PLA-CF @base.json"
 		},
 		{
-			"name": "Generic PVA @Blocks",
-			"sub_path": "filament/Generic PVA @Blocks.json"
+			"name": "Blocks PVA @base",
+			"sub_path": "filament/Blocks PVA @base.json"
 		},
 		{
-			"name": "Generic TPU @Blocks",
-			"sub_path": "filament/Generic TPU @Blocks.json"
+			"name": "Blocks TPU @base",
+			"sub_path": "filament/Blocks TPU @base.json"
+		},
+		{
+			"name": "Blocks ABS @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks ABS @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks ABS @Blocks_RF50",
+			"sub_path": "filament/Blocks ABS @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks ASA @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks ASA @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks ASA @Blocks_RF50",
+			"sub_path": "filament/Blocks ASA @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks ASA-CF @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks ASA-CF @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks ASA-CF @Blocks_RF50",
+			"sub_path": "filament/Blocks ASA-CF @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PA @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PA @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PA @Blocks_RF50",
+			"sub_path": "filament/Blocks PA @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PA-CF @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PA-CF @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PA-CF @Blocks_RF50",
+			"sub_path": "filament/Blocks PA-CF @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PC @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PC @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PC @Blocks_RF50",
+			"sub_path": "filament/Blocks PC @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PETG @Blocks_Pro_S100",
+			"sub_path": "filament/Blocks PETG @Blocks_Pro_S100.json"
+		},
+		{
+			"name": "Blocks PETG @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PETG @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PETG @Blocks_RF50",
+			"sub_path": "filament/Blocks PETG @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PLA @Blocks_Pro_S100",
+			"sub_path": "filament/Blocks PLA @Blocks_Pro_S100.json"
+		},
+		{
+			"name": "Blocks PLA @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PLA @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PLA @Blocks_RF50",
+			"sub_path": "filament/Blocks PLA @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PLA-CF @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PLA-CF @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PLA-CF @Blocks_RF50",
+			"sub_path": "filament/Blocks PLA-CF @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks PVA @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks PVA @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks PVA @Blocks_RF50",
+			"sub_path": "filament/Blocks PVA @Blocks_RF50.json"
+		},
+		{
+			"name": "Blocks TPU @Blocks_Pro_S100",
+			"sub_path": "filament/Blocks TPU @Blocks_Pro_S100.json"
+		},
+		{
+			"name": "Blocks TPU @Blocks_RD50_V2",
+			"sub_path": "filament/Blocks TPU @Blocks_RD50_V2.json"
+		},
+		{
+			"name": "Blocks TPU @Blocks_RF50",
+			"sub_path": "filament/Blocks TPU @Blocks_RF50.json"
 		}
 	],
 	"machine_list": [

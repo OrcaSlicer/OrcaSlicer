@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Blocks PVA @base",
+	"inherits": "fdm_filament_pva",
+	"from": "system",
+	"filament_id": "OFqcNuE1",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Blocks"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	]
+}

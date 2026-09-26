@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Blocks PETG @Blocks_Pro_S100",
+	"inherits": "Blocks PETG @base",
+	"from": "system",
+	"setting_id": "AhMR49fcFqtrQ6hI",
+	"instantiation": "true",
+	"compatible_printers": [
+		"BLOCKS Pro S100 0.4 nozzle",
+		"BLOCKS Pro S100 0.6 nozzle",
+		"BLOCKS Pro S100 0.8 nozzle",
+		"BLOCKS Pro S100 1.0 nozzle",
+		"BLOCKS Pro S100 1.2 nozzle"
+	],
+	"renamed_from": "Blocks Generic PETG;Generic PETG @Blocks"
+}

@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Blocks PLA-CF @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OF6FfwOP",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Blocks"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"filament_type": [
+		"PLA-CF"
+	],
+	"slow_down_layer_time": [
+		"7"
+	]
+}
