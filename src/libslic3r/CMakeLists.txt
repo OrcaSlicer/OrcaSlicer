@@ -390,6 +390,8 @@ set(lisbslic3r_sources
     MaterialType.hpp
     PrintConfig.cpp
     PrintConfig.hpp
+    PrintConfigCardinality.cpp
+    PrintConfigCardinality.hpp
     Print.cpp
     Print.hpp
     PrintObject.cpp
