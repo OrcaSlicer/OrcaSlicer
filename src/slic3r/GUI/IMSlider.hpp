@@ -206,6 +206,7 @@ private:
     void* m_one_layer_off_hover_dark_id;
     void *m_pause_icon_id;
     void *m_custom_icon_id;
+    void *m_change_icon_id;
     void *m_delete_icon_id;
 
     DrawMode            m_draw_mode = dmRegular;
