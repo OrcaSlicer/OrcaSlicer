@@ -10,6 +10,8 @@
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "FilamentMappingUtils.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -692,6 +694,8 @@ bool SendMultiMachinePage::get_ams_mapping_result(std::string &mapping_array_str
     return true;
 }
 
+// Mapping helpers live in FilamentMappingUtils.hpp, shared with SelectMachine.
+
 void SendMultiMachinePage::on_send(wxCommandEvent& event)
 {
     event.Skip();
@@ -740,6 +744,29 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
 
             if (!wxGetApp().is_blocking_printing(obj)) {
                 PrintParams params = request_params(obj);
+                // OrcaSonar: a mapped print requires the connector to advertise
+                // filament_mapping, and a partially mapped print must not silently drop a
+                // used filament. Any entry the serializer would put on the wire engages the
+                // gate, external slots ({255,0}/{254,0}) included; the extra-spool branch
+                // rewrites to exactly those. Bambu is unchanged.
+                if (obj->printer_agent_id == ORCA_PRINTER_AGENT_ID) {
+                    const bool mapping_available = obj->is_support_filament_mapping && ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED;
+                    if (!mapping_available && has_engaged_filament_mapping(params.ams_mapping2)) {
+                        BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: filament mapping unavailable (capability=" << obj->is_support_filament_mapping
+                                                   << ", correlation_verified=" << ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED << "); refusing mapped print for "
+                                                   << obj->get_dev_id();
+                        MessageDialog msg_wingow(nullptr, _L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."), "", wxICON_WARNING | wxOK);
+                        msg_wingow.ShowModal();
+                        return;
+                    }
+                    if (params.task_use_ams && has_any_mapped_target(m_ams_mapping_result) &&
+                        has_used_filament_without_target(m_ams_mapping_result)) {
+                        BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: a used filament has no target; refusing print for " << obj->get_dev_id();
+                        MessageDialog msg_wingow(nullptr, _L("A filament used by this print has no AMS mapping. Assign it before printing."), "", wxICON_WARNING | wxOK);
+                        msg_wingow.ShowModal();
+                        return;
+                    }
+                }
                 print_params.push_back(params);
             }
         }

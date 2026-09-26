@@ -43,6 +43,23 @@ namespace {
 
 namespace fs = boost::filesystem;
 
+// Per-device filament_mapping capability, mirrored from the get_capabilities
+// reply in merge_capabilities and read by start_sdcard_print so the field is
+// refused defensively when the connector never advertised it or the
+// index-correlation merge gate (ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED) is
+// not satisfied.
+std::mutex                             g_filament_mapping_mutex;
+std::unordered_map<std::string, bool>  g_filament_mapping_cache;
+
+// True only when the connector's get_capabilities reply advertised
+// filament_mapping for this device. Unknown is not support.
+bool filament_mapping_advertised(const std::string& dev_id)
+{
+    std::lock_guard<std::mutex> l(g_filament_mapping_mutex);
+    const auto it = g_filament_mapping_cache.find(dev_id);
+    return it != g_filament_mapping_cache.end() && it->second;
+}
+
 // params.filename is normally the exported .3mf archive; the sliced G-code sits
 // beside it with the same stem (".12345.0.3mf" -> ".12345.0.gcode"). params.dst_file,
 // when set, already points straight at a file (the "print a file already on the
@@ -587,6 +604,33 @@ std::string OrcaPrinterAgent::merge_capabilities(const std::string& dev_id, cons
         if (nozzle_dia > 0.0) {
             std::lock_guard<std::mutex> l(nozzle_diameter_cache_mutex);
             nozzle_diameter_cache[dev_id] = nozzle_dia;
+        }
+
+        // Per-device filament_mapping capability. Both feature maps carry it;
+        // either being true means the connector advertised it.
+        bool mapping_advertised = false;
+        {
+            const auto top_features = info_it->find("supported_features");
+            if (top_features != info_it->end() && top_features->is_object()) {
+                const auto it = top_features->find("filament_mapping");
+                if (it != top_features->end() && it->is_boolean())
+                    mapping_advertised = it->get<bool>();
+            }
+            if (!mapping_advertised && caps_it != info_it->end() && caps_it->is_object()) {
+                const auto protocol_it = caps_it->find("protocol");
+                if (protocol_it != caps_it->end() && protocol_it->is_object()) {
+                    const auto features_it = protocol_it->find("features");
+                    if (features_it != protocol_it->end() && features_it->is_object()) {
+                        const auto it = features_it->find("filament_mapping");
+                        if (it != features_it->end() && it->is_boolean())
+                            mapping_advertised = it->get<bool>();
+                    }
+                }
+            }
+        }
+        {
+            std::lock_guard<std::mutex> l(g_filament_mapping_mutex);
+            g_filament_mapping_cache[dev_id] = mapping_advertised;
         }
         // The capabilities reply itself is forwarded unchanged.
     }
@@ -1415,11 +1459,17 @@ int OrcaPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaPrinterAgent::start_local_print_with_record(PrintParams params,
-                                                    OnUpdateStatusFn update_fn,
-                                                    WasCancelledFn cancel_fn,
-                                                    OnWaitFn wait_fn)
-{ return BAMBU_NETWORK_SUCCESS; }
+int OrcaPrinterAgent::start_local_print_with_record(PrintParams /*params*/,
+                                                    OnUpdateStatusFn /*update_fn*/,
+                                                    WasCancelledFn /*cancel_fn*/,
+                                                    OnWaitFn /*wait_fn*/)
+{
+    // OrcaSonar has no FTP "send with record" path. Report a non-success result so
+    // PrintJob falls back to start_print() (cloud upload + start_sdcard_print) instead
+    // of treating a print that was never sent as successful.
+    BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: start_local_print_with_record is unimplemented; deferring to start_print";
+    return BAMBU_NETWORK_ERR_FTP_UPLOAD_FAILED;
+}
 
 // Upload one G-code file to the printer's `gcodes` root over OrcaSonar's
 // Moonraker-compatible HTTP facade. No print is started here (print=false); the
@@ -1587,6 +1637,59 @@ int OrcaPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn upd
     return start_sdcard_print(params, update_fn, cancel_fn);
 }
 
+// Serialize PrintParams::ams_mapping2 (the dialog's mapping_v1_json, one entry per logical
+// filament in preset order) into the print.gcode_file `filament_mapping` array. The array
+// position becomes `filament_index`; {255,255} (unmatched/unused) is dropped. Returns an
+// empty array when nothing usable remains so the caller can omit the field entirely.
+nlohmann::json OrcaPrinterAgent::build_filament_mapping(const std::string& ams_mapping2)
+{
+    nlohmann::json mapping = nlohmann::json::array();
+    if (ams_mapping2.empty())
+        return mapping;
+
+    const nlohmann::json parsed = nlohmann::json::parse(ams_mapping2, nullptr, false);
+    if (parsed.is_discarded() || !parsed.is_array()) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: ams_mapping2 is not a JSON array; not sending filament_mapping";
+        return mapping;
+    }
+
+    for (std::size_t i = 0; i < parsed.size(); ++i) {
+        const nlohmann::json& entry = parsed[i];
+        if (!entry.is_object())
+            continue;
+        const auto ams_id_it  = entry.find("ams_id");
+        const auto slot_id_it = entry.find("slot_id");
+        if (ams_id_it == entry.end() || slot_id_it == entry.end())
+            continue;
+        if (!ams_id_it->is_number_integer() || !slot_id_it->is_number_integer())
+            continue;
+
+        const int ams_id  = ams_id_it->get<int>();
+        const int slot_id = slot_id_it->get<int>();
+        if (ams_id == 255 && slot_id == 255)
+            continue;
+
+        mapping.push_back({{"filament_index", static_cast<int>(i)}, {"ams_id", ams_id}, {"slot_id", slot_id}});
+    }
+    return mapping;
+}
+
+// Pure builder for the print.gcode_file payload: the base command plus, only
+// when non-empty, the filament_mapping array. An empty mapping leaves the
+// payload byte-identical to today's unmapped command.
+nlohmann::json OrcaPrinterAgent::build_gcode_file_payload(const std::string& sequence_id,
+                                                          const std::string& target,
+                                                          const nlohmann::json& filament_mapping)
+{
+    nlohmann::json j;
+    j["print"]["command"]     = "gcode_file";
+    j["print"]["sequence_id"] = sequence_id;
+    j["print"]["param"]       = target;
+    if (filament_mapping.is_array() && !filament_mapping.empty())
+        j["print"]["filament_mapping"] = filament_mapping;
+    return j;
+}
+
 // Start a file that already lives on the printer by publishing the canonical
 // OPCP print.gcode_file command to device/<dev_id>/request. The acknowledgement
 // and lifecycle progress arrive asynchronously as print.push_status on the
@@ -1604,10 +1707,23 @@ int OrcaPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn up
     // otherwise start what start_send_gcode_to_sdcard just uploaded to `gcodes`.
     const std::string target = params.dst_file.empty() ? remote_gcode_name(params) : fs::path(params.dst_file).filename().string();
 
-    nlohmann::json j;
-    j["print"]["command"]     = "gcode_file";
-    j["print"]["sequence_id"] = next_gcode_file_sequence_id();
-    j["print"]["param"]       = target;
+    // Per-print mapping. A mapped print is refused when the connector did not
+    // advertise filament_mapping or the index correlation is unverified: the GUI
+    // send gates make this visible first, and this is the defensive gate for
+    // callers that bypass them (calibration, plugin). Never start a mapped print
+    // with the map silently dropped.
+    const nlohmann::json filament_mapping = build_filament_mapping(params.ams_mapping2);
+    if (!filament_mapping.empty()) {
+        const bool mapping_capable = filament_mapping_advertised(params.dev_id);
+        if (!mapping_capable || !ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: refusing mapped print (capable=" << mapping_capable
+                                       << ", correlation_verified=" << ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED << ")";
+            return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+        }
+        BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: start_sdcard_print emitting filament_mapping entries=" << filament_mapping.size();
+    }
+
+    nlohmann::json j = build_gcode_file_payload(next_gcode_file_sequence_id(), target, filament_mapping);
 
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");

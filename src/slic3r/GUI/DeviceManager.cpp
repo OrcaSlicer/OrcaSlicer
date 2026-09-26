@@ -1676,6 +1676,10 @@ int MachineObject::check_resume_condition()
 }
 int MachineObject::command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp, int new_temp, std::optional<int> extruder_id)
 {
+    if (!orca_ams_command_supported("print.ams_change_filament")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_change_filament: connector does not advertise the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     try {
         auto tray_id = 0;
@@ -1719,6 +1723,10 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
 
 int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag)
 {
+    if (!orca_ams_command_supported("print.ams_user_setting")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_user_settings: connector does not advertise the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     j["print"]["command"] = "ams_user_setting";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -1741,8 +1749,25 @@ int MachineObject::command_ams_calibrate(int ams_id)
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
+bool MachineObject::orca_ams_command_supported(const char* command) const
+{
+    if (printer_agent_id != ORCA_PRINTER_AGENT_ID)
+        return true;
+    // fms is the AMS axis; the advertised command set is the per-command gate.
+    if (!is_support_fms)
+        return false;
+    return command != nullptr && supported_commands.count(command) != 0;
+}
+
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
 {
+    // OrcaSonar: writing slot metadata is gated on the filament_slots capability.
+    // Absent/false means unsupported; Bambu keeps the legacy behaviour.
+    if (printer_agent_id == ORCA_PRINTER_AGENT_ID && !is_support_filament_slots) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_filament_settings: printer does not advertise filament_slots";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
+
     int tag_tray_id = 0;
     int tag_ams_id  = ams_id;
     int tag_slot_id = slot_id;
@@ -1777,6 +1802,13 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 int MachineObject::command_ams_refresh_rfid(int ams_id, int slot_id)
 {
     if (!m_agent) return -1;
+    // OrcaSonar: RFID read requires the connector to advertise the
+    // `print.ams_get_rfid` command (which already implies fms plus the macro).
+    // Unknown capability is not support; Bambu is untouched.
+    if (!orca_ams_command_supported("print.ams_get_rfid")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_refresh_rfid: connector does not advertise the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     return command_with_dialog(m_agent->command_ams_refresh_rfid(get_dev_id(), ams_id, slot_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
@@ -1790,11 +1822,21 @@ int MachineObject::command_start_camera()
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
     if (!m_agent) return -1;
+    // OrcaSonar: this publishes the same macro-backed print.ams_change_filament
+    // as command_ams_change_filament, so it takes the same capability gate.
+    if (!orca_ams_command_supported("print.ams_change_filament")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_select_tray: connector does not advertise the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     return command_with_dialog(m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
 int MachineObject::command_ams_control(std::string action)
 {
+    if (!orca_ams_command_supported("print.ams_control")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_control: connector does not advertise the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     if (action == "resume" && check_resume_condition()) return 0;
 
     //valid actions
@@ -1810,6 +1852,10 @@ int MachineObject::command_ams_control(std::string action)
 
 int MachineObject::command_ams_drying_stop()
 {
+    if (!orca_ams_command_supported("print.auto_stop_ams_dry")) {
+        BOOST_LOG_TRIVIAL(warning) << "command_ams_drying_stop: connector does not advertise the command";
+        return command_with_dialog(ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    }
     json j;
     j["print"]["command"] = "auto_stop_ams_dry";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
@@ -5490,10 +5536,14 @@ void MachineObject::parse_new_info2(const json& info)
     if (capabilities_it == info.end() || !capabilities_it->is_object())
         return;
     const auto flags_it = capabilities_it->find("flags");
-    if (flags_it == capabilities_it->end() || !flags_it->is_object())
+    const bool has_flags = flags_it != capabilities_it->end() && flags_it->is_object();
+    // Bambu keeps the legacy behavior: a reply without flags is ignored. Orca
+    // connector-scope features/commands must still be parsed, so fall through
+    // with an empty flags object (every parse_bool below then no-ops).
+    if (!has_flags && printer_agent_id != ORCA_PRINTER_AGENT_ID)
         return;
-
-    const json& flags = *flags_it;
+    static const json empty_flags = json::object();
+    const json& flags = has_flags ? *flags_it : empty_flags;
     BOOST_LOG_TRIVIAL(info) << "parse_new_info2: OrcaSonar capability flags=" << flags.dump();
 
     auto parse_bool = [&flags](const char* name, bool& target) {
@@ -5559,6 +5609,64 @@ void MachineObject::parse_new_info2(const json& info)
 
     m_config->ParseConfig(device_config);
     m_fan->ParseV2_0(fan_config);
+
+    // OrcaSonar connector-scope capabilities. Absent or non-boolean means
+    // unsupported. A reply without `flags` still parses them (the fall-through
+    // above); Bambu (bbl) devices never enter this branch and keep the
+    // flags-only path.
+    if (printer_agent_id == ORCA_PRINTER_AGENT_ID) {
+        auto parse_features = [this](const json& features) {
+            if (!features.is_object())
+                return;
+            auto set_flag = [&features](const char* name, bool& target) {
+                const auto it = features.find(name);
+                if (it != features.end() && it->is_boolean())
+                    target = it->get<bool>();
+            };
+            set_flag("fms", is_support_fms);
+            set_flag("filament_slots", is_support_filament_slots);
+            set_flag("filament_mapping", is_support_filament_mapping);
+        };
+
+        auto parse_commands = [this](const json& commands) {
+            if (!commands.is_array())
+                return;
+            for (const auto& command : commands) {
+                if (command.is_string())
+                    supported_commands.insert(command.get<std::string>());
+            }
+        };
+
+        // Clear before filling so a reply without commands does not retain stale values.
+        supported_commands.clear();
+        is_support_fms               = false;
+        is_support_filament_slots    = false;
+        is_support_filament_mapping  = false;
+
+        const auto supported_features_it = info.find("supported_features");
+        if (supported_features_it != info.end())
+            parse_features(*supported_features_it);
+
+        const auto supported_commands_it = info.find("supported_commands");
+        if (supported_commands_it != info.end())
+            parse_commands(*supported_commands_it);
+
+        const auto protocol_it = capabilities_it->find("protocol");
+        if (protocol_it != capabilities_it->end() && protocol_it->is_object()) {
+            const auto protocol_features_it = protocol_it->find("features");
+            if (protocol_features_it != protocol_it->end())
+                parse_features(*protocol_features_it);
+
+            const auto protocol_commands_it = protocol_it->find("supported_commands");
+            if (protocol_commands_it != protocol_it->end())
+                parse_commands(*protocol_commands_it);
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "parse_new_info2: fms=" << is_support_fms
+                                << " filament_slots=" << is_support_filament_slots
+                                << " filament_mapping=" << is_support_filament_mapping
+                                << " supported_commands=" << supported_commands.size();
+    }
 }
 
 static bool is_hex_digit(char c) {

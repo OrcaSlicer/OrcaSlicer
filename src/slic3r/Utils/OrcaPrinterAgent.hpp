@@ -64,6 +64,8 @@ public:
 
     // Print Job Operations
     int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
+    // Unimplemented on OrcaSonar: reports a non-success result so callers fall back to
+    // start_print() instead of treating the missing send as success.
     int start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
     int start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
     int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
@@ -140,6 +142,18 @@ protected:
     // Pure LAN-address parsing + client-id. protected static so the test Probe reaches them.
     static bool parse_lan_endpoint(const std::string& dev_ip, std::string& host, std::string& port);
     static std::string make_lan_client_id(const std::string& dev_id);
+
+    // Pure serializer for PrintParams::ams_mapping2 -> print.gcode_file.filament_mapping.
+    // Entries are re-keyed by their array position; {255,255} is dropped. Empty when the
+    // input is empty, malformed, or has no usable entries. protected static for the test Probe.
+    static nlohmann::json build_filament_mapping(const std::string& ams_mapping2);
+
+    // Pure builder for the print.gcode_file command payload. A non-empty mapping is
+    // included as filament_mapping; an empty one is omitted so the payload is
+    // byte-identical to an unmapped print. protected static for the test Probe.
+    static nlohmann::json build_gcode_file_payload(const std::string& sequence_id,
+                                                   const std::string& target,
+                                                   const nlohmann::json& filament_mapping);
     // Test hook: the ws:// URL connect_printer built for the current LAN session ("" if none).
     std::string lan_connection_target() const;
     // Shared post-connect sequence: SUBSCRIBE, then pushing.start, pushall,

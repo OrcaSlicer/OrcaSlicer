@@ -37,6 +37,8 @@
 #include "libslic3r/MultiNozzleUtils.hpp" // filament-change-gap model for the best-position popup
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "FilamentMappingUtils.hpp"
 
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
@@ -3478,6 +3480,9 @@ void SelectMachineDialog::navigate_to_timelapse_page()
     this->EndModal(wxID_CANCEL);
 }
 
+// Mapping helpers live in FilamentMappingUtils.hpp (shared with
+// SendMultiMachinePage); they mirror the agent serializer exactly.
+
 void SelectMachineDialog::on_send_print()
 {
     BOOST_LOG_TRIVIAL(info) << "print_job: on_ok to send";
@@ -3531,6 +3536,26 @@ void SelectMachineDialog::on_send_print()
     std::string ams_mapping_info;
 
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
+
+    // OrcaSonar: a mapped print requires the connector to advertise
+    // filament_mapping and the index correlation to be verified. Refuse rather
+    // than start with the map silently dropped; Bambu keeps its behavior.
+    if (obj_->printer_agent_id == ORCA_PRINTER_AGENT_ID) {
+        const bool mapping_available = obj_->is_support_filament_mapping && ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED;
+        if (!mapping_available && has_engaged_filament_mapping(ams_mapping_array2)) {
+            BOOST_LOG_TRIVIAL(warning) << "print_job: filament mapping unavailable (capability=" << obj_->is_support_filament_mapping
+                                       << ", correlation_verified=" << ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED << "); refusing mapped print";
+            m_status_bar->set_status_text(_L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."));
+            Enable_Send_Button(true);
+            return;
+        }
+        if (has_any_mapped_target(m_ams_mapping_result) && has_used_filament_without_target(m_ams_mapping_result)) {
+            BOOST_LOG_TRIVIAL(warning) << "print_job: a used filament has no AMS target; refusing print";
+            m_status_bar->set_status_text(_L("A filament used by this print has no AMS mapping. Assign it before printing."));
+            Enable_Send_Button(true);
+            return;
+        }
+    }
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {

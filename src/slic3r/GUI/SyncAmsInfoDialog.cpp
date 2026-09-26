@@ -1373,6 +1373,12 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
             BOOST_LOG_TRIVIAL(error) << "get_ams_mapping_result, plater is nullptr";
         }
 
+        // mapping_v1_json is built one entry per filament preset, in preset order, so the
+        // array position is the logical filament index the generated G-code toolchange
+        // references (the identifier handed to the Klipper toolchange macro; see
+        // OrcaPrinterAgent::build_filament_mapping and the index-correlation test in
+        // tests/slic3rutils/test_orca_printer_agent.cpp). Never re-densify after dropping
+        // sentinel entries, or a used filament would be aimed at the wrong lane.
         for (int i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); i++) {
             int  tray_id = -1;
             json mapping_item_v1;

@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <slic3r/GUI/FilamentMappingUtils.hpp>
 #include <slic3r/Utils/IPrinterAgent.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
@@ -22,6 +23,8 @@ struct Probe : OrcaPrinterAgent {
     using OrcaPrinterAgent::parse_lan_endpoint;
     using OrcaPrinterAgent::make_lan_client_id;
     using OrcaPrinterAgent::lan_connection_target;
+    using OrcaPrinterAgent::build_filament_mapping;
+    using OrcaPrinterAgent::build_gcode_file_payload;
 };
 }
 
@@ -82,6 +85,101 @@ TEST_CASE("OrcaPrinterAgent::make_lan_client_id is stable and prefixed", "[OrcaP
     const auto b = Probe::make_lan_client_id("dev-1");
     CHECK(a == b);                                   // drawn once per process
     CHECK(a.rfind("orcaslicer-lan-dev-1-", 0) == 0);
+}
+
+TEST_CASE("filament mapping is keyed by the ams_mapping2 array position", "[OrcaPrinterAgent]") {
+    const nlohmann::json mapping = Probe::build_filament_mapping(
+        R"([{"ams_id":1,"slot_id":5},{"ams_id":255,"slot_id":255},{"ams_id":255,"slot_id":0}])");
+    REQUIRE(mapping.is_array());
+    REQUIRE(mapping.size() == 2);
+    CHECK(mapping[0]["filament_index"] == 0);
+    CHECK(mapping[0]["ams_id"] == 1);
+    CHECK(mapping[0]["slot_id"] == 5);
+    // The unmatched middle entry is dropped; the third entry keeps index 2.
+    CHECK(mapping[1]["filament_index"] == 2);
+    CHECK(mapping[1]["ams_id"] == 255);
+    CHECK(mapping[1]["slot_id"] == 0);
+}
+
+// Index-correlation merge gate (plan PR 3). `ams_mapping2` is built one entry
+// per logical filament, so its array position is the identifier the generated
+// G-code toolchange passes to the Klipper macro (`next_filament_id`). The
+// serializer must key `filament_index` by that position and must never
+// re-densify after dropping unused/sentinel entries, or a used filament would
+// be aimed at the wrong lane. This test covers the plan's matrix: preset order
+// differing from used order, a middle filament unused, and external slots.
+TEST_CASE("filament mapping index correlates with the ams_mapping2 position", "[OrcaPrinterAgent]") {
+    // Positions 0..4. Used filaments are 0, 2 and 4; 1 and 3 are unused.
+    const nlohmann::json mapping = Probe::build_filament_mapping(
+        R"([{"ams_id":0,"slot_id":1},{"ams_id":255,"slot_id":255},{"ams_id":2,"slot_id":3},{"ams_id":255,"slot_id":255},{"ams_id":255,"slot_id":0}])");
+    REQUIRE(mapping.size() == 3);
+    CHECK(mapping[0]["filament_index"] == 0);
+    CHECK(mapping[1]["filament_index"] == 2);
+    CHECK(mapping[2]["filament_index"] == 4); // external slot keeps its position
+    CHECK(mapping[2]["ams_id"] == 255);
+    CHECK(mapping[2]["slot_id"] == 0);
+    // No re-densification: a used filament after a dropped sentinel keeps its
+    // original logical index.
+    for (const auto& entry : mapping)
+        CHECK(entry.contains("filament_index"));
+}
+
+TEST_CASE("filament mapping is omitted when nothing remains", "[OrcaPrinterAgent]") {
+    CHECK(Probe::build_filament_mapping("").empty());
+    CHECK(Probe::build_filament_mapping(R"([{"ams_id":255,"slot_id":255}])").empty());
+    CHECK(Probe::build_filament_mapping("not json").empty());
+    CHECK(Probe::build_filament_mapping(R"({"ams_id":1,"slot_id":0})").empty()); // not an array
+}
+
+// The GUI capability gate and the agent serializer must classify the same
+// entries as engaged. External slots ({255,0}/{254,0}) are normalized as-is, so
+// they engage; only the {255,255} unmatched sentinel is dropped. A mismatch lets
+// an entry past the GUI and refused late with a generic publish error.
+TEST_CASE("the GUI mapping gate engages exactly the entries the serializer sends", "[OrcaPrinterAgent]") {
+    using Slic3r::GUI::has_engaged_filament_mapping;
+    CHECK_FALSE(has_engaged_filament_mapping(""));
+    CHECK_FALSE(has_engaged_filament_mapping("[]"));
+    CHECK_FALSE(has_engaged_filament_mapping("not json"));
+    CHECK_FALSE(has_engaged_filament_mapping(R"([{"ams_id":255,"slot_id":255}])"));
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":255,"slot_id":0}])"));   // external main
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":254,"slot_id":0}])"));   // external deputy
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":0,"slot_id":0}])"));     // box slot
+    CHECK(has_engaged_filament_mapping(R"([{"ams_id":255,"slot_id":255},{"ams_id":1,"slot_id":2}])"));
+
+    for (const char* s : {"", "[]", "not json", R"([{"ams_id":255,"slot_id":255}])",
+                          R"([{"ams_id":255,"slot_id":0}])", R"([{"ams_id":254,"slot_id":0}])",
+                          R"([{"ams_id":0,"slot_id":0}])",
+                          R"([{"ams_id":255,"slot_id":255},{"ams_id":1,"slot_id":2}])"}) {
+        CHECK(has_engaged_filament_mapping(s) == !Probe::build_filament_mapping(s).empty());
+    }
+}
+
+// An empty mapping must leave the gcode_file payload byte-identical to today:
+// exactly command, sequence_id and param, with no filament_mapping key.
+TEST_CASE("gcode_file payload omits filament_mapping when the map is empty", "[OrcaPrinterAgent]") {
+    const nlohmann::json empty = Probe::build_gcode_file_payload("7", "job.gcode", nlohmann::json::array());
+    REQUIRE(empty.contains("print"));
+    CHECK(empty["print"].size() == 3);
+    CHECK(empty["print"]["command"] == "gcode_file");
+    CHECK(empty["print"]["sequence_id"] == "7");
+    CHECK(empty["print"]["param"] == "job.gcode");
+    CHECK_FALSE(empty["print"].contains("filament_mapping"));
+
+    const nlohmann::json mapping = Probe::build_filament_mapping(R"([{"ams_id":1,"slot_id":0},{"ams_id":255,"slot_id":255}])");
+    const nlohmann::json with    = Probe::build_gcode_file_payload("8", "job.gcode", mapping);
+    REQUIRE(with["print"].contains("filament_mapping"));
+    REQUIRE(with["print"]["filament_mapping"].size() == 1);
+    CHECK(with["print"]["filament_mapping"][0]["filament_index"] == 0);
+}
+
+// The FTP "send with record" transport does not exist on OrcaSonar. It must
+// report a non-success result so PrintJob falls back to start_print() rather
+// than treating a print that was never sent as successful.
+TEST_CASE("start_local_print_with_record never reports silent success", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    Slic3r::PrintParams params;
+    const int rc = agent.start_local_print_with_record(params, {}, {}, {});
+    CHECK(rc < 0);
 }
 
 TEST_CASE("connect_printer wires up a LAN Config", "[OrcaPrinterAgent][.integration]") {

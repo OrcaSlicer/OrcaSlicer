@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include <chrono>
+#include <set>
 #include <unordered_set>
 #include <optional>
 #include <boost/thread.hpp>
@@ -646,6 +647,13 @@ public:
     bool is_support_partskip{false};
     bool is_support_refresh_nozzle{false};
 
+    // OrcaSonar connector-scope capabilities (printer_agent_id == "orca"). Parsed from the
+    // get_capabilities reply; never consulted on Bambu paths.
+    bool                  is_support_fms{false};
+    bool                  is_support_filament_slots{false};
+    bool                  is_support_filament_mapping{false};
+    std::set<std::string> supported_commands;
+
       // refine printer function options
     bool is_support_spaghetti_detection{false};
     bool is_support_purgechutepileup_detection{false};
@@ -787,6 +795,10 @@ public:
     int command_refresh_nozzle();
     int command_set_chamber(int temp);
     int check_resume_condition();
+    // OrcaSonar: true when a macro-backed AMS command may be sent. Bambu paths
+    // always allow; an Orca device must have advertised the command (unknown
+    // capability is not support).
+    bool orca_ams_command_supported(const char* command) const;
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
     int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210, std::optional<int> extruder_id = std::nullopt);

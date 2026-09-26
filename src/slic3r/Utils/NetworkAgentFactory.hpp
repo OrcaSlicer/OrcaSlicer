@@ -17,6 +17,14 @@ namespace Slic3r {
 static constexpr char ORCA_PRINTER_AGENT_ID[] = "orca";
 static constexpr char BBL_PRINTER_AGENT_ID[] = "bbl";
 
+// Index-correlation merge gate (plan PR 3). The per-print `filament_mapping`
+// serializer is shipped disabled until a slice-level test proves that the
+// `ams_mapping2` array position equals the toolchange identifier the generated
+// G-code emits (T<filament_id> / next_filament_id). Both the GUI send gates and
+// OrcaPrinterAgent::start_sdcard_print consult this, so mapping is refused
+// visibly rather than silently dropped. Flip to true only with that test.
+static constexpr bool ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED = false;
+
 // Factory function type for creating printer agents
 using PrinterAgentFactory =
     std::function<std::shared_ptr<IPrinterAgent>(std::shared_ptr<ICloudServiceAgent> cloud_agent, const std::string& log_dir)>;
