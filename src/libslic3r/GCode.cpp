@@ -393,6 +393,23 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string gcode;
 
         unsigned int extruder_id = gcodegen.writer().filament()->id();
+
+        // Check if this tool will ever be used again in this print.
+        // Never turn off heaters on Single Extruder Multi-Material (AMS/MMU) setups.
+        bool is_last_use = false;
+        if (gcodegen.m_print != nullptr && !gcodegen.config().single_extruder_multi_material.value && !gcodegen.m_print->tool_ordering().empty()) {
+            size_t cur_layer_idx = gcodegen.layer() ? gcodegen.layer()->id() : (gcodegen.m_layer_index >= 0 ? static_cast<size_t>(gcodegen.m_layer_index) : 0);
+            is_last_use          = gcodegen.m_print->tool_ordering().is_last_extrusion_layer(cur_layer_idx, extruder_id);
+        }
+
+        if (is_last_use) {
+            // Toolhead has finished its last layer -> turn off heater completely (0 °C)
+            gcode += gcodegen.writer().set_temperature(0, false, extruder_id);
+            gcode.pop_back();
+            gcode += " ;cooldown\n";
+            return gcode;
+        }
+
         const auto& filament_idle_temp = gcodegen.config().idle_temperature;
         if (filament_idle_temp.get_at(extruder_id) == 0) {
             // There is no idle temperature defined in filament settings.
@@ -413,7 +430,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         return gcode;
     }
-
+            
     std::string OozePrevention::post_toolchange(GCode& gcodegen)
     {
         return (gcodegen.config().standby_temperature_delta.value != 0) ?

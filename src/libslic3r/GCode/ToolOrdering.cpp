@@ -1188,6 +1188,13 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
         sort_remove_duplicates(m_all_printing_extruders);
     }
 
+    m_last_layer_per_extruder.clear();
+    for (size_t layer_idx = 0; layer_idx < m_layer_tools.size(); ++layer_idx) {
+        for (unsigned int ext : m_layer_tools[layer_idx].extruders) {
+            m_last_layer_per_extruder[ext] = layer_idx;
+        }
+    }
+
     if (prime_multi_material && ! m_all_printing_extruders.empty()) {
         // Reorder m_all_printing_extruders in the sequence they will be primed, the last one will be m_first_printing_extruder.
         // Then set m_first_printing_extruder to the 1st extruder primed.
@@ -3572,5 +3579,11 @@ int WipingExtrusions::get_support_interface_extruder_overrides(const PrintObject
     return -1;
 }
 
-
+bool ToolOrdering::is_last_extrusion_layer(size_t layer_idx, unsigned int extruder_id) const
+{
+    auto it = m_last_layer_per_extruder.find(extruder_id);
+    if (it == m_last_layer_per_extruder.end())
+        return true;
+    return layer_idx >= it->second;
+}
 } // namespace Slic3r
