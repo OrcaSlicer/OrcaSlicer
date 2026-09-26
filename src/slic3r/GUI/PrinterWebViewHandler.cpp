@@ -3,6 +3,8 @@
 #include "I18N.hpp"
 #include "PrinterWebView.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "libslic3r/Preset.hpp"
@@ -98,6 +100,18 @@ public:
         stop_upload = true;
         if (upload_thread.joinable())
             upload_thread.join();
+    }
+
+    void on_loaded(wxWebViewEvent &evt) override
+    {
+        // When the ElegooLink web page loads (Device tab shown), fetch CANVAS filament data
+        auto* agent = wxGetApp().getAgent();
+        if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+            auto* obj = wxGetApp().getDeviceManager()->get_selected_machine();
+            if (obj && agent->fetch_filament_info(obj->get_dev_id())) {
+                wxGetApp().sidebar().load_ams_list(obj);
+            }
+        }
     }
 
     void on_script_message(wxWebViewEvent &evt) override
