@@ -169,6 +169,10 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
             // Legacy plugin cannot support remote play for H2D, force using local mode
             m_remote_proto = MachineObject::LVR_None;
         }
+        if (m_remote_forbidden && machine == m_machine) {
+            // Cloud refused to issue a liveview ticket for this printer (403), keep using LAN liveview
+            m_remote_proto = MachineObject::LVR_None;
+        }
     } else {
         m_camera_exists = false;
         m_lan_mode = false;
@@ -189,6 +193,7 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
     m_machine = machine;
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl switch machine: " << m_machine;
     m_disable_lan = false;
+    m_remote_forbidden = false;
     m_failed_retry = 0;
     m_last_failed_codes.clear();
     m_last_user_play = wxDateTime::Now();
@@ -313,7 +318,9 @@ void MediaPlayCtrl::Play()
     // !m_lan_mode && !m_remote_proto && m_lan_proto == LVL_None (x)
 
     if (m_lan_proto <= MachineObject::LVL_Disable && (m_lan_mode || !m_remote_proto)) {
-        Stop(m_lan_proto == MachineObject::LVL_None
+        Stop(m_remote_forbidden
+            ? _L("Cloud liveview is not available for this printer. Please turn on LAN Mode Liveview on the printer screen.")
+            : m_lan_proto == MachineObject::LVL_None
             ? _L("A problem occurred. Please update the printer firmware and try again.")
             : _L("LAN Only Liveview is off. Please turn on the liveview on printer screen."));
         return;
@@ -367,6 +374,13 @@ void MediaPlayCtrl::Play()
                                 m_failed_code = std::atoi(url.substr(n + 1, url.length() - n - 2).c_str());
                         }
                         Stop(_L("Connection Failed. Please check the network and try again"), from_u8(url));
+                        if (m_failed_code == 403 && !m_remote_forbidden) {
+                            // The cloud refuses liveview tickets to this client for some printers (e.g. P2S in cloud
+                            // mode, see #14942). Retrying the cloud path is pointless, switch to LAN liveview instead.
+                            BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: cloud liveview refused (403), falling back to LAN liveview";
+                            m_remote_forbidden = true;
+                            m_next_retry       = wxDateTime::Now();
+                        }
                     } else {
                         m_url = url;
                         load();
