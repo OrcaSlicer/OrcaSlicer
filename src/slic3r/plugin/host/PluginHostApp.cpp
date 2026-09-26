@@ -41,15 +41,23 @@ PresetBundle* current_preset_bundle()
 } // namespace
 
 // Access to the live GUI application: the Plater and the module-level
-// plater()/model()/preset_bundle() accessors. Everything here is owned by the
-// app and only reachable once the GUI is up (the accessors throw before that).
+// plater()/model()/preset_bundle() accessors. Model and preset access is read-only;
+// export_gcode_to_temp() is the one narrow scheduling operation and keeps its
+// filesystem destination entirely host-owned. Everything here is owned by the app
+// and only reachable once the GUI is up (the accessors throw before that).
 void host_bindings::register_app(py::module_& host)
 {
     py::class_<GUI::Plater, std::unique_ptr<GUI::Plater, py::nodelete>>(host, "Plater")
         .def("model", static_cast<Model& (GUI::Plater::*)()>(&GUI::Plater::model), py::return_value_policy::reference_internal)
         .def("is_project_dirty", &GUI::Plater::is_project_dirty)
         .def("is_presets_dirty", &GUI::Plater::is_presets_dirty)
-        .def("inside_snapshot_capture", &GUI::Plater::inside_snapshot_capture);
+        .def("inside_snapshot_capture", &GUI::Plater::inside_snapshot_capture)
+        .def(
+            "export_gcode_to_temp",
+            &GUI::Plater::export_gcode_to_temp,
+            "Schedule the active FFF plate through OrcaSlicer's normal slicing and export pipeline. "
+            "OrcaSlicer owns and removes the temporary G-code destination after completion. Returns "
+            "True only when the export was scheduled.");
 
     host.def("plater", &current_plater, py::return_value_policy::reference);
     host.def("model", []() -> Model& {
