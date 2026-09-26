@@ -205,6 +205,21 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // what the preview draws while the user drags it, and one layer in how many the toolpath modes keep
+    {
+        const std::string mode = get("preview_reduced_detail_mode");
+        if (mode != "off" && mode != "solid" && mode != "layers" && mode != "outer_walls" && mode != "shell")
+            set("preview_reduced_detail_mode", "off");
+        int stride = 4;
+        try {
+            stride = std::stoi(get("preview_reduced_detail_layer_stride"));
+        }
+        catch (...) {
+            stride = 4;
+        }
+        set("preview_reduced_detail_layer_stride", std::to_string(std::max(1, std::min(stride, 20))));
+    }
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);

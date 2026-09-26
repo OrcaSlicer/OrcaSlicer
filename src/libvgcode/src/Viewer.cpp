@@ -92,6 +92,36 @@ bool Viewer::is_dim_previous_layers() const
     return m_impl->is_dim_previous_layers();
 }
 
+void Viewer::set_reduced_detail(bool value)
+{
+    m_impl->set_reduced_detail(value);
+}
+
+bool Viewer::is_reduced_detail() const
+{
+    return m_impl->is_reduced_detail();
+}
+
+EReducedDetailMode Viewer::get_reduced_detail_mode() const
+{
+    return m_impl->get_reduced_detail_mode();
+}
+
+void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
+{
+    m_impl->set_reduced_detail_mode(mode);
+}
+
+uint32_t Viewer::get_reduced_detail_layer_stride() const
+{
+    return m_impl->get_reduced_detail_layer_stride();
+}
+
+void Viewer::set_reduced_detail_layer_stride(uint32_t value)
+{
+    m_impl->set_reduced_detail_layer_stride(value);
+}
+
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);

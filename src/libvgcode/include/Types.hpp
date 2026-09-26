@@ -159,6 +159,25 @@ enum class EGCodeExtrusionRole : uint8_t
 static constexpr std::size_t GCODE_EXTRUSION_ROLES_COUNT = static_cast<std::size_t>(EGCodeExtrusionRole::COUNT);
 
 //
+// What the reduced set, drawn while the user is dragging, holds in place of the full toolpaths
+//
+enum class EReducedDetailMode : uint8_t
+{
+    // nothing: no reduced set is built
+    Off,
+    // only the bottom and top layers of the visible range, for a caller that draws the print
+    // itself some other way
+    EndLayersOnly,
+    // one layer in every stride, every role kept
+    LayersOnly,
+    // one layer in every stride, outer walls only
+    OuterWallsOnly,
+    // one layer in every stride, only the segments on the visible surface of the print
+    ShellOnly,
+    COUNT
+};
+
+//
 // Option types
 //
 enum class EOptionType : uint8_t

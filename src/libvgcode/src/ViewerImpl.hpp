@@ -109,6 +109,21 @@ public:
     // 0.0 = black
     bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
     void set_dim_previous_layers(bool value);
+    //
+    // Draw from the reduced set; it is already built, so this is just a buffer binding.
+    //
+    void set_reduced_detail(bool value) {
+#ifdef ENABLE_OPENGL_ES
+        // no reduced set is built on OpenGL ES
+        value = false;
+#endif // ENABLE_OPENGL_ES
+        m_settings.reduced_detail = value;
+    }
+    bool is_reduced_detail() const { return m_settings.reduced_detail; }
+    EReducedDetailMode get_reduced_detail_mode() const { return m_settings.reduced_detail_mode; }
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    uint32_t get_reduced_detail_layer_stride() const { return m_settings.reduced_detail_layer_stride; }
+    void set_reduced_detail_layer_stride(uint32_t value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 
@@ -320,6 +335,17 @@ private:
     // Variables used for toolpaths visibiliity
     //
     BitSet<> m_valid_lines_bitset;
+#ifndef ENABLE_OPENGL_ES
+    //
+    // Extrusion segments classified by update_shell_bitset() for EReducedDetailMode::ShellOnly: on
+    // the visible surface, the first inner wall beside an outer wall, visible from straight above,
+    // visible from straight below
+    //
+    BitSet<> m_shell_bitset;
+    BitSet<> m_near_shell_bitset;
+    BitSet<> m_top_visible_bitset;
+    BitSet<> m_bottom_visible_bitset;
+#endif // ENABLE_OPENGL_ES
     //
     // Variables used for toolpaths coloring
     //
@@ -499,6 +525,15 @@ private:
     unsigned int m_enabled_options_tex_id{ 0 };
     size_t m_enabled_options_count{ 0 };
     //
+    // OpenGL buffers to store the reduced set drawn while Settings::reduced_detail is set
+    //
+    unsigned int m_enabled_segments_reduced_buf_id{ 0 };
+    unsigned int m_enabled_segments_reduced_tex_id{ 0 };
+    size_t m_enabled_segments_reduced_count{ 0 };
+    unsigned int m_enabled_options_reduced_buf_id{ 0 };
+    unsigned int m_enabled_options_reduced_tex_id{ 0 };
+    size_t m_enabled_options_reduced_count{ 0 };
+    //
     // Caches for size of data sent to gpu, in bytes
     //
     size_t m_positions_tex_size{ 0 };
@@ -506,6 +541,30 @@ private:
     size_t m_colors_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
+    size_t m_enabled_segments_reduced_tex_size{ 0 };
+    size_t m_enabled_options_reduced_tex_size{ 0 };
+
+    // The set the next draw reads from: the reduced one while dragging, if one is built.
+    bool use_reduced_set() const { return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off; }
+    // Whether the extrusion segment starting at vertex i belongs to the reduced set under the current mode
+    bool reduced_set_keeps(size_t i, const PathVertex& v) const;
+    void update_shell_bitset();
+    struct ActiveSet
+    {
+        size_t count{ 0 };
+        unsigned int buf_id{ 0 };
+        unsigned int tex_id{ 0 };
+    };
+    ActiveSet active_segments() const {
+        if (use_reduced_set())
+            return { m_enabled_segments_reduced_count, m_enabled_segments_reduced_buf_id, m_enabled_segments_reduced_tex_id };
+        return { m_enabled_segments_count, m_enabled_segments_buf_id, m_enabled_segments_tex_id };
+    }
+    ActiveSet active_options() const {
+        if (use_reduced_set())
+            return { m_enabled_options_reduced_count, m_enabled_options_reduced_buf_id, m_enabled_options_reduced_tex_id };
+        return { m_enabled_options_count, m_enabled_options_buf_id, m_enabled_options_tex_id };
+    }
 #endif // ENABLE_OPENGL_ES
 
     //
