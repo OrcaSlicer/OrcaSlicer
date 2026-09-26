@@ -986,6 +986,10 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             if (alias.empty())
                 continue;
 
+	    if (! filament_it->is_compatible || ! filament_it->is_visible) {
+		continue;
+	    }
+
             filament_items.push_back(alias);
             _collect_filament_info(alias, *filament_it, query_filament_vendors, query_filament_types);
 
