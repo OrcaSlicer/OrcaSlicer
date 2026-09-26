@@ -3473,11 +3473,35 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
     };
 
-    auto append_headers = [&imgui, window_padding, this](const std::vector<std::pair<std::string, float>>& title_offsets) {
+auto append_headers = [&imgui, window_padding, this](const std::vector<std::pair<std::string, float>>& title_offsets, bool show_master_eye = false) {
         for (size_t i = 0; i < title_offsets.size(); i++) {
-            if (title_offsets[i].first == _u8L("Display")) { // ORCA Hide Display header
+            if (title_offsets[i].first == _u8L("Display")) { // ORCA Master eye toggle
                 ImGui::SameLine(title_offsets[i].second);
-                ImGui::Dummy({16.f * m_scale, 1}); // 16(icon_size)
+                if (show_master_eye) {
+                    // Determine whether every role and option is currently visible.
+                    const auto roles       = m_viewer.get_extrusion_roles();
+                    const auto opts        = m_viewer.get_options();
+                    const bool all_visible = std::none_of(roles.begin(), roles.end(),
+                                                          [this](libvgcode::EGCodeExtrusionRole r) {
+                                                              return !m_viewer.is_extrusion_role_visible(r);
+                                                          }) &&
+                                             std::none_of(opts.begin(), opts.end(),
+                                                          [this](libvgcode::EOptionType o) { return !m_viewer.is_option_visible(o); });
+
+                    // Render a clickable invisible button with the eye icon drawn on top.
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                    if (ImGui::InvisibleButton("##master_eye", ImVec2(16.f * m_scale, ImGui::GetTextLineHeight()))) {
+                        m_viewer.set_all_extrusion_roles_visibility(!all_visible);
+                        m_viewer.set_all_options_visibility(!all_visible);
+                        update_moves_slider();
+                    }
+                    ImGui::GetWindowDrawList()->AddText(ImGui::GetItemRectMin(), ImGui::GetColorU32(ImGuiCol_Text),
+                                                        into_u8(all_visible ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
+                    ImGui::PopStyleVar(2);
+                } else {
+                    ImGui::Dummy({16.f * m_scale, 1});
+                }
                 continue;
             }
             ImGui::SameLine(title_offsets[i].second);
@@ -3854,7 +3878,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         // ORCA use % symbol for percentage and use "Usage" for "Used filaments"
         offsets = calculate_offsets({ {_u8L("Line Type"), labels}, {_u8L("Time"), times}, {"%", percents}, {"", used_filaments_length}, {"", used_filaments_weight}, {_u8L("Display"), {""}}}, icon_size);
         percents.pop_back();
-        append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}});
+        append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}}, true);
         break;
     }
     case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
@@ -4092,7 +4116,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]}, }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4109,7 +4134,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4126,7 +4152,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4142,7 +4169,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        offsets[1] = predictable_icon_pos;
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
@@ -4852,7 +4880,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         offsets = calculate_offsets({ { _u8L("Options"), { ""}}, { _u8L("Display"), {""}} }, icon_size);
         offsets[1] = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} }, true);
         for (auto item : m_viewer.get_options())
             append_option_item(item, offsets);
     }
