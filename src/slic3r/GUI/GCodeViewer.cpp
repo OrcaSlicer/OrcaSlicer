@@ -3435,6 +3435,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         {
             if(callback && !checkbox && !visible)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(172 / 255.0f, 172 / 255.0f, 172 / 255.0f, 1.00f));
+            if (!visible)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             float dummy_size = type == EItemType::None ? window_padding * 3 : ImGui::GetStyle().ItemSpacing.x + icon_size;
             ImGui::SameLine(dummy_size);
             imgui.text(columns_offsets[0].first);
@@ -3443,6 +3445,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 ImGui::SameLine(columns_offsets[i].second);
                 imgui.text(columns_offsets[i].first);
             }
+            if (!visible)
+                ImGui::PopStyleColor();
             if (callback && !checkbox && !visible)
                 ImGui::PopStyleColor(1);
         }
@@ -3459,7 +3463,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         };
 
         std::vector<float> values = range.get_values();
-        if (values.size() == 1)
+        if (values.size() == 0)
+            return;
+        else if (values.size() == 1)
             // single item use case
             append_range_item(0, values.front(), decimals);
         else if (values.size() == 2) {
