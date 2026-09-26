@@ -227,10 +227,19 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
 
     if (!HasPDFlag(wxPD_NO_PROGRESS)) {
         m_gauge = new wxGauge(this, wxID_ANY, maximum, wxDefaultPosition, PROGRESSDIALOG_GAUGE_SIZE, gauge_style);
+#ifdef __WXGTK__
+        SetGaugeColor(m_gauge, 
+            StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
+            StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
+        );
+        m_gauge->SetValue(0);
+#else
+        m_gauge->Pulse(); // colors not applied without this. probably it switches to a dc painted version of progressbar
         m_gauge->SetValue(0);
         m_gauge->SetForegroundColour(wxColour("#009688"));
         m_gauge->SetBackgroundColour(wxColour("#D9D9D9"));
         wxGetApp().UpdateDarkUI(m_gauge);
+#endif
         m_sizer_main->Add(m_gauge, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(28));
     }
 
@@ -827,7 +836,7 @@ ProgressDialog::~ProgressDialog()
 
 void ProgressDialog::DoSetSize(int x, int y, int width, int height, int sizeFlags /*= wxSIZE_AUTO*/)
 {
-    if (m_button_cancel != nullptr) { m_button_cancel->SetMinSize(PROGRESSDIALOG_CANCEL_BUTTON_SIZE); }
+    //if (m_button_cancel != nullptr) { m_button_cancel->SetMinSize(PROGRESSDIALOG_CANCEL_BUTTON_SIZE); }
 
 #ifdef __WXMSW__
     //if (m_block_left != nullptr && m_block_right != nullptr) {

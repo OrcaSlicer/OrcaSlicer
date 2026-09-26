@@ -642,6 +642,42 @@ void RemoveInputBorder(wxWindow* win)
     );
 #endif
 }
+
+void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor)
+{
+    GtkWidget* widget = gauge->GetHandle(); // native GtkWidget*
+    if (!widget) return;
+
+#if GTK_CHECK_VERSION(3, 0, 0)
+    // GTK3+: use CSS provider
+    GtkCssProvider* provider = gtk_css_provider_new();
+    wxString css = wxString::Format(
+        "progressbar trough { background-color: %s; }"
+        "progressbar progress { background-color: %s; background-image: none; }",
+        troughColor,
+        barColor
+    );
+
+#if GTK_CHECK_VERSION(4, 0, 0)
+    // GTK4
+    gtk_css_provider_load_from_data(provider, css.utf8_str(), -1);
+#else
+    // GTK3
+    gtk_css_provider_load_from_data(provider, css.utf8_str(), -1, nullptr);
+#endif
+
+    GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_provider(
+        ctx,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+
+    g_object_unref(provider);
+
+#endif
+}
+
 #endif // __WXGTK__
 
 #ifdef __linux__
