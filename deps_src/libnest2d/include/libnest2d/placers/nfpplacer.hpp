@@ -1111,7 +1111,13 @@ private:
         default: ; // DONT_ALIGN
         }
 
-        auto d = cb - ci;       
+        auto d = cb - ci;
+
+        // Keep the final pile inside the bed when a preferred position is near an edge.
+        setX(d, std::clamp(getX(d), getX(bbin.minCorner()) - getX(bb.minCorner()),
+                          getX(bbin.maxCorner()) - getX(bb.maxCorner())));
+        setY(d, std::clamp(getY(d), getY(bbin.minCorner()) - getY(bb.minCorner()),
+                          getY(bbin.maxCorner()) - getY(bb.maxCorner())));
 
         // BBS make sure the item won't clash with excluded regions
         // do we have wipe tower after arranging?
@@ -1140,9 +1146,7 @@ private:
                 return;
             }
             Item   objs_convex_hull_item(objs_convex_hull);
-            Vertex objs_convex_hull_ref = objs_convex_hull_item.referenceVertex();
-            Vertex diff                 = objs_convex_hull_ref - sl::boundingBox(objs_convex_hull).center();
-            Vertex ref_aligned = cb + diff;  // reference point when pile center aligned with bed center
+            Vertex ref_aligned = objs_convex_hull_item.referenceVertex() + d;
             bool ref_aligned_is_ok = std::any_of(nfps.begin(), nfps.end(), [&ref_aligned](auto& nfp) {return sl::isInside(ref_aligned, nfp); });
             if (!ref_aligned_is_ok) {
                 // ref_aligned is not good, then find a nearest point on nfp boundary

@@ -245,17 +245,18 @@ TEST_CASE("Arrange without final alignment keeps items disjoint", "[Arrange]")
     require_no_overlap(items);
 }
 
-TEST_CASE("Arrange aligns the pile to a custom center", "[Arrange]")
+TEST_CASE("Arrange keeps a custom-aligned pile within the bed", "[Arrange]")
 {
-    // align_center != (0.5, 0.5) selects Alignment::USER_DEFINED.
-    ArrangePolygons items  = squares(5, 30.);
+    ArrangePolygons items  = squares(4, 40.);
     ArrangeParams   params = quiet_params(scaled(2.));
-    params.align_center    = Vec2d(0.3, 0.7);
+    params.align_center    = Vec2d(0.3, 0.5);
 
-    arrange(items, bed(250, 250), params);
+    arrange(items, bed(200, 50), params);
 
-    for (const ArrangePolygon &ap : items)
+    for (const ArrangePolygon &ap : items) {
         REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 50).contains(ap.transformed_poly().contour.bounding_box()));
+    }
     require_no_overlap(items);
 }
 
