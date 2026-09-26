@@ -2005,6 +2005,36 @@ void Sidebar::priv::update_extruder_separator_icon(bool show, bool ready)
         m_panel_printer_content->Refresh();
 }
 
+// Buckets each AMS by the extruder it is actually feeding right now. With a Filament Track Switch
+// installed an AMS can feed both extruders, so this reads the live switch position from the
+// binding set instead of GetExtruderId(), which is pinned to MAIN_EXTRUDER_ID for a switch-bound
+// AMS regardless of which side the switch is currently routing to.
+static void count_ams_by_extruder(MachineObject *obj, int &main_4, int &main_1, int &deputy_4, int &deputy_1)
+{
+    main_4 = main_1 = deputy_4 = deputy_1 = 0;
+    auto fila_switch = obj->GetFilaSwitch();
+    const bool switch_ready = fila_switch && fila_switch->IsInstalled() && fila_switch->IsReady();
+    for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
+        for (int extruder_id : ams.second->GetBindedExtruderSet()) {
+            if (switch_ready) {
+                auto switcher_pos = ams.second->GetSwitcherPos();
+                if (!switcher_pos)
+                    continue;
+                int switcher_id = obj->is_main_extruder_on_left() ? (1 - static_cast<int>(switcher_pos.value()))
+                                                                  : static_cast<int>(switcher_pos.value());
+                if (extruder_id != switcher_id)
+                    continue;
+            }
+            const bool is_n3s = ams.second->GetAmsType() == DevAms::N3S;
+            if (extruder_id == 0) {
+                if (is_n3s) ++main_1; else ++main_4;
+            } else if (extruder_id == 1) {
+                if (is_n3s) ++deputy_1; else ++deputy_4;
+            }
+        }
+    }
+}
+
 bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual)
 {
     MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
@@ -2106,32 +2136,8 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         target_types[index] = target_type;
     }
 
-    int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
-    const bool switch_ready = is_fila_switch_ready();
-    for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
-        for (int extruder_id : ams.second->GetBindedExtruderSet()) {
-            // With the switch installed every AMS binds to both extruders; once it is ready, attribute
-            // each to the extruder its input track feeds so the per-extruder counts stay correct. Without
-            // a switch the binding set is the single extruder and the filter is skipped, matching the
-            // pre-switch counts.
-            if (switch_ready) {
-                auto switcher_pos = ams.second->GetSwitcherPos();
-                if (!switcher_pos)
-                    continue;
-                int switcher_id = obj->is_main_extruder_on_left() ? (1 - static_cast<int>(switcher_pos.value()))
-                                                                  : static_cast<int>(switcher_pos.value());
-                if (extruder_id != switcher_id)
-                    continue;
-            }
-            const bool is_n3s = ams.second->GetAmsType() == DevAms::N3S;
-            // Main (first) extruder is id 0, deputy is id 1.
-            if (extruder_id == 0) {
-                if (is_n3s) ++main_1; else ++main_4;
-            } else if (extruder_id == 1) {
-                if (is_n3s) ++deputy_1; else ++deputy_4;
-            }
-        }
-    }
+    int main_4, main_1, deputy_4, deputy_1;
+    count_ams_by_extruder(obj, main_4, main_1, deputy_4, deputy_1);
     only_external_material = !obj->GetFilaSystem()->HasAms();
     int main_index = obj->is_main_extruder_on_left() ? 0 : 1;
     int deputy_index = obj->is_main_extruder_on_left() ? 1 : 0;
@@ -14013,21 +14019,8 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
 
         std::vector<std::map<int, int>> ams_count_info;
         ams_count_info.resize(2);
-        int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
-        for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
-            // Main (first) extruder at right
-            if (ams.second->GetExtruderId() == 0) {
-                if (ams.second->GetAmsType() == DevAms::N3S) // N3S
-                    ++main_1;
-                else
-                    ++main_4;
-            } else if (ams.second->GetExtruderId() == 1) {
-                if (ams.second->GetAmsType() == DevAms::N3S) // N3S
-                    ++deputy_1;
-                else
-                    ++deputy_4;
-            }
-        }
+        int main_4, main_1, deputy_4, deputy_1;
+        count_ams_by_extruder(obj, main_4, main_1, deputy_4, deputy_1);
 
         int left_4  = main_4;
         int left_1  = main_1;
