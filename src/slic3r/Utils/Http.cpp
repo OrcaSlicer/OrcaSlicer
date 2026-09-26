@@ -53,10 +53,18 @@ struct CurlGlobalInit
             ssl_cafile = X509_get_default_cert_file();
 
         int replace = true;
-        if (!ssl_cafile || !fs::exists(fs::path(ssl_cafile))) {
+        // Probe without throwing: these paths are not necessarily readable. A static build bakes
+        // OPENSSLDIR into the binary, so X509_get_default_cert_file() can point into the build
+        // tree, and on another machine or under another user that path may exist but be
+        // unreachable. The throwing overload then raises filesystem_error out of this
+        // constructor and the application dies at startup, instead of falling through to the
+        // CA_BUNDLES list below. exists(p, ec) reports false for an unreadable path, which is
+        // what this code wants: try the next candidate.
+        boost::system::error_code ec;
+        if (!ssl_cafile || !fs::exists(fs::path(ssl_cafile), ec)) {
             const char * bundle = nullptr;
             for (const char * b : CA_BUNDLES) {
-                if (fs::exists(fs::path(b))) {
+                if (fs::exists(fs::path(b), ec)) {
                     ::setenv(SSL_CA_FILE, bundle = b, replace);
                     break;
                 }
