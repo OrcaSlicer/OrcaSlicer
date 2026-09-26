@@ -563,6 +563,9 @@ public:
     // Recommends switching nozzle clumping detection to Auto when the file has stringing-prone
     // filament and the printer isn't in Auto.
     bool CheckWarningSmartNozzleBlobAuto(MachineObject* obj_);
+    // Warn (without blocking) when an AMS slot's remaining filament looks insufficient for the plate.
+    bool CheckWarningFilamentRemain(MachineObject* obj_);
+    bool IsAllAmsSupportAccurateRemain(MachineObject* obj_) const;
     // AMS best-switch-position popup: suggests the filament arrangement that minimizes
     // filament-change time on filament-switcher printers; no-op for printers without a switcher.
     void on_reselect_dialog_btn_clicked(wxMouseEvent&);

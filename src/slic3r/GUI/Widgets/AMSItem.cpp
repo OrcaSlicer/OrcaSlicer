@@ -52,7 +52,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
     if (!ams) return false;
     this->ams_id = ams->GetAmsId();
 
-    if (ams->SupportHumidity()){
+    if (ams->SupportHumidityLevel()){
         this->ams_humidity = ams->GetHumidityLevel();
     }
     else{
@@ -103,6 +103,9 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
                     } else {
                         info.material_remain = it->second->remain;
                     }
+                    // Orca: accurate weight for the tooltip, when firmware reports it (or a usable tray_weight fallback)
+                    info.material_remain_weight_g = it->second->get_filament_remain_weight();
+                    info.remain_fetch_status      = it->second->remain_fetch_status;
                 }
 
 
@@ -1742,6 +1745,26 @@ void AMSLib::UpdateInfo(Caninfo info, std::string ams_idx, bool refresh)
     m_info = info;
     m_ams_id = ams_idx;
     m_slot_id = info.can_id;
+
+    // Orca: surface the accurate per-gram remaining weight (and its fetch status) as a tooltip;
+    // the can widget itself only has room for the coarse remain% fill level.
+    switch (m_info.remain_fetch_status) {
+    case DevAmsTray::RemainFetchStatus::Refreshing:
+    case DevAmsTray::RemainFetchStatus::Initializing:
+        SetToolTip(_L("Fetching remaining filament amount..."));
+        break;
+    case DevAmsTray::RemainFetchStatus::CloudTimeout:
+    case DevAmsTray::RemainFetchStatus::CloudNoData:
+        SetToolTip(_L("Remaining filament amount is currently unavailable"));
+        break;
+    default:
+        if (m_info.material_remain_weight_g.has_value())
+            SetToolTip(wxString::Format(_L("Approx. %d g remaining"), m_info.material_remain_weight_g.value()));
+        else
+            UnsetToolTip();
+        break;
+    }
+
     if (refresh) Refresh();
 }
 
