@@ -134,6 +134,9 @@ void AppConfig::set_defaults()
         if (get("auto_slice_after_reload").empty())
             set_bool("auto_slice_after_reload", false);
 
+        if (get("auto_reload_confirm_paint_loss").empty())
+            set_bool("auto_reload_confirm_paint_loss", true);
+
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
 

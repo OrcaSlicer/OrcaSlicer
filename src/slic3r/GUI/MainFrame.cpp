@@ -4104,6 +4104,7 @@ bool MainFrame::slice_current_plate()
 {
     wxGetApp().plater()->update(true, true);
     m_slice_enable = get_enable_slice_status();
+    m_slice_btn->Enable(m_slice_enable);
     if (m_slice_enable) {
         wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
         this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);

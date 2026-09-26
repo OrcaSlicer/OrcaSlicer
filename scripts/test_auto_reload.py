@@ -38,15 +38,18 @@ SLICE_START_MARK = "will start print::process"
 SLICE_DONE_MARK  = "on_process_completed:finished"
 MISSING_SOURCE_MARK = "source file missing, skipping reload"
 LOAD_FAILED_MARK = "failed to load"
+PAINT_DECLINED_MARK = "skipping reload, declined in the paint-loss prompt"
 # Logged once per reload_from_disk() call with the number of volumes it's about to reload --
 # the targeted-reload path (only the volumes whose source actually changed) should log 1 here
 # even when other objects are loaded, not the total volume count on the plate.
 RELOADABLE_COUNT_RE = re.compile(r"reloadable volumes number is: (\d+)")
 
-PREF_RELOAD = "auto_reload_on_source_change"
-PREF_SLICE  = "auto_slice_after_reload"
-PREF_RELOAD_LABEL = 'Reload objects when their source file changes'
-PREF_SLICE_LABEL  = 'Also slice after auto-reloading a model'
+PREF_RELOAD  = "auto_reload_on_source_change"
+PREF_CONFIRM = "auto_reload_confirm_paint_loss"
+PREF_SLICE   = "auto_slice_after_reload"
+PREF_RELOAD_LABEL  = 'Reload objects when their source file changes'
+PREF_CONFIRM_LABEL = 'Ask before a reload discards painted features'
+PREF_SLICE_LABEL   = 'Also slice after auto-reloading a model'
 
 
 def default_data_dir():
@@ -98,7 +101,8 @@ def read_prefs(data_dir):
         return None
     def truthy(v):
         return v is True or str(v).lower() in ("1", "true")
-    return {PREF_RELOAD: truthy(app.get(PREF_RELOAD)), PREF_SLICE: truthy(app.get(PREF_SLICE))}
+    return {PREF_RELOAD: truthy(app.get(PREF_RELOAD)), PREF_CONFIRM: truthy(app.get(PREF_CONFIRM)),
+            PREF_SLICE: truthy(app.get(PREF_SLICE))}
 
 
 class LogTail:
@@ -192,20 +196,6 @@ def write_buried_pillars_stl(path, height, n=32, pitch=1.5, width=1.0, with_void
     write_stl(path, [(0, 0, 0, size, size, float(height))], voids=voids)
 
 
-def write_obj_cube(path, size):
-    """A minimal ASCII OBJ cube with no material library. read_from_file()'s obj_color_fun
-    fires for any .obj regardless of content, which is exactly what phase H checks."""
-    s = float(size)
-    v = [(0, 0, 0), (s, 0, 0), (s, s, 0), (0, s, 0), (0, 0, s), (s, 0, s), (s, s, s), (0, s, s)]
-    lines = ["o test"]
-    for x, y, z in v:
-        lines.append("v %g %g %g" % (x, y, z))
-    for a, b, c in BOX_FACES:
-        lines.append("f %d %d %d" % (a + 1, b + 1, c + 1))  # OBJ face indices are 1-based
-    with open(path, "w") as f:
-        f.write("\n".join(lines) + "\n")
-
-
 def write_truncated_stl(path):
     """A syntactically broken STL: cut off before any facet is complete. admesh's ASCII reader
     tolerantly accepts whatever complete facets it finds before a truncation point -- cutting
@@ -245,13 +235,14 @@ def pause(text):
     input("Press Enter when done... ")
 
 
-def require_prefs(data_dir, want_reload, want_slice):
-    """Blocks until OrcaSlicer.conf shows the two preferences in the wanted state.
+def require_prefs(data_dir, want_reload, want_confirm, want_slice):
+    """Blocks until OrcaSlicer.conf shows the three preferences in the wanted state.
 
     Toggling a checkbox in Preferences saves the file immediately, so a mismatch here means
     the checkbox really is in the wrong state, not that the file is lagging.
     """
-    wanted = {PREF_RELOAD: (PREF_RELOAD_LABEL, want_reload), PREF_SLICE: (PREF_SLICE_LABEL, want_slice)}
+    wanted = {PREF_RELOAD: (PREF_RELOAD_LABEL, want_reload), PREF_CONFIRM: (PREF_CONFIRM_LABEL, want_confirm),
+              PREF_SLICE: (PREF_SLICE_LABEL, want_slice)}
     while True:
         prefs = read_prefs(data_dir)
         if prefs is None:
@@ -261,7 +252,8 @@ def require_prefs(data_dir, want_reload, want_slice):
             sys.exit(1)
         wrong = [(label, want) for key, (label, want) in wanted.items() if prefs[key] != want]
         if not wrong:
-            print("  Preferences verified: %s=%s, %s=%s" % (PREF_RELOAD_LABEL, want_reload, PREF_SLICE_LABEL, want_slice))
+            print("  Preferences verified: %s=%s, %s=%s, %s=%s"
+                  % (PREF_RELOAD_LABEL, want_reload, PREF_CONFIRM_LABEL, want_confirm, PREF_SLICE_LABEL, want_slice))
             return
         for label, want in wrong:
             print("  '%s' must be %s but is %s" % (label, "ON" if want else "OFF", "OFF" if want else "ON"))
@@ -305,7 +297,7 @@ def main():
     stl           = os.path.join(work_dir, "cube.stl")        # plate 1, alone
     stl_g_changed = os.path.join(work_dir, "second_a.stl")    # plate 2, with stl_g_missing
     stl_g_missing = os.path.join(work_dir, "second_b.stl")    # plate 2, with stl_g_changed
-    obj_path      = os.path.join(work_dir, "cube.obj")        # plate 3, with flaky_stl and quick_stl
+    paint_stl     = os.path.join(work_dir, "painted.stl")     # plate 3, with flaky_stl and quick_stl -- painted before saving
     flaky_stl     = os.path.join(work_dir, "flaky.stl")       # plate 3
     quick_stl     = os.path.join(work_dir, "quick.stl")       # plate 3
 
@@ -321,7 +313,7 @@ def main():
         write_cube_stl(stl, 20)
         write_cube_stl(stl_g_changed, 30)
         write_cube_stl(stl_g_missing, 8)
-        write_obj_cube(obj_path, 22)
+        write_cube_stl(paint_stl, 18)
         write_cube_stl(flaky_stl, 26)
         write_cube_stl(quick_stl, 25)
 
@@ -402,14 +394,50 @@ def main():
                    ask("  On plate 2, did only second_a.stl shrink to 24 mm, with second_b.stl still 8 mm?"))
 
     def phase_h():
-        print("\n[H] Plate 3: .obj source, overwritten -- must reload with no color-import dialog")
+        print("\n[H] Plate 3: overwrite a painted object with '%s' on (default) -- a decline must keep the paint" % PREF_CONFIRM_LABEL)
         tail.mark(); time.sleep(1.5)
-        write_obj_cube(obj_path, 14)
-        ok = tail.wait_for(RELOAD_MARK, args.timeout)
-        record("H1 reload after .obj overwrite", ok, "" if ok else "no reload line in log within %gs" % args.timeout)
-        if ok:
-            record("H2 no color-import dialog appeared", ask("  No color/material-import dialog popped up?"))
-            record("H3 model visibly updated", ask("  Did cube.obj shrink to 14 mm?"))
+        write_cube_stl(paint_stl, 19)
+        seen = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("H1 watcher noticed the change", seen, "" if seen else "no reload line in log within %gs" % args.timeout)
+        if seen:
+            pause("A confirmation dialog should now be open in OrcaSlicer, listing painted.stl and asking "
+                  "whether to continue reloading (it would discard the paint). Click NO.")
+            declined = tail.wait_for(PAINT_DECLINED_MARK, args.timeout)
+            record("H2 the decline was logged", declined,
+                   "" if declined else "no '%s' line within %gs -- did it reload instead?" % (PAINT_DECLINED_MARK, args.timeout))
+            record("H3 the object is unchanged and still painted",
+                   ask("  Is painted.stl still its original 18 mm, with its paint intact (not 19 mm)?"))
+
+    def phase_n():
+        print("\n[N] Plate 3: overwrite the same painted object again -- this time click YES to discard the paint")
+        tail.mark(); time.sleep(1.5)
+        write_cube_stl(paint_stl, 21)
+        seen = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("N1 watcher noticed the change", seen, "" if seen else "no reload line in log within %gs" % args.timeout)
+        if seen:
+            pause("A confirmation dialog should now be open again, same as in H. Click YES this time.")
+            not_declined = tail.absent_after(PAINT_DECLINED_MARK, args.quiet_window)
+            record("N2 no decline was logged this time", not_declined,
+                   "" if not_declined else "'%s' logged even though YES was clicked" % PAINT_DECLINED_MARK)
+            record("N3 model visibly updated", ask("  Did painted.stl grow to 21 mm?"))
+            record("N4 the paint is gone",
+                   ask("  Is the painted area gone (unless \"Keep painted feature after mesh change\" "
+                       "is also enabled in Preferences)?"))
+
+    def phase_o():
+        print("\n[O] Plate 3: overwrite the painted object with '%s' off -- must reload silently, no dialog" % PREF_CONFIRM_LABEL)
+        pause("N (or a previous run of O) likely discarded painted.stl's paint. Make sure it currently has "
+              "some paint on it -- paint a small area with any paint tool if it doesn't -- then press Enter.")
+        tail.mark(); time.sleep(1.5)
+        write_cube_stl(paint_stl, 23)
+        seen = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("O1 watcher noticed the change", seen, "" if seen else "no reload line in log within %gs" % args.timeout)
+        if seen:
+            record("O2 no dialog appeared", ask("  No confirmation dialog popped up?"))
+            record("O3 model visibly updated", ask("  Did painted.stl grow to 23 mm?"))
+            record("O4 the paint is gone",
+                   ask("  Is the painted area gone (unless \"Keep painted feature after mesh change\" "
+                       "is also enabled in Preferences)?"))
 
     def phase_i():
         print("\n[I] Plate 3: overwrite with a truncated/corrupt file, then a valid one")
@@ -423,15 +451,17 @@ def main():
             record("I2 the load failure was logged, not silently accepted", failed,
                    "" if failed else "no '%s' warning within %gs" % (LOAD_FAILED_MARK, args.timeout))
             record("I3 no dialog appeared for the failed load", ask("  No error/warning dialog popped up?"))
-            record("I4 the object is unchanged (still 26 mm)",
+            record("I4 an error toast appeared for the failed load",
+                   ask("  Did a small error notification (not a blocking dialog) appear in the bottom-right corner?"))
+            record("I5 the object is unchanged (still 26 mm)",
                    ask("  Is flaky.stl still the original 26 mm cube?"))
             tail.mark()
             write_cube_stl(flaky_stl, 12)
             ok2 = tail.wait_for(RELOAD_MARK, args.timeout)
-            record("I5 a later valid write still reloads (the failed attempt didn't consume it)", ok2,
+            record("I6 a later valid write still reloads (the failed attempt didn't consume it)", ok2,
                    "" if ok2 else "no reload line within %gs" % args.timeout)
             if ok2:
-                record("I6 model visibly updated", ask("  Did flaky.stl shrink to 12 mm?"))
+                record("I7 model visibly updated", ask("  Did flaky.stl shrink to 12 mm?"))
 
     def phase_j():
         print("\n[J] Plate 3: two overwrites landing close together, different sizes -- both must be picked up")
@@ -562,27 +592,32 @@ def main():
             record("E2 model unchanged",
                    ask("  Is cube.stl still the ~50 x 50 mm block, %g mm tall (not a 35 mm cube)?" % h2))
 
-    # (letter, (want_reload, want_slice), fn), in the order they normally run. Grouped by
-    # preference state so the whole sequence needs only two toggles: G-K are pure reload checks
-    # (targeting, missing sources, retry, debounce) that never look at slicing at all, so they run
-    # with auto-slice off, same as A-C -- there's no reason to also track whether a slice fired,
-    # and which plate it landed on, while checking those. D, L, M and F specifically exercise the
-    # slice-after-reload behavior, so they're the only ones that need it on before E flips reload
-    # off entirely.
+    # (letter, (want_reload, want_confirm, want_slice), fn), in the order they normally run.
+    # Grouped by preference state so the whole sequence needs only a few toggles: G-K, H, N are
+    # pure reload checks (targeting, missing sources, retry, debounce, paint-loss prompt) that
+    # never look at slicing at all, so they run with auto-slice off, same as A-C -- there's no
+    # reason to also track whether a slice fired, and which plate it landed on, while checking
+    # those. D, L, M and F specifically exercise the slice-after-reload behavior, so they're the
+    # only ones that need it on before E flips reload off entirely. want_confirm is True (the
+    # default) everywhere except O, the only phase that needs the prompt turned off to check the
+    # silent path; O runs last within the reload-only group, as its own single-phase state, so it
+    # doesn't split up G-K/H/N's shared confirm=True, slice=False group.
     PHASES = [
-        ("A", (True, False), phase_a),
-        ("B", (True, False), phase_b),
-        ("C", (True, False), phase_c),
-        ("G", (True, False), phase_g),
-        ("H", (True, False), phase_h),
-        ("I", (True, False), phase_i),
-        ("J", (True, False), phase_j),
-        ("K", (True, False), phase_k),
-        ("D", (True, True),  phase_d),
-        ("L", (True, True),  phase_l),
-        ("M", (True, True),  phase_m),
-        ("F", (True, True),  phase_f),
-        ("E", (False, True), phase_e),
+        ("A", (True, True,  False), phase_a),
+        ("B", (True, True,  False), phase_b),
+        ("C", (True, True,  False), phase_c),
+        ("G", (True, True,  False), phase_g),
+        ("H", (True, True,  False), phase_h),
+        ("N", (True, True,  False), phase_n),
+        ("I", (True, True,  False), phase_i),
+        ("J", (True, True,  False), phase_j),
+        ("K", (True, True,  False), phase_k),
+        ("O", (True, False, False), phase_o),
+        ("D", (True, True,  True),  phase_d),
+        ("L", (True, True,  True),  phase_l),
+        ("M", (True, True,  True),  phase_m),
+        ("F", (True, True,  True),  phase_f),
+        ("E", (False, True, True),  phase_e),
     ]
 
     if args.only:
@@ -606,9 +641,12 @@ def main():
               "one at a time is fine), then Shift+A to Auto Arrange just that plate so they "
               "don't overlap.\n"
               "4. Add another new plate. Import %s, %s and %s onto it as three separate objects, "
-              "then Shift+A to Auto Arrange just that plate so they don't overlap.\n"
+              "then Shift+A to Auto Arrange just that plate so they don't overlap. Select %s and "
+              "paint a small area with any paint tool (e.g. Support Painting), then click away "
+              "from the gizmo to commit it -- phases H/N/O all use this paint.\n"
               "5. Save the project as: %s"
-              % (work_dir, stl, stl_g_changed, stl_g_missing, obj_path, flaky_stl, quick_stl, template_path))
+              % (work_dir, stl, stl_g_changed, stl_g_missing, paint_stl, flaky_stl, quick_stl,
+                 paint_stl, template_path))
         while not os.path.exists(template_path):
             input("  Don't see %s yet -- save the project there, then press Enter to re-check... " % template_path)
         os.chmod(template_path, 0o444)  # read-only: an accidental Cmd+S in OrcaSlicer can't corrupt it
@@ -637,14 +675,20 @@ def main():
     active_state = None
     for letter, state, fn in selected:
         if state != active_state:
-            want_reload, want_slice = state
-            if state == (True, False):
-                pause("Preferences: ENABLE  '%s'\n            DISABLE '%s'" % (PREF_RELOAD_LABEL, PREF_SLICE_LABEL))
-            elif state == (True, True):
-                pause("Preferences: ENABLE '%s'.\nThen select the Prepare tab (not Preview)." % PREF_SLICE_LABEL)
-            elif state == (False, True):
-                pause("Preferences: DISABLE '%s' (leave the slice option as it is)." % PREF_RELOAD_LABEL)
-            require_prefs(args.data_dir, want_reload=want_reload, want_slice=want_slice)
+            want_reload, want_confirm, want_slice = state
+            if state == (True, True, False):
+                pause("Preferences: ENABLE  '%s'\n            ENABLE  '%s'\n            DISABLE '%s'"
+                      % (PREF_CONFIRM_LABEL, PREF_RELOAD_LABEL, PREF_SLICE_LABEL))
+            elif state == (True, False, False):
+                pause("Preferences: DISABLE '%s'\n            ENABLE  '%s'\n            DISABLE '%s'"
+                      % (PREF_CONFIRM_LABEL, PREF_RELOAD_LABEL, PREF_SLICE_LABEL))
+            elif state == (True, True, True):
+                pause("Preferences: ENABLE  '%s'\n            ENABLE  '%s'\n            ENABLE  '%s'\nThen select the Prepare tab (not Preview)."
+                      % (PREF_CONFIRM_LABEL, PREF_RELOAD_LABEL, PREF_SLICE_LABEL))
+            elif state == (False, True, True):
+                pause("Preferences: ENABLE  '%s'\n            DISABLE '%s'\n            ENABLE  '%s'"
+                      % (PREF_CONFIRM_LABEL, PREF_RELOAD_LABEL, PREF_SLICE_LABEL))
+            require_prefs(args.data_dir, want_reload=want_reload, want_confirm=want_confirm, want_slice=want_slice)
             active_state = state
         fn()
 

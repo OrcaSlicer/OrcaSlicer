@@ -79,7 +79,7 @@ struct Harness
     {
         watcher.set_on_changed([this](const std::set<std::string>& files) {
             calls.push_back(files);
-            return reload_succeeds;
+            return reload_succeeds ? files : std::set<std::string>{};
         });
     }
 
@@ -238,6 +238,43 @@ TEST_CASE("A failed batch fails every file in it and retries them together", "[S
     CHECK(h.calls[1] == std::set<std::string>{ a });
 }
 
+TEST_CASE("A batch that partially succeeds commits only the succeeded file's stamp", "[SourceFileWatcher]")
+{
+    WxEnv wx;
+    TempDir dir;
+    SourceFileWatcher watcher;
+    const std::string a = dir.write("a.stl", 10);
+    const std::string b = dir.write("b.stl", 10);
+    watcher.set_watched_files({ a, b });
+    dir.write("a.stl", 20);
+    dir.write("b.stl", 20);
+
+    std::vector<std::set<std::string>> calls;
+    // Only `a` reloads; `b` is left over (a missing source, a declined paint-loss prompt, or a
+    // load exception further down the same batch), the way a real caller reports a mixed outcome.
+    watcher.set_on_changed([&](const std::set<std::string>& files) {
+        calls.push_back(files);
+        return std::set<std::string>{ a };
+    });
+
+    wxTimer timer;
+    wxTimerEvent evt(timer);
+    watcher.ProcessEvent(evt);
+    REQUIRE(calls.size() == 1);
+    CHECK(calls[0] == std::set<std::string>{ a, b });
+
+    // `a`'s stamp advanced (committed), so it is not reported again on its own.
+    watcher.ProcessEvent(evt);
+    CHECK(calls.size() == 1);
+
+    // `b` is still at the stamp that didn't succeed, so it is not retried until it changes again --
+    // once it does, only `b` is reported, not `a` too.
+    dir.write("b.stl", 30);
+    watcher.ProcessEvent(evt);
+    REQUIRE(calls.size() == 2);
+    CHECK(calls[1] == std::set<std::string>{ b });
+}
+
 TEST_CASE("Re-arming the watch keeps a change that has not been reloaded yet", "[SourceFileWatcher]")
 {
     WxEnv wx;
@@ -324,7 +361,7 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
 
     int  calls  = 0;
     bool nested = false;
-    watcher.set_on_changed([&](const std::set<std::string>&) {
+    watcher.set_on_changed([&](const std::set<std::string>& files) {
         ++calls;
         // Stands in for a modal dialog or wxBusyInfo pumping the event loop mid-reload and letting
         // the debounce timer fire again: the callback must not be re-entered.
@@ -334,7 +371,7 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
             wxTimerEvent evt(timer);
             watcher.ProcessEvent(evt);
         }
-        return true;
+        return files;
     });
 
     wxTimer timer;
@@ -358,7 +395,7 @@ TEST_CASE("Without a callback a change stays pending", "[SourceFileWatcher]")
     watcher.ProcessEvent(evt);
 
     int calls = 0;
-    watcher.set_on_changed([&](const std::set<std::string>&) { ++calls; return true; });
+    watcher.set_on_changed([&](const std::set<std::string>& files) { ++calls; return files; });
     watcher.ProcessEvent(evt);
 
     CHECK(calls == 1);

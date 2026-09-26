@@ -172,10 +172,19 @@ void SourceFileWatcher::on_timer(wxTimerEvent&)
 
     m_reload_in_progress = true;
     struct ScopeGuard { bool& flag; ~ScopeGuard() { flag = false; } } guard{m_reload_in_progress};
-    if (m_on_changed(changed_files))
-        commit_source_stamps(changed);
-    else
-        record_failed_attempt(changed);
+    std::set<std::string> succeeded = m_on_changed(changed_files);
+
+    // Split the batch by outcome instead of committing/failing it atomically: a batch can mix a
+    // file that reloaded fine with one that was missing or declined, and the successful one's
+    // stamp must still advance even though the call overall reports something left over to retry.
+    std::map<std::string, SourceStamp> committed, failed;
+    for (const auto& [file, stamp] : changed)
+        (succeeded.count(file) ? committed : failed)[file] = stamp;
+
+    if (!committed.empty())
+        commit_source_stamps(committed);
+    if (!failed.empty())
+        record_failed_attempt(failed);
 }
 
 std::map<std::string, SourceStamp> SourceFileWatcher::changed_source_files() const
@@ -184,9 +193,12 @@ std::map<std::string, SourceStamp> SourceFileWatcher::changed_source_files() con
     for (const auto& [file, baseline] : m_stamps) {
         SourceStamp current = get_source_stamp(file);
         if (current.mtime == source_file_missing_mtime)
-            // Vanished rather than changed -- e.g. a rename-into-place caught mid-flight, or a
-            // volume unmounted. Wait for the file to come back instead of treating the
-            // disappearance itself as a change to reload.
+            // Vanished rather than changed -- e.g. a source replaced via unlink()-then-rename()
+            // (common on Windows, since the classic rename() fails over an existing destination),
+            // a cross-device move falling back to copy-then-delete, or a volume unmounted. A
+            // single atomic rename(2) over an existing destination can't cause this by itself --
+            // see docs/HLSD/auto-reload.md. Wait for the file to come back instead of treating
+            // the disappearance itself as a change to reload.
             continue;
         if (current == baseline)
             continue;

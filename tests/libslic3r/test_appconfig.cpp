@@ -108,4 +108,15 @@ TEST_CASE("AppConfig auto-reload options are off by default and keep a user's ch
         REQUIRE_FALSE(config.get_bool("auto_slice_after_reload"));
         REQUIRE_FALSE(config.get_bool("auto_slice_after_change"));
     }
+
+    SECTION("confirming paint loss before an auto-reload defaults to on and is written explicitly") {
+        REQUIRE(config.get_bool("auto_reload_confirm_paint_loss"));
+        REQUIRE_FALSE(config.get("auto_reload_confirm_paint_loss").empty());
+    }
+
+    SECTION("re-applying the defaults does not undo turning that confirmation off") {
+        config.set_bool("auto_reload_confirm_paint_loss", false);
+        config.set_defaults();
+        REQUIRE_FALSE(config.get_bool("auto_reload_confirm_paint_loss"));
+    }
 }

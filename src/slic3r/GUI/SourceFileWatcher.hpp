@@ -58,10 +58,12 @@ public:
     SourceFileWatcher& operator=(const SourceFileWatcher&) = delete;
 
     // Invoked (after the debounce delay) with the set of tracked files confirmed changed. Must
-    // return whether the caller's reload actually succeeded: the changed files' stamps are only
-    // committed to the baseline on true, so a failed/partial reload (a file still being written,
-    // locked, or one this build can't parse) is retried instead of silently accepted.
-    void set_on_changed(std::function<bool(const std::set<std::string>&)> on_changed) { m_on_changed = std::move(on_changed); }
+    // return the subset of those files whose reload actually succeeded: only that subset's
+    // stamps are committed to the baseline, so a file that failed or was skipped (still being
+    // written, locked, one this build can't parse, or declined in a confirmation prompt) is
+    // retried on its own instead of a partial batch silently being accepted or a batch-mate's
+    // success being held hostage to it.
+    void set_on_changed(std::function<std::set<std::string>(const std::set<std::string>&)> on_changed) { m_on_changed = std::move(on_changed); }
 
     // Replaces the set of watched files (already resolved to their on-disk paths) and rearms the
     // underlying OS-level watches. Always rearms (needed after forget_watched_files(), even when
@@ -97,7 +99,7 @@ private:
     // briefly locked -- e.g. a large STEP export that takes longer than one short retry to settle.
     void record_failed_attempt(const std::map<std::string, SourceStamp>& stamps);
 
-    std::function<bool(const std::set<std::string>&)> m_on_changed;
+    std::function<std::set<std::string>(const std::set<std::string>&)> m_on_changed;
     wxFileSystemWatcher*               m_watcher{ nullptr };
     wxTimer                            m_debounce_timer;
     // When the current debounce coalescing window opened (on_fs_event() only); caps how long a

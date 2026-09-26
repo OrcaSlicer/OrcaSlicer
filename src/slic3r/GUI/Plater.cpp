@@ -6790,6 +6790,13 @@ struct Plater::priv
     // maybe_auto_slice_after_reload().
     std::vector<int> plates_pending_slice_after_reload;
     void slice_after_reload();
+    // True from the moment slice_after_reload() posts MainFrame::slice_current_plate()'s
+    // EVT_GLTOOLBAR_SLICE_PLATE event until the next slice completion. background_process.running()
+    // and m_is_slicing don't flip true until that posted event is actually processed, so without
+    // this a second reload landing in that narrow window would see both as still false and start a
+    // second, overlapping auto-slice. Cleared unconditionally at the top of on_process_completed(),
+    // which bounds its lifetime to that window regardless of which slice ends up completing first.
+    bool m_slice_after_reload_starting {false};
     bool m_is_publishing {false};
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
@@ -6838,7 +6845,7 @@ struct Plater::priv
     SourceFileWatcher           source_file_watcher;
 
     void update_source_file_watches();
-    bool on_source_files_changed(const std::set<std::string>& changed_files);
+    std::set<std::string> on_source_files_changed(const std::set<std::string>& changed_files);
     void maybe_auto_slice_after_reload(const std::set<int>& touched_objects);
 
     std::string                 label_btn_export;
@@ -7129,7 +7136,11 @@ struct Plater::priv
     void export_gcode(fs::path output_path, bool output_path_on_removable_media);
     void export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job);
 
-    bool reload_from_disk(bool interactive = true);
+    // unreloaded_volumes, if given, collects the (obj_idx, vol_idx) of every selected volume that
+    // was *not* reloaded -- skipped (missing source, declined paint-loss prompt) or failed (load
+    // exception, no matching object/volume in the freshly loaded file) -- so a caller working at
+    // file granularity (reload_source_files()) can tell a partial success apart from a total one.
+    bool reload_from_disk(bool interactive = true, std::vector<std::pair<int, int>>* unreloaded_volumes = nullptr);
     bool replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "");
     void replace_with_stl();
     void replace_all_with_stl();
@@ -7137,10 +7148,18 @@ struct Plater::priv
     // Reloads only the ModelVolumes whose resolved source path is in changed_files, instead of
     // reload_all_from_disk()'s select-everything: the watcher knows exactly which files changed,
     // so there's no reason to re-import every other object's unrelated source on every event.
-    // touched_objects, if given, collects the object indices that were actually reloaded.
-    bool reload_source_files(const std::set<std::string>& changed_files, bool interactive = true, std::set<int>* touched_objects = nullptr);
+    // touched_objects, if given, collects the object indices that were actually reloaded
+    // successfully. succeeded_files, if given, collects the subset of changed_files whose every
+    // matching volume reloaded successfully -- a file with even one unreloaded volume is left out,
+    // so the watcher retries it instead of advancing its baseline on a partial result.
+    bool reload_source_files(const std::set<std::string>& changed_files, bool interactive = true,
+                              std::set<int>* touched_objects = nullptr, std::set<std::string>* succeeded_files = nullptr);
     struct SourcedVolume { int obj_idx; int vol_idx; std::string path; };
-    // Every volume with a recorded source file, with that file's resolved path.
+    // Every volume with a recorded source file reload_from_disk() would actually reload -- the
+    // same filter as reloadable_volumes() (Plater.cpp, near reload_from_disk()) -- with that
+    // file's resolved path. Keeping the two filters in sync matters: a volume watched/selected
+    // here that reload_from_disk() would silently drop gets its stamp committed as if it had
+    // actually been reloaded.
     std::vector<SourcedVolume> sourced_volumes() const;
 
     //BBS: add no_slice option
@@ -10256,8 +10275,12 @@ std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
     for (int obj_idx = 0; obj_idx < int(model.objects.size()); ++obj_idx) {
         const ModelObject* object = model.objects[obj_idx];
         for (int vol_idx = 0; vol_idx < int(object->volumes.size()); ++vol_idx) {
-            const std::string& input_file = object->volumes[vol_idx]->source.input_file;
-            if (!input_file.empty())
+            const ModelVolume* volume = object->volumes[vol_idx];
+            const std::string& input_file = volume->source.input_file;
+            // Same filter as reloadable_volumes() (below), which reload_from_disk() itself applies
+            // to its selection -- otherwise this can watch/select a volume that reload_from_disk()
+            // silently drops, so its stamp gets committed as if it had actually been reloaded.
+            if (!input_file.empty() && !volume->source.is_from_builtin_objects && !fs::path(input_file).extension().string().empty())
                 result.push_back({obj_idx, vol_idx, SourceFileWatcher::resolve_source_file_path(input_file, m_project_folder)});
         }
     }
@@ -10282,25 +10305,28 @@ void Plater::priv::update_source_file_watches()
     source_file_watcher.set_watched_files(std::move(current_files));
 }
 
-// Called once the watcher confirms a tracked source file actually changed on disk. The return
-// value tells the watcher whether to commit the change's stamp to its baseline (see
-// SourceFileWatcher::set_on_changed()) -- a failed/partial reload is retried instead of silently
-// accepted.
-bool Plater::priv::on_source_files_changed(const std::set<std::string>& changed_files)
+// Called once the watcher confirms one or more tracked source files actually changed on disk. The
+// return value tells the watcher which of changed_files to commit to its baseline (see
+// SourceFileWatcher::set_on_changed()) -- a file left out is retried on its own, independently of
+// whatever the rest of this batch did.
+std::set<std::string> Plater::priv::on_source_files_changed(const std::set<std::string>& changed_files)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": source file(s) changed on disk, reloading";
     // Unattended: no dialogs should appear for a background reload nobody is watching for.
     std::set<int> touched_objects;
-    bool ok = this->reload_source_files(changed_files, false, &touched_objects);
+    std::set<std::string> succeeded_files;
+    this->reload_source_files(changed_files, false, &touched_objects, &succeeded_files);
     // A rename-into-place leaves any file-level watch bound to the old inode, and the set of
     // paths is unchanged so the regular refresh would skip re-arming it.
     this->source_file_watcher.forget_watched_files();
     this->update_source_file_watches();
-    // A failed reload is retried by the watcher and comes back through here once it succeeds, so
-    // slicing now would only interrupt the user for geometry that didn't change.
-    if (ok)
+    // touched_objects only ever contains objects that were actually reloaded (see
+    // reload_source_files()), so this only fires for a plate that really changed -- a failed
+    // reload is retried by the watcher and comes back through here once it succeeds, so slicing
+    // now would only interrupt the user for geometry that didn't change.
+    if (!touched_objects.empty())
         this->maybe_auto_slice_after_reload(touched_objects);
-    return ok;
+    return succeeded_files;
 }
 
 // Distinct from "Auto slice after changes" (auto_slice_after_change), which only reacts to
@@ -10333,7 +10359,7 @@ void Plater::priv::maybe_auto_slice_after_reload(const std::set<int>& touched_ob
     if (affected_plates.empty())
         return;
 
-    if (m_slice_all && (background_process.running() || m_is_slicing)) {
+    if (m_slice_all && (background_process.running() || m_is_slicing || m_slice_after_reload_starting)) {
         // Cancelling would abort the user's whole multi-plate "Slice all", not just one plate.
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Slice all is running, not auto-slicing the reloaded plate(s)";
         return;
@@ -10345,7 +10371,7 @@ void Plater::priv::maybe_auto_slice_after_reload(const std::set<int>& touched_ob
             plates_pending_slice_after_reload.end())
             plates_pending_slice_after_reload.push_back(plate_idx);
 
-    if (background_process.running() || m_is_slicing) {
+    if (background_process.running() || m_is_slicing || m_slice_after_reload_starting) {
         // A previous job is still in flight. Cancel it and start on the queued plates once the
         // cancellation completes (see on_process_completed()), instead of slicing directly:
         // MainFrame::get_enable_slice_status() would see a slice as still "in progress" and
@@ -11610,7 +11636,7 @@ static std::vector<std::pair<int, int>> reloadable_volumes(const Model &model, c
 }
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
-bool Plater::priv::reload_from_disk(bool interactive)
+bool Plater::priv::reload_from_disk(bool interactive, std::vector<std::pair<int, int>>* unreloaded_volumes)
 {
     bool ok = true;
 #if ENABLE_RELOAD_FROM_DISK_REWORK
@@ -11627,6 +11653,58 @@ bool Plater::priv::reload_from_disk(bool interactive)
     selected_volumes.erase(std::unique(selected_volumes.begin(), selected_volumes.end(), [](const std::pair<int, int> &v1, const std::pair<int, int> &v2) {
         return (v1.first == v2.first) && (v1.second == v2.second);
         }), selected_volumes.end());
+
+    // Orca: a reload replaces the volume's mesh outright; painted supports/seam/color/fuzzy skin
+    // is triangle-indexed, so it's simply gone unless `keep_painting` remaps it onto the new mesh
+    // (best-effort, see docs/HLSD/auto-reload.md). A source file changing is the user's own doing
+    // (they re-exported it), so treat it the same as them clicking "Reload from disk" themselves:
+    // honor it. The one exception is paint, because it's real, always-accurately-known data whose
+    // loss is worth a chance to back out of. The same `auto_reload_confirm_paint_loss` preference
+    // gates this for both a manual "Reload from disk"/"Reload all from disk" and the watcher --
+    // the risk is the same either way, so it isn't an auto-reload-specific setting (on by default:
+    // losing paint without warning is the kind of thing that makes someone stop trusting the whole
+    // feature). The dialog's own "Reload without warning" checkbox turns the preference off from
+    // right there, for whichever kind of reload the user hit it from.
+    {
+        std::vector<std::pair<int, int>> painted_volumes;
+        for (const auto &sv : selected_volumes)
+            if (model.objects[sv.first]->volumes[sv.second]->is_any_painted())
+                painted_volumes.push_back(sv);
+
+        if (!painted_volumes.empty() && wxGetApp().app_config->get_bool("auto_reload_confirm_paint_loss")) {
+            wxString message = _L("The following have painted supports, seam, color or fuzzy skin that this reload "
+                                   "might discard:") + "\n";
+            for (const auto &sv : painted_volumes) {
+                const ModelVolume *volume = model.objects[sv.first]->volumes[sv.second];
+                message += "  " + from_u8(volume->name.empty() ? model.objects[sv.first]->name : volume->name) + "\n";
+            }
+            message += _L("Continue reloading from disk?");
+            MessageDialog dlg(q, message, _L("Reload from disk"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+            dlg.show_dsa_button(_L("Reload without warning"));
+            int result = dlg.ShowModal();
+            if (dlg.get_checkbox_state())
+                wxGetApp().app_config->set_bool("auto_reload_confirm_paint_loss", false);
+            if (result != wxID_YES) {
+                if (interactive)
+                    return false;
+                // Non-interactive: a decline only skips the painted volumes, not the whole batch
+                // -- an auto-reload can cover unrelated objects that answering "no" here shouldn't
+                // also hold back. Skipped like a missing source file: retried via the existing
+                // failed-stamp backoff once the file changes again.
+                selected_volumes.erase(std::remove_if(selected_volumes.begin(), selected_volumes.end(),
+                    [&painted_volumes](const std::pair<int, int> &sv) {
+                        return std::find(painted_volumes.begin(), painted_volumes.end(), sv) != painted_volumes.end();
+                    }), selected_volumes.end());
+                for (const auto &sv : painted_volumes) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": skipping reload, declined in the paint-loss prompt: object "
+                                                << sv.first << " volume " << sv.second;
+                    if (unreloaded_volumes)
+                        unreloaded_volumes->push_back(sv);
+                }
+                ok = false;
+            }
+        }
+    }
 #else
     Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
 
@@ -11665,6 +11743,9 @@ bool Plater::priv::reload_from_disk(bool interactive)
     // collects paths of files to load
     std::vector<fs::path> input_paths;
     std::vector<fs::path> missing_input_paths;
+    // Which (obj_idx, vol_idx) each missing path was recorded for, so a non-interactive skip below
+    // can report exactly those volumes as unreloaded instead of the whole batch.
+    std::map<std::string, std::vector<std::pair<int, int>>> missing_volumes_by_path;
 #if ENABLE_RELOAD_FROM_DISK_REWORK
     std::vector<std::pair<fs::path, fs::path>> replace_paths;
     for (auto [obj_idx, vol_idx] : selected_volumes) {
@@ -11685,8 +11766,10 @@ bool Plater::priv::reload_from_disk(bool interactive)
                     }
                 }
             }
-            if (!found)
+            if (!found) {
                 missing_input_paths.push_back(volume->source.input_file);
+                missing_volumes_by_path[volume->source.input_file].push_back({obj_idx, vol_idx});
+            }
         }
     }
 #else
@@ -11773,10 +11856,22 @@ bool Plater::priv::reload_from_disk(bool interactive)
     } else {
         // Unattended reload (the auto-reload watcher): don't prompt for a missing source, just
         // leave the volumes that reference it untouched and report the reload as incomplete.
+        // One notification for the whole batch, not one per file: PlaterError isn't a
+        // multi-instance notification type, so a call per file would just overwrite the previous
+        // file's message instead of stacking.
+        wxString message = _L("Source file(s) missing, skipping reload:") + "\n";
         for (const fs::path& missing : missing_input_paths) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": source file missing, skipping reload: " << missing.string();
+            message += "  " + from_u8(missing.string()) + "\n";
             ok = false;
+            if (unreloaded_volumes) {
+                auto it = missing_volumes_by_path.find(missing.string());
+                if (it != missing_volumes_by_path.end())
+                    unreloaded_volumes->insert(unreloaded_volumes->end(), it->second.begin(), it->second.end());
+            }
         }
+        if (!missing_input_paths.empty())
+            notification_manager->push_plater_error_notification(into_u8(message));
         missing_input_paths.clear();
     }
 
@@ -11787,7 +11882,12 @@ bool Plater::priv::reload_from_disk(bool interactive)
     replace_paths.erase(std::unique(replace_paths.begin(), replace_paths.end()), replace_paths.end());
 
 #if ENABLE_RELOAD_FROM_DISK_REWORK
-    Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
+    // Nothing left to actually change (every selected volume ended up skipped: missing source,
+    // declined paint-loss prompt) -- don't push an undo snapshot for a reload that mutates nothing.
+    // This can otherwise repeat on every failed-attempt retry tick, flooding the undo stack.
+    std::optional<Plater::TakeSnapshot> snapshot;
+    if (!input_paths.empty() || !replace_paths.empty())
+        snapshot.emplace(q, _u8L("Reload from disk"));
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
     std::vector<wxString> fail_list;
@@ -11850,7 +11950,23 @@ bool Plater::priv::reload_from_disk(bool interactive)
         catch (std::exception& ex)
         {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to load " << path << ": " << ex.what();
-            return false;
+            ok = false;
+            // Folded into fail_list so this reaches the same end-of-batch dialog/notification as
+            // an unmatched-volume failure below, instead of being reported nowhere.
+            fail_list.push_back(from_u8(path) + ": " + from_u8(ex.what()));
+            // Report just this path's volumes as unreloaded and move on to the next path instead
+            // of abandoning every remaining, unrelated path in this batch on one file's failure.
+            if (unreloaded_volumes) {
+                for (const auto &sv : selected_volumes) {
+                    const ModelVolume *volume = model.objects[sv.first]->volumes[sv.second];
+                    bool has_source = !volume->source.input_file.empty() &&
+                                       boost::algorithm::iequals(fs::path(volume->source.input_file).filename().string(), fs::path(path).filename().string());
+                    bool has_name = !volume->name.empty() && boost::algorithm::iequals(volume->name, fs::path(path).filename().string());
+                    if (has_source || has_name)
+                        unreloaded_volumes->push_back(sv);
+                }
+            }
+            continue;
         }
 
 #if ENABLE_RELOAD_FROM_DISK_REWORK
@@ -11910,11 +12026,15 @@ bool Plater::priv::reload_from_disk(bool interactive)
 
                 if (new_object_idx < 0 || int(new_model.objects.size()) <= new_object_idx) {
                     fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
+                    if (unreloaded_volumes)
+                        unreloaded_volumes->push_back({obj_idx, vol_idx});
                     continue;
                 }
                 ModelObject *new_model_object = new_model.objects[new_object_idx];
                 if (int(new_model_object->volumes.size()) <= new_volume_idx) {
                     fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
+                    if (unreloaded_volumes)
+                        unreloaded_volumes->push_back({obj_idx, vol_idx});
                     continue;
                 }
 
@@ -12071,8 +12191,12 @@ bool Plater::priv::reload_from_disk(bool interactive)
             MessageDialog dlg(q, message, _L("Error during reload"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
             dlg.ShowModal();
         } else {
-            for (const wxString& s : fail_list)
+            wxString message = _L("Unable to reload:") + "\n";
+            for (const wxString& s : fail_list) {
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": unable to reload: " << s.ToUTF8().data();
+                message += "  " + s + "\n";
+            }
+            notification_manager->push_plater_error_notification(into_u8(message));
         }
     }
 
@@ -12109,7 +12233,8 @@ bool Plater::priv::reload_all_from_disk(bool interactive)
     return ok;
 }
 
-bool Plater::priv::reload_source_files(const std::set<std::string>& changed_files, bool interactive, std::set<int>* touched_objects)
+bool Plater::priv::reload_source_files(const std::set<std::string>& changed_files, bool interactive,
+                                        std::set<int>* touched_objects, std::set<std::string>* succeeded_files)
 {
     if (changed_files.empty())
         return true;
@@ -12123,17 +12248,35 @@ bool Plater::priv::reload_source_files(const std::set<std::string>& changed_file
     // reload_from_disk() edits the shared ModelObject/ModelVolume directly, so it applies across
     // every instance regardless of which one's GLVolume triggered the selection.
     selection.clear();
-    bool any_selected = false;
+    std::vector<SourcedVolume> matched;
     for (const SourcedVolume& sv : sourced_volumes()) {
         if (changed_files.find(sv.path) != changed_files.end()) {
             selection.add_volume(sv.obj_idx, sv.vol_idx, 0, false);
-            any_selected = true;
-            if (touched_objects)
-                touched_objects->insert(sv.obj_idx);
+            matched.push_back(sv);
         }
     }
 
-    bool ok = !any_selected || reload_from_disk(interactive);
+    std::vector<std::pair<int, int>> unreloaded_volumes;
+    bool ok = matched.empty() || reload_from_disk(interactive, &unreloaded_volumes);
+
+    // touched_objects/succeeded_files are reported at the granularity a caller can actually act on
+    // (an object to auto-slice, a file to advance the watcher's baseline for) -- a volume this
+    // batch didn't manage to reload keeps its object out of touched_objects, and keeps every file
+    // any of its matched volumes belongs to out of succeeded_files, so that file is retried on its
+    // own instead of a partial result being accepted or held hostage to an unrelated file's outcome.
+    std::set<std::pair<int, int>> unreloaded_set(unreloaded_volumes.begin(), unreloaded_volumes.end());
+    std::set<std::string> failed_files;
+    for (const SourcedVolume& sv : matched)
+        if (unreloaded_set.count({sv.obj_idx, sv.vol_idx}))
+            failed_files.insert(sv.path);
+    for (const SourcedVolume& sv : matched) {
+        if (unreloaded_set.count({sv.obj_idx, sv.vol_idx}))
+            continue;
+        if (touched_objects)
+            touched_objects->insert(sv.obj_idx);
+        if (succeeded_files && !failed_files.count(sv.path))
+            succeeded_files->insert(sv.path);
+    }
 
     // restore previous selection
     selection.clear();
@@ -12939,7 +13082,13 @@ void Plater::priv::slice_after_reload()
     while (!plates_pending_slice_after_reload.empty()) {
         int plate_idx = plates_pending_slice_after_reload.front();
         plates_pending_slice_after_reload.erase(plates_pending_slice_after_reload.begin());
-        q->select_plate(plate_idx);
+        if (q->select_plate(plate_idx) != 0) {
+            // The queued index no longer resolves to the intended plate (deleted or the plate
+            // list was renumbered since this entry was queued) -- skip this stale entry rather
+            // than falling through and force-slicing whatever plate happens to be selected now.
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": queued plate " << plate_idx << " could not be selected, skipping it";
+            continue;
+        }
 
         // reload_from_disk() ends with its own update() call, which only *schedules* the
         // model-changed invalidation via a 500ms debounce timer (schedule_background_process())
@@ -12954,14 +13103,22 @@ void Plater::priv::slice_after_reload()
         // sync with the view -- it's what drives m_tabpanel->SelectPageByName() in
         // MainFrame::slice_current_plate(); calling select_view_3D() here directly instead would
         // switch the 3D view's content to Preview while leaving the tab bar reading "Prepare".
-        if (wxGetApp().mainframe->slice_current_plate())
+        if (wxGetApp().mainframe->slice_current_plate()) {
+            // slice_current_plate() only posts the slice-start event; background_process.running()
+            // and m_is_slicing don't flip true until it's actually processed. Held until the next
+            // completion event so a reload landing in that window doesn't see both as still false.
+            m_slice_after_reload_starting = true;
             return;
+        }
     }
 }
 
 void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 {
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
+    // Whatever slice this completion is for, the posted-but-not-yet-processed window
+    // slice_after_reload() guards against is over by now.
+    m_slice_after_reload_starting = false;
     //BBS:ignore cancel event for some special case
     if (m_ignore_event)
     {
@@ -13175,7 +13332,11 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         auto_reslice_after_cancel = false;
         schedule_auto_reslice_if_needed();
     }
-    if (!plates_pending_slice_after_reload.empty())
+    // Only drain the auto-reload slice queue once this completion is truly final -- not on a
+    // "Slice all" continuation (is_finished false: more plates still coming via start_next_slice()
+    // above), where calling slice_after_reload() here would race that sequence's own plate
+    // selection and slice-start with an unrelated queued plate.
+    if (!plates_pending_slice_after_reload.empty() && is_finished)
         slice_after_reload();
 
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", exit.");

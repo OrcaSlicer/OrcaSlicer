@@ -1838,9 +1838,19 @@ void PreferencesDialog::create_items()
     auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
     g_sizer->Add(item_mix_print_high_low_temperature);
 
+    auto item_auto_reload_confirm_paint_loss = create_item_checkbox(
+        _L("Ask before a reload discards painted features"),
+        _L("A reload that might remove painted supports, seam, color or fuzzy skin asks first, whether it's "
+           "triggered manually (\"Reload from disk\"/\"Reload all from disk\") or automatically by the option below. "
+           "Disable this, or use the confirmation dialog's own \"Reload without warning\" option, to reload such "
+           "objects without asking, discarding the painted areas silently if they aren't preserved."),
+        "auto_reload_confirm_paint_loss");
+    g_sizer->Add(item_auto_reload_confirm_paint_loss);
+
     auto item_auto_reload_source = create_item_checkbox(
         _L("Reload objects when their source file changes"),
-        _L("If enabled, OrcaSlicer will automatically reload objects from disk when the file they were imported from changes on disk, e.g. after re-exporting from CAD software. Combine with \"Also slice after auto-reloading a model\", just below, to also reslice automatically -- \"Auto slice after changes\" does not cover this, it only reacts to print/printer setting changes."),
+        _L("If enabled, OrcaSlicer will automatically reload objects from disk when the file they were imported from changes on disk, e.g. after re-exporting from CAD software. "
+           "\"Auto slice after changes\" does not cover this, it only reacts to print/printer setting changes -- see \"Also slice after auto-reloading a model\", below, for that."),
         "auto_reload_on_source_change");
     g_sizer->Add(item_auto_reload_source);
 
@@ -1850,7 +1860,7 @@ void PreferencesDialog::create_items()
            "as clicking \"Slice\" would."),
         "auto_slice_after_reload");
     g_sizer->Add(item_auto_slice_after_reload);
- 
+
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
 
