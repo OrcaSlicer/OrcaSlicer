@@ -474,8 +474,16 @@ int NetworkAgent::get_subtask_info(
     std::string subtask_id, std::string* task_json, unsigned int* http_code, std::string* http_body, const std::string& provider)
 {
     const auto cloud_agent = get_cloud_agent(provider);
-    if (cloud_agent)
-        return cloud_agent->get_subtask_info(std::move(subtask_id), task_json, http_code, http_body);
+    if (cloud_agent) {
+        int res = cloud_agent->get_subtask_info(subtask_id, task_json, http_code, http_body);
+        if (res == 0 && task_json && !task_json->empty() && *task_json != "{}")
+            return res;
+    }
+    if (provider != BBL_CLOUD_PROVIDER) {
+        const auto bbl_agent = get_cloud_agent(BBL_CLOUD_PROVIDER);
+        if (bbl_agent)
+            return bbl_agent->get_subtask_info(std::move(subtask_id), task_json, http_code, http_body);
+    }
     return -1;
 }
 
@@ -483,8 +491,16 @@ int NetworkAgent::get_slice_info(
     std::string project_id, std::string profile_id, int plate_index, std::string* slice_json, const std::string& provider)
 {
     const auto cloud_agent = get_cloud_agent(provider);
-    if (cloud_agent)
-        return cloud_agent->get_slice_info(std::move(project_id), std::move(profile_id), plate_index, slice_json);
+    if (cloud_agent) {
+        int res = cloud_agent->get_slice_info(project_id, profile_id, plate_index, slice_json);
+        if (res == 0 && slice_json && !slice_json->empty() && *slice_json != "{}")
+            return res;
+    }
+    if (provider != BBL_CLOUD_PROVIDER) {
+        const auto bbl_agent = get_cloud_agent(BBL_CLOUD_PROVIDER);
+        if (bbl_agent)
+            return bbl_agent->get_slice_info(std::move(project_id), std::move(profile_id), plate_index, slice_json);
+    }
     return -1;
 }
 
