@@ -17,11 +17,13 @@ class Http;
 // Moonraker is the JSON / WebSocket gateway that ships in front of Klipper
 // (and on Klipper-API-compatible firmwares like the Prusa-Firmware-Buddy
 // Buddy-Klipper fork). REST shape differs from OctoPrint: distinct paths,
-// JSON body for print/start, {"result":...}/{"error":...} envelope.
+// JSON body for print/start, {"result":...}/{"error":...} envelope (except the
+// upload reply, which is a bare object).
 //
 // Endpoints used:
 //   GET  /server/info                      -- connection test, reads klippy_state
-//   POST /server/files/upload (multipart)  -- upload gcode (form fields: file, root)
+//   POST /server/files/upload (multipart)  -- upload gcode (form fields: file, root, print,
+//                                             plateindex)
 //   POST /printer/print/start (json)       -- {"filename":"<name>.gcode"} starts print
 //
 // Auth: X-Api-Key header if `printhost_apikey` is non-empty; Moonraker accepts
