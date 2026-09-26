@@ -159,8 +159,12 @@ void KBShortcutsDialog::fill_pages()
 
     if (wxGetApp().is_editor()) {
         page(_L("Global"), _L("Available anywhere in the window, even while typing in a text field."), ShortcutContext::Global, {
-            fixed(Section::Application, { alt, "1-9, 0" }, L("Run a speed dial favorite while the dial is open")),
+            fixed(Section::SpeedDial, { alt, "1-9, 0" }, L("Run favorite 1 to 10")),
+            fixed(Section::SpeedDial, { ctrl, "B" }, L("Pin or unpin the selected action")),
+            // wx cycles notebook pages on Ctrl+Tab, which is Cmd+Tab on macOS and never arrives there.
+#ifndef __APPLE__
             fixed(Section::Application, { ctrl, key(L_CONTEXT("Tab", "Keyboard Shortcut")) }, L("Switch to the next main tab")),
+#endif
         });
 
         page(_L("Prepare"), _L("Available while the 3D view on the Prepare tab has focus."), ShortcutContext::Plater, {
@@ -454,7 +458,10 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     capture_sizer->Add(m_chord_label, 0, wxALIGN_CENTER);
     capture_sizer->AddStretchSpacer();
     capture->SetSizer(capture_sizer);
-    capture->Bind(wxEVT_KEY_DOWN, &ShortcutCaptureDialog::on_key, this);
+    capture->Layout();   // the box is created at its final size, so nothing resizes it into laying the sizer out
+    // The hook runs before the window procedure, so Windows does not open its window menu
+    // over the dialog on Alt+Space.
+    Bind(wxEVT_CHAR_HOOK, &ShortcutCaptureDialog::on_key, this);
     capture->Bind(wxEVT_CHAR, &ShortcutCaptureDialog::on_char, this);
     capture->Bind(wxEVT_LEFT_DOWN, [capture](wxMouseEvent&) { capture->SetFocus(); });
     sizer->Add(capture, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
@@ -531,10 +538,12 @@ void ShortcutCaptureDialog::record(const KeyChord& chord)
         m_ok->Enable(false);
     };
     const bool global = (shortcut_info(m_shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
-    if (global && !chord.is_menu_accelerator()) {
+    if (chord.is_system_shortcut()) {
+        reject(_L("The system uses this shortcut, so it cannot be assigned."));
+    } else if (global && !chord.is_menu_accelerator()) {
         reject(m_rejection);
     } else if (const std::optional<Shortcut> owner = wxGetApp().shortcuts().step_owner(m_shortcut, chord); owner.has_value()) {
-        reject(wxString::Format(_L("Already used as a step of %s."), _(shortcut_info(*owner).name)));
+        reject(wxString::Format(_L("Shift and Ctrl with this key belong to %s and cannot be assigned."), _(shortcut_info(*owner).name)));
     } else {
         m_conflicts = wxGetApp().shortcuts().conflicts(m_shortcut, chord);
         m_status->SetForegroundColour(m_status_colour);

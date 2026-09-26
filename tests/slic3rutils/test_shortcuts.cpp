@@ -120,6 +120,20 @@ TEST_CASE("Only modified or non-printable chords qualify as menu accelerators", 
     CHECK(registry.accelerator(Shortcut::KeyboardShortcuts).empty());
 }
 
+TEST_CASE("Chords the desktop keeps for itself are recognized", "[Shortcuts]")
+{
+#ifdef _WIN32
+    CHECK(KeyChord{ WXK_F4, wxMOD_ALT }.is_system_shortcut());
+    CHECK(KeyChord{ WXK_SPACE, wxMOD_ALT }.is_system_shortcut());
+#else
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_ALT }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_SPACE, wxMOD_ALT }.is_system_shortcut());
+#endif
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_ALT | wxMOD_SHIFT }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_CONTROL }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_SPACE }.is_system_shortcut());
+}
+
 TEST_CASE("Chords convert to wx accelerator entries", "[Shortcuts]")
 {
     const wxAcceleratorEntry entry = KeyChord{ 'S', wxMOD_CONTROL | wxMOD_SHIFT }.to_accelerator_entry(42);
