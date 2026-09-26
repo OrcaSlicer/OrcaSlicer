@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PETG HF @Prusa MINIIS",
-	"inherits": "Generic PETG HF @Prusa base",
+	"inherits": "Generic PETG @Prusa base",
 	"renamed_from": "Prusa Generic PETG HF @MINIIS;Prusa Generic PETG HF MINIIS",
 	"from": "system",
 	"setting_id": "dPNOryBcrviemefo",
@@ -68,5 +68,6 @@
 	],
 	"compatible_printers": [
 		"Prusa MINIIS 0.4 nozzle"
-	]
+	],
+	"filament_id": "OF7lOgYF"
 }

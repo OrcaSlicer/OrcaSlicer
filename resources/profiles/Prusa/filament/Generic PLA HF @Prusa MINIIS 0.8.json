@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PLA HF @Prusa MINIIS 0.8",
-	"inherits": "Generic PLA HF @Prusa base",
+	"inherits": "Generic PLA @Prusa base",
 	"renamed_from": "Prusa Generic PLA HF @MINIIS 0.8;Prusa Generic PLA HF MINIIS 0.8",
 	"from": "system",
 	"setting_id": "FuCHQFBuP9yLUzT0",
@@ -23,5 +23,6 @@
 	],
 	"compatible_printers": [
 		"Prusa MINIIS 0.8 nozzle"
-	]
+	],
+	"filament_id": "OFZr862X"
 }

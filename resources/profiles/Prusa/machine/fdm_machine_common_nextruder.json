@@ -1,0 +1,44 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_common_nextruder",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"machine_filament_ramming_parameters": [
+		"250 100 40.1613 40.3548 40.4516 40.3548 40.2581| 0.05 40.1483 0.45 40.3419 0.95 40.3419 1.45 40.3419 1.95 40.3419 2.45 40.3419 2.95 40.3419 3.45 40.3419 3.95 40.3419 4.45 40.3419 4.95 40.3419"
+	],
+	"machine_filament_loading_speed": [
+		"10"
+	],
+	"machine_filament_loading_speed_start": [
+		"50"
+	],
+	"machine_filament_unloading_speed": [
+		"40"
+	],
+	"machine_filament_unloading_speed_start": [
+		"30"
+	],
+	"machine_filament_cooling_moves": [
+		"2"
+	],
+	"machine_filament_cooling_initial_speed": [
+		"10"
+	],
+	"machine_filament_cooling_final_speed": [
+		"3.5"
+	],
+	"machine_filament_stamping_distance": [
+		"45"
+	],
+	"machine_filament_stamping_loading_speed": [
+		"29"
+	],
+	"machine_filament_end_gcode": [
+		""
+	],
+	"machine_filament_toolchange_delay": [
+		"0"
+	],
+	"machine_filament_overrides": "0"
+}

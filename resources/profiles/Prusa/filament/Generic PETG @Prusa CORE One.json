@@ -1,23 +1,23 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Prusa CORE One",
-	"inherits": "fdm_filament_pet",
-	"renamed_from": "Prusa Generic PETG @CORE One;Prusa Generic PETG CORE One",
+	"inherits": "Generic PETG @Prusa base",
+	"renamed_from": "Prusa Generic PETG @CORE One;Prusa Generic PETG CORE One;Generic PETG @Prusa CORE One MMU3;Generic PETG @MMU3",
 	"from": "system",
 	"setting_id": "W71PW5bpf7CV16D4",
-	"filament_id": "OFYPdQJh",
 	"instantiation": "true",
 	"chamber_temperature": [
 		"35"
-	],
-	"close_fan_the_first_x_layers": [
-		"3"
 	],
 	"compatible_printers": [
 		"Prusa CORE One 0.25 nozzle",
 		"Prusa CORE One 0.3 nozzle",
 		"Prusa CORE One 0.4 nozzle",
-		"Prusa CORE One 0.5 nozzle"
+		"Prusa CORE One 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"25"
@@ -31,17 +31,8 @@
 	"filament_cost": [
 		"27.82"
 	],
-	"filament_density": [
-		"1.27"
-	],
-	"filament_diameter": [
-		"1.75"
-	],
 	"filament_end_gcode": [
 		"; Filament-specific end gcode"
-	],
-	"filament_flow_ratio": [
-		"1"
 	],
 	"filament_max_volumetric_speed": [
 		"12"
@@ -49,26 +40,14 @@
 	"filament_minimal_purge_on_wipe_tower": [
 		"35"
 	],
-	"filament_notes": [
-		""
-	],
 	"filament_retract_before_wipe": [
 		"20"
 	],
 	"filament_retraction_length": [
 		"0.8"
 	],
-	"filament_soluble": [
-		"0"
-	],
 	"filament_start_gcode": [
 		"M900 K{if nozzle_diameter[filament_extruder_id]==0.4}0.07{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{elsif nozzle_diameter[filament_extruder_id]==0.35}0.08{elsif nozzle_diameter[filament_extruder_id]==0.6}0.04{elsif nozzle_diameter[filament_extruder_id]==0.5}0.05{elsif nozzle_diameter[filament_extruder_id]==0.8}0.02{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*(MK4IS|XLIS|MK4S|MK3.9S|CORE One).*/}\nM572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.053{elsif nozzle_diameter[filament_extruder_id]==0.5}0.042{elsif nozzle_diameter[filament_extruder_id]==0.6}0.032{elsif nozzle_diameter[filament_extruder_id]==0.8}0.018{elsif nozzle_diameter[filament_extruder_id]==0.25}0.18{elsif nozzle_diameter[filament_extruder_id]==0.3}0.1{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"
-	],
-	"filament_type": [
-		"PETG"
-	],
-	"filament_vendor": [
-		"Generic"
 	],
 	"filament_wipe": [
 		"1"
@@ -99,9 +78,6 @@
 	],
 	"overhang_fan_speed": [
 		"60"
-	],
-	"reduce_fan_stop_start_freq": [
-		"1"
 	],
 	"slow_down_layer_time": [
 		"9"

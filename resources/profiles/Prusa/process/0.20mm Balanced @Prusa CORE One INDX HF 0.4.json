@@ -1,0 +1,13 @@
+{
+	"type": "process",
+	"name": "0.20mm Balanced @Prusa CORE One INDX HF 0.4",
+	"inherits": "fdm_process_coreone_indx",
+	"from": "system",
+	"setting_id": "BHCGt7YPhe6W9yWe",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": ""
+}

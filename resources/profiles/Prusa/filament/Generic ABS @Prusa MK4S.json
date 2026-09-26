@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Generic ABS @Prusa MK4S",
 	"inherits": "fdm_filament_abs",
-	"renamed_from": "Prusa Generic ABS @MK4S;Prusa Generic ABS MK4S",
+	"renamed_from": "Prusa Generic ABS @MK4S;Prusa Generic ABS MK4S;Generic ABS @Prusa MK4S 0.6;Prusa Generic ABS @MK4S 0.6;Prusa Generic ABS MK4S 0.6;Generic ABS @Prusa MK4S 0.8;Prusa Generic ABS @MK4S 0.8;Prusa Generic ABS MK4S 0.8",
 	"from": "system",
 	"setting_id": "6xkFvOyWtTQNXYAm",
 	"filament_id": "OFY9muEs",
@@ -12,7 +12,9 @@
 		"Prusa MK4S 0.25 nozzle",
 		"Prusa MK4S 0.3 nozzle",
 		"Prusa MK4S 0.4 nozzle",
-		"Prusa MK4S 0.5 nozzle"
+		"Prusa MK4S 0.5 nozzle",
+		"Prusa MK4S 0.6 nozzle",
+		"Prusa MK4S 0.8 nozzle"
 	],
 	"default_filament_colour": "#FFF2EC",
 	"fan_max_speed": "10",

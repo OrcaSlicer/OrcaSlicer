@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PVA HF @Prusa MINIIS 0.6",
-	"inherits": "Generic PVA HF @Prusa base",
+	"inherits": "Generic PVA @Prusa base",
 	"renamed_from": "Prusa Generic PVA HF @MINIIS 0.6;Prusa Generic PVA HF MINIIS 0.6",
 	"from": "system",
 	"setting_id": "qeWFOMhrKa1yezHw",
@@ -26,5 +26,6 @@
 	],
 	"compatible_printers": [
 		"Prusa MINIIS 0.6 nozzle"
-	]
+	],
+	"filament_id": "OFDwBwO5"
 }

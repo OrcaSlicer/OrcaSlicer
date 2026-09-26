@@ -1,0 +1,122 @@
+{
+	"type": "filament",
+	"name": "Prusament PETG @Prusa CORE One INDX",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "2viuOmBvXuQm2FwV",
+	"filament_id": "OFkR8E2c",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_cost": [
+		"29.99"
+	],
+	"filament_density": [
+		"1.27"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_notes": [
+		"\nPrusa INDX 2.5.10 tuning."
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"slow_down_layer_time": [
+		"9"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"overhang_fan_speed": [
+		"60"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"full_fan_speed_layer": [
+		"5"
+	],
+	"fan_cooling_layer_time": [
+		"25"
+	],
+	"default_filament_colour": [
+		"#FF8000"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"filament_type": [
+		"PETG"
+	],
+	"hot_plate_temp_initial_layer": [
+		"85"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"fan_max_speed": [
+		"65"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"filament_retraction_length": [
+		"1.6"
+	],
+	"filament_vendor": [
+		"Prusa Polymers"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_retract_before_wipe": [
+		"20"
+	],
+	"filament_z_hop": [
+		"1"
+	],
+	"chamber_temperature": [
+		"35"
+	],
+	"chamber_minimal_temperature": [
+		"0"
+	],
+	"filament_retract_length_toolchange": [
+		"1.6"
+	],
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"idle_temperature": [
+		"0"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"85"
+	],
+	"activate_chamber_temp_control": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.058"
+	]
+}
