@@ -51,6 +51,7 @@ private:
     wxWindow*            m_parent;
     wxBoxSizer*          m_sizer;
     std::vector<Button*> m_buttons;
+    Button*              m_primary_button = nullptr;
     wxString             m_primary;
     wxString             m_alert;
     int                  m_left_aligned_buttons_count;
