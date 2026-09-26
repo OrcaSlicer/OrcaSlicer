@@ -1863,7 +1863,9 @@ int CLI::run(int argc, char **argv)
 
                     BOOST_LOG_TRIVIAL(info) << boost::format("current_printer_name %1%, current_process_name %2%")%current_printer_name %current_process_name;
                     ConfigOptionStrings* option_strings = config.option<ConfigOptionStrings>("inherits_group");
-                    if (option_strings) {
+                    // Expected size is filament_count + 2 (process, per-filament, printer); the
+                    // indexing below assumes it, so treat any other size as missing.
+                    if (option_strings && option_strings->values.size() == current_filaments_name.size() + 2) {
                         current_inherits_group = option_strings->values;
                         size_t size = current_inherits_group.size();
                         if (current_inherits_group[size-1].empty()) {
