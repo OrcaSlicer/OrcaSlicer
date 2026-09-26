@@ -22,201 +22,509 @@
 
 namespace Slic3r {
 
-// Calculate infill rotation angle (in radians) for a given layer from a rotation template.
-// Grammar subset handled (rotation only):
-//   [±]α[*Z or !][joint][-][N|B|T][length][* or !]
-//   [±]α*                    sets an initial angle only (no layer processed)
-// Where:
-// - α: angle in degrees. Without a sign it's absolute; with +/− it's relative. α% means a percentage of 360°.
-// - Runtime: *Z repeats the instruction Z times; bare * is a no-op used for initialization; ! runs once globally and then stops.
-// - Solid signs (D,S,O,M,R) are not processed here; if present they are treated as invalid/non-rotation characters.
-// - Joint signs (shape of the turn across a range):
-//     / linear;
-//     N,n vertical sinus (n = lazy/half amplitude);
-//     Z,z horizontal sinus (z = lazy/half amplitude);
-//     $ arcsin; L quarter circle H→V; l quarter circle V→H;
-//     U,u squared; Q,q cubic; ~ random; ^ pseudorandom; | middle step; # vertical step at end.
-// - Counting / range length:
-//     After the joint (or after α) a count determines duration of the turn:
-//       N = layer count, B = bottom_shell_layers, T = top_shell_layers.
-//     Prefix '-' flips the joint (swap initial/final orientation).
-// - Length modifiers convert the count to a Z range instead of a pure layer count:
-//     mm, cm, m, ' (feet), " (inches), # (standard height of N layers), % (percent of model height).
-//
-// Behavior:
-// - The template string is tokenized by commas/whitespace and evaluated cyclically with one or more "ranges" per token.
-// - Absolute α resets the accumulated angle at the start of its range; relative α accumulates.
-// - *Z and ! control repetition and one-time execution of tokens across layers.
-// - If the template contains no metalanguage symbols, it is treated as a simple comma-separated list of angles repeated by modulo.
-// - Returns angle in radians for the requested layer_id. 0° aligns with +X; fillers may internally rotate as needed.
-double calculate_infill_rotation_angle(const PrintObject* object,
-                                       size_t             layer_id,
-                                       const double&      fixed_infill_angle,
-                                       const std::string& template_string)
+inline bool is_absolute(char* cs) 
 {
-    if (template_string.empty()) {
-        return Geometry::deg2rad(fixed_infill_angle);
-    }
+    return cs[0] == '_' || ((cs[0] >= '0' && cs[0] <= '9') && !(cs[0] == '+' || cs[0] == '-'));
+};
+
+inline Vec2d rotate_point_CW(double cx, double cy, double angle, Vec2d p)
+{ 
+    const double cs = cos(angle);
+    const double sn = sin(angle);
+    const double x  = p.x() - cx;
+    const double y  = p.y() - cy;
+    return Vec2d(cs * x - sn * y + cx, sn * x + cs * y + cy);
+};
+
+inline Vec2d rotate_point_CW(double angle, Vec2d p)
+{ 
+    const double cs = cos(angle);
+    const double sn = sin(angle);
+    return Vec2d(cs * p.x() - sn * p.y(), sn * p.x() + cs * p.y());
+};
+
+// Orca: The parameters that are taken into account when calculating a rotating infill.
+struct Infill_Params
+{
+    double angle     = 0.;
+    Vec2d  shift     = Vec2d(0, 0);
+    double density   = 100.;
+    int    multiline = 1;
+};
+
+// Calculate infill rotation angle (in radians) for a given layer from a rotation template.
+// Check the link for more info: https://www.orcaslicer.com/wiki/print_settings/strength/strength_settings_infill_rotation_template_metalanguage
+// Attention: all incoming and outgoing direction values in radians!
+static Infill_Params calculate_infill_position_rad(const PrintObject* object,
+                                                   size_t layer_id,
+                                                   const double& fixed_infill_angle, // if template is used then it parameter must recieve model's direction
+                                                   const std::string& template_string,
+                                                   const double& fixed_infill_density = 100.,
+                                                   const int& fixed_multiline = 1,
+                                                   double line_width = 0.) // Get initial value from options
+{
+    Infill_Params params{fixed_infill_angle, Vec2d(0, 0), fixed_infill_density, fixed_multiline};
+    if (template_string.empty())
+        return params;
     // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
     const size_t first_object_layer_id = object->get_layer(0)->id();
-    layer_id = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
-    double             angle = 0.0;
-    ConfigOptionFloats rotate_angles;
-    const std::string  search_string = "/NnZz$LlUuQq~^|#";
-    if (regex_search(template_string, std::regex("[+\\-%*@\'\"cm" + search_string + "]"))) { // template metalanguage of rotating infill
-        std::regex                 del("[\\s,]+");
-        std::sregex_token_iterator it(template_string.begin(), template_string.end(), del, -1);
-        std::vector<std::string>   tk;
+    layer_id                           = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
+    const std::string search_string    = "^~/NnZz$LlUuQq#JjCc"; // Attention: the first character in the string must be the ^ symbol, as it will later be escaped in the regex.
+    const std::string coord_string     = "XxYy";
+    const std::string density_string   = "Dd";
+    const std::string angle_string     = "A+-_0123456789.";
+    if (regex_search(template_string, std::regex("[+\\-%AXYxyDd_*@&\'\"cm\\" + search_string + "]"))) { // template metalanguage of rotating infill
+        // Check for the "0X" character combination, which may be interpreted incorrectly by the strtod() function. 
+        // Replace it with "X". The cases like "10X" not replaced.
+        std::string template_string2 = std::regex_replace(template_string, std::regex("(^|\\D)0+([xX])"), "$1$2");
+        template_string2 = std::regex_replace(template_string2, std::regex(";"), ""); // remove the easy-reading separators
+        std::regex del("[\\s,]+");
+        std::sregex_token_iterator it(template_string2.begin(), template_string2.end(), del, -1);
+        std::vector<std::string> tk;                    // metacommands array
         std::sregex_token_iterator end;
         while (it != end) {
             tk.push_back(*it++);
         }
-        int    t            = 0;
-        int    repeats      = 0;
-        double angle_add    = 0;
-        double angle_steps  = 1;
-        double angle_start  = 0;
-        double limit_fill_z = object->get_layer(0)->bottom_z();
-        double start_fill_z = limit_fill_z;
+        size_t t               = tk.size();             // metacommand index
+        size_t repeats         = 0;                     // metacommand repeats counter
+        double divider_steps   = 1;                     // the number of steps of the divisor
+        
+        double angle_start     = 0.;                    // the initial position of the angle for the current range
+        double angle_add       = 0.;                    // additive for the angle step
+
+        Vec2d  shift_add       = Vec2d(0., 0.);         // the initial position of the shift for the current range
+        Vec2d  shift_dir       = Vec2d(0., 0.);         // the initial position of the directional shift for the current range
+        Vec2d  shift_start     = Vec2d(0., 0.);         // additive for the shift step
+        
+        double density_start   = (fixed_infill_density / 100.) / fixed_multiline; // the initial position of the density in internal scale 0...1 without multiline factor
+        double density_add     = 0.;                    // additive for the density step
+        double density_lin     = 0.;                    // additive for the linear density step
+        size_t density_adapt   = 0;                     // flag for restoring the normal density representation when miltiline changing
+        
+        double multiline_start = fixed_multiline;       // the initial position of the miltiline for the current range
+        double multiline_add   = 0.;                    // additive for the miltiline step
+        
+        double start_fill_z    = object->get_layer(0)->print_z;
+        double limit_fill_z    = start_fill_z;
         // The raft height, or 0 without a raft.
-        const double print_z_offset = object->slicing_parameters().object_print_z_min;
-        bool   _noop        = false;
-        auto              fill_form = std::string::npos;
-        bool              _absolute = false;
-        bool              _negative = false;
-        std::vector<bool> stop(tk.size(), false);
+        const double print_z_offset = object->slicing_parameters().object_print_z_min + EPSILON;
+        size_t fill_form       = std::string::npos;
+        bool is_negative       = false;
+        // Vector of stop marks. "1" is the one-time running command, "2" is the dumb command
+        // If the all values entire vector is unequal to 0, then stop the parsing from repeating.
+        std::vector<size_t> stop(tk.size(), 0);
 
-        for (int i = 0; i <= layer_id; i++) {
-            double fill_z = object->get_layer(i)->bottom_z();
+        line_width = line_width ? line_width : object->config().line_width;
 
-            // slice_z is measured from the bottom of the model, limit_fill_z from the build plate.
-            if (limit_fill_z < object->get_layer(i)->slice_z + print_z_offset) {
-                if (repeats) { // if repeats >0 then restore parameters for new iteration
-                    limit_fill_z += limit_fill_z - start_fill_z;
-                    start_fill_z = fill_z;
-                    repeats--;
+        for (size_t i = 0; i <= layer_id; i++) {
+            double fill_z = object->get_layer(i)->print_z;
+            
+            if (limit_fill_z <= object->get_layer(i)->print_z + print_z_offset) {
+
+                if (repeats-- > 0) { // if repeats >0 then restore parameters for new iteration
+                    double next_fill_z = limit_fill_z - start_fill_z;
+                    start_fill_z       = limit_fill_z;
+                    limit_fill_z += next_fill_z;
                 } else {
-                    start_fill_z = fill_z;
-                    limit_fill_z = object->get_layer(i)->print_z;
-                    // Solid handling removed: this function only computes rotation.
+                    start_fill_z = limit_fill_z;
                     fill_form    = std::string::npos;
+                    
+                    bool is_dumb = false; // dumb metacommand flag
                     do {
-                        if (!stop[t]) {
-                            _noop     = false;
-                            _absolute = false;
-                            _negative = false;
-                            angle_start += angle_add;
-                            angle_add   = 0;
-                            angle_steps = 1;
-                            repeats     = 1;
-                            if (tk[t].find('!') != std::string::npos) // this is an one-time instruction
-                                stop[t] = true;
-
-                            char* cs = &tk[t][0];
-
-                            if ((cs[0] >= '0' && cs[0] <= '9') && !(cs[0] == '+' || cs[0] == '-')) // absolute/relative
-                                _absolute = true;
-
-                            angle_add = strtod(cs, &cs); // read angle parameter
-
-                            if (cs[0] == '%') { // percentage of angles
-                                angle_add *= 3.6;
-                                cs = &cs[1];
-                            }
-
-                            int tit = tk[t].find('*');
-                            if (tit != std::string::npos) // overall angle_cycles
-                                repeats = strtol(&tk[t][tit + 1], &cs, 0);
-
-                            if (repeats) {                                // run if overall cycles greater than 0
-                                // Solid signs (D,S,O,M,R) are not handled here; if present they behave as invalid characters.
-
-                                if (cs[0] == 'B') {
-                                    angle_steps = object->print()->default_region_config().bottom_shell_layers.value;
-                                } else if (cs[0] == 'T') {
-                                    angle_steps = object->print()->default_region_config().top_shell_layers.value;
-                                } else {
-                                    fill_form = search_string.find(cs[0]);
-                                    if (fill_form != std::string::npos)
-                                        cs = &cs[1];
-
-                                    _negative   = (cs[0] == '-'); // negative parameter
-                                    angle_steps = abs(strtod(cs, &cs));
-
-                                    if (angle_steps && cs[0] != '\0' && cs[0] != '!') {
-                                        if (cs[0] == '%') // value in the percents of fill_z
-                                            limit_fill_z = angle_steps * object->height() * 1e-8;
-                                        else if (cs[0] == '#') // value in the feet
-                                            limit_fill_z = angle_steps * object->config().layer_height;
-                                        else if (cs[0] == '\'') // value in the feet
-                                            limit_fill_z = angle_steps * 12 * 25.4;
-                                        else if (cs[0] == '\"') // value in the inches
-                                            limit_fill_z = angle_steps * 25.4;
-                                        else if (cs[0] == 'c') // value in centimeters
-                                            limit_fill_z = angle_steps * 10.;
-                                        else if (cs[0] == 'm') {
-                                            if (cs[1] == 'm') { // value in the millimeters
-                                                limit_fill_z = angle_steps * 1.;
-                                            } else{
-                                                limit_fill_z = angle_steps * 1000.;
-                                            }
-                                        }
-                                        limit_fill_z += fill_z;
-                                        angle_steps = 0; // limit_fill_z has already count
-                                    }
-                                }
-                                if (angle_steps) { // if limit_fill_z does not setting by lenght method. Get count the layer id above model height
-                                    if (fill_form == std::string::npos && !_absolute)
-                                        angle_add *= (int) angle_steps;
-                                    int idx      = i + std::max(angle_steps - 1, 0.);
-                                    int sdx      = std::max(0, idx - (int) object->layers().size());
-                                    idx          = std::min(idx, (int) object->layers().size() - 1);
-                                    limit_fill_z = object->get_layer(idx)->print_z + sdx * object->config().layer_height;
-                                }
-                                repeats = std::max(repeats - 1, 0);
-                            } else
-                                _noop = true; // set the dumb cycle
-                            if (_absolute) {  // is absolute
-                                angle_start = angle_add;
-                                angle_add   = 0;
-                            }
-                        }
-                        if (++t >= tk.size())
+                        if (t >= tk.size()) // reset index
                             t = 0;
-                    } while (std::all_of(stop.begin(), stop.end(), [](bool v) { return v; }) ?
-                                 false :
-                                 (t ? _noop : false) || stop[t]); // if this is a dumb instruction which never reaprated twice
+
+                        if (stop[t] < 2) {  // validate only dumb commands
+                            is_negative   = false;
+
+                            angle_start += angle_add;
+                            angle_add   = 0.;
+                            shift_start += rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + angle_start, shift_dir);
+                            shift_add   = Vec2d(0., 0.);
+                            shift_dir   = Vec2d(0., 0.);
+
+                            density_start += density_add;
+                            density_lin   = 0.;
+                            density_add   = 0.;
+                            density_adapt = 0;
+                            
+                            multiline_start += multiline_add;
+                            multiline_add  = 0.;
+                            
+                            divider_steps = 0.;
+                            repeats       = 1;
+
+                            if (tk[t].find('!') != std::string::npos) // [R-zone] one-time running command
+                                stop[t] = 2;
+
+                            char* cs = &tk[t][0];           // current metacommand
+
+                            Vec2d shift_abs(0., 0.);        // absolute XY-position accumulator
+                            Vec2d shift_abs2(0., 0.);       // absolute XY-position accumulator for infill vector
+                            Vec2d shift_rel(0., 0.);        // relative shift accumulator
+                            Vec2d shift_rel2(0., 0.);       // relative shift accumulator for infill vector
+                            bool has_abs_shift = false;     // has set of absolute XY-position
+
+                            for (;;) {
+                                bool is_abs_shift = false;
+                                char zone_mark = cs[0];
+                                double shift_value(0.);
+                                is_dumb = false;
+
+                                if (coord_string.find(zone_mark) != std::string::npos) { // [XxYy-zone]
+                                    cs++;
+
+                                    int y_sign = 0.;
+                                    if (cs[0] == 'Y' || cs[0] == 'y') { // get diagonal
+                                        cs++;
+                                        y_sign = 1.;
+                                    } else if (cs[0] == '_' && (cs[1] == 'Y' || cs[1] == 'y')) { // get diagonal
+                                        cs += 2;
+                                        y_sign = -1.;
+                                    }
+
+                                    is_abs_shift = is_absolute(cs);
+                                    if (is_abs_shift) // absolute/relative
+                                        has_abs_shift = true;
+
+                                    if (cs[0] == '_') { // get value
+                                        cs++;
+                                        shift_value = -strtod(cs, &cs);
+                                    } else
+                                        shift_value = strtod(cs, &cs);
+
+                                    if (cs[0] == ':') { // fractional
+                                        if (shift_value == 0.)
+                                            shift_value = 1.;
+                                        cs++;
+                                        double shift_frac = strtod(cs, &cs);
+                                        if (shift_frac == 0.)
+                                            shift_frac = 1.;
+                                        shift_value /= shift_frac;
+                                    }
+
+                                    if (cs[0] == '&') { // value in numerical width of standard lines
+                                        shift_value *= line_width;
+                                        cs++;
+                                    } else if (cs[0] == '@') { // value in number of standard lines counted with infill density
+                                        shift_value *= line_width / density_start -
+                                                       line_width * (1 - 1 / multiline_start);
+                                        cs++;
+                                    } else if (cs[0] == '%') { // value in the percents of model height
+                                        shift_value *= object->height() * 1e-8;
+                                        cs++;
+                                    } else if (cs[0] == '\'') { // value in the feet
+                                        shift_value *= 12 * 25.4;
+                                        cs++;
+                                    } else if (cs[0] == '\"') { // value in the inches
+                                        shift_value *= 25.4;
+                                        cs++;
+                                    } else if (cs[0] == 'c') { // value in centimeters
+                                        shift_value *= 10.;
+                                        cs++;
+                                        if (cs[0] == 'm')
+                                            cs++;
+                                    } else if (cs[0] == 'm') {
+                                        if (cs[1] == 'm') // value in the millimeters == 2x 'm' (mm). Just skip.
+                                            cs++;
+                                        else // value in the meters == 1x 'm' (m) 
+                                            shift_value *= 1000.;
+                                    }
+
+                                    if (zone_mark == 'X') { // get X shift
+                                        if (is_abs_shift) {
+                                            shift_abs[0] += shift_value;
+                                            if (y_sign)
+                                                shift_abs[1] += shift_value * y_sign;
+                                        } else {
+                                            shift_rel[0] += shift_value;
+                                            if (y_sign)
+                                                shift_rel[1] += shift_value * y_sign;
+                                        }
+                                    } else if (zone_mark == 'x') { // get relative X shift
+                                        if (is_abs_shift) {
+                                            shift_abs2[0] += shift_value;
+                                            if (y_sign)
+                                                shift_abs2[1] += shift_value * y_sign;
+                                        } else {
+                                            shift_rel2[0] += shift_value;
+                                            if (y_sign)
+                                                shift_rel2[1] += shift_value * y_sign;
+                                        }
+                                    } else  if (zone_mark == 'Y') { // get Y shift
+                                        if (is_abs_shift)
+                                            shift_abs[1] += shift_value;
+                                        else
+                                            shift_rel[1] += shift_value;
+                                    } else if (zone_mark == 'y') { // get relative Y shift
+                                        if (is_abs_shift)
+                                            shift_abs2[1] += shift_value;
+                                        else
+                                            shift_rel2[1] += shift_value;
+                                    }
+                                } else if (density_string.find(cs[0]) != std::string::npos) { // [D-zone] 
+                                    cs++;
+                                    bool is_abs_density = is_absolute(cs); // absolute/relative
+                                    double density_value(strtod(cs, &cs)); // read density parameter
+                                    if (cs[0] == ':') { // fractional
+                                        double multiline_value = std::max(density_value, 1.);
+                                        if (zone_mark == 'd')
+                                            density_adapt = 2;
+                                        if (density_value) {
+                                            if (is_abs_density)
+                                                multiline_start = density_value;
+                                            else
+                                                multiline_add += density_value;
+                                        } else
+                                            density_value = 1.;
+                                        cs++;
+                                        double density_frac = strtod(cs, &cs);
+                                        if (density_frac) {
+                                            density_value /= density_frac;
+                                            if (is_abs_density)
+                                                density_start = density_value / multiline_value;
+                                            else {
+                                                density_adapt = 0;
+                                                if (zone_mark == 'd')
+                                                    density_lin += density_value / multiline_value;
+                                                else
+                                                    density_add += density_value / multiline_value;
+                                            }
+                                        } else {
+                                            if (cs[0] == '+' || cs[0] == '-') // remove single signs 
+                                                cs++;
+                                        }
+                                    } else {
+                                        density_adapt = 1;
+                                        if (cs[0] == '%') { // percentage of density
+                                            cs++;
+                                            density_value *= .01;
+                                        }                                 
+                                        
+                                        if (is_abs_density) {
+                                            density_start = (zone_mark == 'd') ?  
+                                                (density_value < 0 ? -1 : 1) * pow(density_value, 2.) : density_value;
+                                        } else {
+                                            if (zone_mark == 'd')
+                                                density_lin += density_value;
+                                            else
+                                                density_add += density_value;
+                                        }
+
+                                        if (!density_value && (cs[0] == '+' || cs[0] == '-')) // remove single signs 
+                                            cs++;
+                                    }
+                                } else if (angle_string.find(cs[0]) != std::string::npos) { // [A-zone] 
+                                    if (cs[0] == 'A') // Angle mark (Optional)
+                                        cs++;
+                                    
+                                    double angle_value(0);
+                                    bool is_abs_angle = is_absolute(cs); // absolute/relative
+
+                                    if (cs[0] == '_') { // negative shift
+                                        cs++;
+                                        angle_value = Geometry::deg2rad(-strtod(cs, &cs)); // read negative absolute angle parameter
+                                    } else
+                                        angle_value = Geometry::deg2rad(strtod(cs, &cs)); // read absolute angle parameter
+
+                                    if (!angle_value && (cs[0] == '+' || cs[0] == '-')) // remove single signs 
+                                        cs++;
+                                    bool is_fractional = cs[0] == ':';
+                                    if (is_fractional) { // fractional
+                                        if (angle_value == 0.)
+                                            angle_value = 0.5;
+                                        cs++;
+                                        double angle_frac = strtod(cs, &cs);
+                                        if (angle_frac == 0.)
+                                            angle_frac = 1.;
+                                        angle_value /= angle_frac;
+                                    } 
+
+                                    if (cs[0] == '%') { // percentage of full circle
+                                        angle_value *= is_fractional ? 2. : 3.6;
+                                        cs++;
+                                    }
+                                    if (is_abs_angle)
+                                        angle_start = angle_value;
+                                    else
+                                        angle_add += angle_value;
+
+                                } else
+                                    break;
+                            }
+
+                            // [XY-zone] final processing
+                            if (has_abs_shift)  // the absolute value has changed
+                                shift_start = shift_abs + rotate_point_CW(angle_start, shift_abs2);
+
+                            shift_add += shift_rel;
+                            shift_dir += rotate_point_CW(angle_start, shift_rel2);
+
+                            if (cs[0] == '*') { // [R-zone] overall cycles - pre [Z-zone]
+                                cs++;
+                                repeats = strtol(cs, &cs, 0);
+                            }
+
+                            double height_value(0.);
+
+                            if (cs[0] == 'B') {
+                                divider_steps = object->print()->default_region_config().bottom_shell_layers.value;
+                                cs++;
+                            } else if (cs[0] == 'T') {
+                                divider_steps = object->print()->default_region_config().top_shell_layers.value;
+                                cs++;
+                            } else {
+                                fill_form = search_string.find(cs[0]);
+                                if (fill_form != std::string::npos)
+                                    cs++;
+                                is_negative = (cs[0] == '-'); // negative parameter
+                                height_value = abs(strtod(cs, &cs));
+                                if (cs[0] == ':') { // fractional
+                                    if (height_value == 0.)
+                                        height_value = 1.;
+                                    cs++;
+                                    double height_frac = strtod(cs, &cs);
+                                    if (height_frac == 0.)
+                                        height_frac = 1.;
+                                    height_value /= height_frac;
+                                }
+                                if (height_value && cs[0] != '\0' && cs[0] != '!') {
+                                    if (cs[0] == '%') { // value in the percents of fill_z
+                                        limit_fill_z = (height_value * object->height() + object->get_layer(0)->height / 2) * 1e-8;
+                                        cs++;
+                                    } else if (cs[0] == '#') { // value in the feet
+                                        limit_fill_z = height_value * object->get_layer(i)->height;
+                                        cs++;
+                                    } else if (cs[0] == '\'') { // value in the feet
+                                        limit_fill_z = height_value * 12 * 25.4;
+                                        cs++;
+                                    } else if (cs[0] == '\"') { // value in the inches
+                                        limit_fill_z = height_value * 25.4;
+                                        cs++;
+                                    } else if (cs[0] == '&') { // value in numerical width of standard lines
+                                        limit_fill_z = height_value * line_width;
+                                        cs++;
+                                        } else if (cs[0] == '@') { // value in number of standard lines counted with infill density
+                                        limit_fill_z = height_value * line_width / density_start - line_width * (1 - 1 / multiline_start);
+                                        cs++;
+                                    } else if (cs[0] == 'c') { // value in centimeters
+                                        limit_fill_z = height_value * 10.;
+                                        cs++;
+                                        if (cs[0] == 'm') // finish centimeters
+                                            cs++;
+                                    } else if (cs[0] == 'm') {
+                                        cs++;
+                                        if (cs[0] == 'm') { // value in the millimeters
+                                            limit_fill_z = height_value * 1.;
+                                            cs++;
+                                        } else {
+                                            limit_fill_z = height_value * 1000.;
+                                        }
+                                    } else
+                                        divider_steps = std::max(height_value, 1.); //  divider_steps > 0 : count by layers
+                                    
+                                    limit_fill_z += fill_z;
+                                } else
+                                    divider_steps = std::max(height_value, 1.);
+                            }
+
+                            if (cs[0] == '*') { // [R-zone] overall cycles - post [Z-zone]
+                                cs++;
+                                repeats = strtol(cs, &cs, 0);
+                            }
+
+                            // Calculate the altitude when specifying the exact number of layers.
+                            if (divider_steps) {
+                                divider_steps  = round(divider_steps);
+                                int e_layer    = i + divider_steps;
+                                int m_layer    = object->layers().size() - 1;
+                                int idx        = std::min(e_layer, m_layer);
+                                int sdx        = std::max(e_layer - m_layer, 0);
+                                limit_fill_z   = object->get_layer(idx)->print_z + sdx * object->config().layer_height.value;
+                            }
+
+                            if (!repeats) {                  // if overall cycles = 0
+                                stop[t]      = 1;            // set stop mark on the dumb command
+                                is_dumb      = true;
+                                limit_fill_z = start_fill_z; // disable guard range
+                            } else
+                                repeats--; // reduce one step because it has already been completed
+
+                        }
+                        t++;
+                    } while (is_dumb && ((t < tk.size()) || std::any_of(stop.begin(), stop.end(), [](int v) { return v == 0; }))); // if this is a set of dumb or one-time running instruction which never reaprated twice
                 }
             }
-            double top_z    = object->get_layer(i)->print_z;
-            double negvalue = (_negative ? limit_fill_z - top_z : top_z - start_fill_z) / (limit_fill_z - start_fill_z);
+
+            double negvalue = std::min(std::max((is_negative ? (limit_fill_z - fill_z) : (fill_z - start_fill_z)) / (limit_fill_z - start_fill_z), 0.), 1.);
 
             switch (fill_form) {
-            case 0: break;                                                  // /-joint, linear
-            case 1: negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break; // N-joint, sinus, vertical start
-            case 2: negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break; // n-joint, sinus, vertical start, lazy
-            case 3: negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break; // Z-joint, sinus, horizontal start
-            case 4: negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break; // z-joint, sinus, horizontal start, lazy
-            case 5: negvalue = asin(negvalue * 2. - 1.) / PI + 0.5; break;  // $-joint, arcsin
-            case 6: negvalue = sin(negvalue * PI / 2.); break;              // L-joint, quarter of circle, horizontal start
-            case 7: negvalue = 1. - cos(negvalue * PI / 2.); break;         // l-joint, quarter of circle, vertical start
-            case 8: negvalue = 1. - pow(1. - negvalue, 2); break;           // U-joint, squared, x2
-            case 9: negvalue = pow(1 - negvalue, 2); break;                 // u-joint, squared, x2 inverse
-            case 10: negvalue = 1. - pow(1. - negvalue, 3); break;          // Q-joint, cubic, x3
-            case 11: negvalue = pow(1. - negvalue, 3); break;               // q-joint, cubic, x3 inverse
-            case 12: negvalue = (double) rand() / RAND_MAX; break;          // ~-joint, random, fill the whole angle
-            case 13: negvalue += (double) rand() / RAND_MAX - 0.5; break;   // ^-joint, pseudorandom, disperse at middle line
-            case 14: negvalue = 0.5; break;                                 // |-joint, like #-joint but placed at middle angle
-            case 15: negvalue = _negative ? 0. : 1.; break;                 // #-joint, vertical at the end angle
+            case 0:  negvalue += (double) rand() / RAND_MAX - .5; break;                           // ^-joint, pseudorandom, disperse at middle line
+            case 1:  negvalue  = (double) rand() / RAND_MAX; break;                                // ~-joint, random, fill the whole range
+            case 2:  break;                                                                        // /-joint, linear
+            case 3:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
+            case 4:  negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break;                       // n-joint, sinus, vertical start, lazy
+            case 5:  negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break;                       // Z-joint, sinus, horizontal start
+            case 6:  negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break;                       // z-joint, sinus, horizontal start, lazy
+            case 7:  negvalue  = asin(negvalue * 2. - 1.) / PI + .5; break;                        // $-joint, arcsin
+            case 8:  negvalue  = sin(negvalue * M_PI_2); break;                                    // L-joint, quarter of circle, horizontal start
+            case 9:  negvalue  = 1. - cos(negvalue * M_PI_2); break;                               // l-joint, quarter of circle, vertical start
+            case 10: negvalue  = 1. - pow(1. - negvalue, 2); break;                                // U-joint, squared, x2
+            case 11: negvalue  = pow(1 - negvalue, 2); break;                                      // u-joint, squared, x2 inverse
+            case 12: negvalue  = 1. - pow(1. - negvalue, 3); break;                                // Q-joint, cubic, x3
+            case 13: negvalue  = pow(1. - negvalue, 3); break;                                     // q-joint, cubic, x3 inverse
+            case 14: negvalue  = is_negative ? 0. : 1.; break;                                     // #-joint, vertical at the end of range
+            case 15: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
+            case 16: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
+            case 17: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
+                                               sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle // (_negative ? 1 - sin(negvalue * PI) : sin(negvalue * PI))
+            case 18: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // c-joint, vertical cosine wave
+            default: negvalue  = 1.;
             }
-            angle = Geometry::deg2rad(angle_start + angle_add * negvalue);
+
+            params.angle = angle_start + angle_add * negvalue;
+            params.shift = (shift_start + (rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + params.angle, shift_dir)) * negvalue) / SCALING_FACTOR;
+            if (density_lin) {
+                double _ns     = 1. / density_start;
+                double _ne     = 1. / (density_start + density_lin);
+                params.density = 1. / (_ns - (_ns - _ne) * negvalue) + density_add * negvalue;
+            } else 
+                params.density = density_start + density_add * negvalue;
+
+            // Adapt density if changed multiline number at next command
+            double multiline_param = round(multiline_start + multiline_add * negvalue);
+            params.multiline = std::max(multiline_param, 1.); // store new value
+            if (density_adapt == 1)
+                params.density *= round(multiline_start) / multiline_param;
+            else if (density_adapt) // == 2
+                params.density /= multiline_start;
         }
+        // Make sure that the resulting density is within the range of EPSILON to 100%.
+        // Values outside this range will be produced within these limits.
+        // params.multiline = std::min(params.multiline, 10); // limit multiline
+        params.density   = std::min(std::max(params.density * params.multiline * 100., EPSILON), 100.);
     } else {
-        rotate_angles.deserialize(template_string);
+        ConfigOptionFloats rotate_angles;
+        // use multichar separators
+        std::string str = template_string;
+        std::replace(str.begin(), str.end(), ' ', ',');
+        auto last = std::unique(str.begin(), str.end(), [](char a, char b) { return a == ',' && b == ','; });
+        str.erase(last, str.end());
+        rotate_angles.deserialize(str);
         auto rotate_angle_idx = layer_id % rotate_angles.size();
-        angle                 = Geometry::deg2rad(rotate_angles.values[rotate_angle_idx]);
+        params.angle          = Geometry::deg2rad(rotate_angles.values[rotate_angle_idx]);
     }
-    return angle;
+    params.angle += fixed_infill_angle;
+    return params;
+};
+
+// Attention: all incoming direction value in degrees!
+double calculate_infill_rotation_angle(const PrintObject* object,
+                                       size_t layer_id,
+                                       const double& fixed_infill_angle,
+                                       const std::string& template_string)
+{
+    return calculate_infill_position_rad(object, layer_id, Geometry::deg2rad(fixed_infill_angle), template_string).angle;
 }
 
 struct SurfaceFillParams
@@ -225,6 +533,10 @@ struct SurfaceFillParams
     unsigned int 	extruder = 0;
 	// Infill pattern, adjusted for the density etc.
     InfillPattern  	pattern = InfillPattern(0);
+    
+    // Orca: special value for the pattern generator.
+    // In particular, for the Hilbert curve, can specify the classic mode or choose a centered Hilbert Spiral with its order.
+    int pattern_mode{0}; 
 
     // FillBase
     // in unscaled coordinates
@@ -233,6 +545,8 @@ struct SurfaceFillParams
     coordf_t    	overlap = 0.;
     // Angle as provided by the region config, in radians.
     float       	angle = 0.f;
+    // Shift of the infill center.
+    Point           shift = Point(0., 0.);
     // Orca: fixed_angle
     bool        fixed_angle = false;
     // Is bridging used for this fill? Bridging parameters may be used even if this->flow.bridge() is not set.
@@ -297,6 +611,7 @@ struct SurfaceFillParams
 
 		RETURN_COMPARE_NON_EQUAL(extruder);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, pattern);
+        RETURN_COMPARE_NON_EQUAL(pattern_mode);
 		RETURN_COMPARE_NON_EQUAL(spacing);
 		RETURN_COMPARE_NON_EQUAL(overlap);
 		RETURN_COMPARE_NON_EQUAL(angle);
@@ -330,6 +645,7 @@ struct SurfaceFillParams
 	bool operator==(const SurfaceFillParams &rhs) const {
 		return  this->extruder 			      == rhs.extruder                &&
 				this->pattern 			      == rhs.pattern                 &&
+                this->pattern_mode 			  == rhs.pattern_mode            &&
 				this->spacing 			      == rhs.spacing                 &&
 				this->overlap 			      == rhs.overlap                 &&
 				this->angle   			      == rhs.angle                   &&
@@ -965,10 +1281,27 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // Stored on SurfaceFillParams; copied to FillParams during conversion.
                 params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
 
+                // ORCA: Align infill angle to model
+                float align_offset = 0.f;
+                if (region_config.align_infill_direction_to_model) {
+                    auto m       = layer.object()->trafo().matrix();
+                    align_offset = atan2((float) m(1, 0), (float) m(0, 0));
+                }
+
                 if (params.extrusion_role == erInternalInfill) {
-                    params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
-                                                                   region_config.sparse_infill_rotate_template.value);
                     params.fixed_angle = !region_config.sparse_infill_rotate_template.value.empty();
+                    if (params.fixed_angle && params.pattern == ipHilbertCurve)
+                        params.pattern_mode = 3;
+                    Infill_Params complex(calculate_infill_position_rad(layer.object(), layer.id(),
+                                                                        align_offset + (params.fixed_angle ?
+                                                                          0. : Geometry::deg2rad(region_config.infill_direction.value)),
+                                                                        region_config.sparse_infill_rotate_template.value,
+                                                                        params.density, params.multiline,
+                                                                        region_config.sparse_infill_line_width.value));
+                    params.angle       = complex.angle;
+                    params.shift       = complex.shift.cast<coord_t>();
+                    params.density     = complex.density;
+                    params.multiline   = complex.multiline;
 
                     // Orca: the smoothing factor only applies to the sparse infill patterns that
                     // implement it. The fills clamp and validate the value themselves.
@@ -981,20 +1314,19 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.angle = Geometry::deg2rad(top_layer_direction_set ? region_config.top_layer_direction.value : region_config.bottom_layer_direction.value);
                         params.fixed_angle = true;
                     } else {
-                        params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.solid_infill_direction.value,
-                                                                       region_config.solid_infill_rotate_template.value);
                         params.fixed_angle = !region_config.solid_infill_rotate_template.value.empty();
+                        if (params.fixed_angle && params.pattern == ipHilbertCurve)
+                            params.pattern_mode = 3;
+                        Infill_Params complex(calculate_infill_position_rad(layer.object(), layer.id(),
+                                                                            align_offset + (params.fixed_angle ?
+                                                                                0. : Geometry::deg2rad(region_config.solid_infill_direction.value)),
+                                                                            region_config.solid_infill_rotate_template.value, 1,
+                                                                            region_config.internal_solid_infill_line_width.value));
+                        params.angle = complex.angle;
+                        params.shift = complex.shift.cast<coord_t>();
                     }
                 }
                 params.bridge_angle = float(surface.bridge_angle);
-
-                // ORCA: Align infill angle to model
-                float align_offset = 0.f;
-                if (region_config.align_infill_direction_to_model) {
-                    auto m = layer.object()->trafo().matrix();
-                    align_offset = atan2((float)m(1, 0), (float)m(0, 0));
-                    params.angle += align_offset;
-                }
 
                 // Calculate the actual flow we'll be using for this infill.
 		        params.bridge = is_bridge || Fill::use_bridge_flow(params.pattern);
@@ -1177,9 +1509,11 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 	            params.density 		 = 100.f;
 		        params.extrusion_role = erSolidInfill;
 		        const PrintRegionConfig &region_config = layerm.region().config();
-                params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.solid_infill_direction.value,
-                                                               region_config.solid_infill_rotate_template.value);
+
                 params.fixed_angle = !region_config.solid_infill_rotate_template.value.empty();
+                params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(),
+                                                               params.fixed_angle ? 0. : region_config.solid_infill_direction.value,
+                                                               region_config.solid_infill_rotate_template.value);
 
                 // calculate the actual flow we'll be using for this infill
 				params.flow = layerm.flow(frSolidInfill);
@@ -1315,6 +1649,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         }
         f->z 		= this->print_z;
         f->angle 	= surface_fill.params.angle;
+        f->shift    = surface_fill.params.shift;
         f->fixed_angle = surface_fill.params.fixed_angle;
         f->adapt_fill_octree   = (surface_fill.params.pattern == ipSupportCubic) ? support_fill_octree : adaptive_fill_octree;
         f->print_config        = &this->object()->print()->config();
@@ -1368,6 +1703,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
         params.smooth_factor             = surface_fill.params.smooth_factor;
 
+
 		// BBS
 		params.flow = surface_fill.params.flow;
 		params.extrusion_role = surface_fill.params.extrusion_role;
@@ -1376,6 +1712,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         auto &region_config = layerm->region().config();
         params.config               = &region_config;
         params.pattern              = surface_fill.params.pattern;
+        params.pattern_mode         = surface_fill.params.pattern_mode;
         params.fill_order           = surface_fill.params.fill_order;
 
         // Orca: Checking the filling of a centered surface by drawing for each model parts
@@ -1383,6 +1720,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         if (is_top_or_bottom) {
             params.center_of_surface_pattern = surface_fill.params.center_of_surface_pattern; // Orca: center of surface pattern
         }
+     
         if( surface_fill.params.pattern == ipLockedZag ) {
 			params.locked_zag = true;
             params.infill_lock_depth = surface_fill.params.infill_lock_depth;
@@ -1578,6 +1916,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         // Without the sparse extrusion role, the filler uses each surface's bounds
         // instead of the object's bounds, so bridge anchors shift away from printed infill.
         params.extrusion_role            = surface_fill.params.extrusion_role;
+        
+        // Attention! The Hilbert curve pattern in this mode will not match to the pattern defined by the rotating infill templates.
+        // "Sparse plane-path anchors match the printed infill" test will generate an error on the Hilbert Curve
+        params.pattern_mode              = surface_fill.params.pattern_mode; 
 
         for (ExPolygon &expoly : surface_fill.expolygons) {
             // Orca: Match the per-body origin of make_fills() before generating physical anchors.
@@ -1705,16 +2047,18 @@ void Layer::make_ironing()
                     ? config.filament_ironing_speed.get_at(extruder_idx)
                     : config.ironing_speed);
                 const bool top_layer_direction_set = config.top_layer_direction.value >= 0.;
+                ironing_params.fixed_angle = config.ironing_angle_fixed || top_layer_direction_set || !config.solid_infill_rotate_template.value.empty();
                 const double top_layer_base_angle  = top_layer_direction_set ?
                     Geometry::deg2rad(config.top_layer_direction.value) :
-                    calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value);
+                    calculate_infill_rotation_angle(this->object(), this->id(), 
+                                                    ironing_params.fixed_angle ? 0. : config.solid_infill_direction.value, 
+                                                    config.solid_infill_rotate_template.value);
                 double ironing_angle = (config.ironing_angle_fixed ? 0. : top_layer_base_angle) + config.ironing_angle * M_PI / 180.;
                 if (config.align_infill_direction_to_model) {
                     auto m = this->object()->trafo().matrix();
                     ironing_angle += atan2((double)m(1, 0), (double)m(0, 0));
                 }
                 ironing_params.angle      = ironing_angle;
-                ironing_params.fixed_angle = config.ironing_angle_fixed || top_layer_direction_set || !config.solid_infill_rotate_template.value.empty();
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
 				by_extruder.emplace_back(ironing_params);
