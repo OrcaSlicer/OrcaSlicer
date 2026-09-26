@@ -47,6 +47,16 @@ enum class RefreshResult {
     Transient      // network/server problem -> keep the session and retry later
 };
 
+// Outcome of resolving an unauthorized data request. A post-refresh 401 is
+// intentionally separate from a rejected refresh token: the former may be a
+// temporary server-side token propagation inconsistency.
+enum class UnauthorizedResolution {
+    NotUnauthorized,
+    Recovered,
+    TransientFailure,
+    DefinitiveAuthFailure
+};
+
 // Constants for OAuth loopback server
 namespace auth_constants {
     constexpr int LOOPBACK_PORT = 41172;
@@ -362,11 +372,13 @@ private:
 
     // Applies the "retry once on 401" policy for the data HTTP methods.
     // `res` holds the first response; `perform` re-issues the request after a
-    // successful refresh. Returns true if the auth error should be SUPPRESSED
-    // (i.e. the session must be kept rather than logged out).
-    bool resolve_unauthorized(HttpResult& res,
-                              const std::function<HttpResult()>& perform,
-                              const std::string& reason);
+    // successful refresh. A retry that is still unauthorized is initially
+    // transient so it cannot immediately trigger the GUI logout path.
+    UnauthorizedResolution resolve_unauthorized(HttpResult& res,
+                                                 const std::function<HttpResult()>& perform,
+                                                 const std::string& reason,
+                                                 const char* method,
+                                                 const std::string& path);
 
     // HTTP request helpers
     int http_get(const std::string& path, std::string* response_body, unsigned int* http_code);
@@ -421,6 +433,8 @@ private:
     std::atomic<long long> last_refresh_success_epoch{0};                 // 0 = no success yet this process
     const long long        agent_start_epoch{std::chrono::duration_cast<std::chrono::seconds>(
                                std::chrono::system_clock::now().time_since_epoch()).count()};
+    static constexpr unsigned int MAX_CONSECUTIVE_POST_REFRESH_401 = 3;
+    std::atomic<unsigned int> post_refresh_unauthorized_count{0};
 
     // Member variables - connection state
     bool is_connected{false};

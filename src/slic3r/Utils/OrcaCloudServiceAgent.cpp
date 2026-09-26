@@ -1842,6 +1842,18 @@ static std::string extract_error_code(const std::string& body)
     return "";
 }
 
+static std::string extract_error_message(const std::string& body)
+{
+    const json j = json::parse(body, nullptr, false);
+    if (!j.is_object())
+        return "-";
+
+    std::string error = get_json_string_field(j, "error");
+    if (error.empty())
+        error = get_json_string_field(j, "error_code");
+    return error.empty() ? "-" : error;
+}
+
 static long long now_epoch_seconds()
 {
     return std::chrono::duration_cast<std::chrono::seconds>(
@@ -1871,7 +1883,7 @@ RefreshResult OrcaCloudServiceAgent::refresh_session_with_token(const std::strin
             // No session handler set - parse the token response directly and establish the
             // session, so OrcaCloudServiceAgent is self-contained without external setup.
             try {
-                established = set_user_session(json::parse(response));
+                established = set_user_session(json::parse(response), /*notify_login=*/false);
             } catch (const std::exception& e) {
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: token refresh parse exception - " << e.what();
             }
@@ -2016,8 +2028,10 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
     }
 
     bool success = set_user_session(access_token, user_id, username, nickname, avatar, refresh_token);
-    if (success && notify_login && on_login_complete_handler) {
-        on_login_complete_handler(true, user_id);
+    if (success && notify_login) {
+        post_refresh_unauthorized_count.store(0, std::memory_order_relaxed);
+        if (on_login_complete_handler)
+            on_login_complete_handler(true, user_id);
     }
     return success;
 }
@@ -2028,6 +2042,7 @@ void OrcaCloudServiceAgent::clear_session()
         std::lock_guard<std::mutex> lock(session_mutex);
         session = SessionInfo{};
     }
+    post_refresh_unauthorized_count.store(0, std::memory_order_relaxed);
     clear_user_secret();
 }
 
@@ -2061,22 +2076,43 @@ std::map<std::string, std::string> OrcaCloudServiceAgent::data_headers()
     return headers;
 }
 
-bool OrcaCloudServiceAgent::resolve_unauthorized(HttpResult& res,
-        const std::function<HttpResult()>& perform, const std::string& reason)
+UnauthorizedResolution OrcaCloudServiceAgent::resolve_unauthorized(HttpResult& res,
+        const std::function<HttpResult()>& perform, const std::string& reason,
+        const char* method, const std::string& path)
 {
     if (res.status != 401)
-        return false;
+        return UnauthorizedResolution::NotUnauthorized;
+
+    BOOST_LOG_TRIVIAL(warning) << "[auth] event=api_unauthorized method=" << method
+                               << " path=" << path << " phase=initial http_code=" << res.status
+                               << " error=" << extract_error_message(res.body);
 
     RefreshResult rr = attempt_refresh_after_unauthorized(reason);
     if (rr == RefreshResult::Success) {
         res = perform();   // refreshed: retry the original request with the new token
-        return false;
+        if (res.status != 401)
+            return UnauthorizedResolution::Recovered;
+
+        const unsigned int count = post_refresh_unauthorized_count.fetch_add(1, std::memory_order_relaxed) + 1;
+        BOOST_LOG_TRIVIAL(warning) << "[auth] event=post_refresh_unauthorized method=" << method
+                                   << " path=" << path << " http_code=" << res.status
+                                   << " error=" << extract_error_message(res.body)
+                                   << " consecutive_count=" << count
+                                   << " action=" << (count < MAX_CONSECUTIVE_POST_REFRESH_401 ? "preserve_session" : "reauthenticate");
+
+        if (count < MAX_CONSECUTIVE_POST_REFRESH_401)
+            return UnauthorizedResolution::TransientFailure;
+
+        BOOST_LOG_TRIVIAL(warning) << "[auth] event=session_reauth_required reason=persistent_auth_rejection"
+                                   << " consecutive_count=" << count;
+        return UnauthorizedResolution::DefinitiveAuthFailure;
     }
 
     // Transient (no connection / 5xx / 429 / ambiguous): keep the session and token,
     // suppress the auth error so the GUI does not log the user out.
     // AuthRejected (refresh token genuinely rejected): let the 401 surface -> logout.
-    return rr == RefreshResult::Transient;
+    return rr == RefreshResult::Transient ? UnauthorizedResolution::TransientFailure
+                                          : UnauthorizedResolution::DefinitiveAuthFailure;
 }
 
 int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* response_body, unsigned int* http_code)
@@ -2125,7 +2161,10 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
     };
 
     HttpResult res = perform();
-    bool suppress = resolve_unauthorized(res, perform, "http_get_" + path);
+    const auto resolution = resolve_unauthorized(res, perform, "http_get_" + path, "GET", path);
+    const bool suppress = resolution == UnauthorizedResolution::TransientFailure;
+    if (res.success && res.status < 400)
+        post_refresh_unauthorized_count.store(0, std::memory_order_relaxed);
 
     if (response_body)
         *response_body = res.body;
@@ -2187,7 +2226,10 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
     };
 
     HttpResult res = perform();
-    bool suppress = resolve_unauthorized(res, perform, "http_post_" + path);
+    const auto resolution = resolve_unauthorized(res, perform, "http_post_" + path, "POST", path);
+    const bool suppress = resolution == UnauthorizedResolution::TransientFailure;
+    if (res.success && res.status < 400)
+        post_refresh_unauthorized_count.store(0, std::memory_order_relaxed);
 
     if (response_body)
         *response_body = res.body;
@@ -2252,7 +2294,10 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
     };
 
     HttpResult res = perform();
-    bool suppress = resolve_unauthorized(res, perform, "http_put_" + path);
+    const auto resolution = resolve_unauthorized(res, perform, "http_put_" + path, "PUT", path);
+    const bool suppress = resolution == UnauthorizedResolution::TransientFailure;
+    if (res.success && res.status < 400)
+        post_refresh_unauthorized_count.store(0, std::memory_order_relaxed);
 
     if (response_body)
         *response_body = res.body;
@@ -2311,7 +2356,10 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
     };
 
     HttpResult res = perform();
-    bool suppress = resolve_unauthorized(res, perform, "http_delete_" + path);
+    const auto resolution = resolve_unauthorized(res, perform, "http_delete_" + path, "DELETE", path);
+    const bool suppress = resolution == UnauthorizedResolution::TransientFailure;
+    if (res.success && res.status < 400)
+        post_refresh_unauthorized_count.store(0, std::memory_order_relaxed);
 
     if (response_body)
         *response_body = res.body;
