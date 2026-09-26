@@ -1,0 +1,52 @@
+name: 'Deploy Nightly'
+description: 'Replace a named asset on an existing release.'
+# Stands in for WebFreak001/deploy-nightly, which is unmaintained and still
+# declares the node20 runtime the runners have dropped. Only the behaviour the
+# nightly builds rely on is kept: every caller replaces a single fixed-name
+# asset, so there is no $$ placeholder expansion and no history to prune.
+inputs:
+  release_id:
+    description: 'Numeric id of the release the asset belongs to'
+    required: true
+  asset_path:
+    description: 'Path of the file to upload'
+    required: true
+  asset_name:
+    description: 'Name to give the asset on the release'
+    required: true
+  asset_content_type:
+    description: 'Content type of the uploaded asset'
+    required: false
+    default: 'application/octet-stream'
+runs:
+  using: 'composite'
+  steps:
+    # github-script rather than gh or curl: the Flatpak job runs in a container
+    # that has neither, and the runner supplies node there as everywhere else.
+    - name: Upload ${{ inputs.asset_name }}
+      uses: actions/github-script@v9
+      env:
+        ASSET_PATH: ${{ inputs.asset_path }}
+        ASSET_NAME: ${{ inputs.asset_name }}
+        ASSET_CONTENT_TYPE: ${{ inputs.asset_content_type }}
+        RELEASE_ID: ${{ inputs.release_id }}
+      with:
+        script: |
+          const fs = require('fs');
+          const { ASSET_PATH: assetPath, ASSET_NAME: name, ASSET_CONTENT_TYPE: contentType } = process.env;
+          const { owner, repo } = context.repo;
+          const release_id = parseInt(process.env.RELEASE_ID, 10);
+          const assets = await github.paginate(github.rest.repos.listReleaseAssets,
+            { owner, repo, release_id, per_page: 100 });
+          const previous = assets.find(asset => asset.name === name);
+          if (previous) {
+            core.info(`Deleting the previous ${name}`);
+            await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: previous.id });
+          }
+          core.info(`Uploading ${assetPath} as ${name}`);
+          const upload = await github.rest.repos.uploadReleaseAsset({
+            owner, repo, release_id, name,
+            headers: { 'content-type': contentType, 'content-length': fs.statSync(assetPath).size },
+            data: fs.readFileSync(assetPath),
+          });
+          core.info(upload.data.browser_download_url);
