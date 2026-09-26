@@ -5528,7 +5528,8 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
     // can have grown filament_presets alone.
     auto       *bundle         = wxGetApp().preset_bundle;
     size_t      insert_pos     = bundle->num_physical_filaments();
-    size_t      total          = insert_pos + bundle->num_mixed_filaments();
+    // Guard against desynchronized metadata: total must be at least the current preset count
+    size_t      total          = std::max(bundle->filament_presets.size(), insert_pos + bundle->num_mixed_filaments());
     int         filament_count = (int)(total + 1);
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     bundle->set_num_filaments(filament_count, new_color);
@@ -9280,6 +9281,24 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                             }
                                         }
                                     }
+                                     auto grow_bools = [&](const char* key) {
+                                        if (auto* opt = proj_cfg.opt<ConfigOptionBools>(key, true))
+                                            if (opt->values.size() < filament_count)
+                                                opt->values.resize(filament_count, false);
+                                    };
+                                    auto grow_strings = [&](const char* key) {
+                                        if (auto* opt = proj_cfg.opt<ConfigOptionStrings>(key, true))
+                                            if (opt->values.size() < filament_count)
+                                                opt->values.resize(filament_count, std::string{});
+                                    };
+
+                                    grow_bools("filament_is_mixed");
+                                    grow_strings("filament_mixed_components");
+                                    grow_strings("filament_mixed_sublayer_ratios");
+                                    grow_bools("filament_mixed_gradient");
+                                    grow_strings("filament_mixed_gradient_range");
+                                    grow_strings("filament_mixed_gradient_curve");
+                                    grow_bools("filament_mixed_gradient_per_part");
                                 }
 
                                 // Filament Track Switch state is derived live from the connected
