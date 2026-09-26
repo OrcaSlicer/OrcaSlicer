@@ -1011,9 +1011,12 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
+        // Skip re-selecting only when the Tab editor already shows this slot: a "(modified)" label
+        // isn't proof of that, since every slot's combo reads the same shared PresetCollection.
+        TabPresetComboBox* tab_combo = tab->get_combo_box();
+        if (tab_combo == nullptr || tab_combo->get_filament_idx() != m_filament_idx)
         {
+            const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
             const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
             if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
                 wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
