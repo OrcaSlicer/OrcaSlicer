@@ -3140,10 +3140,13 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     Preset &selected_printer = printers.get_edited_preset();
     if (selected_printer.printer_technology() == ptFFF) {
         BedType bed_type = selected_printer.get_default_bed_type(this);
-        const std::string saved_bed_type = config.get_printer_setting(selected_printer.name, "curr_bed_type");
-        const int saved_bed_type_value = atoi(saved_bed_type.c_str());
-        if (saved_bed_type_value > btDefault && saved_bed_type_value < btCount)
-            bed_type = static_cast<BedType>(saved_bed_type_value);
+        // A saved bed type must not carry over to a printer that doesn't support multiple plates.
+        if (this->is_bbl_vendor() || selected_printer.config.opt_bool("support_multi_bed_types")) {
+            const std::string saved_bed_type = config.get_printer_setting(selected_printer.name, "curr_bed_type");
+            const int saved_bed_type_value = atoi(saved_bed_type.c_str());
+            if (saved_bed_type_value > btDefault && saved_bed_type_value < btCount)
+                bed_type = static_cast<BedType>(saved_bed_type_value);
+        }
         project_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(bed_type));
         config.set("curr_bed_type", std::to_string(static_cast<int>(bed_type)));
     }
@@ -5434,6 +5437,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
+
+        // A file's curr_bed_type may not be selectable on the receiver's printer; fall back to its
+        // own default. Published loads never cross curr_bed_type at all (see above), so skip too.
+        Preset &receiver_printer = this->printers.get_edited_preset();
+        if (!is_published && !this->is_bbl_vendor() && !receiver_printer.config.opt_bool("support_multi_bed_types"))
+            this->project_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(receiver_printer.get_default_bed_type(this)));
 
         break;
     }

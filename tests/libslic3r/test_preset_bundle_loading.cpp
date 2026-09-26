@@ -231,6 +231,7 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
     printer.config.option<ConfigOptionString>("printer_model")->value = "TEST-MODEL";
     printer.config.option<ConfigOptionString>("printer_variant")->value = "0.4";
     printer.config.option<ConfigOptionString>("default_bed_type")->value = "Engineering Plate";
+    printer.config.option<ConfigOptionBool>("support_multi_bed_types")->value = true;
 
     AppConfig app_config;
     app_config.set("curr_bed_type", std::to_string(static_cast<int>(btPTE)));
@@ -253,12 +254,50 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
         app_config.set_printer_setting("Test Printer", "curr_bed_type",
                                        std::to_string(static_cast<int>(expected_bed_type)));
     }
+    // A saved bed type is only meaningful on a printer that actually offers a choice; without
+    // that support the saved selection must not carry over (regression: #15792).
+    SECTION("Printer without multi-bed-type support ignores a saved selection") {
+        printer.config.option<ConfigOptionBool>("support_multi_bed_types")->value = false;
+        expected_bed_type = btEP; // falls back to default_bed_type, not the saved btPTE
+        app_config.set("presets", PRESET_PRINTER_NAME, "Test Printer");
+        app_config.set_printer_setting("Test Printer", "curr_bed_type",
+                                       std::to_string(static_cast<int>(btPCT)));
+    }
 
     bundle.load_selections(app_config, preferred_selection);
     bundle.export_selections(app_config);
 
     CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
     CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
+}
+
+// A project file's curr_bed_type must not silently override the receiving printer's own
+// temperatures when that printer doesn't offer a choice of plates (regression: #15792).
+TEST_CASE("Loading a project ignores curr_bed_type on a printer without multi-bed-type support", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    // load_config_file_config() re-resolves the printer preset from the file's own
+    // printer_settings_id, so the receiver's flags have to live on a preset registered under
+    // that name rather than on whatever happens to be the bundle's edited preset beforehand.
+    Preset& printer = add_inmemory_preset(bundle.printers, "Test Printer");
+    printer.is_system = true;
+    printer.config.option<ConfigOptionString>("default_bed_type")->value = "Engineering Plate";
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000" };
+    config.opt_string("printer_settings_id", true) = "Test Printer";
+    config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(BedType::btPTE));
+
+    SECTION("unsupported: falls back to the printer's own default") {
+        printer.config.option<ConfigOptionBool>("support_multi_bed_types")->value = false;
+        bundle.load_config_model("test.3mf", config);
+        CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == BedType::btEP);
+    }
+    SECTION("supported: the file's bed type crosses over") {
+        printer.config.option<ConfigOptionBool>("support_multi_bed_types")->value = true;
+        bundle.load_config_model("test.3mf", config);
+        CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == BedType::btPTE);
+    }
 }
 
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")
