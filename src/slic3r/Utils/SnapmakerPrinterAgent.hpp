@@ -20,6 +20,7 @@ public:
 private:
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
+    std::string find_closest_filament_preset(const std::string& vendor_name, const std::string& filament_type, const std::string& filament_subtype, const std::string& color_rgba);
 };
 
 } // namespace Slic3r
