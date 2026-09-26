@@ -7674,11 +7674,13 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("independent_wipe_tower_x", coFloats);
     def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionFloats{});
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{});
 
     def = this->add("independent_wipe_tower_y", coFloats);
     def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionFloats{});
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{});
 
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");

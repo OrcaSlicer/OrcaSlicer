@@ -792,8 +792,8 @@ TEST_CASE("Independent prime towers cannot be combined with the multimaterial to
 TEST_CASE("Independent prime towers honour a stored position after slicing", "[WipeTower]")
 {
     DynamicPrintConfig config = independent_tower_config();
-    config.set_key_value("independent_wipe_tower_x", new ConfigOptionFloats{ 20., 90. });
-    config.set_key_value("independent_wipe_tower_y", new ConfigOptionFloats{ 30., 40. });
+    config.set_key_value("independent_wipe_tower_x", new ConfigOptionFloatsNullable{ 20., 90. });
+    config.set_key_value("independent_wipe_tower_y", new ConfigOptionFloatsNullable{ 30., 40. });
     Print print;
     Model model;
     slice_prime_tower(config, print, model);
@@ -814,6 +814,19 @@ TEST_CASE("Independent prime towers honour a stored position after slicing", "[W
     }
     CHECK(saw_first);
     CHECK(saw_second);
+}
+
+TEST_CASE("Independent wipe tower holes serialize without throwing Serializing NaN", "[WipeTower]")
+{
+    ConfigOptionFloatsNullable stored;
+    stored.values = { std::numeric_limits<double>::quiet_NaN(), 20. };
+    std::string text;
+    REQUIRE_NOTHROW(text = stored.serialize());
+    CHECK(text.find("nil") != std::string::npos);
+
+    ConfigOptionFloats non_nullable;
+    non_nullable.values = { std::numeric_limits<double>::quiet_NaN(), 1. };
+    REQUIRE_NOTHROW(non_nullable.serialize());
 }
 
 TEST_CASE("Independent prime tower toolchanges stay on their own filament", "[WipeTower]")
@@ -924,8 +937,8 @@ TEST_CASE("Independent rib towers at the bed edge stay inside the printable area
                                     { "prime_tower_brim_width", "5" },
                                     { "prime_tower_width", "30" },
                                     { "printable_area", "0x0,200x0,200x200,0x200" } });
-    config.set_key_value("independent_wipe_tower_x", new ConfigOptionFloats{ 160., 20. });
-    config.set_key_value("independent_wipe_tower_y", new ConfigOptionFloats{ 160., 20. });
+    config.set_key_value("independent_wipe_tower_x", new ConfigOptionFloatsNullable{ 160., 20. });
+    config.set_key_value("independent_wipe_tower_y", new ConfigOptionFloatsNullable{ 160., 20. });
     Print print;
     Model model;
     REQUIRE_NOTHROW(slice_prime_tower(config, print, model));

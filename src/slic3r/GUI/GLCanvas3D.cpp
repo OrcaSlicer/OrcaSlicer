@@ -2991,8 +2991,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 if (independent && plate_extruders.size() > 1) {
                     const float spacing = independent_wipe_tower_spacing(float(wipe_tower_size(0)), brim_width);
                     const Vec2f base(x, y);
-                    const auto *ix = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_x");
-                    const auto *iy = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_y");
+                    const auto *ix = proj_cfg.option<ConfigOptionFloatsNullable>("independent_wipe_tower_x");
+                    const auto *iy = proj_cfg.option<ConfigOptionFloatsNullable>("independent_wipe_tower_y");
                     const auto &generated = current_print->wipe_tower_data().independent_towers;
                     const Vec2d plate_size = part_plate->get_size();
                     for (size_t i = 0; i < plate_extruders.size(); ++i) {
@@ -5363,8 +5363,8 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     if (!independent_wipe_tower_origins.empty()) {
         PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
         DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
-        ConfigOptionFloats* ix = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_x", true);
-        ConfigOptionFloats* iy = proj_cfg.option<ConfigOptionFloats>("independent_wipe_tower_y", true);
+        ConfigOptionFloatsNullable* ix = proj_cfg.option<ConfigOptionFloatsNullable>("independent_wipe_tower_x", true);
+        ConfigOptionFloatsNullable* iy = proj_cfg.option<ConfigOptionFloatsNullable>("independent_wipe_tower_y", true);
         for (const auto &entry : independent_wipe_tower_origins) {
             const int plate_id = wipe_tower_object_plate_idx(entry.first);
             const int filament = independent_wipe_tower_filament_id(entry.first);

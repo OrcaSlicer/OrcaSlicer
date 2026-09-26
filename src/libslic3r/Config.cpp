@@ -548,7 +548,12 @@ std::string ConfigBase::opt_serialize(const t_config_option_key &opt_key) const
 {
     const ConfigOption* opt = this->option(opt_key);
     assert(opt != nullptr);
-    return opt->serialize();
+    try {
+        return opt->serialize();
+    } catch (const ConfigurationError &err) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to serialize '" << opt_key << "': " << err.what();
+        return {};
+    }
 }
 
 void ConfigBase::set(const std::string &opt_key, int value, bool create)
