@@ -1,9 +1,14 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <set>
@@ -17,6 +22,398 @@
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
+
+struct RibRun {
+    size_t first_layer_paths = 0;
+    size_t contact_layers = 0;
+    size_t gap_layers = 0;
+    double foot_short_span = 0;
+    double foot_long_span = 0;
+    double outer_edge_spread = 0;
+    double contact_edge_overrun = 0;
+    size_t closed_paths = 0;
+    size_t open_paths = 0;
+    size_t contact_starts = 0;
+    double body_thickness = 0;
+    double contact_width = 0;
+    size_t contact_tip_vertices = 0;
+    size_t unsupported_contact_vertices = 0;
+    size_t min_body_paths = std::numeric_limits<size_t>::max();
+    size_t supported_contact_fronts = 0;
+    double unsupported_contact_length = 0;
+    double support_top_z = 0;
+    double contact_top_z = 0;
+    size_t projection_layers = 0;
+    double projection_front_span = 0;
+    double min_projection_gap = std::numeric_limits<double>::infinity();
+};
+
+static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
+                         double thickness = 1.2, double contact_width = 1.2,
+                         int wall_count = 0, double projection_angle = 30,
+                         bool contact_percent = false, bool thickness_percent = false, double outer_width = 0.4,
+                         double contact_spacing = 8.0)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support", 1 }, { "support_type", "rib" },
+        { "rib_support_max_spacing", max_spacing },
+        { "rib_support_depth", 8.0 },
+        { "outer_wall_line_width", outer_width },
+        { "support_object_xy_distance", 0.6 }, { "support_line_width", 0.4 },
+        { "rib_support_contact_height", 0.6 }, { "rib_support_contact_spacing", contact_spacing },
+        { "tree_support_wall_count", wall_count }, { "rib_support_contact_projection_angle", projection_angle },
+        { "layer_height", 0.2 },
+    });
+    config.set_key_value("rib_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
+    config.set_key_value("rib_support_thickness", new ConfigOptionFloatOrPercent(thickness, thickness_percent));
+    Model model;
+    Print print;
+    indexed_triangle_set mesh = its_make_cube(6, 60, 60);
+    for (Vec3f &vertex : mesh.vertices)
+        vertex.x() += float(lean * vertex.z());
+    init_print({ TriangleMesh(std::move(mesh)) }, print, model, config);
+    if (paint) {
+        ModelVolume *volume = model.objects.front()->volumes.front();
+        TriangleSelector selector(volume->mesh());
+        const indexed_triangle_set &mesh = volume->mesh().its;
+        for (size_t i = 0; i < mesh.indices.size(); ++i) {
+            const auto &f = mesh.indices[i];
+            const Vec3f n = (mesh.vertices[f(1)] - mesh.vertices[f(0)]).cross(
+                            mesh.vertices[f(2)] - mesh.vertices[f(0)]).normalized();
+            if (n.x() > 0.9f)
+                selector.set_facet(i, EnforcerBlockerType::ENFORCER);
+        }
+        REQUIRE(volume->supported_facets.set(selector));
+    }
+    print.apply(model, config);
+    print.process();
+    const PrintObject *object = print.objects().front();
+    const auto layers = object->support_layers();
+    RibRun result;
+    if (layers.empty())
+        return result;
+    result.first_layer_paths = layers.front()->support_fills.entities.size();
+    for (const ExPolygon &island : layers.front()->support_islands) {
+        const Vec2d size = unscale(get_extents(island).size());
+        result.foot_short_span = std::max(result.foot_short_span, std::min(size.x(), size.y()));
+        result.foot_long_span = std::max(result.foot_long_span, std::max(size.x(), size.y()));
+    }
+    double min_outer = std::numeric_limits<double>::infinity();
+    double max_outer = -std::numeric_limits<double>::infinity();
+    const auto model_layers = object->layers();
+    const double rib_half_width = 0.5 * support_material_flow(object).width();
+    const SupportLayer *previous_layer = nullptr;
+    for (const SupportLayer *layer : layers) {
+        result.support_top_z = std::max(result.support_top_z, layer->print_z);
+        Points points;
+        layer->support_fills.collect_points(points);
+        if (points.empty())
+            continue;
+        const coord_t min_x = std::min_element(points.begin(), points.end(),
+            [](const Point &a, const Point &b) { return a.x() < b.x(); })->x();
+        const auto model_layer = std::find_if(model_layers.begin(), model_layers.end(),
+            [layer](const Layer *candidate) { return std::abs(candidate->print_z - layer->print_z) < 1e-6; });
+        REQUIRE(model_layer != model_layers.end());
+        const BoundingBox model_bounds = get_extents((*model_layer)->lslices);
+        const coord_t face_x = model_bounds.max.x();
+        const double distance = unscale<double>(min_x - face_x) - rib_half_width;
+        result.contact_layers += distance < 0.01;
+        if (distance < 0.01)
+            result.contact_top_z = std::max(result.contact_top_z, layer->print_z);
+        result.gap_layers += distance > 0.4;
+        if (layer != layers.front()) {
+            if (distance > 0.4)
+                result.min_body_paths = std::min(result.min_body_paths, layer->support_fills.entities.size());
+            for (const ExtrusionEntity *entity : layer->support_fills.entities) {
+                const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+                REQUIRE(path != nullptr);
+                result.closed_paths += (path->first_point() - path->last_point()).squaredNorm() == 0;
+                result.open_paths += (path->first_point() - path->last_point()).squaredNorm() != 0;
+                result.contact_starts += unscale<double>(path->first_point().x() - face_x) < 1.0;
+                const Polyline ring_path = path->polyline.to_polyline();
+                const Points &ring = ring_path.points;
+                const BoundingBox bounds = get_extents(ring);
+                const double front_gap = unscale<double>(bounds.min.x() - face_x) - rib_half_width;
+                if (front_gap > 0.01 && front_gap < 0.4) {
+                    result.min_projection_gap = std::min(result.min_projection_gap, front_gap);
+                    double front_min_y = std::numeric_limits<double>::infinity();
+                    double front_max_y = -std::numeric_limits<double>::infinity();
+                    for (const Point &point : ring)
+                        if (point.x() == bounds.min.x()) {
+                            front_min_y = std::min(front_min_y, unscale<double>(point.y()));
+                            front_max_y = std::max(front_max_y, unscale<double>(point.y()));
+                        }
+                    ++result.projection_layers;
+                    result.projection_front_span = std::max(result.projection_front_span, front_max_y - front_min_y);
+                }
+                if (unscale<double>(bounds.min.x() - face_x) - rib_half_width > 0.4)
+                    result.body_thickness = std::max(result.body_thickness, unscale<double>(bounds.size().y()) + 2 * rib_half_width);
+                double front_min = std::numeric_limits<double>::infinity();
+                double front_max = -std::numeric_limits<double>::infinity();
+                for (const Point &point : ring) {
+                    if (unscale<double>(point.x() - face_x) - rib_half_width < 0.01) {
+                        front_min = std::min(front_min, unscale<double>(point.y()));
+                        front_max = std::max(front_max, unscale<double>(point.y()));
+                    }
+                }
+                if (front_max >= front_min) {
+                    result.contact_width = std::max(result.contact_width, front_max - front_min);
+                }
+                if (previous_layer != nullptr) {
+                    const ExPolygons supporting_area = offset_ex(previous_layer->support_islands, float(SCALED_EPSILON));
+                    for (const Point &point : ring) {
+                        if (std::abs(unscale<double>(point.x() - face_x) - rib_half_width) >= 0.01)
+                            continue;
+                        ++result.contact_tip_vertices;
+                        const bool supported = std::any_of(supporting_area.begin(), supporting_area.end(),
+                            [&point](const ExPolygon &area) { return area.contains(point); });
+                        result.unsupported_contact_vertices += !supported;
+                    }
+                    for (size_t i = 1; i < ring.size(); ++i) {
+                        const double a_gap = unscale<double>(ring[i - 1].x() - face_x) - rib_half_width;
+                        const double b_gap = unscale<double>(ring[i].x() - face_x) - rib_half_width;
+                        if (std::abs(a_gap) >= 0.01 || std::abs(b_gap) >= 0.01)
+                            continue;
+                        Polyline front;
+                        front.points = {ring[i - 1], ring[i]};
+                        ++result.supported_contact_fronts;
+                        for (const Polyline &unsupported : diff_pl(Polylines{front}, supporting_area))
+                            result.unsupported_contact_length += unscale<double>(unsupported.length());
+                    }
+                }
+            }
+            for (const Point &point : points) {
+                if (unscale<double>(point.x() - face_x) - rib_half_width < 0.2) {
+                    const double clearance = std::min(unscale<double>(point.y() - model_bounds.min.y()),
+                                                      unscale<double>(model_bounds.max.y() - point.y()));
+                    result.contact_edge_overrun = std::max(result.contact_edge_overrun, rib_half_width - clearance);
+                }
+            }
+            const coord_t outer_x = std::max_element(points.begin(), points.end(),
+                [](const Point &a, const Point &b) { return a.x() < b.x(); })->x();
+            min_outer = std::min(min_outer, unscale<double>(outer_x));
+            max_outer = std::max(max_outer, unscale<double>(outer_x));
+        }
+        previous_layer = layer;
+    }
+    result.outer_edge_spread = max_outer - min_outer;
+    return result;
+}
+
+TEST_CASE("Rib support does not create contacts without painted sides", "[SupportMaterial]")
+{
+    REQUIRE(slice_ribs(20, false).first_layer_paths == 0);
+}
+
+TEST_CASE("More ribs cover a long painted side when maximum spacing decreases", "[SupportMaterial]")
+{
+    const size_t sparse = slice_ribs(30).first_layer_paths;
+    const size_t dense = slice_ribs(10).first_layer_paths;
+    REQUIRE(sparse > 0);
+    REQUIRE(dense > sparse);
+}
+
+TEST_CASE("Rib support alternates painted side contacts with side gaps", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.gap_layers > 0);
+}
+
+TEST_CASE("Rib support has a filled first-layer foot", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(100);
+    REQUIRE(result.foot_short_span > 3.0);
+    REQUIRE(result.foot_long_span > 7.0);
+}
+
+TEST_CASE("Rib outer edge stays vertical while contacts fit a leaning wall", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20, true, 0.2);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.gap_layers > 0);
+    REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Rib contact bead stays inside the wall edges", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.contact_edge_overrun < 0.0001);
+}
+
+TEST_CASE("Rib layers print closed outlines starting away from contacts", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20);
+    REQUIRE(result.closed_paths > 0);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+}
+
+TEST_CASE("Rib geometry uses separate body thickness and contact width", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20, true, 0, 2.4, 1.2);
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(2.4, 0.02));
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(1.2, 0.02));
+}
+
+TEST_CASE("Rib wall loops use the requested count with a minimum of one", "[SupportMaterial]")
+{
+    const size_t one = slice_ribs(20, true, 0, 3.2, 3.2, 1).min_body_paths;
+    REQUIRE(one > 0);
+    REQUIRE(one != std::numeric_limits<size_t>::max());
+    REQUIRE(slice_ribs(20, true, 0, 3.2, 3.2, 0).min_body_paths == one);
+    REQUIRE(slice_ribs(20, true, 0, 3.2, 3.2, 2).min_body_paths == 2 * one);
+    REQUIRE(slice_ribs(20, true, 0, 3.2, 3.2, 3).min_body_paths == 3 * one);
+}
+
+TEST_CASE("Thin ribs retain the loops that fit and omit the rest", "[SupportMaterial]")
+{
+    const RibRun one = slice_ribs(20, true, 0, 1.2, 1.2, 1);
+    const RibRun three = slice_ribs(20, true, 0, 1.2, 1.2, 3);
+    REQUIRE(one.min_body_paths > 0);
+    REQUIRE(one.min_body_paths != std::numeric_limits<size_t>::max());
+    REQUIRE(three.min_body_paths == one.min_body_paths);
+    REQUIRE(three.contact_layers == one.contact_layers);
+}
+
+TEST_CASE("Rib contact front paths overlap the extrusion on the layer below", "[SupportMaterial]")
+{
+    const double angle = GENERATE(60., 80., 90.);
+    const double contact_width = GENERATE(0., 0.1, 0.2, 1.2);
+    const RibRun result = slice_ribs(20, true, 0, 1.2, contact_width, 1, angle);
+    REQUIRE(result.contact_tip_vertices > 0);
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.unsupported_contact_length < 0.001);
+    if (contact_width > 0)
+        REQUIRE(result.supported_contact_fronts > 0);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+}
+
+TEST_CASE("Rib contact spans preserve positive widths below one extrusion line", "[SupportMaterial]")
+{
+    const double contact_width = GENERATE(0., 0.05, 0.1, 0.2, 0.4, 0.8);
+    const RibRun result = slice_ribs(20, true, 0, 2.4, contact_width, 3);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.contact_tip_vertices > 0);
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(contact_width, 0.001));
+    REQUIRE(result.contact_edge_overrun < 0.0001);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(2.4, 0.02));
+}
+
+TEST_CASE("Rib contact projection angle controls how quickly the side gap returns", "[SupportMaterial]")
+{
+    const RibRun normal = slice_ribs(20, true, 0, 1.2, 1.2, 1, 0);
+    const RibRun downward = slice_ribs(20, true, 0, 1.2, 1.2, 1, 80);
+    REQUIRE(normal.contact_layers > 0);
+    REQUIRE(downward.contact_layers == normal.contact_layers);
+    REQUIRE(normal.gap_layers > downward.gap_layers);
+    REQUIRE(normal.gap_layers > 0);
+    REQUIRE(normal.projection_layers == 0);
+    REQUIRE(normal.unsupported_contact_vertices > 0);
+    REQUIRE(normal.open_paths == 0);
+}
+
+TEST_CASE("Rib projections use the requested angle without a line width retreat cap", "[SupportMaterial]")
+{
+    // With 0.2mm layers and 0.4mm lines, a 30-degree projection advances
+    // 0.2 * cot(30) = 0.3464mm, beyond the former half-line (0.2mm) cap.
+    const RibRun result = slice_ribs(20, true, 0, 2.4, 0.1, 1, 30);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.min_projection_gap,
+                 Catch::Matchers::WithinAbs(0.2 / std::tan(M_PI / 6), 0.001));
+    REQUIRE(result.unsupported_contact_vertices > 0);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Surface normal contact projections preserve the selected rib height", "[SupportMaterial]")
+{
+    const double lean = GENERATE(0., 0.2);
+    const double angle = GENERATE(0., 0.001, 0.01, 0.1, 1., 79., 80., 90.);
+    const RibRun reference = slice_ribs(20, true, lean, 2.4, 0.1, 1, 30);
+    const RibRun result = slice_ribs(20, true, lean, 2.4, 0.1, 1, angle);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
+    REQUIRE_THAT(result.contact_top_z, Catch::Matchers::WithinAbs(reference.contact_top_z, 0.001));
+    REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Contact projections merge into the body without lowering the rib", "[SupportMaterial]")
+{
+    // A 0.6mm side gap retracts over about 2mm at this angle. Perturb the
+    // layer alignment to cover very short residual sections at the merge.
+    const double angle = GENERATE(73.29, 73.30, 73.31);
+    const RibRun reference = slice_ribs(20, true, 0, 2.4, 0.1, 1, 30);
+    const RibRun result = slice_ribs(20, true, 0, 2.4, 0.1, 1, angle);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(result.contact_layers == reference.contact_layers);
+    REQUIRE(result.gap_layers > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Overlapping rib contact projections remain supported on all bands", "[SupportMaterial]")
+{
+    // At 80 degrees from a vertical wall's normal, retracting the 0.6mm
+    // gap needs about 3.4mm, exceeding these contact band spacings.
+    const double spacing = GENERATE(2., 3.);
+    const RibRun result = slice_ribs(20, true, 0, 2.4, 0.1, 3, 80, false, false, 0.4, spacing);
+    REQUIRE(result.contact_layers > 3);
+    REQUIRE(result.supported_contact_fronts > 0);
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.unsupported_contact_length < 0.001);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+    REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Rib percentages resolve against the outer wall width", "[SupportMaterial]")
+{
+    // 50% of 0.6mm is 0.3mm; 200% is 1.2mm. Support lines remain 0.4mm.
+    const RibRun result = slice_ribs(20, true, 0, 200, 50, 1, 30, true, true, 0.6);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.3, 0.001));
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
+}
+
+TEST_CASE("Rib defaults use full outer wall contact length and absolute thickness", "[SupportMaterial]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const auto *contact = config.option<ConfigOptionFloatOrPercent>("rib_support_contact_width");
+    const auto *thickness = config.option<ConfigOptionFloatOrPercent>("rib_support_thickness");
+    REQUIRE(contact->percent);
+    REQUIRE_FALSE(thickness->percent);
+    REQUIRE_THAT(contact->value, Catch::Matchers::WithinAbs(100, 0.001));
+    REQUIRE_THAT(thickness->value, Catch::Matchers::WithinAbs(1.2, 0.001));
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 100, 1, 30, true, false, 0.6);
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.6, 0.001));
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
+    // Old project values without a percent suffix remain absolute millimeters.
+    config.set_deserialize("rib_support_contact_width", "0.2");
+    config.set_deserialize("rib_support_thickness", "1.4");
+    contact = config.option<ConfigOptionFloatOrPercent>("rib_support_contact_width");
+    thickness = config.option<ConfigOptionFloatOrPercent>("rib_support_thickness");
+    REQUIRE_FALSE(contact->percent);
+    REQUIRE_FALSE(thickness->percent);
+    REQUIRE_THAT(contact->get_abs_value(0.6), Catch::Matchers::WithinAbs(0.2, 0.001));
+    REQUIRE_THAT(thickness->get_abs_value(0.6), Catch::Matchers::WithinAbs(1.4, 0.001));
+}
+
+TEST_CASE("Rib projections retain just the projected front segment or point", "[SupportMaterial]")
+{
+    const double length = GENERATE(0., 0.1, 0.2);
+    const RibRun result = slice_ribs(20, true, 0, 2.4, length, 1, 60);
+    REQUIRE(result.projection_layers > 0);
+    REQUIRE_THAT(result.projection_front_span, Catch::Matchers::WithinAbs(length, 0.001));
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.unsupported_contact_length < 0.001);
+}
 
 // Distinct layer Z heights carrying support interface extrusion.
 static size_t support_interface_layer_count(const std::string &gcode)

@@ -930,6 +930,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;
     bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
+    bool support_is_rib = support_type == stRib;
+    toggle_line("support_style", !support_is_rib);
+    for (auto el : { "rib_support_contact_height", "rib_support_contact_width", "rib_support_thickness", "rib_support_contact_spacing", "rib_support_contact_projection_angle", "rib_support_depth", "rib_support_max_spacing" })
+        toggle_line(el, have_support_material && support_is_rib);
     for (auto el : { "support_style", "support_base_pattern",
         "support_base_pattern_spacing", "support_expansion", "support_angle",
         "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
@@ -937,8 +941,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
         "support_object_xy_distance", "support_object_first_layer_gap", "independent_support_layer_height"})
         toggle_field(el, have_support_material);
-    toggle_field("support_threshold_angle", have_support_material && is_auto(support_type));
-    toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type));
+    for (auto el : { "support_base_pattern", "support_base_pattern_spacing", "support_expansion",
+                     "support_angle", "support_interface_pattern", "support_interface_top_layers",
+                     "support_interface_bottom_layers", "support_top_z_distance", "support_bottom_z_distance",
+                     "support_on_build_plate_only", "support_critical_regions_only" })
+        toggle_field(el, have_support_material && !support_is_rib);
+    toggle_field("support_threshold_angle", have_support_material && is_auto(support_type) && !support_is_rib);
+    toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type) && !support_is_rib);
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);

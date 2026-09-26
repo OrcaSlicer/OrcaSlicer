@@ -383,7 +383,8 @@ static t_config_enum_values s_keys_map_SupportType{
     { "normal(auto)",   stNormalAuto },
     { "tree(auto)", stTreeAuto },
     { "normal(manual)", stNormal },
-    { "tree(manual)", stTree }
+    { "tree(manual)", stTree },
+    { "rib", stRib }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportType)
 
@@ -6798,17 +6799,20 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_type", coEnum);
     def->label = L("Type");
     def->category = L("Support");
-    def->tooltip = L("Normal (auto) and Tree (auto) are used to generate support automatically. "
-                     "If Normal (manual) or Tree (manual) is selected, only support enforcers are generated.");
+    def->tooltip = L("Normal (auto) and Tree (auto) generate support automatically. "
+                     "Normal (manual) and Tree (manual) use support enforcers. "
+                     "Rib generates thin, bed-anchored braces with intermittent contacts on painted side faces.");
     def->enum_keys_map = &ConfigOptionEnum<SupportType>::get_enum_values();
     def->enum_values.push_back("normal(auto)");
     def->enum_values.push_back("tree(auto)");
     def->enum_values.push_back("normal(manual)");
     def->enum_values.push_back("tree(manual)");
+    def->enum_values.push_back("rib");
     def->enum_labels.push_back(L("Normal (auto)"));
     def->enum_labels.push_back(L("Tree (auto)"));
     def->enum_labels.push_back(L("Normal (manual)"));
     def->enum_labels.push_back(L("Tree (manual)"));
+    def->enum_labels.push_back(L("Rib"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
@@ -7117,6 +7121,80 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));
 
+    def = this->add("rib_support_contact_height", coFloat);
+    def->label = L("Rib contact height");
+    def->category = L("Support");
+    def->tooltip = L("Height of each intermittent side contact between a rib and the painted model surface.");
+    def->sidetext = L("mm");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.6));
+
+    def = this->add("rib_support_contact_width", coFloatOrPercent);
+    def->label = L("Rib contact length");
+    def->category = L("Support");
+    def->tooltip = L("Contact length along the painted model surface, in millimeters or as a percentage of that region's outer-wall line width. The front centerline segment has this length; only 0 makes a pointed contact. Its endpoints connect to the rib's inner corners. Must not exceed rib thickness. The physical contact depends on extrusion.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "outer_wall_line_width";
+    def->min = 0;
+    def->max = 1000;
+    def->max_literal = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+
+    def = this->add("rib_support_thickness", coFloatOrPercent);
+    def->label = L("Rib thickness");
+    def->category = L("Support");
+    def->tooltip = L("Geometric thickness of the rib body, in millimeters or as a percentage of the painted region's outer-wall line width. Support wall loops controls the number of closed outlines, with at least one loop. Loops that do not fit are omitted. Must fit two extrusion lines.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "outer_wall_line_width";
+    def->min = 0.1;
+    def->max = 1000;
+    def->max_literal = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(1.2, false));
+
+    def = this->add("rib_support_contact_spacing", coFloat);
+    def->label = L("Rib contact spacing");
+    def->category = L("Support");
+    def->tooltip = L("Vertical distance between side contact bands. Contacts are only placed on painted faces.");
+    def->sidetext = L("mm");
+    def->min = 1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(8));
+
+    def = this->add("rib_support_contact_projection_angle", coFloat);
+    def->label = L("Rib contact projection angle");
+    def->category = L("Support");
+    def->tooltip = L("Angle rotated downward from the outward surface normal at each contact band's lowest layer, from 0 to 90 degrees. On a vertical wall, 0 is horizontal and creates no lower-layer projection; 90 projects vertically. Inclined walls use their actual surface normal. The specified direction is not limited by extrusion overlap or clamped to vertical. Horizontal or upward directions do not intersect lower layers. The projection is clipped against the model and build plate and stops when absorbed into the rib body, removed by clipping, or at the build plate.");
+    def->sidetext = u8"°";
+    def->min = 0;
+    def->max = 90;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(30));
+
+    def = this->add("rib_support_depth", coFloat);
+    def->label = L("Top layer depth");
+    def->category = L("Support");
+    def->tooltip = L("Outward depth of the rib at its top layer. The outer edge is projected vertically toward the bed; lower layers fit the model surface without translating the rib.");
+    def->sidetext = L("mm");
+    def->min = 2;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(4));
+
+    def = this->add("rib_support_max_spacing", coFloat);
+    def->label = L("Maximum rib spacing");
+    def->category = L("Support");
+    def->tooltip = L("Maximum uncovered distance along a painted side before another rib is added.");
+    def->sidetext = L("mm");
+    def->min = 2;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20));
+
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");
     def->category = L("Support");
@@ -7275,9 +7353,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
     def->category = L("Support");
-    def->tooltip = L("This setting specifies the count of support walls in the range of [0,2]. 0 means auto.");
+    def->tooltip = L("Number of support wall loops. 0 means auto for tree supports. Rib supports use at least one loop; 1, 2, 3 request that many loops, and loops that do not fit are omitted.");
     def->min = 0;
-    def->max = 2;
+    def->max = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 

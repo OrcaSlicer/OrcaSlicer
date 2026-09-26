@@ -13,6 +13,7 @@
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
+#include "Support/RibSupport.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
 #include "Surface.hpp"
@@ -1334,6 +1335,13 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "support_bottom_interface_spacing" //BBS
             || opt_key == "support_base_pattern"
             || opt_key == "support_style"
+            || opt_key == "rib_support_contact_height"
+            || opt_key == "rib_support_contact_width"
+            || opt_key == "rib_support_thickness"
+            || opt_key == "rib_support_contact_spacing"
+            || opt_key == "rib_support_contact_projection_angle"
+            || opt_key == "rib_support_depth"
+            || opt_key == "rib_support_max_spacing"
             || opt_key == "support_object_xy_distance"
             || opt_key == "support_object_first_layer_gap"
             || opt_key == "support_base_pattern_spacing"
@@ -4531,7 +4539,10 @@ void PrintObject::combine_infill()
 
 void PrintObject::_generate_support_material()
 {
-    if (is_tree(m_config.support_type.value)) {
+    if (m_config.support_type.value == stRib) {
+        generate_rib_support(*this);
+    }
+    else if (is_tree(m_config.support_type.value)) {
         TreeSupport tree_support(*this, m_slicing_params);
         tree_support.throw_on_cancel = [this]() { this->throw_if_canceled(); };
         tree_support.generate();

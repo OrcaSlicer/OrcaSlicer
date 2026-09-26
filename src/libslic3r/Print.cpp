@@ -24,6 +24,7 @@
 #include "GCode/WipeTowerEstimate.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
+#include "Support/RibSupport.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "format.hpp"
@@ -2048,6 +2049,27 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 		};
         for (PrintObject *object : m_objects) {
             if (object->has_support_material()) {
+                if (object->config().support_type.value == stRib) {
+                    const PrintObjectConfig &cfg = object->config();
+                    if (object->has_raft())
+                        return { L("Rib supports require raft layers to be disabled."), object, "raft_layers" };
+                    if (cfg.rib_support_contact_height >= cfg.rib_support_contact_spacing)
+                        return { L("Rib contact height must be smaller than contact spacing."), object, "rib_support_contact_height" };
+                    if (cfg.support_object_xy_distance <= 0)
+                        return { L("Rib supports require a positive support/object XY distance."), object, "support_object_xy_distance" };
+                    const double minimum_outline_width = 2 * support_material_flow(object).width();
+                    for (size_t region_id = 0; region_id < object->num_printing_regions(); ++region_id) {
+                        const RibSupportDimensions dimensions = rib_support_dimensions(*object, object->printing_region(region_id));
+                        if (dimensions.thickness < minimum_outline_width)
+                            return { L("Rib thickness must fit two extrusion lines for a closed outline."), object, "rib_support_thickness" };
+                        if (dimensions.contact_width < 0)
+                            return { L("Rib contact length must not be negative."), object, "rib_support_contact_width" };
+                        if (dimensions.contact_width > dimensions.thickness)
+                            return { L("Rib contact length must not exceed rib thickness."), object, "rib_support_contact_width" };
+                    }
+                    if (cfg.rib_support_depth <= cfg.support_object_xy_distance + 2 * support_material_flow(object).width())
+                        return { L("Top layer depth is too small for the selected XY distance and line width."), object, "rib_support_depth" };
+                }
                 // BBS: remove useless logics and L()
 #if 0
 				if ((object->config().support_filament == 0 || object->config().support_interface_filament == 0) && max_nozzle_diameter - min_nozzle_diameter > EPSILON) {

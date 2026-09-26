@@ -276,7 +276,7 @@ enum SupportMaterialInterfacePattern {
 
 // BBS
 enum SupportType {
-    stNormalAuto, stTreeAuto, stNormal, stTree
+    stNormalAuto, stTreeAuto, stNormal, stTree, stRib
 };
 inline bool is_tree(SupportType stype)
 {
@@ -1163,6 +1163,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloatsNullable,      support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
+    ((ConfigOptionFloat,               rib_support_contact_height))
+    ((ConfigOptionFloatOrPercent,      rib_support_contact_width))
+    ((ConfigOptionFloatOrPercent,      rib_support_thickness))
+    ((ConfigOptionFloat,               rib_support_contact_spacing))
+    ((ConfigOptionFloat,               rib_support_contact_projection_angle))
+    ((ConfigOptionFloat,               rib_support_depth))
+    ((ConfigOptionFloat,               rib_support_max_spacing))
 
     // Orca: a flag enabling the ability to override flow ratios
     ((ConfigOptionBool,     set_other_flow_ratios))

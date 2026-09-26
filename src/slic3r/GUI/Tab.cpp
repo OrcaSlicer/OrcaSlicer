@@ -2985,6 +2985,13 @@ void TabPrint::build()
         optgroup->append_single_option_line("enable_support", "support_settings_support");
         optgroup->append_single_option_line("support_type", "support_settings_support#type");
         optgroup->append_single_option_line("support_style", "support_settings_support#style");
+        optgroup->append_single_option_line("rib_support_contact_height", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_contact_width", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_thickness", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_contact_spacing", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_contact_projection_angle", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_depth", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_max_spacing", "support_settings_support");
         optgroup->append_single_option_line("support_threshold_angle", "support_settings_support#threshold-angle");
         optgroup->append_single_option_line("support_threshold_overlap", "support_settings_support#threshold-overlap");
         optgroup->append_single_option_line("raft_first_layer_density", "support_settings_support#initial-layer-density");
@@ -3257,7 +3264,7 @@ void TabPrint::toggle_options()
     auto   support_type = m_config->opt_enum<SupportType>("support_type");
     if (auto choice = dynamic_cast<Choice*>(field)) {
         auto def = print_config_def.get("support_style");
-        std::vector<int> enum_set_normal = {smsDefault, smsGrid, smsSnug };
+        std::vector<int> enum_set_normal = {smsDefault, smsGrid, smsSnug};
         std::vector<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic };
         auto &           set             = is_tree(support_type) ? enum_set_tree : enum_set_normal;
         auto &           opt             = const_cast<ConfigOptionDef &>(field->m_opt);
