@@ -163,6 +163,7 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     case ipGrid:
     case ipTriangles:
     case ipStars:
+    case ipCubic:
         return multiline > 1;
     default:
         return false;

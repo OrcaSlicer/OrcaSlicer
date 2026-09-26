@@ -48,6 +48,9 @@ FillAdaptive::OctreePtr         build_octree(
     // If true, octree is densified below internal overhangs only.
     bool                         support_overhangs_only);
 
+// Multiline infill: lines of the three families to non-crossing paths d1 apart, ends reaching end_overlap into walls.
+Polylines                       multiline_paths(const Lines &lines, double d1, double end_overlap, int sweep, const BoundingBox &cover);
+
 //
 // Some of the algorithms used by class FillAdaptive were inspired by
 // Cura Engine's class SubDivCube
