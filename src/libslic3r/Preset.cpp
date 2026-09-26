@@ -1753,7 +1753,10 @@ void PresetCollection::load_presets(
 
                     std::string version_str = key_values[BBL_JSON_KEY_VERSION];
                     boost::optional<Semver> version = Semver::parse(version_str);
-                    if (!version) continue;
+                    if (!version) {
+                        ++m_errors;
+                        continue;
+                    }
                     preset.version = *version;
 
                     if (key_values.find(BBL_JSON_KEY_FILAMENT_ID) != key_values.end())
@@ -1776,6 +1779,12 @@ void PresetCollection::load_presets(
                         Preset::normalize_inherits(config, inherit_preset);
                     } else {
                         ;
+                    }
+                    // Local hot reload only supports FFF; no SLA default printer is installed.
+                    if (read_only && resolved_origin.kind == PresetOrigin::Kind::LocalBundle && m_type == Preset::TYPE_PRINTER &&
+                        Preset::printer_technology(config) != ptFFF) {
+                        ++m_errors;
+                        continue;
                     }
                     const Preset& default_preset = this->default_preset_for(config);
                     if (inherit_preset) {

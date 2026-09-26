@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include <future>
+#include <nlohmann/json.hpp>
 
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -102,6 +104,124 @@ struct RenameTestCollection : public PresetCollection
                            static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()))
     {}
     using PresetCollection::update_map_system_profile_renamed;
+};
+
+struct ScopedPresetDataDir
+{
+    ScopedTemporaryDir tmp{"orca-local-bundle-reload"};
+    std::string        previous{data_dir()};
+
+    ScopedPresetDataDir() { set_data_dir(tmp.path().string()); }
+    ~ScopedPresetDataDir() { set_data_dir(previous); }
+
+    fs::path bundle_dir(const std::string& id) const
+    {
+        return tmp.path() / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_LOCAL_DIR / id;
+    }
+};
+
+void write_bundle_metadata(const fs::path& bundle_dir, const std::string& id)
+{
+    fs::create_directories(bundle_dir);
+    std::ofstream((bundle_dir / PRESET_BUNDLE_METADATA).string()) << "{\"id\":\"" << id << "\"}";
+}
+
+void write_print_preset_with_layer_height(const DynamicPrintConfig& default_config, const fs::path& file,
+                                          const std::string& name, double layer_height)
+{
+    DynamicPrintConfig config(default_config);
+    config.option<ConfigOptionString>("print_settings_id", true)->value = name;
+    config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value.clear();
+    config.option<ConfigOptionFloat>("layer_height", true)->value = layer_height;
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), name, "User", "1.0.0");
+}
+
+double layer_height(const Preset& preset)
+{
+    return preset.config.option<ConfigOptionFloat>("layer_height")->value;
+}
+
+// The first copy snapshots the dirty edit; cloning that snapshot replays the edit after source loading.
+// This exercises late failures and concurrent metadata updates without a production test hook.
+struct ReloadEdit : ConfigOptionString
+{
+    std::function<void()> on_restore;
+    bool copied = false;
+
+    explicit ReloadEdit(std::function<void()> on_restore) : ConfigOptionString("dirty start gcode"), on_restore(std::move(on_restore)) {}
+
+    ConfigOption* clone() const override
+    {
+        if (copied)
+            on_restore();
+        auto* copy   = new ReloadEdit(*this);
+        copy->copied = true;
+        return copy;
+    }
+};
+
+void check_reload_state(const PresetBundle& bundle, const PresetBundle& before)
+{
+    const PresetCollection* actual[]   = {&bundle.prints, &bundle.filaments, &bundle.printers};
+    const PresetCollection* expected[] = {&before.prints, &before.filaments, &before.printers};
+    for (size_t i = 0; i < 3; ++i) {
+        CAPTURE(i);
+        CHECK(actual[i]->get_selected_preset_name() == expected[i]->get_selected_preset_name());
+        CHECK(actual[i]->get_edited_preset().config == expected[i]->get_edited_preset().config);
+        CHECK(actual[i]->get_edited_preset().is_dirty == expected[i]->get_edited_preset().is_dirty);
+        REQUIRE(actual[i]->size() == expected[i]->size());
+        for (size_t j = 0; j < actual[i]->size(); ++j) {
+            const Preset& preset = actual[i]->get_presets()[j];
+            const Preset& old    = expected[i]->get_presets()[j];
+            CHECK(preset.name == old.name);
+            CHECK(preset.config == old.config);
+            CHECK(preset.bundle_id == old.bundle_id);
+            CHECK(preset.is_compatible == old.is_compatible);
+            CHECK(preset.is_visible == old.is_visible);
+            CHECK(preset.is_dirty == old.is_dirty);
+            CHECK(actual[i]->get_preset_name_by_alias(preset.alias) == expected[i]->get_preset_name_by_alias(old.alias));
+        }
+    }
+    CHECK(bundle.filament_presets == before.filament_presets);
+    CHECK(bundle.project_config == before.project_config);
+}
+
+struct LocalReloadFixture
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle bundle;
+    const std::string id     = "reload-target";
+    const fs::path directory = data_dir.bundle_dir(id);
+    const std::string prefix = std::string(PRESET_LOCAL_DIR) + "/" + id + "/";
+    std::string error;
+
+    LocalReloadFixture()
+    {
+        write_bundle_metadata(directory, id);
+        write_print_preset_with_layer_height(bundle.prints.default_preset().config, directory / PRESET_PRINT_NAME / "Print.json", "Print",
+                                             0.20);
+        write_preset_with_inherits(bundle.filaments.default_preset().config, directory / PRESET_FILAMENT_NAME / "Filament.json", "Filament",
+                                   "");
+        write_preset_with_inherits(bundle.printers.default_preset().config, directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+        REQUIRE(bundle.reload_local_bundle("", id, &error));
+        bundle.prints.select_preset_by_name(prefix + "Print", true);
+        bundle.filaments.select_preset_by_name(prefix + "Filament", true);
+        bundle.printers.select_preset_by_name(prefix + "Printer", true);
+        bundle.filament_presets = {prefix + "Filament"};
+        bundle.update_compatible(PresetSelectCompatibleType::Never);
+    }
+
+    void change_sources()
+    {
+        write_print_preset_with_layer_height(bundle.prints.default_preset().config, directory / PRESET_PRINT_NAME / "Print.json", "Print",
+                                             0.30);
+        write_preset_with_inherits(bundle.filaments.default_preset().config, directory / PRESET_FILAMENT_NAME / "Added Filament.json",
+                                   "Added Filament", "");
+        write_preset_with_inherits(bundle.printers.default_preset().config, directory / PRESET_PRINTER_NAME / "Added Printer.json",
+                                   "Added Printer", "");
+        std::ofstream((directory / PRESET_BUNDLE_METADATA).string()) << "{\"id\":\"" << id << "\",\"version\":\"2.0.0\"}";
+    }
 };
 
 } // namespace
@@ -221,6 +341,431 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
 
     config.set_key_value("nozzle_diameter", new ConfigOptionFloats({ 0.4, 0.6 }));
     CHECK(bundle.get_printer_extruder_count() == 2);
+}
+
+TEST_CASE("Reloading one local bundle preserves unrelated and modified presets", "[Preset][Bundle]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    const std::string   id = "reload-target";
+    const fs::path      bundle_dir = data_dir.bundle_dir(id);
+    const fs::path      process_file = bundle_dir / PRESET_PRINT_NAME / "Managed Print.json";
+    const std::string   target_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Print";
+    std::string         error;
+
+    write_bundle_metadata(bundle_dir, id);
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config, process_file, "Managed Print", 0.20);
+    write_preset_with_inherits(bundle.filaments.default_preset().config,
+                               bundle_dir / PRESET_FILAMENT_NAME / "Managed Filament.json", "Managed Filament", "");
+    write_preset_with_inherits(bundle.printers.default_preset().config,
+                               bundle_dir / PRESET_PRINTER_NAME / "Managed Printer.json", "Managed Printer", "");
+
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    const Preset* target = bundle.prints.find_preset(target_name, false, true);
+    REQUIRE(target != nullptr);
+    CHECK(target->bundle_id == id);
+    CHECK_FALSE(target->is_user());
+    REQUIRE(bundle.filaments.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament") != nullptr);
+    REQUIRE(bundle.printers.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer") != nullptr);
+    CHECK(bundle.prints.get_preset_name_by_alias("Managed Print") == target_name);
+    CHECK(bundle.filaments.get_preset_name_by_alias("Managed Filament") ==
+          std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament");
+    CHECK(bundle.printers.get_preset_name_by_alias("Managed Printer") ==
+          std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer");
+
+    const std::string unrelated_name = add_inmemory_preset(bundle.prints, "Unrelated Process").name;
+    bundle.prints.select_preset_by_name(unrelated_name, true);
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config, process_file, "Managed Print", 0.25);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.get_selected_preset_name() == unrelated_name);
+    target = bundle.prints.find_preset(target_name, false, true);
+    REQUIRE(target != nullptr);
+    CHECK_THAT(layer_height(*target), WithinAbs(0.25, 1e-6));
+
+    bundle.prints.select_preset_by_name(target_name, true);
+    bundle.prints.get_edited_preset().config.option<ConfigOptionFloat>("layer_height", true)->value = 0.33;
+    REQUIRE(bundle.prints.update_dirty());
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config, process_file, "Managed Print", 0.28);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.get_selected_preset_name() == target_name);
+    CHECK_THAT(layer_height(bundle.prints.get_selected_preset()), WithinAbs(0.28, 1e-6));
+    CHECK_THAT(layer_height(bundle.prints.get_edited_preset()), WithinAbs(0.33, 1e-6));
+    CHECK(bundle.prints.current_is_dirty());
+
+    std::ofstream(process_file.string()) << "not json";
+    CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
+    CHECK(fs::exists(process_file));
+    CHECK_THAT(layer_height(bundle.prints.get_selected_preset()), WithinAbs(0.28, 1e-6));
+    CHECK_THAT(layer_height(bundle.prints.get_edited_preset()), WithinAbs(0.33, 1e-6));
+
+    bundle.prints.discard_current_changes();
+    REQUIRE(fs::remove_all(process_file.parent_path()) > 0);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.find_preset(target_name, false, true) == nullptr);
+    CHECK(bundle.prints.get_selected_preset_name() != target_name);
+    CHECK(bundle.filaments.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament") != nullptr);
+    CHECK(bundle.printers.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer") != nullptr);
+
+    const std::string filament_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament";
+    const std::string printer_name  = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer";
+    bundle.filaments.select_preset_by_name(filament_name, true);
+    bundle.printers.select_preset_by_name(printer_name, true);
+    bundle.filament_presets = { filament_name };
+    REQUIRE(fs::remove_all(bundle_dir / PRESET_FILAMENT_NAME) > 0);
+    REQUIRE(fs::remove_all(bundle_dir / PRESET_PRINTER_NAME) > 0);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.filaments.get_selected_preset_name() != filament_name);
+    CHECK(bundle.printers.get_selected_preset_name() != printer_name);
+    REQUIRE(bundle.filament_presets.size() == 1);
+    CHECK(bundle.filament_presets.front() != filament_name);
+    CHECK(bundle.filaments.find_preset(bundle.filament_presets.front(), false) != nullptr);
+}
+
+TEST_CASE("Reloading a local bundle resolves a loaded parent preset", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    const std::string   id = "inherited-target";
+    const fs::path      bundle_dir = data_dir.bundle_dir(id);
+    const std::string   parent_name = "Generic ABS @System";
+    const std::string   target_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament";
+    std::string         error;
+
+    add_inmemory_preset(bundle.filaments, parent_name);
+    write_bundle_metadata(bundle_dir, id);
+    write_preset_with_inherits(bundle.filaments.default_preset().config,
+                               bundle_dir / PRESET_FILAMENT_NAME / "Managed Filament.json", "Managed Filament", parent_name);
+
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    const Preset* target = bundle.filaments.find_preset(target_name, false, true);
+    REQUIRE(target != nullptr);
+    CHECK(target->inherits() == parent_name);
+}
+
+TEST_CASE("Reloading a local bundle rejects unsafe source and inheritance changes", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    const std::string   id = "guarded-target";
+    const fs::path      bundle_dir = data_dir.bundle_dir(id);
+    const std::string   target_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Print";
+    std::string         error;
+
+    write_bundle_metadata(bundle_dir, id);
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config,
+                                         bundle_dir / PRESET_PRINT_NAME / "Managed Print.json", "Managed Print", 0.20);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+
+    add_inmemory_preset(bundle.prints, "External Child", target_name);
+    CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
+    CHECK(error.find("External Child") != std::string::npos);
+    CHECK(bundle.prints.find_preset(target_name, false, true) != nullptr);
+
+    for (auto it = bundle.prints.begin(); it != bundle.prints.end(); ++it) {
+        if (it->name == "External Child") {
+            bundle.prints.erase(it);
+            break;
+        }
+    }
+    fs::remove_all(bundle_dir);
+    CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.find_preset(target_name, false, true) != nullptr);
+    CHECK_FALSE(bundle.reload_local_bundle("", "../outside", &error));
+    CHECK(error == "Local bundle id must be a single path component");
+    CHECK_FALSE(bundle.reload_local_bundle("../outside", id, &error));
+    CHECK(error == "Preset folder must be a single path component");
+#ifdef _WIN32
+    CHECK_FALSE(bundle.reload_local_bundle("", "C:", &error));
+    CHECK(error == "Local bundle id must be a single path component");
+#endif
+}
+
+TEST_CASE("A failure while restoring dirty edits leaves the whole local bundle unchanged", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    bool restored = false;
+    f.bundle.printers.get_edited_preset().config.set_key_value("machine_start_gcode", new ReloadEdit([&] {
+                                                                   restored = true;
+                                                                   throw std::bad_alloc();
+                                                               }));
+    f.bundle.printers.update_dirty();
+    const PresetBundle before(f.bundle);
+    const BundleMetadata metadata = f.bundle.bundles.m_bundles.at(f.id);
+    const fs::path local_dir      = f.bundle.dir_user_presets_local;
+    f.change_sources();
+
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    REQUIRE(restored);
+    CHECK_THAT(f.error, Catch::Matchers::ContainsSubstring("Failed to reload"));
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.dir_user_presets_local == local_dir);
+    const auto& after = f.bundle.bundles.m_bundles.at(f.id);
+    CHECK(after.version == metadata.version);
+    CHECK(after.path == metadata.path);
+    CHECK(after.bundle_type == metadata.bundle_type);
+    CHECK(after.print_presets == metadata.print_presets);
+    CHECK(after.filament_presets == metadata.filament_presets);
+    CHECK(after.printer_presets == metadata.printer_presets);
+    CHECK(fs::exists(f.directory / PRESET_FILAMENT_NAME / "Added Filament.json"));
+
+    // The rejected staging state does not poison the next reload or leave locks held.
+    f.bundle.printers.discard_current_changes();
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK_THAT(layer_height(f.bundle.prints.get_selected_preset()), Catch::Matchers::WithinAbs(0.30, 1e-6));
+}
+
+TEST_CASE("A subscribed bundle registered during staging wins over the local reload", "[Preset][Bundle][Regression]")
+{
+    const bool replace_local_entry = GENERATE(false, true);
+    LocalReloadFixture f;
+    if (!replace_local_entry)
+        f.bundle.bundles.m_bundles.erase(f.id);
+    bool registered = false;
+    f.bundle.printers.get_edited_preset().config.set_key_value("machine_start_gcode", new ReloadEdit([&] {
+                                                                   // Finish a background metadata write after the initial local-source
+                                                                   // check, before live commit.
+                                                                   std::async(std::launch::async, [&] {
+                                                                       BundleMetadata subscribed;
+                                                                       subscribed.id            = f.id;
+                                                                       subscribed.bundle_type   = BundleType::Subscribed;
+                                                                       subscribed.is_subscribed = true;
+                                                                       subscribed.version       = "9.0.0";
+                                                                       std::unique_lock<std::shared_mutex> lock(f.bundle.bundles.RWMtx);
+                                                                       f.bundle.bundles.m_bundles.insert_or_assign(f.id,
+                                                                                                                   std::move(subscribed));
+                                                                   }).get();
+                                                                   registered = true;
+                                                               }));
+    f.bundle.printers.update_dirty();
+    const PresetBundle before(f.bundle);
+    f.change_sources();
+
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    REQUIRE(registered);
+    CHECK_THAT(f.error, Catch::Matchers::ContainsSubstring("subscribed"));
+    check_reload_state(f.bundle, before);
+    const auto& metadata = f.bundle.bundles.m_bundles.at(f.id);
+    CHECK(metadata.bundle_type == BundleType::Subscribed);
+    CHECK(metadata.is_subscribed);
+    CHECK(metadata.version == "9.0.0");
+}
+
+TEST_CASE("External compatible process references prevent local bundle replacement and removal", "[Preset][Bundle][Regression]")
+{
+    const bool edited_only = GENERATE(false, true);
+    const bool remove      = GENERATE(false, true);
+    LocalReloadFixture f;
+    const std::string external_name = "External Filament";
+    add_inmemory_preset(f.bundle.filaments, external_name);
+    f.bundle.filaments.select_preset_by_name(external_name, true);
+    Preset& dependent = edited_only ? f.bundle.filaments.get_edited_preset() : *f.bundle.filaments.find_preset(external_name, false, true);
+    dependent.config.set_key_value("compatible_prints", new ConfigOptionStrings({f.prefix + "Print"}));
+    if (!edited_only)
+        f.bundle.filaments.select_preset_by_name(external_name, true);
+    f.bundle.filaments.update_dirty();
+    f.bundle.filament_presets = {external_name};
+    f.bundle.update_compatible(PresetSelectCompatibleType::Never);
+    REQUIRE(f.bundle.filaments.get_edited_preset().is_compatible);
+    const PresetBundle before(f.bundle);
+    if (remove)
+        REQUIRE(fs::remove(f.directory / PRESET_PRINT_NAME / "Print.json"));
+    else
+        f.change_sources();
+
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK_THAT(f.error, Catch::Matchers::ContainsSubstring(external_name));
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.bundles.m_bundles.at(f.id).print_presets == std::vector<std::string>{f.prefix + "Print"});
+}
+
+TEST_CASE("External compatible printer references prevent local bundle replacement and removal", "[Preset][Bundle][Regression]")
+{
+    const bool filament    = GENERATE(false, true);
+    const bool edited_only = GENERATE(false, true);
+    const bool remove      = GENERATE(false, true);
+    LocalReloadFixture f;
+    PresetCollection& collection    = filament ? f.bundle.filaments : f.bundle.prints;
+    const std::string external_name = filament ? "External Filament" : "External Print";
+    add_inmemory_preset(collection, external_name);
+    collection.select_preset_by_name(external_name, true);
+    Preset& dependent = edited_only ? collection.get_edited_preset() : *collection.find_preset(external_name, false, true);
+    dependent.config.set_key_value("compatible_printers", new ConfigOptionStrings({f.prefix + "Printer"}));
+    if (!edited_only)
+        collection.select_preset_by_name(external_name, true);
+    collection.update_dirty();
+    if (filament)
+        f.bundle.filament_presets = {external_name};
+    f.bundle.update_compatible(PresetSelectCompatibleType::Never);
+    REQUIRE(collection.get_edited_preset().is_compatible);
+    const PresetBundle before(f.bundle);
+    if (remove)
+        REQUIRE(fs::remove(f.directory / PRESET_PRINTER_NAME / "Printer.json"));
+    else
+        f.change_sources();
+
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK_THAT(f.error, Catch::Matchers::ContainsSubstring(external_name));
+    check_reload_state(f.bundle, before);
+}
+
+TEST_CASE("Local reload retains internal compatibility references and live vendor and calibration pointers", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    VendorProfile& vendor = f.bundle.vendors["TestVendor"];
+    vendor.id             = "TestVendor";
+    Preset& external      = add_inmemory_preset(f.bundle.filaments, "Vendor Filament");
+    external.is_system    = true;
+    external.vendor       = &vendor;
+    f.bundle.set_calibrate_printer(f.prefix + "Printer");
+
+    DynamicPrintConfig config(f.bundle.filaments.default_preset().config);
+    config.set_key_value("compatible_prints", new ConfigOptionStrings({f.prefix + "Print"}));
+    config.set_key_value("compatible_printers", new ConfigOptionStrings({f.prefix + "Printer"}));
+    write_preset_with_inherits(config, f.directory / PRESET_FILAMENT_NAME / "Filament.json", "Filament", "");
+    f.change_sources();
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK(f.bundle.filaments.get_selected_preset_name() == f.prefix + "Filament");
+    CHECK(f.bundle.filaments.get_edited_preset().is_compatible);
+    CHECK(f.bundle.vendors.at("TestVendor").id == vendor.id);
+    CHECK(f.bundle.filaments.find_preset("Vendor Filament")->vendor == &vendor);
+    CHECK(f.bundle.calibrate_printer == f.bundle.printers.find_preset(f.prefix + "Printer"));
+    CHECK(f.bundle.calibrate_filaments.count(f.bundle.filaments.find_preset("Vendor Filament")) == 1);
+    CHECK(f.bundle.calibrate_filaments.count(f.bundle.filaments.find_preset(f.prefix + "Filament", false, true)) == 1);
+}
+
+TEST_CASE("Local reload preserves dirty filament and printer options over new source values", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    f.bundle.filaments.get_edited_preset().config.option<ConfigOptionFloats>("filament_flow_ratio")->values = {1.13};
+    f.bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->values      = {0.6};
+    f.bundle.filaments.update_dirty();
+    f.bundle.printers.update_dirty();
+    DynamicPrintConfig filament_config(f.bundle.filaments.get_selected_preset().config);
+    filament_config.option<ConfigOptionFloats>("filament_flow_ratio")->values = {0.98};
+    write_preset_with_inherits(filament_config, f.directory / PRESET_FILAMENT_NAME / "Filament.json", "Filament", "");
+    DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
+    printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.8};
+    write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    check_double_vector(f.bundle.filaments.get_selected_preset().config.option<ConfigOptionFloats>("filament_flow_ratio")->values, {0.98});
+    check_double_vector(f.bundle.filaments.get_edited_preset().config.option<ConfigOptionFloats>("filament_flow_ratio")->values, {1.13});
+    check_double_vector(f.bundle.printers.get_selected_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->values, {0.8});
+    check_double_vector(f.bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->values, {0.6});
+    CHECK(f.bundle.filaments.current_is_dirty());
+    CHECK(f.bundle.printers.current_is_dirty());
+}
+
+TEST_CASE("Local reload rejects removal or rename of a dirty selected preset in every collection", "[Preset][Bundle][Regression]")
+{
+    const auto type   = GENERATE(Preset::TYPE_PRINT, Preset::TYPE_FILAMENT, Preset::TYPE_PRINTER);
+    const bool rename = GENERATE(false, true);
+    LocalReloadFixture f;
+    PresetCollection& collection = type == Preset::TYPE_PRINT    ? f.bundle.prints :
+                                   type == Preset::TYPE_FILAMENT ? f.bundle.filaments :
+                                                                   f.bundle.printers;
+    const char* directory        = type == Preset::TYPE_PRINT    ? PRESET_PRINT_NAME :
+                                   type == Preset::TYPE_FILAMENT ? PRESET_FILAMENT_NAME :
+                                                                   PRESET_PRINTER_NAME;
+    const std::string name       = type == Preset::TYPE_PRINT ? "Print" : type == Preset::TYPE_FILAMENT ? "Filament" : "Printer";
+    const char* key              = type == Preset::TYPE_PRINT    ? "layer_height" :
+                                   type == Preset::TYPE_FILAMENT ? "filament_flow_ratio" :
+                                                                   "nozzle_diameter";
+    collection.get_edited_preset().config.set_deserialize_strict(key, "0.37");
+    collection.update_dirty();
+    REQUIRE(collection.current_is_dirty());
+    const PresetBundle before(f.bundle);
+    REQUIRE(fs::remove(f.directory / directory / (name + ".json")));
+    if (rename)
+        write_preset_with_inherits(collection.default_preset().config, f.directory / directory / "Renamed.json", "Renamed", "");
+
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK_THAT(f.error, Catch::Matchers::ContainsSubstring("modified selected preset"));
+    check_reload_state(f.bundle, before);
+}
+
+TEST_CASE("Local reload reconciles filament slots and purge volumes while retaining unrelated project options",
+          "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
+    printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.4, 0.4};
+    write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+    f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = {0.};
+    f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values = {111., 222.};
+    f.bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values     = {0.75};
+    f.bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values     = {"#123456"};
+    const ConfigOption* colour                                                         = f.bundle.project_config.option("filament_colour");
+
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK(f.bundle.filament_presets == std::vector<std::string>{f.prefix + "Filament", f.prefix + "Filament"});
+    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values, {0.75, 1.});
+    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values, {111., 222., 111., 222.});
+    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values,
+                        {0., 333., 333., 0., 0., 333., 333., 0.});
+    CHECK(f.bundle.project_config.option("filament_colour") == colour);
+    CHECK(f.bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{"#123456"});
+}
+
+TEST_CASE("Local reload rejects a non-FFF printer selection without changing live presets", "[Preset][Bundle][Regression]")
+{
+    const bool from_source = GENERATE(false, true);
+    LocalReloadFixture f;
+    DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
+    printer_config.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptSLA));
+    if (from_source)
+        write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+    else
+        f.bundle.printers.load_preset("", "Non-FFF Printer", printer_config, true);
+    const PresetBundle before(f.bundle);
+
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK_THAT(f.error, Catch::Matchers::ContainsSubstring(from_source ? "invalid preset" : "FFF printer selection"));
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.bundles.m_bundles.at(f.id).printer_presets == std::vector<std::string>{f.prefix + "Printer"});
+}
+
+TEST_CASE("Listing local bundles returns only ids that reload accepts", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    const fs::path      local_dir = data_dir.bundle_dir("unused").parent_path();
+    std::string         error;
+
+    CHECK(bundle.list_local_bundle_ids("").empty());
+    CHECK_FALSE(fs::exists(local_dir));
+    CHECK(bundle.list_local_bundle_ids("../outside").empty());
+
+    write_bundle_metadata(data_dir.bundle_dir("valid-b"), "valid-b");
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config,
+                                         data_dir.bundle_dir("valid-b") / PRESET_PRINT_NAME / "Listed Print.json",
+                                         "Listed Print", 0.20);
+    write_bundle_metadata(data_dir.bundle_dir("valid-a"), "valid-a");
+    fs::create_directories(data_dir.bundle_dir("no-metadata"));
+    write_bundle_metadata(data_dir.bundle_dir("wrong-id"), "other-id");
+    write_bundle_metadata(data_dir.bundle_dir("subscribed-folder"), "subscribed-folder");
+    fs::create_directories(data_dir.tmp.path() / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_SUBSCRIBED_DIR /
+                           "subscribed-folder");
+    write_bundle_metadata(data_dir.bundle_dir("subscribed-registry"), "subscribed-registry");
+    BundleMetadata subscribed;
+    subscribed.id          = "subscribed-registry";
+    subscribed.bundle_type = BundleType::Subscribed;
+    bundle.bundles.m_bundles.emplace(subscribed.id, subscribed);
+    std::ofstream((local_dir / "stray-file.json").string()) << "{}";
+
+    const size_t print_count = bundle.prints.size();
+    const std::vector<std::string> expected{"valid-a", "valid-b"};
+    CHECK(bundle.list_local_bundle_ids("") == expected);
+    CHECK(bundle.prints.size() == print_count);
+    CHECK_FALSE(fs::exists(data_dir.bundle_dir("no-metadata") / PRESET_BUNDLE_METADATA));
+
+    for (const std::string& rejected : {"no-metadata", "wrong-id", "subscribed-folder", "subscribed-registry"})
+        CHECK_FALSE(bundle.reload_local_bundle("", rejected, &error));
+
+    REQUIRE(bundle.reload_local_bundle("", "valid-b", &error));
+    CHECK(bundle.prints.find_preset(std::string(PRESET_LOCAL_DIR) + "/valid-b/Listed Print", false, true) != nullptr);
 }
 
 TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundle]")
@@ -5481,4 +6026,174 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
         CHECK(import(zip).empty());
         CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
+}
+
+namespace {
+void change_json_value(const fs::path& path, const std::string& key, const std::string& value)
+{
+    nlohmann::json document;
+    {
+        std::ifstream input(path.string());
+        input >> document;
+    }
+    document[key] = value;
+    std::ofstream(path.string()) << document.dump(2);
+}
+} // namespace
+
+TEST_CASE("Shrinking an edited vector survives local reload", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    DynamicPrintConfig config(f.bundle.printers.get_selected_preset().config);
+    config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.4, 0.4};
+    write_preset_with_inherits(config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    f.bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.4};
+    f.bundle.printers.update_dirty();
+    REQUIRE(f.bundle.printers.current_is_dirty());
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    CHECK(f.bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->values.size() == 1);
+    CHECK(f.bundle.printers.current_is_dirty());
+}
+
+TEST_CASE("Removing a selected printer preserves external dirty process edits", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
+    printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.6};
+    write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    Preset& external = add_inmemory_preset(f.bundle.prints, "External Process");
+    external.config.set_key_value("compatible_printers_condition", new ConfigOptionString("nozzle_diameter[0] == 0.6"));
+    f.bundle.prints.select_preset_by_name("External Process", true);
+    f.bundle.update_compatible(PresetSelectCompatibleType::Never);
+    REQUIRE(f.bundle.prints.get_edited_preset().is_compatible);
+    f.bundle.prints.get_edited_preset().config.option<ConfigOptionFloat>("layer_height")->value = 0.27;
+    f.bundle.prints.update_dirty();
+    REQUIRE(f.bundle.prints.current_is_dirty());
+    REQUIRE(fs::remove(f.directory / PRESET_PRINTER_NAME / "Printer.json"));
+    const PresetBundle before(f.bundle);
+    const bool reloaded = f.bundle.reload_local_bundle("", f.id, &f.error);
+    CAPTURE(f.error);
+    CHECK_FALSE(reloaded);
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.prints.get_selected_preset_name() == "External Process");
+    CHECK_THAT(layer_height(f.bundle.prints.get_edited_preset()), Catch::Matchers::WithinAbs(0.27, 1e-6));
+    CHECK(f.bundle.prints.current_is_dirty());
+}
+
+TEST_CASE("A preset with an invalid version does not silently disappear on reload", "[Preset][Bundle][Regression]")
+{
+    const auto type = GENERATE(Preset::TYPE_PRINT, Preset::TYPE_FILAMENT, Preset::TYPE_PRINTER);
+    LocalReloadFixture f;
+    const char* directory = type == Preset::TYPE_PRINT    ? PRESET_PRINT_NAME :
+                            type == Preset::TYPE_FILAMENT ? PRESET_FILAMENT_NAME :
+                                                            PRESET_PRINTER_NAME;
+    const char* name      = type == Preset::TYPE_PRINT ? "Print.json" : type == Preset::TYPE_FILAMENT ? "Filament.json" : "Printer.json";
+    change_json_value(f.directory / directory / name, "version", "broken-version");
+    const PresetBundle before(f.bundle);
+    const bool reloaded = f.bundle.reload_local_bundle("", f.id, &f.error);
+    CAPTURE(f.error);
+    CHECK_FALSE(reloaded);
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.prints.find_preset(f.prefix + "Print", false, true) != nullptr);
+}
+
+TEST_CASE("Hiding a selected source preset does not replay its edits onto another preset", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    add_inmemory_preset(f.bundle.prints, "External Process");
+    f.bundle.prints.get_edited_preset().config.option<ConfigOptionFloat>("layer_height")->value = 0.27;
+    f.bundle.prints.update_dirty();
+    REQUIRE(f.bundle.prints.current_is_dirty());
+    change_json_value(f.directory / PRESET_PRINT_NAME / "Print.json", "instantiation", "false");
+    const PresetBundle before(f.bundle);
+    const bool reloaded = f.bundle.reload_local_bundle("", f.id, &f.error);
+    CAPTURE(f.error);
+    CHECK_FALSE(reloaded);
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.prints.get_selected_preset_name() == f.prefix + "Print");
+    CHECK_THAT(layer_height(f.bundle.prints.get_edited_preset()), Catch::Matchers::WithinAbs(0.27, 1e-6));
+    CHECK(f.bundle.prints.current_is_dirty());
+}
+
+TEST_CASE("Background subscription flags are retained at the reload commit", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    bool registered = false;
+    f.bundle.printers.get_edited_preset().config.set_key_value("machine_start_gcode", new ReloadEdit([&] {
+                                                                   std::async(std::launch::async, [&] {
+                                                                       std::unique_lock<std::shared_mutex> lock(f.bundle.bundles.RWMtx);
+                                                                       auto& metadata            = f.bundle.bundles.m_bundles.at(f.id);
+                                                                       metadata.is_subscribed    = true;
+                                                                       metadata.update_available = true;
+                                                                   }).get();
+                                                                   registered = true;
+                                                               }));
+    f.bundle.printers.update_dirty();
+    const PresetBundle before(f.bundle);
+    const bool reloaded = f.bundle.reload_local_bundle("", f.id, &f.error);
+    REQUIRE(registered);
+    CAPTURE(f.error);
+    CHECK_FALSE(reloaded);
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.bundles.m_bundles.at(f.id).is_subscribed);
+    CHECK(f.bundle.bundles.m_bundles.at(f.id).update_available);
+}
+
+TEST_CASE("An unrelated stored preset remains at the address exposed to consumers", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    const std::string name = "External Process";
+    const Preset* external = &add_inmemory_preset(f.bundle.prints, name);
+    const Preset* selected = &f.bundle.prints.get_selected_preset();
+    const Preset* edited   = &f.bundle.prints.get_edited_preset();
+    REQUIRE(f.bundle.prints.get_selected_preset_name() != name);
+    write_print_preset_with_layer_height(f.bundle.prints.default_preset().config, f.directory / PRESET_PRINT_NAME / "Print.json", "Print",
+                                         0.30);
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    REQUIRE(f.bundle.prints.find_preset(name, false, true) == external);
+    REQUIRE(&f.bundle.prints.get_selected_preset() == selected);
+    REQUIRE(&f.bundle.prints.get_edited_preset() == edited);
+    CHECK(external->name == name);
+    CHECK_THAT(layer_height(*selected), Catch::Matchers::WithinAbs(0.30, 1e-6));
+    CHECK_THAT(layer_height(*edited), Catch::Matchers::WithinAbs(0.30, 1e-6));
+}
+TEST_CASE("Calibration compatibility reflects the reloaded printer settings", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    Preset& external = add_inmemory_preset(f.bundle.filaments, "Calibration Filament");
+    external.config.set_key_value("compatible_printers_condition", new ConfigOptionString("nozzle_diameter[0] == 0.4"));
+    f.bundle.set_calibrate_printer(f.prefix + "Printer");
+    REQUIRE(f.bundle.calibrate_filaments.count(&external) == 1);
+    DynamicPrintConfig config(f.bundle.printers.get_selected_preset().config);
+    config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.6};
+    write_preset_with_inherits(config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
+    REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    const Preset* filament = f.bundle.filaments.find_preset("Calibration Filament", false, true);
+    REQUIRE(filament != nullptr);
+    REQUIRE_FALSE(is_compatible_with_printer(f.bundle.filaments.get_preset_with_vendor_profile(*filament),
+                                             f.bundle.printers.get_preset_with_vendor_profile(*f.bundle.calibrate_printer)));
+    CHECK(f.bundle.calibrate_filaments.count(filament) == 0);
+}
+TEST_CASE("Local reload rolls back prepared collection growth on a late allocation failure", "[Preset][Bundle][Regression]")
+{
+    LocalReloadFixture f;
+    const size_t original_print_count = f.bundle.prints.size();
+    bool failed                       = false;
+    Preset& external                  = add_inmemory_preset(f.bundle.printers, "zzzz External Printer");
+    external.config.set_key_value("machine_start_gcode", new ReloadEdit([&] {
+                                      if (f.bundle.prints.size() > original_print_count) {
+                                          failed = true;
+                                          throw std::bad_alloc();
+                                      }
+                                  }));
+    const PresetBundle before(f.bundle);
+    f.change_sources();
+    write_print_preset_with_layer_height(f.bundle.prints.default_preset().config, f.directory / PRESET_PRINT_NAME / "Added Print.json",
+                                         "Added Print", 0.25);
+    CHECK_FALSE(f.bundle.reload_local_bundle("", f.id, &f.error));
+    REQUIRE(failed);
+    check_reload_state(f.bundle, before);
+    CHECK(f.bundle.bundles.m_bundles.at(f.id).bundle_type == BundleType::Local);
 }

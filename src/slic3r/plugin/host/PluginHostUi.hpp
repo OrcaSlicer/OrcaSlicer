@@ -2,6 +2,7 @@
 
 #include <pybind11/pybind11.h>
 
+#include <functional>
 #include <string>
 
 namespace Slic3r {
@@ -18,6 +19,8 @@ class PluginHostUi
 {
 public:
     static void RegisterBindings(pybind11::module_& host);
+
+    static void run_on_ui_thread(std::function<void()> fn);
 
     // Lifecycle hook: close and tear down every UI window owned by a plugin. PluginManager invokes
     // this after plugin teardown and also for bulk unload during application shutdown.
