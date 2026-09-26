@@ -87,7 +87,6 @@ bool GLGizmoFdmSupports::on_init()
     m_desc["highlight_by_angle"] = _L("Highlight overhangs");
     m_desc["tool_type"]          = _L("Tool type");
     m_desc["gap_fill"]           = _L("Gap fill");
-    m_desc["reset_direction"]    = _L("Reset direction");
     m_desc["clipping_of_view"]   = _L("Section view");
     m_desc["cursor_size"]        = _L("Brush size");
     m_desc["smart_fill_angle"]   = _L("Smart fill angle");
@@ -212,11 +211,9 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
     const float space_size = m_imgui->get_style_scaling() * 8;
-    const float clipping_slider_left    = m_imgui->calc_text_size(m_desc.at("clipping_of_view")).x + m_imgui->scaled(1.5f);
     const float cursor_slider_left      = m_imgui->calc_text_size(m_desc.at("cursor_size")).x + m_imgui->scaled(1.5f);
     const float gap_fill_slider_left    = m_imgui->calc_text_size(m_desc.at("gap_fill")).x + m_imgui->scaled(1.5f);
     const float highlight_slider_left   = m_imgui->calc_text_size(m_desc.at("highlight_by_angle")).x + m_imgui->scaled(1.5f);
-    const float reset_button_slider_left = m_imgui->calc_text_size(m_desc.at("reset_direction")).x + m_imgui->scaled(1.5f) + ImGui::GetStyle().FramePadding.x * 2;
     const float on_overhangs_only_width  = m_imgui->calc_text_size(m_desc["on_overhangs_only"]).x + m_imgui->scaled(1.5f);
     const float filter_btn_width        = m_imgui->calc_text_size(m_desc.at("perform")).x + m_imgui->scaled(1.5f);
     const float gap_area_txt_width = m_imgui->calc_text_size(m_desc.at("gap_area")).x + m_imgui->scaled(1.5f);
@@ -229,14 +226,14 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     float caption_max    = 0.f;
     float total_text_max = 0.f;
-    for (const auto &t : std::array<std::string, 5>{"enforce", "block", "remove", "cursor_size", "clipping_of_view"}) {
+    for (const auto &t : std::array<std::string, 4>{"enforce", "block", "remove", "cursor_size"}) {
         caption_max    = std::max(caption_max, m_imgui->calc_text_size(m_desc[t + "_caption"]).x);
         total_text_max = std::max(total_text_max, m_imgui->calc_text_size(m_desc[t]).x);
     }
     total_text_max += caption_max + m_imgui->scaled(1.f);
     caption_max += m_imgui->scaled(1.f);
 
-    const float sliders_left_width = std::max(gap_area_txt_width, std::max(smart_fill_angle_txt_width, std::max(reset_button_slider_left, std::max(std::max(cursor_slider_left, clipping_slider_left), std::max(highlight_slider_left, gap_fill_slider_left)))));
+    const float sliders_left_width = std::max(gap_area_txt_width, std::max(smart_fill_angle_txt_width, std::max(cursor_slider_left, std::max(highlight_slider_left, gap_fill_slider_left))));
     const float slider_icon_width  = m_imgui->get_slider_icon_size().x;
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
@@ -433,29 +430,6 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##angle_threshold_deg_input", &m_highlight_by_angle_threshold_deg, 0.05f, 0.0f, 0.0f, "%.2f");
 
-    ImGui::Separator();
-    if (m_c->object_clipper()->get_position() == 0.f) {
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(m_desc.at("clipping_of_view"));
-    }
-    else {
-        if (m_imgui->button(m_desc.at("reset_direction"))) {
-            wxGetApp().CallAfter([this]() {
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                });
-        }
-    }
-    auto clp_dist = float(m_c->object_clipper()->get_position());
-    ImGui::SameLine(sliders_left_width);
-    ImGui::PushItemWidth(sliders_width);
-    bool b_bbl_slider_float = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-
-    ImGui::SameLine(drag_left_width + sliders_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_drag_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-    if (b_bbl_slider_float || b_drag_input) m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
-    
     ImGui::Separator();
 
     render_tooltip_button(x, y);

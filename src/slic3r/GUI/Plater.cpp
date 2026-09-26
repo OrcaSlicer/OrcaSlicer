@@ -7469,6 +7469,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     view3D = new View3D(panel_3d, bed, &model, config, &background_process);
     //BBS: use partplater's gcode
     preview = new Preview(panel_3d, bed, &model, config, &background_process, partplate_list.get_current_slice_result(), [this]() { schedule_background_process(); });
+    preview->get_canvas3d()->share_section_view(*view3D->get_canvas3d());
 
     assemble_view = new AssembleView(panel_3d, bed, &model, config, &background_process);
 

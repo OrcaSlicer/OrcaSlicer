@@ -593,6 +593,15 @@ private:
     std::array<ClippingPlane, 2> m_clipping_planes;
     ClippingPlane m_camera_clipping_plane;
     bool m_use_clipping_planes;
+    struct SectionView
+    {
+        explicit SectionView(const GLCanvas3D* owner) : owner(owner) {}
+        double ratio{ 0. }; // 0 = off
+        Vec3d  normal{ Vec3d::UnitZ() };
+        const GLCanvas3D* owner; // whose objects place the plane
+    };
+    std::shared_ptr<SectionView> m_section_view{ std::make_shared<SectionView>(this) };
+    std::map<const GLVolume*, MeshClipper> m_section_view_caps;
     std::array<SlaCap, 2> m_sla_caps;
     std::string m_sidebar_field;
     // when true renders an extra frame by not resetting m_dirty to false
@@ -916,6 +925,13 @@ public:
     void set_use_color_clip_plane(bool use) { m_volumes.set_use_color_clip_plane(use); }
     void set_color_clip_plane(const Vec3d& cp_normal, double offset) { m_volumes.set_color_clip_plane(cp_normal, offset); }
     void set_color_clip_plane_colors(const std::array<ColorRGBA, 2>& colors) { m_volumes.set_color_clip_plane_colors(colors); }
+
+    bool is_section_view_active() const { return m_section_view->ratio > 0.; }
+    double get_section_view_ratio() const { return m_section_view->ratio; }
+    const Vec3d& get_section_view_normal() const { return m_section_view->normal; }
+    void set_section_view_ratio(double ratio);
+    void align_section_view_to_camera();
+    void share_section_view(const GLCanvas3D& owner) { m_section_view = owner.m_section_view; }
 
     void toggle_world_axes_visibility(bool force_show = false);
     void refresh_camera_scene_box();
@@ -1364,6 +1380,7 @@ private:
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    void _render_section_view_caps();
     void _render_wireframe_overlay();
     bool _is_xray_view_active() const;
     void _render_xray_volumes();
@@ -1390,6 +1407,7 @@ private:
     void _render_assemble_view_toolbar() const;
     void _render_return_toolbar() const;
     void _render_canvas_toolbar();
+    void _render_section_view_popup(const ImVec2& bottom_left);
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
     void _render_collapse_toolbar() const;
@@ -1421,6 +1439,11 @@ private:
         Gesture
     };
 
+    void _on_section_view_changed();
+    // In the ClippingPlane::is_point_clipped() convention.
+    ClippingPlane _get_section_view_plane() const;
+    // In the volume shaders' convention: the open gizmo's own plane, else the section view's.
+    ClippingPlane _get_volumes_clipping_plane() const;
     // Orca: These helpers keep clipping, orbit pivots, and perspective-pan depth selection consistent.
     ClippingPlane get_raycaster_clipping_plane() const;
     bool is_bed_visible() const;
