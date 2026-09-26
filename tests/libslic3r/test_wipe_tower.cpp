@@ -278,6 +278,98 @@ TEST_CASE("Only the keep-out ring an object is measured against is drawn", "[Wip
     CHECK_THAT(unscaled(get_extents(zone.grown_body).max.x()), WithinAbs(10. + 0.5 * (40. - 0.2), 0.02));
 }
 
+// ---------------------------------------------------------------------------------------------
+// "Combine sparse layers": folding a run of toolchange-free layers into one thicker tower layer.
+// ---------------------------------------------------------------------------------------------
+
+TEST_CASE("Sparse layers are combined only when every layer is still the tower's to place", "[WipeTower][CombineSparseLayers]") {
+    PrintConfig cfg;
+    cfg.timelapse_type.value                     = TimelapseType::tlTraditional;
+    cfg.enable_wrapping_detection.value          = false;
+    cfg.wipe_tower_no_sparse_layers.value        = false;
+
+    cfg.wipe_tower_sparse_layers_combination.value = false;
+    CHECK_FALSE(wipe_tower_sparse_layers_combined(cfg));
+    cfg.wipe_tower_sparse_layers_combination.value = true;
+    CHECK(wipe_tower_sparse_layers_combined(cfg));
+
+    // Dropping the sparse layers outright leaves nothing to combine.
+    cfg.wipe_tower_no_sparse_layers.value = true;
+    CHECK_FALSE(wipe_tower_sparse_layers_combined(cfg));
+    CHECK(wipe_tower_sparse_layers_skipped(cfg));
+    cfg.wipe_tower_no_sparse_layers.value = false;
+
+    // Both of these park the nozzle on the tower every layer, so no layer may be folded away.
+    cfg.timelapse_type.value = TimelapseType::tlSmooth;
+    CHECK_FALSE(wipe_tower_sparse_layers_combined(cfg));
+    cfg.timelapse_type.value            = TimelapseType::tlTraditional;
+    cfg.enable_wrapping_detection.value = true;
+    CHECK_FALSE(wipe_tower_sparse_layers_combined(cfg));
+}
+
+TEST_CASE("A layer folded into a later one is marked on the results the emitter reads", "[WipeTower][CombineSparseLayers]") {
+    WipeTower::ToolChangeResult folded = make_tcr(1, 1, 0.2f);
+    folded.combined_away               = true;
+    CHECK(wipe_tower_layer_is_combined_away({folded}));
+    CHECK_FALSE(wipe_tower_layer_is_combined_away({make_tcr(1, 1, 0.2f)}));
+    CHECK_FALSE(wipe_tower_layer_is_combined_away({}));
+}
+
+TEST_CASE("A run of sparse layers prints once, on its last layer, at the height it covers", "[WipeTower][CombineSparseLayers]") {
+    // Eight 0.1 mm layers on a 0.3 mm cap: a toolchange on the first and the last, sparse between.
+    std::vector<float>      heights(8, 0.1f);
+    const std::vector<char> sparse{0, 1, 1, 1, 1, 1, 1, 0};
+    const std::vector<float> caps(8, 0.3f);
+
+    const std::vector<char> combined = combine_sparse_wipe_tower_layers(heights, sparse, caps, 0);
+    REQUIRE(combined.size() == heights.size());
+    // Three layers fill the cap exactly: the run flushes on layers 3 and 6, the two below each go.
+    CHECK(combined == std::vector<char>{0, 1, 1, 0, 1, 1, 0, 0});
+    CHECK_THAT(heights[3], WithinAbs(0.3f, 1e-5f));
+    CHECK_THAT(heights[6], WithinAbs(0.3f, 1e-5f));
+    // Layers that print keep the object covered: nothing is lost and nothing is printed twice.
+    float printed = 0.f;
+    for (size_t i = 0; i < heights.size(); ++i)
+        if (! combined[i])
+            printed += heights[i];
+    CHECK_THAT(printed, WithinAbs(0.8f, 1e-5f));
+    // A toolchange has to purge at its own z, so those layers are left exactly as planned.
+    CHECK_THAT(heights[0], WithinAbs(0.1f, 1e-5f));
+    CHECK_THAT(heights[7], WithinAbs(0.1f, 1e-5f));
+}
+
+TEST_CASE("The maximum layer height of the nozzle that prints the run caps the merge", "[WipeTower][CombineSparseLayers]") {
+    // The cap that counts belongs to the layer that prints the run; one that prints nothing lays
+    // nothing down, so its own cap cannot constrain it. Five 0.1 mm layers, sparse above the first,
+    // layer 3's nozzle taking only 0.15. (A real run holds one filament, so this only tests the
+    // look-ahead.)
+    std::vector<float>      heights(5, 0.1f);
+    std::vector<float>      caps(5, 0.3f);
+    caps[3]                          = 0.15f;
+    const std::vector<char> combined = combine_sparse_wipe_tower_layers(heights, {0, 1, 1, 1, 1}, caps, 0);
+    // Layer 2 cannot hand its 0.2 mm on to layer 3, so it prints there and a fresh run starts above.
+    CHECK(combined == std::vector<char>{0, 1, 0, 1, 0});
+    CHECK_THAT(heights[2], WithinAbs(0.2f, 1e-5f));
+    CHECK_THAT(heights[4], WithinAbs(0.2f, 1e-5f));
+
+    // A single layer already past the cap is printed as planned rather than shrunk.
+    std::vector<float> tall{0.2f, 0.4f, 0.4f};
+    const std::vector<char> tall_combined = combine_sparse_wipe_tower_layers(tall, {0, 1, 1}, {0.3f, 0.3f, 0.3f}, 0);
+    CHECK(tall_combined == std::vector<char>{0, 0, 0});
+    CHECK_THAT(tall[1], WithinAbs(0.4f, 1e-5f));
+}
+
+TEST_CASE("The tower's first layer is never folded away", "[WipeTower][CombineSparseLayers]") {
+    // It carries the brim and has to sit on the bed, however little it purges.
+    std::vector<float>      heights(4, 0.1f);
+    const std::vector<char> combined = combine_sparse_wipe_tower_layers(heights, {1, 1, 1, 1}, std::vector<float>(4, 0.5f), 0);
+    CHECK(combined.front() == 0);
+    CHECK_THAT(heights.front(), WithinAbs(0.1f, 1e-5f));
+    // Everything above it merges into the top layer, which the cap still fits.
+    CHECK(combined == std::vector<char>{0, 1, 1, 0});
+    CHECK_THAT(heights.back(), WithinAbs(0.3f, 1e-5f));
+}
+
 TEST_CASE("Footprint padding covers the brim and the extrusion half width on each side", "[WipeTower][NoSparseLayers]") {
     // A nominal outline hulls extrusion centre lines and is re-centred once the real wall is known,
     // so a line width per side on top of the brim is what keeps an estimate enclosing the real tower.

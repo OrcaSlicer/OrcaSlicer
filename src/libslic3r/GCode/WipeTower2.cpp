@@ -1033,6 +1033,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_z_pos(0.f),
     m_bridging(float(config.wipe_tower_bridging)),
     m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(config)),
+    m_sparse_layers_combined(wipe_tower_sparse_layers_combined(config)),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
@@ -1149,6 +1150,16 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].filament_area = float((M_PI/4.f) * pow(config.filament_diameter.get_at(idx), 2)); // all extruders are assumed to have the same filament diameter at this point
     float nozzle_diameter = float(config.nozzle_diameter.get_at(idx));
     m_filpar[idx].nozzle_diameter = nozzle_diameter; // to be used in future with (non-single) multiextruder MM
+
+    // Orca: max_layer_height is per nozzle, so read it through the filament->nozzle map rather than
+    // by filament id. Zero means three quarters of the nozzle diameter, as in Slicing.cpp.
+    {
+        const std::vector<int> &filament_map = config.filament_map.values; // 1 based nozzle indices
+        const size_t nozzle_idx = idx < filament_map.size() && filament_map[idx] > 0 ? size_t(filament_map[idx] - 1) : 0;
+        const float  max_layer_height = float(config.max_layer_height.get_at(nozzle_idx));
+        m_filpar[idx].max_layer_height = max_layer_height > 0.f ? max_layer_height
+                                                                : 0.75f * float(config.nozzle_diameter.get_at(nozzle_idx));
+    }
 
     float max_vol_speed = float(config.filament_max_volumetric_speed.get_at(idx));
     if (max_vol_speed!= 0.f)
@@ -2103,7 +2114,9 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (! m_sparse_layers_skipped || toolchanges_on_layer || first_layer) {
+    // A folded layer prints nothing, so it consumes nothing and adds no height of its own.
+    const bool combined_away = m_layer_info != m_plan.end() && m_layer_info->combined_away;
+    if ((! m_sparse_layers_skipped || toolchanges_on_layer || first_layer) && ! combined_away) {
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
         m_current_height += m_layer_info->height;
@@ -2435,6 +2448,10 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 	if (m_plan.empty())
         return;
 
+    // Before planning: the layer heights this rewrites feed the extrusion flow of every later pass.
+    if (m_sparse_layers_combined)
+        combine_sparse_wipe_tower_plan(m_plan, m_filpar, m_first_layer_idx, m_current_tool);
+
 	plan_tower();
 #if 1
     for (int i=0;i<5;++i) {
@@ -2532,6 +2549,10 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             else
                 layer_result[idx] = merge_tcr(layer_result[idx], finish_layer_tcr);
         }
+
+        if (layer.combined_away)
+            for (WipeTower::ToolChangeResult &tcr : layer_result)
+                tcr.combined_away = true;
 
 		result.emplace_back(std::move(layer_result));
 

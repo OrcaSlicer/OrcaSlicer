@@ -6705,6 +6705,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wipe_tower_sparse_layers_combination", coBool);
+    def->label = L("Combine sparse layers");
+    def->tooltip = L("If enabled, consecutive layers on which the prime tower has no filament change are printed as a single "
+                     "thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. "
+                     "The merged layer is printed at the top of the run, at the height of everything it covers.\n\n"
+                     "Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower "
+                     "(three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit "
+                     "under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing "
+                     "is merged, while at 0.1 mm three layers become one.\n\n"
+                     "Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. "
+                     "Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("single_extruder_multi_material_priming", coBool);
     def->label = L("Prime all printing extruders");
     def->tooltip = L("If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print.");
