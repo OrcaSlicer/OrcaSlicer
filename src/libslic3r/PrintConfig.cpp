@@ -374,6 +374,7 @@ static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "rectilinear",    smipRectilinear },
     { "concentric",     smipConcentric },
     { "spiralinset",    smipSpiralInset },
+    { "hilbertcurve",   smipHilbertCurve },
     { "rectilinear_interlaced", smipRectilinearInterlaced},
     { "grid",           smipGrid }
 };
@@ -7052,12 +7053,14 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("concentric");
 	def->enum_values.push_back("spiralinset");
+    def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("rectilinear_interlaced");
     def->enum_values.push_back("grid");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Concentric"));
 	def->enum_labels.push_back(L("Spiral Inset"));
+    def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Rectilinear Interlaced"));
     def->enum_labels.push_back(L("Grid"));
     def->mode = comAdvanced;
