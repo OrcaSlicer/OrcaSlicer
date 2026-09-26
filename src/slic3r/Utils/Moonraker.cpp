@@ -155,6 +155,10 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
                 const std::string &perms = child.second.get<std::string>("permissions", "");
                 if (root.empty() || perms.find('w') == std::string::npos)
                     continue;
+                //ORCA: only the "gcodes" root can hold printable files; "config" or "logs"
+                //      would silently accept an upload the printer never prints.
+                if (root != "gcodes")
+                    continue;
                 storage_path.Add(wxString::FromUTF8(root));
                 storage_name.Add(wxString::FromUTF8(root));
                 got_any = true;
@@ -168,6 +172,13 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
 #endif
     .perform_sync();
 
+    //ORCA: with "gcodes" as the only valid target there is nothing to choose, so report no
+    //      storage and let the dialog hide the picker; upload() already defaults to "gcodes".
+    if (storage_path.GetCount() <= 1) {
+        storage_path.Clear();
+        storage_name.Clear();
+        return false;
+    }
     return got_any;
 }
 
