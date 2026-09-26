@@ -350,6 +350,9 @@ void AppConfig::set_defaults()
         set_bool("design_connector_face_glyph", true);
 #endif
 
+    if (get("gcode_slider_track_click_moves_active").empty())
+        set_bool("gcode_slider_track_click_moves_active", true);
+
 //#ifdef SUPPORT_SHOW_HINTS
     if (get("show_hints").empty())
         set_bool("show_hints", false);
