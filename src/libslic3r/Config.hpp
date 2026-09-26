@@ -27,6 +27,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <cereal/access.hpp>
+#include <cereal/cereal.hpp>
 #include <cereal/types/base_class.hpp>
 // The serialize() members below archive ConfigOption hierarchies through
 // cereal::base_class, whose registration machinery lives in polymorphic.hpp.
@@ -1581,6 +1582,11 @@ public:
 
     bool deserialize(const std::string &str, bool append = false) override
     {
+        // Extended exclusion-volume syntax belongs to the dedicated string option.
+        // Rejecting it here also makes --bed-exclude-area fail instead of silently
+        // turning a volume definition into malformed legacy points.
+        if (str.find('|') != std::string::npos || str.find(';') != std::string::npos || str.find("..") != std::string::npos)
+            return false;
         if (! append)
             this->values.clear();
         std::istringstream is(str);
@@ -1601,18 +1607,18 @@ public:
     }
 
 private:
-	friend class cereal::access;
-	template<class Archive> void save(Archive& archive) const {
-		size_t cnt = this->values.size();
-		archive(cnt);
-		archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
-	template<class Archive> void load(Archive& archive) {
-		size_t cnt;
-		archive(cnt);
-		this->values.assign(cnt, Vec2d());
-		archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
+    friend class cereal::access;
+    template<class Archive> void save(Archive& archive) const {
+        size_t cnt = this->values.size();
+        archive(cnt);
+        archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
+    }
+    template<class Archive> void load(Archive& archive) {
+        size_t cnt;
+        archive(cnt);
+        this->values.assign(cnt, Vec2d());
+        archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
+    }
 };
 
 class ConfigOptionPoint3 : public ConfigOptionSingle<Vec3d>
