@@ -405,7 +405,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         }
     }
 
-    if (!wxGetApp().preset_bundle->is_bbl_vendor())
+    if (!wxGetApp().preset_bundle->is_bbl_vendor() && !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_bool("support_multi_bed_types"))
       m_bed_type_choice->Disable();
 
     wxStaticText* m_bed_type_txt = new wxStaticText(this, wxID_ANY, _L("Bed type"));
