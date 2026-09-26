@@ -480,7 +480,7 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
                         fs->SetUrl("3");
                     }
                 });
-            });
+            }, wxGetApp().get_printer_cloud_provider());
             break;
         }
         default: break;
