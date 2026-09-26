@@ -180,17 +180,18 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
     return res;
 }
 
+std::string creality_print_make_url(const std::string &host, const std::string &path)
+{
+    // The native REST API listens on its own fixed port, not whatever port the host field may
+    // carry for the printer's (proxied) web UI; strip it, as ws_connect() already does.
+    const bool        is_https  = host.find("https://") == 0;
+    const std::string bare_host = Http::get_host_from_url(host);
+    return (boost::format("%1%://%2%/%3%") % (is_https ? "https" : "http") % bare_host % path).str();
+}
+
 std::string CrealityPrint::make_url(const std::string &path) const
 {
-    if (m_host.find("http://") == 0 || m_host.find("https://") == 0) {
-        if (m_host.back() == '/') {
-            return (boost::format("%1%%2%") % m_host % path).str();
-        } else {
-            return (boost::format("%1%/%2%") % m_host % path).str();
-        }
-    } else {
-        return (boost::format("http://%1%/%2%") % m_host % path).str();
-    }
+    return creality_print_make_url(m_host, path);
 }
 
 std::string CrealityPrint::safe_filename(const std::string &filename) const
