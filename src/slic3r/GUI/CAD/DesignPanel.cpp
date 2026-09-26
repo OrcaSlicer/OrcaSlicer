@@ -4862,12 +4862,12 @@ void DesignPanel::on_import_mesh()
     try {
         shape = GeometryEngine::mesh_to_brep(mesh.its, MESH_IMPORT_TOLERANCE,
                                              MESH_IMPORT_MERGE_ANGLE_DEG, stats);
-    } catch (const std::exception& e) {
-        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
-        return;
-    } catch (const Standard_Failure& e) {   // OCCT throws outside std::exception
+    } catch (const Standard_Failure& e) {   // on OCCT >= 8 Standard_Failure derives from std::exception — must precede that handler
         fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(
                  e.GetMessageString() ? e.GetMessageString() : "OCCT error"));
+        return;
+    } catch (const std::exception& e) {
+        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
         return;
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }

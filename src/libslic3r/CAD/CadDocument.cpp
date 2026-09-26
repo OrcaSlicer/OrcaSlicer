@@ -2673,10 +2673,10 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 ridge = pipe.Shape();
                 have_ridge = !ridge.IsNull();
             }
+        } catch (const Standard_Failure&) {
+            have_ridge = false; // OCCT failure — on OCCT >= 8 Standard_Failure derives from std::exception, so this handler must come first
         } catch (const std::exception&) {
             have_ridge = false; // fall back to the bare cylinder/bore below
-        } catch (const Standard_Failure&) {
-            have_ridge = false; // OCCT failure (not a std::exception) — must be caught here too
         }
 
         if (f.thread_internal) {
