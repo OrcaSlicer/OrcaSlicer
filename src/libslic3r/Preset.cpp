@@ -258,6 +258,10 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     auto replace_nil_and_resize = [&](const std::string & key, int length){
         ConfigOption* raw_ptr = config.option(key);
         ConfigOptionVectorBase* opt_vec = static_cast<ConfigOptionVectorBase *>(raw_ptr);
+        // A blank nullable filament override means inherit the printer value.
+        // Seed nil before expanding it; an empty vector has no first value to copy.
+        if (opt_vec->empty() && raw_ptr->nullable() && is_filament_extruder_override_key(key))
+            raw_ptr->deserialize("nil");
         if(set_nil_to_default && raw_ptr->is_nil() && defaults.has(key) && !is_filament_extruder_override_key(key)){
             opt_vec->clear();
             opt_vec->resize(length, defaults.option(key));
@@ -1578,6 +1582,9 @@ const std::vector<std::string>& Preset::printer_options()
 {
     static std::vector<std::string> s_opts = [](){
         std::vector<std::string> opts = s_Preset_printer_options;
+        opts.emplace_back("machine_filament_overrides");
+        for (const std::string &key : machine_filament_override_keys())
+            opts.emplace_back("machine_" + key);
         append(opts, s_Preset_machine_limits_options);
         append(opts, Preset::nozzle_options());
         return opts;

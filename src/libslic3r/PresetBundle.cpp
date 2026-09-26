@@ -318,6 +318,7 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     add_if_some_non_empty(std::move(print_compatible_printers), "print_compatible_printers");
 
     out.option<ConfigOptionEnumGeneric>("printer_technology", true)->value = ptFFF;
+    out.apply_machine_filament_overrides();
     return out;
 }
 
@@ -4883,6 +4884,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.option<ConfigOptionStrings>("extruder_ams_count", true)->values   = save_extruder_ams_count_to_string(this->extruder_ams_counts);
 
 	out.option<ConfigOptionEnumGeneric>("printer_technology", true)->value = ptFFF;
+    out.apply_machine_filament_overrides();
     return out;
 }
 
