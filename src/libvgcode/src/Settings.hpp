@@ -17,6 +17,10 @@ struct Settings
 	  // Visualization parameters
 		//
 		EViewType view_type{ EViewType::FeatureType };
+		// Orca: Default to angles; retain the percentage toggle across view switches and data reloads.
+		bool overhang_percentage{ false };
+		// Orca: Keep the optional logarithmic scale independent of units and off by default.
+		bool overhang_logarithmic{ false };
 		ETimeMode time_mode{ ETimeMode::Normal };
 		bool top_layer_only_view_range{ false };
 		// ORCA: when enabled, every layer the layer slider is not scrubbed to is rendered

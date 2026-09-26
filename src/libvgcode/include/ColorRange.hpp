@@ -36,6 +36,8 @@ public:
     // Return the type of this ColorRange.
     //
     EColorRangeType get_type() const;
+    // Orca: Switch scale without discarding the detected range or a caller's custom palette.
+    void set_type(EColorRangeType type);
     //
     // Return the palette used by this ColorRange.
     // Default is DEFAULT_RANGES_COLORS
