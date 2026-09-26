@@ -837,14 +837,21 @@ void MultiNozzleStatusTable::UpdateRackInfo(std::weak_ptr<DevNozzleRack> rack)
         bool has_right = false;
         for (auto& elem : nozzles_in_extruder) {
             auto& nozzle = elem.second;
-            int extruder_id = nozzle.AtLeftExtruder() ? 0 : 1;
-            if (nozzle.AtRightExtruder())
-                has_right = true;
+
+            int extruder_id{};
+            if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+                extruder_id = nozzle.AtLeftExtruder() ? 0 : 1;
+                if (nozzle.AtRightExtruder())
+                    has_right = true;
+            }
+            else
+                extruder_id = nozzle.GetExtruderId();
 
             NozzleVolumeType volume_type = DevNozzle::ToNozzleVolumeType(nozzle.m_nozzle_flow);
 
             m_badge->SetExtruderInfo(extruder_id, format_diameter_to_str(nozzle.GetNozzleDiameter()), volume_type);
         }
+        // TODO: Update for N extruders
         m_badge->SetExtruderValid(has_right);
     }
 }
