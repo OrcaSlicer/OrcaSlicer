@@ -136,6 +136,26 @@ TEST_CASE("Preset identity is canonicalized from load path", "[Preset][Identity]
     CHECK(subscribed->is_from_bundle());
 }
 
+// Guards the alias derivation AMSMaterialsSetting::Popup relies on for bundle-imported filaments.
+TEST_CASE("A filament preset loaded from a local bundle directory gets a qualifier-free alias", "[Preset]")
+{
+    ScopedTemporaryDir         temp_dir;
+    PresetBundle               bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    write_preset_with_inherits(bundle.filaments.default_preset().config,
+        temp_dir.path() / PRESET_LOCAL_DIR / "bundle-1" / PRESET_FILAMENT_NAME / "Kingroon PLA @Kingroon K1.json",
+        "Kingroon PLA @Kingroon K1", "");
+
+    bundle.filaments.load_presets((temp_dir.path() / PRESET_LOCAL_DIR / "bundle-1").string(), PRESET_FILAMENT_NAME,
+                                  substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+
+    Preset *loaded = bundle.filaments.find_preset("_local/bundle-1/Kingroon PLA @Kingroon K1", false, true);
+    REQUIRE(loaded != nullptr);
+    CHECK(loaded->alias == "Kingroon PLA");
+    CHECK(bundle.filaments.get_preset_alias(*loaded, true) == "Kingroon PLA");
+}
+
 TEST_CASE("Legacy bundle import without bundle metadata stays in the user preset directory", "[Preset][Identity]")
 {
     ScopedTemporaryDir temp_dir;
