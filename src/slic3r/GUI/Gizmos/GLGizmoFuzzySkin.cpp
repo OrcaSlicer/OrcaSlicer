@@ -35,7 +35,6 @@ bool GLGizmoFuzzySkin::on_init()
     m_shortcut = Shortcut::GizmoFuzzySkin;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
-    const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
     m_desc["remove_all"]        = _L("Erase all");
@@ -45,7 +44,6 @@ bool GLGizmoFuzzySkin::on_init()
     m_desc["tool_type"]         = _L("Tool type");
     m_desc["tool_brush"]        = _L("Brush");
     m_desc["tool_smart_fill"]   = _L("Smart fill");
-    m_desc["clipping_of_view"]  = _L("Section view");
     m_desc["cursor_size"]       = _L("Brush size");
     m_desc["add_fuzzy_skin"]    = _L("Add fuzzy skin");
     m_desc["remove_fuzzy_skin"] = _L("Remove fuzzy skin");
@@ -53,26 +51,22 @@ bool GLGizmoFuzzySkin::on_init()
 
     std::pair<wxString, wxString> add_fuzzy_skin_shortcut    = {_L("Left mouse button"),         m_desc["add_fuzzy_skin"]};
     std::pair<wxString, wxString> remove_fuzzy_skin_shortcut = {shift + _L("Left mouse button"), m_desc["remove_fuzzy_skin"]};
-    std::pair<wxString, wxString> clipping_shortcut          = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
 
     m_shortcuts_brush = {
         add_fuzzy_skin_shortcut,
         remove_fuzzy_skin_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
-        clipping_shortcut
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]}
     };
 
     m_shortcuts_triangle = {
         add_fuzzy_skin_shortcut, 
-        remove_fuzzy_skin_shortcut, 
-        clipping_shortcut
+        remove_fuzzy_skin_shortcut
     };
 
     m_shortcuts_smart_fill = {
         add_fuzzy_skin_shortcut,
         remove_fuzzy_skin_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
-        clipping_shortcut
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]}
     };
 
     return true;

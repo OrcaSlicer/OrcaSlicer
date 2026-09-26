@@ -87,35 +87,30 @@ bool GLGizmoFdmSupports::on_init()
     m_desc["highlight_by_angle"] = _L("Highlight overhangs");
     m_desc["tool_type"]          = _L("Tool type");
     m_desc["gap_fill"]           = _L("Gap fill");
-    m_desc["clipping_of_view"]   = _L("Section view");
     m_desc["cursor_size"]        = _L("Brush size");
     m_desc["smart_fill_angle"]   = _L("Smart fill angle");
     m_desc["gap_area"]           = _L("Gap area");
 
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
-    const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
     std::pair<wxString, wxString> enforce_shortcut  = {_L("Left mouse button"),         _L("Enforce supports")};
     std::pair<wxString, wxString> block_shortcut    = {_L("Right mouse button"),        _L("Block supports")};
     std::pair<wxString, wxString> remove_shortcut   = {shift + _L("Left mouse button"), _L("Erase")};
-    std::pair<wxString, wxString> clipping_shortcut = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
 
     m_shortcuts_brush = {
         enforce_shortcut, 
         block_shortcut, 
         remove_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
-        clipping_shortcut
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]}
     };
 
     m_shortcuts_bucket_fill = {
         enforce_shortcut, 
         block_shortcut, 
         remove_shortcut,
-        {ctrl + _L("Mouse wheel"),  m_desc["smart_fill_angle"]},
-        clipping_shortcut
+        {ctrl + _L("Mouse wheel"),  m_desc["smart_fill_angle"]}
     };
 
     m_shortcuts_gap_fill = {

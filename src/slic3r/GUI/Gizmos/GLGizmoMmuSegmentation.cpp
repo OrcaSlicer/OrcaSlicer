@@ -97,7 +97,6 @@ bool GLGizmoMmuSegmentation::on_init()
     const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view"] = _L("Section view");
     m_desc["cursor_size"]      = _L("Brush size");
     m_desc["cursor_type"]      = _L("Brush shape");
     m_desc["paint"]            = _L("Paint");
@@ -124,14 +123,12 @@ bool GLGizmoMmuSegmentation::on_init()
 
     std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
     std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
-    std::pair<wxString, wxString> clipping_shortcut         = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
     std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L_CONTEXT("Enter", "Keyboard Shortcut"),       m_desc["toggle_wireframe"]};
 
     m_shortcuts_brush = {
         paint_shortcut,
         erase_shortcut,
         {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
-        clipping_shortcut,
         toggle_wireframe_shortcut
     };
 
@@ -139,7 +136,6 @@ bool GLGizmoMmuSegmentation::on_init()
         paint_shortcut,
         erase_shortcut,
         {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
-        clipping_shortcut,
         toggle_wireframe_shortcut
     };
 

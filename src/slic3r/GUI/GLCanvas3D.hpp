@@ -597,11 +597,15 @@ private:
     {
         explicit SectionView(const GLCanvas3D* owner) : owner(owner) {}
         double ratio{ 0. }; // 0 = off
+        double last_ratio{ 0. }; // before it was switched off
         Vec3d  normal{ Vec3d::UnitZ() };
+        bool   panel_open{ false };
         const GLCanvas3D* owner; // whose objects place the plane
     };
     std::shared_ptr<SectionView> m_section_view{ std::make_shared<SectionView>(this) };
     std::map<const GLVolume*, MeshClipper> m_section_view_caps;
+    // Its release would open the hidden window menu on Windows.
+    bool m_alt_wheel_used{ false };
     std::array<SlaCap, 2> m_sla_caps;
     std::string m_sidebar_field;
     // when true renders an extra frame by not resetting m_dirty to false
@@ -930,6 +934,7 @@ public:
     double get_section_view_ratio() const { return m_section_view->ratio; }
     const Vec3d& get_section_view_normal() const { return m_section_view->normal; }
     void set_section_view_ratio(double ratio);
+    void toggle_section_view();
     void align_section_view_to_camera();
     void share_section_view(const GLCanvas3D& owner) { m_section_view = owner.m_section_view; }
 
@@ -1409,7 +1414,7 @@ private:
     void _render_assemble_view_toolbar() const;
     void _render_return_toolbar() const;
     void _render_canvas_toolbar();
-    void _render_section_view_popup(const ImVec2& bottom_left);
+    void _render_section_view_panel(const ImVec2& bottom_left);
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
     void _render_collapse_toolbar() const;

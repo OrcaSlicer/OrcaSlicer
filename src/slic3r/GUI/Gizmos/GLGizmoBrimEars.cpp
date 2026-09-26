@@ -50,7 +50,6 @@ bool GLGizmoBrimEars::on_init()
     m_shortcut = Shortcut::GizmoBrimEars;
 
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
-    const wxString alt  = GUI::shortkey_alt_prefix();
 
     m_desc["brim_ear_radius"]       = _L("Brim ear radius");
     m_desc["max_angle"]             = _L("Max angle");
@@ -61,13 +60,11 @@ bool GLGizmoBrimEars::on_init()
     m_desc["create"]                = _L("Create");
     m_desc["auto_generate"]         = _L("Auto-generate");
     m_desc["auto-generate-tooltip"] = _L("Generate brim ears using Max angle and Detection radius");
-    m_desc["section_view"]          = _L("Section view");
 
     m_shortcuts = {
         {_L("Left mouse button"),   _L("Add or Select")},
         {_L("Right mouse button"),  _L("Remove")},
         {ctrl + _L("Mouse wheel"),  m_desc["brim_ear_radius"]},
-        {alt + _L("Mouse wheel"),   m_desc["section_view"]},
     };
 
     return true;
@@ -514,11 +511,6 @@ bool GLGizmoBrimEars::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_p
         }
 
         apply_radius_change();
-    }
-
-    if ((action == SLAGizmoEventType::MouseWheelUp || action == SLAGizmoEventType::MouseWheelDown) && alt_down) {
-        m_parent.set_section_view_ratio(m_parent.get_section_view_ratio() + (action == SLAGizmoEventType::MouseWheelUp ? 0.01 : -0.01));
-        return true;
     }
 
     return false;

@@ -179,13 +179,13 @@ void KBShortcutsDialog::fill_pages()
             mouse(Section::Camera, _L("Middle mouse"), "middle_mouse_drag_action"),
             mouse(Section::Camera, _L("Right mouse"), "right_mouse_drag_action"),
             fixed(Section::Camera, { wheel }, L("Zoom View")),
+            fixed(Section::Display, { alt, wheel }, L("Move section plane")),
         });
 
         page(_L("Painting"), _L("Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."), ShortcutContext::Painting, {
             fixed(Section::Gizmos, { esc }, L("Deselect All")),
             fixed(Section::Gizmos, { shift, left_button }, L("Move: press to snap by 1mm")),
             fixed(Section::PaintingTools, { ctrl, wheel }, L("Support/Color Painting: adjust pen radius")),
-            fixed(Section::PaintingTools, { alt, wheel }, L("Support/Color Painting: adjust section position")),
         });
 
         page(_L("Objects list"), _L("Available while the object list has focus."), ShortcutContext::ObjectList, {
@@ -199,6 +199,7 @@ void KBShortcutsDialog::fill_pages()
     page(_L("Preview"), _L("Available while the 3D view on the Preview tab has focus."), ShortcutContext::Preview, {
         fixed(Section::Sliders, { shift_ctrl, any_key }, L("Move slider 5x faster")),
         fixed(Section::Sliders, { shift_ctrl, wheel }, L("Scroll slider 5x faster")),
+        fixed(Section::Display, { alt, wheel }, L("Move section plane")),
     });
 }
 

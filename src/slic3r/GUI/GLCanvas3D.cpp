@@ -1571,11 +1571,25 @@ void GLCanvas3D::set_section_view_ratio(double ratio)
         return;
 
     const bool switched_on = m_section_view->ratio == 0.;
+    if (ratio == 0.)
+        m_section_view->last_ratio = m_section_view->ratio;
     m_section_view->ratio = ratio;
     if (switched_on)
         align_section_view_to_camera();
     else
         _on_section_view_changed();
+}
+
+void GLCanvas3D::toggle_section_view()
+{
+    if (is_section_view_active())
+        set_section_view_ratio(0.);
+    else if (m_section_view->last_ratio > 0.) {
+        // Brings back the same cut, not one facing the camera.
+        m_section_view->ratio = m_section_view->last_ratio;
+        _on_section_view_changed();
+    } else
+        set_section_view_ratio(0.5);
 }
 
 void GLCanvas3D::align_section_view_to_camera()
@@ -3806,6 +3820,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
         m_key_down = { keyCode, key_repeats(keyCode) };
     else if (evt.GetEventType() == wxEVT_KEY_UP)
         key_released(keyCode);
+    const bool alt_wheel_released = evt.GetEventType() == wxEVT_KEY_UP && keyCode == WXK_ALT && std::exchange(m_alt_wheel_used, false);
 
     auto imgui = wxGetApp().imgui();
     if (imgui->update_key_data(evt))
@@ -3880,7 +3895,8 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
         && keyCode != WXK_LEFT
         && keyCode != WXK_UP
         && keyCode != WXK_RIGHT
-        && keyCode != WXK_DOWN) {
+        && keyCode != WXK_DOWN
+        && !alt_wheel_released) {
         evt.Skip();   // Needed to have EVT_CHAR generated as well
     }
 }
@@ -3899,6 +3915,8 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     // Ignore the wheel events if the middle button is pressed.
     if (evt.MiddleIsDown())
         return;
+
+    m_alt_wheel_used |= evt.AltDown();
 
 #if ENABLE_RETINA_GL
     const float scale = m_retina_helper->get_scale_factor();
@@ -3945,20 +3963,21 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     if (m_gizmos.on_mouse_wheel(evt))
         return;
 
-    if (m_canvas_type == CanvasAssembleView && (evt.AltDown() || evt.CmdDown())) {
+    if (evt.AltDown()) {
+        set_section_view_ratio(get_section_view_ratio() + (evt.GetWheelRotation() < 0 ? -0.01 : 0.01));
+        return;
+    }
+
+    if (m_canvas_type == CanvasAssembleView && evt.CmdDown()) {
         float rotation = (float)evt.GetWheelRotation() / (float)evt.GetWheelDelta();
-        if (evt.AltDown())
-            set_section_view_ratio(get_section_view_ratio() + (rotation < 0.f ? -0.01 : 0.01));
-        else if (evt.CmdDown()) {
-            m_explosion_ratio = rotation < 0.f
-                ? std::max(1., m_explosion_ratio - 0.01)
-                : std::min(3., m_explosion_ratio + 0.01);
-            if (m_explosion_ratio != GLVolume::explosion_ratio) {
-                for (GLVolume* volume : m_volumes.volumes) {
-                    volume->set_bounding_boxes_as_dirty();
-                }
-                GLVolume::explosion_ratio = m_explosion_ratio;
+        m_explosion_ratio = rotation < 0.f
+            ? std::max(1., m_explosion_ratio - 0.01)
+            : std::min(3., m_explosion_ratio + 0.01);
+        if (m_explosion_ratio != GLVolume::explosion_ratio) {
+            for (GLVolume* volume : m_volumes.volumes) {
+                volume->set_bounding_boxes_as_dirty();
             }
+            GLVolume::explosion_ratio = m_explosion_ratio;
         }
         return;
     }
@@ -9838,9 +9857,9 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , padding); // without padding images clipping
 
     imgui.begin(_L("Canvas Toolbar"), ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove |
-                                           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse);//
+                                           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);//
 
-    // Section view, on top so its popup opens above the toolbar.
+    // Section view, on top so its panel opens above the toolbar.
     const bool  section_view = is_section_view_active();
     ImTextureID s_normal_id  = m_gizmos.get_icon_texture_id(section_view ?
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_DARK : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE) :
@@ -9849,12 +9868,18 @@ void GLCanvas3D::_render_canvas_toolbar()
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_HOVER) :
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_DARK_HOVER        : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_HOVER));
 
-    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size)) {
-        if (!ImGui::IsPopupOpen("CanvasSectionView"))
-            ImGui::OpenPopup("CanvasSectionView");
-    } else if (ImGui::IsItemHovered())
+    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size))
+        m_section_view->panel_open = !m_section_view->panel_open;
+    else if (ImGui::IsItemHovered()) {
+        if (const float wheel = ImGui::GetIO().MouseWheel; wheel != 0.f)
+            set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+            toggle_section_view();
+        else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) && section_view)
+            align_section_view_to_camera();
         imgui.tooltip(_L("Section view"), ImGui::GetFontSize() * 20.0f);
-    const ImVec2 section_popup_pos = ImGui::GetItemRectMin() - ImVec2(0.f, spacing.y);
+    }
+    const ImVec2 section_panel_pos = ImGui::GetItemRectMin() - ImVec2(0.f, spacing.y);
 
     ImGui::Dummy({ 0, spacing.y});
 
@@ -10021,59 +10046,75 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImGui::PopStyleColor(6);
     ImGui::PopStyleVar(6);
 
-    // After the menu: a closed BeginPopup() before it would drop the menu's SetNextWindowPos().
-    _render_section_view_popup(section_popup_pos);
-
     imgui.end();
+
+    _render_section_view_panel(section_panel_pos);
 }
 
-void GLCanvas3D::_render_section_view_popup(const ImVec2& bottom_left)
+void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
 {
+    if (!m_section_view->panel_open)
+        return;
+
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float   sc    = get_scale();
 
     ImGuiWrapper::push_toolbar_style(sc);
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, m_is_dark ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
-    ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 8.f * sc);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, m_is_dark ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f * sc);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.f, 8.f) * sc);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 4.f) * sc);
 
     ImGui::SetNextWindowPos(bottom_left, ImGuiCond_Always, ImVec2(0.f, 1.f));
-    if (ImGui::BeginPopup("CanvasSectionView")) {
-        ImGui::AlignTextToFramePadding();
-        imgui.text(_L("Section view"));
+    imgui.begin(std::string("##CanvasSectionView"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                                                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
 
-        float ratio = float(get_section_view_ratio());
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(imgui.scaled(7.f));
-        bool changed = imgui.bbl_slider_float_style("##section_view", &ratio, 0.f, 1.f, "%.2f", 1.0f, true);
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(1.5f * imgui.get_slider_icon_size().x);
-        changed |= ImGui::BBLDragFloat("##section_view_input", &ratio, 0.05f, 0.0f, 0.0f, "%.2f");
-        if (changed)
-            set_section_view_ratio(ratio);
+    const wxString alt = GUI::shortkey_alt_prefix();
+    const std::vector<std::pair<wxString, wxString>> tips = {
+        { alt + _L("Mouse wheel"),    _L("Move section plane") },
+        { _L("Mouse wheel on icon"),  _L("Move section plane") },
+        { _L("Right click on icon"),  _L("Toggle section view") },
+        { _L("Middle click on icon"), _L("Set viewing angle") },
+    };
+    // render_tooltip_button() puts the tips below y plus the panel height; they go above the panel.
+    const ImGuiStyle& style  = ImGui::GetStyle();
+    const float       tips_h = tips.size() * (ImGui::GetTextLineHeight() + style.ItemSpacing.y) - style.ItemSpacing.y + 2.f * style.WindowPadding.y;
+    GLGizmoUtils::render_tooltip_button(&imgui, *this, tips, ImGui::GetWindowPos().x,
+        ImGui::GetWindowPos().y - style.ItemSpacing.y - tips_h - ImGui::GetContentRegionMax().y - ImGui::GetFrameHeight());
 
-        imgui.disabled_begin(!is_section_view_active());
-        ImGui::SameLine();
-        if (imgui.button(_L("Set viewing angle")))
-            align_section_view_to_camera();
+    ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
+    imgui.text(_L("Section view"));
 
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
-        if (imgui.button(wxString(ImGui::RevertBtn) + "##section_view_reset", _L("Reset")))
-            set_section_view_ratio(0.);
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor(3);
-        imgui.disabled_end();
+    float ratio = float(get_section_view_ratio());
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(imgui.scaled(7.f));
+    bool changed = imgui.bbl_slider_float_style("##section_view", &ratio, 0.f, 1.f, "%.2f", 1.0f, true);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(1.5f * imgui.get_slider_icon_size().x);
+    changed |= ImGui::BBLDragFloat("##section_view_input", &ratio, 0.05f, 0.0f, 0.0f, "%.2f");
+    if (changed)
+        set_section_view_ratio(ratio);
 
-        ImGui::EndPopup();
-    }
+    imgui.disabled_begin(!is_section_view_active());
+    ImGui::SameLine();
+    if (imgui.button(_L("Set viewing angle")))
+        align_section_view_to_camera();
 
-    ImGui::PopStyleVar(4);
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+    if (imgui.button(wxString(ImGui::RevertBtn) + "##section_view_reset", _L("Reset")))
+        set_section_view_ratio(0.);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(3);
+    imgui.disabled_end();
+
+    imgui.end();
+
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor();
     ImGuiWrapper::pop_toolbar_style();
 }

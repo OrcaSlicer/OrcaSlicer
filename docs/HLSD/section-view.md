@@ -7,17 +7,20 @@ objects in Prepare and in the assembly view, and inside the toolpaths in Preview
 setting: it changes nothing in the model, the slice or the project file, and it does not reach
 plate thumbnails.
 
-The user controls it from one place, the section button of the canvas toolbar in the bottom
-left corner of the 3D view. Its popup holds a slider for the depth of the cut, a "Set viewing
-angle" button that turns the plane to face the camera at the same depth, and a button that resets
-the depth to zero. The toolbar button is highlighted while a section cuts the scene. Alt + mouse
-wheel also moves the plane in the painting tools, brim ears and the assembly view.
+The user controls it from the section button of the canvas toolbar in the bottom left corner of
+the 3D view. The button opens a panel above it with a slider for the depth of the cut, a "Set
+viewing angle" button that turns the plane to face the camera at the same depth, and a button that
+resets the depth to zero. The panel is an ordinary overlay window, not a popup, so the scene keeps
+taking clicks and drags while it is open; the button closes it again. The button is highlighted
+while a section cuts the scene and has shortcuts of its own: the mouse wheel over it moves the
+plane, a right click switches the section off and back on, and a middle click sets the viewing
+angle. Alt + mouse wheel moves the plane anywhere in the 3D view, with or without a gizmo open.
 
 ## State
 
 Prepare and Preview share one section view, so a cut made in either tab is the same cut in the
 other. The assembly view, whose objects sit apart from their places on the plate, and the Design
-tab keep their own. The state is two values.
+tab keep their own. The section itself is two values.
 
 - **Ratio**, from 0 to 1. At 0 the section is off. As the ratio grows, the plane sweeps the
   sphere around the objects, from its side facing the camera to the opposite side, so at 1
@@ -25,6 +28,11 @@ tab keep their own. The state is two values.
 - **Normal**, taken from the camera direction when the ratio leaves 0, and again whenever the
   user presses "Set viewing angle". The plane keeps that orientation while the camera orbits,
   so the cut face can be seen from any side.
+
+The ratio in use when the section is switched off is kept. The right click on the button brings
+the section back at that ratio and with its old normal, so it restores the same cut, while the
+slider and the wheel start a new cut facing the camera. Whether the panel is open is shared along
+with the section.
 
 The sphere is recomputed every frame from the volumes of the canvas the section view belongs to:
 the objects on the current plate, or every object when that plate is empty. Preview holds no
@@ -79,8 +87,16 @@ reports that plane, or nothing when no open gizmo has a clipper. There are two c
 
 Every other gizmo, including move, rotate and scale, leaves the canvas section in place.
 
+## Alt + mouse wheel
+
+The canvas handles Alt + wheel after the gizmos had their turn, so it works the same in every
+tab and with any gizmo open. On Windows, releasing Alt when no key was pressed since it went down
+opens the window menu, and a wheel turn does not count as a key. Under the custom title bar that
+menu is invisible, yet it takes the keyboard and the next click, which looks like a frozen 3D
+view. After Alt + wheel the canvas therefore consumes the Alt release instead of passing it on.
+
 ## Redraw
 
-The popup is part of the ImGui overlay, which is built after the frame's scene is drawn. A change
-to the section therefore marks the scene dirty and asks for one more frame. The cached scene is
-never reused across a change.
+The button and the panel are part of the ImGui overlay, which is built after the frame's scene is
+drawn. A change to the section therefore marks the scene dirty and asks for one more frame. The
+cached scene is never reused across a change.

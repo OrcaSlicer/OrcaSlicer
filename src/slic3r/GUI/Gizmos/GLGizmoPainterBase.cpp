@@ -723,10 +723,6 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                 return true;
             }
         }
-        else if (alt_down) {
-            m_parent.set_section_view_ratio(m_parent.get_section_view_ratio() + (action == SLAGizmoEventType::MouseWheelDown ? -0.01 : 0.01));
-            return true;
-        }
     }
 
     if (action == SLAGizmoEventType::LeftDown

@@ -32,10 +32,8 @@ bool GLGizmoSeam::on_init()
     m_shortcut = Shortcut::GizmoSeam;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
-    const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view"] = _L("Section view");
     m_desc["cursor_size"]      = _L("Brush size");
     m_desc["tool_type"]        = _L("Tool type");
     m_desc["enforce"]          = _L("Enforce seam");
@@ -49,8 +47,7 @@ bool GLGizmoSeam::on_init()
         {_L("Left mouse button"),           m_desc["enforce"]},
         {_L("Right mouse button"),          m_desc["block"]},
         {shift + _L("Left mouse button"),   m_desc["remove"]},
-        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]},
-        {alt + _L("Mouse wheel"),           m_desc["clipping_of_view"]}
+        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]}
     };
 
     return true;
