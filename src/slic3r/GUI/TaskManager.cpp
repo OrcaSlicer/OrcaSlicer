@@ -355,7 +355,9 @@ std::map<std::string, TaskStateInfo> TaskManager::get_task_list(int curr_page, i
         task_query_params.limit = page_count;
         task_query_params.offset = curr_page * page_count;
         std::string task_info;
-        int result = m_agent->get_user_tasks(task_query_params, &task_info);
+        // The task list (MakerWorld print history / send-to-multiple-machines) is a BBL cloud
+        // concept; the default (Orca) agent is a stub.
+        int result = m_agent->get_user_tasks(task_query_params, &task_info, GUI::wxGetApp().get_printer_cloud_provider());
         BOOST_LOG_TRIVIAL(trace) << "task_manager: get_task_list task_info=" << task_info;
         if (result == 0) {
             try {
