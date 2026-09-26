@@ -169,6 +169,7 @@ src/slic3r/GUI/OptionsGroup.cpp
 src/slic3r/GUI/PrintOptionsDialog.cpp
 src/slic3r/GUI/SafetyOptionsDialog.cpp
 src/slic3r/GUI/ParamsPanel.cpp
+src/slic3r/GUI/IMEXModesCtrl.cpp
 src/slic3r/GUI/PartPlate.cpp
 src/slic3r/GUI/Plater.cpp
 src/slic3r/GUI/Preferences.cpp
@@ -217,6 +218,7 @@ src/libslic3r/ExtrusionEntity.cpp
 src/libslic3r/Flow.cpp
 src/libslic3r/Format/AMF.cpp
 src/libslic3r/miniz_extension.cpp
+src/libslic3r/IMEXHelpers.cpp
 src/libslic3r/Preset.cpp
 src/libslic3r/Print.cpp
 src/libslic3r/PrintBase.cpp

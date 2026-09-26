@@ -323,6 +323,143 @@ SCENARIO("DynamicPrintConfig serialization", "[Config]") {
     }
 }
 
+SCENARIO("update_non_diff_values_to_base_config does not truncate stride=2 child vectors when child has more extruders than parent",
+         "[Config][Variant]") {
+    GIVEN("A 2-extruder child with stride=2 machine limits inheriting from a 1-extruder parent") {
+        // Stride=2 keys store (normal, silent) pairs per variant: a 2-extruder child has size 4,
+        // a 1-extruder parent has size 2. The truncation guard must fire here too.
+        Slic3r::DynamicPrintConfig child;
+        Slic3r::DynamicPrintConfig parent;
+
+        child.set_key_value("printer_extruder_id",         new Slic3r::ConfigOptionInts({1, 2}));
+        child.set_key_value("printer_extruder_variant",    new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard"}));
+        child.set_key_value("machine_max_acceleration_x",  new Slic3r::ConfigOptionFloats({500.0, 200.0, 600.0, 300.0}));
+
+        parent.set_key_value("printer_extruder_id",        new Slic3r::ConfigOptionInts({1}));
+        parent.set_key_value("printer_extruder_variant",   new Slic3r::ConfigOptionStrings({"Direct Drive Standard"}));
+        parent.set_key_value("machine_max_acceleration_x", new Slic3r::ConfigOptionFloats({1000.0, 400.0}));
+
+        const Slic3r::t_config_option_keys keys = {
+            "machine_max_acceleration_x", "printer_extruder_id", "printer_extruder_variant"
+        };
+        const std::set<std::string> different_keys = {
+            "machine_max_acceleration_x", "printer_extruder_id", "printer_extruder_variant"
+        };
+
+        WHEN("update_non_diff_values_to_base_config is called") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+            child.update_non_diff_values_to_base_config(
+                parent, keys, different_keys, id_name, var_name,
+                Slic3r::printer_options_with_variant_1,
+                Slic3r::printer_options_with_variant_2);
+
+            THEN("machine_max_acceleration_x retains size 4 (2 variants × 2 silent modes)") {
+                REQUIRE(child.option<Slic3r::ConfigOptionFloats>("machine_max_acceleration_x")->values.size() == 4);
+            }
+            THEN("machine_max_acceleration_x preserves both extruders' normal and silent values") {
+                auto* v = child.option<Slic3r::ConfigOptionFloats>("machine_max_acceleration_x");
+                REQUIRE_THAT(v->values[0], Catch::Matchers::WithinAbs(500.0, 1e-9));
+                REQUIRE_THAT(v->values[1], Catch::Matchers::WithinAbs(200.0, 1e-9));
+                REQUIRE_THAT(v->values[2], Catch::Matchers::WithinAbs(600.0, 1e-9));
+                REQUIRE_THAT(v->values[3], Catch::Matchers::WithinAbs(300.0, 1e-9));
+            }
+        }
+    }
+}
+
+SCENARIO("update_non_diff_values_to_base_config runs the merge path in the equal-size case",
+         "[Config][Variant]") {
+    // Distinguishes the fix's `cur > target` guard from a stricter `cur >= target`.
+    // With `cur > target` (correct): equal-size does NOT fire the guard; merge runs via
+    // set_with_restore, which builds variant_index by matching (extruder_variant, extruder_id)
+    // pairs between child and parent. When the variants don't match, variant_index positions
+    // stay at -1, and set_with_restore overwrites those child positions with parent values.
+    // With `cur >= target` (regressed): guard fires; merge is skipped; child values stay intact.
+    // Using mismatched variants makes the two outcomes observably different.
+    GIVEN("A 2-extruder child and parent with matching extruder counts but mismatched variant names") {
+        Slic3r::DynamicPrintConfig child;
+        Slic3r::DynamicPrintConfig parent;
+
+        child.set_key_value("printer_extruder_id",        new Slic3r::ConfigOptionInts({1, 2}));
+        child.set_key_value("printer_extruder_variant",   new Slic3r::ConfigOptionStrings({"Bowden Standard",      "Bowden Standard"}));
+        child.set_key_value("retraction_length",          new Slic3r::ConfigOptionFloats({1.5, 2.5}));
+
+        parent.set_key_value("printer_extruder_id",       new Slic3r::ConfigOptionInts({1, 2}));
+        parent.set_key_value("printer_extruder_variant",  new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard"}));
+        parent.set_key_value("retraction_length",         new Slic3r::ConfigOptionFloats({0.8, 0.8}));
+
+        const Slic3r::t_config_option_keys keys = {
+            "retraction_length", "printer_extruder_id", "printer_extruder_variant"
+        };
+        const std::set<std::string> different_keys = {
+            "retraction_length", "printer_extruder_id", "printer_extruder_variant"
+        };
+
+        WHEN("update_non_diff_values_to_base_config is called") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+            child.update_non_diff_values_to_base_config(
+                parent, keys, different_keys, id_name, var_name,
+                Slic3r::printer_options_with_variant_1,
+                Slic3r::printer_options_with_variant_2);
+
+            THEN("retraction_length retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionFloats>("retraction_length")->values.size() == 2);
+            }
+            THEN("retraction_length gets parent values — proves the merge ran (guard did not fire)") {
+                // If the guard regressed to `cur >= target`, this path would be skipped and
+                // retraction_length would remain {1.5, 2.5}. The correct `cur > target` guard
+                // does not fire for equal-size, the merge proceeds, and with mismatched
+                // variants the child positions receive parent values.
+                auto* rl = child.option<Slic3r::ConfigOptionFloats>("retraction_length");
+                REQUIRE_THAT(rl->values[0], Catch::Matchers::WithinAbs(0.8, 1e-9));
+                REQUIRE_THAT(rl->values[1], Catch::Matchers::WithinAbs(0.8, 1e-9));
+            }
+        }
+    }
+}
+
+SCENARIO("update_non_diff_values_to_base_config truncation guard does not affect non-variant scalar keys",
+         "[Config][Variant]") {
+    // The fix is scoped to options in printer_options_with_variant_1 / _2. A non-variant scalar
+    // listed in `keys` and `different_keys` should hit the "nothing to do" branch and remain
+    // untouched regardless of child/parent extruder count mismatch.
+    GIVEN("A 2-extruder child inheriting from a 1-extruder parent, with a non-variant scalar key in `keys`") {
+        Slic3r::DynamicPrintConfig child;
+        Slic3r::DynamicPrintConfig parent;
+
+        child.set_key_value("printer_extruder_id",      new Slic3r::ConfigOptionInts({1, 2}));
+        child.set_key_value("printer_extruder_variant", new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard"}));
+        child.set_key_value("layer_height",             new Slic3r::ConfigOptionFloat(0.20));
+
+        parent.set_key_value("printer_extruder_id",      new Slic3r::ConfigOptionInts({1}));
+        parent.set_key_value("printer_extruder_variant", new Slic3r::ConfigOptionStrings({"Direct Drive Standard"}));
+        parent.set_key_value("layer_height",             new Slic3r::ConfigOptionFloat(0.28));
+
+        const Slic3r::t_config_option_keys keys = {
+            "layer_height", "printer_extruder_id", "printer_extruder_variant"
+        };
+        const std::set<std::string> different_keys = {
+            "layer_height", "printer_extruder_id", "printer_extruder_variant"
+        };
+
+        WHEN("update_non_diff_values_to_base_config is called") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+            child.update_non_diff_values_to_base_config(
+                parent, keys, different_keys, id_name, var_name,
+                Slic3r::printer_options_with_variant_1,
+                Slic3r::printer_options_with_variant_2);
+
+            THEN("the non-variant scalar layer_height is left unchanged on the child") {
+                REQUIRE_THAT(child.option<Slic3r::ConfigOptionFloat>("layer_height")->value,
+                             Catch::Matchers::WithinAbs(0.20, 1e-9));
+            }
+        }
+    }
+}
+
 SCENARIO("update_non_diff_values_to_base_config preserves child vectors when child has more extruders than parent",
          "[Config][Variant]") {
     GIVEN("A 2-extruder child printer config inheriting from a 1-extruder parent") {
@@ -1233,6 +1370,72 @@ TEST_CASE("min_object_distance yields no floor when an FFF config lacks the opti
         c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
         CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
     }
+}
+
+TEST_CASE("handle_legacy migrates every IDEX/IQEX key testers already have", "[Config]") {
+    // Three eras of saved profiles: the feature shipped as iXex (is_ixex + ixex_*), the clearance
+    // pair was renamed to say what it measures, then the whole prefix became imex_. Driven from the
+    // full era-1 key list, because the gap this test was rewritten to catch was a key the earlier
+    // hand-picked version simply did not mention.
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+
+    DynamicPrintConfig era1;
+    era1.set_deserialize("is_ixex", "1", ctxt);
+    era1.set_deserialize("ixex_gantry_count", "2", ctxt);
+    era1.set_deserialize("ixex_tools_per_gantry", "2", ctxt);
+    era1.set_deserialize("ixex_carriage_width_x", "12.5", ctxt);
+    era1.set_deserialize("ixex_carriage_width_y", "7.25", ctxt);
+    era1.set_deserialize("ixex_carriage_margin", "1.5", ctxt);
+    era1.set_deserialize("ixex_tool_layout", "front-right", ctxt);
+    era1.set_deserialize("ixex_viz_theme", "deuteranopia", ctxt);
+    era1.set_deserialize("ixex_parallel_mode", "copy", ctxt);
+    era1.set_deserialize("ixex_mode_names", "\"Duplicate\";\"Mirror\"", ctxt);
+    era1.set_deserialize("ixex_mode_active_tools", "\"0:P,1:C\";\"0:P,1:M\"", ctxt);
+    era1.set_deserialize("ixex_mode_gcodes", "\"M118 copy\";\"M118 mirror\"", ctxt);
+
+    // The gate first: every other value is inert without it, and a populated but disabled config is
+    // worse than an empty one because it looks configured.
+    REQUIRE(era1.option("is_imex") != nullptr);
+    CHECK(era1.opt_bool("is_imex"));
+
+    CHECK(era1.opt_int("imex_gantry_count") == 2);
+    CHECK(era1.opt_int("imex_tools_per_gantry") == 2);
+    CHECK(era1.opt_float("imex_nozzle_clearance_x") == Catch::Approx(12.5));
+    CHECK(era1.opt_float("imex_nozzle_clearance_y") == Catch::Approx(7.25));
+    CHECK(era1.opt_float("imex_carriage_margin") == Catch::Approx(1.5));
+    CHECK(era1.opt_string("imex_parallel_mode") == "copy");
+
+    // Both enums changed type from coString, and a forward-compatible substitution would hand back
+    // a default rather than fail, so assert the value and not merely that the option exists.
+    CHECK(era1.opt_enum<ImexToolLayout>("imex_tool_layout") == ImexToolLayout::FrontRight);
+    CHECK(era1.opt_enum<ImexVizTheme>("imex_viz_theme") == ImexVizTheme::Deuteranopia);
+
+    // The three lists carry escaped, semicolon-separated values - the likeliest place for a silent
+    // change - so check both elements survive in order.
+    CHECK(era1.opt_string("imex_mode_names", 0u) == "Duplicate");
+    CHECK(era1.opt_string("imex_mode_names", 1u) == "Mirror");
+    CHECK(era1.opt_string("imex_mode_active_tools", 0u) == "0:P,1:C");
+    CHECK(era1.opt_string("imex_mode_gcodes", 1u) == "M118 mirror");
+
+    // Era 2: renamed clearance keys, still under the old prefix.
+    DynamicPrintConfig era2;
+    era2.set_deserialize("ixex_nozzle_clearance_x", "3.5", ctxt);
+    CHECK(era2.opt_float("imex_nozzle_clearance_x") == Catch::Approx(3.5));
+
+    // Era 3 (current) is untouched by the branch.
+    DynamicPrintConfig era3;
+    era3.set_deserialize("imex_nozzle_clearance_x", "9.0", ctxt);
+    CHECK(era3.opt_float("imex_nozzle_clearance_x") == Catch::Approx(9.0));
+
+    // The two keys with no modern counterpart are dropped and reported, not mapped onto a key that
+    // does not exist.
+    ConfigSubstitutionContext obsolete_ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+    DynamicPrintConfig        obsolete;
+    obsolete.set_deserialize("ixex_primary_col", "1", obsolete_ctxt);
+    obsolete.set_deserialize("ixex_primary_row", "0", obsolete_ctxt);
+    CHECK(obsolete.option("imex_primary_col") == nullptr);
+    CHECK(obsolete.option("imex_primary_row") == nullptr);
+    CHECK(obsolete_ctxt.unrecogized_keys.size() == 2);
 }
 
 TEST_CASE("Static print configs compare, order and hash by their option values", "[Config]")

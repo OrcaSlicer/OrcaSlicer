@@ -91,6 +91,7 @@ protected:
     // Tray data for AMS payload building
     struct AmsTrayData {
         int         slot_index = 0;      // 0-based slot index
+        int         extruder_index = -1; // Physical extruder index from AFC extruder_index field (-1 = not provided)
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)

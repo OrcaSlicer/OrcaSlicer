@@ -59,7 +59,7 @@ public:
     // Orca: set acceleration and jerk in one command for Klipper
     std::string set_accel_and_jerk(unsigned int acceleration, double jerk);
     std::string set_junction_deviation(double junction_deviation); 
-    std::string set_pressure_advance(double pa) const;
+    std::string set_pressure_advance(double pa, int tool = -1) const;
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;

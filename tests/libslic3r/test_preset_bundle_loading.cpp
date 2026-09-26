@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -5481,4 +5482,25 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
         CHECK(import(zip).empty());
         CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
+}
+
+TEST_CASE("A saved printer preset reloads the tool layout it was saved with", "[Preset][Bundle][IMEX]")
+{
+    ScopedTemporaryDir         temp_dir;
+    PresetBundle               bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    DynamicPrintConfig config(bundle.printers.default_preset().config);
+    config.set_deserialize_strict("imex_tool_layout", "rear-left");
+    config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "";
+    const fs::path file = temp_dir.path() / PRESET_PRINTER_NAME / "ImexPrinter.json";
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), "ImexPrinter", "User", "1.0.0");
+
+    bundle.printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *loaded = bundle.printers.find_preset("ImexPrinter");
+    REQUIRE(loaded != nullptr);
+    CHECK(int(imex_cfg_enum<ImexToolLayout>(loaded->config, "imex_tool_layout")) == int(ImexToolLayout::RearLeft));
 }
