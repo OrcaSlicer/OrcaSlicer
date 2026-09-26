@@ -1035,6 +1035,13 @@ void MenuFactory::append_menu_item_reload_from_disk(wxMenu* menu)
         []() { return plater()->can_reload_from_disk(); }, m_parent);
 }
 
+void MenuFactory::append_menu_item_reload_from_directory(wxMenu* menu)
+{
+    append_menu_item(menu, wxID_ANY, _L("Reload from directory") + dots, _L("Reload selected parts from a chosen directory"),
+        [](wxCommandEvent&) { plater()->reload_from_directory(); }, "", menu,
+        []() { return plater()->can_reload_from_directory(); }, m_parent);
+}
+
 void MenuFactory::append_menu_item_replace_with_stl(wxMenu *menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Replace 3D file") + dots, _L("Replace the selected part with a new 3D file"),
@@ -1437,6 +1444,7 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     menu->AppendSeparator();
 
     append_menu_item_reload_from_disk(menu);
+    append_menu_item_reload_from_directory(menu);
     append_menu_item_export_stl(menu);
     append_menu_item_export_drc(menu);
     // "Scale to print volume" makes a sense just for whole object
@@ -1527,6 +1535,7 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_per_object_settings(&m_object_menu);
     m_object_menu.AppendSeparator();
     append_menu_item_reload_from_disk(&m_object_menu);
+    append_menu_item_reload_from_directory(&m_object_menu);
     append_menu_item_replace_with_stl(&m_object_menu);
     append_menu_item_replace_all_with_stl(&m_object_menu);
     append_menu_item_export_stl(&m_object_menu);
@@ -1566,6 +1575,7 @@ void MenuFactory::create_part_menu()
     append_menu_item_rename(menu);
     append_menu_item_delete(menu);
     append_menu_item_reload_from_disk(menu);
+    append_menu_item_reload_from_directory(menu);
     append_menu_item_export_stl(menu);
     append_menu_item_export_drc(menu);
     append_menu_item_fix_through_cgal(menu);
@@ -1648,6 +1658,7 @@ void MenuFactory::create_bbl_part_menu()
     append_menu_item_per_object_settings(menu);
     append_menu_item_change_type(menu);
     append_menu_item_reload_from_disk(menu);
+    append_menu_item_reload_from_directory(menu);
     append_menu_item_replace_with_stl(menu);
     append_menu_item_replace_all_with_stl(menu);
 }
@@ -1959,6 +1970,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         
         append_menu_items_convert_unit(menu);
         append_menu_item_replace_all_with_stl(menu);
+        append_menu_item_reload_from_directory(menu);
         //BBS
         append_menu_item_change_filament(menu);
         menu->AppendSeparator();
@@ -1973,6 +1985,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         append_menu_item_delete(menu);
         append_menu_items_convert_unit(menu);
         append_menu_item_replace_all_with_stl(menu);
+        append_menu_item_reload_from_directory(menu);
         append_menu_item_change_filament(menu);
         wxMenu* split_menu = new wxMenu();
         if (split_menu) {
