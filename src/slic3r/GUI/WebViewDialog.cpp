@@ -469,7 +469,7 @@ void WebViewPanel::SendDesignStaffpick(bool on)
 void WebViewPanel::OpenModelDetail(std::string id, NetworkAgent *agent)
 {
     std::string url;
-    if ((agent ? agent->get_model_mall_detail_url(&url, id) : get_model_mall_detail_url(&url, id)) == 0) 
+    if ((agent ? agent->get_model_mall_detail_url(&url, id, wxGetApp().get_printer_cloud_provider()) : get_model_mall_detail_url(&url, id)) == 0)
     {
         if (url.find("?") != std::string::npos) 
         { 
