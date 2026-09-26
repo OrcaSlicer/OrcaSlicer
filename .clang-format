@@ -1,6 +1,8 @@
 #
 # http://clang.llvm.org/docs/ClangFormatStyleOptions.html
 #
+# Requires clang-format >= 13.0.0
+#
 Language:        Cpp
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
@@ -18,10 +20,10 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: false
+BreakTemplateDeclarations: Yes
 BinPackArguments: true
 BinPackParameters: false
-BraceWrapping:   
+BraceWrapping:
   AfterClass:      true
   AfterControlStatement: false
   AfterEnum:       false
@@ -57,16 +59,16 @@ DerivePointerAlignment: false
 DisableFormat:   false
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
-ForEachMacros:   
+ForEachMacros:
   - forever
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
 IncludeBlocks:   Preserve
-IncludeCategories: 
+IncludeCategories:
   - Regex:           '^<Q.*'
     Priority:        200
-  - Regex:           '^(<|"(gtest|gmock|isl|json)/)'
+  - Regex:           '^(<|"(catch2|gtest|gmock|isl|json)/)'
     Priority:        3
   - Regex:           '.*'
     Priority:        1
@@ -105,7 +107,7 @@ SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: false
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: ControlStatements
+SpaceBeforeParens: ControlStatementsExceptControlMacros
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
@@ -115,6 +117,58 @@ SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 Standard:        Cpp11
+# Format these Catch2 nested sections like if-statements.
+IfMacros:
+  - SECTION
+  - GIVEN
+  - WHEN
+  - THEN
+  - AND_GIVEN
+  - AND_WHEN
+  - AND_THEN
+  - CHECKED_IF
+  - CHECKED_ELSE
+  - DYNAMIC_SECTION
+# Format these Catch2 outer sections like function definitions by
+# not listing them in IfMacros.
+#  - TEST_CASE
+#  - SCENARIO
+#  - TEMPLATE_TEST_CASE
+#  - TEMPLATE_PRODUCT_TEST_CASE
+#  - TEMPLATE_LIST_TEST_CASE
+#  - TEMPLATE_TEST_CASE_SIG
+#  - TEMPLATE_PRODUCT_TEST_CASE_SIG
+#  - TEMPLATE_LIST_TEST_CASE_SIG
+# Format Catch2 assertions like statements.
+StatementMacros:
+  - REQUIRE
+  - REQUIRE_THAT
+  - REQUIRE_FALSE
+  - CHECK
+  - CHECK_THAT
+  - CHECK_FALSE
+  - REQUIRE_THROWS
+  - REQUIRE_THROWS_AS
+  - REQUIRE_THROWS_WITH
+  - REQUIRE_NOTHROW
+  - CHECK_THROWS
+  - CHECK_THROWS_AS
+  - CHECK_THROWS_WITH
+  - CHECK_NOTHROW
+  - CHECK_NOFAIL
+  - STATIC_REQUIRE
+  - STATIC_REQUIRE_THAT
+  - STATIC_CHECK
+  - STATIC_CHECK_THAT
+  - SUCCEED
+  - INFO
+  - UNSCOPED_INFO
+  - WARN
+  - UNSCOPED_WARN
+  - FAIL
+  - FAIL_CHECK
+  - CAPTURE
+  - UNSCOPED_CAPTURE
+  - REGISTER_TEST_CASE
 TabWidth:        4
 UseTab:          Never
-
