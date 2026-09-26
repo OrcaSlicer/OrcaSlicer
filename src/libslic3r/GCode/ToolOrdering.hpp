@@ -274,6 +274,7 @@ public:
         m_stats_by_single_extruder.clear();
         m_stats_by_multi_extruder_best.clear();
         m_stats_by_multi_extruder_curr.clear();
+        m_last_print_z_per_extruder.clear();
     }
 
     // Only valid for non-sequential print:
@@ -305,6 +306,9 @@ public:
     bool 				empty()       const { return m_layer_tools.empty(); }
     std::vector<LayerTools>& layer_tools() { return m_layer_tools; }
     bool 				has_wipe_tower() const { return ! m_layer_tools.empty() && m_first_printing_extruder != (unsigned int)-1 && m_layer_tools.front().has_wipe_tower; }
+
+    // Returns the last print_z at which a given extruder is used, or -1 if not used.
+    coordf_t last_print_z_for_extruder(unsigned int extruder_id) const;
 
     int                 get_most_used_extruder() const { return most_used_extruder; }
 
@@ -415,6 +419,9 @@ private:
     MultiNozzleUtils::NozzleStatusRecorder     m_nozzle_status;
 
     int                        most_used_extruder;
+
+    // Last print_z at which each extruder is used.
+    std::map<unsigned int, coordf_t> m_last_print_z_per_extruder;
 };
 
 // Parse the user defined cyclic toolchange sequence ("3,2 , 1 , 4") into 0-based filament indices.

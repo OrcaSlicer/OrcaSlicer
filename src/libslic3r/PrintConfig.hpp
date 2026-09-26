@@ -1828,6 +1828,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             nozzle_diameter))
     ((ConfigOptionBool,               reduce_infill_retraction))
     ((ConfigOptionBool,               ooze_prevention))
+    ((ConfigOptionBool,               disable_heater_after_last_use))
     ((ConfigOptionString,             filename_format))
     ((ConfigOptionStrings,            post_process))
     ((ConfigOptionStrings,            slicing_pipeline_plugin))
