@@ -763,6 +763,8 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
     m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
     m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+    m_uni_segments_reverse_order_id          = glGetUniformLocation(m_segments_shader_id, "reverse_order");
+    m_uni_segments_instance_count_id         = glGetUniformLocation(m_segments_shader_id, "instance_count");
     // ORCA: realistic view
     m_uni_segments_shadow_map_id             = glGetUniformLocation(m_segments_shader_id, "shadow_map");
     m_uni_segments_shadow_light_vp_id        = glGetUniformLocation(m_segments_shader_id, "shadow_light_vp");
@@ -2090,6 +2092,15 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
     glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
+    // The segments come in print order, bottom layer first. Seen from above, that is back to front,
+    // and every hidden fragment is shaded before the one that covers it. Drawing them last to first
+    // lets the depth test reject the hidden ones instead. The camera looks down when the world's
+    // up axis points towards it, which is the view matrix's (2, 2) entry being positive.
+    const bool top_down = !m_rendering_shadow_casters && view_matrix[10] > 0.0f;
+    glsafe(glUniform1i(m_uni_segments_reverse_order_id, top_down ? 1 : 0));
+#ifndef ENABLE_OPENGL_ES
+    glsafe(glUniform1i(m_uni_segments_instance_count_id, static_cast<int>(m_enabled_segments_count)));
+#endif // ENABLE_OPENGL_ES
     // ORCA: realistic view. The depth pass writes the map it would otherwise read, so it shades
     // with the lookup off.
     glsafe(glUniform1i(m_uni_segments_shadow_map_id, m_shadow_map_texture_unit));
