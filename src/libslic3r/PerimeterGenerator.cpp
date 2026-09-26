@@ -2257,18 +2257,17 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
 // ORCA:
 // Inner Outer Inner wall ordering mode perimeter order optimisation functions
 
-// How far apart two Arachne lines are, measured against the gap at which they would touch.
-// Returns the smallest (distance - touching distance) over the junctions of each line against the
-// segments of the other; <= 0 means the lines touch.
+// Whether two Arachne lines touch: somewhere the gap between their centrelines is no more than the
+// touching distance there. Each junction of one line is measured against the segments of the other,
+// both ways, and the search stops at the first spot that touches.
 // Arachne varies line width to fill the region (e.g. the odd centre line of a narrow wall is wider
 // than nominal), so the touching distance is half the combined width at the closest points, not the
 // nominal spacing. Widths are taken locally so a line widened in one place (a wedge tip, a wall
 // transition) does not count as touching where it passes close to other perimeters. min_threshold keeps
 // the nominal spacing threshold as the lower bound.
-static double arachne_touch_margin(const Arachne::ExtrusionLine &a, const Arachne::ExtrusionLine &b, double min_threshold)
+static bool arachne_lines_touch(const Arachne::ExtrusionLine &a, const Arachne::ExtrusionLine &b, double min_threshold)
 {
-    double margin = std::numeric_limits<double>::max();
-    auto   one_way = [&margin, min_threshold](const Arachne::ExtrusionLine &from, const Arachne::ExtrusionLine &to) {
+    auto one_way = [min_threshold](const Arachne::ExtrusionLine &from, const Arachne::ExtrusionLine &to) {
         for (const Arachne::ExtrusionJunction &j : from.junctions) {
             const Vec2d p = j.p.cast<double>();
             for (size_t k = 0; k + 1 < to.junctions.size(); ++k) {
@@ -2280,13 +2279,13 @@ static double arachne_touch_margin(const Arachne::ExtrusionLine &a, const Arachn
                 const double t   = l2 > 0. ? std::clamp((p - s0).dot(seg) / l2, 0., 1.) : 0.;
                 const double w   = double(j0.w) + t * double(j1.w - j0.w); // width of `to` at the closest point
                 const double touch_distance = std::max(min_threshold, 0.5 * (double(j.w) + w));
-                margin = std::min(margin, (s0 + t * seg - p).norm() - touch_distance);
+                if ((s0 + t * seg - p).norm() <= touch_distance)
+                    return true;
             }
         }
+        return false;
     };
-    one_way(a, b);
-    one_way(b, a);
-    return margin;
+    return one_way(a, b) || one_way(b, a);
 }
 
 /**
@@ -2316,7 +2315,7 @@ std::vector<int> findAllTouchingPerimeters(const std::vector<PerimeterGeneratorA
             
             // Add to touchingIndices if the lines touch.
             const double threshold = double(referenceEntity.extrusion->inset_idx == 0 ? threshold_external : threshold_internal);
-            if (arachne_touch_margin(*referenceEntity.extrusion, *entity.extrusion, threshold) <= 0.) {
+            if (arachne_lines_touch(*referenceEntity.extrusion, *entity.extrusion, threshold)) {
                 touchingIndices.insert(i);
             }
         }
