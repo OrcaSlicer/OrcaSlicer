@@ -1970,7 +1970,8 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                                                               const float                                                      segmentation_interlocking_depth,
                                                               const bool                                                       segmentation_interlocking_beam,
                                                               const IncludeTopAndBottomLayers                                  include_top_and_bottom_layers,
-                                                              const std::function<void()>                                     &throw_on_cancel_callback)
+                                                              const std::function<void()>                                     &throw_on_cancel_callback,
+                                                              std::vector<std::vector<ExPolygons>>                            *out_top_and_bottom_layers)
 {
     const size_t                          num_layers    = print_object.layers().size();
     std::vector<std::vector<ExPolygons>>  segmented_regions(num_layers);
@@ -2189,6 +2190,13 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
         throw_on_cancel_callback();
     }
 
+    // ORCA: returned unmerged so one pass serves both callers. Merging an empty set is what
+    // IncludeTopAndBottomLayers::No produces, leaving the return value unchanged.
+    if (out_top_and_bottom_layers != nullptr) {
+        *out_top_and_bottom_layers = std::move(top_and_bottom_layers);
+        top_and_bottom_layers.clear();
+    }
+
     std::vector<std::vector<ExPolygons>> segmented_regions_merged = merge_segmented_layers(segmented_regions, std::move(top_and_bottom_layers), num_facets_states, throw_on_cancel_callback);
     throw_on_cancel_callback();
 
@@ -2219,7 +2227,8 @@ std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(con
 }
 
 // Returns fuzzy skin segmentation based on painting in fuzzy skin segmentation gizmo
-std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback) {
+std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback,
+                                                                        std::vector<std::vector<ExPolygons>> *out_top_and_bottom_layers) {
     const size_t num_facets_states = 2; // Unpainted facets and facets painted with fuzzy skin.
 
     const auto extract_facets_info = [](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
@@ -2234,7 +2243,11 @@ std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const P
         max_external_perimeter_width = std::max<float>(max_external_perimeter_width, region.flow(print_object, frExternalPerimeter, print_object.config().layer_height).width());
     }
 
-    return segmentation_by_painting(print_object, extract_facets_info, num_facets_states, max_external_perimeter_width, 0.f, false, IncludeTopAndBottomLayers::No, throw_on_cancel_callback);
+    // ORCA: a painted horizontal facet has no cross-section, so project only when asked.
+    const IncludeTopAndBottomLayers include_top_bottom = out_top_and_bottom_layers != nullptr ? IncludeTopAndBottomLayers::Yes
+                                                                                             : IncludeTopAndBottomLayers::No;
+    return segmentation_by_painting(print_object, extract_facets_info, num_facets_states, max_external_perimeter_width, 0.f, false,
+                                    include_top_bottom, throw_on_cancel_callback, out_top_and_bottom_layers);
 }
 
 } // namespace Slic3r
