@@ -3,6 +3,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
+#include <algorithm>
+
 CheckList::CheckList(
     wxWindow* parent,
     const wxArrayString& choices,
@@ -93,6 +95,16 @@ CheckList::CheckList(
         cb = new wxCheckBox(m_scroll_area, wxID_ANY, choices[i]);
         m_checks.emplace_back(cb);
         s_sizer->Add(cb, 0, wxALL, margin);
+    }
+
+    // ORCA: auto-size the list to its content, capped so long lists fall back to scrolling. Without
+    // a min size the host dialog's Fit() collapses the scroll area to ~0. Callers may still override
+    // with SetSize() afterwards.
+    {
+        const int row_h      = (m_list_size > 0 ? m_checks.front()->GetBestSize().GetHeight() : FromDIP(20)) + 2 * margin;
+        const int max_visible = 12;
+        int       visible     = std::min<int>(std::max<size_t>(m_list_size, 1), max_visible);
+        m_scroll_area->SetMinSize(wxSize(FromDIP(200), visible * row_h + FromDIP(2)));
     }
 
     m_scroll_area->FitInside();

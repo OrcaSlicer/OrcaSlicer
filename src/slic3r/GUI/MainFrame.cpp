@@ -60,6 +60,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
+#include "RenamePrinterModelDialog.hpp"
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
 #include "GUI_ObjectList.hpp"
@@ -3021,6 +3022,10 @@ void MainFrame::init_menubar_as_editor()
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
 
         fileMenu->AppendSeparator();
+// ORCA #12105: the "Add nozzle size" and "Rename printer (user presets)" actions live in the
+        // sidebar nozzle/printer dropdowns (see Plater.cpp and PlaterPresetComboBox), not the File menu.
+
+        fileMenu->AppendSeparator();
 
 #ifndef __APPLE__
         append_menu_item(fileMenu, wxID_EXIT, _L("Quit"), wxString::Format(_L("Quit")),
@@ -4495,6 +4500,42 @@ void MainFrame::show_sync_dialog()
 {
     SimpleEvent* evt = new SimpleEvent(EVT_SYNC_CLOUD_PRESET);
     wxQueueEvent(this, evt);
+}
+
+// ORCA #12105: rename a user printer model across all its nozzle variants. Invoked from the printer
+// dropdown's "Rename printer (user presets)" item (PlaterPresetComboBox). Validity (empty / spaces /
+// illegal chars / system-model collision / duplicate model) is enforced inline by the dialog, so
+// new_model is already safe here.
+void MainFrame::show_rename_printer_model_dialog()
+{
+    auto& printers = wxGetApp().preset_bundle->printers;
+    std::vector<std::string> models = printers.user_printer_models();
+    if (models.empty()) {
+        MessageDialog dlg(this, _L("There are no custom printer models to rename."),
+            _L("Rename Printer Model"), wxOK | wxICON_INFORMATION);
+        dlg.ShowModal();
+        return;
+    }
+    RenamePrinterModelDialog dlg(this, models);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    const std::string old_model = dlg.get_selected_model();
+    const std::string new_model = dlg.get_new_name();
+    // Real rename via the bundle: moves each variant's preset name + .json/.info and repoints forward
+    // references (app-config per-printer settings, last-selected key, user compatible_printers lists).
+    int n = wxGetApp().preset_bundle->rename_user_printer_model(old_model, new_model, *wxGetApp().app_config);
+    // The backend re-sorted the collections and re-pointed the selections at the renamed presets
+    // (dependent "@<printer>"-named process/filament presets rename too); refresh each edited preset
+    // copy under its (now possibly new) name and rebuild the preset UI.
+    auto& bundle = *wxGetApp().preset_bundle;
+    printers.select_preset_by_name(printers.get_selected_preset().name, true);
+    bundle.prints.select_preset_by_name(bundle.prints.get_selected_preset().name, true);
+    bundle.filaments.select_preset_by_name(bundle.filaments.get_selected_preset().name, true);
+    update_side_preset_ui();
+    MessageDialog done(this,
+        wxString::Format(_L("Renamed %d preset(s) to \"%s\"."), n, from_u8(new_model)),
+        _L("Rename Printer Model"), wxOK | wxICON_INFORMATION);
+    done.ShowModal();
 }
 
 void MainFrame::update_side_preset_ui()

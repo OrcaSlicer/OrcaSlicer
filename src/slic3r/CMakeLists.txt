@@ -393,6 +393,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/MsgDialog.hpp
     GUI/MultiChoiceDialog.hpp
     GUI/MultiChoiceDialog.cpp
+    GUI/RenamePrinterModelDialog.hpp
+    GUI/RenamePrinterModelDialog.cpp
+    GUI/AddNozzleSizeDialog.hpp
+    GUI/AddNozzleSizeDialog.cpp
     GUI/MultiMachine.cpp
     GUI/MultiMachine.hpp
     GUI/MultiMachineManagerPage.cpp

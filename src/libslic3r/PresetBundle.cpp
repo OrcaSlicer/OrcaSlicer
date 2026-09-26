@@ -792,6 +792,15 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
     if (!validation_mode)
         this->normalize_compatible_presets();
 
+    // ORCA #12105: one-time migration of legacy flat user printer presets to a distinct
+    // user printer_model, so they group per-model in the printer dropdown and changing the nozzle
+    // stays on the user's printer instead of reverting to the system preset. Field-only, no rename.
+    // Runs before load_selections so the active preset is selected from the migrated state.
+    if (config.get("user_printer_variants_migrated") != "1") {
+        this->printers.migrate_user_models_for_variants("Copy");
+        config.set("user_printer_variants_migrated", "1");
+    }
+
     this->update_multi_material_filament_presets();
     this->update_compatible(PresetSelectCompatibleType::Never);
 
@@ -3417,6 +3426,144 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
+int PresetBundle::rename_user_printer_model(const std::string &old_model, const std::string &new_model, AppConfig &config)
+{
+    // Real preset rename first (moves each variant's name + .json/.info to "<model> <variant> nozzle").
+    std::vector<std::pair<std::string, std::string>> renames;
+    const int n = printers.rename_user_printer_model(old_model, new_model, &renames);
+    if (n == 0 || renames.empty())
+        return n;
+
+    std::map<std::string, std::string> name_map;
+    for (const auto &r : renames)
+        name_map.emplace(r.first, r.second);
+
+    // (1) App-config per-printer settings are keyed by preset name: move each submap old->new so the
+    // renamed printer keeps its remembered process/filament pairing, bed type, colors, etc.; repoint the
+    // submap's self-referential printer-name field and the last-selected-printer key.
+    for (const auto &r : renames) {
+        config.rename_printer_settings(r.first, r.second);
+        if (config.has_printer_settings(r.second))
+            config.set_printer_setting(r.second, PRESET_PRINTER_NAME, r.second);
+    }
+    if (config.has("presets", PRESET_PRINTER_NAME)) {
+        auto it = name_map.find(config.get("presets", PRESET_PRINTER_NAME));
+        if (it != name_map.end())
+            config.set("presets", PRESET_PRINTER_NAME, it->second);
+    }
+
+    // (2) A user filament/process preset may list a renamed printer by name in compatible_printers;
+    // rewrite those old->new so it stays compatible (system/library presets match via the parent-inherits
+    // clause and need no change). Re-save each changed preset as a diff vs its parent.
+    auto fixup = [&](PresetCollection &coll) {
+        for (Preset &preset : coll) {
+            if (!preset.is_user())
+                continue;
+            auto *cp = dynamic_cast<ConfigOptionStrings*>(preset.config.option("compatible_printers"));
+            if (cp == nullptr || cp->values.empty())
+                continue;
+            bool changed = false;
+            for (std::string &v : cp->values) {
+                auto it = name_map.find(v);
+                if (it != name_map.end()) { v = it->second; changed = true; }
+            }
+            if (!changed)
+                continue;
+            // Save the compatible_printers change in place (preset.file is the path it was loaded from);
+            // its name is unchanged, so no rename/re-sort is needed.
+            const std::string inherits = Preset::inherits(preset.config);
+            Preset *parent = inherits.empty() ? nullptr : coll.find_preset(inherits, false, true);
+            preset.save(parent ? &parent->config : nullptr);
+        }
+    };
+    fixup(prints);
+    fixup(filaments);
+
+    // (3) Dependent user process/filament presets often carry the printer preset name in their OWN
+    // name ("0.20mm Standard @<printer>"). Rename those too, so their labels don't keep showing the
+    // old printer name. Same two-pass batch as the printer rename: collect targets + parents while
+    // the deque is still sorted, then rename and re-sort once.
+    auto rename_dependents = [&](PresetCollection &coll) {
+        struct Item { Preset *preset; const DynamicPrintConfig *parent; std::string target; };
+        std::vector<Item>     items;
+        std::set<std::string> claimed;
+        const std::string sel_old = coll.get_selected_preset_name();
+        std::string       sel_new = sel_old;
+        for (Preset &preset : coll) {
+            if (!preset.is_user())
+                continue;
+            std::string target = preset.name;
+            for (const auto &r : renames) {
+                const std::string tag = "@" + r.first;
+                const size_t      pos = target.find(tag);
+                if (pos != std::string::npos) {
+                    target.replace(pos, tag.size(), "@" + r.second);
+                    break;
+                }
+            }
+            if (target == preset.name)
+                continue;
+            auto taken = [&](const std::string &t) {
+                if (claimed.count(t)) return true;
+                const Preset *e = coll.find_preset(t, false);
+                return e != nullptr && e->name != preset.name;
+            };
+            if (taken(target)) {
+                const std::string base = target;
+                int m = 2;
+                while (taken(base + " (" + std::to_string(m) + ")")) ++m;
+                target = base + " (" + std::to_string(m) + ")";
+            }
+            claimed.insert(target);
+            const std::string inherits = Preset::inherits(preset.config);
+            Preset *parent = inherits.empty() ? nullptr : coll.find_preset(inherits, false, true);
+            items.push_back({ &preset, parent ? &parent->config : nullptr, std::move(target) });
+        }
+        std::map<std::string, std::string> renamed;
+        for (Item &it : items) {
+            const std::string old_name = it.preset->name;
+            if (coll.rename_user_preset_files(*it.preset, it.target, it.parent)) {
+                renamed.emplace(old_name, it.target);
+                if (sel_old == old_name) sel_new = it.target;
+            }
+        }
+        if (!renamed.empty())
+            coll.resort_after_rename(sel_new);
+        return renamed;
+    };
+    const std::map<std::string, std::string> print_renames    = rename_dependents(prints);
+    const std::map<std::string, std::string> filament_renames = rename_dependents(filaments);
+
+    // (4) Repoint references to the renamed dependents: the per-slot filament selections and the
+    // remembered per-printer process/filament pairing in app-config (stored under the printer's — now
+    // new — name as PRESET_PRINT_NAME / PRESET_FILAMENT_NAME / "filament_NN" keys).
+    for (std::string &f : filament_presets) {
+        auto it = filament_renames.find(f);
+        if (it != filament_renames.end()) f = it->second;
+    }
+    if (!print_renames.empty() || !filament_renames.empty()) {
+        for (const auto &r : renames) {
+            if (!config.has_printer_settings(r.second))
+                continue;
+            auto repoint = [&](const std::string &key, const std::map<std::string, std::string> &map) {
+                auto it = map.find(config.get_printer_setting(r.second, key));
+                if (it != map.end()) config.set_printer_setting(r.second, key, it->second);
+            };
+            repoint(PRESET_PRINT_NAME, print_renames);
+            repoint(PRESET_FILAMENT_NAME, filament_renames);
+            for (unsigned i = 1; i < 64; ++i) {
+                char key[64];
+                sprintf(key, "filament_%02u", i);
+                if (config.get_printer_setting(r.second, key).empty())
+                    break;
+                repoint(key, filament_renames);
+            }
+        }
+    }
+
+    return n;
+}
+
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
     unsigned old_filament_count = this->filament_presets.size();
@@ -4395,9 +4542,20 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
     if (printer_model.empty()) // ORCA ensure a compatible model exist. fixes switches to blank preset if preset has no inherited value
         return nullptr;
     auto printer_variant_old = printers.get_selected_preset().config.opt_string("printer_variant");
+    // ORCA #12105: A user-defined printer model has no system preset carrying its printer_model.
+    // For the variant-empty (model-select) path we normally restrict to system presets, but for a
+    // user model we must consider USER presets so the model resolves to one of the user's variants.
+    bool model_has_system = false;
+    if (printer_variant.empty()) {
+        for (auto &preset : printers.m_presets)
+            if (preset.is_system && preset.config.opt_string("printer_model") == printer_model) {
+                model_has_system = true;
+                break;
+            }
+    }
     std::map<std::string, Preset*> printer_presets;
     for (auto &preset : printers.m_presets) {
-        if (printer_variant.empty() && !preset.is_system)
+        if (printer_variant.empty() && model_has_system && !preset.is_system)
             continue;
         if (preset.config.opt_string("printer_model") == printer_model)
             printer_presets.insert({preset.name, &preset});

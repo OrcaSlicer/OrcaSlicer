@@ -7432,6 +7432,7 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 // Wizard calls save_preset with a name "My Settings", otherwise no name is provided and this method
 // opens a Slic3r::GUI::SavePresetDialog dialog.
 //BBS: add project embedded preset relate logic
+
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
     // ORCA: Validate before opening any save-name UI for filament presets.
@@ -7468,6 +7469,42 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     //BBS record current preset name
     Preset& edited_preset = m_presets->get_edited_preset();
     std::string curr_preset_name = edited_preset.name;
+
+    // ORCA #12105: For printer presets, the dialog field holds the user MODEL name. Derive the
+    // per-nozzle VARIANT preset name "<model> X.X nozzle" and stamp printer_model / printer_variant,
+    // so a user's printer behaves like a system one: grouped per-model in the dropdown, with nozzle
+    // changes staying within the user's own variants. The variant keeps inheriting the source system
+    // nozzle preset (handled by save_current_preset), mirroring the system file layout.
+    // ORCA #12105: here `name` is a bare user MODEL (Save dialog field / Add Nozzle Size), from which
+    // the per-nozzle variant name is derived. Exclude re-saves that pass the full preset name — e.g.
+    // the "Detach preset" button does save_preset(edited_preset.name, true) — via
+    // `name != curr_preset_name`, so a full "<model> X.X nozzle" name is never mistaken for the model
+    // (which would double-append the suffix and stamp the wrong printer_model).
+    if (m_type == Preset::TYPE_PRINTER && !from_input && !name.empty() && name != curr_preset_name) {
+        // Trim so a whitespace-padded model can't stamp a padded printer_model or a doubled-space
+        // "<model>  X.X nozzle" variant name. The Save dialog already blocks trailing spaces inline.
+        std::string model_name = name;
+        boost::trim(model_name);
+        if (model_name.empty())
+            return; // nothing to save under an empty model name (the Save dialog blocks this too)
+        // ORCA #12105: a user printer_model must not collide with a built-in (system) model, or it
+        // would hijack per-model grouping and compatibility resolution. The Save dialog blocks this
+        // inline (orange warning in SavePresetDialog::Item::update); this is a defensive backstop for
+        // non-dialog callers — refuse silently rather than overwrite a built-in model.
+        const std::vector<std::string> sys_models = wxGetApp().preset_bundle->printers.system_printer_models();
+        if (std::find(sys_models.begin(), sys_models.end(), model_name) != sys_models.end()) {
+            BOOST_LOG_TRIVIAL(warning) << "save_preset: refused user printer_model colliding with system model '" << model_name << "'";
+            return;
+        }
+        std::string nozzle_str;
+        if (auto* nd = dynamic_cast<const ConfigOptionFloats*>(edited_preset.config.option("nozzle_diameter")))
+            if (!nd->values.empty())
+                nozzle_str = format_printer_variant(nd->values.front());
+        edited_preset.config.option<ConfigOptionString>("printer_model", true)->value   = model_name;
+        edited_preset.config.option<ConfigOptionString>("printer_variant", true)->value = nozzle_str;
+        if (!nozzle_str.empty())
+            name = model_name + " " + nozzle_str + " nozzle";
+    }
 
     bool exist_preset = false;
     Preset* new_preset = m_presets->find_preset(name, false);

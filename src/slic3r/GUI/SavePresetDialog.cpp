@@ -36,7 +36,17 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
+    std::string   preset_name;
+    if (m_type == Preset::TYPE_PRINTER) {
+        // ORCA #12105: for printers the field holds the user MODEL name; the per-nozzle variant name
+        // ("<model> X.X nozzle") is derived on save. Prefill with the model (+ "Copy" off a system
+        // preset; reuse the existing user model name as-is when re-saving a user printer).
+        std::string model = sel_preset.config.opt_string("printer_model");
+        if (model.empty()) model = sel_preset.name;
+        preset_name = sel_preset.is_system ? (boost::format(("%1% - %2%")) % model % suffix).str() : model;
+    } else {
+        preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
+    }
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {
@@ -234,6 +244,17 @@ void SavePresetDialog::Item::update()
     if (m_valid_type == Valid && m_presets->get_preset_name_by_alias(m_preset_name) != m_preset_name) {
         info_line    = _L("The name cannot be the same as a preset alias name.");
         m_valid_type = NoValid;
+    }
+
+    // ORCA #12105: for printers, the field holds the user MODEL name. It must not collide with a
+    // built-in (system) model, or it would hijack per-model grouping / compatibility resolution.
+    if (m_valid_type == Valid && m_type == Preset::TYPE_PRINTER) {
+        const std::vector<std::string> sys_models = wxGetApp().preset_bundle->printers.system_printer_models();
+        if (std::find(sys_models.begin(), sys_models.end(), m_preset_name) != sys_models.end()) {
+            // Match the existing system-profile message used for process/filament presets (line above).
+            info_line    = _L("Overwriting a system profile is not allowed.");
+            m_valid_type = NoValid;
+        }
     }
 
     // BBS: add project embedded presets logic

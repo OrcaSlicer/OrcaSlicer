@@ -73,6 +73,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/LocalesUtils.hpp" // ORCA #12105: locale-safe string_to_double_decimal_point
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
@@ -136,6 +137,7 @@
 #include "MsgDialog.hpp"
 #include "Widgets/MultiNozzleSync.hpp"           // NozzleOption, tryPopUpMultiNozzleDialog, setExtruderNozzleCount
 #include "DeviceCore/DevNozzleSystem.h"          // DevNozzle, GetExtNozzles / GetRackNozzles
+#include "AddNozzleSizeDialog.hpp" // ORCA #12105
 #include "ProjectDirtyStateManager.hpp"
 #include "Gizmos/GLGizmoSimplify.hpp" // create suggestion notification
 #include "Gizmos/GLGizmoSVG.hpp" // Drop SVG file
@@ -260,17 +262,15 @@ wxDEFINE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 #define PRINTER_PANEL_RADIUS (6) // ORCA
 #define BTN_SYNC_SIZE (wxSize(FromDIP(96), FromDIP(98)))
 
-static string get_diameter_string(float diameter)
-{
-    std::ostringstream stream; // ORCA ensure 0.25 returned as 0.25. previous code returned as 0.2 because of std::setprecision(1)
-    stream << std::fixed << std::setprecision(2) << diameter;  // Use 2 decimals to capture 0.25 / 0.15 reliably
-    std::string s = stream.str();
-    if (s.find('.') != std::string::npos) {   // Remove trailing zeros, but keep at least one decimal if needed
-        s.erase(s.find_last_not_of('0') + 1);
-        if (s.back() == '.') s += '0';        // Ensure "1." → "1.0"
-    }
-    return s;
-}
+// ORCA #12105: delegate to the shared libslic3r formatter so the sidebar dropdown and the printer
+// save flow produce identical printer_variant strings ("0.25"/"0.15"/"1.0").
+static string get_diameter_string(float diameter) { return format_printer_variant(diameter); }
+
+// ORCA #12105: label of the "Add nozzle" action item shown at the end of the nozzle dropdown for user
+// printers, styled with the same built-in separator() helper the Printer/Filament dropdowns use for
+// "Create printer" etc. (platform-specific dashes). Used both to append the item and to recognize it
+// when selected, so the two must call this function.
+static wxString add_nozzle_item_label() { return PresetComboBox::separator(L("Add nozzle")); }
 
 template <typename T, typename OptionType>
 static void set_config_values(DynamicPrintConfig *config, const std::string &key, T value)
@@ -809,6 +809,9 @@ struct Sidebar::priv
     // otherwise reuses the app_config-cached option when the machine's nozzle config is unchanged.
     std::optional<NozzleOption> get_nozzle_options(MachineObject* obj, int extruder_count, bool support_multi_nozzle, bool is_manual);
     bool switch_diameter(bool single);
+    // ORCA #12105: open the Add Nozzle Size dialog for the selected user printer and fork the chosen
+    // sizes into new user variants. Triggered by the "--Add nozzle --" nozzle-dropdown item.
+    void add_nozzle_size_to_user_printer();
     void update_sync_status(const MachineObject* obj);
 
     // Filament Track Switch (H2-family accessory): true only when the connected printer is the
@@ -1589,6 +1592,15 @@ bool Sidebar::priv::switch_diameter(bool single)
         }
     }
     
+    // ORCA #12105: the "--Add nozzle --" action item in the nozzle dropdown. Open the add
+    // dialog, then refresh the nozzle combos so the transient sentinel selection is replaced by the
+    // actual current nozzle (whether or not sizes were added).
+    if (diameter == add_nozzle_item_label()) {
+        add_nozzle_size_to_user_printer();
+        wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_PRINTER);
+        return false;
+    }
+
     // ORCA: Check if the selected diameter matches the current nozzle diameter in the config
     Preset& printer_preset = wxGetApp().preset_bundle->printers.get_edited_preset();
     auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
@@ -1599,7 +1611,26 @@ bool Sidebar::priv::switch_diameter(bool single)
             return true;
         }
     }
-    
+
+    // ORCA #12105: For a USER printer, switch among the user's own nozzle variants and never
+    // fall through to a system preset (which would discard the user's customizations). A user
+    // printer is identified by a distinct user-defined printer_model shared across its variants.
+    if (printer_preset.is_user()) {
+        auto& printers = wxGetApp().preset_bundle->printers;
+        const std::string user_model = printer_preset.config.opt_string("printer_model");
+        auto* tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+        const Preset* user_variant = printers.find_custom_preset_by_model_and_variant(user_model, diameter.ToStdString());
+        if (user_variant != nullptr) {
+            if (Preset* v = printers.find_preset(user_variant->name, false)) v->is_visible = true; // force visible
+            return tab->select_preset(user_variant->name);
+        }
+        // ORCA #12105: no user variant for this size. Do NOT auto-create one, and never fall through
+        // to a system preset (which would discard the user's customizations). The dropdown only lists
+        // existing variants, so this is reached only in edge cases; keep the current printer selected.
+        // New nozzle sizes are added explicitly via File > Add Nozzle Size.
+        return false;
+    }
+
     auto preset          = wxGetApp().preset_bundle->get_similar_printer_preset({}, diameter.ToStdString());
     if (preset == nullptr) {
         // ORCA add a text. this appears when user tries to change nozzle value but config doesnt have a inherited or compatible preset
@@ -2003,6 +2034,116 @@ void Sidebar::priv::update_extruder_separator_icon(bool show, bool ready)
 
     if (m_panel_printer_content)
         m_panel_printer_content->Refresh();
+}
+
+void Sidebar::priv::add_nozzle_size_to_user_printer()
+{
+    auto& printers = wxGetApp().preset_bundle->printers;
+    const Preset& sel = printers.get_selected_preset();
+    if (!sel.is_user())
+        return; // the dropdown item is only shown for user printers; defensive guard
+
+    const std::string user_model = sel.config.opt_string("printer_model");
+    const Preset* base = printers.get_preset_base(sel);
+    const std::string sys_model = (base != nullptr && base->is_system) ? base->config.opt_string("printer_model") : std::string();
+    if (user_model.empty() || sys_model.empty()) {
+        MessageDialog dlg(plater, _L("This printer is not based on a built-in model, so its nozzle sizes can't be derived automatically."),
+            _L("Add nozzle size"), wxOK | wxICON_INFORMATION);
+        dlg.ShowModal();
+        return;
+    }
+
+    // Sizes the user already has, and every size the originating system model offers.
+    std::set<std::string> existing, system_sizes;
+    for (const Preset& p : printers)
+        if (p.is_user() && p.config.opt_string("printer_model") == user_model)
+            existing.insert(p.config.opt_string("printer_variant"));
+    for (const Preset& p : printers)
+        if (p.is_system && p.config.opt_string("printer_model") == sys_model)
+            system_sizes.insert(p.config.opt_string("printer_variant"));
+    std::vector<std::string> addable;
+    for (const std::string& s : system_sizes)
+        if (existing.count(s) == 0) addable.push_back(s);
+    std::sort(addable.begin(), addable.end(),
+              [](const std::string& a, const std::string& b) { return string_to_double_decimal_point(a) < string_to_double_decimal_point(b); });
+
+    AddNozzleSizeDialog dlg(plater, user_model, addable,
+                            std::vector<std::string>(existing.begin(), existing.end()));
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+
+    std::vector<std::string> to_add = dlg.get_checked_sizes();
+    // The dialog validates + normalizes the optional custom size (locale-safe parse, positive, within
+    // the nozzle_diameter max, not a duplicate); empty if the field was left blank.
+    const std::string custom_variant = dlg.get_custom_variant();
+
+    auto* tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+    const std::string original = sel.name; // fallback selection if nothing was added
+    std::string last_added;                // newly-created variant to land on afterwards
+    int added = 0;
+
+    // Fork a system preset into a new user variant of `user_model`. For a custom size that the system
+    // model doesn't ship, `override_size` overrides nozzle_diameter on the (nearest-system) base so
+    // Tab::save_preset derives the right "<model> <size> nozzle" name and stamps printer_variant.
+    auto fork_from_system = [&](const std::string& size, const Preset* sys_preset, bool override_size) {
+        if (sys_preset == nullptr) return;
+        if (Preset* v = printers.find_preset(sys_preset->name, false)) v->is_visible = true;
+        tab->select_preset(sys_preset->name);
+        if (override_size) {
+            auto& cfg = printers.get_edited_preset().config;
+            if (auto* nd = dynamic_cast<ConfigOptionFloats*>(cfg.option("nozzle_diameter"))) {
+                double val = string_to_double_decimal_point(size);
+                if (nd->values.empty()) nd->values.push_back(val);
+                else for (double& v : nd->values) v = val;
+            }
+        }
+        tab->save_preset(user_model);
+        // Only record the new variant if the save actually produced a user preset for this model. A
+        // failed / early-returning save (e.g. the collision or empty-name backstops in
+        // Tab::save_preset) leaves the SYSTEM preset selected — which must not become last_added, or
+        // the final selection would land on a system preset.
+        const Preset& saved = printers.get_selected_preset();
+        if (saved.is_user() && saved.config.opt_string("printer_model") == user_model) {
+            last_added = saved.name;
+            ++added;
+        }
+    };
+
+    for (const std::string& size : to_add)
+        fork_from_system(size, printers.find_system_preset_by_model_and_variant(sys_model, size), false);
+
+    // Custom size: exact system match if one exists, otherwise inherit the nearest system size.
+    if (!custom_variant.empty() && existing.count(custom_variant) == 0 &&
+        std::find(to_add.begin(), to_add.end(), custom_variant) == to_add.end()) {
+        const Preset* exact = printers.find_system_preset_by_model_and_variant(sys_model, custom_variant);
+        if (exact != nullptr) {
+            fork_from_system(custom_variant, exact, false);
+        } else {
+            const double target = string_to_double_decimal_point(custom_variant);
+            const Preset* nearest = nullptr;
+            double best = 1e9, best_val = -1.0;
+            for (const std::string& s : system_sizes) {
+                const double v = string_to_double_decimal_point(s);
+                const double diff = std::abs(v - target);
+                // Nearest by absolute diameter difference; on a tie (e.g. 0.9 between 0.8 and 1.0)
+                // round UP — prefer the larger nozzle, whose flow settings suit a big custom nozzle.
+                if (diff < best - 1e-9 || (std::abs(diff - best) <= 1e-9 && v > best_val)) {
+                    best = diff; best_val = v;
+                    nearest = printers.find_system_preset_by_model_and_variant(sys_model, s);
+                }
+            }
+            fork_from_system(custom_variant, nearest, true); // inherit nearest system size (ties round up)
+        }
+    }
+
+    // Land on the just-added nozzle variant (so the dropdown reflects the new selection); if nothing
+    // was added, stay on the printer the user started on.
+    const std::string select_name = !last_added.empty() ? last_added : original;
+    if (printers.find_preset(select_name, false) != nullptr)
+        tab->select_preset(select_name);
+
+    if (added > 0)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": added " << added << " nozzle variant(s) to user model '" << user_model << "'.";
 }
 
 bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual)
@@ -3745,6 +3886,15 @@ void Sidebar::update_presets(Preset::Type preset_type)
             for (size_t i = 0; i < diameters.size(); ++i)
                 p->combo_nozzle_dia->Append(diameters[i], {});
             p->combo_nozzle_dia->SetSelection((*p->single_extruder).combo_diameter->GetSelection());
+
+            // ORCA #12105: for a user printer, offer "--Add nozzle --" at the end of both the
+            // single-extruder combo and the unified combo (same trailing index, so the unified->single
+            // forwarding still maps). System printers can't gain user variants, so it's user-only.
+            if (printer_preset.is_user()) {
+                const wxString add_item = add_nozzle_item_label();
+                p->single_extruder->combo_diameter->Append(add_item, {});
+                p->combo_nozzle_dia->Append(add_item, {});
+            }
             
             // ORCA update nozzle type
             const auto& full_config = wxGetApp().preset_bundle->full_config();

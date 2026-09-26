@@ -488,6 +488,11 @@ std::string get_preset_bare_name(const std::string &canonical_name);
 // Resolve an origin from a directory path when the caller passes Kind::Auto.
 PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const PresetOrigin &explicit_origin = PresetOrigin());
 
+// ORCA #12105: format a nozzle diameter as a printer_variant string: two decimals with trailing
+// zeros stripped but at least one decimal kept ("0.4", "0.25", "1.0"). Canonical formatter shared by
+// the sidebar nozzle dropdown and the printer save flow so the variant strings always agree.
+std::string format_printer_variant(double diameter);
+
 enum class PresetSelectCompatibleType {
 	// Never select a compatible preset if the newly selected profile is not compatible.
 	Never,
@@ -858,6 +863,17 @@ public:
     // Get the alias of a preset, setting it if it's empty
     std::string     get_preset_alias(Preset &preset, bool force = false);
 
+    // ORCA #12105: rename ONE user preset in place — moves the on-disk .json (+ its .info sidecar,
+    // preserving cloud identity) and updates the in-memory name/file/settings-id, WITHOUT re-sorting the
+    // deque or rebuilding maps (the caller batches renames, then calls resort_after_rename once).
+    // parent_config must be resolved by the caller WHILE the deque is still sorted (the internal binary
+    // search is unreliable mid-batch); pass nullptr for a detached/base preset to save the full config.
+    // Returns false (no-op) when the preset is not user-owned or new_name is empty/unchanged.
+    bool            rename_user_preset_files(Preset &preset, const std::string &new_name, const DynamicPrintConfig *parent_config);
+    // ORCA #12105: after in-place renames, re-establish the sorted-deque order + alias/renamed maps and
+    // re-point m_idx_selected at whichever preset now holds selected_name.
+    void            resort_after_rename(const std::string &selected_name);
+
     size_t num_default_presets() { return m_num_default_presets; }
 
 protected:
@@ -1001,6 +1017,25 @@ public:
 
     const Preset*   find_system_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const;
     const Preset*   find_custom_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const;
+
+    // ORCA #12105: give legacy flat user printer presets (whose printer_model still equals a
+    // system model) a distinct user printer_model "<model> - <copy_suffix>", so they group as their own
+    // model and nozzle switching stays on the user's printer. Field-only, non-destructive (no rename).
+    // Idempotent: presets already carrying a distinct model are skipped. Returns count migrated.
+    int             migrate_user_models_for_variants(const std::string &copy_suffix);
+
+    // ORCA #12105: distinct user-defined printer_model names across user presets, sorted.
+    std::vector<std::string> user_printer_models() const;
+    // ORCA #12105: distinct system printer_model names, sorted. Used to guard a user-chosen model
+    // name against colliding with a built-in model.
+    std::vector<std::string> system_printer_models() const;
+    // ORCA #12105: rename a user printer_model across all matching user presets. Performs a REAL
+    // rename — each variant's preset name + on-disk .json/.info are moved to the system-style
+    // "<model> <variant> nozzle" and the printer_model field is stamped. Used by the "Rename Printer
+    // Model" dialog (via PresetBundle, which also fixes forward references). Returns count changed and,
+    // if renames != nullptr, fills it with {old_preset_name, new_preset_name} pairs for those fix-ups.
+    int             rename_user_printer_model(const std::string &old_model, const std::string &new_model,
+                                              std::vector<std::pair<std::string, std::string>> *renames = nullptr);
 
     bool            only_default_printers() const;
 private:

@@ -269,6 +269,18 @@ public:
         m_printer_settings[printer][name] = value;
         m_dirty = true;
     }
+    // ORCA #12105: move a printer's per-printer settings submap when its preset is renamed, so its
+    // remembered process/filament pairing, bed type, colors, etc. are not orphaned under the old name.
+    void rename_printer_settings(const std::string &old_name, const std::string &new_name) {
+        if (old_name == new_name)
+            return;
+        auto it = m_printer_settings.find(old_name);
+        if (it == m_printer_settings.end())
+            return;
+        m_printer_settings[new_name] = std::move(it->second);
+        m_printer_settings.erase(it);
+        m_dirty = true;
+    }
 
 	const std::map<std::string, BBLocalMachine>& get_local_machines() const { return m_local_machines; }
 	void erase_local_machine(std::string dev_id)

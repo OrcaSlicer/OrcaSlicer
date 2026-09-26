@@ -354,6 +354,8 @@ public:
     //BBS
     void        show_sync_dialog();
     void        update_side_preset_ui();
+    // ORCA #12105: rename a user printer model (from the printer dropdown's "Rename printer" item).
+    void        show_rename_printer_model_dialog();
     void        on_select_default_preset(SimpleEvent& evt);
 
     bool        is_loaded() const { return m_loaded; }

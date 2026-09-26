@@ -970,6 +970,12 @@ void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
             evt.Skip();
             return;
         }
+        // ORCA #12105: open the Rename Printer Model flow (the item resets the selection above).
+        if (marker == LABEL_ITEM_WIZARD_RENAME_PRINTERS) {
+            evt.StopPropagation();
+            wxTheApp->CallAfter([]() { wxGetApp().mainframe->show_rename_printer_model_dialog(); });
+            return;
+        }
         evt.StopPropagation();
         if (marker == LABEL_ITEM_MARKER || marker == LABEL_ITEM_DISABLED)
             return;
@@ -1177,6 +1183,7 @@ void PlaterPresetComboBox::update()
     std::map<wxString, wxBitmap *> system_presets;
     std::map<wxString, wxBitmap *>  uncompatible_presets;
     std::unordered_set<std::string> system_printer_models;
+    std::unordered_set<std::string> user_printer_models; // ORCA #12105: collapse user printers per model
     std::map<wxString, wxString>   preset_descriptions;
     std::map<wxString, std::string> preset_filament_vendors;
     std::map<wxString, std::string> preset_filament_types;
@@ -1318,7 +1325,27 @@ void PlaterPresetComboBox::update()
         }
         else
         {
-            nonsys_presets.emplace(name, bmp);
+            // ORCA #12105: collapse USER printer presets to one entry per printer_model, mirroring
+            // the system-preset branch above, so a user's nozzle variants group under their own model
+            // instead of listing one entry per model+nozzle.
+            if (m_type == Preset::TYPE_PRINTER) {
+                auto printer_model = preset.config.opt_string("printer_model");
+                name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + printer_model : printer_model);
+                if (user_printer_models.count(printer_model) == 0) {
+                    preset_aliases[name] = name.utf8_string();
+                    nonsys_presets.emplace(name, bmp);
+                    user_printer_models.insert(printer_model);
+                }
+                else if (is_selected) {
+                    const wxString alternate_name = from_u8(preset.is_dirty ? printer_model : Preset::suffix_modified() + printer_model);
+                    if (nonsys_presets.erase(alternate_name))
+                        nonsys_presets.emplace(name, bmp);
+                    preset_aliases.erase(alternate_name);
+                    preset_aliases[name] = name.utf8_string();
+                }
+            } else {
+                nonsys_presets.emplace(name, bmp);
+            }
             if (is_selected) {
                 selected_user_preset = name;
                 //BBS set tooltip
@@ -1420,7 +1447,7 @@ void PlaterPresetComboBox::update()
                     SetItemAlias(index, it->first);
                     if (unsupported)
                         set_label_marker(index, LABEL_ITEM_DISABLED);
-                    else if (m_type == Preset::TYPE_PRINTER && group == "System presets" )
+                    else if (m_type == Preset::TYPE_PRINTER && (group == "System presets" || group == "User presets")) // ORCA #12105: user models behave like system models
                         set_label_marker(index, LABEL_ITEM_PRINTER_MODELS);
                     SetItemTooltip(index, preset_descriptions[it->first]);
                     bool is_selected = it->first == selected;
@@ -1456,6 +1483,13 @@ void PlaterPresetComboBox::update()
     // so only group user presets by those attributes for the filament combobox.
     add_presets(nonsys_presets, selected_user_preset, L("User presets"),
                 m_type == Preset::TYPE_FILAMENT ? group_filament_presets_by : wxString(""));
+    // ORCA #12105: a "Rename printer (user presets)" action at the bottom of the User-presets group,
+    // shown only when there are custom printer models to rename (mirrors "Create printer" below, but
+    // scoped to user presets). Opens the same RenamePrinterModelDialog the File menu used to.
+    if (m_type == Preset::TYPE_PRINTER && !wxGetApp().preset_bundle->printers.user_printer_models().empty()) {
+        wxBitmap* bmp = get_bmp("edit_preset_list", wide_icons, "edit_uni");
+        set_label_marker(Append(separator(L("Rename printer (user presets)")), *bmp), LABEL_ITEM_WIZARD_RENAME_PRINTERS);
+    }
     // ORCA: add bundle presets with sub-dropdown grouping for filament and printer
     auto bundle_group_name = (m_type == Preset::TYPE_FILAMENT || m_type == Preset::TYPE_PRINTER) ? "by_bundle" : "";
     add_presets(bundle_presets, selected_bundle_preset, L("Bundle presets"), bundle_group_name);

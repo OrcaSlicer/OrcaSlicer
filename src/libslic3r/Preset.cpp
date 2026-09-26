@@ -129,6 +129,17 @@ PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const 
     return PresetOrigin(PresetOrigin::Kind::User);
 }
 
+// ORCA #12105: canonical nozzle-diameter -> printer_variant string formatter (see Preset.hpp).
+std::string format_printer_variant(double diameter)
+{
+    std::string s = (boost::format("%.2f") % diameter).str();
+    if (s.find('.') != std::string::npos) {   // strip trailing zeros, keep at least one decimal
+        s.erase(s.find_last_not_of('0') + 1);
+        if (!s.empty() && s.back() == '.') s += '0'; // "1." -> "1.0"
+    }
+    return s;
+}
+
 //BBS: add a function to load the version from xxx.json
 Semver get_version_from_json(std::string file_path)
 {
@@ -3504,6 +3515,10 @@ std::vector<std::string> PresetCollection::diameters_of_selected_printer()
         if (preset.config.opt_string("printer_model") == printer_model)
             diameters.insert(preset.config.opt_string("printer_variant"));
     }
+    // ORCA #12105: the nozzle dropdown only lists sizes that actually exist as variants of the
+    // selected printer. For a user printer, new nozzle sizes are added explicitly via
+    // "File > Add Nozzle Size" (which forks the matching system preset into a new user variant)
+    // rather than being auto-created the moment an unsaved size is picked from the dropdown.
     return std::vector<std::string>{diameters.begin(), diameters.end()};
 }
 
@@ -4090,6 +4105,64 @@ std::string PresetCollection::path_for_preset(const Preset &preset) const
     return path_from_name(get_preset_bare_name(preset.name), is_base_preset(preset));
 }
 
+bool PresetCollection::rename_user_preset_files(Preset &preset, const std::string &new_name, const DynamicPrintConfig *parent_config)
+{
+    if (!preset.is_user() || new_name.empty() || new_name == preset.name)
+        return false;
+
+    // Old on-disk paths: the .json currently backing this preset and its sibling .info sidecar.
+    const std::string old_json = preset.file;
+    boost::filesystem::path old_info(old_json); old_info.replace_extension(".info");
+    // New paths derive from the new name (same directory / base-vs-not classification as the old file).
+    const std::string new_json = this->path_from_name(get_preset_bare_name(new_name), is_base_preset(preset));
+    boost::filesystem::path new_info(new_json); new_info.replace_extension(".info");
+
+    // Move the files directly rather than via Preset::remove_files() — the latter tombstones a
+    // cloud-synced .info (sync_info="delete") when setting_id is set. Renaming the .info preserves
+    // setting_id/base_id/updated_time so the renamed preset keeps its cloud identity.
+    if (old_json != new_json && boost::filesystem::exists(old_json)) {
+        // The new path may re-classify the preset into a not-yet-existing subdirectory (a detached
+        // preset moving under <type>/base/) — rename(2) fails silently without the parent dir.
+        boost::filesystem::create_directories(boost::filesystem::path(new_json).parent_path());
+        boost::nowide::rename(old_json.c_str(), new_json.c_str());
+        if (boost::filesystem::exists(old_info))
+            boost::nowide::rename(old_info.string().c_str(), new_info.string().c_str());
+    }
+
+    // Update in-memory identity to match the moved files (settings-id key is per collection type,
+    // mirroring save_current_preset).
+    preset.name = new_name;
+    preset.file = new_json;
+    if (m_type == Preset::TYPE_PRINT)
+        preset.config.option<ConfigOptionString>("print_settings_id", true)->value = new_name;
+    else if (m_type == Preset::TYPE_FILAMENT) {
+        auto &ids = preset.config.option<ConfigOptionStrings>("filament_settings_id", true)->values;
+        ids.resize(std::max<size_t>(ids.size(), 1));
+        ids[0] = new_name;
+    }
+    else if (m_type == Preset::TYPE_PRINTER)
+        preset.config.option<ConfigOptionString>("printer_settings_id", true)->value = new_name;
+
+    // Re-save so the JSON header "name" and the .info sidecar reflect the new name. Write only the diff
+    // vs the caller-provided parent config (resolved while the deque was still sorted). Preset::save takes
+    // a non-const parent (it only reads it for the diff), so const_cast the read-only pointer.
+    preset.save(const_cast<DynamicPrintConfig *>(parent_config));
+    return true;
+}
+
+void PresetCollection::resort_after_rename(const std::string &selected_name)
+{
+    // In-place renames invalidated the sorted-deque order, the alias / renamed maps, and the positional
+    // m_idx_selected. Re-establish all three; selected_name is the CURRENT name of the preset that must
+    // stay selected (already the new name if it was one of the renamed presets).
+    this->sort_presets();
+    this->update_map_alias_to_profile_name();
+    this->update_map_system_profile_renamed();
+    auto it = this->find_preset_internal(selected_name);
+    if (it != m_presets.end() && it->name == selected_name)
+        m_idx_selected = it - m_presets.begin();
+}
+
 const Preset& PrinterPresetCollection::default_preset_for(const DynamicPrintConfig &config) const
 {
     const ConfigOptionEnumGeneric *opt_printer_technology = config.opt<ConfigOptionEnumGeneric>("printer_technology");
@@ -4116,6 +4189,10 @@ const Preset *PrinterPresetCollection::find_custom_preset_by_model_and_variant(c
     if (model_id.empty()) { return nullptr; }
 
     const auto it = std::find_if(cbegin(), cend(), [&](const Preset &preset) {
+        // ORCA #12105: only user presets are "custom" — guard against a user model name that
+        // happens to collide with a system model string resolving to the system preset.
+        if (!preset.is_user())
+            return false;
         if (preset.config.opt_string("printer_model") != model_id)
             return false;
         if (variant.empty())
@@ -4124,6 +4201,208 @@ const Preset *PrinterPresetCollection::find_custom_preset_by_model_and_variant(c
     });
 
     return it != cend() ? &*it : nullptr;
+}
+
+int PrinterPresetCollection::migrate_user_models_for_variants(const std::string &copy_suffix)
+{
+    // Collect the set of system printer_model names. A user preset whose printer_model equals one of
+    // these is a legacy "flat" preset (its model was inherited from the system preset) and needs a
+    // distinct user model so it groups separately and nozzle switching stays on the user's printer.
+    std::set<std::string> system_models;
+    for (const Preset &p : *this)
+        if (p.is_system) {
+            const std::string m = p.config.opt_string("printer_model");
+            if (!m.empty()) system_models.insert(m);
+        }
+
+    auto key = [](const std::string &m, const std::string &v) { return m + "\x1F" + v; };
+
+    // Seed taken (model, variant) pairs with already-distinct user presets to avoid collisions.
+    std::set<std::string> taken;
+    for (const Preset &p : *this)
+        if (p.is_user() && system_models.count(p.config.opt_string("printer_model")) == 0)
+            taken.insert(key(p.config.opt_string("printer_model"), p.config.opt_string("printer_variant")));
+
+    int migrated = 0;
+    for (Preset &preset : *this) {
+        if (!preset.is_user()) continue;
+        const std::string model = preset.config.opt_string("printer_model");
+        if (model.empty() || system_models.count(model) == 0)
+            continue; // already distinct (new-style) or has no model — skip
+        // ORCA #12105: backfill printer_variant from nozzle_diameter when a legacy preset lacks it, so
+        // every migrated user variant carries a variant string. This keeps grouping / nozzle-switch
+        // matching (which key on printer_variant) correct and guarantees a later explicit Rename can
+        // always derive a "<model> <variant> nozzle" name (never a bare model). Still field-only.
+        std::string variant = preset.config.opt_string("printer_variant");
+        if (variant.empty())
+            if (auto *nd = dynamic_cast<const ConfigOptionFloats*>(preset.config.option("nozzle_diameter")))
+                if (!nd->values.empty())
+                    variant = format_printer_variant(nd->values.front());
+        // Prefer deriving the migrated model name from the USER'S OWN preset name. A legacy preset is
+        // typically "<system preset name><user suffix>" ("Voron Trident 300 0.5 nozzle - VT.1548");
+        // replacing the embedded system preset name with its model yields "Voron Trident 300 - VT.1548"
+        // — a model that keeps the user's suffix, groups sibling variants sharing it, and separates
+        // same-nozzle customizations by their own names instead of "Copy"/"Copy 2". Fall back to
+        // "<model> - <copy_suffix>" when the preset name doesn't embed the inherited preset's name or
+        // the derived name is degenerate (no suffix left, or shadowing a built-in model).
+        std::string new_model;
+        const std::string parent_name = Preset::inherits(preset.config);
+        if (!parent_name.empty()) {
+            const size_t pos = preset.name.find(parent_name);
+            if (pos != std::string::npos) {
+                std::string derived = preset.name;
+                derived.replace(pos, parent_name.size(), model);
+                // Normalize whitespace the splice may leave behind (doubled/leading/trailing spaces).
+                std::string norm;
+                norm.reserve(derived.size());
+                for (const char c : derived)
+                    if (c != ' ' || (!norm.empty() && norm.back() != ' '))
+                        norm.push_back(c);
+                while (!norm.empty() && norm.back() == ' ') norm.pop_back();
+                if (norm != model && !norm.empty() && system_models.count(norm) == 0)
+                    new_model = norm;
+            }
+        }
+        if (new_model.empty())
+            new_model = model + " - " + copy_suffix;
+        if (taken.count(key(new_model, variant))) { // disambiguate same-model+same-nozzle collisions
+            const std::string base = new_model;
+            int n = 2;
+            while (taken.count(key(base + " " + std::to_string(n), variant))) ++n;
+            new_model = base + " " + std::to_string(n);
+        }
+        taken.insert(key(new_model, variant));
+
+        preset.config.option<ConfigOptionString>("printer_model", true)->value = new_model;
+        if (!variant.empty())
+            preset.config.option<ConfigOptionString>("printer_variant", true)->value = variant;
+
+        // Persist (write only the diff vs the inherited parent), keeping the preset's name unchanged.
+        const std::string inherits = Preset::inherits(preset.config);
+        Preset *parent = inherits.empty() ? nullptr : this->find_preset(inherits, false, true);
+        preset.file = this->path_for_preset(preset);
+        if (parent) preset.save(&parent->config);
+        else        preset.save(nullptr);
+        ++migrated;
+    }
+    if (migrated > 0)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": migrated " << migrated << " user printer preset(s) to a distinct printer_model.";
+    return migrated;
+}
+
+std::vector<std::string> PrinterPresetCollection::user_printer_models() const
+{
+    std::set<std::string> models;
+    for (const Preset &p : *this)
+        if (p.is_user()) {
+            const std::string m = p.config.opt_string("printer_model");
+            if (!m.empty()) models.insert(m);
+        }
+    return std::vector<std::string>{models.begin(), models.end()};
+}
+
+// ORCA #12105: the set of system printer_model names. Used to guard a user-chosen printer_model
+// against colliding with a built-in model (which would hijack grouping/compatibility resolution).
+std::vector<std::string> PrinterPresetCollection::system_printer_models() const
+{
+    std::set<std::string> models;
+    for (const Preset &p : *this)
+        if (p.is_system) {
+            const std::string m = p.config.opt_string("printer_model");
+            if (!m.empty()) models.insert(m);
+        }
+    return std::vector<std::string>{models.begin(), models.end()};
+}
+
+int PrinterPresetCollection::rename_user_printer_model(const std::string &old_model, const std::string &new_model_raw,
+                                                       std::vector<std::pair<std::string, std::string>> *renames)
+{
+    // ORCA #12105: trim the new model name so a padded name (from any caller) can't stamp a padded
+    // printer_model or derive a doubled-space "<model>  X.X nozzle" variant name. Mirrors the trim in
+    // Tab::save_preset; the Rename dialog also trims for its OK-enabled state.
+    const auto first = new_model_raw.find_first_not_of(" \t");
+    const auto last  = new_model_raw.find_last_not_of(" \t");
+    const std::string new_model = (first == std::string::npos) ? std::string() : new_model_raw.substr(first, last - first + 1);
+    if (old_model.empty() || new_model.empty() || old_model == new_model)
+        return 0;
+    // ORCA #12105: never assign a built-in (system) model name to user presets — it would hijack
+    // per-model grouping/compatibility. Backstop; the Rename dialog blocks this inline.
+    const std::vector<std::string> sys_models = this->system_printer_models();
+    if (std::find(sys_models.begin(), sys_models.end(), new_model) != sys_models.end())
+        return 0;
+
+    // Keep whatever printer is currently selected selected under its (possibly new) name.
+    const std::string sel_old = this->get_selected_preset_name();
+    std::string       sel_new = sel_old;
+
+    // Pass 1 — collect targets while the deque is still sorted (find_preset binary-searches it). A real
+    // rename mutates preset names and would invalidate an in-flight range-for, so we must not rename
+    // here. We capture stable Preset* pointers (deque element addresses survive in-place mutation; only
+    // the final sort in resort_after_rename reorders) plus each preset's parent config for the diff save.
+    struct Item { Preset *preset; const DynamicPrintConfig *parent; std::string target; };
+    std::vector<Item>     items;
+    std::set<std::string> claimed; // target names claimed within this batch
+    for (Preset &preset : *this) {
+        if (!preset.is_user() || preset.config.opt_string("printer_model") != old_model)
+            continue;
+        // Derive the variant string exactly like a fresh Save (Tab::save_preset): prefer nozzle_diameter
+        // via the shared formatter so a renamed name byte-matches a newly-created one; fall back to the
+        // stored printer_variant (backfilled by migration) if nozzle_diameter is unavailable.
+        std::string nozzle;
+        if (auto *nd = dynamic_cast<const ConfigOptionFloats*>(preset.config.option("nozzle_diameter")))
+            if (!nd->values.empty())
+                nozzle = format_printer_variant(nd->values.front());
+        if (nozzle.empty())
+            nozzle = preset.config.opt_string("printer_variant");
+        std::string target = nozzle.empty() ? new_model : (new_model + " " + nozzle + " nozzle");
+        // Disambiguate a target already owned by a DIFFERENT preset (or claimed earlier in this batch).
+        // Grouping / nozzle-switching key on the printer_model field, not the name, so a suffixed name
+        // still groups correctly.
+        if (target != preset.name) {
+            auto taken = [&](const std::string &t) {
+                if (claimed.count(t)) return true;
+                const Preset *e = this->find_preset(t, false);
+                return e != nullptr && e->name != preset.name;
+            };
+            if (taken(target)) {
+                const std::string base = target;
+                int n = 2;
+                while (taken(base + " (" + std::to_string(n) + ")")) ++n;
+                target = base + " (" + std::to_string(n) + ")";
+            }
+        }
+        claimed.insert(target);
+        const std::string inherits = Preset::inherits(preset.config);
+        Preset *parent = inherits.empty() ? nullptr : this->find_preset(inherits, false, true);
+        items.push_back({ &preset, parent ? &parent->config : nullptr, std::move(target) });
+    }
+
+    // Pass 2 — stamp the new printer_model and perform the real rename. No find_preset calls here: the
+    // deque order is now dirty (names are changing) until resort_after_rename() below.
+    int renamed = 0;
+    for (Item &it : items) {
+        Preset &p = *it.preset;
+        const std::string old_name = p.name;
+        p.config.option<ConfigOptionString>("printer_model", true)->value = new_model;
+        if (it.target != old_name) {
+            this->rename_user_preset_files(p, it.target, it.parent); // moves files + re-saves (incl. printer_model)
+        } else {
+            // Name already system-style for the new model — just persist the printer_model field change.
+            p.file = this->path_for_preset(p);
+            p.save(const_cast<DynamicPrintConfig *>(it.parent));
+        }
+        if (renames) renames->emplace_back(old_name, it.target);
+        if (sel_old == old_name) sel_new = it.target;
+        ++renamed;
+    }
+
+    // Re-establish deque order / alias+renamed maps / selection after the in-place renames.
+    if (renamed > 0)
+        this->resort_after_rename(sel_new);
+
+    if (renamed > 0)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": renamed printer_model '" << old_model << "' -> '" << new_model << "' on " << renamed << " preset(s).";
+    return renamed;
 }
 
 bool  PrinterPresetCollection::only_default_printers() const

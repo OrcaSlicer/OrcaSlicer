@@ -368,6 +368,13 @@ public:
     // Export selections (current print, current filaments, current printer) into config.ini
     void            export_selections(AppConfig &config);
 
+    // ORCA #12105: rename a user printer_model (the "Rename Printer Model" dialog). Performs the real
+    // preset rename via printers.rename_user_printer_model(), then repoints everything in the current
+    // preset store that referenced the old preset name(s): app-config per-printer settings, the
+    // last-selected-printer key, and user filament/process compatible_printers lists. Returns the number
+    // of printer presets renamed. (Durable renamed_from for pre-existing .3mf files is a follow-up.)
+    int             rename_user_printer_model(const std::string &old_model, const std::string &new_model, AppConfig &config);
+
     // n is the total slot count, and growth appends at the raw tail - which is where the mixed
     // slots live. A caller adding physical filaments has to add num_mixed_filaments() on top and
     // then move the new slots ahead of the mixed tail, as Sidebar::add_custom_filament does.
