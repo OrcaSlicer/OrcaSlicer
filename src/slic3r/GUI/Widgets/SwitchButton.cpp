@@ -526,26 +526,28 @@ void SwitchBoard::render(wxDC &dc)
 
 void SwitchBoard::doRender(wxDC &dc)
 {
-    wxColour disable_color = wxColour(0xCECECE);
+    wxColour track_bg      = StateColor::darkModeColorFor(wxColour("#D9D9D9"));
+    wxColour disabled_bg   = StateColor::darkModeColorFor(wxColour("#DFDFDF"));
+    wxColour disabled_fg   = StateColor::darkModeColorFor(wxColour("#6B6A6A"));
+    wxColour text_color    = StateColor::darkModeColorFor(wxColour("#363636"));
+    wxColour active_btn_bg = StateColor::darkModeColorFor(wxColour("#009688"));
+    wxColour active_btn_fg = wxColour("#FEFEFE");
+
+    int border_w = FromDIP(1);
+    int radius   = GetSize().y / 2;
 
     dc.SetPen(*wxTRANSPARENT_PEN);
 
-    if (is_enable) {dc.SetBrush(wxBrush(0xeeeeee));
-    } else {dc.SetBrush(disable_color);}
-    dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 8);
+    dc.SetBrush(wxBrush(track_bg));
+    dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, radius);
 
-	/*left*/
+    /*left*/
     if (switch_left) {
-        is_enable ? dc.SetBrush(wxBrush(wxColour(0, 150, 136))) : dc.SetBrush(disable_color);
-        dc.DrawRoundedRectangle(0, 0, GetSize().x / 2, GetSize().y, 8);
+        dc.SetBrush(wxBrush(is_enable ? active_btn_bg : disabled_bg));
+        dc.DrawRoundedRectangle(border_w, border_w, GetSize().x / 2 - border_w * 2, GetSize().y - border_w * 2, radius);
 	}
 
-    if (switch_left) {
-		dc.SetTextForeground(*wxWHITE);
-    } else {
-        dc.SetTextForeground(0x333333);
-	}
-
+    dc.SetTextForeground(switch_left ? (is_enable ? active_btn_fg : disabled_fg) : text_color);
     dc.SetFont(::Label::Body_13);
     Slic3r::GUI::WxFontUtils::get_suitable_font_size(0.6 * GetSize().GetHeight(), dc);
 
@@ -554,17 +556,12 @@ void SwitchBoard::doRender(wxDC &dc)
 
 	/*right*/
     if (switch_right) {
-        if (is_enable) {dc.SetBrush(wxBrush(wxColour(0, 150, 136)));
-        } else {dc.SetBrush(disable_color);}
-        dc.DrawRoundedRectangle(GetSize().x / 2, 0, GetSize().x / 2, GetSize().y, 8);
+        dc.SetBrush(wxBrush(is_enable ? active_btn_bg : disabled_bg));
+        dc.DrawRoundedRectangle(GetSize().x / 2 + border_w, border_w, GetSize().x / 2 - border_w * 2, GetSize().y - border_w * 2, radius);
 	}
 
     auto right_txt_size = dc.GetTextExtent(rightLabel);
-    if (switch_right) {
-        dc.SetTextForeground(*wxWHITE);
-    } else {
-        dc.SetTextForeground(0x333333);
-    }
+    dc.SetTextForeground(switch_right ? (is_enable ? active_btn_fg : disabled_fg) : text_color);
     dc.DrawText(rightLabel, wxPoint((GetSize().x / 2 - right_txt_size.x) / 2 + GetSize().x / 2, (GetSize().y - right_txt_size.y) / 2));
 
 }

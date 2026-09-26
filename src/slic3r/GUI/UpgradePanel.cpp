@@ -263,24 +263,13 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
 
     m_main_right_sizer->Add(m_upgrading_sizer, 0, wxEXPAND, 0);
 
-    wxBoxSizer *sizer_release_note = new wxBoxSizer(wxVERTICAL);
+    m_staticText_release_note = new HyperLink(this, _L("Release Note")); // ORCA
 
-
-    m_staticText_release_note = new wxStaticText(this, wxID_ANY, _L("Release Note"), wxDefaultPosition, wxDefaultSize);
-    m_staticText_release_note->Wrap(-1);
-    m_staticText_release_note->SetForegroundColour(wxColour(0x1F,0x8E,0xEA));
-
-    auto line_release_note = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    line_release_note->SetBackgroundColour(wxColour(0x1F, 0x8E, 0xEA));
-
-    sizer_release_note->Add(m_staticText_release_note, 0, wxALL, 0);
-    sizer_release_note->Add(line_release_note, 1, wxEXPAND | wxALL, 0);
-
-    m_main_right_sizer->Add(sizer_release_note, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 0);
+    m_main_right_sizer->Add(m_staticText_release_note, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 0);
 
     m_main_right_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
-    m_main_sizer->Add(m_main_right_sizer, 0, wxEXPAND, 0);
+    m_main_sizer->Add(m_main_right_sizer, 0, wxEXPAND | wxRIGHT, FromDIP(10));
 
     m_top_sizer->Add(m_main_sizer, 1, wxEXPAND, 0);
 
