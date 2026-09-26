@@ -249,21 +249,10 @@ bool PluginConfig::save()
         return false;
     }
 
-    // Write to a PID-suffixed file and rename it into place, so a crash mid-write cannot truncate an
-    // existing config. Same approach as AppConfig::save().
-    const std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
-
-    boost::nowide::ofstream file;
-    file.open(path_pid, std::ios::out | std::ios::trunc);
-    file << root.dump(1, '\t') << std::endl;
-    file.close();
-    if (file.fail()) {
-        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to write " << path_pid << "; keeping the existing config";
-        return false;
-    }
-
-    if (const std::error_code rename_ec = rename_file(path_pid, path)) {
-        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to move " << path_pid << " onto " << path << ": " << rename_ec.message();
+    // Written beside the target and moved into place, so a crash mid-write cannot truncate an
+    // existing config.
+    if (const std::error_code ec = write_file_atomically(path, root.dump(1, '\t') + "\n")) {
+        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to write " << path << ": " << ec.message() << "; keeping the existing config";
         return false;
     }
 

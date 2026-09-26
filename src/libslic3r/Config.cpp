@@ -1525,12 +1525,10 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
     // Serialize first: if that throws (invalid UTF-8), the existing file stays untouched.
     std::ostringstream ss;
     this->save_to_json(ss, name, from, version);
-    boost::nowide::ofstream c;
-    c.open(file, std::ios::out | std::ios::trunc);
-    c << ss.str();
-    c.close();
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
+    if (const std::error_code ec = write_file_atomically(file, ss.str()))
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": failed to save config to %1%: %2%") % file % ec.message();
+    else
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
 }
 
 void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8) const

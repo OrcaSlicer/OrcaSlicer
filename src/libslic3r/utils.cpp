@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <filesystem>
 #include <sstream>
+#include <cerrno>
+#include <mutex>
 #include <iomanip>
 #include <algorithm>
 #include <cmath>
@@ -702,11 +704,97 @@ namespace WindowsSupport
 std::error_code rename_file(const std::string &from, const std::string &to)
 {
 #ifdef _WIN32
+	// Retries and moves an open destination aside itself.
 	return WindowsSupport::rename(from, to);
 #else
-	boost::nowide::remove(to.c_str());
-	return std::make_error_code(static_cast<std::errc>(boost::nowide::rename(from.c_str(), to.c_str())));
+	// rename(2) replaces an existing target atomically; removing it first would
+	// leave a window in which the file does not exist at all.
+	if (boost::nowide::rename(from.c_str(), to.c_str()) == 0)
+		return {};
+	const int err = errno;
+	// Some mounts (sshfs, gvfs, MTP and a few SMB setups) refuse to replace an
+	// existing target in one step, each with the error it sees fit; every error
+	// is worth the remove-then-rename this always did, except the ones no retry
+	// can help: nothing at the source, a different device, or a directory where
+	// a file was expected and the reverse.
+	const bool worth_retrying = err != ENOENT && err != EXDEV && err != ENOTDIR && err != EISDIR;
+	if (worth_retrying && boost::nowide::remove(to.c_str()) == 0 && boost::nowide::rename(from.c_str(), to.c_str()) == 0)
+		return {};
+	return std::make_error_code(static_cast<std::errc>(err));
 #endif
+}
+
+static std::error_code write_whole_file(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary)
+{
+	errno = 0;
+	FILE *file = boost::nowide::fopen(path.c_str(), binary ? "wb" : "w");
+	if (file == nullptr)
+		return std::make_error_code(errno != 0 ? static_cast<std::errc>(errno) : std::errc::io_error);
+	bool ok = true;
+	for (const std::string_view chunk : chunks)
+		ok = ok && std::fwrite(chunk.data(), 1, chunk.size(), file) == chunk.size();
+	ok = ok && std::fflush(file) == 0;
+	const int err = ok ? 0 : errno;
+	ok = std::fclose(file) == 0 && ok;
+	if (ok)
+		return {};
+	return std::make_error_code(err != 0 ? static_cast<std::errc>(err) : std::errc::io_error);
+}
+
+// The in-place fallback truncates the target, so two threads of this process
+// on the same file must not both be in it. One mutex for all such writes: they
+// are the rare case. Never freed, like the InstanceLock registry, so a save
+// during static destruction still finds it.
+static std::error_code write_in_place(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary)
+{
+	static auto *mutex = new std::mutex();
+	std::lock_guard<std::mutex> guard(*mutex);
+	return write_whole_file(path, chunks, binary);
+}
+
+std::error_code write_file_atomically(const std::string &path, std::initializer_list<std::string_view> chunks, bool binary)
+{
+	boost::system::error_code bec;
+	const boost::filesystem::file_status target = boost::filesystem::symlink_status(path, bec);
+	const bool target_exists = ! bec && boost::filesystem::exists(target);
+	if (target_exists && boost::filesystem::is_symlink(target)) {
+		// A config or preset kept in a dotfiles repository: the link stays,
+		// the file it points to is replaced like any other.
+		const boost::filesystem::path resolved = boost::filesystem::canonical(path, bec);
+		if (! bec && boost::filesystem::is_regular_file(resolved, bec))
+			return write_file_atomically(resolved.string(), chunks, binary);
+	}
+	if (target_exists && ! boost::filesystem::is_regular_file(target))
+		return write_in_place(path, chunks, binary);
+
+	// Unique per process and per call, so two threads writing one target
+	// without a lock never share a temporary.
+	static std::atomic<unsigned> counter{0};
+	const std::string tmp_path = path + "." + std::to_string(get_current_pid()) + "." + std::to_string(counter++) + ".tmp";
+	if (const std::error_code ec = write_whole_file(tmp_path, chunks, binary)) {
+		boost::nowide::remove(tmp_path.c_str());
+		if (! target_exists)
+			return ec;
+		// A directory that lets this process write its files but not create
+		// one: losing the save is worse than a reader seeing a partial file.
+		BOOST_LOG_TRIVIAL(warning) << "Cannot create a temporary beside " << path << " (" << ec.message() << "); writing in place";
+		return write_in_place(path, chunks, binary);
+	}
+#ifndef _WIN32
+	// Not on Windows, where a read-only bit on the temporary would stop the rename itself.
+	if (target_exists)
+		boost::filesystem::permissions(tmp_path, target.permissions(), bec);
+#endif
+	if (const std::error_code ec = rename_file(tmp_path, path)) {
+		boost::nowide::remove(tmp_path.c_str());
+		// A reader on Windows holding the target open without FILE_SHARE_DELETE,
+		// or a mount that cannot replace a file at all. Losing the save is worse
+		// than a reader seeing a partial file, so write in place the way this
+		// used to work before the atomic path existed.
+		BOOST_LOG_TRIVIAL(warning) << "Cannot replace " << path << " (" << ec.message() << "); writing in place";
+		return write_in_place(path, chunks, binary);
+	}
+	return {};
 }
 
 #ifdef __linux__

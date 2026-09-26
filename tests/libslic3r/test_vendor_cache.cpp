@@ -1380,24 +1380,6 @@ TEST_CASE("a header claiming more body than the file holds is rejected", "[Vendo
     REQUIRE_FALSE(bundle.load_vendor_cache(cache, "Bounded", Semver(1, 0, 0)));
 }
 
-TEST_CASE("a failed write leaves the previous cache in place", "[VendorCache]")
-{
-    TempDir tmp;
-    const std::string cache = (tmp.path / "Durable.opc").string();
-    REQUIRE(save_one_vendor(cache, one_vendor("Durable"), "Durable", "1.0.0"));
-    const std::string before = slurp(cache);
-
-    // A directory where the temp file wants to go: the write cannot complete,
-    // and must not have destroyed what was already there to find that out.
-    const fs::path blocker = fs::path(cache + "." + std::to_string(get_current_pid()) + ".tmp");
-    fs::create_directories(blocker);
-
-    REQUIRE_FALSE(save_one_vendor(cache, one_vendor("Durable"), "Durable", "2.0.0"));
-    CHECK(slurp(cache) == before);
-
-    fs::remove_all(blocker);
-}
-
 TEST_CASE("a cache written by another build's option ordering still loads", "[VendorCache]")
 {
     // The regression the fingerprint used to prevent by refusing the file

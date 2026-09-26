@@ -1486,9 +1486,7 @@ bool GuideFrame::BuildProfileDataFromVendors()
             return false;
 
         // Written through a temp file and moved into place, as the preset caches
-        // are: half a cache must never be readable, and the PID suffix keeps two
-        // instances from interleaving on one temp file.
-        const std::string tmp_path = cache_file.string() + "." + std::to_string(get_current_pid()) + ".tmp";
+        // are: half a cache must never be readable.
         try {
             json out;
             out["format"]  = 1;
@@ -1497,18 +1495,9 @@ bool GuideFrame::BuildProfileDataFromVendors()
             for (const char* key : { "model", "machine", "filament", "process" })
                 profile[key] = m_ProfileJson[key];
             boost::filesystem::create_directories(cache_file.parent_path());
-            {
-                boost::nowide::ofstream ofs(tmp_path, std::ios::binary | std::ios::trunc);
-                ofs << out.dump(-1, ' ', false, json::error_handler_t::ignore);
-                ofs.close();
-                if (! ofs.good())
-                    throw std::runtime_error("write failed");
-            }
-            if (const std::error_code ec = rename_file(tmp_path, cache_file.string()))
+            if (const std::error_code ec = write_file_atomically(cache_file.string(), out.dump(-1, ' ', false, json::error_handler_t::ignore), /*binary=*/true))
                 throw std::runtime_error(ec.message());
         } catch (const std::exception& e) {
-            boost::system::error_code rm;
-            boost::filesystem::remove(tmp_path, rm);
             BOOST_LOG_TRIVIAL(warning) << "GuideFrame: could not write the profile data cache: " << e.what();
         }
         return true;

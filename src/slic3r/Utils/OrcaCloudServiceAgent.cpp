@@ -1475,15 +1475,8 @@ void OrcaCloudServiceAgent::save_sync_state()
     if (sync_state_path.empty())
         return;
 
-    try {
-        std::string tmp_path = sync_state_path + ".tmp";
-        std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc);
-        if (ofs.good()) {
-            ofs << std::to_string(sync_state.last_sync_timestamp);
-            ofs.close();
-            boost::filesystem::rename(tmp_path, sync_state_path);
-        }
-    } catch (...) {}
+    if (const std::error_code ec = write_file_atomically(sync_state_path, std::to_string(sync_state.last_sync_timestamp)))
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: failed to save the sync state: " << ec.message();
 }
 
 void OrcaCloudServiceAgent::clear_sync_state()
@@ -1572,22 +1565,10 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
             wxFileName::Mkdir(path.GetPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
         }
 
-        const std::string tmp_path = secret_fallback_path + ".tmp";
-        std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc | std::ios::binary);
-        if (ofs.good()) {
-            ofs << signed_payload;
-            ofs.flush();
-            ofs.close();
-
-            if (wxRenameFile(wxString::FromUTF8(tmp_path.c_str()), wxString::FromUTF8(secret_fallback_path.c_str()), true)) {
-                stored = true;
-            } else {
-                wxRemoveFile(wxString::FromUTF8(tmp_path.c_str()));
-                BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: failed to atomically replace user secret file";
-            }
-        } else {
-            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot open user secret file for write - " << secret_fallback_path;
-        }
+        if (const std::error_code ec = write_file_atomically(secret_fallback_path, signed_payload, /*binary=*/true))
+            BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot write user secret file " << secret_fallback_path << ": " << ec.message();
+        else
+            stored = true;
     } else {
         // Use wxSecretStore only
         wxSecretStore store = wxSecretStore::GetDefault();

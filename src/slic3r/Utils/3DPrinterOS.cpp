@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <system_error>
 #include <exception>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -580,9 +581,10 @@ bool C3DPrinterOS::save_api_session(const std::string &session, const std::strin
     j.put("session", session);
     j.put("email", email);
     try {
-        auto temp_path = m_api_session_file_path + ".tmp";
-        pt::write_json(temp_path, j);
-        boost::filesystem::rename(temp_path, m_api_session_file_path);
+        std::ostringstream json;
+        pt::write_json(json, j);
+        if (const std::error_code ec = write_file_atomically(m_api_session_file_path, json.str()))
+            throw std::system_error(ec);
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to write json to file. Path = "
                                  << m_api_session_file_path
