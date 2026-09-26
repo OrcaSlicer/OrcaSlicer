@@ -18,6 +18,7 @@
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 // Regression coverage for filament/tool-change time being folded into the first
 // pending motion block (an extrusion move) instead of the tool-change move, and
@@ -515,6 +516,33 @@ double planned_corner_speed(GCodeFlavor flavor, double corner_velocity, double j
 
 } // namespace
 
+TEST_CASE("Klipper extrusion ratio changes use its own corner velocity, not E jerk", "[GCodeTiming][JunctionDeviation]")
+{
+    const double jerk_e = GENERATE(0.0, 100.0);
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_jerk_e.values = {jerk_e, jerk_e};
+    GCodeProcessor processor;
+    run_processor(processor, config,
+        "G90\nM83\nSET_VELOCITY_LIMIT ACCEL=1000 MINIMUM_CRUISE_RATIO=0\n"
+        "G1 X20 Y60 F6000\nM400\n"
+        "G1 X60 Y60 E0.8 F6000\nG1 X100 Y60 E1.6 F6000\nM400\n");
+    // A 0.02 -> 0.04 extrusion ratio change is capped at 1 / 0.02 = 50 mm/s.
+    REQUIRE_THAT(corner_speed(processor.get_result()), Catch::Matchers::WithinAbs(50.0, 0.01));
+}
+
+TEST_CASE("Klipper legacy smoothing stays absolute across acceleration changes", "[GCodeTiming][Klipper]")
+{
+    const bool modern = GENERATE(false, true);
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    const std::string gcode = std::string("G90\nSET_VELOCITY_LIMIT ACCEL=1000 ") +
+        (modern ? "MINIMUM_CRUISE_RATIO=0.75\n" : "ACCEL_TO_DECEL=250\n") +
+        "G1 X40 F30000\nM400\nM204 S2000\nG1 X0\nM400\n";
+    GCodeProcessor processor;
+    run_processor(processor, config, gcode.c_str());
+    const double expected = modern ? 0.5 + 0.25 * std::sqrt(2.0) : 0.95;
+    REQUIRE_THAT(processor.get_time(PrintEstimatedStatistics::ETimeMode::Normal), WithinAbs(expected, 1e-5));
+}
+
 TEST_CASE("Klipper corners are planned with junction deviation derived from the square corner velocity",
           "[GCodeTiming][JunctionDeviation]")
 {
@@ -613,4 +641,173 @@ TEST_CASE("How fast a corner is taken does not depend on how much is extruded th
         REQUIRE_THAT(planned_corner_speed(gcfMarlinFirmware, scv, 0.05, turn, 0.0, 0.029),
                      Catch::Matchers::WithinRel(marlin, 0.02));
     }
+}
+
+// Expected times are Klipper's own planner math (klippy/toolhead.py). For a move from rest to rest,
+// LookAheadQueue.flush() reduces to cruise_v2 = min(vmax^2, d * accel, d * pseudo_accel) with
+// pseudo_accel = accel * (1 - minimum_cruise_ratio), and Move.set_junction() to a trapezoid at accel;
+// a move too short to reach its speed still spends that ratio of its length cruising.
+namespace {
+
+constexpr double klipper_accel        = 1000.0; // make_junction_config's acceleration
+constexpr double klipper_cruise_ratio = 0.5;
+constexpr double klipper_pseudo_accel = klipper_accel * (1.0 - klipper_cruise_ratio);
+
+// Time of a move that starts and ends at rest.
+double rest_to_rest_time(double distance, double max_speed, double accel, double pseudo_accel)
+{
+    const double cruise_v2 = std::min(sqr(max_speed), distance * pseudo_accel);
+    const double cruise = std::sqrt(cruise_v2);
+    return 2.0 * cruise / accel + (distance - cruise_v2 / accel) / cruise;
+}
+
+// Every run states the cruise ratio rather than relying on the estimator's built-in default.
+void run_klipper(GCodeProcessor& proc, const std::string& gcode,
+                 const FullPrintConfig& config = make_junction_config(gcfKlipper, 5.0, 0.0))
+{
+    const std::string limits = "SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=" + std::to_string(klipper_cruise_ratio) + "\n";
+    run_processor(proc, config, (limits + gcode).c_str());
+}
+
+double klipper_time(const std::string& gcode, const FullPrintConfig& config = make_junction_config(gcfKlipper, 5.0, 0.0))
+{
+    GCodeProcessor proc;
+    run_klipper(proc, gcode, config);
+    return proc.get_time(PrintEstimatedStatistics::ETimeMode::Normal);
+}
+
+double time_after_retract(const GCodeProcessorResult& r)
+{
+    double t = 0.0;
+    bool after = false;
+    for (const auto& mv : r.moves) {
+        if (mv.type == EMoveType::Retract)
+            after = true;
+        else if (after)
+            t += mv.time[NORMAL];
+    }
+    return t;
+}
+
+} // namespace
+
+TEST_CASE("A straight line split into short segments is planned as one move", "[GCodeTiming][Klipper]")
+{
+    // 100 mm at 50 mm/s queues 2 s of motion, so the look-ahead flushes lazily part-way along the
+    // line; at 10 mm/s^2 the ramps span many segments and the cruise ratio caps the speed.
+    const int segments = GENERATE(1, 100, 1000);
+    std::ostringstream gcode;
+    gcode << "SET_VELOCITY_LIMIT ACCEL=10\n" << std::fixed << std::setprecision(3);
+    for (int i = 1; i <= segments; ++i)
+        gcode << "G1 X" << 100.0 * i / segments << " F3000\n";
+    REQUIRE_THAT(klipper_time(gcode.str()),
+                 WithinRel(rest_to_rest_time(100.0, 50.0, 10.0, 10.0 * (1.0 - klipper_cruise_ratio)), 1e-6));
+}
+
+TEST_CASE("Where the look-ahead flushes does not change the estimate", "[GCodeTiming][Klipper]")
+{
+    // A retraction stops the toolhead, so the zig-zag after it is planned on its own; the straight run
+    // before it only shifts where the queue flushes lazily (1 s of motion after a stop, then every 0.15 s).
+    auto zigzag_time = [](int run_moves) {
+        std::string gcode = "M83\nG91\n";
+        for (int i = 0; i < run_moves; ++i)
+            gcode += "G1 X1 F6000\n";
+        gcode += "G1 E-1 F2400\n";
+        const char* moves[] = {"G1 X2 F3000\n", "G1 Y2 F9000\n", "G1 X2 F1200\n", "G1 Y-2 F9000\n"};
+        for (int i = 0; i < 24; ++i)
+            gcode += moves[i % 4];
+        GCodeProcessor proc;
+        run_klipper(proc, gcode);
+        return time_after_retract(proc.get_result());
+    };
+    const double reference = zigzag_time(0);
+    REQUIRE(reference > 0.0);
+    for (int run_moves : {30, 80, 105, 130}) {
+        INFO("run moves = " << run_moves);
+        REQUIRE_THAT(zigzag_time(run_moves), WithinAbs(reference, 1e-9));
+    }
+}
+
+TEST_CASE("A short move into a corner is limited by the centripetal term, not the corner velocity",
+          "[GCodeTiming][Klipper]")
+{
+    // A 50 mm/s square corner velocity allows 50 mm/s through the right angle; the 1 mm move into it
+    // allows sqrt(0.5 * 1 * 1000 * tan(45 deg)) = 22.4 mm/s (Move.calc_junction's move_centripetal_v2).
+    GCodeProcessor proc;
+    run_klipper(proc, "G90\nG1 X59 Y60 F6000\nM400\nG1 X60 Y60 F9000\nG1 X60 Y100 F9000\n",
+                make_junction_config(gcfKlipper, 50.0, 0.0));
+    REQUIRE_THAT(corner_speed(proc.get_result()), WithinRel(std::sqrt(500.0), 1e-6));
+}
+
+TEST_CASE("A corner keeps the square corner velocity when the acceleration changes between its moves",
+          "[GCodeTiming][Klipper]")
+{
+    GCodeProcessor proc;
+    run_klipper(proc, "G90\nG1 X20 Y60 F6000\nM400\nG1 X60 Y60 F9000\nM204 S4000\nG1 X60 Y100 F9000\n");
+    REQUIRE_THAT(corner_speed(proc.get_result()), WithinRel(5.0, 1e-6));
+}
+
+TEST_CASE("A retraction stops the toolhead and runs at the extruder's own limits", "[GCodeTiming][Klipper]")
+{
+    // An E acceleration of 0 is unset, and the retraction then uses the retract acceleration.
+    const auto [e_accel, retract_accel] = GENERATE(table<double, double>({{20000.0, 20000.0}, {0.0, 3000.0}}));
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_acceleration_e.values = {e_accel, e_accel};
+    config.machine_max_acceleration_retracting.values = {3000.0, 3000.0};
+    GCodeProcessor proc;
+    run_klipper(proc, "G90\nM83\nG1 X60 Y60 F9000\nG1 E-1 F2400\nG1 X100 Y60 F9000\n", config);
+    REQUIRE_THAT(corner_speed(proc.get_result()), WithinAbs(0.0, 1e-6));
+    const double expected = rest_to_rest_time(std::sqrt(2.0) * 60.0, 150.0, klipper_accel, klipper_pseudo_accel) +
+                            rest_to_rest_time(1.0, 40.0, retract_accel, std::min(retract_accel, klipper_pseudo_accel)) +
+                            rest_to_rest_time(40.0, 150.0, klipper_accel, klipper_pseudo_accel);
+    REQUIRE_THAT(proc.get_time(PrintEstimatedStatistics::ETimeMode::Normal), WithinRel(expected, 1e-6));
+}
+
+TEST_CASE("Extruder limits apply to retractions, not to extrusion along a path", "[GCodeTiming][Klipper]")
+{
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_speed_e.values = {10.0, 10.0};
+    config.machine_max_acceleration_e.values = {10.0, 10.0};
+    REQUIRE_THAT(klipper_time("M83\nG1 X40 E20 F30000\n", config),
+                 WithinRel(rest_to_rest_time(40.0, 500.0, klipper_accel, klipper_pseudo_accel), 1e-6));
+    REQUIRE_THAT(klipper_time("M83\nG1 E-1 F2400\n", config),
+                 WithinRel(rest_to_rest_time(1.0, 10.0, 10.0, 10.0), 1e-6));
+}
+
+TEST_CASE("A Z move is limited by the Z axis speed and acceleration", "[GCodeTiming][Klipper]")
+{
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.machine_max_speed_z.values = {20.0, 20.0};
+    config.machine_max_acceleration_z.values = {100.0, 100.0};
+    REQUIRE_THAT(klipper_time("G1 Z10 F1200\n", config),
+                 WithinRel(rest_to_rest_time(10.0, 20.0, 100.0, 100.0), 1e-6));
+}
+
+TEST_CASE("M204 sets the acceleration from S, or the smaller of P and T", "[GCodeTiming][Klipper]")
+{
+    const char* m204 = GENERATE("M204 S500", "M204 P500 T2000", "M204 P2000 T500");
+    REQUIRE_THAT(klipper_time(std::string(m204) + "\nG1 X100 F30000\n"),
+                 WithinRel(rest_to_rest_time(100.0, 500.0, 500.0, 500.0 * (1.0 - klipper_cruise_ratio)), 1e-6));
+}
+
+TEST_CASE("SET_VELOCITY_LIMIT applies every limit on the line and ignores the comment", "[GCodeTiming][Klipper]")
+{
+    REQUIRE_THAT(klipper_time("SET_VELOCITY_LIMIT VELOCITY=80 ACCEL=500 MINIMUM_CRUISE_RATIO=0.2 ; ACCEL=9999\n"
+                              "G1 X20 F30000\n"),
+                 WithinRel(rest_to_rest_time(20.0, 80.0, 500.0, 500.0 * (1.0 - 0.2)), 1e-6));
+}
+
+TEST_CASE("ACCEL_TO_DECEL is ignored once the minimum cruise ratio is enabled", "[GCodeTiming][Klipper]")
+{
+    // Current Klipper no longer reads the parameter, so a legacy value in custom G-code changes nothing.
+    auto config = make_junction_config(gcfKlipper, 5.0, 0.0);
+    config.minimum_cruise_ratio_enable.value = true;
+    REQUIRE_THAT(klipper_time("SET_VELOCITY_LIMIT ACCEL_TO_DECEL=100\nG1 X40 F30000\n", config),
+                 WithinRel(rest_to_rest_time(40.0, 500.0, klipper_accel, klipper_pseudo_accel), 1e-6));
+}
+
+TEST_CASE("M400 without a delay waits for the queue to drain", "[GCodeTiming][Klipper]")
+{
+    REQUIRE_THAT(klipper_time("G90\nG1 X40 F30000\nM400\nG1 X80\n"),
+                 WithinRel(2.0 * rest_to_rest_time(40.0, 500.0, klipper_accel, klipper_pseudo_accel), 1e-6));
 }

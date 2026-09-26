@@ -1113,9 +1113,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     const bool have_wipe_inward = config->opt_bool("wipe_inward");
     toggle_line("wipe_inward_distance", have_wipe_inward);
 
+    const bool use_minimum_cruise_ratio = config->opt_bool("minimum_cruise_ratio_enable");
+    toggle_line("minimum_cruise_ratio_enable", gcf_is_klipper);
+    toggle_line("minimum_cruise_ratio", gcf_is_klipper && use_minimum_cruise_ratio);
     for (auto el : {"accel_to_decel_enable", "accel_to_decel_factor"})
-        toggle_line(el, gcf_is_klipper);
-    if(gcf_is_klipper)
+        toggle_line(el, gcf_is_klipper && !use_minimum_cruise_ratio);
+    if (gcf_is_klipper)
         toggle_field("accel_to_decel_factor", config->opt_bool("accel_to_decel_enable"));
 
     bool have_make_overhang_printable = config->opt_bool("make_overhang_printable");
