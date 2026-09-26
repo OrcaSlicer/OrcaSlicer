@@ -651,11 +651,13 @@ FlashforgePrintHostSendDialog::FlashforgePrintHostSendDialog(const fs::path&    
                                                              const Slic3r::Flashforge*   host,
                                                              bool                        supports_material_station,
                                                              std::vector<Slic3r::FlashforgeMaterialSlot> slots,
-                                                             const std::vector<FilamentInfo>& project_filaments)
+                                                             const std::vector<FilamentInfo>& project_filaments,
+                                                             bool                        manual_filament_change)
     : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
     , m_host(host)
     , m_slots(std::move(slots))
     , m_project_filaments(project_filaments)
+    , m_manual_filament_change(manual_filament_change)
 {
     m_supports_material_station = supports_material_station;
     m_slots_loaded = !m_slots.empty();
@@ -674,10 +676,10 @@ void FlashforgePrintHostSendDialog::init()
     if (!timelapse.empty())
         m_time_lapse_video = timelapse == "1";
 
-    // Flashforge local printing should default to IFS enabled when supported.
+    // Flashforge local printing should default to IFS enabled when supported and manual filament change is not active.
     // We don't revive an old stale "0" here.
-    m_use_material_station = m_supports_material_station;
-    if (m_supports_material_station && !app_config->has("recent", CONFIG_KEY_IFS))
+    m_use_material_station = m_supports_material_station && !m_manual_filament_change;
+    if (m_use_material_station && !app_config->has("recent", CONFIG_KEY_IFS))
         const_cast<AppConfig*>(app_config)->set("recent", CONFIG_KEY_IFS, "1");
 
     this->SetMinSize(wxSize(560, 420));
@@ -1056,7 +1058,7 @@ bool FlashforgePrintHostSendDialog::slot_matches_filament(const Slic3r::Flashfor
 
 bool FlashforgePrintHostSendDialog::validate_before_close()
 {
-    if (!m_use_material_station && m_project_filaments.size() > 1) {
+    if (!m_use_material_station && m_project_filaments.size() > 1 && !m_manual_filament_change) {
         show_error(this, _L("This plate uses multiple materials. Enable IFS and assign each tool to a printer slot."));
         return false;
     }
