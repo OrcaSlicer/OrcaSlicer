@@ -386,7 +386,7 @@ wxString PresetComboBox::get_preset_item_name(unsigned int index)
 
 wxString PresetComboBox::get_preset_name(const Preset & preset)
 {
-    return from_u8(preset.name/* + suffix(preset)*/);
+    return from_u8(preset.name);
 }
 
 void PresetComboBox::update(std::string select_preset_name)
@@ -706,31 +706,76 @@ wxBitmap* PresetComboBox::get_bmp(  std::string bitmap_key, bool wide_icons, con
 #endif
 }
 
-wxBitmap *PresetComboBox::get_bmp(Preset const &preset)
+wxBitmap* PresetComboBox::get_bmp(Preset const& preset)
 {
-    static wxBitmap sbmp;
-    if (m_type == Preset::TYPE_FILAMENT) {
-        Preset const & preset2 = &m_collection->get_selected_preset() == &preset ? m_collection->get_edited_preset() : preset;
-        wxString color = preset2.config.opt_string("default_filament_colour", 0);
-        wxColour clr(color);
-        if (clr.IsOk()) {
-            std::string bitmap_key = "default_filament_colour_" + color.ToStdString();
-            wxBitmap *bmp        = bitmap_cache().find(bitmap_key);
-            if (bmp == nullptr) {
-                wxImage img(16, 16);
-                if (clr.Red() > 224 && clr.Blue() > 224 && clr.Green() > 224) {
-                    img.SetRGB(wxRect({0, 0}, img.GetSize()), 128, 128, 128);
-                    img.SetRGB(wxRect({1, 1}, img.GetSize() - wxSize{2, 2}), clr.Red(), clr.Green(), clr.Blue());
-                } else {
-                    img.SetRGB(wxRect({0, 0}, img.GetSize()), clr.Red(), clr.Green(), clr.Blue());
-                }
-                bmp = new wxBitmap(img);
-                bmp = bitmap_cache().insert(bitmap_key, *bmp);
-            }
-            return bmp;
+    const bool show_indicators = wxGetApp().app_config->get_bool("show_preset_source_indicators");
+    const bool dark_mode       = wxGetApp().dark_mode();
+
+    static constexpr int kCanvasW       = 18;
+    static constexpr int kCanvasH       = 18;
+    static constexpr int kSvgRenderSize = 15;
+
+    // Fast return for disabled state: cached 18x18 transparent placeholder
+    if (!show_indicators) {
+        static const std::string empty_key = "empty_18x18";
+        wxBitmap* empty_bmp                = bitmap_cache().find(empty_key);
+        if (!empty_bmp) {
+            wxImage empty_img(kCanvasW, kCanvasH);
+            empty_img.InitAlpha();
+            std::memset(empty_img.GetAlpha(), 0, kCanvasW * kCanvasH);
+            empty_bmp = bitmap_cache().insert(empty_key, wxBitmap(empty_img));
+        }
+        return empty_bmp;
+    }
+
+    // Identify preset origin SVG asset
+    const bool is_system  = preset.is_default || preset.is_system;
+    const bool is_project = preset.is_project_embedded;
+
+    const char* svg_name = is_system ? "preset_source_system" : is_project ? "preset_source_project" : "preset_source_user";
+
+    // Check Cache
+    const std::string key = std::string("svg_src_") + svg_name + (dark_mode ? "_dark" : "_light");
+    if (wxBitmap* cached_bmp = bitmap_cache().find(key))
+        return cached_bmp;
+
+    // Render SVG
+    wxBitmap svg_bmp = create_scaled_bitmap(svg_name, nullptr, kSvgRenderSize);
+    if (!svg_bmp.IsOk())
+        return bitmap_cache().insert(key, wxBitmap(kCanvasW, kCanvasH));
+
+    wxImage svg_img = svg_bmp.ConvertToImage();
+    wxImage canvas(kCanvasW, kCanvasH);
+    canvas.InitAlpha();
+    std::memset(canvas.GetAlpha(), 0, kCanvasW * kCanvasH);
+
+    // Direct Buffer Copy (Centering the 15px SVG into the 18x18 canvas)
+    const int ox         = (kCanvasW - svg_img.GetWidth()) / 2;
+    const int oy         = (kCanvasH - svg_img.GetHeight()) / 2;
+    const int copy_w     = std::min(svg_img.GetWidth(), kCanvasW - ox);
+    const int copy_h     = std::min(svg_img.GetHeight(), kCanvasH - oy);
+    const bool has_alpha = svg_img.HasAlpha();
+
+    const unsigned char* src_rgb   = svg_img.GetData();
+    const unsigned char* src_alpha = has_alpha ? svg_img.GetAlpha() : nullptr;
+    unsigned char* dst_rgb         = canvas.GetData();
+    unsigned char* dst_alpha       = canvas.GetAlpha();
+
+    for (int y = 0; y < copy_h; ++y) {
+        const int src_row = y * svg_img.GetWidth();
+        const int dst_row = (oy + y) * kCanvasW + ox;
+
+        for (int x = 0; x < copy_w; ++x) {
+            const int src_idx = (src_row + x);
+            const int dst_idx = (dst_row + x);
+
+            dst_rgb[dst_idx * 3 + 0] = src_rgb[src_idx * 3 + 0];
+            dst_rgb[dst_idx * 3 + 1] = src_rgb[src_idx * 3 + 1];
+            dst_rgb[dst_idx * 3 + 2] = src_rgb[src_idx * 3 + 2];
+            dst_alpha[dst_idx]       = src_alpha ? src_alpha[src_idx] : 255;
         }
     }
-    return &sbmp;
+    return bitmap_cache().insert(key, wxBitmap(canvas));
 }
 
 wxBitmap *PresetComboBox::get_bmp(std::string        bitmap_key,
@@ -1011,9 +1056,11 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
-        {
+        wxString selected_alias = GetItemAlias(GetSelection());
+        if (selected_alias.IsEmpty())
+            selected_alias = GetString(GetSelection());
+        const std::string selected_preset = selected_alias.ToUTF8().data();
+        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified())) {
             const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
             if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
                 wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
@@ -1681,10 +1728,8 @@ void TabPresetComboBox::OnSelect(wxCommandEvent &evt)
 
 wxString TabPresetComboBox::get_preset_name(const Preset& preset)
 {
-    if (preset.is_from_bundle())
-        return from_u8(preset.label(false));
-    else
-        return from_u8(preset.label(true));
+    wxString name = preset.is_from_bundle() ? from_u8(preset.label(false)) : from_u8(preset.label(true));
+    return name;
 }
 
 // Update the choice UI from the list of presets.
@@ -1735,8 +1780,8 @@ void TabPresetComboBox::update()
         wxBitmap* bmp = get_bmp(preset);
         assert(bmp);
 
-        const wxString name = from_u8(preset.name);
-        preset_aliases[name] = get_preset_name(preset).utf8_string();
+        const wxString name  = get_preset_name(preset); 
+        preset_aliases[name] = preset.name;             
         if (preset.is_system)
             preset_descriptions.emplace(name, from_u8(preset.description));
 
@@ -1798,6 +1843,7 @@ void TabPresetComboBox::update()
         set_label_marker(Append(_L("Project-inside presets"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         for (std::map<wxString, std::pair<wxBitmap*, bool>>::iterator it = project_embedded_presets.begin(); it != project_embedded_presets.end(); ++it) {
             int item_id = Append(it->first, *it->second.first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
@@ -1810,7 +1856,7 @@ void TabPresetComboBox::update()
         set_label_marker(Append(_L("User presets"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         for (std::map<wxString, std::pair<wxBitmap*, bool>>::iterator it = nonsys_presets.begin(); it != nonsys_presets.end(); ++it) {
             int item_id = Append(it->first, *it->second.first);
-            SetItemAlias(item_id, it->first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
@@ -1830,7 +1876,7 @@ void TabPresetComboBox::update()
             }
             // Use Append with group parameter for sub-dropdown grouping
             int item_id = Append(from_u8(preset_aliases[it->first]), *it->second.first, from_u8(preset_bundle_ids[it->first]), bundle_name);
-            SetItemAlias(item_id, it->first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
@@ -1844,7 +1890,7 @@ void TabPresetComboBox::update()
         set_label_marker(Append(_L("System presets"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         for (std::map<wxString, std::pair<wxBitmap*, bool>>::iterator it = system_presets.begin(); it != system_presets.end(); ++it) {
             int item_id = Append(it->first, *it->second.first);
-            SetItemAlias(item_id, it->first);
+            SetItemAlias(item_id, preset_aliases.count(it->first) ? from_u8(preset_aliases.at(it->first)) : it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;
             if (!is_enabled)
