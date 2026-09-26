@@ -38,6 +38,7 @@ protected:
 
 private:
     std::string       m_editing_filament_id;
+    bool              m_initial_multi_bed_types = false;
     ParamsPanel * m_panel;
     wxWindowDisabler *m_winDisabler = nullptr;
 };

@@ -3,6 +3,7 @@
 #include "ParamsPanel.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "Plater.hpp"
 #include "Tab.hpp"
 
 #include "libslic3r/Utils.hpp"
@@ -60,6 +61,11 @@ ParamsDialog::ParamsDialog(wxWindow * parent)
         }
 
         Hide();
+        // Check if the support for multiple bed types has changed and normalize the bed types if necessary.
+        if (tab && tab->type() == Preset::TYPE_PRINTER &&
+            m_initial_multi_bed_types != wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_bool("support_multi_bed_types"))
+            wxGetApp().plater()->normalize_bed_types(true);
+
         if (!m_editing_filament_id.empty()) {
             Filamentinformation *filament_info = new Filamentinformation();
             filament_info->filament_id        = m_editing_filament_id;
@@ -83,7 +89,12 @@ void ParamsDialog::Popup()
     if (m_panel && m_panel->get_current_tab()) {
         bool just_edit = false;
         if (!m_editing_filament_id.empty()) just_edit = true;
-        dynamic_cast<Tab *>(m_panel->get_current_tab())->set_just_edit(just_edit);
+        auto *tab = dynamic_cast<Tab *>(m_panel->get_current_tab());
+        tab->set_just_edit(just_edit);
+        // Keep the initial value for multiple bed types support so
+        // we can check if it has changed when the dialog is closed.
+        if (tab->type() == Preset::TYPE_PRINTER)
+            m_initial_multi_bed_types = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_bool("support_multi_bed_types");
     }
     Show();
 }
