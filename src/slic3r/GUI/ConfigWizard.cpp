@@ -1804,10 +1804,7 @@ void ConfigWizard::priv::init_dialog_size()
 {
     // Clamp the Wizard size based on screen dimensions
 
-    const auto idx = wxDisplay::GetFromWindow(q);
-    wxDisplay display(idx != wxNOT_FOUND ? idx : 0u);
-
-    const auto disp_rect = display.GetClientArea();
+    const auto disp_rect = safe_display_client_area(q);
     wxRect window_rect(
         disp_rect.x + disp_rect.width / 20,
         disp_rect.y + disp_rect.height / 20,
