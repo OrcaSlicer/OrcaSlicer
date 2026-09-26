@@ -641,6 +641,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/WebView.cpp
     GUI/Widgets/WebView.hpp
     GUI/WipeTowerDialog.cpp
+    GUI/SmallAreaInfillFlowCompensationDialog.cpp
+    GUI/CurveEditorPanel.cpp
+    GUI/CurveEditorPanel.hpp
+    GUI/CurveEditorDialog.cpp
+    GUI/CurveEditorDialog.hpp
+    GUI/SmallAreaInfillFlowCompensationDialog.hpp
     GUI/wxExtensions.cpp
     GUI/wxExtensions.hpp
     GUI/wxMediaCtrl3.cpp
