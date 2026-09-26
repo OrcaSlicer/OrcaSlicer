@@ -107,6 +107,9 @@ using namespace nlohmann;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+#ifdef __APPLE__
+#include "slic3r/GUI/DeepLinkHandlerMac.h"
+#endif
     // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
     // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
     // in CMakeLists).
@@ -8361,6 +8364,13 @@ extern "C" {
 #else /* _MSC_VER */
 int main(int argc, char **argv)
 {
+#ifdef __APPLE__
+    // Install the orcaslicer:// handler before anything slow runs. When LaunchServices
+    // starts the app to open a link, macOS delivers the Apple Event within the first
+    // moments of launch, long before the GUI is up; with no handler installed by then
+    // the event is dropped and the link is silently lost.
+    Slic3r::GUI::register_mac_deep_link_handler();
+#endif
 #ifndef _WIN32
     // Ignore SIGPIPE so a write to a closed socket (e.g. a dropped printer
     // network connection) returns EPIPE to the caller instead of terminating

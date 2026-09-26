@@ -913,7 +913,20 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
     }
 
-    plater_->trigger_restore_project(1);
+#ifdef __APPLE__
+    // A link clicked while the app was not running arrives before the GUI exists and is
+    // buffered by the deep link handler; act on it now that there is something to load into.
+    if (const std::string pending = take_pending_deep_link(); !pending.empty()) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", replaying deep link received before startup finished";
+        MacOpenURL(wxString::FromUTF8(pending));
+    }
+#endif
+
+    if (m_url_open_pending) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", url open pending, skipping the blank project";
+    } else {
+        plater_->trigger_restore_project(1);
+    }
     //#endif
     mainframe->prebuild_pages_when_idle();
 
@@ -9057,6 +9070,14 @@ void GUI_App::MacOpenURL(const wxString& url)
 {
     if (url.empty())
         return;
+    m_url_open_pending = true;
+    if (plater_ == nullptr) {
+        // A link that arrives during startup has nowhere to load into yet. Hold it and
+        // let post_init replay it once the plater exists.
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", plater is not ready, holding the url until startup finishes";
+        store_pending_deep_link(into_u8(url));
+        return;
+    }
     start_download(into_u8(url));
 }
 
