@@ -646,7 +646,6 @@ static const t_config_enum_values s_keys_map_PrimeVolumeMode = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrimeVolumeMode)
 
-
 //BBS
 std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type)
 {
@@ -6705,6 +6704,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wipe_tower_use_first_layer_height", coBool);
+    def->label = L("Use first layer height");
+    def->tooltip = L("If enabled together with \"No sparse layers\", the first wipe tower layer that is actually printed uses the print's first layer height. "
+                    "Without this, that layer follows the thinner object layer it happens to land on, which can weaken bed adhesion.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("single_extruder_multi_material_priming", coBool);
     def->label = L("Prime all printing extruders");
     def->tooltip = L("If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print.");
@@ -7568,6 +7574,33 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("prime_tower_multimaterial", coBool);
+    def->label = L("Multimaterial tower");
+    def->tooltip = L("Give each filament its own region of the prime tower, so that a filament is never "
+                     "printed on top of a different one. One filament purges into the outer shell of the "
+                     "tower (and prints its brim), the other purges into the inner core. This helps when "
+                     "the filaments do not bond to each other, such as PLA and PETG.\n\n"
+                     "The tower is sized so that every region can absorb at least its required purge "
+                     "volume, so the tower may use more material than the purge alone would need. On a "
+                     "layer with no tool change only one filament is available, and that layer is "
+                     "printed as a normal single-material tower layer.\n\n"
+                     "Requires exactly two filaments, a rectangular tower wall and a printer that does not "
+                     "ram the old filament into the tower.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("prime_tower_independent", coBool);
+    def->label = L("Independent towers");
+    def->tooltip = L("Alpha version.\n\n"
+                     "Print a separate prime tower for each filament used on the plate. The towers share "
+                     "the prime tower settings (wall type, brim, prime volume) and can be placed "
+                     "independently so the toolhead does not hit an older, taller tower while printing "
+                     "the first layers of a new one.\n\n"
+                     "Cannot be combined with the multimaterial tower. Requires a printer that does not "
+                     "ram the old filament into the tower.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("flush_volumes_vector", coFloats);
     // BBS: remove _L()
     def->label = ("Purging volumes - load/unload volumes");
@@ -7643,6 +7676,16 @@ void PrintConfigDef::init_fff_params()
     // BBS: change data type to floats to add partplate logic
     def->set_default_value(new ConfigOptionFloats{ 220. });
 
+    def = this->add("independent_wipe_tower_x", coFloats);
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{});
+
+    def = this->add("independent_wipe_tower_y", coFloats);
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{});
+
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");
     def->tooltip = L("This is the width of prime towers.");
@@ -7669,6 +7712,26 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Auto"));
     def->set_default_value(new ConfigOptionFloat(3.));
 
+    def = this->add("prime_tower_brim_object_gap", coFloat);
+    def->label = L("Brim-object gap");
+    def->tooltip = L("This creates a gap between the innermost brim line and the prime tower and can make the brim easier to remove. "
+                     "A negative value presses the brim into the prime tower. "
+                     "The model's Brim-object gap is not used here.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = -1;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("prime_tower_brim_flow_ratio", coFloat);
+    def->label = L("Brim flow ratio");
+    def->tooltip = L("This factor affects the amount of material for the prime tower brim. The model's Brim flow ratio is not used here.\n\n"
+                     "The actual brim flow used is calculated by multiplying this value by the filament flow ratio.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
+
     def = this->add("wipe_tower_cone_angle", coFloat);
     def->label = L("Stabilization cone apex angle");
     def->tooltip = L("Angle at the apex of the cone that is used to stabilize the wipe tower. "
@@ -7691,6 +7754,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->min = 10;
     def->set_default_value(new ConfigOptionFloat(90.));
+
+    def = this->add("prime_tower_acceleration", coFloat);
+    def->label = L("Acceleration");
+    def->tooltip = L("Acceleration used when travelling to the prime tower and printing it. "
+                     "Set to 0 to keep the current print and travel acceleration.\n\n"
+                     "A lower value reduces how hard the nozzle hits the tower.");
+    def->sidetext = L(u8"mm/s²");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
 
     def = this->add("wipe_tower_wall_type", coEnum);
     def->label = L("Wall type");

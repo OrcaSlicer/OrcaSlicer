@@ -141,16 +141,28 @@ BoundingBoxf get_wipe_tower_extrusions_extents(const Print &print, const coordf_
     Vec3d plate_origin = print.get_plate_origin();
     double wipe_tower_x = print.config().wipe_tower_x.get_at(plate_idx) + plate_origin(0);
     double wipe_tower_y = print.config().wipe_tower_y.get_at(plate_idx) + plate_origin(1);
-    Transform2d trafo =
-        Eigen::Translation2d(wipe_tower_x, wipe_tower_y) *
-        Eigen::Rotation2Dd(Geometry::deg2rad(print.config().wipe_tower_rotation_angle.value)) *
-        Eigen::Translation2d(print.wipe_tower_data().rib_offset.cast<double>()); // tower-local rib-wall shift, zero unless rib
+    auto trafo_for = [&](const WipeTower::ToolChangeResult &tcr) -> Transform2d {
+        const double tx = tcr.has_tower_pos ? double(tcr.tower_pos.x()) + plate_origin(0) : wipe_tower_x;
+        const double ty = tcr.has_tower_pos ? double(tcr.tower_pos.y()) + plate_origin(1) : wipe_tower_y;
+        Vec2d rib = print.wipe_tower_data().rib_offset.cast<double>();
+        if (tcr.has_tower_pos) {
+            for (const WipeTowerData::IndependentTower &tower : print.wipe_tower_data().independent_towers)
+                if (int(tower.filament_id) == tcr.tower_filament) {
+                    rib = tower.rib_offset.cast<double>();
+                    break;
+                }
+        }
+        return Eigen::Translation2d(tx, ty) *
+               Eigen::Rotation2Dd(Geometry::deg2rad(print.config().wipe_tower_rotation_angle.value)) *
+               Eigen::Translation2d(rib);
+    };
 
     BoundingBoxf bbox;
     for (const std::vector<WipeTower::ToolChangeResult> &tool_changes : print.wipe_tower_data().tool_changes) {
         if (! tool_changes.empty() && tool_changes.front().print_z > max_print_z)
             break;
         for (const WipeTower::ToolChangeResult &tcr : tool_changes) {
+            const Transform2d trafo = trafo_for(tcr);
             for (size_t i = 1; i < tcr.extrusions.size(); ++ i) {
                 const WipeTower::Extrusion &e = tcr.extrusions[i];
                 if (e.width > 0) {

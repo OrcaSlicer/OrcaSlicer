@@ -17710,6 +17710,36 @@ msgstr "Без разреженных слоёв (beta)"
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower, so the tower ends up below the model and the toolhead has to reach down to it. Layouts where that would collide with an already printed object are rejected. Has no effect with smooth timelapse or clumping detection, which need a tower on every layer."
 msgstr "Если включено, черновая башня не будет печататься на слоях без смены инструмента. На слоях со сменой инструмента экструдер опустится вниз, чтобы напечатать черновую башню, поэтому башня оказывается ниже модели, и печатающей голове приходится тянуться к ней вниз. Компоновки, при которых это привело бы к столкновению с уже напечатанной моделью, отклоняются. Не действует при плавном таймлапсе и при обнаружении налипаний, которым нужна башня на каждом слое."
 
+# AI Translated
+msgid "Use first layer height"
+msgstr "Использовать высоту первого слоя"
+
+# AI Translated
+msgid "If enabled together with \"No sparse layers\", the first wipe tower layer that is actually printed uses the print's first layer height. Without this, that layer follows the thinner object layer it happens to land on, which can weaken bed adhesion."
+msgstr "Если включено вместе с «Без разреженных слоёв», первый реально печатаемый слой башни использует высоту первого слоя печати. Без этой опции этот слой берёт более тонкую высоту слоя модели, на который он попадает, и сцепление с платформой может быть хуже."
+
+# AI Translated
+msgid "This creates a gap between the innermost brim line and the prime tower and can make the brim easier to remove. A negative value presses the brim into the prime tower. The model's Brim-object gap is not used here."
+msgstr "Создаёт зазор между внутренней линией каймы и черновой башней, чтобы кайму было проще снять. Отрицательное значение вдавливает кайму в башню. Зазор каймы модели здесь не используется."
+
+# AI Translated
+msgid ""
+"This factor affects the amount of material for the prime tower brim. The model's Brim flow ratio is not used here.\n"
+"\n"
+"The actual brim flow used is calculated by multiplying this value by the filament flow ratio."
+msgstr ""
+"Коэффициент количества материала для каймы черновой башни. Коэффициент потока каймы модели здесь не используется.\n"
+"\n"
+"Фактический поток каймы получается умножением этого значения на коэффициент потока филамента."
+
+# AI Translated
+msgid "The multimaterial prime tower cannot be used when the old filament is rammed into the tower (%1%). Turn off filament ramming, or turn off the multimaterial prime tower."
+msgstr "Мультиматериальную черновую башню нельзя использовать, пока старый филамент утрамбовывается (ramming) в башню (%1%). Отключите ramming филамента или мультиматериальную черновую башню."
+
+# AI Translated
+msgid "Turn off filament ramming now?"
+msgstr "Отключить ramming филамента сейчас?"
+
 msgid "Prime all printing extruders"
 msgstr "Подготовка всех печатающих экструдеров"
 
@@ -18340,6 +18370,39 @@ msgstr "Черновая башня – специальная структур�
 
 msgid "Internal ribs"
 msgstr "Внутренние рёбра"
+
+# AI Translated
+msgid "Multimaterial tower"
+msgstr "Мультиматериальная башня"
+
+# AI Translated
+msgid "Acceleration used when travelling to the prime tower and printing it. Set to 0 to keep the current print and travel acceleration.\n\nA lower value reduces how hard the nozzle hits the tower."
+msgstr ""
+"Ускорение при перелёте к черновой башне и при её печати. 0 — не менять текущее ускорение печати и переездов.\n\n"
+"Меньшее значение снижает удар сопла по башне."
+
+msgid "Independent towers"
+msgstr "Независимые башни"
+
+# AI Translated
+msgid "Give each filament its own region of the prime tower, so that a filament is never printed on top of a different one. One filament purges into the outer shell of the tower (and prints its brim), the other purges into the inner core. This helps when the filaments do not bond to each other, such as PLA and PETG.\n\nThe tower is sized so that every region can absorb at least its required purge volume, so the tower may use more material than the purge alone would need. On a layer with no tool change only one filament is available, and that layer is printed as a normal single-material tower layer.\n\nRequires exactly two filaments, a rectangular tower wall and a printer that does not ram the old filament into the tower."
+msgstr ""
+"Выделяет каждому материалу собственную область черновой башни, чтобы материал никогда не печатался поверх другого. Один материал смывается во внешнюю оболочку башни (и печатает её кайму), второй — во внутреннее заполнение. Это помогает, когда материалы плохо сцепляются друг с другом, например PLA и PETG.\n"
+"\n"
+"Размер башни подбирается так, чтобы каждая область вмещала как минимум необходимый ей объём слива, поэтому башня может израсходовать больше материала, чем требует один слив. На слое без смены материала доступен только один материал, и такой слой печатается как обычный одноматериальный слой башни.\n"
+"\n"
+"Требуется ровно два материала, прямоугольная стенка башни и принтер, который не выдавливает старый материал в башню."
+
+# AI Translated
+msgid "Alpha version.\n\nPrint a separate prime tower for each filament used on the plate. The towers share the prime tower settings (wall type, brim, prime volume) and can be placed independently so the toolhead does not hit an older, taller tower while printing the first layers of a new one.\n\nCannot be combined with the multimaterial tower. Requires a printer that does not ram the old filament into the tower."
+msgstr ""
+"Альфа-версия.\n\n"
+"Печатать отдельную черновую башню для каждого материала, используемого на столике. Башни "
+"делят настройки из раздела мультицвета (стенка, брим, объём отходов) и их можно расставить "
+"по отдельности, чтобы при печати первых слоёв новой башни голова не врезалась в более "
+"старую и высокую.\n\n"
+"Нельзя сочетать с мультиматериальной башней. Принтер не должен проталкивать старый "
+"материал в башню (ramming)."
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
 msgstr ""
@@ -27357,3 +27420,12 @@ msgstr ""
 
 #~ msgid "Right click to reset value to system default."
 #~ msgstr "Правая кнопка мыши - сброс значения до системного по умолчанию."
+
+# AI Translated
+msgid "Independent prime towers cannot be combined with the multimaterial prime tower."
+msgstr "Независимые черновые башни нельзя сочетать с мультиматериальной башней."
+
+# AI Translated
+msgid "Independent prime towers cannot be used when the old filament is rammed into the tower (%1%). Turn off filament ramming, or turn off independent towers."
+msgstr "Независимые черновые башни нельзя использовать, если старый материал проталкивается в башню (%1%). Отключите ramming или независимые башни."
+

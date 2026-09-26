@@ -11,6 +11,7 @@
 #include "Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 
+#include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -1269,8 +1270,11 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
                 transform_instance_relative(v, volume_data, transformation_type, Geometry::translation_transform(displacement), m_cache.dragging_center);
         } else {
             if (v.is_wipe_tower) {//in world cs
-                int           plate_idx           = v.object_idx() - 1000;
-                const Polygons bed_polys{wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->get_shared_printable_polygon()};
+                const int plate_idx = wipe_tower_object_plate_idx(v.object_idx());
+                PartPlateList &ppl  = wxGetApp().plater()->get_partplate_list();
+                if (plate_idx < 0 || plate_idx >= ppl.get_plate_count())
+                    continue;
+                const Polygons bed_polys{ppl.get_plate(plate_idx)->get_shared_printable_polygon()};
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
                 // Both preview volumes carry the brim in their bounding box, and the release
@@ -2395,9 +2399,9 @@ void Selection::update_type()
                 unsigned int sels_cntr = 0;
                 for (ObjectIdxsToInstanceIdxsMap::iterator it = m_cache.content.begin(); it != m_cache.content.end(); ++it)
                 {
-                    bool               is_wipe_tower   = it->first >= 1000;
-                    int                actual_obj_id   = is_wipe_tower ? it->first - 1000 : it->first;
-                    const ModelObject *model_object    = m_model->objects[actual_obj_id];
+                    if (is_wipe_tower_object_idx(it->first))
+                        continue;
+                    const ModelObject *model_object = m_model->objects[it->first];
                     unsigned int volumes_count = (unsigned int)model_object->volumes.size();
                     unsigned int instances_count = (unsigned int)model_object->instances.size();
                     sels_cntr += volumes_count * instances_count;
