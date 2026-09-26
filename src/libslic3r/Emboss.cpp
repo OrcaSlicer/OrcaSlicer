@@ -990,6 +990,7 @@ EmbossStyles Emboss::get_font_list_by_enumeration() {
     std::vector<std::wstring> font_names;
     EnumFontFamilies(hDC, (LPCTSTR) NULL, EnumFamCallBack,
                      (LPARAM) &font_names);
+    ReleaseDC(NULL, hDC);
 
     EmbossStyles font_list;
     for (const std::wstring &font_name : font_names) {

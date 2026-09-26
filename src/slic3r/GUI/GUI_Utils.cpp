@@ -247,7 +247,9 @@ int get_dpi_for_window(const wxWindow *window)
 
         const HDC hdc = GetDC(hwnd);
         if (hdc == NULL) { return DPI_DEFAULT; }
-        return GetDeviceCaps(hdc, LOGPIXELSX);
+        const int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(hwnd, hdc); // GetDC's handle must be released, unlike GetWindowDC's
+        return dpi;
     }
 #elif defined __linux__
     // TODO
