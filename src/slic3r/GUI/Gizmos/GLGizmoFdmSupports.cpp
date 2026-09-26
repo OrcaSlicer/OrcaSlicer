@@ -91,6 +91,7 @@ bool GLGizmoFdmSupports::on_init()
     m_desc["clipping_of_view"]   = _L("Section view");
     m_desc["cursor_size"]        = _L("Brush size");
     m_desc["smart_fill_angle"]   = _L("Smart fill angle");
+    m_desc["coplanar_only"]      = _L("Select all coplanar faces");
     m_desc["gap_area"]           = _L("Gap area");
 
 
@@ -343,6 +344,8 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
 
+        // The angle threshold has no effect while "Select all coplanar faces" is active
+        m_imgui->disabled_begin(m_coplanar_fill);
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["smart_fill_angle"]);
         std::string format_str = std::string("%.f") + I18N::translate_utf8("°",
@@ -359,6 +362,15 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+        m_imgui->disabled_end();
+
+        if (m_imgui->bbl_checkbox(m_desc["coplanar_only"], m_coplanar_fill)) {
+            // Drop the stale hover preview
+            for (auto& triangle_selector : m_triangle_selectors) {
+                triangle_selector->seed_fill_unselect_all_triangles();
+                triangle_selector->request_update_render_data();
+            }
+        }
     } else if (m_current_tool == ImGui::GapFillIcon) {
         m_tool_type = ToolType::GAP_FILL;
         m_cursor_type = TriangleSelector::CursorType::POINTER;

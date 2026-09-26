@@ -525,6 +525,58 @@ void TriangleSelector::append_touching_edges(int itriangle, int vertexi, int ver
         process_subtriangle(touching.second, Partition::Second);
 }
 
+void TriangleSelector::coplanar_select_triangles(const Vec3f &hit, int facet_start, const Transform3d &trafo_no_translate,
+                                                 const ClippingPlane &clp, float highlight_by_angle_deg,
+                                                 bool same_state_only, bool force_reselection)
+{
+    assert(facet_start < m_orig_size_indices);
+
+    // Recompute only if cursor is pointing on a non selected facet or a clipping plane is active
+    const int start_facet_idx = select_unsplit_triangle(hit, facet_start);
+    if (start_facet_idx < 0 || (m_triangles[start_facet_idx].is_selected_by_seed_fill() && !force_reselection && !clp.is_active()))
+        return;
+
+    this->seed_fill_unselect_all_triangles();
+
+    const Vec3f plane_normal = m_face_normals[m_triangles[start_facet_idx].source_triangle];
+
+    // Overhang-only painting: every selected face shares this normal, so testing the starting face is enough
+    if (highlight_by_angle_deg != 0.f) {
+        const Matrix3f normal_matrix   = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
+        const float    world_normal_z  = (normal_matrix * plane_normal).normalized().z();
+        const float    highlight_limit = -cos(Geometry::deg2rad(highlight_by_angle_deg));
+        if (!(world_normal_z < highlight_limit))
+            return;
+    }
+
+    // A face qualifies if it faces the same way (normal) and all of its vertices lie on the selected face's plane (distance within tolerance)
+    // The distance test keeps out parallel faces at a different offset, e.g. the tops of two steps.
+    constexpr float normal_dot_limit = 1.f - float(EPSILON); // ~0.8 deg
+    constexpr float plane_dist_limit = 1e-3f;                // in mesh units (mm)
+
+    const float plane_offset = plane_normal.dot(m_vertices[m_triangles[start_facet_idx].verts_idxs[0]].v);
+    const EnforcerBlockerType start_facet_state = m_triangles[start_facet_idx].get_state();
+
+    for (int i = 0; i < int(m_triangles.size()); ++i) {
+        Triangle &tr = m_triangles[i];
+        // Only visible leaf triangles; skip invalidated ones and parents that were split into children.
+        if (!tr.valid() || tr.is_split())
+            continue;
+        if (i != start_facet_idx) {
+            if ((same_state_only && tr.get_state() != start_facet_state) || is_facet_clipped(i, clp))
+                continue;
+            if (m_face_normals[tr.source_triangle].dot(plane_normal) < normal_dot_limit)
+                continue;
+            bool on_plane = true;
+            for (int k = 0; k < 3 && on_plane; ++k)
+                on_plane = std::abs(plane_normal.dot(m_vertices[tr.verts_idxs[k]].v) - plane_offset) <= plane_dist_limit;
+            if (!on_plane)
+                continue;
+        }
+        tr.select_by_seed_fill();
+    }
+}
+
 // BBS: add seed_fill_angle parameter
 void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_start, const ClippingPlane &clp, float seed_fill_angle, bool propagate, bool force_reselection)
 {

@@ -51,6 +51,7 @@ bool GLGizmoFuzzySkin::on_init()
     m_desc["add_fuzzy_skin"]    = _L("Add fuzzy skin");
     m_desc["remove_fuzzy_skin"] = _L("Remove fuzzy skin");
     m_desc["smart_fill_angle"]  = _L("Smart fill angle");
+    m_desc["coplanar_only"]     = _L("Select all coplanar faces");
 
     std::pair<wxString, wxString> add_fuzzy_skin_shortcut    = {_L("Left mouse button"),         m_desc["add_fuzzy_skin"]};
     std::pair<wxString, wxString> remove_fuzzy_skin_shortcut = {shift + _L("Left mouse button"), m_desc["remove_fuzzy_skin"]};
@@ -150,6 +151,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         m_imgui->calc_text_size(m_desc.at("reset_direction")).x + m_imgui->scaled(1.5f) + ImGui::GetStyle().FramePadding.x * 2);
     const float cursor_slider_left     = m_imgui->calc_text_size(m_desc.at("cursor_size")).x + m_imgui->scaled(1.5f);
     const float smart_fill_slider_left = m_imgui->calc_text_size(m_desc.at("smart_fill_angle")).x + m_imgui->scaled(1.5f);
+    const float coplanar_checkbox_width = m_imgui->calc_text_size(m_desc.at("coplanar_only")).x + m_imgui->scaled(2.5f);
 
     const float cursor_type_radio_circle  = m_imgui->calc_text_size(m_desc["circle"]).x + m_imgui->scaled(2.5f);
     const float cursor_type_radio_sphere  = m_imgui->calc_text_size(m_desc["sphere"]).x + m_imgui->scaled(2.5f);
@@ -181,6 +183,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     window_width                   = std::max(window_width, total_text_max);
     window_width                   = std::max(window_width, cursor_type_radio_circle + cursor_type_radio_sphere + cursor_type_radio_pointer);
     window_width                   = std::max(window_width, tool_type_radio_left + tool_type_radio_brush + tool_type_radio_smart_fill);
+    window_width                   = std::max(window_width, coplanar_checkbox_width);
     window_width                   = std::max(window_width, 2.f * buttons_width + m_imgui->scaled(1.f));
     
     const float sliders_width = m_imgui->scaled(7.0f);
@@ -257,6 +260,8 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
 
+        // The angle threshold has no effect while "Select all coplanar faces" is active
+        m_imgui->disabled_begin(m_coplanar_fill);
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["smart_fill_angle"]);
         std::string format_str = std::string("%.f") + I18N::translate_utf8("°",
@@ -273,6 +278,15 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+        m_imgui->disabled_end();
+
+        if (m_imgui->bbl_checkbox(m_desc["coplanar_only"], m_coplanar_fill)) {
+            // Drop the stale hover preview
+            for (auto& triangle_selector : m_triangle_selectors) {
+                triangle_selector->seed_fill_unselect_all_triangles();
+                triangle_selector->request_update_render_data();
+            }
+        }
     }
 
     ImGui::Separator();

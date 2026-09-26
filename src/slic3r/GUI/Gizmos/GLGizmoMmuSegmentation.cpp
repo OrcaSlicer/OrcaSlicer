@@ -105,6 +105,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["erase"]            = _L("Erase");
     m_desc["shortcut_key"]     = _L("Choose filament");
     m_desc["edge_detection"]   = _L("Edge detection");
+    m_desc["coplanar_only"]    = _L("Select all coplanar faces");
     m_desc["gap_area"]         = _L("Gap area");
     m_desc["perform"]          = _L("Apply");
     m_desc["remove_all"]       = _L("Erase all");
@@ -381,6 +382,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     const float cursor_slider_left = m_imgui->calc_text_size(m_desc.at("cursor_size")).x + m_imgui->scaled(1.5f);
     const float smart_fill_slider_left = m_imgui->calc_text_size(m_desc.at("smart_fill_angle")).x + m_imgui->scaled(1.5f);
     const float edge_detect_slider_left = m_imgui->calc_text_size(m_desc.at("edge_detection")).x + m_imgui->scaled(1.f);
+    const float coplanar_checkbox_width = m_imgui->calc_text_size(m_desc.at("coplanar_only")).x + m_imgui->scaled(2.5f);
     const float gap_area_slider_left = m_imgui->calc_text_size(m_desc.at("gap_area")).x + m_imgui->scaled(1.5f) + space_size;
     const float height_range_slider_left = m_imgui->calc_text_size(m_desc.at("height_range")).x + m_imgui->scaled(2.f);
 
@@ -412,6 +414,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     window_width = std::max(window_width, total_text_max);
     window_width = std::max(window_width, buttons_width);
+    window_width = std::max(window_width, coplanar_checkbox_width);
     window_width = std::max(window_width, max_filament_items_per_line * filament_item_width + +m_imgui->scaled(0.5f));
 
     const float sliders_width = m_imgui->scaled(7.0f);
@@ -575,6 +578,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::BUCKET_FILL;
 
+        // The angle threshold has no effect while "Select all coplanar faces" is active
+        m_imgui->disabled_begin(m_coplanar_fill);
         if (m_detect_geometry_edge) {
             ImGui::AlignTextToFramePadding();
             m_imgui->text(m_desc["smart_fill_angle"]);
@@ -596,6 +601,15 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         }
                 
         m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
+        m_imgui->disabled_end();
+
+        if (m_imgui->bbl_checkbox(m_desc["coplanar_only"], m_coplanar_fill)) {
+            // Drop the stale hover preview
+            for (auto &triangle_selector : m_triangle_selectors) {
+                triangle_selector->seed_fill_unselect_all_triangles();
+                triangle_selector->request_update_render_data();
+            }
+        }
     } 
     else if (m_current_tool == ImGui::HeightRangeIcon) {
         m_tool_type   = ToolType::BRUSH;

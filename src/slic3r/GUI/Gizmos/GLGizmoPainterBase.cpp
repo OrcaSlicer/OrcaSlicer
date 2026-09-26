@@ -693,6 +693,10 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                 return true;
             }
 
+            // The angle threshold is disabled while coplanar mode is on; swallow the event so it does not change a hidden value.
+            if ((m_tool_type == ToolType::BUCKET_FILL || m_tool_type == ToolType::SMART_FILL) && m_coplanar_fill)
+                return true;
+
             if (m_tool_type == ToolType::BUCKET_FILL || m_tool_type == ToolType::SMART_FILL) {
                 m_smart_fill_angle = action == SLAGizmoEventType::MouseWheelDown ? std::max(m_smart_fill_angle - SmartFillAngleStep, SmartFillAngleMin)
                                                                                 : std::min(m_smart_fill_angle + SmartFillAngleStep, SmartFillAngleMax);
@@ -870,7 +874,12 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                     const Vec3f mesh_hit = projected_mouse_position.mesh_hit;
                     const int facet_idx = int(projected_mouse_position.facet_idx);
                     m_triangle_selectors[mesh_idx]->seed_fill_apply_on_triangles(new_state);
-                    if (m_tool_type == ToolType::SMART_FILL)
+                    if (m_coplanar_fill && (m_tool_type == ToolType::SMART_FILL || m_tool_type == ToolType::BUCKET_FILL))
+                        // Bucket fill recolors one color region at a time; smart fill paints over whatever is there.
+                        m_triangle_selectors[mesh_idx]->coplanar_select_triangles(mesh_hit, facet_idx, trafo_matrix_not_translate, clp,
+                                                                                  m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f,
+                                                                                  m_tool_type == ToolType::BUCKET_FILL, true);
+                    else if (m_tool_type == ToolType::SMART_FILL)
                         m_triangle_selectors[mesh_idx]->seed_fill_select_triangles(mesh_hit, facet_idx, trafo_matrix_not_translate, clp, m_smart_fill_angle,
                                                                                        m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f, true);
                     else if (m_tool_type == ToolType::BRUSH && m_cursor_type == TriangleSelector::CursorType::POINTER)
@@ -968,7 +977,11 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
 
         assert(m_rr.mesh_id < int(m_triangle_selectors.size()));
         const TriangleSelector::ClippingPlane &clp = this->get_clipping_plane_in_volume_coordinates(trafo_matrix);
-        if (m_tool_type == ToolType::SMART_FILL)
+        if (m_coplanar_fill && (m_tool_type == ToolType::SMART_FILL || m_tool_type == ToolType::BUCKET_FILL))
+            m_triangle_selectors[m_rr.mesh_id]->coplanar_select_triangles(m_rr.hit, int(m_rr.facet), trafo_matrix_not_translate, clp,
+                                                                          m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f,
+                                                                          m_tool_type == ToolType::BUCKET_FILL);
+        else if (m_tool_type == ToolType::SMART_FILL)
             m_triangle_selectors[m_rr.mesh_id]->seed_fill_select_triangles(m_rr.hit, int(m_rr.facet), trafo_matrix_not_translate, clp, m_smart_fill_angle,
                                                                            m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f);
         else if (m_tool_type == ToolType::BRUSH && m_cursor_type == TriangleSelector::CursorType::POINTER)

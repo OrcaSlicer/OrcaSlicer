@@ -344,6 +344,16 @@ public:
                                       bool                 propagate,                  // if bucket fill is propagated to neighbor faces or if it fills the only facet of the modified mesh that the hit point belongs to.
                                       bool                 force_reselection = false); // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
 
+    // ORCA Selects every face of the mesh lying in the same plane as the facet under the cursor, 
+    // whether or not it is connected to it. Used for the "select all coplanar faces" mode of the fill tools.
+    void coplanar_select_triangles(const Vec3f         &hit,                          // point where to start
+                                   int                  facet_start,                  // facet of the original mesh (unsplit) that the hit point belongs to
+                                   const Transform3d   &trafo_no_translate,           // matrix to get from mesh to world without translation
+                                   const ClippingPlane &clp,                          // Clipping plane to limit painting to not clipped facets only
+                                   float                highlight_by_angle_deg,       // The maximal angle of overhang. If non-zero, the plane is selected only if it is such an overhang.
+                                   bool                 same_state_only,              // if true, only facets currently in the same state as the starting facet are selected (bucket fill semantics)
+                                   bool                 force_reselection = false);   // force reselection even in cases that mouse is pointing on the selected triangle
+
     bool                 has_facets(EnforcerBlockerType state) const;
     static bool          has_facets(const TriangleSplittingData &data, EnforcerBlockerType test_state);
     int                  num_facets(EnforcerBlockerType state) const;
