@@ -12787,6 +12787,8 @@ void Plater::priv::on_select_bed_type(wxCommandEvent &evt)
 
                 // update plater with new config
                 q->on_config_change(wxGetApp().preset_bundle->full_config());
+                if (auto *plate_tab = dynamic_cast<TabPrintPlate *>(wxGetApp().get_plate_tab()))
+                    plate_tab->update_model_config();
 
                 // update app_config
                 AppConfig* app_config = wxGetApp().app_config;
