@@ -10,6 +10,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include "Lazy.hpp"
 
 class ScalableButton;
 class wxStaticText;
@@ -416,7 +417,7 @@ public:
 //------------------------------------------
 //          DiffPresetDialog
 //------------------------------------------
-class DiffPresetDialog : public DPIDialog
+class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
 {
     DiffViewCtrl*           m_tree              { nullptr };
     wxBoxSizer*             m_presets_sizer     { nullptr };

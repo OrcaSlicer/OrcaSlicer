@@ -15,7 +15,9 @@ The table highlights gaps that need human review. What CI *does* run:
 | Whether the intended default survived compatibility selection | The sweep can select a different compatible preset |
 | A dangling `compatible_printers` inside an `instantiation: "false"` base | A base never becomes a `Preset`, so the reference check never sees it (a bad `inherits` in a base *is* caught) |
 | A `renamed_from` whose old name is still a live preset | The redirect is inert while a live preset carries that name |
+| A preset differentiated only by color, or an all-printer library preset without `@System` | Per-color presets split one product across ids and the selector fills with near-duplicates; CI stays green |
 | Per-extruder vector length on a multi-nozzle printer | Silently padded (with the **first** value) or truncated |
+| A name that ignores its type's convention — a model in a `process` quality slot, or an unrelated target label left in a copied preset | The selector misrepresents the preset's quality or intended printer |
 
 ## 1. Was the vendor `version` bumped?
 
@@ -79,8 +81,15 @@ and written in the preset's own file — golden rule 6, with the flattened-vs-ow
 inherited or copied the base's full printer list, and for two presets of one product with overlapping
 lists — duplicate combobox entries and an ambiguous AMS match.
 
+Two presets of one product (`filament_id`) must not share a variant. Resolve it by specificity: move the
+variant to the most specific preset and remove it from the more general ones — preferred over deleting a
+profile. Then repoint the machine's `default_filament_profile` and the model's `default_materials` at the
+profile that now covers it. See
+[one variant, one profile](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product).
+
 *Why:* real shipped bugs twice (`b7b3418baf` "showing up everywhere", `ff83aa41ef` duplicate Flashforge
-entries).
+entries). The Python `check` passes on an overlap; only the full `check_profile.sh` (`validate_system`)
+reports `Ambiguous AMS filament match`.
 
 ## 6. Model ↔ variant ↔ process consistency
 
@@ -128,7 +137,11 @@ numbers nobody measured.
 ## 11. `default_materials` (checked by CI)
 
 `check` fails on a `default_materials` / `default_filament_profile` name that resolves to no system
-filament, so a dangling entry no longer reaches review. Scope the run while working on one vendor:
+filament, so a dangling entry no longer reaches review. When compatibility moves between profiles of a
+product, the machine's `default_filament_profile` and the model's `default_materials` must be repointed at
+the most specific profile that still covers the variant, dropping generic entries that no longer apply —
+the same [specificity rule](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product)
+applies when adding or fixing defaults. Scope the run while working on one vendor:
 
 ```bash
 python3 scripts/orca_profile_tool.py check --vendor "<Vendor>"   # py -3 on Windows
@@ -156,6 +169,15 @@ vendor, and a filename that disagrees with the preset's `name` (common; the load
 
 Check for Windows-invalid characters, reserved device names, trailing path-component spaces/dots,
 and case mismatches in `sub_path` or asset paths. See [cross-platform paths](validation.md#cross-platform-paths).
+
+## 16. Do the preset names follow the conventions?
+
+Check **every newly added profile and intentional name change**, including models and bases,
+against [the naming conventions](naming.md#checking-names). Preserve shipped names during
+ordinary tuning; renaming a shipped selectable preset requires the migration in item 4.
+
+*Why:* CI checks name uniqueness, but does not enforce the naming conventions. Catch naming
+mistakes before the names ship and existing projects depend on them.
 
 ---
 

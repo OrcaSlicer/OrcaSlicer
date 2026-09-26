@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "GCode.hpp"
 #include "Exception.hpp"
+#include "LifecycleEvents.hpp"
 #include "ExtrusionEntity.hpp"
 #include "EdgeGrid.hpp"
 #include "Geometry/ConvexHull.hpp"
@@ -2435,9 +2436,9 @@ namespace DoExport {
         static const unsigned int MAX_TAGS_COUNT = 5;
         std::vector<std::pair<std::string, std::string>> ret;
 
-        auto check = [&ret](const std::string& source, const std::string& gcode) {
+        auto check = [&ret, is_bbl_printer = print.is_BBL_printer()](const std::string& source, const std::string& gcode) {
             std::vector<std::string> tags;
-            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags)) {
+            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags, is_bbl_printer)) {
                 if (!tags.empty()) {
                     size_t i = 0;
                     while (ret.size() < MAX_TAGS_COUNT && i < tags.size()) {
@@ -2533,6 +2534,15 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_writer.set_is_bbl_machine(print->is_BBL_printer());
     print->set_started(psGCodeExport);
 
+    {
+        LifecycleEventContext ctx;
+        ctx.name = std::to_string(print->model().id().id);
+        ctx.code = LifecycleEvtCode::Ok;
+        ctx.msg  = path;
+        ctx.cancellation_check = [print]() { return print->canceled(); };
+        fire_lifecycle_event(LifecycleEvent::GCodeExportStarted, ctx);
+    }
+
     // check if any custom gcode contains keywords used by the gcode processor to
     // produce time estimation and gcode toolpaths
     std::vector<std::pair<std::string, std::string>> validation_res = DoExport::validate_custom_gcode(*print);
@@ -2568,12 +2578,23 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.set_print(print);
     GCodeOutputStream file(boost::nowide::fopen(path_tmp.c_str(), "wb"), m_processor);
     if (! file.is_open()) {
-        BOOST_LOG_TRIVIAL(error) << std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n" << std::endl;
+        std::string err_msg = std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n";
+        BOOST_LOG_TRIVIAL(error) << err_msg << std::endl;
         if (!fs::exists(folder)) {
             //fs::create_directory(folder);
-            BOOST_LOG_TRIVIAL(error) << "the parent path " + folder.string() +" is not there!!!" << std::endl;
+            std::string add_err_msg = "the parent path " + folder.string() +" is not there!!!";
+            BOOST_LOG_TRIVIAL(error) << add_err_msg << std::endl;
+            err_msg += add_err_msg;
         }
-        throw Slic3r::RuntimeError(std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n");
+        {
+            LifecycleEventContext ctx;
+            ctx.name = std::to_string(print->model().id().id);
+            ctx.code = LifecycleEvtCode::Error;
+            ctx.msg  = std::string(path) + "\n" + err_msg;
+            ctx.cancellation_check = [print]() { return print->canceled(); };
+            fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+        }
+        throw Slic3r::RuntimeError(err_msg);
     }
 
     try {
@@ -2584,11 +2605,19 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
             boost::nowide::remove(path_tmp.c_str());
             throw Slic3r::RuntimeError(std::string("G-code export to ") + path + " failed\nIs the disk full?\n");
         }
-    } catch (std::exception & /* ex */) {
+    } catch (std::exception &ex) {
         // Rethrow on any exception. std::runtime_exception and CanceledException are expected to be thrown.
         // Close and remove the file.
         file.close();
         boost::nowide::remove(path_tmp.c_str());
+        {
+            LifecycleEventContext ctx;
+            ctx.name = std::to_string(print->model().id().id);
+            ctx.code = LifecycleEvtCode::Error;
+            ctx.msg  = std::string(path) + "\n" + ex.what();
+            ctx.cancellation_check = [print]() { return print->canceled(); };
+            fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+        }
         throw;
     }
     file.close();
@@ -2694,6 +2723,14 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     std::error_code ret = rename_file(path_tmp, path);
     if (ret) {
+        {
+            LifecycleEventContext ctx;
+            ctx.name = std::to_string(print->model().id().id);
+            ctx.code = LifecycleEvtCode::Error;
+            ctx.msg  = std::string(path) + "\nFailed to rename the output G-code file: " + ret.message();
+            ctx.cancellation_check = [print]() { return print->canceled(); };
+            fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+        }
         throw Slic3r::RuntimeError(
             std::string("Failed to rename the output G-code file from ") + path_tmp + " to " + path + '\n' + "error code " + ret.message() + '\n' +
             "Is " + path_tmp + " locked?" + '\n');
@@ -2704,7 +2741,16 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
-    
+
+    {
+        LifecycleEventContext ctx;
+        ctx.name = std::to_string(print->model().id().id);
+        ctx.code = LifecycleEvtCode::Ok;
+        ctx.msg  = path;
+        ctx.cancellation_check = [print]() { return print->canceled(); };
+        fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
+    }
+
     // Orca: label_object_enabled reflects whether objects are labeled in the g-code (EXCLUDE_OBJECT /
     // M486), which is driven by exclude_object for every printer
     if(result != nullptr)
@@ -3089,6 +3135,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // file_start_gcode runs before the parser copy that normally restores these, so set them here.
             PlaceholderParser::update_timestamp(top_config);
             PlaceholderParser::update_user_name(top_config);
+            top_config.set_key_value("print_time_total_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder)));
+            top_config.set_key_value("print_time_day", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder)));
+            top_config.set_key_value("print_time_hour", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder)));
+            top_config.set_key_value("print_time_minute", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder)));
             top_config.set_key_value("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
             top_config.set_key_value("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
             std::string top_gcode = print.placeholder_parser().process(top_gcode_template, 0, &top_config);
@@ -3718,6 +3768,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("hold_chamber_temp_for_flat_print", new ConfigOptionBool(hold_chamber_temp_for_flat_print));
     }
 
+    this->placeholder_parser().set("print_time_total_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder)));
+    this->placeholder_parser().set("print_time_day", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder)));
+    this->placeholder_parser().set("print_time_hour", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder)));
+    this->placeholder_parser().set("print_time_minute", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder)));
     this->placeholder_parser().set("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
     this->placeholder_parser().set("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
 
@@ -8089,7 +8143,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     _mm3_per_mm *= filament_flow_ratio;
 
     if (path.role() == erTopSolidInfill) {
-        _mm3_per_mm *= m_config.top_solid_infill_flow_ratio;
+        _mm3_per_mm *= NOZZLE_CONFIG(top_solid_infill_flow_ratio);
     } else if (path.role() == erBottomSurface) {
         _mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
     } else if (path.role() == erInternalBridgeInfill) {

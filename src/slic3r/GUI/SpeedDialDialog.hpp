@@ -28,6 +28,10 @@ private:
     void send_actions();
     void search_tabs();
     void apply_rounded_shape();
+    // Forces the webview to repaint after it is mapped / re-rendered. The popup is transparent and
+    // chrome-less, so a missed frame leaves it blank until input; platform-specific because the
+    // widget that actually paints is not always the wxWebView wrapper.
+    void repaint_webview();
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
     bool m_page_ready{false};

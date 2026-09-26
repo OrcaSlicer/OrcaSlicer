@@ -46,6 +46,7 @@
 #include "slic3r/GUI/UpgradePanel.hpp"
 #include "slic3r/GUI/AmsWidgets.hpp"
 #include "Widgets/SideTools.hpp"
+#include "StagedBuild.hpp"
 
 #define AUFILE_GREY700 wxColour(107, 107, 107)
 #define AUFILE_GREY500 wxColour(158, 158, 158)
@@ -194,7 +195,7 @@ public:
 };
 
 
-class AuxiliaryPanel : public wxPanel
+class AuxiliaryPanel : public wxPanel, public StagedBuild
 {
 private:
     Tabbook *m_tabpanel = {nullptr};

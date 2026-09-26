@@ -897,6 +897,7 @@ public:
 
     bool is_connected();
     bool is_connecting();
+    // Emits DeviceOnline or DeviceOffline only when the reachability state changes.
     void set_online_state(bool on_off);
     bool is_online() { return m_is_online; }
     bool is_info_ready(bool check_version = true) const;
