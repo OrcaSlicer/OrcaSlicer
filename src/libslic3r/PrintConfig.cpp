@@ -817,6 +817,31 @@ static void assign_printer_technology_to_unknown(t_optiondef_map &options, Print
             kvp.second.printer_technology = printer_technology;
 }
 
+const std::vector<std::string>& machine_filament_override_keys()
+{
+    static const std::vector<std::string> keys {
+        "filament_ramming_parameters",
+        "filament_loading_speed",
+        "filament_loading_speed_start",
+        "filament_unloading_speed",
+        "filament_unloading_speed_start",
+        "filament_toolchange_delay",
+        "filament_cooling_moves",
+        "filament_cooling_initial_speed",
+        "filament_cooling_final_speed",
+        "filament_stamping_distance",
+        "filament_stamping_loading_speed",
+        "filament_multitool_ramming",
+        "filament_multitool_ramming_volume",
+        "filament_multitool_ramming_flow",
+        "filament_minimal_purge_on_wipe_tower",
+        "filament_start_gcode",
+        "filament_end_gcode",
+        "enable_pressure_advance",
+    };
+    return keys;
+}
+
 PrintConfigDef::PrintConfigDef()
 {
     this->init_common_params();
@@ -8282,6 +8307,29 @@ void PrintConfigDef::init_fff_params()
                      "Otherwise, the rectilinear pattern will be used by default.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("machine_filament_overrides", coBool);
+    def->label = L("Override filament tool-change settings");
+    def->tooltip = L("Use the printer profile's ramming, loading, unloading, cooling, minimum purge, filament start/end G-code and pressure-advance enable settings for every filament. "
+                     "Settings not supplied by the printer remain unchanged.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Empty vectors mean inherit the filament value; a one-element vector overrides
+    // every filament, including an explicitly empty G-code string.
+    for (const std::string &key : machine_filament_override_keys()) {
+        const ConfigOptionDef *source = this->get(key);
+        def = this->add("machine_" + key, source->type);
+        def->label = source->label;
+        def->tooltip = source->tooltip;
+        def->min = source->min;
+        def->max = source->max;
+        def->multiline = source->multiline;
+        def->mode = comAdvanced;
+        ConfigOption *value = source->default_value->clone();
+        static_cast<ConfigOptionVectorBase *>(value)->resize(0);
+        def->set_default_value(value);
+    }
 }
 
 void PrintConfigDef::init_extruder_option_keys()
@@ -9579,8 +9627,30 @@ double min_object_distance(const ConfigBase &cfg)
     return ret;
 }
 
+void DynamicPrintConfig::apply_machine_filament_overrides()
+{
+    const auto *enabled = this->option<ConfigOptionBool>("machine_filament_overrides");
+    if (!enabled || !enabled->value)
+        return;
+
+    const auto *diameters = this->option<ConfigOptionFloats>("filament_diameter");
+    for (const std::string &key : machine_filament_override_keys()) {
+        const auto *source = dynamic_cast<const ConfigOptionVectorBase *>(this->option("machine_" + key));
+        if (!source || source->empty())
+            continue;
+        if (source->size() != 1)
+            throw ConfigurationError("machine_" + key + " must contain exactly one value for all filaments");
+        auto *target = dynamic_cast<ConfigOptionVectorBase *>(this->option(key, true));
+        const size_t count = std::max(target->size(), diameters ? diameters->size() : size_t(1));
+        target->resize(count);
+        for (size_t i = 0; i < count; ++i)
+            target->set_at(source, i, 0);
+    }
+}
+
 void DynamicPrintConfig::normalize_fdm(int used_filaments)
 {
+    this->apply_machine_filament_overrides();
     if (this->has("extruder")) {
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");
@@ -9678,6 +9748,7 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
 //BBS:divide normalize_fdm to 2 steps and call them one by one in Print::Apply
 void DynamicPrintConfig::normalize_fdm_1()
 {
+    this->apply_machine_filament_overrides();
     if (this->has("extruder")) {
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");

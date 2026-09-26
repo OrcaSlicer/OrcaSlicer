@@ -17,7 +17,11 @@
 		"Prusa CORE One 0.3 nozzle",
 		"Prusa CORE One 0.4 nozzle",
 		"Prusa CORE One 0.5 nozzle",
-		"Prusa CORE One L 0.4 nozzle"
+		"Prusa CORE One L 0.4 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"40"
@@ -80,7 +84,7 @@
 		"60"
 	],
 	"idle_temperature": [
-		"150"
+		"170"
 	],
 	"nozzle_temperature": [
 		"225"
@@ -99,5 +103,6 @@
 	],
 	"slow_down_min_speed": [
 		"20"
-	]
+	],
+	"renamed_from": "Prusament PLA CORE One;Prusament PLA @CORE One MMU3;Prusament PLA CORE One MMU3"
 }

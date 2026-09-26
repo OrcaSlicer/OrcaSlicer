@@ -9,7 +9,6 @@
 	"filament_vendor": [
 		"Prusa Polymers"
 	],
-	"nozzle_temperature_intial_layer": "260",
 	"nozzle_temperature": "260",
 	"hot_plate_temp_initial_layer": "100",
 	"hot_plate_temp": "105",
@@ -54,6 +53,31 @@
 		"Prusa XL 0.4 nozzle",
 		"Prusa XL 0.5 nozzle",
 		"Prusa XL 0.6 nozzle",
-		"Prusa XL 0.8 nozzle"
+		"Prusa XL 0.8 nozzle",
+		"Prusa XL 5T 0.25 nozzle",
+		"Prusa XL 5T 0.3 nozzle",
+		"Prusa XL 5T 0.4 nozzle",
+		"Prusa XL 5T 0.5 nozzle",
+		"Prusa XL 5T 0.6 nozzle",
+		"Prusa XL 5T 0.8 nozzle"
+	],
+	"renamed_from": "Prusament ASA XL;Prusament ASA @XL 5T;Prusament ASA XL 5T",
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"40"
+	],
+	"filament_multitool_ramming_volume": [
+		"5"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"29"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
 	]
 }

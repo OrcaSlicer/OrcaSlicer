@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Generic PA @Prusa",
 	"inherits": "Generic PA @Prusa base",
-	"renamed_from": "Prusa Generic PA",
+	"renamed_from": "Prusa Generic PA;Generic PA @Prusa CORE One MMU3;Generic PA @MMU3",
 	"from": "system",
 	"setting_id": "zTnz1NYXoXxIHhRv",
 	"instantiation": "true",
@@ -27,6 +27,10 @@
 		"Prusa MK4 0.25 nozzle",
 		"Prusa MK4 0.4 nozzle",
 		"Prusa MK4 0.6 nozzle",
-		"Prusa MK4 0.8 nozzle"
+		"Prusa MK4 0.8 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	]
 }

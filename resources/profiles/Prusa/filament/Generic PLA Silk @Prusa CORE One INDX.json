@@ -1,0 +1,109 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Prusa CORE One INDX",
+	"inherits": "Generic PLA Silk @System",
+	"from": "system",
+	"setting_id": "eKla6su22rYaL9iz",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_cost": [
+		"25.4"
+	],
+	"filament_notes": [
+		"\nPrusa INDX 2.5.10 tuning."
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"full_fan_speed_layer": [
+		"3"
+	],
+	"fan_cooling_layer_time": [
+		"40"
+	],
+	"default_filament_colour": [
+		"#FF8000"
+	],
+	"filament_max_volumetric_speed": [
+		"12.5"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"215"
+	],
+	"filament_z_hop": [
+		"0.8"
+	],
+	"chamber_temperature": [
+		"20"
+	],
+	"filament_retraction_length": [
+		"0.8"
+	],
+	"filament_retract_length_toolchange": [
+		"0.8"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_retract_before_wipe": [
+		"70%"
+	],
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"activate_chamber_temp_control": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.025"
+	],
+	"supertack_plate_temp": [
+		"35"
+	],
+	"filament_retraction_distances_when_cut": [
+		"18"
+	],
+	"temperature_vitrification": [
+		"60"
+	],
+	"filament_long_retractions_when_cut": [
+		"0"
+	],
+	"required_nozzle_HRC": [
+		"0"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"during_print_exhaust_fan_speed": [
+		"60"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"35"
+	],
+	"filament_z_hop_types": [
+		""
+	],
+	"complete_print_exhaust_fan_speed": [
+		"80"
+	]
+}

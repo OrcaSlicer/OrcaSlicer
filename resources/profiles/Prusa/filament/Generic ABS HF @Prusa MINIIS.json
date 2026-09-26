@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic ABS HF @Prusa MINIIS",
-	"inherits": "Generic ABS HF @Prusa base",
+	"inherits": "Generic ABS @Prusa base",
 	"renamed_from": "Prusa Generic ABS HF @MINIIS;Prusa Generic ABS HF MINIIS",
 	"from": "system",
 	"setting_id": "KcRRWqB7hrovzBng",
@@ -53,5 +53,6 @@
 	],
 	"compatible_printers": [
 		"Prusa MINIIS 0.4 nozzle"
-	]
+	],
+	"filament_id": "OF55jHAJ"
 }

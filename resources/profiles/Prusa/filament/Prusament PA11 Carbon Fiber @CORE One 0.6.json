@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Prusament PA11 Carbon Fiber @CORE One 0.6",
+	"inherits": "Prusament PA11 Carbon Fiber @CORE One",
+	"from": "system",
+	"setting_id": "NnKKBWPNEdRvH949",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.6 nozzle",
+		"Prusa CORE One HF 0.6 nozzle"
+	],
+	"fan_cooling_layer_time": [
+		"18"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"renamed_from": "Prusament PA-CF CORE One 0.6;Prusament PA-CF @CORE One 0.6"
+}

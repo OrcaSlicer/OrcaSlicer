@@ -1,0 +1,127 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_common_coreone_indx",
+	"inherits": "Prusa CORE One HF 0.4 nozzle",
+	"from": "system",
+	"instantiation": "false",
+	"machine_start_gcode": "{\nglobal retract_toolchange = 8;\nglobal tool_init = (0,0,0,0,0,0,0,0);\nglobal used_tools = 0 ;\nglobal low_temp_types = \"PLA|PVA|BVOH|FLEX|TPU|TPE|PVB\";\n}\n\n; number of used tools\n{if is_extruder_used[0]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[1]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[2]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[3]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[4]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[5]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[6]}{used_tools = used_tools + 1}{endif}\n{if is_extruder_used[7]}{used_tools = used_tools + 1}{endif}\n\n{local probe_temp = \"\" + ((filament_notes[initial_tool]=~/.*MBL160.*/) ? 160 : (filament_notes[initial_tool]=~/.*HT_MBL10.*/) ? (nozzle_temperature_initial_layer[initial_tool] - 10) : (filament_type[initial_tool] == \"PC\" or filament_type[initial_tool] == \"PA\") ? (nozzle_temperature_initial_layer[initial_tool] - 55) : (filament_type[initial_tool] == \"TPU\") ? 170 : (filament_type[initial_tool]=~/.*PET.*/) ? 170 : 170) + \"\";}\n\nM862.3 P \"COREONEINDX\" ; printer model check\nM862.5 P2 ; g-code level check\nM862.6 P\"Input shaper\" ; FW feature check\nM862.6 P\"INDX lock\" ; FW feature check\nM115 U6.9.0+16311\n\nM591 S0 ; disable stuck detection\n\nM555 X{(min(print_bed_max[0], first_layer_print_min[0] + 32) - 32)} Y{(max(0, first_layer_print_min[1]) - 4)} W{((min(print_bed_max[0], max(first_layer_print_min[0] + 32, first_layer_print_max[0])))) - ((min(print_bed_max[0], first_layer_print_min[0] + 32) - 32))} H{((first_layer_print_max[1])) - ((max(0, first_layer_print_min[1]) - 4))}\n\n; inform about nozzle diameter\n{if (is_extruder_used[0])}M862.1 T0 P{nozzle_diameter[0]} A{((required_nozzle_HRC[0] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[1])}M862.1 T1 P{nozzle_diameter[1]} A{((required_nozzle_HRC[1] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[2])}M862.1 T2 P{nozzle_diameter[2]} A{((required_nozzle_HRC[2] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[3])}M862.1 T3 P{nozzle_diameter[3]} A{((required_nozzle_HRC[3] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[4])}M862.1 T4 P{nozzle_diameter[4]} A{((required_nozzle_HRC[4] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[5])}M862.1 T5 P{nozzle_diameter[5]} A{((required_nozzle_HRC[5] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[6])}M862.1 T6 P{nozzle_diameter[6]} A{((required_nozzle_HRC[6] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n{if (is_extruder_used[7])}M862.1 T7 P{nozzle_diameter[7]} A{((required_nozzle_HRC[7] > 0) ? 1 : 0)} F{(true ? 1 : 0)}{endif}\n\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\n\nM140 S{first_layer_bed_temperature[initial_tool]} ; set bed temp\n\n{if chamber_minimal_temperature[initial_tool] == 0}\n  M141 S{chamber_temperature[initial_tool]} ; set nominal chamber temp\n{endif}\n\n; Home XY\nG28 XY\n\n; Pick tool for Z homing\n{if is_extruder_used[0]}T0 S1 L2 D0\n{elsif is_extruder_used[1]}T1 S1 L2 D0\n{elsif is_extruder_used[2]}T2 S1 L2 D0\n{elsif is_extruder_used[3]}T3 S1 L2 D0\n{elsif is_extruder_used[4]}T4 S1 L2 D0\n{elsif is_extruder_used[5]}T5 S1 L2 D0\n{elsif is_extruder_used[6]}T6 S1 L2 D0\n{elsif is_extruder_used[7]}T7 S1 L2 D0\n{endif}\n\nM104 S120\n\n; Home Z\nG28 Z\n\nG0 Z40 F10000\nM190 R{first_layer_bed_temperature[initial_tool]} ; wait for bed temp\n; try picking tools used in print\nG1 F10000\n\n{local perimeter_flow_rate = 1.0 * (outer_wall_speed > 0 ? outer_wall_speed : (inner_wall_speed > 0 ? inner_wall_speed : 100)) * (layer_height * (outer_wall_line_width - layer_height) + 3.14159 * (layer_height/2) * (layer_height/2))}\n\n{if (is_extruder_used[0] and filament_type[0] != \"TPU\")}M574 S0 V35 T{nozzle_temperature[0]} F{ (filament_max_volumetric_speed[0] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[0]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[0] * filament_diameter[0]) }{endif}\n{if (is_extruder_used[1] and filament_type[1] != \"TPU\")}M574 S1 V35 T{nozzle_temperature[1]} F{ (filament_max_volumetric_speed[1] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[1]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[1] * filament_diameter[1]) }{endif}\n{if (is_extruder_used[2] and filament_type[2] != \"TPU\")}M574 S2 V35 T{nozzle_temperature[2]} F{ (filament_max_volumetric_speed[2] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[2]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[2] * filament_diameter[2]) }{endif}\n{if (is_extruder_used[3] and filament_type[3] != \"TPU\")}M574 S3 V35 T{nozzle_temperature[3]} F{ (filament_max_volumetric_speed[3] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[3]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[3] * filament_diameter[3]) }{endif}\n{if (is_extruder_used[4] and filament_type[4] != \"TPU\")}M574 S4 V35 T{nozzle_temperature[4]} F{ (filament_max_volumetric_speed[4] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[4]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[4] * filament_diameter[4]) }{endif}\n{if (is_extruder_used[5] and filament_type[5] != \"TPU\")}M574 S5 V35 T{nozzle_temperature[5]} F{ (filament_max_volumetric_speed[5] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[5]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[5] * filament_diameter[5]) }{endif}\n{if (is_extruder_used[6] and filament_type[6] != \"TPU\")}M574 S6 V35 T{nozzle_temperature[6]} F{ (filament_max_volumetric_speed[6] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[6]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[6] * filament_diameter[6]) }{endif}\n{if (is_extruder_used[7] and filament_type[7] != \"TPU\")}M574 S7 V35 T{nozzle_temperature[7]} F{ (filament_max_volumetric_speed[7] > 0 ? min(perimeter_flow_rate, filament_max_volumetric_speed[7]) : perimeter_flow_rate ) / (3.14159 / 4 * filament_diameter[7] * filament_diameter[7]) }{endif}\n\nG427 R2 P3 ; Calibrate all used and mapped tools\n\nT{initial_tool} S1 L0 D0\n\n{if chamber_minimal_temperature[initial_tool] != 0}\n  ; Min chamber temp section\n  M104 S0\n  M140 S115 ; set bed temp for chamber heating\n  G1 Z10 F720 ; set bed position\n  G1 X242 Y0 F4800 ; set print head position\n  M191 S{chamber_minimal_temperature[initial_tool]} ; wait for minimal chamber temp\n  M141 S{chamber_temperature[initial_tool]} ; set nominal chamber temp\n  M140 S{first_layer_bed_temperature[initial_tool]} ; set bed temp\n{endif}\n\n{if first_layer_bed_temperature[initial_tool] <= 60}M106 S70{endif}\nG0 Z40 F10000\nM104 S{if (idle_temperature[initial_tool] == 0)}100{else}{idle_temperature[initial_tool]}{endif}\nM190 R{first_layer_bed_temperature[initial_tool]} ; wait for bed temp\nM107\n\nG29 G ; absorb heat\n\nM109 S{probe_temp} ; wait for temp\n\n;\n; MBL\n;\nM84 E ; turn off E motor\nG29 P1 ; invalidate mbl & probe print area\n;G29 P1 X150 Y0 W100 H20 C ; probe near purge place\nG29 P3.2 ; interpolate mbl probes\nG29 P3.13 ; extrapolate mbl outside probe area\nG29 A ; activate mbl\n\nG0 Z1 ; add Z clearance\n\nM569 S0 E ; set spreadcycle mode for extruder\nG92 E0 ; reset extruder position\n\n;-------Clean and prime initial tool------\n{\nlocal speed_tc = min(travel_speed, 350.0) * 60;\nlocal deretract_length = 1.6;\nlocal target_temp = nozzle_temperature_initial_layer[initial_tool];\nlocal eject_temp = max(160,target_temp - 60);\nlocal filament_area = 3.14 * filament_diameter[initial_tool] * filament_diameter[initial_tool] / 4.0;\nlocal purge_mm = 12 / filament_area;\nlocal purge_speed_fast = 60.0 * min(6,max(1.5,0.6*filament_max_volumetric_speed[initial_tool]/filament_area));\nlocal purge_speed_slow = 60.0 * min(3,max(1.5,0.3*filament_max_volumetric_speed[initial_tool]/filament_area));\nlocal tc_deretract_speed = 60.0 * min(20,max(5,deretraction_speed[initial_tool]));\n}\n\n{if (filament_flush_volumetric_speed[initial_tool] / filament_area) > 0}\n  {purge_speed_fast = 60.0 * min(10,max(1,(filament_flush_volumetric_speed[initial_tool] / filament_area)))}\n  {purge_speed_slow = 60.0 * min(10,max(1,(filament_flush_volumetric_speed[initial_tool] / filament_area) / 2))}\n{endif}\n\n{if filament_type[initial_tool]==\"TPU\"}\n  {tc_deretract_speed = 60*10}\n{endif}\n\nM83\n\nG1 F{speed_tc}\n\nM204 S7000\n\nM104 S{eject_temp+15}\n\nG12 S90 ; enter cleaner\n\nM109 C{eject_temp} ; Skip residency\n\nM104 S{target_temp + 5}\n\nG12 S30 ; eject poop\n\nM106 S{255 / 100 * fan_max_speed[initial_tool]}\n\nM906 P1 ; Set extruder current\n\nM109 C{target_temp}\n\nM104 S{target_temp}\n\nG1 E{deretract_length} F{tc_deretract_speed}\n\nG91 ; use relative coordinates\nM83 ; extruder relative mode\nM572 S0.0 ; Disable PressureAdvance\n\n;FLUSH_START\nG1 X-0.2 E{0.15 * purge_mm} F{0.20 / (0.15 * purge_mm) * purge_speed_slow}\nG1 X0.40 E{0.30 * purge_mm} F{0.40 / (0.30 * purge_mm) * purge_speed_slow}\nG1 Y-0.5 E{0.10 * purge_mm} F{0.50 / (0.10 * purge_mm) * purge_speed_slow}\nG1 Y-0.5 E{0.10 * purge_mm} F{0.50 / (0.10 * purge_mm) * purge_speed_fast}\nG1 X-0.4 E{0.20 * purge_mm} F{0.40 / (0.20 * purge_mm) * purge_speed_fast}\nG1 Y1.00 E{0.18 * purge_mm} F{1.00 / (0.18 * purge_mm) * purge_speed_fast}\nG1 X0.20 E{0.05 * purge_mm} F{0.20 / (0.05 * purge_mm) * purge_speed_fast}\nG1 Y0.20 E{0.02 * purge_mm} F{0.20 / (0.02 * purge_mm) * purge_speed_slow}\n;FLUSH_END\n\nM400\nM906 P0 ; Revert extruder current\n\nG1 Y0 E-{retraction_length[initial_tool] + 0.04} F{retraction_speed[initial_tool] * 60}\n{e_retracted[initial_tool] = retraction_length[initial_tool] + retract_restart_extra_toolchange[initial_tool]}\n\nG1 Y5 F{speed_tc}\n\n{tool_init[initial_tool] = 1}\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nG12 S91 ; Exit cleaning station\nG0 Z1.2 ; Lift\nG4 S0\nM221 S100 ; set flow to 100%\n",
+	"machine_end_gcode": "{if layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+1, printable_height)} F720 ; Move print head up{endif}\n\n; turn off extruder heaters\n{if is_extruder_used[0]}M104 T0 S0{endif}\n{if is_extruder_used[1]}M104 T1 S0{endif}\n{if is_extruder_used[2]}M104 T2 S0{endif}\n{if is_extruder_used[3]}M104 T3 S0{endif}\n{if is_extruder_used[4]}M104 T4 S0{endif}\n{if is_extruder_used[5]}M104 T5 S0{endif}\n{if is_extruder_used[6]}M104 T6 S0{endif}\n{if is_extruder_used[7]}M104 T7 S0{endif}\n\nM140 S0 ; turn off heatbed\nM141 S0 ; disable chamber control\nM107 ; turn off fan\nM106 P6 S0 ; turn off dock fan\n\nP0 S1 ; park tool\n\nG1 X242 Y205 F10200 ; park\nG4 ; wait\nM572 S0 ; reset PA\nM221 S100 ; reset flow percentage\nM84 X Y E ; disable motors\nM77 ; stop print timer\n; max_layer_z = [max_layer_z]",
+	"machine_max_acceleration_retracting": [
+		"2500",
+		"2500"
+	],
+	"max_layer_height": [
+		"0.3"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"extruder_clearance_height_to_lid": "33",
+	"retraction_minimum_travel": [
+		"1"
+	],
+	"retract_before_wipe": [
+		"70%"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"retraction_length": [
+		"0.8"
+	],
+	"retract_length_toolchange": [
+		"2"
+	],
+	"z_hop": [
+		"0.4"
+	],
+	"retraction_speed": [
+		"30"
+	],
+	"deretraction_speed": [
+		"30"
+	],
+	"change_filament_gcode": "{if not (layer_num < 0 )} \n  {\n  local speed_tc = min(travel_speed, 350.0) * 60;\n  local deretract_length = 1.0 * retract_toolchange + retraction_length[next_extruder];\n  local target_temp = nozzle_temperature[next_extruder];\n  local eject_temp = max(160,target_temp - 60);\n  local filament_area = 3.14 * filament_diameter[next_extruder] * filament_diameter[next_extruder] / 4.0;\n  local purge_mm = max(3.0, filament_minimal_purge_on_wipe_tower[next_extruder] * 1.0 / filament_area);\n  local purge_speed_fast = 60.0 * min(6,max(1.5,0.6*filament_max_volumetric_speed[next_extruder]/filament_area));\n  local purge_speed_slow = 60.0 * min(3,max(1.5,0.3*filament_max_volumetric_speed[next_extruder]/filament_area));\n  local tc_retract_speed = 60.0 * min(30,max(10,retraction_speed[current_extruder]));\n  local tc_deretract_speed = 60.0 * min(20,max(5,deretraction_speed[next_extruder]));\n  }\n\n  {if filament_minimal_purge_on_wipe_tower[next_extruder] == 0}\n    {purge_mm = 5.0}\n  {endif}\n\n  \n\n  {if (filament_flush_volumetric_speed[next_extruder] / filament_area) > 0}\n    {purge_speed_fast = 60.0 * min(10,max(1,(filament_flush_volumetric_speed[next_extruder] / filament_area)))}\n    {purge_speed_slow = 60.0 * min(10,max(1,(filament_flush_volumetric_speed[next_extruder] / filament_area) / 2))}\n  {endif}\n\n  {if filament_type[current_extruder]==\"TPU\"}\n    {tc_retract_speed = 60*15}\n  {endif}\n\n  {if filament_type[next_extruder]==\"TPU\"}\n    {tc_deretract_speed = 60*10}\n  {endif}\n\n  {if !is_nil(filament_retract_length_toolchange[next_extruder])}\n    {deretract_length = retract_toolchange + filament_retract_length_toolchange[next_extruder]}\n  {endif}\n\n  {if tool_init[next_extruder] == 0}\n    {deretract_length = 1.6}\n  {endif}\n\n  {if layer_z <= (initial_layer_print_height + 0.0001)}\n    {target_temp = nozzle_temperature_initial_layer[next_extruder]}\n  {endif}\n\n  ; Change Tool[previous_extruder] -> Tool[next_extruder] (layer [layer_num])\n  M83\n\n  {if retract_length_toolchange[current_extruder] == 0}\n    G1 E-{retraction_length[current_extruder]} F{retraction_speed[current_extruder] * 60}\n  {endif}\n\n  G1 F{speed_tc}\n  M204 S7000\n\n  G27 W3 Z{z_hop[current_extruder]} P2 R{retract_toolchange} V{tc_retract_speed/60} A{travel_slope[current_extruder]}\n  P0 S1 L0 D0\n\n\n  T{next_extruder} S1 L0 D0\n\n  M104 S{eject_temp+15}\n\n  G12 S90 ; enter cleaner\n\n  G0 Z{layer_z + 0.8} ; Lift\n\n  M109 C{eject_temp} ; Skip residency\n\n  M104 S{target_temp + 5}\n\n  {if ((enable_prime_tower == false) or (tool_init[next_extruder] == 0))}\n  ;-------Purge Station specific Gcode Start-----\n\n    {if tool_init[next_extruder] == 1}\n      ; INDX final lock extrusion\n      G1 E1.6 F{20 * 60} ; Final lock tool\n      ; End final lock extrusion\n    {endif}\n\n    G12 S30 ; eject poop\n\n    M106 S{255 / 100 * fan_max_speed[next_extruder]}\n\n    M906 P1 ; Set extruder current\n\n    M109 C{target_temp}\n    M104 S{target_temp}\n\n    G1 E{deretract_length} F{tc_deretract_speed}\n\n    G91 ; use relative coordinates\n    M83 ; extruder relative mode\n    M572 S0.0 ; Disable PressureAdvance\n\n    ;FLUSH_START\n    G1 X-0.2  E{0}                F{1200}\n    G1 X0.40  E{0.15 * purge_mm}  F{0.40 / (0.15 * purge_mm) * purge_speed_slow}\n    G1 Y-1.20 E{0.35 * purge_mm}  F{1.20 / (0.35 * purge_mm) * purge_speed_fast}\n    G1 X-0.4  E{0.20 * purge_mm}  F{0.40 / (0.20 * purge_mm) * purge_speed_fast}\n    G1 Y1.20  E{0.25 * purge_mm}  F{1.20 / (0.25 * purge_mm) * purge_speed_fast}\n    G1 X0.20  E{0.05 * purge_mm}  F{0.20 / (0.05 * purge_mm) * purge_speed_fast}\n    ;FLUSH_END\n\n    M400\n    M906 P0 ; Revert extruder current\n\n    ; RETRACT AFTER TOOLCHANGE START\n    G1 Y0 E-{retraction_length[next_extruder] + 0.04} F{retraction_speed[next_extruder] * 60}\n\n    {e_retracted[next_extruder] = retraction_length[next_extruder] + retract_restart_extra_toolchange[next_extruder]}\n    ; RETRACT AFTER TOOLCHANGE END\n\n    G1 Y5 F{speed_tc}\n\n  ;-------Purge Station specific Gcode End-----\n\n\n\n\n  {else}\n  ;-------Wipe Tower specific Gcode Start-----\n\n    G1 E2.0 F{retraction_speed[current_extruder] * 60}\n\n    G750 Y85 F21000 A\n    G750 Y93 F21000 A\n    G750 Y82 F21000 A\n    G750 Y98.5 F21000 A\n    G750 Y75 F21000 A\n    G750 Y98.5 F21000 A\n\n    M109 C{target_temp}\n    M104 S{target_temp}\n\n    G1 E{deretract_length-2.0-retraction_length[next_extruder]+1.2} F{tc_deretract_speed}\n    {e_retracted[next_extruder] = retraction_length[next_extruder]}\n    G1 F{speed_tc} ;revert travel speed\n\n  ;-------Wipe Tower specific Gcode End-----\n  {endif}\n\n  {tool_init[next_extruder] = 1}\n\n  G90 ; use absolute coordinates\n  M83 ; extruder relative mode\n  G12 S91 ; Exit cleaning station\n  G0 Z{layer_z + 1.0} ; Lift\n  G4 S0\n{else}\n  T{next_extruder} S1 L0 D0\n{endif}",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n{if layer_z > 150}\nM201 X{interpolate_table(layer_z, (0,7000), (150,7000), (200,4500), (270,2000))} Y{interpolate_table(layer_z, (0,7000), (150,7000), (200,4500), (270,2000))}\n{endif}\n",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n\n; dock fan control\n{if layer_num == 1 or layer_num == 3}\n  M106 P6 S0 ; dock fan off (baseline)\n  {if used_tools > 1}\n    ;PET-family (PET/PETG/*-CF...)/CPE/PCTG - dock fan 100 from 3rd layer\n    {if layer_num == 3 and ((is_extruder_used[0] and filament_type[0]=~/(PET|CPE|PCTG)/) or (is_extruder_used[1] and filament_type[1]=~/(PET|CPE|PCTG)/) or (is_extruder_used[2] and filament_type[2]=~/(PET|CPE|PCTG)/) or (is_extruder_used[3] and filament_type[3]=~/(PET|CPE|PCTG)/) or\n  (is_extruder_used[4] and filament_type[4]=~/(PET|CPE|PCTG)/) or (is_extruder_used[5] and filament_type[5]=~/(PET|CPE|PCTG)/) or (is_extruder_used[6] and filament_type[6]=~/(PET|CPE|PCTG)/) or (is_extruder_used[7] and filament_type[7]=~/(PET|CPE|PCTG)/))}\n      M106 P6 S100\n    {endif}\n\n    ;low-temp materials - dock fan 100% (S255) from 1st layer (uses global low_temp_types)\n    {if (is_extruder_used[0] and one_of(filament_type[0], ~low_temp_types)) or (is_extruder_used[1] and one_of(filament_type[1], ~low_temp_types)) or (is_extruder_used[2] and one_of(filament_type[2], ~low_temp_types)) or (is_extruder_used[3] and one_of(filament_type[3], ~low_temp_types)) or (is_extruder_used[4] and one_of(filament_type[4], ~low_temp_types)) or (is_extruder_used[5] and one_of(filament_type[5], ~low_temp_types)) or (is_extruder_used[6] and one_of(filament_type[6], ~low_temp_types)) or (is_extruder_used[7] and one_of(filament_type[7], ~low_temp_types))}\n      M106 P6 S255\n    {endif} ; PLA wins by order\n  {endif}\n{endif}\n",
+	"wipe": [
+		"1"
+	],
+	"printable_area": [
+		"0x0",
+		"248x0",
+		"248x205",
+		"0x205"
+	],
+	"cooling_tube_length": "20",
+	"cooling_tube_retraction": "45",
+	"extra_loading_move": "-52",
+	"high_current_on_filament_swap": "0",
+	"machine_max_junction_deviation": [
+		"0.01",
+		"0.01"
+	],
+	"parking_pos_retraction": "84",
+	"z_offset": "0",
+	"default_filament_profile": "Generic PLA @Prusa CORE One INDX",
+	"default_print_profile": "0.20mm Balanced @Prusa CORE One INDX HF 0.4",
+	"printer_notes": "PRINTER_VENDOR_PRUSA3D\nPRINTER_MODEL_COREONE_INDX\nPG\nINPUT_SHAPER\nPrusa INDX 2.5.10; HF 0.4 mm tools.",
+	"machine_load_filament_time": "9",
+	"machine_unload_filament_time": "3.5",
+	"thumbnails": "16x16/QOI,313x173/QOI,480x240/QOI,380x285/PNG",
+	"thumbnails_format": "QOI",
+	"default_bed_type": "Textured PEI Plate",
+	"support_multi_bed_types": "1",
+	"purge_in_prime_tower": "0",
+	"manual_filament_change": "0",
+	"machine_filament_overrides": "1",
+	"machine_enable_pressure_advance": [
+		"0"
+	],
+	"machine_filament_cooling_final_speed": [
+		"0"
+	],
+	"machine_filament_cooling_initial_speed": [
+		"0"
+	],
+	"machine_filament_cooling_moves": [
+		"0"
+	],
+	"machine_filament_end_gcode": [
+		"; Filament-specific end gcode"
+	],
+	"machine_filament_loading_speed": [
+		"0"
+	],
+	"machine_filament_loading_speed_start": [
+		"0"
+	],
+	"machine_filament_minimal_purge_on_wipe_tower": [
+		"10"
+	],
+	"machine_filament_multitool_ramming": [
+		"1"
+	],
+	"machine_filament_multitool_ramming_flow": [
+		"30"
+	],
+	"machine_filament_multitool_ramming_volume": [
+		"18"
+	],
+	"machine_filament_stamping_distance": [
+		"0"
+	],
+	"machine_filament_stamping_loading_speed": [
+		"0"
+	],
+	"machine_filament_unloading_speed": [
+		"0"
+	],
+	"machine_filament_unloading_speed_start": [
+		"0"
+	],
+	"machine_filament_start_gcode": [
+		"M572 S{pressure_advance[filament_extruder_id]} ; Pressure advance\nM573 R"
+	],
+	"machine_filament_ramming_parameters": []
+}

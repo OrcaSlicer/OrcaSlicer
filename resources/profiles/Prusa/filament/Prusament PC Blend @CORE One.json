@@ -16,7 +16,11 @@
 		"Prusa CORE One 0.25 nozzle",
 		"Prusa CORE One 0.3 nozzle",
 		"Prusa CORE One 0.4 nozzle",
-		"Prusa CORE One 0.5 nozzle"
+		"Prusa CORE One 0.5 nozzle",
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"35"
@@ -73,7 +77,7 @@
 		"110"
 	],
 	"idle_temperature": [
-		"130"
+		"150"
 	],
 	"nozzle_temperature": [
 		"275"
@@ -92,5 +96,6 @@
 	],
 	"slow_down_min_speed": [
 		"15"
-	]
+	],
+	"renamed_from": "Prusament PC Blend CORE One;Prusament PC Blend @CORE One MMU3;Prusament PC Blend CORE One MMU3"
 }

@@ -640,6 +640,15 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
 
     ConfigOption *opt = this->option(opt_key, true);
     assert(opt != nullptr);
+    // Empty-default float vectors represent optional values, such as machine
+    // filament overrides. Preserve their empty state instead of parsing it as zero.
+    if (value.empty() && optdef->type == coFloats && optdef->default_value &&
+        static_cast<const ConfigOptionVectorBase *>(optdef->default_value.get())->empty()) {
+        if (!append)
+            static_cast<ConfigOptionVectorBase *>(opt)->resize(0);
+        return true;
+    }
+
     bool success     = false;
     bool substituted = false;
     if (optdef->type == coBools && substitutions_ctxt.rule != ForwardCompatibilitySubstitutionRule::Disable) {
