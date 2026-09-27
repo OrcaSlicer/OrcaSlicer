@@ -509,6 +509,10 @@ def main():
 
     def phase_i():
         print("\n[I] Plate 3: overwrite with a truncated/corrupt file, then a valid one")
+        # flaky.stl isn't supposed to be painted -- clear any answer phase H/N left in the hook
+        # file so a template mistake that puts paint on it blocks (and times out) instead of
+        # silently reusing whatever answer happened to be sitting there.
+        app.set_paint_answer(None)
         tail.mark(); time.sleep(1.5)
         write_truncated_stl(flaky_stl)
         ok = tail.wait_for(RELOAD_MARK, args.timeout)
@@ -533,6 +537,8 @@ def main():
 
     def phase_j():
         print("\n[J] Plate 3: two overwrites landing close together, different sizes -- both must be picked up")
+        # quick.stl isn't supposed to be painted either -- same reasoning as phase_i().
+        app.set_paint_answer(None)
         tail.mark(); time.sleep(1.5)
         write_cube_stl(quick_stl, 18)
         ok = tail.wait_for(RELOAD_MARK, args.timeout)
