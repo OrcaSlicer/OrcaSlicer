@@ -9,7 +9,7 @@
 	"default_acceleration": [
 		"4000"
 	],
-	"elefant_foot_compensation": "0.075",
+	"elefant_foot_compensation": "0.15",
 	"enable_arc_fitting": "0",
 	"enable_height_slowdown": [
 		"1"

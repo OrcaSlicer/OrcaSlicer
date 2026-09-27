@@ -411,6 +411,26 @@ class TestUpdateIndex(TreeCase):
         for entry in self.t.read_index("V")["filament_list"]:
             self.assertEqual(sorted(entry), ["name", "sub_path"])
 
+    def test_include_targets_are_listed_before_their_users(self):
+        # The loader resolves include like inherits: in one pass over the list, so
+        # a template must be listed before every preset that includes it - even
+        # though a template has no parent of its own to order it by.
+        self.t.write("V", "machine/P.json", {"type": "machine", "name": "P",
+                                             "include": ["T start", "T end"]})
+        self.t.write("V", "machine/T start.json", {"type": "machine", "name": "T start"})
+        self.t.write("V", "machine/T end.json", {"type": "machine", "name": "T end"})
+        self.t.write("V", "filament/F.json", {"type": "filament", "name": "F",
+                                              "inherits": "B", "include": "S"})
+        self.t.write("V", "filament/B.json", {"type": "filament", "name": "B"})
+        self.t.write("V", "filament/S.json", {"type": "filament", "name": "S"})
+        rc, out = self.run_command("update-index")
+        self.assertEqual(rc, 0, out)
+        machines = [e["name"] for e in self.t.read_index("V")["machine_list"]]
+        self.assertEqual(machines, ["T end", "T start", "P"])
+        filaments = [e["name"] for e in self.t.read_index("V")["filament_list"]]
+        self.assertLess(filaments.index("B"), filaments.index("F"))
+        self.assertLess(filaments.index("S"), filaments.index("F"))
+
     def test_a_profile_with_no_usable_type_is_reported_not_dropped(self):
         self.t.write("V", "filament/A.json", {"type": "filament", "name": "A"})
         self.t.write("V", "filament/B.json", {"name": "B"})
@@ -677,6 +697,34 @@ class TestCheck(TreeCase):
         for vendor in ("V", "W"):
             errors, out = self.names(vendor)
             self.assertEqual(errors, 0, out)
+
+    def machine_models(self):
+        """The cross-vendor machine_model name check, whole tree by design."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            errors = apt.check_machine_model_name_uniqueness(self.t.profiles)
+        return errors, buf.getvalue()
+
+    def test_two_bundles_may_not_declare_one_machine_model_name(self):
+        # The name keys the global printer-type lookup: Preset::get_printer_type
+        # matches a preset's printer_model against every vendor's model names, so a
+        # copy of another vendor's model is ambiguous, not merely duplicated.
+        for vendor in ("V", "W"):
+            self.t.write(vendor, "machine/MyKlipper.json",
+                         {"type": "machine_model", "name": "Generic Klipper Printer",
+                          "model_id": "my_klipper_01"})
+        errors, out = self.machine_models()
+        self.assertEqual(errors, 1, out)
+        self.assertIn('machine_model name "Generic Klipper Printer"', out)
+        self.assertIn("V/machine/MyKlipper.json", out)
+        self.assertIn("W/machine/MyKlipper.json", out)
+
+    def test_distinct_machine_model_names_are_left_alone(self):
+        for vendor in ("V", "W"):
+            self.t.write(vendor, "machine/model.json",
+                         {"type": "machine_model", "name": f"{vendor} Model"})
+        errors, out = self.machine_models()
+        self.assertEqual(errors, 0, out)
 
     def coverage(self, vendor="V"):
         """The index-coverage check for one bundle: (errors, gaps, output)."""

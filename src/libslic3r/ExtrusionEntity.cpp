@@ -423,6 +423,74 @@ bool ExtrusionLoop::is_smooth(double angle_threshold, double min_arm_length) con
     return true;
 }
 
+// The seam is inserted into the loop unless a vertex lies within the G-code resolution of it, so a
+// loop can begin and end with a segment of a few micrometres. A plain loop stops there anyway; a
+// scarf extrudes through both ends, and the planner nearly halts on a block that short. Drop the
+// vertex next to the seam point instead, so the loop still starts and ends at the seam. A trimmed
+// path loses its arc fitting; its geometry is unchanged, it just prints as line segments.
+static void trim_seam_ends(ExtrusionPaths &paths, double tolerance)
+{
+    const auto shorter = [tolerance](const Point3 &a, const Point3 &b) { return (b - a).cast<double>().norm() < tolerance; };
+
+    while (!paths.empty()) {
+        Points3 &points = paths.front().polyline.points;
+        if (points.size() < 2 || !shorter(points[0], points[1]))
+            break;
+        if (points.size() > 2) {
+            points.erase(points.begin() + 1);
+            paths.front().polyline.fitting_result.clear();
+        } else if (paths.size() > 1) {
+            const Point3 seam = points.front();
+            paths.erase(paths.begin());
+            paths.front().polyline.points.front() = seam;
+            paths.front().polyline.fitting_result.clear();
+        } else {
+            break;
+        }
+    }
+
+    while (!paths.empty()) {
+        Points3 &points = paths.back().polyline.points;
+        if (points.size() < 2 || !shorter(points[points.size() - 2], points.back()))
+            break;
+        if (points.size() > 2) {
+            points.erase(points.end() - 2);
+            paths.back().polyline.fitting_result.clear();
+        } else if (paths.size() > 1) {
+            const Point3 seam = points.back();
+            paths.pop_back();
+            paths.back().polyline.points.back() = seam;
+            paths.back().polyline.fitting_result.clear();
+        } else {
+            break;
+        }
+    }
+}
+
+// Split `polyline` where the scarf ramp ends. When the split would leave a remainder shorter
+// than half a slope step before the next vertex, the ramp is extended to that vertex instead:
+// a stub that short makes the motion planner slow down at the end of the ramp. Planners treat
+// moves of a millimetre and more as ordinary, so the ramp never grows by more than that.
+static void split_at_slope_end(const Polyline3 &polyline, double length, double slope_max_segment_length, Polyline3 &slope, Polyline3 &flat)
+{
+    const double snap_distance = std::min(0.5 * slope_max_segment_length, scale_(1.));
+    double acc_length = 0.;
+    size_t line_idx   = 0;
+    for (const Line3 &line : polyline.lines()) {
+        const double end_length = acc_length + line.length();
+        if (end_length >= length) {
+            if (end_length - length < snap_distance) {
+                polyline.split_at_index(line_idx + 1, &slope, &flat);
+                return;
+            }
+            break;
+        }
+        acc_length = end_length;
+        ++line_idx;
+    }
+    polyline.split_at_length(length, &slope, &flat);
+}
+
 ExtrusionLoopSloped::ExtrusionLoopSloped(ExtrusionPaths&   original_paths,
                                          double            seam_gap,
                                          double            slope_min_length,
@@ -431,6 +499,14 @@ ExtrusionLoopSloped::ExtrusionLoopSloped(ExtrusionPaths&   original_paths,
                                          ExtrusionLoopRole role)
     : ExtrusionLoop(role)
 {
+    // An eighth of a common line width: the path moves by less than that at the seam.
+    trim_seam_ends(original_paths, scale_(0.05));
+    // The caller measured the loop before the trim; a scarf that covers the whole loop must still end at 1.
+    double trimmed_length = 0.;
+    for (const ExtrusionPath &path : original_paths)
+        trimmed_length += unscale_(path.length());
+    slope_min_length = std::min(slope_min_length, trimmed_length);
+
     // create slopes
     const auto add_slop = [this, slope_max_segment_length, seam_gap](const ExtrusionPath &path, const Polyline3 &poly, double ratio_begin, double ratio_end) {
         if (poly.empty()) { return; }
@@ -487,12 +563,13 @@ ExtrusionLoopSloped::ExtrusionLoopSloped(ExtrusionPaths&   original_paths,
             // Split current path into slope and non-slope part
             Polyline3 slope_path;
             Polyline3 flat_path;
-            path->polyline.split_at_length(scale_(remaining_length), &slope_path, &flat_path);
+            split_at_slope_end(path->polyline, scale_(remaining_length), slope_max_segment_length, slope_path, flat_path);
 
             add_slop(*path, slope_path, start_ratio, 1);
             start_ratio = 1;
 
-            paths.emplace_back(std::move(flat_path), *path);
+            if (flat_path.size() > 1)
+                paths.emplace_back(std::move(flat_path), *path);
             remaining_length = 0;
         } else {
             remaining_length -= path_len;

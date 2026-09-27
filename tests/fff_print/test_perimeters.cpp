@@ -630,3 +630,97 @@ TEST_CASE("A lower layer sliver too thin to print does not support the wall abov
     // A rib that does get printed takes the 20mm outer wall running along it out of the overhangs.
     CHECK(printable < no_rib - scale_(15.));
 }
+
+namespace {
+
+// Every setting the fuzzy skin assertions below depend on.
+DynamicPrintConfig fuzzy_skin_config(const char *wall_generator)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             wall_generator },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        // One wall, so every wall point along the long sides belongs to the fuzzed outer wall.
+        { "wall_loops",                 1 },
+        { "fuzzy_skin",                 "external" },
+        { "fuzzy_skin_noise_type",      "classic" },
+        { "fuzzy_skin_thickness",       0.3 },
+        { "fuzzy_skin_point_distance",  0.8 },
+    });
+    return config;
+}
+
+// How far the wall points over the middle 60% of the layer's length stray across its width, worst side.
+// A negative result means there is no layer at `print_z`.
+double mid_span_wall_spread(const Print &print, double print_z)
+{
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (std::abs(layer->print_z - print_z) > 1e-4)
+            continue;
+        const BoundingBox bbox  = get_extents(layer->lslices);
+        const coord_t     x_min = bbox.min.x() + bbox.size().x() / 5;
+        const coord_t     x_max = bbox.max.x() - bbox.size().x() / 5;
+        Points            points;
+        for (const LayerRegion *region : layer->regions())
+            region->perimeters.collect_points(points);
+        coord_t spread = 0;
+        for (const bool south : { true, false }) {
+            coord_t lo = bbox.max.y(), hi = bbox.min.y();
+            for (const Point &p : points)
+                if (p.x() > x_min && p.x() < x_max && (p.y() < bbox.center().y()) == south) {
+                    lo = std::min(lo, p.y());
+                    hi = std::max(hi, p.y());
+                }
+            spread = std::max(spread, hi - lo);
+        }
+        return unscale<double>(spread);
+    }
+    return -1.;
+}
+
+} // namespace
+
+// TestMesh::bridge is a 50x10mm deck from z=5 to z=8 on two 5mm-wide pillars, leaving a 40mm span. The deck's
+// first layer (print_z 5.2) crosses the span unsupported; the layers above it rest on the deck.
+TEST_CASE("Fuzzy skin leaves the walls of a bridge smooth", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    Print print;
+    init_and_process_print({ TestMesh::bridge }, print, fuzzy_skin_config(wall_generator));
+    REQUIRE_FALSE(print.objects().empty());
+
+    // Control: one deck layer up the same walls rest on the deck, so they are fuzzed.
+    CHECK(mid_span_wall_spread(print, 5.6) > 0.1);
+    // Over the unsupported span the walls stay straight.
+    const double bridged = mid_span_wall_spread(print, 5.2);
+    CHECK(bridged >= 0.);
+    CHECK(bridged < 0.001);
+}
+
+// One object: a 20x20x3mm block on the bed and a second one floating above it from z=5 to z=8. The layers in
+// the gap are empty, so the floating block's first layer (print_z 5.2) has a layer below it with nothing
+// printed on it; the layers above rest on the floating block.
+TEST_CASE("Fuzzy skin leaves the walls over an empty layer smooth", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    TriangleMesh mesh     = make_cube(20., 20., 3.);
+    TriangleMesh floating = make_cube(20., 20., 3.);
+    floating.translate(0.f, 0.f, 5.f);
+    mesh.merge(floating);
+
+    Print print;
+    init_and_process_print({ mesh }, print, fuzzy_skin_config(wall_generator));
+    REQUIRE_FALSE(print.objects().empty());
+
+    // Control: one layer up the walls rest on the floating block, so they are fuzzed.
+    CHECK(mid_span_wall_spread(print, 5.6) > 0.1);
+    // Nothing is printed under the first floating layer, so its walls stay straight.
+    const double floating_first_layer = mid_span_wall_spread(print, 5.2);
+    CHECK(floating_first_layer >= 0.);
+    CHECK(floating_first_layer < 0.001);
+}

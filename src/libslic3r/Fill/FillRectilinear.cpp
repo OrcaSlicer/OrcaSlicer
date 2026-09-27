@@ -3047,12 +3047,56 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     return true;
 }
 
+// Upper level of a cubic band [0, h] over one period, from the crossing at (0, tau) to the one at (period, tau).
+// See docs/HLSD/multiline-infill.md.
+static std::vector<Vec2d> cubic_upper_level(double tau, double h, double period, double d1)
+{
+    const double s3     = std::sqrt(3.);
+    const double y_cut  = std::clamp(tau - 0.5 * d1, 0., h - d1) + d1;
+    const double y_flat = std::min(h, h + y_cut - 2. * d1);
+    const double x2     = (h - tau) / s3 + d1;
+    const double x3     = (h + tau) / s3 - d1;
+    // (slope, intercept) of the rising line, its chamfer, the horizontal line, the falling chamfer and line.
+    const std::array<Vec2d, 5> lines{ Vec2d(s3, tau), Vec2d(1. / s3, h - x2 / s3), Vec2d(0., y_flat),
+                                      Vec2d(-1. / s3, h + x3 / s3), Vec2d(-s3, tau + s3 * period) };
+    auto y_at = [&lines, y_cut](double x) {
+        double y = std::numeric_limits<double>::max();
+        for (const Vec2d &l : lines)
+            y = std::min(y, l.x() * x + l.y());
+        return std::max(y, y_cut);
+    };
+
+    std::vector<double> xs;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (lines[i].x() != 0.)
+            xs.emplace_back((y_cut - lines[i].y()) / lines[i].x());
+        for (size_t j = i + 1; j < lines.size(); ++j)
+            xs.emplace_back((lines[j].y() - lines[i].y()) / (lines[i].x() - lines[j].x()));
+    }
+    xs.erase(std::remove_if(xs.begin(), xs.end(), [period](double x) { return x <= 1. || x >= period - 1.; }), xs.end());
+    xs.insert(xs.end(), { 0., period });
+    std::sort(xs.begin(), xs.end());
+    xs.erase(std::unique(xs.begin(), xs.end(), [](double a, double b) { return b - a < 1.; }), xs.end());
+
+    std::vector<Vec2d> pts;
+    for (double x : xs) {
+        const Vec2d p(x, y_at(x));
+        if (pts.size() >= 2) {
+            const Vec2d &a = pts[pts.size() - 2], &b = pts.back();
+            if (std::abs((b.y() - a.y()) / (b.x() - a.x()) - (p.y() - b.y()) / (p.x() - b.x())) < EPSILON)
+                pts.pop_back();
+        }
+        pts.emplace_back(p);
+    }
+    return pts;
+}
+
 bool FillRectilinear::fill_surface_trapezoidal(
     const Surface*                            surface,
     FillParams                                params,
     const std::initializer_list<SweepParams>& sweep_params,
     Polylines&                                polylines_out,
-    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars
+    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars, 3=cubic
 {
     assert(params.multiline > 1);
 
@@ -3350,6 +3394,55 @@ bool FillRectilinear::fill_surface_trapezoidal(
         break;
     }
 
+    case 3: // Cubic
+    {
+        // Same z shifted lines as the single-line cubic; the slanted ones cross tau above the horizontal ones.
+        auto pos_mod = [](double a, double m) { const double r = std::fmod(a, m); return r < 0. ? r + m : r; };
+        const double h     = 0.5 * std::sqrt(3.0) * period;
+        const double shift = scale_(std::sqrt(0.5) * this->z);
+        const double tau   = pos_mod(-3. * shift, h);
+        const double y0    = pos_mod(-2. * shift, 2. * h);
+
+        std::array<std::vector<Vec2d>, 2> levels{ cubic_upper_level(h - tau, h, period, d1), cubic_upper_level(tau, h, period, d1) };
+        for (Vec2d &p : levels.front())
+            p.y() = h - p.y();
+
+        const size_t layer_mod = infill_layer_id % 3;
+        const double angle     = layer_mod * 2.0 * M_PI / 3.0;
+
+        // Only cover the surface, seen in the frame the pattern is built in.
+        ExPolygon local = expolygon;
+        local.translate(-rotate_vector.second.x(), -rotate_vector.second.y());
+        if (layer_mod)
+            local.rotate(-angle);
+        BoundingBox cover = get_extents(local);
+        cover.offset(period);
+
+        const int64_t n_min = int64_t(std::floor((cover.min.y() - y0) / h)) - 1;
+        const int64_t n_max = int64_t(std::ceil((cover.max.y() - y0) / h)) + 1;
+        for (int64_t n = n_min; n <= n_max; ++n) {
+            const double  x_off = (n & 1) ? 0.5 * period : 0.;
+            const double  base  = y0 + double(n) * h - tau;
+            const int64_t j_min = int64_t(std::floor((cover.min.x() - x_off) / period)) - 1;
+            const int64_t j_max = int64_t(std::ceil((cover.max.x() - x_off) / period));
+            for (const std::vector<Vec2d> &level : levels) {
+                Polyline row;
+                row.points.reserve(size_t(j_max - j_min + 1) * level.size());
+                for (int64_t j = j_min; j <= j_max; ++j)
+                    for (size_t i = (j == j_min) ? 0 : 1; i < level.size(); ++i)
+                        row.points.emplace_back(coord_t(std::round(x_off + double(j * period) + level[i].x())),
+                                                coord_t(std::round(base + level[i].y())));
+                polylines.emplace_back(std::move(row));
+            }
+        }
+
+        if (layer_mod)
+            for (Polyline &pl : polylines)
+                pl.rotate(angle, Point(0, 0));
+
+        break;
+    }
+
     default:
         // Handle unknown pattern type
         break;
@@ -3532,6 +3625,11 @@ Polylines FillStars::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
+    if (params.multiline > 1) {
+        if (!this->fill_surface_trapezoidal(surface, params, {}, polylines_out, 3))
+            BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface_trapezoidal() failed.";
+        return polylines_out;
+    }
     coordf_t dx = sqrt(0.5) * z;
     if (! this->fill_surface_by_multilines(
             surface, params, 
