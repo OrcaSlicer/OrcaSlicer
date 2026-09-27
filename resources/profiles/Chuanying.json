@@ -1,7 +1,7 @@
 {
 	"name": "Chuanying",
 	"url": "",
-	"version": "02.04.00.03",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "Chuanying configurations",
 	"machine_model_list": [
@@ -90,12 +90,12 @@
 			"sub_path": "filament/Generic PETG @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Generic PVA @Chuanying",
-			"sub_path": "filament/Generic PVA @Chuanying.json"
-		},
-		{
 			"name": "Generic PLA @Chuanying X1 0.25 Nozzle",
 			"sub_path": "filament/Generic PLA @Chuanying X1 0.25 Nozzle.json"
+		},
+		{
+			"name": "Generic PVA @Chuanying",
+			"sub_path": "filament/Generic PVA @Chuanying.json"
 		},
 		{
 			"name": "Generic PLA-Silk @Chuanying X1 0.25 Nozzle",

@@ -848,7 +848,9 @@ void BackgroundSlicingProcess::finalize_gcode()
     case CopyFileResult::SUCCESS: break; // no error
     case CopyFileResult::FAIL_COPY_FILE:
         throw Slic3r::ExportError(GUI::format(
-            _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%"),
+            m_export_path_on_removable_media ?
+                _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%") :
+                _L("Copying of the temporary G-code to the output G-code failed.\nError message: %1%"),
             error_message));
         break;
     case CopyFileResult::FAIL_FILES_DIFFERENT:

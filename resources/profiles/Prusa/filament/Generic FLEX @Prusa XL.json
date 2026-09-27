@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic FLEX @Prusa XL",
-	"inherits": "fdm_filament_flex",
 	"renamed_from": "Prusa Generic FLEX @XL;Prusa Generic FLEX XL",
+	"inherits": "fdm_filament_flex",
 	"from": "system",
 	"setting_id": "qrFWrwgQSXgU7oCb",
 	"filament_id": "OFbPuPKY",
@@ -11,8 +11,6 @@
 	"filament_loading_speed": "28",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "90",
-	"filament_load_time": "0",
-	"filament_unload_time": "0",
 	"filament_cooling_moves": "4",
 	"filament_cooling_initial_speed": "2.2",
 	"filament_cooling_final_speed": "3.4",

@@ -42,9 +42,36 @@ public:
 	static const std::map<float, float> min_depth_per_height;
     static float get_limit_depth_by_height(float max_height);
     static float get_auto_brim_by_height(float max_height);
+    // Both generators lay the brim in whole loops one line spacing apart, so the printed width
+    // differs from the configured one. WipeTower reports it with half a spacing of line width
+    // added, WipeTower2 reports the loops alone; an estimate has to round like the generator
+    // whose G-code it stands in for.
+    static float estimate_brim_real_width(float brim_width, float nozzle_diameter, float first_layer_height, bool type2);
+    // Depth a Type1 tower reserves once nothing but wrapping detection asks for one.
+    static float get_wrapping_detection_depth();
+    // Line width of the nozzle-change purge lines at this nozzle diameter.
+    static float nozzle_change_perimeter_width(float nozzle_diameter);
     static TriangleMesh                 its_make_rib_tower(float width, float depth, float height, float rib_length, float rib_width, bool fillet_wall);
     static TriangleMesh                 its_make_rib_brim(const Polygon& brim, float layer_height);
     static Polygon                      rib_section(float width, float depth, float rib_length, float rib_width, bool fillet_wall);
+    // One filament's share of a Type1 tower layer, as plan_tower_new() reserves it.
+    struct PurgeEstimate
+    {
+        float prime_volume           = 0.f;   // mm3 wiped after changing to this filament
+        int   category               = 0;     // filament_adhesiveness_category; one purge block per category
+        float filament_change_length = 0.f;   // mm of filament rammed when it leaves its nozzle; 0 when no nozzle change is planned
+        float filament_diameter      = 1.75f;
+    };
+    // Depth of the Type1 purge stack at the given width (also the rectangle-wall depth): each
+    // purge is whole lines at the block infill gap, one block per adhesiveness category sized by
+    // its worst layer, stacked behind one perimeter width.
+    static float estimate_tower_blocks_depth(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing);
+    // Side of the square bounding a rib-wall tower's first layer, brim excluded: the body plus the
+    // rib bulge, with the ribs extended to the height-based minimum as both generators do.
+    static float rib_footprint_side(float width, float depth, float rib_width, float extra_rib_length, float max_height);
+    // Type1 rib tower: plan_tower_new() squares the tower from the depth at the configured width,
+    // then re-plans the depth at the squared width.
+    static float estimate_rib_tower_bbox_side(const std::vector<PurgeEstimate> &purges, float width, float layer_height, float nozzle_diameter, float extra_spacing, float rib_width, float extra_rib_length, float max_height);
     // Translation that brings a footprint inside the printable outline, padded by offset. The prime
     // tower is validated against the real outline (see layered_print_cleareance_valid), so clamping
     // against the bounding box alone would leave it off a delta or hexagonal bed. box and polygons
@@ -124,6 +151,10 @@ public:
 
         bool               is_contact = false;
         NozzleChangeResult nozzle_change_result;
+
+        // Orca: folded into a later, thicker layer, so the emitter drops it. Set by the tower, so
+        // the two cannot disagree about which layers print.
+        bool               combined_away = false;
 
 		// Sum the total length of the extrusion.
 		float total_extrusion_length_in_plane() {
@@ -364,6 +395,8 @@ public:
         float filament_tower_interface_pre_extrusion_dist = 0;
         float filament_tower_interface_pre_extrusion_length = 0;
         float filament_petg_pre_extrusion_offset_dist = 0;
+        // Tallest layer this filament's nozzle can lay down; caps the sparse layer combination.
+        float max_layer_height = 0.f;
     };
 
 
@@ -494,7 +527,8 @@ private:
     //float           m_parking_pos_retraction    = 0.f;
     //float           m_extra_loading_move        = 0.f;
     float           m_bridging                  = 0.f;
-    bool            m_no_sparse_layers          = false;
+    bool            m_sparse_layers_skipped     = false;
+    bool            m_sparse_layers_combined    = false;
     // BBS: remove useless config
     //bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
@@ -568,6 +602,8 @@ private:
     }
 	// Calculates depth for all layers and propagates them downwards
 	void plan_tower();
+	// Whether the layer reaches the G-code, and so whether its extrusions count as filament used.
+	bool layer_is_printed(bool toolchanges_on_layer) const;
 
 	// Goes through m_plan and recalculates depths and width of the WT to make it exactly square - experimental
 	void make_wipe_tower_square();
@@ -607,6 +643,8 @@ private:
 		float depth;	// depth of the layer based on all layers above
 		float extra_spacing;
         bool  extruder_fill{true};
+		// Folded into a later, thicker layer, so this one prints nothing at all.
+		bool  combined_away{false};
 		float toolchanges_depth() const { float sum = 0.f; for (const auto &a : tool_changes) sum += a.required_depth; return sum; }
 
 		std::vector<ToolChange> tool_changes;
@@ -653,6 +691,80 @@ private:
 };
 
 
+// Compaction rule for wipe_tower_no_sparse_layers. Shared by the G-code emitter and by the
+// clearance validator so that both agree on where the compacted tower actually sits; a drift
+// between the two would either let a real nozzle collision through or reject a safe plate.
+
+// Whether sparse layers are really skipped, i.e. whether the tower is compacted at all. Smooth
+// timelapse and wrapping detection put a tower on every layer, so no layer is ever dropped and the
+// tower keeps following the object even though the option is on. Tower planning, G-code emission and
+// the clearance validator all ask this single question, so none of them can compact on its own.
+bool wipe_tower_sparse_layers_skipped(const PrintConfig &config);
+
+// A planned layer prints no tower at all when its only toolchange keeps the same filament.
+bool wipe_tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &layer_tool_changes);
+
+// Print z the compacted tower reaches on every planned layer. Sparse layers carry over the
+// previous value, so the tower falls one layer height behind the object for each of them. base_z is
+// the z the tower starts from, which Orca offsets by z_offset.
+std::vector<float> compute_compacted_wipe_tower_z(const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes,
+                                                  float base_z = 0.f);
+
+
+// Combination rule for wipe_tower_sparse_layers_combination. Nothing is compacted - the tower keeps
+// following the object - but a run of consecutive toolchange-free layers prints as one thicker layer,
+// the way infill combination merges sparse infill. Shared so that neither tower generator nor the
+// G-code emitter can combine on its own.
+
+// Whether sparse layers are really combined. Skipping them outright is the stronger answer to the
+// same problem and wins over this; smooth timelapse and wrapping detection need a tower on every
+// layer, so they rule it out too.
+bool wipe_tower_sparse_layers_combined(const PrintConfig &config);
+
+// A planned layer folded into a later, thicker one prints nothing at all.
+bool wipe_tower_layer_is_combined_away(const std::vector<WipeTower::ToolChangeResult> &layer_tool_changes);
+
+// Folds runs of sparse layers into one. layer_height is raised in place on the layer that prints a
+// run - always its last, so the merged extrusion lands on top of what it covers - and the returned
+// mask marks the layers that now print nothing. A run stops growing once one more layer would pass
+// max_layer_height of the nozzle that prints it. first_layer_idx and below never combine: the
+// tower's first layer carries the brim.
+std::vector<char> combine_sparse_wipe_tower_layers(std::vector<float>       &layer_height,
+                                                   const std::vector<char>  &layer_is_sparse,
+                                                   const std::vector<float> &max_layer_height,
+                                                   size_t                    first_layer_idx);
+
+// Applies the rule above to a planned tower. Either generator's plan fits: both carry height,
+// tool_changes and combined_away per layer, and index their filament parameters by tool.
+template<class PlanLayers, class FilamentParams>
+void combine_sparse_wipe_tower_plan(PlanLayers &plan, const FilamentParams &filpar, size_t first_layer_idx, size_t initial_tool)
+{
+    const size_t       n = plan.size();
+    std::vector<float> heights(n);
+    std::vector<char>  sparse(n);
+    std::vector<float> caps(n);
+
+    // A layer with no toolchange prints with the filament the layer below left loaded.
+    size_t tool = initial_tool;
+    for (const auto &layer : plan)
+        if (! layer.tool_changes.empty()) {
+            tool = layer.tool_changes.front().old_tool;
+            break;
+        }
+    for (size_t i = 0; i < n; ++i) {
+        heights[i] = plan[i].height;
+        sparse[i]  = plan[i].tool_changes.empty() ? 1 : 0;
+        caps[i]    = tool < filpar.size() ? filpar[tool].max_layer_height : 0.f;
+        if (! plan[i].tool_changes.empty())
+            tool = plan[i].tool_changes.back().new_tool;
+    }
+
+    const std::vector<char> combined_away = combine_sparse_wipe_tower_layers(heights, sparse, caps, first_layer_idx);
+    for (size_t i = 0; i < n; ++i) {
+        plan[i].height        = heights[i];
+        plan[i].combined_away = combined_away[i] != 0;
+    }
+}
 
 
 } // namespace Slic3r

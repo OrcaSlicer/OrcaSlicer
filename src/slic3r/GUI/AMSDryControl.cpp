@@ -1,6 +1,7 @@
 #include "AMSDryControl.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
@@ -1196,11 +1197,11 @@ void AMSDryCtrWin::update_normal_description(DevAms* dev_ams)
     for (const auto& lim : ams_limits) {
         if (dev_ams->GetAmsType() == lim.type) {
             if (temp_val > lim.max_temp) {
-                wxString msg = wxString(lim.name) + _L(" maximum drying temperature is ") + wxString::Format(wxT("%d"), lim.max_temp) + wxString::FromUTF8("°C.");
+                wxString msg = wxString::Format(_L("%s maximum drying temperature is %d°C."), wxString(lim.name), lim.max_temp);
                 warning_text += msg + "\n";
                 can_enable_button = false;
             } else if (temp_val < lim.min_temp) {
-                wxString msg = wxString(lim.name) + _L(" minimum drying temperature is ") + wxString::Format(wxT("%d"), lim.min_temp) + wxString::FromUTF8("°C.");
+                wxString msg = wxString::Format(_L("%s minimum drying temperature is %d°C."), wxString(lim.name), lim.min_temp);
                 warning_text += msg + "\n";
                 can_enable_button = false;
             }

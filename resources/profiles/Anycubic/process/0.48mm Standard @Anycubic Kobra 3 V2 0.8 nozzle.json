@@ -1,0 +1,17 @@
+{
+	"type": "process",
+	"name": "0.48mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+	"inherits": "0.40mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+	"from": "system",
+	"setting_id": "2cCCPfRX7H33XrMb",
+	"instantiation": "true",
+	"filename_format": "{timestamp}-{if plate_name==\"\" then input_filename_base+\"_plate\" else plate_name endif}{\"(\"+plate_number+\")\"}_{filament_type[initial_tool]}_{layer_height}_{print_time}.gcode",
+	"print_settings_id": "0.48mm Standard @Anycubic Kobra 3 V2 0.8 nozzle",
+	"layer_height": "0.48",
+	"initial_layer_print_height": "0.48",
+	"inner_wall_speed": "180",
+	"outer_wall_speed": "140",
+	"overhang_2_4_speed": "40",
+	"overhang_3_4_speed": "30",
+	"top_solid_infill_flow_ratio": "0.95"
+}

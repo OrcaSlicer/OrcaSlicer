@@ -31,7 +31,6 @@
 	"retraction_speed": [
 		"30"
 	],
-	"silent_mode": "0",
 	"machine_max_acceleration_e": [
 		"0",
 		"0"

@@ -1,6 +1,7 @@
 #include "GLGizmoMove.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 //BBS: GUI refactor
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -61,7 +62,7 @@ bool GLGizmoMove3D::on_init()
     m_grabbers[0].angles = { 0.0, 0.5 * double(PI), 0.0 };
     m_grabbers[1].angles = { -0.5 * double(PI), 0.0, 0.0 };
 
-    m_shortcut_key = WXK_CONTROL_M;
+    m_shortcut = Shortcut::GizmoMove;
 
     return true;
 }

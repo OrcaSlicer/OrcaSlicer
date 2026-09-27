@@ -12,6 +12,7 @@
 #include <deque>
 #include <queue>
 #include <mutex>
+#include <tuple>
 #include <utility>
 
 #include <boost/log/trivial.hpp>
@@ -607,6 +608,17 @@ static inline std::vector<IntersectionLines> slice_make_lines(
             }
         }
     );
+    // Facet processing above is parallel, so per-layer line order depends on thread scheduling,
+    // and make_loops() derives island order and loop start vertices from it. Sort canonically;
+    // edge_type and flags only break ties, std::sort being unstable.
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, lines.size()),
+        [&lines](const tbb::blocked_range<size_t> &range) {
+            for (size_t i = range.begin(); i < range.end(); ++ i)
+                std::sort(lines[i].begin(), lines[i].end(), [](const IntersectionLine &l, const IntersectionLine &r) {
+                    return std::make_tuple(l.edge_a_id, l.edge_b_id, l.a_id, l.b_id, l.a.x(), l.a.y(), l.b.x(), l.b.y(), l.edge_type, l.flags) <
+                           std::make_tuple(r.edge_a_id, r.edge_b_id, r.a_id, r.b_id, r.a.x(), r.a.y(), r.b.x(), r.b.y(), r.edge_type, r.flags);
+                });
+        });
     return lines;
 }
 

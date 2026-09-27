@@ -2,6 +2,7 @@
 
 REQUIRED_DEV_PACKAGES=(
     autoconf
+    automake
     build-essential
     cmake
     eglexternalplatform-dev
@@ -50,16 +51,20 @@ then
         REQUIRED_DEV_PACKAGES+=(libssl-dev libcurl4-openssl-dev)
     fi
 
-    # check which version of libwebkit2gtk is available
-    if [ "$(apt show --quiet libwebkit2gtk-4.0-dev 2>/dev/null)" != "" ]
+    # The package lists must be current before checking what is available.
+    sudo apt update
+
+    # src/slic3r/CMakeLists.txt requires webkit2gtk-4.1 unconditionally (no
+    # 4.0 fallback), so prefer it; only fall back to 4.0-dev when 4.1 isn't
+    # packaged for this distro.
+    if [ "$(apt show --quiet libwebkit2gtk-4.1-dev 2>/dev/null)" != "" ]
     then
-        REQUIRED_DEV_PACKAGES+=(libwebkit2gtk-4.0-dev)
-    else
         REQUIRED_DEV_PACKAGES+=(libwebkit2gtk-4.1-dev)
+    else
+        REQUIRED_DEV_PACKAGES+=(libwebkit2gtk-4.0-dev)
     fi
 
     # install them all at once
-    sudo apt update
     sudo apt install -y "${REQUIRED_DEV_PACKAGES[@]}"
 
     echo -e "done\n"

@@ -2,6 +2,7 @@
 
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/Utils/Http.hpp"
 
 namespace Slic3r {

@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+#include <type_traits>
 #include <unordered_map>
 
 namespace Slic3r {
@@ -90,6 +91,16 @@ OnMessageFn to_orca_messages(OnMessageFn fn)
     return [fn = std::move(fn)](std::string dev_id, std::string msg) { fn(std::move(dev_id), BBLPrinterAgent::to_orca_payload(std::move(msg))); };
 }
 
+// Retypes a plug-in entry point for an older plug-in generation. The detour through the
+// generic function pointer marks the signature change as deliberate, which a direct cast
+// between two signatures does not.
+template <typename To, typename From>
+To as_abi(From fn)
+{
+    static_assert(std::is_function_v<std::remove_pointer_t<From>>, "as_abi retypes a function pointer");
+    return reinterpret_cast<To>(reinterpret_cast<void (*)()>(fn));
+}
+
 } // namespace
 
 std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_filament_id) const
@@ -141,7 +152,7 @@ int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int 
         // series through the legacy form would silently drop MessageFlag sign/encrypt.
         switch (plugin.network_abi()) {
         case NetworkAbi::Legacy: {
-            auto legacy_func = reinterpret_cast<func_send_message_legacy>(func);
+            auto legacy_func = as_abi<func_send_message_legacy>(func);
             return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
         }
         case NetworkAbi::V0203:
@@ -185,7 +196,7 @@ int BBLPrinterAgent::send_message_to_printer(std::string dev_id, std::string jso
     if (func && agent) {
         switch (plugin.network_abi()) {
         case NetworkAbi::Legacy: {
-            auto legacy_func = reinterpret_cast<func_send_message_to_printer_legacy>(func);
+            auto legacy_func = as_abi<func_send_message_to_printer_legacy>(func);
             return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
         }
         case NetworkAbi::V0203:
@@ -275,7 +286,7 @@ int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string de
         switch (plugin.network_abi()) {
         case NetworkAbi::Legacy:
         case NetworkAbi::V0203: {
-            auto older_func = reinterpret_cast<func_bind_pre0208>(func);
+            auto older_func = as_abi<func_bind_pre0208>(func);
             return older_func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn);
         }
         case NetworkAbi::Current:
@@ -436,9 +447,9 @@ int dispatch_start(CurrentFn func, PrintParams& params, const CallbackFns&... ca
     params.ams_mapping_info = BBLPrinterAgent::from_orca_payload(std::move(params.ams_mapping_info));
     switch (plugin.network_abi()) {
     case NetworkAbi::Legacy:
-        return reinterpret_cast<LegacyFn>(func)(agent, BBLNetworkPlugin::as_legacy(params), callbacks...);
+        return as_abi<LegacyFn>(func)(agent, BBLNetworkPlugin::as_legacy(params), callbacks...);
     case NetworkAbi::V0203:
-        return reinterpret_cast<Fn0203>(func)(agent, BBLNetworkPlugin::as_0203(params), callbacks...);
+        return as_abi<Fn0203>(func)(agent, BBLNetworkPlugin::as_0203(params), callbacks...);
     case NetworkAbi::Current:
         return func(agent, std::move(params), callbacks...);
     default:

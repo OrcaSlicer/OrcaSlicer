@@ -14,8 +14,14 @@
 	"box_temperature": [
 		"55"
 	],
+	"chamber_temperature": [
+		"55"
+	],
 	"close_fan_the_first_x_layers": [
 		"3"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
 		"60"

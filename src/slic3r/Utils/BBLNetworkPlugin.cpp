@@ -349,7 +349,7 @@ void* BBLNetworkPlugin::get_function(const char* name)
         return function;
 
 #if defined(_MSC_VER) || defined(_WIN32)
-    function = GetProcAddress(m_networking_module, name);
+    function = reinterpret_cast<void*>(GetProcAddress(m_networking_module, name));
 #else
     function = dlsym(m_networking_module, name);
 #endif

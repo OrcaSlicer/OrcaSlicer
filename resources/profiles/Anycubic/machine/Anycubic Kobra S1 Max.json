@@ -8,5 +8,5 @@
     "bed_model": "Anycubic Kobra S1 Max_buildplate_model.stl",
     "bed_texture": "Anycubic Kobra S1 Max_buildplate_texture.svg",
     "hotend_model": "",
-    "default_materials": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle"
+    "default_materials": "Anycubic PLA @Anycubic Kobra S1 Max 0.4 nozzle;Anycubic PLA @Anycubic Kobra S1 Max 0.25 nozzle;Anycubic PLA @Anycubic Kobra S1 Max 0.6 nozzle;Anycubic PLA @Anycubic Kobra S1 Max 0.8 nozzle"
 }

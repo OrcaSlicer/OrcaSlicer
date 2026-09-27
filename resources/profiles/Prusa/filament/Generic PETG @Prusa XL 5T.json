@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Prusa XL 5T",
-	"inherits": "Generic PETG @Prusa base",
 	"renamed_from": "Prusa Generic PETG @XL 5T;Prusa Generic PETG XL 5T",
+	"inherits": "Generic PETG @Prusa base",
 	"from": "system",
 	"setting_id": "DNJECSjW6zKYALxE",
 	"instantiation": "true",
@@ -37,8 +37,6 @@
 	"filament_loading_speed": "10",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "100",
-	"filament_load_time": "10.5",
-	"filament_unload_time": "8.5",
 	"filament_cooling_moves": "3",
 	"filament_cooling_initial_speed": "5",
 	"filament_cooling_final_speed": "2.5",

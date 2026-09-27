@@ -15,9 +15,6 @@
 	"filament_cooling_moves": [
 		"2"
 	],
-	"filament_load_time": [
-		"10.5"
-	],
 	"filament_loading_speed": [
 		"10"
 	],
@@ -29,9 +26,6 @@
 	],
 	"filament_stamping_loading_speed": [
 		"29"
-	],
-	"filament_unload_time": [
-		"8.5"
 	],
 	"filament_unloading_speed": [
 		"100"

@@ -1,5 +1,6 @@
 #include <nlohmann/json.hpp>
 #include "DevFilaSystem.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include

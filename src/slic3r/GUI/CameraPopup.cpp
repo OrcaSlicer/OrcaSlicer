@@ -82,7 +82,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     top_sizer->Add(m_text_liveview_retry, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(m_switch_liveview_retry, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
 
-    m_switch_liveview_retry->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
+    m_switch_liveview_retry->Bind(wxEVT_TOGGLEBUTTON, [](wxCommandEvent &e) {
         wxGetApp().app_config->set("liveview", "auto_retry", e.IsChecked());
         e.Skip();
     });

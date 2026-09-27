@@ -171,7 +171,6 @@ private:
 
     void update_layers_slider(const std::vector<double>& layers_z, bool keep_z_range = false);    
     void update_layers_slider_mode();
-    void update_layers_slider_from_canvas(wxKeyEvent &event);
     //BBS: add only gcode mode
     void load_print_as_fff(bool keep_z_range = false, bool only_gcode = false);
 };

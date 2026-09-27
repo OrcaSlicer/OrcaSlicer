@@ -4,6 +4,10 @@
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "libslic3r/Thread.hpp"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

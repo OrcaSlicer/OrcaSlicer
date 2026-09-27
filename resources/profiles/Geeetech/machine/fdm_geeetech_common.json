@@ -117,7 +117,6 @@
 	"deretraction_speed": [
 		"20"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M25 ;pause print",

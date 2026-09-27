@@ -122,7 +122,8 @@ HMSNotifyItem::HMSNotifyItem(const std::string& dev_id, wxWindow *parent, DevHMS
     m_hms_content->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
             wxCommandEvent evt(EVT_ALREADY_READ_HMS);
             evt.SetString(long_error_code);
-            wxPostEvent(wxGetApp().mainframe->m_monitor, evt);
+            if (MonitorPanel* monitor = MonitorPanel::if_built())
+                wxPostEvent(monitor, evt);
 
             if (!m_url.empty()) wxLaunchDefaultBrowser(m_url);
         });
@@ -170,7 +171,7 @@ HMSPanel::HMSPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
-    m_scrolledWindow->SetScrollRate(5, 5);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
 
     m_top_sizer = new wxBoxSizer(wxVERTICAL);
 
