@@ -54,6 +54,7 @@ import subprocess
 import sys
 import threading
 import time
+import zipfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -88,6 +89,25 @@ def default_data_dir():
         if os.path.isdir(os.path.expanduser(candidate)):
             return os.path.expanduser(candidate)
     return os.path.expanduser("~/.config/OrcaSlicer")
+
+
+EXPECTED_TEMPLATE_SOURCES = ("cube.stl", "second_a.stl", "second_b.stl", "painted.stl", "flaky.stl", "quick.stl")
+_SOURCE_FILE_RE = re.compile(r'key="source_file"\s+value="([^"]+)"')
+
+
+def check_template_sources(template_path):
+    """Fails loudly, before any phase runs, if the template doesn't actually reference all six
+    STLs this script writes to -- a template re-authored by hand (the one-time interactive setup)
+    can easily end up missing one, which otherwise shows up much later as a confusing "no reload
+    line" failure in whichever phase touches the missing one."""
+    with zipfile.ZipFile(template_path) as zf:
+        config = zf.read("Metadata/model_settings.config").decode("utf-8", errors="replace")
+    found = {os.path.basename(v) for v in _SOURCE_FILE_RE.findall(config)}
+    missing = [name for name in EXPECTED_TEMPLATE_SOURCES if name not in found]
+    if missing:
+        sys.exit("%s doesn't reference %s as a source file -- redo the one-time interactive setup "
+                  "(test_auto_reload.py's docstring) so every object is imported from its matching "
+                  "STL." % (template_path, ", ".join(missing)))
 
 
 def binary_path_suggestions():
@@ -255,6 +275,21 @@ class OrcaApp:
         if not tail.wait_for_match(WATCHING_RE, ready_timeout):
             raise RuntimeError("App didn't report watching source files within %gs of launch -- "
                                 "did it start up cleanly?" % ready_timeout)
+        # update_source_file_watches() logs more than once while a project loads:
+        # object_list_changed() fires once before the project folder is resolved (transiently
+        # reporting a stale/incomplete count) and again after load_project() finishes with the
+        # real one. Wait for that count to stop changing before trusting it as ready, or an early
+        # transient can become a phase's baseline and race its first write (seen on a slower disk,
+        # where the gap between the two lines outlasted a phase's post-mark settle delay).
+        last_seen = tail.last_match(WATCHING_RE)
+        deadline = time.monotonic() + ready_timeout
+        quiet_since = time.monotonic()
+        while time.monotonic() - quiet_since < 1.5 and time.monotonic() < deadline:
+            time.sleep(0.25)
+            current = tail.last_match(WATCHING_RE)
+            if current != last_seen:
+                last_seen = current
+                quiet_since = time.monotonic()
         return tail
 
     def set_paint_answer(self, answer):
@@ -380,6 +415,7 @@ def main():
         sys.exit("No template project at %s -- run test_auto_reload.py once first to do its "
                   "one-time setup (import the six STLs onto three plates, paint one, save), then "
                   "re-run this script." % template_path)
+    check_template_sources(template_path)
 
     hooks_dir = os.path.abspath(args.hooks_dir) if args.hooks_dir else os.path.join(work_dir, "hooks")
 
