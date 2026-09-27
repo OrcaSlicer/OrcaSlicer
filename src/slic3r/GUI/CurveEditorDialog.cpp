@@ -115,6 +115,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
 
     sizer->Add(ranges, 0, wxEXPAND | wxALL, FromDIP(16));
     m_range_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
+    m_range_status->SetFont(Label::Body_14);
+    m_range_status->SetForegroundColour(wxColour("#E14747"));
     m_range_status->Hide();
     sizer->Add(m_range_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
 
@@ -186,7 +188,10 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     sizer->Add(actions, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
 
     m_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
+    m_status->SetFont(Label::Body_14);
+    m_status->SetForegroundColour(wxColour("#E14747"));
     sizer->Add(m_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+
     sizer->Add(new DialogButtons(this, {"OK", "Cancel"}), 0, wxEXPAND);
     SetSizerAndFit(sizer);
     wxGetApp().UpdateDlgDarkUI(this);
