@@ -131,9 +131,13 @@ def write_prefs(data_dir, want_reload, want_confirm, want_slice):
     and never re-reads it, so a running instance would just overwrite these edits with whatever
     it already has in memory the next time it saves for an unrelated reason.
 
-    Rewriting the file drops the trailing MD5 checksum comment AppConfig itself appends. That's
-    harmless here: checksum verification is compiled in only under Windows, and even there it's
-    advisory (logs a warning, doesn't reject the file) -- see AppConfig::load()."""
+    Rewriting the file drops the trailing MD5 checksum comment AppConfig itself appends. Losing
+    the checksum itself is harmless -- verification is compiled in only under Windows, and even
+    there it's advisory (logs a warning, doesn't reject the file). But on Windows, AppConfig::load()
+    always does total_string.substr(last_pos+2) right after the last '}' to skip that line's
+    leading "\n", regardless of whether a checksum line actually follows -- so the file must still
+    end with a newline after the closing brace, or that substr reads past the end of the string and
+    throws std::out_of_range, which crashes the app at startup. See AppConfig::load()."""
     config, path = read_full_config(data_dir)
     app = config.setdefault("app", {})
     app[PREF_RELOAD] = want_reload
@@ -141,6 +145,7 @@ def write_prefs(data_dir, want_reload, want_confirm, want_slice):
     app[PREF_SLICE] = want_slice
     with open(path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent="\t")
+        f.write("\n")
 
 
 class LogTail:
