@@ -103,6 +103,11 @@ static bool is_bambu_x2d_printer(const FullPrintConfig &config)
     return config.printer_model.value == "Bambu Lab X2D";
 }
 
+static bool is_bambu_h2d_printer(const FullPrintConfig &config)
+{
+    return config.printer_model.value == "Bambu Lab H2D";
+}
+
 // Multi-nozzle printer predicate: an extruder carries a nozzle cluster (extruder_max_nozzle_count
 // entry > 1). Today only H2C profiles trip it, so every existing single- and dual-extruder printer
 // is excluded and keeps its historic placeholder values.
@@ -115,7 +120,7 @@ static bool is_multi_nozzle_printer(const FullPrintConfig &config)
 
 static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int hotend_id)
 {
-    return is_bambu_x2d_printer(config) ? -1 : hotend_id;
+    return (is_bambu_x2d_printer(config) || is_bambu_h2d_printer(config)) ? -1 : hotend_id;
 }
 
 // current_hotend / next_hotend value. For multi-nozzle printers a dynamic nozzle map yields the real
@@ -123,7 +128,7 @@ static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int ho
 //  - multi-nozzle (H2C): dynamic nozzle map -> real nozzle id; static -> -1.
 //    The dynamic branch is dormant today: the selector create() overload that sets the flag has no
 //    callers yet (deferred with the nozzle-assignment pipeline), so H2C currently resolves to -1.
-//  - X2D: keeps its historic -1 (single-nozzle -> falls through to the fallback helper).
+//  - X2D & H2D: keeps its historic -1 (single-nozzle -> falls through to the fallback helper).
 //  - every other (existing single-nozzle) printer: keeps its historic extruder-id value, so
 //    existing g-code stays byte-identical.
 // group_result may be null on slicing paths that don't populate it -> the dynamic branch is simply
@@ -156,7 +161,7 @@ static int nozzle_id_for_gcode_placeholder(const std::shared_ptr<MultiNozzleUtil
 // current_hotend / initial_nozzle_id / filament_start current_nozzle_id) use get_first_nozzle_for_filament
 // (the nozzle a filament FIRST uses) rather than the layer-based get_nozzle_id. Same hotend-value semantics
 // as hotend_id_for_gcode_placeholder above (multi-nozzle static -> -1; dynamic branch dormant;
-// existing printers -> extruder id; X2D -> -1); they differ from the layer-based helper only on the dormant
+// existing printers -> extruder id; X2D & H2D -> -1); they differ from the layer-based helper only on the dormant
 // dynamic path for a filament first used after layer 0.
 static int first_hotend_id_for_gcode_placeholder(const FullPrintConfig                                             &config,
                                                  const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
