@@ -1,13 +1,13 @@
 #include <catch2/catch_all.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include "slic3r/Utils/PrintHost.hpp"
 
 using namespace Slic3r;
 
 namespace {
 
-// PrintHost::format_error is protected and the class is abstract. A minimal concrete host with the pure
-// virtuals stubbed lets us drive the base formatter directly, since it is shared by every host type.
 class TestPrintHost : public PrintHost
 {
 public:
@@ -29,31 +29,11 @@ std::string format_error(const std::string& body, const std::string& error, unsi
     return TestPrintHost().format_error(body, error, status).ToStdString();
 }
 
-std::string json_escape(const std::string& s)
-{
-    std::string out;
-    for (char c : s) {
-        if (c == '"' || c == '\\') {
-            out += '\\';
-            out += c;
-        } else if (c == '\n') {
-            out += "\\n";
-        } else {
-            out += c;
-        }
-    }
-    return out;
-}
-
-// Build a Moonraker error envelope from code, message, and traceback, without hand-escaping the JSON.
 std::string envelope(int code, const std::string& message, const std::string& traceback)
 {
-    return R"({"error": {"code": )" + std::to_string(code) + R"(, "message": ")" + json_escape(message) + R"(", "traceback": ")" +
-           json_escape(traceback) + R"("}})";
+    return nlohmann::json{{"error", {{"code", code}, {"message", message}, {"traceback", traceback}}}}.dump();
 }
 
-// The whole body Moonraker returns for a raised HTTPError: error.message is the reason phrase, and the
-// traceback's final line is Tornado's "...: HTTP <code>: <message>[ (<detail>)]".
 std::string moonraker_error(int code, const std::string& message, const std::string& detail = {})
 {
     std::string line = "tornado.web.HTTPError: HTTP " + std::to_string(code) + ": " + message;
@@ -62,9 +42,7 @@ std::string moonraker_error(int code, const std::string& message, const std::str
     return envelope(code, message, "Traceback (most recent call last):\n  ...\n" + line + "\n");
 }
 
-// Real body from a Klipper printer reached via the Octo/Klipper host type: the OctoPrint-compatible
-// endpoint delegates to Moonraker's file_manager, so a busy printer returns this Python 3.11 traceback
-// (nested "During handling", caret markers) rather than an OctoPrint-shaped error.
+// A real Moonraker body for uploading a file that is being printed.
 constexpr const char* k_busy_file_403 =
     R"JSON({"error": {"code": 403, "message": "Forbidden", "traceback": "Traceback (most recent call last):\n\n  File \"/home/lava/moonraker/moonraker/components/file_manager/file_manager.py\", line 1017, in _finish_gcode_upload\n    can_start = self._handle_operation_check(check_path)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nmoonraker.utils.exceptions.ServerError: File currently in use\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n\n  File \"/home/lava/moonraker/moonraker/components/application.py\", line 1069, in post\n    raise tornado.web.HTTPError(\ntornado.web.HTTPError: HTTP 403: Forbidden (File is loaded, upload not permitted)\n"}})JSON";
 
@@ -80,8 +58,6 @@ TEST_CASE("A Klipper upload error shows its reason instead of a Python traceback
     CHECK_THAT(msg, !Catch::Matchers::ContainsSubstring("file_manager.py"));
 }
 
-// The file endpoints report a generic reason phrase in message and the specific cause only in the
-// traceback's final line; recover it, verbatim, including when a filename nests parens.
 TEST_CASE("The specific cause is recovered from a file endpoint's traceback", "[PrintHost]")
 {
     SECTION("a plain detail")
@@ -97,25 +73,60 @@ TEST_CASE("The specific cause is recovered from a file endpoint's traceback", "[
         CHECK(format_error(body, "", 400) == "HTTP 400: Bad Request (" + detail + ")");
     }
 
-    SECTION("the reason word also appears in an earlier stack frame")
-    {
-        const std::string tail      = "tornado.web.HTTPError: HTTP 403: Forbidden (File is loaded, upload not permitted)\n";
-        const std::string traceback = "Traceback (most recent call last):\n"
-                                      "  File \"/home/pi/moonraker/Forbidden/handler.py\", line 5, in check\n" +
-                                      tail;
-        const std::string body = envelope(403, "Forbidden", traceback);
-        CHECK(format_error(body, "", 403) == "HTTP 403: Forbidden (File is loaded, upload not permitted)");
-    }
-
-    SECTION("the detail itself repeats the reason word")
+    SECTION("a detail that contains the reason phrase")
     {
         const std::string body = moonraker_error(403, "Forbidden", "Forbidden zone: access denied");
         CHECK(format_error(body, "", 403) == "HTTP 403: Forbidden (Forbidden zone: access denied)");
     }
+
+    SECTION("a detail that spans lines")
+    {
+        const std::string detail = "Move out of range\nX=250.000 Y=10.000";
+        const std::string body   = moonraker_error(400, "Bad Request", detail);
+        CHECK(format_error(body, "", 400) == "HTTP 400: Bad Request (" + detail + ")");
+    }
+
+    SECTION("a detail that only repeats the reason phrase is dropped")
+    {
+        const std::string body = moonraker_error(401, "Unauthorized", "Unauthorized");
+        CHECK(format_error(body, "", 401) == "HTTP 401: Unauthorized");
+    }
 }
 
-// On the other endpoints message already holds the full reason and the final traceback line carries no
-// trailing detail; it must be shown as-is, never doubled.
+TEST_CASE("An unhandled exception shows its type and message", "[PrintHost]")
+{
+    const std::string frame = "Traceback (most recent call last):\n"
+                              "  File \"/home/pi/moonraker/moonraker/components/file_manager/file_manager.py\", line 1, in write\n"
+                              "    self._write(data)\n";
+
+    SECTION("a one-line message")
+    {
+        const std::string body = envelope(500, "Internal Server Error", frame + "OSError: [Errno 28] No space left on device\n");
+        CHECK(format_error(body, "", 500) == "HTTP 500: Internal Server Error (OSError: [Errno 28] No space left on device)");
+    }
+
+    SECTION("a message that spans lines")
+    {
+        const std::string body = envelope(500, "Internal Server Error", frame + "ServerError: Klippy request failed\n  see klippy.log\n");
+        CHECK(format_error(body, "", 500) == "HTTP 500: Internal Server Error (ServerError: Klippy request failed\n  see klippy.log)");
+    }
+
+    SECTION("raised while handling an HTTPError with the same code")
+    {
+        const std::string traceback = frame + "tornado.web.HTTPError: HTTP 500: Internal Server Error (Database locked)\n\n"
+                                              "During handling of the above exception, another exception occurred:\n\n" +
+                                      frame + "OSError: [Errno 5] Input/output error\n";
+        const std::string body      = envelope(500, "Internal Server Error", traceback);
+        CHECK(format_error(body, "", 500) == "HTTP 500: Internal Server Error (OSError: [Errno 5] Input/output error)");
+    }
+
+    SECTION("a traceback with no header")
+    {
+        const std::string body = envelope(500, "Internal Server Error", "OSError: [Errno 5] Input/output error");
+        CHECK(format_error(body, "", 500) == "HTTP 500: Internal Server Error (OSError: [Errno 5] Input/output error)");
+    }
+}
+
 TEST_CASE("A reason already complete in message is shown unchanged", "[PrintHost]")
 {
     SECTION("message is the whole reason, no trailing detail")
@@ -143,20 +154,20 @@ TEST_CASE("A Moonraker error with no usable detail shows just the reason phrase"
     };
 
     const auto c = GENERATE(
-        Case{"no traceback field", R"JSON({"error": {"code": 500, "message": "Internal Server Error"}})JSON", 500,
+        Case{"an empty traceback", R"JSON({"error": {"code": 500, "message": "Internal Server Error", "traceback": ""}})JSON", 500,
              "HTTP 500: Internal Server Error"},
-        Case{"a final line that is not a Tornado HTTPError",
-             R"JSON({"error": {"code": 401, "message": "Unauthorized", "traceback": "Traceback (most recent call last):\n\nutils.ServerError: API key required\n"}})JSON",
-             401, "HTTP 401: Unauthorized"},
-        // The reason is Format()'s %s argument, so a percent sign in it must survive verbatim.
-        Case{"a percent sign in the reason is not a format specifier",
-             R"JSON({"error": {"code": 507, "message": "Insufficient Storage: disk 100% full"}})JSON", 507,
-             "HTTP 507: Insufficient Storage: disk 100% full"});
+        Case{"a traceback of only whitespace", R"JSON({"error": {"code": 500, "message": "Internal Server Error", "traceback": "\n \n"}})JSON",
+             500, "HTTP 500: Internal Server Error"});
 
     DYNAMIC_SECTION(c.name) { CHECK(format_error(c.body, "", c.status) == c.expected); }
 }
 
-// The transform must recognize only the Moonraker envelope; every other body echoes through as before.
+TEST_CASE("A percent sign in the reason is not a format specifier", "[PrintHost]")
+{
+    const std::string body = moonraker_error(507, "Insufficient Storage", "disk 100% full");
+    CHECK(format_error(body, "", 507) == "HTTP 507: Insufficient Storage (disk 100% full)");
+}
+
 TEST_CASE("Error bodies that are not a Moonraker envelope are left unchanged", "[PrintHost]")
 {
     SECTION("OctoPrint's string-valued error member")
@@ -177,13 +188,25 @@ TEST_CASE("Error bodies that are not a Moonraker envelope are left unchanged", "
         CHECK(format_error(html, "", 502) == "HTTP 502: " + html);
     }
 
+    SECTION("an error object with no traceback")
+    {
+        const std::string body = R"JSON({"error": {"code": 500, "message": "Internal Server Error"}})JSON";
+        CHECK(format_error(body, "", 500) == "HTTP 500: " + body);
+    }
+
+    SECTION("an error object whose traceback is null")
+    {
+        const std::string body = R"JSON({"error": {"code": 500, "message": "Internal Server Error", "traceback": null}})JSON";
+        CHECK(format_error(body, "", 500) == "HTTP 500: " + body);
+    }
+
     SECTION("an envelope whose reason phrase is empty")
     {
-        const std::string body = R"JSON({"error": {"code": 403, "message": ""}})JSON";
+        const std::string body = envelope(403, "", "Traceback (most recent call last):\nOSError: denied\n");
         CHECK(format_error(body, "", 403) == "HTTP 403: " + body);
     }
 
-    SECTION("a transport error carries no HTTP status or body")
+    SECTION("a transport error with no HTTP status")
     {
         CHECK(format_error("", "curl:Could not connect", 0) == "curl:Could not connect");
     }

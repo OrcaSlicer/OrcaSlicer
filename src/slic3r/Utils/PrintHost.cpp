@@ -3,12 +3,10 @@
 #include <vector>
 #include <thread>
 #include <exception>
-#include <sstream>
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
+#include <nlohmann/json.hpp>
 
 #include <wx/string.h>
 #include <wx/app.h>
@@ -120,43 +118,56 @@ std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
 
 namespace {
 
-// Moonraker (Klipper's API server) errors arrive as { "error": { "code", "message", "traceback" } } through
-// whichever host type fronts it. error.message is often just the generic phrase ("Forbidden"); the specific
-// cause is in the traceback's final line, rendered by Tornado as "HTTP <code>: <reason> (<detail>)". Take
-// everything after that marker, else message, else the raw body (empty return).
+// Moonraker (Klipper's API server) reports a raised exception as { "error": { "code", "message", "traceback" } }
+// under every host type that connects to it, often with the cause only in the traceback. Returns the reason to show,
+// or empty for any other body.
 std::string moonraker_error_reason(const std::string &body)
 {
-    namespace pt = boost::property_tree;
-    try {
-        std::stringstream ss(body);
-        pt::ptree root;
-        pt::read_json(ss, root);
-
-        const auto message = root.get_optional<std::string>("error.message");
-        if (!message || message->empty())
-            return {};
-        std::string reason = *message;
-
-        const auto code = root.get_optional<int>("error.code");
-        const auto traceback = root.get_optional<std::string>("error.traceback");
-        if (code && traceback) {
-            const std::string &tb = *traceback;
-            const auto line_end = tb.find_last_not_of(" \t\r\n");   // the raised exception's line
-            if (line_end != std::string::npos) {
-                const auto nl = tb.rfind('\n', line_end);
-                const auto line_begin = (nl == std::string::npos) ? 0 : nl + 1;
-                const std::string line = tb.substr(line_begin, line_end - line_begin + 1);
-
-                const std::string marker = "HTTP " + std::to_string(*code) + ": ";
-                const auto pos = line.find(marker);
-                if (pos != std::string::npos && pos + marker.size() < line.size())
-                    reason = line.substr(pos + marker.size());
-            }
-        }
-        return reason;
-    } catch (const std::exception &) {
+    const auto root = nlohmann::json::parse(body, nullptr, false);
+    const auto err  = root.find("error");
+    if (err == root.end())
         return {};
+    const auto message   = err->find("message");
+    const auto traceback = err->find("traceback");
+    if (message == err->end() || traceback == err->end() || !message->is_string() || !traceback->is_string())
+        return {};
+
+    const auto &msg = message->get_ref<const std::string &>();
+    const auto &tb  = traceback->get_ref<const std::string &>();
+    if (msg.empty())
+        return {};
+    const auto end = tb.find_last_not_of(" \t\r\n");
+    if (end == std::string::npos)
+        return msg;
+
+    // Chained exceptions each start a new traceback; the one that failed the request is the last.
+    const auto header = tb.rfind("Traceback (most recent call last):", end);
+
+    // Tornado renders a raised HTTPError as "HTTP <code>: <reason>[ (<detail>)]", and the detail may span lines.
+    const auto code = err->find("code");
+    if (code != err->end() && code->is_number_integer()) {
+        const std::string marker = "HTTP " + std::to_string(code->get<int>()) + ": ";
+        const auto        pos    = tb.rfind(marker, end);
+        if (pos != std::string::npos && (header == std::string::npos || pos > header) && pos + marker.size() <= end) {
+            const std::string reason = tb.substr(pos + marker.size(), end + 1 - pos - marker.size());
+            // An HTTPError whose detail equals its reason, like HTTPError(401, "Unauthorized"), renders the phrase twice.
+            return reason == msg + " (" + msg + ")" ? msg : reason;
+        }
     }
+
+    // Any other exception's type and message are everything from the first unindented line after its frames.
+    auto begin = (header == std::string::npos) ? std::string::npos : tb.find('\n', header);
+    while (begin != std::string::npos && begin < end) {
+        ++begin;
+        if (tb[begin] != ' ' && tb[begin] != '\r' && tb[begin] != '\n')
+            break;
+        begin = tb.find('\n', begin);
+    }
+    if (begin == std::string::npos || begin > end) {
+        const auto nl = tb.rfind('\n', end);
+        begin         = (nl == std::string::npos) ? 0 : nl + 1;
+    }
+    return msg + " (" + tb.substr(begin, end + 1 - begin) + ")";
 }
 
 } // namespace
@@ -164,7 +175,6 @@ std::string moonraker_error_reason(const std::string &body)
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {
-        // Substitute a Moonraker backend's raw traceback body with its reason; other bodies pass through.
         const std::string reason = moonraker_error_reason(body);
         auto wxbody = wxString::FromUTF8(reason.empty() ? body : reason);
         return wxString::Format("HTTP %u: %s", status, wxbody);
