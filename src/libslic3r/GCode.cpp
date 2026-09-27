@@ -1627,6 +1627,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
                 toolchange_temp_override = interface_temp;
             }
+            // Object-layer on_first_layer() is not the same as "this is the tower's first
+            // printed layer" (sparse layers skipped, independent tower first used later).
+            // Force the filament's first-layer temperature into set_extruder so M104/M109
+            // and filament_start_gcode placeholders do not pick the other-layers value.
+            if (toolchange_temp_override <= 0 && tcr.is_first_layer && new_extruder_id >= 0) {
+                size_t new_fi = gcodegen.get_filament_config_index(new_extruder_id);
+                toolchange_temp_override = gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi);
+            }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
                                                          WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
             if (independent_toolchange || (!travel_to_tower_now && !tcr.priming && WipeTower2::use_gap_wall(gcodegen.m_config))) {
@@ -1649,8 +1657,26 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     gcodegen.set_last_pos(route_start);
                     gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
                     std::string travel;
-                    if (independent_toolchange)
+                    if (independent_toolchange) {
+                        // Wait for the new nozzle before flying to the bed. Otherwise the
+                        // preview (and a firmware that tracks one current temp) still sees
+                        // the previous tool's idle/cooldown M104 (e.g. 145-160 °C) while
+                        // this tower's inner wipe already started.
+                        if (new_extruder_id >= 0) {
+                            size_t new_fi = gcodegen.get_filament_config_index(new_extruder_id);
+                            int wait_temp = (tcr.is_first_layer || gcodegen.config().nozzle_temperature.get_at(new_fi) == 0)
+                                                ? gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi)
+                                                : gcodegen.config().nozzle_temperature.get_at(new_fi);
+                            if (wait_temp > 0) {
+                                std::string wait_gcode = gcodegen.writer().set_temperature(wait_temp, true, new_extruder_id);
+                                size_t nl = wait_gcode.find('\n');
+                                if (nl != std::string::npos)
+                                    wait_gcode.insert(nl, " " + WipeTower2::wait_for_temp_tag());
+                                travel += wait_gcode;
+                            }
+                        }
                         travel += gcodegen.retract(false, false, wipe_tower_lift_type());
+                    }
                     travel += travel_to_tower_gap(gcodegen, route_start, start_wipe_pos, tower_pos);
                     travel += gcodegen.travel_to(start_wipe_pos, erMixed, "Travel to a Wipe Tower");
                     check_add_eol(travel);
@@ -1670,9 +1696,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (toolchange_temp_override > 0) {
             // new_extruder_id is the incoming filament id; resolve its per-variant config column.
             size_t new_fi = gcodegen.get_filament_config_index(new_extruder_id);
-            int base_temp = gcodegen.on_first_layer() ? gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi)
+            int base_temp = (gcodegen.on_first_layer() || tcr.is_first_layer) ? gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi)
                                                       : gcodegen.config().nozzle_temperature.get_at(new_fi);
-            if (std::abs(tcr.print_z) < EPSILON)
+            if (std::abs(tcr.print_z) < EPSILON || tcr.is_first_layer)
                 base_temp = gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi);
             const std::string t_token = " T" + std::to_string(new_extruder_id);
             std::string out;
@@ -1686,7 +1712,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 std::string trimmed = line;
                 trimmed.erase(0, trimmed.find_first_not_of(" \t"));
                 bool skip_line = false;
-                if (boost::starts_with(trimmed, "M109")) {
+                if (boost::starts_with(trimmed, "M109") && trimmed.find(WipeTower2::wait_for_temp_tag()) == std::string::npos) {
                     bool matches_extruder = trimmed.find(t_token) != std::string::npos;
                     if (!matches_extruder) {
                         size_t t_pos = trimmed.find('T');

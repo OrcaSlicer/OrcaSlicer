@@ -4597,7 +4597,7 @@ bool GCodeProcessor::process_simplify3d_tags(const std::string_view comment)
         set_extrusion_role(erInternalBridgeInfill);
         return true;
     }
-
+    
     // ; support
     pos = cmt.find(" support");
     if (pos == 0) {
@@ -6154,10 +6154,21 @@ void GCodeProcessor::process_M83(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_M104(const GCodeReader::GCodeLine& line)
 {
-    int filament_id = get_filament_id();
     float new_temp;
-    if (line.has_value('S', new_temp))
-        m_extruder_temps[filament_id] = new_temp;
+    if (!line.has_value('S', new_temp))
+        return;
+    // Honour T so a preheat/cooldown aimed at another tool (M104 S0 T0 after switching
+    // to T1, or M104 S220 T1 while T0 is still current) does not overwrite the active
+    // tool's displayed temperature. Independent-tower first layers were showing 0°C
+    // until a later M109 without T landed on the new tool.
+    float t_val;
+    if (line.has_value('T', t_val)) {
+        size_t eid = static_cast<size_t>(t_val);
+        if (eid < m_extruder_temps.size())
+            m_extruder_temps[eid] = new_temp;
+        return;
+    }
+    m_extruder_temps[get_filament_id()] = new_temp;
 }
 
 void GCodeProcessor::process_VM104(const GCodeReader::GCodeLine& line)
@@ -6233,18 +6244,20 @@ void GCodeProcessor::process_M109(const GCodeReader::GCodeLine& line)
 {
     int filament_id = get_filament_id();
     float new_temp;
-    if (line.has_value('R', new_temp)) {
-        float val;
-        if (line.has_value('T', val)) {
-            size_t eid = static_cast<size_t>(val);
+    auto apply_temp = [&](float temp) {
+        float t_val;
+        if (line.has_value('T', t_val)) {
+            size_t eid = static_cast<size_t>(t_val);
             if (eid < m_extruder_temps.size())
-                m_extruder_temps[eid] = new_temp;
+                m_extruder_temps[eid] = temp;
         }
         else
-            m_extruder_temps[filament_id] = new_temp;
-    }
+            m_extruder_temps[filament_id] = temp;
+    };
+    if (line.has_value('R', new_temp))
+        apply_temp(new_temp);
     else if (line.has_value('S', new_temp))
-        m_extruder_temps[filament_id] = new_temp;
+        apply_temp(new_temp);
 }
 
 void GCodeProcessor::process_VM109(const GCodeReader::GCodeLine& line)

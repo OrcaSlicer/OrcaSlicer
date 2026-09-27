@@ -714,6 +714,20 @@ public:
 		return *this;
 	}
 
+    // First-layer bed adhesion: always keep the part-cooling fan off, and (re)assert the
+    // filament's first-layer temperature. filament_start_gcode after a toolchange can turn
+    // the fan on and GCode::on_first_layer() is about the object, not this tower layer.
+    // Force M107: m_last_fan_speed starts at 0, so set_fan(0) would be a no-op, and the
+    // M106 inside [change_filament_gcode] is substituted later so the writer never sees it.
+    WipeTowerWriter2& apply_first_layer_adhesion(int temperature, bool wait)
+    {
+        m_gcode += "M107\n";
+        m_last_fan_speed = 0;
+        if (temperature > 0)
+            set_extruder_temp(temperature, wait, wait ? WipeTower2::wait_for_temp_tag() : std::string());
+        return *this;
+    }
+
 	WipeTowerWriter2& append(const std::string& text) { m_gcode += text; return *this; }
 
     const std::vector<Vec2f>& wipe_path() const
@@ -996,6 +1010,7 @@ WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
     result.wipe_path    = std::move(writer.wipe_path());
     result.is_finish_first = is_finish;
     result.is_contact = is_contact;
+    result.is_first_layer = this->is_first_layer();
     // ORCA: Always initialize the tool_change_start_pos with a valid position
     // to avoid undefined variable travel on X in Gcode.cpp function std::string WipeTowerIntegration::post_process_wipe_tower_moves
     result.tool_change_start_pos = result.start_pos;  // always valid fallback
@@ -1304,7 +1319,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
 	return results;
 }
 
-WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
+WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool, bool print_shell)
 {
     size_t old_tool = m_current_tool;
 
@@ -1384,8 +1399,16 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
                                 m_filpar[tool].interface_print_temperature :
                                 (is_first_layer() || m_filpar[tool].temperature == 0 ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature);
         toolchange_Change(writer, tool, m_filpar[tool].material, wait_for_temp, true); // Change the tool, set a speed override for soluble and flex materials.
+        if (this->is_first_layer())
+            writer.apply_first_layer_adhesion(m_filpar[tool].first_layer_temperature, true);
         toolchange_Load(writer, cleaning_box);
         writer.travel(writer.x(), writer.y()-m_perimeter_width); // cooling and loading were done a bit down the road
+        if (print_shell && !m_shell_done_this_layer) {
+            const Vec2f wipe_start(writer.x(), writer.y());
+            extrude_tower_shell(writer, is_first_layer());
+            m_shell_done_this_layer = true;
+            writer.travel(wipe_start);
+        }
         int base_temp = is_first_layer() ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature;
         if (interface_layer) {
             int interface_temp = m_filpar[tool].interface_print_temperature;
@@ -1882,8 +1905,12 @@ void WipeTower2::toolchange_Wipe(
     // All the calculations in all other places take the spacing into account for all the layers.
 
 	// If spare layers are excluded->if 1 or less toolchange has been done, it must be sill the first layer, too.So slow down.
-    const float target_speed = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped) ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
-    float wipe_speed = 0.33f * target_speed;
+    const float target_speed = is_first_layer() ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
+    // SEMM ease-in absorbs the pressure spike after loading. A toolchanger (and a fill_box
+    // infill of a whole independent/MM core) has no such spike; ramping from 0.33× made the
+    // first third of the inner lattice crawl in Actual Flow.
+    const bool ease_in = m_semm && !priming && !fill_box;
+    float wipe_speed = ease_in ? 0.33f * target_speed : target_speed;
 
     // if there is less than 2.5*line_width to the edge, advance straightaway (there is likely a blob anyway)
     if ((m_left_to_right ? xr-writer.x() : writer.x()-xl) < 2.5f*line_width) {
@@ -1893,7 +1920,7 @@ void WipeTower2::toolchange_Wipe(
     
     // now the wiping itself:
 	for (int i = 0; true; ++i)	{
-		if (i!=0) {
+		if (ease_in && i!=0) {
             if      (wipe_speed < 0.34f * target_speed) wipe_speed = 0.375f * target_speed;
             else if (wipe_speed < 0.377 * target_speed) wipe_speed = 0.458f * target_speed;
             else if (wipe_speed < 0.46f * target_speed) wipe_speed = 0.875f * target_speed;
@@ -1964,6 +1991,34 @@ void WipeTower2::toolchange_Wipe(
 
 
 
+Polygon WipeTower2::extrude_tower_shell(WipeTowerWriter2& writer, bool first_layer)
+{
+    const float spacing = m_perimeter_width - m_layer_height * float(1. - M_PI_4);
+    const float feedrate = first_layer ? m_first_layer_speed * 60.f :
+                                         std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
+
+    Polygon poly;
+    if (m_wall_type == (int) wtwCone) {
+        WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
+                                          m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        const bool infill_cone = first_layer && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing;
+        if (first_layer) {
+            Polygon brim_poly = cone_base_polygon(m_wipe_tower_width, m_wipe_tower_depth, m_wipe_tower_height, m_wipe_tower_cone_angle);
+            extrude_brim(writer, brim_poly, spacing);
+        }
+        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing);
+    } else {
+        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int) wtwRib, false);
+        if (first_layer) {
+            Polygon brim_poly = poly;
+            extrude_brim(writer, brim_poly, spacing);
+        }
+        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int) wtwRib, true);
+    }
+    return poly;
+}
+
 WipeTower::ToolChangeResult WipeTower2::finish_layer()
 {
 	assert(! this->layer_finished());
@@ -1978,9 +2033,9 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         .set_y_shift(m_y_shift - (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f));
 
 
-    // Slow down on the 1st layer.
-    // If spare layers are excluded -> if 1 or less toolchange has been done, it must be still the first layer, too. So slow down.
-    bool first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
+    // Slow down on the 1st printed tower layer only. "m_num_tool_changes <= 1 && sparse skipped"
+    // also matched layer 2 of an independent tower (each tower starts its own counter at 0).
+    const bool first_layer = is_first_layer();
     float                      feedrate      = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
     if (m_enable_tower_interface_features && m_prev_layer_had_interface)
         feedrate = std::min(feedrate, 20.f * 60.f);
@@ -1988,9 +2043,19 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     WipeTower::box_coordinates fill_box(Vec2f(m_perimeter_width, m_layer_info->depth-(current_depth-m_perimeter_width)),
                              m_wipe_tower_width - 2 * m_perimeter_width, current_depth-m_perimeter_width);
 
-
-    writer.set_initial_position((m_left_to_right ? fill_box.ru : fill_box.lu), // so there is never a diagonal travel
-                                 m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
+    Polygon poly;
+    if (!m_shell_done_this_layer) {
+        writer.set_initial_position(Vec2f(0.f, 0.f), m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
+        if (this->is_first_layer())
+            writer.apply_first_layer_adhesion(m_filpar[m_current_tool].first_layer_temperature, true);
+        poly = extrude_tower_shell(writer, first_layer);
+        m_shell_done_this_layer = true;
+    } else {
+        writer.set_initial_position((m_left_to_right ? fill_box.ru : fill_box.lu),
+                                     m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
+        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int) wtwRib, false);
+    }
 
     bool toolchanges_on_layer = m_layer_info->toolchanges_depth() > WT_EPSILON;
 
@@ -2059,29 +2124,12 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
                       ";------------------\n\n\n\n\n\n\n");
     }
 
-    const float spacing = m_perimeter_width - m_layer_height*float(1.-M_PI_4);
-    feedrate = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
-
-    Polygon poly;
-    if (m_wall_type == (int)wtwCone) {
-         WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
-                                           m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        // outer contour (always)
-        bool infill_cone = first_layer && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing;
-        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing);
-    } else {
-        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int)wtwRib, true);
-    }
-
-    // brim (first layer only)
-    if (first_layer)
-        extrude_brim(writer, poly, spacing);
-
     // Now prepare future wipe.
-    int i = poly.closest_point_index(Point::new_scale(writer.x(), writer.y()));
-    writer.add_wipe_point(writer.pos());
-    writer.add_wipe_point(unscale(poly.points[i==0 ? int(poly.points.size())-1 : i-1]).cast<float>());
+    if (!poly.empty()) {
+        int i = poly.closest_point_index(Point::new_scale(writer.x(), writer.y()));
+        writer.add_wipe_point(writer.pos());
+        writer.add_wipe_point(unscale(poly.points[i==0 ? int(poly.points.size())-1 : i-1]).cast<float>());
+    }
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
@@ -2449,6 +2497,7 @@ static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
     out.wipe_path = second.wipe_path;
     out.initial_tool = first.initial_tool;
     out.new_tool = second.new_tool;
+    out.is_first_layer = first.is_first_layer || second.is_first_layer;
     return out;
 }
 
@@ -2652,12 +2701,14 @@ void WipeTower2::mm_extrude_shell(WipeTowerWriter2& writer, int loops, bool firs
                                          std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
 
     if (m_mm_shell_loops_done == 0) {
-        // Loop 0 is the tower's outer wall: go through the stock wall generator so the wall, the
-        // brim and the first-layer bounding box come out exactly like the single-material tower's.
+        // Loop 0 is the tower's outer wall. Brim first (outward offsets of the outline), then the wall.
         WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, outer_depth);
-        Polygon                    poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, false, true);
-        if (first_layer)
-            extrude_brim(writer, poly, spacing);
+        Polygon                    poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, false, false);
+        if (first_layer) {
+            Polygon brim_poly = poly;
+            extrude_brim(writer, brim_poly, spacing);
+        }
+        generate_support_rib_wall(writer, wt_box, feedrate, first_layer, false, true);
         ++m_mm_shell_loops_done;
         --to_do;
     }
@@ -2682,16 +2733,10 @@ void WipeTower2::mm_extrude_core(WipeTowerWriter2& writer, int rows, bool first_
           .set_extrusion_flow(m_extrusion_flow * m_extra_flow)
           .change_analyzer_line_width(wipe_line_width());
 
-    // Ease into the purge speed like toolchange_Wipe() does, so the pressure built up during the
-    // toolchange does not come out as a blob on the first row.
-    float speed = 0.33f * target_speed;
+    // Constant infill speed. The SEMM 0.33× purge ramp was copied here and made the first
+    // third of the core crawl in Actual Flow; the core is a lattice, not a post-load wipe.
+    const float speed = target_speed;
     for (int row = 0; to_do > 0; --to_do, ++m_mm_core_rows_done, ++row) {
-        if (row != 0) {
-            if (speed < 0.34f * target_speed)       speed = 0.375f * target_speed;
-            else if (speed < 0.377f * target_speed) speed = 0.458f * target_speed;
-            else if (speed < 0.46f * target_speed)  speed = 0.875f * target_speed;
-            else                                    speed = std::min(target_speed, speed + 50.f);
-        }
         const float y      = box.ld.y() + m_mm_core_rows_done * pitch;
         const float x_from = m_left_to_right ? box.ld.x() : box.rd.x();
         const float x_to   = m_left_to_right ? box.rd.x() : box.ld.x();
@@ -2725,7 +2770,7 @@ WipeTower::ToolChangeResult WipeTower2::mm_region_layer(int units)
     // Same first-layer test as finish_layer(): with no_sparse_layers the plan's first
     // entry is often sparse and G-code later drops it, so the brim belongs on the first
     // toolchange instead.
-    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
+    const bool   first_layer = is_first_layer();
     const float  outer_depth = m_layer_info->depth + m_perimeter_width;
 
     WipeTowerWriter2 writer(m_layer_height, m_perimeter_width, m_gcode_flavor, m_filpar, m_enable_arc_fitting);
@@ -2735,6 +2780,11 @@ WipeTower::ToolChangeResult WipeTower2::mm_region_layer(int units)
           .set_y_shift(m_y_shift)
           .set_initial_position(shell ? Vec2f(0.f, 0.f) : mm_core_box(outer_depth).ld, m_wipe_tower_width,
                                 m_wipe_tower_depth, m_internal_rotation);
+
+    // No toolchange on this TCR, so filament_start_gcode never ran. Re-assert first-layer
+    // fan-off and temperature before the brim / walls / incoming core hit the bed.
+    if (this->is_first_layer())
+        writer.apply_first_layer_adhesion(m_filpar[m_current_tool].first_layer_temperature, true);
 
     mm_extrude_region(writer, units, first_layer);
 
@@ -2748,7 +2798,7 @@ WipeTower::ToolChangeResult WipeTower2::mm_tool_change(size_t new_tool, int unit
 {
     const size_t old_tool    = m_current_tool;
     const bool   shell       = new_tool == m_mm_shell_tool;
-    const bool   first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
+    const bool   first_layer = is_first_layer();
     const float  outer_depth = m_layer_info->depth + m_perimeter_width;
     // The old filament is not rammed here (mm_activate() requires it), so this box only tells the
     // unload and load sequences where the nozzle is; the purge itself goes into the new
@@ -2779,6 +2829,10 @@ WipeTower::ToolChangeResult WipeTower2::mm_tool_change(size_t new_tool, int unit
                                                                                m_filpar[new_tool].temperature;
     toolchange_Unload(writer, region_box, m_filpar[old_tool].material, old_temp, new_temp);
     toolchange_Change(writer, new_tool, m_filpar[new_tool].material, new_temp, true);
+    // filament_start_gcode (inside [change_filament_gcode]) can turn the fan on and pick the
+    // non-first-layer temperature. The brim/walls/core of this first tower layer must not.
+    if (this->is_first_layer())
+        writer.apply_first_layer_adhesion(new_temp, true);
     toolchange_Load(writer, region_box);
 
     mm_extrude_region(writer, units, first_layer);
@@ -2973,7 +3027,7 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
         }
 
         for (int i=0; i<int(layer.tool_changes.size()); ++i) {
-            layer_result.emplace_back(tool_change(layer.tool_changes[i].new_tool));
+            layer_result.emplace_back(tool_change(layer.tool_changes[i].new_tool, i == idx));
             if (i == idx) // finish_layer will be called after this toolchange
                 finish_layer_tcr = finish_layer();
         }

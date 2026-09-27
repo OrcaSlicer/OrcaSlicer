@@ -5093,6 +5093,7 @@ void Print::_make_wipe_tower()
 
                 WipeTower2 wipe_tower(m_config, m_default_region_config, m_plate_index, m_origin, wipe_volumes, filament);
                 wipe_tower.set_sparse_layers_skipped(true);
+                wipe_tower.set_independent_tower(true);
                 for (size_t i = 0; i < number_of_extruders; ++i)
                     wipe_tower.set_extruder(i, m_config);
 

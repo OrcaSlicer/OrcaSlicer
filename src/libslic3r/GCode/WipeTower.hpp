@@ -174,6 +174,11 @@ public:
         bool  has_tower_pos   = false;
         Vec2f tower_pos       = Vec2f::Zero();
         int   tower_filament  = -1;
+
+        // First printed layer of this tower (brim / first-layer height), which may not be the
+        // object's layer 0 when sparse layers are skipped. G-code uses this for first-layer
+        // nozzle temperature and fan-off, not GCode::on_first_layer().
+        bool  is_first_layer  = false;
 	};
 
     struct box_coordinates

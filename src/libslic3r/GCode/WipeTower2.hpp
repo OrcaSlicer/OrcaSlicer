@@ -79,6 +79,16 @@ public:
     // compacted even when the global no-sparse option is off (otherwise later towers print in air).
     void set_sparse_layers_skipped(bool v) { m_sparse_layers_skipped = v; }
 
+    // One solid tower per filament. Synthetic toolchanges must not trip interface-temp/purge
+    // or cut a gap-wall retract hole, and the layer is brim → walls → infill.
+    void set_independent_tower(bool v) {
+        m_independent_tower = v;
+        if (v) {
+            m_enable_tower_interface_features = false;
+            m_use_gap_wall                    = false;
+        }
+    }
+
     float get_depth() const { return m_wipe_tower_depth; }
 	std::vector<std::pair<float, float>> get_z_and_depth_pairs() const;
     float get_brim_width() const { return m_wipe_tower_brim_width_real; }
@@ -116,6 +126,7 @@ public:
 		m_layer_height			= layer_height;
 		m_depth_traversed  = 0.f;
         m_current_layer_finished = false;
+        m_shell_done_this_layer  = false;
         m_prev_layer_had_interface = m_current_layer_has_interface;
 
 		
@@ -154,8 +165,9 @@ public:
 		bool 						last_wipe_inside_wipe_tower);
 
 	// Returns gcode for a toolchange and a final print head position.
-	// On the first layer, extrude a brim around the future wipe tower first.
-    WipeTower::ToolChangeResult tool_change(size_t new_tool);
+	// print_shell: brim (first layer) and outer walls before the inner wipe, so the
+	// merged finish_layer only has to fill the leftover core.
+    WipeTower::ToolChangeResult tool_change(size_t new_tool, bool print_shell = false);
 
 	// Fill the unfilled space with a sparse infill.
 	// Call this method only if layer_finished() is false.
@@ -266,6 +278,8 @@ private:
     bool   m_wait_for_temp_on_wipe_tower = false;
     bool   m_prev_layer_had_interface = false;
     bool   m_current_layer_has_interface = false;
+    bool   m_independent_tower        = false;
+    bool   m_shell_done_this_layer    = false;
 
 	int m_wall_type;
     bool   m_used_fillet                  = true;
@@ -463,6 +477,9 @@ private:
 		float spacing);
 
     Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
+
+    // Brim (first layer only) then outer walls. Returns the wall polygon for the wipe path.
+    Polygon extrude_tower_shell(WipeTowerWriter2& writer, bool first_layer);
 
     // Lay the brim loops around the tower outline (first layer only) and record the brim width
     // and first-layer bounding box the Print object needs for the skirt and the preview box.
