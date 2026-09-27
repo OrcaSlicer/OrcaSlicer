@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OEPLAB00",
+	"filament_id": "OFvgE0Zh",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"80"
@@ -39,7 +39,7 @@
 		"60"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
+		"; Elegoo PLA filament start gcode\n"
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"

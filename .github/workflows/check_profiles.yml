@@ -9,6 +9,11 @@ on:
     - release/*
     paths:
     - 'resources/profiles/**'
+    # orca_profile_tool.py also validates resources/printers/bambu_filament_ids.json, and
+    # both it and its tests live in scripts/, so a PR touching only those must still run
+    # this workflow.
+    - 'resources/printers/**'
+    - 'scripts/**'
     - ".github/workflows/check_profiles.yml"
 
   workflow_dispatch:
@@ -32,12 +37,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Run extra JSON check
-        id: extra_json_check
+      # Deliberately not continue-on-error, unlike every check below: if the tool itself is
+      # broken, nothing it then reports about the profiles is worth reading.
+      - name: Run the profile tool's own unit tests
+        run: python3 -m unittest discover -s scripts/tests -t scripts
+
+      # What the validator below cannot see. It loads the tree the way the slicer does, so
+      # it never notices a profile no <vendor>.json indexes, a preset name two files claim,
+      # an id that is not the mint of its own triple, or a file that normalize and
+      # update-index would still rewrite.
+      # The step id is the handle the PR comment and the failure gate below use; renaming it
+      # silently disables them.
+      - name: Check profiles (orca_profile_tool.py)
+        id: profile_tool
         continue-on-error: true
         run: |
           set +e
-          python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
+          python3 ./scripts/orca_profile_tool.py check 2>&1 | tee ${{ runner.temp }}/profile_tool.log
           exit ${PIPESTATUS[0]}
 
       # download
@@ -64,13 +80,14 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -s -l 2 2>&1 | tee ${{ runner.temp }}/validate_slice.log
           exit ${PIPESTATUS[0]}
-      # For now run filament subtype check only for BBL profiles until we fix other vendors' profiles.
-      - name: validate filament subtype check for BBL profiles
+      # All vendors' filament_id collisions were fixed, so the duplicate-filament-subtype
+      # check runs tree-wide.
+      - name: validate filament subtype check
         id: validate_filament_subtypes
         continue-on-error: true
         run: |
           set +e
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -v BBL -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
           exit ${PIPESTATUS[0]}
 
       - name: validate custom presets
@@ -181,7 +198,7 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
 
       - name: Prepare comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.profile_tool.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           {
             # Marker matched by check_profiles_comment.yml to delete prior comments.
@@ -189,11 +206,11 @@ jobs:
             echo "## :x: Profile Validation Errors"
             echo ""
 
-            if [ "${{ steps.extra_json_check.outcome }}" = "failure" ]; then
-              echo "### Extra JSON Check Failed"
+            if [ "${{ steps.profile_tool.outcome }}" = "failure" ]; then
+              echo "### Profile Check Failed (orca_profile_tool.py)"
               echo ""
               echo '```'
-              head -c 30000 ${{ runner.temp }}/extra_json_check.log || echo "No output captured"
+              head -c 30000 ${{ runner.temp }}/profile_tool.log || echo "No output captured"
               echo '```'
               echo ""
             fi
@@ -217,7 +234,7 @@ jobs:
             fi
 
             if [ "${{ steps.validate_filament_subtypes.outcome }}" = "failure" ]; then
-              echo "### BBL Filament Subtype Validation Failed"
+              echo "### Filament Subtype Validation Failed"
               echo ""
               echo '```'
               head -c 30000 ${{ runner.temp }}/validate_filament_subtypes.log || echo "No output captured"
@@ -235,7 +252,7 @@ jobs:
             fi
 
             echo "---"
-            echo "*Please fix the above errors and push a new commit.*"
+            echo '*Fix the errors above and push a new commit. To reproduce this run locally: `scripts/check_profile.sh`, or `scripts\check_profile.bat` on Windows.*'
           } > ${{ runner.temp }}/profile-check-results/pr_comment.md
 
       - name: Upload comment artifact
@@ -247,7 +264,8 @@ jobs:
           retention-days: 1
 
       - name: Fail if any check failed
-        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && (steps.profile_tool.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
-          echo "One or more profile checks failed. See above for details."
+          echo "One or more profile checks failed; see the step logs above."
+          echo 'Reproduce the whole run locally with scripts/check_profile.sh (scripts\check_profile.bat on Windows).'
           exit 1

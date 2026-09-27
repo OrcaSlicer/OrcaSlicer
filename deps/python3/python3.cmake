@@ -15,7 +15,13 @@ if(WIN32)
     # See https://github.com/python/cpython/issues/153438
     # Patch from https://github.com/python/cpython/pull/153608
     # This patch has not been merged to 3.12 yet so we need to apply it manually
-    set(_patch_cmd git init && ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/01-windows-nuget.patch)
+    #
+    # Without core.autocrlf=false the patched find_python.bat comes out LF and
+    # cmd.exe cannot find its goto labels.
+    set(_patch_cmd git init
+                   && ${GIT_EXECUTABLE} -c core.autocrlf=false apply --verbose
+                      --ignore-space-change --whitespace=fix
+                      ${CMAKE_CURRENT_LIST_DIR}/01-windows-nuget.patch)
 
     if(MSVC_VERSION EQUAL 1800)
         set(_python_platform_toolset v120)
@@ -53,12 +59,9 @@ if(WIN32)
         set(_python_pcbuild_output_dir win32)
     endif()
 
+    # pybind11 undefines _DEBUG around Python.h so a debug build links the
+    # release python3xx.lib; Py_DEBUG could not load release plugin modules.
     set(_python_pcbuild_config Release)
-    set(_python_layout_debug OFF)
-    if(DEFINED DEP_DEBUG AND DEP_DEBUG)
-        set(_python_pcbuild_config Debug)
-        set(_python_layout_debug ON)
-    endif()
 
     # CPython's PCbuild needs a 64-bit-hosted toolchain: find_msbuild.bat picks the
     # 32-bit Bin\MSBuild.exe, whose x86 cl.exe/link.exe run out of address space
@@ -85,8 +88,18 @@ if(WIN32)
         list(APPEND _python_env_args "PreferredToolArchitecture=${_python_tool_arch}")
     endif()
 
+    # MSBuild reads extra switches from PCbuild/msbuild.rsp.
+    set(_python_rsp "/p:PlatformToolset=${_python_platform_toolset}\n")
+    # VS 2026's ARM64 code generator needs about 27 GB for one function in
+    # Objects/unicodectype.c (python/cpython#153668); the property sheet compiles
+    # that file without optimisation.
+    if(_python_pcbuild_platform STREQUAL "ARM64")
+        file(TO_NATIVE_PATH "${CMAKE_CURRENT_LIST_DIR}/arm64-unicodectype.props" _python_arm64_props)
+        string(APPEND _python_rsp "/p:ForceImportAfterCppTargets=\"${_python_arm64_props}\"\n")
+    endif()
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/python3-msbuild.rsp" "${_python_rsp}")
     set(_conf_cmd
-        cmd /c "echo /p:PlatformToolset=${_python_platform_toolset}>PCbuild\\msbuild.rsp"
+        ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/python3-msbuild.rsp" <SOURCE_DIR>/PCbuild/msbuild.rsp
     )
     set(_build_cmd
         ${CMAKE_COMMAND} -E env ${_python_env_args}
@@ -101,7 +114,6 @@ if(WIN32)
             -DPYTHON_BUILD_DIR=<SOURCE_DIR>/PCbuild/${_python_pcbuild_output_dir}
             -DPYTHON_DEST_DIR=${DESTDIR}/libpython
             -DPYTHON_LAYOUT_ARCH=${_python_layout_arch}
-            -DPYTHON_DEBUG=${_python_layout_debug}
             -P ${CMAKE_CURRENT_LIST_DIR}/stage_windows.cmake
     )
 elseif(APPLE)

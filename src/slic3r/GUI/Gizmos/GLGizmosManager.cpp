@@ -4,6 +4,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -27,10 +28,16 @@
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoAssembly.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/Gizmos/GLGizmoPrimitive.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoSketch.hpp"
+#endif
 
 #include "libslic3r/format.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
+
+#include <boost/functional/hash.hpp>
 
 #include <wx/glcanvas.h>
 
@@ -176,6 +183,14 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case (EType::BrimEars):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg");
             break;
+#ifdef SLIC3R_CAD
+        case (EType::Primitive):
+            gizmo->set_icon_filename(m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg");
+            break;
+        case (EType::Sketch):
+            gizmo->set_icon_filename(m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg");
+            break;
+#endif
         }
 
     }
@@ -219,6 +234,14 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoAssembly(m_parent, m_is_dark ? "toolbar_assembly_dark.svg" : "toolbar_assembly.svg", EType::Assembly));
     m_gizmos.emplace_back(new GLGizmoSimplify(m_parent, "reduce_triangles.svg", EType::Simplify));
     m_gizmos.emplace_back(new GLGizmoBrimEars(m_parent, m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg", EType::BrimEars));
+#ifdef SLIC3R_CAD
+    // Registered last: Primitive and Sketch are the final entries before Undefined, so
+    // omitting them leaves every preceding m_gizmos index (indexed by EType) untouched.
+    if (wxGetApp().is_enable_cad_feature()) {
+        m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
+        m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
+    }
+#endif
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
@@ -464,15 +487,13 @@ bool GLGizmosManager::is_running() const
     return m_current != Undefined;
 }
 
-bool GLGizmosManager::handle_shortcut(int key)
+bool GLGizmosManager::open_gizmo_by_shortcut(Shortcut shortcut)
 {
     if (!m_enabled)
         return false;
 
-    auto is_key = [pressed_key = key](int gizmo_key) { return (gizmo_key == pressed_key - 64) || (gizmo_key == pressed_key - 96); };
-    // allowe open shortcut even when selection is empty    
-    if (GLGizmoBase* gizmo_emboss = m_gizmos[Emboss].get();
-        is_key(gizmo_emboss->get_shortcut_key())) {
+    // The text tool opens without a selection because it creates its own object.
+    if (GLGizmoBase* gizmo_emboss = m_gizmos[Emboss].get(); gizmo_emboss->shortcut() == shortcut) {
         dynamic_cast<GLGizmoEmboss *>(gizmo_emboss)->on_shortcut_key();
         return true;
     }
@@ -480,16 +501,21 @@ bool GLGizmosManager::handle_shortcut(int key)
     if (m_parent.get_selection().is_empty())
         return false;
 
-    auto is_gizmo = [is_key](const std::unique_ptr<GLGizmoBase> &gizmo) {
-        return gizmo->is_activable() && is_key(gizmo->get_shortcut_key());
-    };
-    auto it = std::find_if(m_gizmos.begin(), m_gizmos.end(), is_gizmo);
-
+    auto it = std::find_if(m_gizmos.begin(), m_gizmos.end(), [shortcut](const std::unique_ptr<GLGizmoBase> &gizmo) {
+        return gizmo->is_activable() && gizmo->shortcut() == shortcut;
+    });
     if (it == m_gizmos.end())
         return false;
 
-    EType gizmo_type = EType(it - m_gizmos.begin());
-    return open_gizmo(gizmo_type);
+    return open_gizmo(EType(it - m_gizmos.begin()));
+}
+
+bool GLGizmosManager::on_delete_key()
+{
+    const bool processed = (m_current == Cut || m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Delete);
+    if (processed)
+        m_parent.set_as_dirty();
+    return processed;
 }
 
 bool GLGizmosManager::is_dragging() const
@@ -611,6 +637,7 @@ void GLGizmosManager::render_painter_assemble_view() const
         m_assemble_view_data->model_objects_clipper()->render_cut();
 }
 
+// The icon bar, drawn with GL.
 void GLGizmosManager::render_overlay()
 {
     if (!m_enabled)
@@ -619,7 +646,27 @@ void GLGizmosManager::render_overlay()
     if (m_icons_texture_dirty)
         generate_icons_texture();
 
-    do_render_overlay();
+    do_render_overlay(true);
+}
+
+// The open gizmo's settings panel, ImGui.
+void GLGizmosManager::render_overlay_input_window()
+{
+    if (!m_enabled)
+        return;
+
+    do_render_overlay(false);
+}
+
+size_t GLGizmosManager::get_overlay_state_hash() const
+{
+    size_t hash = 0;
+    boost::hash_combine(hash, m_enabled);
+    boost::hash_combine(hash, (int)m_hover);
+    boost::hash_combine(hash, (int)m_current);
+    boost::hash_combine(hash, (int)m_highlight.first);
+    boost::hash_combine(hash, m_highlight.second);
+    return hash;
 }
 
 std::string GLGizmosManager::get_tooltip() const
@@ -813,15 +860,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             }
             break;
         }
-        //skip some keys when gizmo
-        case 'A':
-        case 'a':
-        {
-            if (is_running()) {
-                processed = true;
-            }
-            break;
-        }
         //case WXK_RETURN:
         //{
         //    if ((m_current == SlaSupports) && gizmo_event(SLAGizmoEventType::ApplyChanges))
@@ -840,12 +878,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
         //}
 
 
-        case WXK_BACK:
-        case WXK_DELETE: {
-            if ((m_current == Cut || m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Delete))
-                processed = true;
-            break;
-        }
         //case 'A':
         //case 'a':
         //{
@@ -887,11 +919,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             break;
         }
         }
-    }
-
-    if (!processed && !evt.HasModifiers()) {
-        if (handle_shortcut(keyCode))
-            processed = true;
     }
 
     if (processed)
@@ -1003,7 +1030,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                     // number waits briefly for a second one.
                     const int digit        = keyCode - '0';
                     const int shortcut_max = int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT);
-                    auto can_start_two_digit = [shortcut_max](int d) { return d > 0 && d * 10 <= shortcut_max; };
+                    auto can_start_two_digit = [](int d) { return d > 0 && d * 10 <= shortcut_max; };
                     auto select = [mmu_seg](int number) { return number > 0 && mmu_seg->on_number_key_down(number); };
 
                     if (m_timer_set_color.IsRunning() && m_pending_color_shortcut_tens > 0) {
@@ -1034,39 +1061,23 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                         processed = select(digit);
                     }
                 }
-                else if (keyCode == 'F' || keyCode == 'T' || keyCode == 'S' || keyCode == 'C' || keyCode == 'H' || keyCode == 'G') {
-                    processed = mmu_seg->on_key_down_select_tool_type(keyCode);
-                    if (processed) {
-                        // force extra frame to automatically update window size
-                        wxGetApp().imgui()->set_requires_extra_frame();
-                    }
-                }
             }
         }
-        else if (m_current == FdmSupports) {
-            GLGizmoFdmSupports* fdm_support = dynamic_cast<GLGizmoFdmSupports*>(get_current());
-            if (fdm_support != nullptr && (keyCode == 'F' || keyCode == 'S' || keyCode == 'C' || keyCode == 'G')) {
-                processed = fdm_support->on_key_down_select_tool_type(keyCode);
-            }
-            if (processed) {
-                // force extra frame to automatically update window size
-                wxGetApp().imgui()->set_requires_extra_frame();
-            }
-        }
-        else if (m_current == Seam) {
-            GLGizmoSeam* seam = dynamic_cast<GLGizmoSeam*>(get_current());
-            if (seam != nullptr && (keyCode == 'S' || keyCode == 'C')) {
-                processed = seam->on_key_down_select_tool_type(keyCode);
-            }
-            if (processed) {
-                // force extra frame to automatically update window size
-                wxGetApp().imgui()->set_requires_extra_frame();
-            }
-        } else if (m_current == Measure || m_current == Assembly) {
+        else if (m_current == Measure || m_current == Assembly) {
             if (keyCode == WXK_CONTROL)
                 gizmo_event(SLAGizmoEventType::CtrlDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
             else if (keyCode == WXK_SHIFT)
                 gizmo_event(SLAGizmoEventType::ShiftDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
+        }
+
+        if (!processed) {
+            if (auto painter = dynamic_cast<GLGizmoPainterBase*>(get_current()); painter != nullptr) {
+                const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Painting, KeyChord::from_event(evt));
+                processed = shortcut.has_value() && painter->on_tool_shortcut(*shortcut);
+                if (processed)
+                    // force extra frame to automatically update window size
+                    wxGetApp().imgui()->set_requires_extra_frame();
+            }
         }
     }
 
@@ -1202,7 +1213,9 @@ void GLGizmosManager::render_arrow(const GLCanvas3D& parent, EType highlighted_t
 
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
 //when rendering, {0, 0} is at the center, {-0.5, 0.5} at the left-top
-void GLGizmosManager::do_render_overlay() const
+// draw_icons selects the icon bar (GL) or the open gizmo's input window (ImGui), placed by the same
+// layout walk.
+void GLGizmosManager::do_render_overlay(bool draw_icons) const
 {
     const std::vector<size_t> selectable_idxs = get_selectable_idxs();
     if (selectable_idxs.empty())
@@ -1241,7 +1254,8 @@ void GLGizmosManager::do_render_overlay() const
     }
     float top_y = 1.0f;
 
-    render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
+    if (draw_icons)
+        render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
 
     top_x += border_w;
     top_y -= border_h;
@@ -1278,7 +1292,8 @@ void GLGizmosManager::do_render_overlay() const
         const float v_top    = v_offset + sprite_id * dv;
         const float v_bottom = v_top + dv - v_offset;
 
-        GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
+        if (draw_icons)
+            GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
         if (idx == m_current
             // Orca: Show Svg dialog at the same place as emboss gizmo
             || (m_current == Svg && idx == Emboss)) {
@@ -1286,7 +1301,8 @@ void GLGizmosManager::do_render_overlay() const
             //render_input_window uses a different coordination(imgui)
             //1. no need to scale by camera zoom, set {0,0} at left-up corner for imgui
             //gizmo->render_input_window(width, 0.5f * cnv_h - zoomed_top_y * zoom, toolbar_top);
-            m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
+            if (!draw_icons)
+                m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
 
             is_render_current = true;
         }
@@ -1294,7 +1310,7 @@ void GLGizmosManager::do_render_overlay() const
     }
 
     // BBS simplify gizmo is not a selected gizmo and need to render input window
-    if (!is_render_current && m_current != Undefined) {
+    if (!draw_icons && !is_render_current && m_current != Undefined) {
         m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
     }
 }
@@ -1326,7 +1342,8 @@ GLGizmoBase* GLGizmosManager::get_current() const
 
 GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 {
-    return ((type == Undefined) || m_gizmos.empty()) ? nullptr : m_gizmos[type].get();
+    // m_gizmos ends before the enum does when the CAD gizmos are not registered.
+    return type < m_gizmos.size() ? m_gizmos[type].get() : nullptr;
 }
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const

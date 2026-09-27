@@ -49,6 +49,7 @@
 #include "slic3r/GUI/AmsWidgets.hpp"
 #include "Widgets/SideTools.hpp"
 #include "SelectMachinePop.hpp"
+#include "Lazy.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -72,25 +73,19 @@ public:
 	void msw_rescale();
 };
 
-class MonitorPanel : public wxPanel
+class MonitorPanel : public wxPanel, public StagedBuild, public LazyInstance<MonitorPanel>
 {
 private:
     Tabbook*		m_tabpanel{ nullptr };
     wxSizer*        m_main_sizer{ nullptr };
 
-    AddMachinePanel*    m_status_add_machine_panel;
-    StatusPanel*        m_status_info_panel;
-    MediaFilePanel*     m_media_file_panel;
-    UpgradePanel*       m_upgrade_panel;
-    HMSPanel*           m_hms_panel;
+    StatusPanel*        m_status_info_panel{ nullptr };
+    MediaFilePanel*     m_media_file_panel{ nullptr };
+    UpgradePanel*       m_upgrade_panel{ nullptr };
+    HMSPanel*           m_hms_panel{ nullptr };
 
 	/* side tools */
     SideTools*      m_side_tools{nullptr};
-    wxStaticBitmap* m_bitmap_printer_type;
-    wxStaticBitmap* m_bitmap_arrow;
-    wxStaticText*   m_staticText_printer_name;
-    wxStaticBitmap* m_bitmap_wifi_signal;
-    wxBoxSizer *    m_side_tools_sizer;
     SelectMachinePopup m_select_machine;
 
 	/* images */
@@ -101,9 +96,7 @@ private:
     wxBitmap m_printer_img;
     wxBitmap m_arrow_img;
 
-    int last_wifi_signal = -1;
     int last_status;
-    bool m_initialized { false };
     bool update_flag{false};
     wxTimer* m_refresh_timer = nullptr;
 
@@ -132,6 +125,8 @@ public:
 
     StatusPanel* get_status_panel() {return m_status_info_panel;};
 	void select_machine(std::string machine_sn);
+    // Resets the selected printer's calibration results and syncs the sidebar, without the Device tab.
+    static void on_machine_selected(MachineObject* obj);
     void on_timer(wxTimerEvent& event);
     void on_select_printer(wxCommandEvent& event);
     void on_printer_clicked(wxMouseEvent &event);

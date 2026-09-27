@@ -280,7 +280,7 @@ bool load(const PluginDescriptor&                          descriptor,
     // (while the active plugin key is set), then instantiates each registered capability and caches
     // its get_name(). Returns one entry per capability.
     std::string bridge_error;
-    auto        capabilities_found = bridge.finalize_plugin_capture(descriptor.entry_path, bridge_error);
+    auto        capabilities_found = bridge.finalize_plugin_capture(descriptor.entry_path, descriptor.plugin_key, bridge_error);
     if (!bridge_error.empty()) {
         capabilities_found.clear();
         error = "Plugin registration failed: " + bridge_error;

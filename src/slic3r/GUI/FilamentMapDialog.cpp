@@ -241,7 +241,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     wxBoxSizer *mode_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_auto_btn   = new CapsuleButton(this, PageType::ptAuto, only_saving_mode ? _L("Fila Saving") : _L("Auto"), false);
+    m_auto_btn   = new CapsuleButton(this, PageType::ptAuto, only_saving_mode ? _L("File Saving") : _L("Auto"), false);
     m_manual_btn = new CapsuleButton(this, PageType::ptManual, _L("Custom"), false);
     if (show_default)
         m_default_btn = new CapsuleButton(this, PageType::ptDefault, _L("Same as Global"), true);

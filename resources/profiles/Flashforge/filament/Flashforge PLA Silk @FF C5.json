@@ -4,6 +4,10 @@
 	"inherits": "Generic PLA Silk @System",
 	"from": "system",
 	"setting_id": "OIsfpi49wEoF0ekO",
+	"filament_id": "OFgjgN35",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"
@@ -53,7 +57,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"SILK"
+		"PLA"
 	],
 	"hot_plate_temp": [
 		"65"

@@ -23,7 +23,7 @@
 	"cooling_tube_length": "0",
 	"cooling_tube_retraction": "0",
 	"default_filament_profile": [
-		"Flashforge Generic PLA"
+		"Flashforge PLA Basic @FF G4 0.25 nozzle"
 	],
 	"default_print_profile": "0.12mm Standard @Flashforge AD5M Pro 0.25 Nozzle",
 	"deretraction_speed": [
@@ -199,7 +199,6 @@
 		"45"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "0",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",

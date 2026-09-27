@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PA @Anker 0.25 nozzle",
+	"inherits": "Generic PA @Anker base",
+	"renamed_from": "Anker Generic PA 0.25 nozzle",
+	"from": "system",
+	"setting_id": "Zlv65wLA94PbevRG",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"3"
+	],
+	"compatible_printers": [
+		"Anker M5 All-Metal 0.25 nozzle",
+		"Anker M5C 0.25 nozzle"
+	]
+}

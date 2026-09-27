@@ -7,7 +7,7 @@
 	"model_id": "TB4",
 	"printer_model": "re3D Terabot 4",
 	"bed_texture": "re3D Terabot 4_buildplate_texture.svg",
-	"default_materials": "re3D PETG;re3D PLA;re3D PC",
+	"default_materials": "re3D PETG @0.4 nozzle;re3D PLA @0.4 nozzle;re3D PC @0.4 nozzle",
 	"printable_area": [
 		"0x0",
 		"915x0",

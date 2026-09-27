@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PP @Tiertime",
+	"inherits": "fdm_filament_pp",
+	"renamed_from": "Tiertime Generic PP",
+	"from": "system",
+	"setting_id": "hbt3RXCxomod1cBQ",
+	"filament_id": "OF1UNk9P",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Tiertime UP400 Pro 0.4 nozzle",
+		"Tiertime UP400 Pro 0.6 nozzle",
+		"Tiertime UP400 Pro 0.8 nozzle",
+		"Tiertime UP310 Pro 0.4 nozzle"
+	]
+}

@@ -55,7 +55,7 @@ void RotoptimizeJob::process(Ctl &ctl)
         sla::RotOptimizeParams{}
             .accuracy(m_accuracy)
             .print_config(&m_default_print_cfg)
-            .statucb([this, &prev_status, &ctl/*, &statustxt*/](int s)
+            .statucb([&ctl/*, &statustxt*/](int s)
         {
             return !ctl.was_canceled();
         });

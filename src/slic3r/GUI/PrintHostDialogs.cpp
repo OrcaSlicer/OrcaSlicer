@@ -2062,7 +2062,7 @@ void CrealityPrintHostSendDialog::init()
             }
 
             for (auto* c : m_slot_combos) {
-                c->Bind(wxEVT_COMBOBOX, [this, ext_slot_idx](wxCommandEvent& e) {
+                c->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
                     int sel = e.GetSelection();
                     if (sel >= 0 && sel < (int)m_printer_slots.size() &&
                         m_printer_slots[sel].box_id == 0) {

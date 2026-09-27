@@ -201,7 +201,7 @@ wxWindow* CalibrationDialog::create_check_option(wxString title, wxWindow* paren
     checkbox->SetToolTip(tooltip);
     text->SetToolTip(tooltip);
 
-    text->Bind(wxEVT_LEFT_DOWN, [this, check](wxMouseEvent&) { check->SetValue(check->GetValue() ? false : true); });
+    text->Bind(wxEVT_LEFT_DOWN, [check](wxMouseEvent&) { check->SetValue(check->GetValue() ? false : true); });
     m_checkbox_list[param] = check;
     m_checkbox_list[param]->SetValue(true);
     return checkbox;

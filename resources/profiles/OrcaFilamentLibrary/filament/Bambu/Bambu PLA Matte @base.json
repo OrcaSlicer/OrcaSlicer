@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Matte @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFA01",
+	"filament_id": "OFXIbw5D",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

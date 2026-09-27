@@ -119,7 +119,6 @@
 	"z_hop_types": [
 		"Auto Lift"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "PAUSE",
@@ -127,7 +126,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Peopoly Generic PLA"
+		"Generic PLA @Peopoly"
 	],
 	"default_print_profile": "fdm_process_peopoly_common_0_2",
 	"bed_exclude_area": [

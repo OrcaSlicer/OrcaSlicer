@@ -8,7 +8,11 @@
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvg/nanosvgrast.h"
 
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCode/WipeTowerEstimate.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -116,17 +120,58 @@ Vec2d printable_area_center(const DynamicPrintConfig &cfg)
     return 0.5 * (lo + hi);
 }
 
-// Slice one centered cube that switches from filament 1 to filament 2 partway up, so exactly one
+// Put the prime tower where the GUI and CLI would before slicing. The config default (x 15, y 220)
+// lies off any bed shallower than the tower, and generation rejects an off-plate tower instead of
+// exporting it. Beside the cube at the bed centre, clear of the edge exclusion strips some beds
+// carry, with a few mm of clearance so the conflict checker never sees the two touch. The cube and
+// the tower's estimated footprint are then pulled inside the printable outline as one rigid pair:
+// moving the tower alone would push it back onto the cube on a narrow bed. Returns that move for
+// the cube.
+Vec2d place_wipe_tower(DynamicPrintConfig &cfg, const Vec2d &center)
+{
+    const auto *area = cfg.option<ConfigOptionPoints>("printable_area");
+    if (area == nullptr || area->values.size() < 3)
+        return Vec2d::Zero();
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(cfg, resolve_wipe_tower_type(cfg), {0, 1}, cfg.opt_float("layer_height"), 10.);
+    if (footprint.depth < EPSILON)
+        return Vec2d::Zero();
+    const double margin = WIPE_TOWER_MARGIN + footprint.brim_width;
+    // The position is the tower's own origin; a rotated tower extends from it in another
+    // direction, so place the rotated box's extents rather than the origin.
+    Slic3r::Polygon box({Point::new_scale(0., 0.), Point::new_scale(footprint.width, 0.), Point::new_scale(footprint.width, footprint.depth), Point::new_scale(0., footprint.depth)});
+    box.rotate(Geometry::deg2rad(cfg.opt_float("wipe_tower_rotation_angle")));
+    const BoundingBox local = get_extents(box);
+    const Vec2d       lo    = unscale(local.min);
+    const Vec2d       size  = unscale(local.max) - lo;
+    Vec2d             pos(center.x() + 5. + margin + 5. - lo.x(), center.y() - size.y() / 2. - lo.y());
+    box.translate(Point::new_scale(pos.x(), pos.y()));
+    // A bed too small for the pair keeps the cube at its centre and places the tower alone.
+    const Polygons    bed{Polygon::new_scale(area->values)};
+    const BoundingBox tower = get_extents(box);
+    BoundingBox       pair  = tower;
+    pair.merge(Point::new_scale(center.x() - 5., center.y() - 5.));
+    pair.merge(Point::new_scale(center.x() + 5., center.y() + 5.));
+    const Point       room  = get_extents(bed).size() - Point::new_scale(2. * margin, 2. * margin);
+    const bool        rigid = pair.size().x() < room.x() && pair.size().y() < room.y();
+    const Vec2d       move  = WipeTower::move_box_inside_polygon(rigid ? pair : tower, bed, scaled<coord_t>(margin)).cast<double>();
+    pos += move;
+    cfg.option<ConfigOptionFloats>("wipe_tower_x", true)->values = {pos.x()};
+    cfg.option<ConfigOptionFloats>("wipe_tower_y", true)->values = {pos.y()};
+    return rigid ? move : Vec2d::Zero();
+}
+
+// Slice one cube that switches from filament 1 to filament 2 partway up, so exactly one
 // filament change fires, then export. The change drives the printer's own change_filament_gcode: on a
 // single-nozzle machine it rides the AMS prime tower (append_tcr), on a multi-nozzle machine it routes
 // through the nozzle swap (set_extruder / append_tcr2) - the engine picks the path from the printer's
 // topology, so one model covers both. An undefined placeholder in any shipped custom g-code throws
 // Slic3r::PlaceholderParserError from export.
-std::string slice_two_color_cube_and_export(const DynamicPrintConfig &cfg, bool is_bbl)
+std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl)
 {
-    const Vec2d center = printable_area_center(cfg);
+    const Vec2d center   = printable_area_center(cfg);
+    const Vec2d cube_min = center - Vec2d(5., 5.) + place_wipe_tower(cfg, center);
     TriangleMesh m = make_cube(10, 10, 10);
-    m.translate(float(center.x() - 5.), float(center.y() - 5.), 0.f);
+    m.translate(static_cast<float>(cube_min.x()), static_cast<float>(cube_min.y()), 0.f);
 
     Model  model;
     Print  print;
@@ -175,6 +220,17 @@ void select_printer_default_presets(PresetBundle &bundle)
     if (const auto *def_fil = printer_preset.config.option<ConfigOptionStrings>("default_filament_profile");
         def_fil != nullptr && !def_fil->values.empty())
         bundle.filaments.select_preset_by_name(def_fil->values.front(), /*force=*/true);
+    // Re-seed the per-slot filament list from that selection, or the sweep's result depends on the
+    // printer sliced before it. Once there are 2+ slots, full_config() builds the filament config from
+    // filament_presets and ignores the selected preset (PresetBundle::full_fff_config), while
+    // update_compatible() only replaces a slot that has gone *incompatible* - and when it does, it ranks
+    // the outgoing preset's alias, then its filament type, above the printer's own default. The sweep
+    // grows every printer to 2 slots and update_multi_material_filament_presets() never shrinks them, so
+    // a material picked up on the first printer rides the whole run. With all vendors loaded the first
+    // printer inherits a TPU (the load-time pick is whichever filament sorts first), the type match
+    // re-resolves it to "Generic TPU @System", and its alias then pins every later printer to that
+    // vendor's own "Generic TPU @..." - which the BBL dual-nozzle profiles rightly refuse to group.
+    bundle.filament_presets.assign(1, bundle.filaments.get_selected_preset_name());
 }
 
 // The vendor/printer currently being sliced, stamped onto every engine log record by the sink below so
@@ -381,7 +437,7 @@ int main(int argc, char* argv[])
     ("generate_presets,g", po::value<bool>()->default_value(false), "Generate user presets for mock test")
     ("slice,s", po::bool_switch()->default_value(false), "Slice a two-colour cube through every printer to expand all custom g-code (catches placeholder/flow errors that static checks miss). Off unless this flag is present.")
     ("outdir,o", po::value<std::string>()->default_value(""), "With -s, also save each printer's g-code to this folder (as <vendor>__<printer>.gcode) for manual inspection. Optional.")
-    ("check_filament_subtypes,f", po::bool_switch()->default_value(false), "Also flag printers with duplicate (ambiguous) filament subtypes. Off unless this flag is present.")
+    ("check_filament_subtypes,f", po::bool_switch()->default_value(true), "Also flag printers with duplicate (ambiguous) filament subtypes. Off unless this flag is present.")
     ("log_level,l", po::value<int>()->default_value(2), "Log level. Optional, default is 2 (warning). Higher values produce more detailed logs.");
     // clang-format on
 

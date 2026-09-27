@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Meltingplot ASA @0.6 nozzle",
+	"inherits": "Meltingplot ASA",
+	"from": "system",
+	"setting_id": "2UdzXwYGT5nqtcdK",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"slow_down_layer_time": [
+		"5"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 0.6 nozzle",
+		"Meltingplot MBL 136 0.6 nozzle",
+		"Meltingplot MBL 308 0.6 nozzle",
+		"Meltingplot MBL 480 0.6 nozzle",
+		"Meltingplot CHX 350 0.6 nozzle"
+	]
+}

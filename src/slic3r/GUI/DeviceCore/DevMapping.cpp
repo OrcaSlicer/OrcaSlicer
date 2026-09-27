@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <nlohmann/json.hpp>
 #include "DevMapping.h"
 #include "DevFilaSystem.h"
@@ -270,7 +272,7 @@ namespace Slic3r
         std::set<int> picked_tar;
         for (int k = 0; k < distance_map.size(); k++)
         {
-            float min_val = INT_MAX;
+            float min_val = std::numeric_limits<float>::max();
             int picked_src_idx = -1;
             int picked_tar_idx = -1;
             for (int i = 0; i < distance_map.size(); i++)

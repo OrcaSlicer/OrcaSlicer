@@ -117,7 +117,6 @@
 		"35"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "CHANGE_FILAMENT",
 	"machine_pause_gcode": "PAUSE",
@@ -125,7 +124,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Blocks Generic PLA"
+		"Generic PLA @Blocks"
 	],
 	"bed_exclude_area": [
 		"0x0"

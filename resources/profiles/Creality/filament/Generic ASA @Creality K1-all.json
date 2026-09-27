@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @Creality K1-all",
+	"inherits": "Generic ASA @Creality",
+	"renamed_from": "Creality Generic ASA @K1-all;Creality Generic ASA K1-all",
+	"from": "system",
+	"setting_id": "GQVdb7ZBWA55Ld0m",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"slow_down_layer_time": [
+		"3"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"compatible_printers": [
+		"Creality K1C 0.6 nozzle",
+		"Creality K1C 0.8 nozzle"
+	]
+}

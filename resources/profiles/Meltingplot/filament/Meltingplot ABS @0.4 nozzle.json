@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Meltingplot ABS @0.4 nozzle",
+	"inherits": "Meltingplot ABS",
+	"from": "system",
+	"setting_id": "NjuuWYHSc7IlwWAy",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"11"
+	],
+	"slow_down_layer_time": [
+		"5"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 0.4 nozzle",
+		"Meltingplot MBL 136 0.4 nozzle",
+		"Meltingplot MBL 308 0.4 nozzle",
+		"Meltingplot MBL 480 0.4 nozzle",
+		"Meltingplot CHX 350 0.4 nozzle"
+	]
+}

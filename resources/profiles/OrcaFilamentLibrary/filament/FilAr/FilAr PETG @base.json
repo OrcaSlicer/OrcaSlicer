@@ -3,7 +3,7 @@
     "name": "FilAr PETG @base",
     "inherits": "fdm_filament_pet",
     "from": "system",
-    "filament_id": "FILARB03",
+    "filament_id": "OF5rnhjh",
     "instantiation": "false",
     "filament_type": [
         "PETG"

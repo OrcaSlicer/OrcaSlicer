@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <functional>
 #include <libslic3r/Config.hpp>
+#include <libslic3r/LifecycleEvents.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -20,7 +21,6 @@
 #include <pybind11/embed.h>
 
 #include "CloudPluginService.hpp"
-#include "PluginFsUtils.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
@@ -159,6 +159,8 @@ public:
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
 
+    bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
+
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
     void unload_all_plugins();
@@ -208,6 +210,8 @@ public:
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
 
+    void dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx);
+
 private:
     PluginManager()                                = default;
     PluginManager(const PluginManager&)            = delete;
@@ -255,6 +259,9 @@ private:
 
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
+    void mark_plugin_install_state_disabled(const std::string& plugin_key);
+    // Revoke permissions after a package replacement so the new package must request them again.
+    void revoke_plugin_permissions(const std::string& plugin_key);
 
     bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error);
     bool delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error);

@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Meltingplot PLA @1.0 nozzle",
+	"inherits": "Meltingplot PLA",
+	"from": "system",
+	"setting_id": "H3n0VPl3CymiK9VN",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"27"
+	],
+	"slow_down_layer_time": [
+		"45"
+	],
+	"compatible_printers": [
+		"Meltingplot MBL 133 1.0 nozzle",
+		"Meltingplot MBL 136 1.0 nozzle",
+		"Meltingplot MBL 308 1.0 nozzle",
+		"Meltingplot MBL 480 1.0 nozzle",
+		"Meltingplot CHX 350 1.0 nozzle"
+	]
+}

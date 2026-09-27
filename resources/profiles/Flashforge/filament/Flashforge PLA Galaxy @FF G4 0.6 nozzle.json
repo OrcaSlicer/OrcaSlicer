@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Galaxy @FF G4 0.6 nozzle",
-	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "D69fWcXioFcpoUjC",
+	"filament_id": "OFJJ0Ar3",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

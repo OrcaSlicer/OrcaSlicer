@@ -1,4 +1,5 @@
 #include "DailyTips.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -245,7 +246,6 @@ DailyTipsPanel::DailyTipsPanel(bool can_expand, DailyTipsLayout layout)
     m_width(0),
     m_height(0),
     m_can_expand(can_expand),
-    m_layout(layout),
     m_uid(DailyTipsPanel::uid++),
     m_dailytips_renderer(std::make_unique<DailyTipsDataRenderer>(layout))
 {

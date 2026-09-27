@@ -32,7 +32,7 @@ namespace Slic3r::TreeSupport3D
 using namespace std::literals;
 
 // or warning
-// had to use a define beacuse the macro processing inside macro BOOST_LOG_TRIVIAL()
+// had to use a define because the macro processing inside macro BOOST_LOG_TRIVIAL()
 #define error_level_not_in_cache debug
 
 //FIXME Machine border is currently ignored.

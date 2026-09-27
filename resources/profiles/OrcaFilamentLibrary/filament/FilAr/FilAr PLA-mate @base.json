@@ -3,7 +3,7 @@
     "name": "FilAr PLA-mate @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "FILARB02",
+    "filament_id": "OFtOoWIj",
     "instantiation": "false",
     "filament_type": [
         "PLA"
@@ -33,15 +33,15 @@
         "210"
     ],
     "hot_plate_temp": [
-        "60"
+        "50"
     ],
     "hot_plate_temp_initial_layer": [
-        "60"
+        "50"
     ],
     "textured_plate_temp": [
-        "60"
+        "50"
     ],
     "textured_plate_temp_initial_layer": [
-        "60"
+        "50"
     ]
 }

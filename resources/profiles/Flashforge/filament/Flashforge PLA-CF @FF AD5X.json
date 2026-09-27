@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA-CF @FF AD5X",
-	"inherits": "Flashforge Generic PLA-CF10",
+	"inherits": "Generic PLA-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "BXPI5Pkp7a6pLrCh",
+	"filament_id": "OF9cAwMK",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

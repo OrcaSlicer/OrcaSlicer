@@ -44,9 +44,6 @@ struct DrainHole
         : pos(p), normal(n), radius(r), height(h), failed(fl)
     {}
 
-    DrainHole(const DrainHole& rhs) :
-        DrainHole(rhs.pos, rhs.normal, rhs.radius, rhs.height, rhs.failed) {}
-    
     bool operator==(const DrainHole &sp) const;
     
     bool operator!=(const DrainHole &sp) const { return !(sp == (*this)); }

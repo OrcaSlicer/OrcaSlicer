@@ -134,7 +134,9 @@ public:
     }
 
 private:
+#if defined(__WXMSW__) || defined(__APPLE__)
     int m_suspended_count = 0;
+#endif
 };
 
 static bool needs_filament_swatch_border(const wxColour& colour)
@@ -519,7 +521,6 @@ public:
         , m_entries(entries)
         , m_colors_rgba(colors_rgba)
         , m_names(names)
-        , m_existing_count(existing_count)
         , m_dialog_anchor(dialog_anchor)
         , m_on_select(std::move(on_select))
         , m_on_add_filament(std::move(on_add_filament))
@@ -533,7 +534,7 @@ public:
 
         m_content = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
         m_content->SetBackgroundColour(pop_bg);
-        m_content->SetScrollRate(0, FromDIP(5));
+        m_content->SetScrollRate(0, FromDIP(20));
         auto* outer = new wxBoxSizer(wxVERTICAL);
 
         const int pop_w   = std::max(FromDIP(213), popup_width);
@@ -877,7 +878,6 @@ private:
     std::vector<TextureFilamentEntry>          m_entries;
     std::vector<std::array<float, 4>>          m_colors_rgba;
     std::vector<std::string>                   m_names;
-    size_t                                     m_existing_count = 0;
     wxWindow*                                  m_dialog_anchor = nullptr;
     std::function<void(int)>                   m_on_select;
     std::function<void(wxColour)>              m_on_add_filament;
@@ -2274,7 +2274,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
 
     m_mapping_scroll = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition,
                                              wxSize(-1, FromDIP(300)));
-    m_mapping_scroll->SetScrollRate(0, FromDIP(10));
+    m_mapping_scroll->SetScrollRate(0, FromDIP(20));
     m_mapping_scroll->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_mapping_scroll->Bind(wxEVT_MOUSEWHEEL, &TextureImportDialog::dismiss_filament_popup_on_wheel, this);
 
@@ -4335,7 +4335,7 @@ void TextureImportDialog::on_dpi_changed(const wxRect&)
 
     if (m_mapping_scroll) {
         m_mapping_scroll->SetMinSize(wxSize(-1, FromDIP(300)));
-        m_mapping_scroll->SetScrollRate(0, FromDIP(10));
+        m_mapping_scroll->SetScrollRate(0, FromDIP(20));
     }
 
     if (m_btn_skip) {

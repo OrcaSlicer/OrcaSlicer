@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Generic PLA HF @Creality",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "Creality HF Generic PLA",
+	"from": "system",
+	"setting_id": "YXqIFmq63jGbN8aZ",
+	"filament_id": "OFZr862X",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"compatible_printers": [
+		"Creality K1 (0.4 nozzle)",
+		"Creality K1 (0.6 nozzle)",
+		"Creality K1 (0.8 nozzle)",
+		"Creality K1 Max (0.4 nozzle)",
+		"Creality K1 Max (0.6 nozzle)",
+		"Creality K1 Max (0.8 nozzle)",
+		"Creality CR-10 SE 0.2 nozzle",
+		"Creality CR-10 SE 0.4 nozzle",
+		"Creality CR-10 SE 0.6 nozzle",
+		"Creality CR-10 SE 0.8 nozzle"
+	]
+}

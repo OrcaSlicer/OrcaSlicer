@@ -3,7 +3,7 @@
 	"name": "eSUN PLA-Basic @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFL04",
+	"filament_id": "OFTcE0nA",
 	"instantiation": "false",
 	"filament_cost": [
 		"11.99"

@@ -1,0 +1,98 @@
+{
+	"type": "filament",
+	"filament_id": "OFDSrzZ8",
+	"setting_id": "NNDerIjh7qtuh1I3",
+	"name": "Generic PLA @Sovol Zero",
+	"renamed_from": "Sovol Zero PLA Basic",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pla",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"25"
+	],
+	"compatible_printers": [
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature": [
+		"210"
+	],
+	"nozzle_temperature_range_low": [
+		"180"
+	],
+	"nozzle_temperature_range_high": [
+		"240"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_cooling_layer_time": [
+		"60"
+	],
+	"full_fan_speed_layer": [
+		"2"
+	],
+	"slow_down_layer_time": [
+		"5"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"temperature_vitrification": [
+		"50"
+	],
+	"filament_z_hop": [
+		"0.4"
+	],
+	"filament_retraction_length": [
+		"0.4"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	]
+}

@@ -5,6 +5,7 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Eryone ER20",
+	"default_materials": "Generic PLA @System",
 	"name": "Eryone ER20",
 	"nozzle_diameter": "0.4;0.2;0.5;0.6;0.8",
 	"type": "machine_model"

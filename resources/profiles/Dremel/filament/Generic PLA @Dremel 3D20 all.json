@@ -1,0 +1,37 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Dremel 3D20 all",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "Dremel Generic PLA @3D20 all;Dremel Generic PLA 3D20 all",
+	"from": "system",
+	"setting_id": "UggXEvCig0b6S8Vx",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"9"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"filament_retraction_length": [
+		"3"
+	],
+	"filament_retraction_speed": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"225"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"compatible_printers": [
+		"Dremel 3D20 0.4 nozzle"
+	]
+}

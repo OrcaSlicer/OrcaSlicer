@@ -14,7 +14,6 @@
 		"3500",
 		"6000"
 	],
-	"elefant_foot_compensation": "0.075",
 	"enable_arc_fitting": "0",
 	"enable_height_slowdown": [
 		"1",
@@ -80,10 +79,6 @@
 		"10",
 		"10"
 	],
-	"overhang_totally_speed": [
-		"10",
-		"10"
-	],
 	"prime_tower_brim_width": "-1",
 	"print_extruder_id": [
 		"1",
@@ -125,7 +120,6 @@
 		"0",
 		"0"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_acceleration": [
 		"100%",
 		"100%"

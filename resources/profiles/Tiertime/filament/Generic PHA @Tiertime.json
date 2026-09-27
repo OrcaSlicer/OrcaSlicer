@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PHA @Tiertime",
+	"inherits": "fdm_filament_pha",
+	"renamed_from": "Tiertime Generic PHA",
+	"from": "system",
+	"setting_id": "GvzA9Y6mP5a767Qb",
+	"filament_id": "OF74KeQR",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Tiertime UP400 Pro 0.4 nozzle",
+		"Tiertime UP400 Pro 0.6 nozzle",
+		"Tiertime UP400 Pro 0.8 nozzle",
+		"Tiertime UP310 Pro 0.4 nozzle"
+	]
+}

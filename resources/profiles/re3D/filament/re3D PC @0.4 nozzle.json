@@ -2,9 +2,10 @@
 	"type": "filament",
 	"name": "re3D PC @0.4 nozzle",
 	"from": "system",
+	"renamed_from": "re3D PC",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pc",
-	"filament_id": "GFG99",
+	"filament_id": "OFU3QXL7",
 	"setting_id": "6yqRE2eSyER7X82N",
 	"filament_settings_id": [
 		"re3D PC @0.4 nozzle"

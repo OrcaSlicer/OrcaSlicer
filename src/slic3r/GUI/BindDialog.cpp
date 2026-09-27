@@ -468,7 +468,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_link_privacy_title->SetFont(Label::Head_13);
      m_link_privacy_title->SetMaxSize(wxSize(FromDIP(450), -1));
      m_link_privacy_title->Wrap(FromDIP(450));
-     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
+     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [](auto& e) {
          std::string url;
          std::string country_code = Slic3r::GUI::wxGetApp().app_config->get_country_code();
 
@@ -558,7 +558,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      //show bind failed info
      m_sw_bind_failed_info = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(450), FromDIP(300)), wxVSCROLL);
      m_sw_bind_failed_info->SetBackgroundColour(*wxWHITE);
-     m_sw_bind_failed_info->SetScrollRate(5, 5);
+     m_sw_bind_failed_info->SetScrollRate(5, FromDIP(20));
      m_sw_bind_failed_info->SetMinSize(wxSize(FromDIP(450), FromDIP(90)));
      m_sw_bind_failed_info->SetMaxSize(wxSize(FromDIP(450), FromDIP(90)));
 
@@ -893,7 +893,7 @@ void BindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
             }).perform();
         }
@@ -1099,7 +1099,7 @@ void UnBindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
                 }).perform();
 

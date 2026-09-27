@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Prusa CORE One 0.6",
+	"inherits": "Generic PETG @Prusa CORE One",
+	"renamed_from": "Prusa Generic PETG @CORE One 0.6;Prusa Generic PETG CORE One 0.6",
+	"from": "system",
+	"setting_id": "oPWpCDB3p6hQeY2F",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.6 nozzle"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"filament_max_volumetric_speed": [
+		"17"
+	],
+	"slow_down_layer_time": [
+		"15"
+	]
+}

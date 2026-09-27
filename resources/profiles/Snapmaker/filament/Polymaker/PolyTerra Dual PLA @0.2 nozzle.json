@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "PolyTerra Dual PLA @0.2 nozzle",
 	"inherits": "PolyTerra PLA @0.2 nozzle",
+	"filament_id": "OFCccVrQ",
 	"from": "system",
 	"setting_id": "UQYgjH1uVxf3d2Nv",
 	"instantiation": "true",

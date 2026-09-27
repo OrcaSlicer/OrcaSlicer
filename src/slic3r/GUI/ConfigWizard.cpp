@@ -2710,7 +2710,7 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     SetSizerAndFit(vsizer);
 
     // We can now enable scrolling on hscroll
-    p->hscroll->SetScrollRate(30, 30);
+    p->hscroll->SetScrollRate(30, FromDIP(20));
 
     on_window_geometry(this, [this]() {
         p->init_dialog_size();
@@ -2752,7 +2752,7 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     });
 
     if (wxLinux_gtk3)
-        this->Bind(wxEVT_SHOW, [this, vsizer](const wxShowEvent& e) {
+        this->Bind(wxEVT_SHOW, [](const wxShowEvent& e) {
             ;
         });
 

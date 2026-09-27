@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PLA Burnt Ti @FF G4 HF",
-	"inherits": "Flashforge Generic ABS @G3U",
+	"inherits": "Generic ABS @Flashforge G3U",
 	"from": "system",
 	"setting_id": "px8qzmB2yFLoNl83",
+	"filament_id": "OF8O09RG",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

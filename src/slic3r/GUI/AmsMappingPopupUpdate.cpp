@@ -406,7 +406,7 @@ void AmsMapingPopup::update_ams_data_multi_machines()
         int ams_type = 1;
         int nozzle_id = 0;
 
-        if (ams_type >= 1 || ams_type <= 3) { // 1:ams 2:ams-lite 3:n3f
+        if (ams_type >= 1 && ams_type <= 3) { // 1:ams 2:ams-lite 3:n3f
 
             auto sizer_mapping_list = new wxBoxSizer(wxHORIZONTAL);
             auto ams_mapping_item_container = new MappingContainer(nozzle_id == 0 ? m_right_marea_panel : m_left_marea_panel, "AMS-1", 4);

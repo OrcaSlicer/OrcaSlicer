@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Prusa CORE One 0.6",
+	"inherits": "Generic ABS @Prusa CORE One",
+	"renamed_from": "Prusa Generic ABS @CORE One 0.6;Prusa Generic ABS CORE One 0.6",
+	"from": "system",
+	"setting_id": "PYQhstNvKFJ7qsxe",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.6 nozzle"
+	]
+}

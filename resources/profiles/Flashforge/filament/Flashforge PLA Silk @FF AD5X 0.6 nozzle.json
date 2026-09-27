@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Silk @FF AD5X 0.6 nozzle",
-	"inherits": "Flashforge Generic PLA-Silk",
+	"inherits": "Generic PLA-Silk @Flashforge",
 	"from": "system",
 	"setting_id": "YH9IHXOFMKwcTLyA",
+	"filament_id": "OFgjgN35",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"
@@ -21,7 +25,7 @@
 		"Flashforge PLA Silk @FF AD5X 0.6 nozzle"
 	],
 	"filament_type": [
-		"SILK"
+		"PLA"
 	],
 	"compatible_printers": [
 		"Flashforge AD5X 0.6 nozzle"

@@ -762,7 +762,7 @@ void CaliPageActionPanel::bind_button(CaliPageActionType action_type, bool is_bl
 
             if (is_block) {
                 m_action_btns[i]->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent& evt) {
+                    [](wxCommandEvent& evt) {
                         MessageDialog msg(nullptr, _L("The current firmware version of the printer does not support calibration.\nPlease upgrade the printer firmware."), _L("Calibration not supported"), wxOK | wxICON_WARNING);
                         msg.ShowModal();
                     });
@@ -834,7 +834,7 @@ void CaliPageSendingPanel::create(wxWindow* parent)
 
     m_sw_print_failed_info = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(380), FromDIP(125)), wxVSCROLL);
     m_sw_print_failed_info->SetBackgroundColour(*wxWHITE);
-    m_sw_print_failed_info->SetScrollRate(0, 5);
+    m_sw_print_failed_info->SetScrollRate(0, FromDIP(20));
     m_sw_print_failed_info->SetMinSize(wxSize(FromDIP(380), FromDIP(125)));
     m_sw_print_failed_info->SetMaxSize(wxSize(FromDIP(380), FromDIP(125)));
 

@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @DeltaMaker",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "DeltaMaker Generic PLA",
+	"from": "system",
+	"setting_id": "ITJo0Cig9myqk1uB",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.987"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"compatible_printers": [
+		"DeltaMaker 2 0.35 nozzle",
+		"DeltaMaker 2T 0.5 nozzle",
+		"DeltaMaker 2XT 0.5 nozzle"
+	]
+}

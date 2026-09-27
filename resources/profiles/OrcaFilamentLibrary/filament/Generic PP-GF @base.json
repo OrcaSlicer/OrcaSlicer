@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic PP-GF @base",
+	"inherits": "fdm_filament_pp",
+	"from": "system",
+	"filament_id": "OFsijjtH",
+	"instantiation": "false",
+	"filament_type": [
+		"PP-GF"
+	]
+}

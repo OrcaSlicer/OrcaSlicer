@@ -1,5 +1,6 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
@@ -147,7 +148,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_line->SetBackgroundColour(wxColor(238, 238, 238));
 
     m_list_view = new wxScrolledWindow(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxSize(267, -1), wxHSCROLL | wxVSCROLL);
-    m_list_view->SetScrollRate(5, 5);
+    m_list_view->SetScrollRate(5, FromDIP(30));
     m_list_view->SetMinSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetMaxSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetBackgroundColour(*wxWHITE);

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Marble @Elegoo Giga",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Marble @base",
 	"from": "system",
 	"setting_id": "6mfjc7t9ntuG1ZKW",
 	"instantiation": "true",

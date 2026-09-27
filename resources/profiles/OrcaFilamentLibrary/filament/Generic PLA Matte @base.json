@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Matte @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFmY0l6t",
+	"instantiation": "false"
+}

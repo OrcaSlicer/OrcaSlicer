@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @FlyingBear",
+	"inherits": "fdm_filament_tpu",
+	"renamed_from": "FlyingBear Generic TPU",
+	"from": "system",
+	"setting_id": "Xdx2FIIQiqSz7DpN",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_max_volumetric_speed": [
+		"3"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.13"
+	],
+	"compatible_printers": [
+		"FlyingBear Reborn3 0.4 nozzle",
+		"FlyingBear Ghost 6 0.4 nozzle"
+	]
+}

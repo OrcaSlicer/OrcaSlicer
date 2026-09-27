@@ -1,0 +1,93 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Matte @BBL P2S 0.2 nozzle",
+    "inherits": "Bambu PETG Matte @base",
+    "from": "system",
+    "setting_id": "GFSG03_38",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10"
+    ],
+    "filament_density": [
+        "1.37"
+    ],
+    "filament_flush_volumetric_speed": [
+        "3",
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "1",
+        "1"
+    ],
+    "filament_overhang_2_4_speed": [
+        "80",
+        "50"
+    ],
+    "filament_overhang_3_4_speed": [
+        "50",
+        "30"
+    ],
+    "filament_overhang_4_4_speed": [
+        "50",
+        "10"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "10",
+        "10"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "nil"
+    ],
+    "filament_tower_ironing_area": [
+        "8"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "245",
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245",
+        "245"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "supertack_plate_temp": [
+        "60"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P2S 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

@@ -862,7 +862,6 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
             if (new_extra_ams_ver != obj->new_ver_list.end())
                 has_new_version = true;
 
-            extra_ams_it->second.sw_new_ver;
             if (has_new_version) {
                 m_extra_ams_panel->m_ams_new_version_img->Show();
                 ver_text = new_extra_ams_ver->second.sw_ver;
@@ -1630,7 +1629,7 @@ UpgradePanel::UpgradePanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
     auto m_main_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(5, 25);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
 
     m_machine_list_sizer = new wxBoxSizer(wxVERTICAL);
 

@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Basic @FF G4P 0.8 HF nozzle",
-	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "44BmRNRb6vlPq8qe",
+	"filament_id": "OFJ3F2jm",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

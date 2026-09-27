@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Matte @FF G4",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "OgqVyIHfy3U8Dc6d",
+	"filament_id": "OF6qAuyi",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

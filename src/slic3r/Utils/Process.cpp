@@ -21,6 +21,7 @@
     #include <boost/process/args.hpp>
 #endif
 
+#include <wx/filename.h>
 #include <wx/stdpaths.h>
 
 namespace Slic3r {

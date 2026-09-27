@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Generic PC @FLSun",
+	"inherits": "fdm_filament_pc",
+	"renamed_from": "FLSun Generic PC",
+	"from": "system",
+	"setting_id": "Ok08F2LxNjxor6ph",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"compatible_printers": [
+		"FLSun Q5 0.4 nozzle",
+		"FLSun QQ-S Pro 0.4 nozzle",
+		"FLSun Super Racer 0.4 nozzle",
+		"FLSun V400 0.4 nozzle"
+	]
+}

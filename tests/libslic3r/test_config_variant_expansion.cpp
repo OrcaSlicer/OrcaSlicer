@@ -130,6 +130,12 @@ TEST_CASE("get_config_index_base resolves (volume type, extruder type, id) to a 
     }
 }
 
+TEST_CASE("support interface pattern registry includes spiral inset", "[Config]")
+{
+    const auto &values = ConfigOptionEnum<SupportMaterialInterfacePattern>::get_enum_values();
+    REQUIRE(values.at("spiralinset") == SupportMaterialInterfacePattern::smipSpiralInset);
+}
+
 TEST_CASE("get_extruder_nozzle_volume_count reads the per-extruder volume-type layout", "[Config]")
 {
     std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
@@ -478,4 +484,157 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
         REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
         REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
     }
+
+    SECTION("a variant option shorter than the filament slots keeps its first value instead of zero") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtHighFlow};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard,Direct Drive High Flow",
+                                                                                     "Direct Drive Standard,Direct Drive High Flow"};
+        make_filament_arrays(config);
+        config.option<ConfigOptionInts>("filament_map", true)->values = {1, 2};
+        // no loaded preset carries the key, so only its single registered default is present
+        config.option<ConfigOptionFloatsNullable>("filament_cooling_before_tower", true)->values = {10.};
+        // only the first filament's two variant columns were loaded
+        config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed", true)->values = {-1., -2.};
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 2;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+
+        config.update_values_to_printer_extruders_for_multiple_filaments(config, extruder_count, count, filament_keys,
+            "filament_self_index", "filament_extruder_variant");
+
+        // filament 2 resolves to column 3 (its extruder's High Flow column), past the end of both vectors
+        REQUIRE_THAT(config.option<ConfigOptionFloatsNullable>("filament_cooling_before_tower")->values,
+                     Catch::Matchers::Approx(std::vector<double>({10., 10.})));
+        REQUIRE_THAT(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed")->values,
+                     Catch::Matchers::Approx(std::vector<double>({-1., -1.})));
+        REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
+    }
+}
+
+// update_values_from_multi_to_multi_2 walks the DESTINATION PRINTER's variant list while writing
+// into a row taken from the destination PRINT preset, whose arrays are sized to its own
+// print_extruder_variant. Those two widths disagree until the print preset is re-selected for the
+// new printer -- Tab::load_current_preset() runs this migration first -- so a project authored on
+// a single-variant printer, opened and switched to a wider one, wrote past the end of the row.
+TEST_CASE("update_values_from_multi_to_multi_2 sizes the destination row to the variant count",
+          "[Config][VariantExpansion]")
+{
+    const std::vector<std::string> src_variants{"Direct Drive Standard"};
+    const std::vector<std::string> dst_variants{"Direct Drive Standard", "Direct Drive High Flow",
+                                                "Direct Drive Standard", "Direct Drive High Flow"};
+    const std::set<std::string>    keys{"outer_wall_speed"};
+
+    // The per-object override as authored on the single-variant printer.
+    const auto object_override = [] {
+        DynamicPrintConfig c;
+        c.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {42.};
+        return c;
+    };
+
+    SECTION("a row narrower than the variant list is grown, not overrun") {
+        DynamicPrintConfig object_config = object_override();
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200.};
+
+        REQUIRE(object_config.update_values_from_multi_to_multi_2(src_variants, dst_variants, dst, keys) == 0);
+
+        const auto& out = object_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(out.size() == dst_variants.size());
+        // Both "Direct Drive Standard" columns match the source variant, so they take the override.
+        CHECK(out[0] == Catch::Approx(42.));
+        CHECK(out[2] == Catch::Approx(42.));
+        // The High Flow columns have no matching source variant: nil, so the destination keeps
+        // tracking the print preset rather than being pinned to another variant's value.
+        CHECK(std::isnan(out[1]));
+        CHECK(std::isnan(out[3]));
+    }
+
+    // The regression guard: where the row already matches the variant list -- every case that was
+    // not corrupting the heap -- the resize is a no-op and the output is unchanged.
+    SECTION("a correctly sized row is untouched") {
+        DynamicPrintConfig object_config = object_override();
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200., 500., 210., 510.};
+
+        REQUIRE(object_config.update_values_from_multi_to_multi_2(src_variants, dst_variants, dst, keys) == 0);
+
+        const auto& out = object_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(out.size() == 4);
+        CHECK(out[0] == Catch::Approx(42.));    // matched -> override
+        CHECK(out[1] == Catch::Approx(500.));   // unmatched -> preset value preserved
+        CHECK(out[2] == Catch::Approx(42.));
+        CHECK(out[3] == Catch::Approx(510.));
+    }
+
+    // is_nil(idx) indexes values[idx] with no bounds check, so a source shorter than its own
+    // variant list read out of range before the guard was added.
+    SECTION("a source shorter than its variant list is read in range") {
+        DynamicPrintConfig object_config = object_override();   // one value...
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200., 500.};
+
+        REQUIRE(object_config.update_values_from_multi_to_multi_2(
+            {"Direct Drive Standard", "Direct Drive Standard"},   // ...but two source variants
+            {"Direct Drive Standard", "Direct Drive High Flow"}, dst, keys) == 0);
+
+        const auto& out = object_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(out.size() == 2);
+        CHECK(out[0] == Catch::Approx(42.));
+        CHECK(out[1] == Catch::Approx(500.));
+    }
+
+    SECTION("an empty destination variant list is refused") {
+        DynamicPrintConfig object_config = object_override();
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200.};
+
+        CHECK(object_config.update_values_from_multi_to_multi_2(src_variants, {}, dst, keys) == -1);
+    }
+}
+
+TEST_CASE("get_index_for_extruder returns -1 when no variant column matches the extruder", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+
+    SECTION("the extruder that owns the column resolves to its slot") {
+        REQUIRE(config.get_index_for_extruder(1, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == 0);
+    }
+
+    SECTION("an extruder with no matching column resolves to -1") {
+        REQUIRE(config.get_index_for_extruder(2, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == -1);
+    }
+}
+
+// stride scales the returned slot so callers can address stride-2 options (machine_max_*, a
+// Normal/Silent pair per column) by their pair's base slot. The printer Tab's extruder sync
+// relies on this to copy the right slots on the Motion ability page.
+TEST_CASE("get_index_for_extruder scales the variant column by the requested stride", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("printer_extruder_id", true)->values = {1, 2};
+    config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values = {"Direct Drive Standard",
+                                                                                    "Direct Drive High Flow"};
+
+    // extruder 1 resolves to column 0, extruder 2 to column 1
+    const int col0_stride1 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 1);
+    const int col1_stride1 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 1);
+    REQUIRE(col0_stride1 == 0);
+    REQUIRE(col1_stride1 == 1);
+
+    // stride 2 returns exactly twice the stride-1 index (the pair's base slot)
+    const int col0_stride2 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 2);
+    const int col1_stride2 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 2);
+    REQUIRE(col0_stride2 == col0_stride1 * 2);
+    REQUIRE(col1_stride2 == col1_stride1 * 2);
+    REQUIRE(col0_stride2 == 0);
+    REQUIRE(col1_stride2 == 2);
 }

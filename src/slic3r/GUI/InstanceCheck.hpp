@@ -87,7 +87,6 @@ private:
 	std::condition_variable m_thread_stop_condition;
 	mutable std::mutex 		m_thread_stop_mutex;
 	bool 					m_stop{ false };
-	bool					m_start{ true };
 	
 	// background thread method
 	void    listen();

@@ -38,7 +38,6 @@
 	"support_speed": "300",
 	"detect_overhang_wall": "1",
 	"enable_overhang_speed": "1",
-	"overhang_speed_classic": "0",
 	"overhang_1_4_speed": "0",
 	"overhang_2_4_speed": "50",
 	"overhang_3_4_speed": "30",

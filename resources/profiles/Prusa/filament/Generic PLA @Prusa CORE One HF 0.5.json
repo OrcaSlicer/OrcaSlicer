@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Prusa CORE One HF 0.5",
+	"inherits": "Generic PLA @Prusa CORE One",
+	"renamed_from": "Prusa Generic PLA @CORE One HF 0.5;Prusa Generic PLA CORE One HF 0.5",
+	"from": "system",
+	"setting_id": "NPEs4gtBlKWupYZX",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One HF 0.5 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"25"
+	],
+	"filament_start_gcode": [
+		"M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.036{elsif nozzle_diameter[filament_extruder_id]==0.5}0.026{elsif nozzle_diameter[filament_extruder_id]==0.6}0.022{elsif nozzle_diameter[filament_extruder_id]==0.8}0.015{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.08{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+	],
+	"nozzle_temperature": [
+		"225"
+	],
+	"slow_down_layer_time": [
+		"11"
+	]
+}

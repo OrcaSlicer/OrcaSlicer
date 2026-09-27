@@ -4,6 +4,7 @@
 	"inherits": "Artillery PLA @Artillery M1 Pro 0.8 nozzle",
 	"from": "User",
 	"setting_id": "dr2wlzDc1AC3tciI",
+	"filament_id": "OFLbXwoL",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"12"

@@ -1,9 +1,11 @@
 #include "GLGizmoBrimEars.hpp"
 #include <glad/gl.h>
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -45,7 +47,7 @@ bool GLGizmoBrimEars::on_init()
 {
     m_new_point_head_radius = get_brim_default_radius();
 
-    m_shortcut_key = WXK_CONTROL_E;
+    m_shortcut = Shortcut::GizmoBrimEars;
 
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
     const wxString alt  = GUI::shortkey_alt_prefix();
@@ -342,7 +344,7 @@ bool GLGizmoBrimEars::on_mouse(const wxMouseEvent& mouse_event)
 // concludes that the event was not intended for it, it should return false.
 bool GLGizmoBrimEars::gizmo_event(SLAGizmoEventType action, const Vec2d &mouse_position, bool shift_down, bool alt_down, bool control_down)
 {
-    if (action != SLAGizmoEventType::MouseWheelDown || action != SLAGizmoEventType::MouseWheelUp || action != SLAGizmoEventType::Moving) {
+    if (action != SLAGizmoEventType::MouseWheelDown && action != SLAGizmoEventType::MouseWheelUp && action != SLAGizmoEventType::Moving) {
         apply_radius_change();
     }
 

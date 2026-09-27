@@ -1,5 +1,6 @@
 #include "GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/MeshBoolean.hpp"
@@ -104,7 +105,7 @@ bool GLGizmoMeshBoolean::on_mouse(const wxMouseEvent &mouse_event)
 
 bool GLGizmoMeshBoolean::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_B;
+    m_shortcut = Shortcut::GizmoMeshBoolean;
     return true;
 }
 
@@ -223,7 +224,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
 
     const int select_btn_length = 2 * ImGui::GetStyle().FramePadding.x + std::max(ImGui::CalcTextSize(("1 " + _u8L("selected")).c_str()).x, ImGui::CalcTextSize(_u8L("Select").c_str()).x);
 
-    auto selectable = [this](const std::string& label, bool selected, const ImVec2& size_arg) {
+    auto selectable = [](const std::string& label, bool selected, const ImVec2& size_arg) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
 
         ImGuiWindow* window = ImGui::GetCurrentWindow();

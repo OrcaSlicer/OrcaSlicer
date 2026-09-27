@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA Basic @FF AD5X",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "i7PUPYxy0Z9weyyA",
+	"filament_id": "OFFFg2Pf",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"
@@ -25,6 +29,9 @@
 	],
 	"filament_settings_id": [
 		"Flashforge ASA Basic @FF AD5X"
+	],
+	"filament_type": [
+		"ASA"
 	],
 	"compatible_printers": [
 		"Flashforge AD5X 0.4 nozzle"

@@ -84,3 +84,104 @@ SCENARIO("Polygon flattening", "[ExtrusionEntity]") {
         }
     }
 }
+
+static ExtrusionPaths straight_path(const std::vector<double> &xs)
+{
+    ExtrusionPath path{erExternalPerimeter, 1.0, 0.45f, 0.2f};
+    for (double x : xs)
+        path.polyline.append(Point3::new_scale(x, 0., 0.));
+    return {path};
+}
+
+TEST_CASE("Scarf ramp ends on the next loop vertex instead of leaving a short stub", "[ExtrusionEntity]")
+{
+    using Catch::Matchers::WithinAbs;
+    // A 20 mm scarf in 10 steps: a remainder shorter than half a 2 mm step is snapped forward.
+    const double slope_length = 20.;
+    const double max_segment  = scale_(slope_length / 10);
+
+    SECTION("a 0.09 mm remainder extends the ramp to the vertex") {
+        ExtrusionPaths     paths = straight_path({0., 5., 10., 15., 20.09, 25., 30.});
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 1);
+        REQUIRE(loop.ends.size() == 1);
+        REQUIRE(loop.paths.size() == 1);
+        CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20.09, 1e-3));
+        CHECK_THAT(unscale_(loop.ends.front().polyline.last_point().x()), WithinAbs(20.09, 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.first_point().x()), WithinAbs(20.09, 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.lines().front().length()), WithinAbs(4.91, 1e-3));
+    }
+
+    SECTION("a remainder longer than half a step keeps the exact scarf length") {
+        ExtrusionPaths     paths = straight_path({0., 5., 10., 15., 21.5, 25., 30.});
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 1);
+        REQUIRE(loop.paths.size() == 1);
+        CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20., 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.first_point().x()), WithinAbs(20., 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.lines().front().length()), WithinAbs(1.5, 1e-3));
+    }
+
+    SECTION("the ramp never grows by more than a millimetre, whatever the step size") {
+        ExtrusionPaths     paths = straight_path({0., 5., 10., 15., 21.5, 25., 30.});
+        ExtrusionLoopSloped loop(paths, 0., slope_length, scale_(slope_length), 0.); // a single 20 mm step
+        REQUIRE(loop.paths.size() == 1);
+        CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20., 1e-3));
+    }
+
+    SECTION("snapping onto the path's last vertex leaves no single-point flat path") {
+        ExtrusionPaths     paths = straight_path({0., 5., 10., 15., 20.5});
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 1);
+        CHECK(loop.paths.empty());
+        CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20.5, 1e-3));
+    }
+}
+
+TEST_CASE("Scarf loop drops the micro segments the seam insertion leaves at both ends", "[ExtrusionEntity]")
+{
+    using Catch::Matchers::WithinAbs;
+    const double slope_length = 20.;
+    const double max_segment  = scale_(slope_length / 10);
+
+    SECTION("a 3 um segment at each end of a single path is removed, the seam point stays") {
+        ExtrusionPaths     paths = straight_path({0., 0.003, 5., 10., 15., 21.5, 25., 29.997, 30.});
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 1);
+        REQUIRE(loop.paths.size() == 1);
+        const Polyline3 &start = loop.starts.front().polyline;
+        CHECK_THAT(unscale_(start.first_point().x()), WithinAbs(0., 1e-4));
+        CHECK_THAT(unscale_(start.lines().front().length()), WithinAbs(1.25, 1e-3)); // 5 mm halved twice
+        const Polyline3 &flat = loop.paths.front().polyline;
+        CHECK_THAT(unscale_(flat.last_point().x()), WithinAbs(30., 1e-4));
+        CHECK_THAT(unscale_(flat.lines().back().length()), WithinAbs(5., 1e-3));
+    }
+
+    SECTION("a micro path of its own is dropped and the neighbour ends at the seam point") {
+        ExtrusionPaths paths = straight_path({0., 0.003});
+        ExtrusionPaths rest  = straight_path({0.003, 5., 10., 15., 21.5, 25., 30.});
+        paths.push_back(rest.front());
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 1);
+        CHECK_THAT(unscale_(loop.starts.front().polyline.first_point().x()), WithinAbs(0., 1e-4));
+        CHECK_THAT(unscale_(loop.starts.front().polyline.lines().front().length()), WithinAbs(1.25, 1e-3));
+    }
+
+    SECTION("a scarf covering the whole loop still ends at full flow after a trim") {
+        // The caller sizes the scarf from the untrimmed loop: 10.003 mm here, 10 mm after the trim.
+        ExtrusionPaths     paths = straight_path({0., 0.003, 5., 10.});
+        ExtrusionLoopSloped loop(paths, 0., 10.003, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 1);
+        CHECK(loop.paths.empty());
+        CHECK_THAT(loop.starts.back().slope_end.e_ratio, WithinAbs(1., 1e-9));
+        CHECK_THAT(unscale_(loop.starts.back().polyline.last_point().x()), WithinAbs(10., 1e-4));
+    }
+
+    SECTION("segments longer than the tolerance are kept") {
+        ExtrusionPaths     paths = straight_path({0., 0.3, 5., 10., 15., 21.5, 25., 29.7, 30.});
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.paths.size() == 1);
+        CHECK_THAT(unscale_(loop.starts.front().polyline.lines().front().length()), WithinAbs(0.3, 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.lines().back().length()), WithinAbs(0.3, 1e-3));
+    }
+}

@@ -4,6 +4,7 @@
 	"inherits": "Generic PA @base",
 	"from": "system",
 	"setting_id": "TPgpyakWZ7NjVnj5",
+	"filament_id": "OFhTPf6L",
 	"instantiation": "true",
 	"fan_min_speed": [
 		"10"

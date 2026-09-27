@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Prusa MK3.5",
+	"inherits": "fdm_filament_pc",
+	"renamed_from": "Prusa Generic PC @MK3.5;Prusa Generic PC MK3.5",
+	"from": "system",
+	"setting_id": "awF5u8ojSKhvSYud",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.05"
+	],
+	"compatible_printers": [
+		"Prusa MK3.5 0.4 nozzle"
+	]
+}

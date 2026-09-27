@@ -1,9 +1,13 @@
 {
 	"type": "filament",
 	"name": "Flashforge TPU 95A",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "J4EaFhnpkLDcl5wH",
+	"filament_id": "OFSqIcJC",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge TPU 95A"
@@ -14,9 +18,6 @@
 		"Flashforge Adventurer 5M 0.8 Nozzle",
 		"Flashforge Adventurer 5M Pro 0.4 Nozzle",
 		"Flashforge Adventurer 5M Pro 0.6 Nozzle",
-		"Flashforge Adventurer 5M Pro 0.8 Nozzle",
-		"Flashforge AD5X 0.4 nozzle",
-		"Flashforge AD5X 0.6 nozzle",
-		"Flashforge AD5X 0.8 nozzle"
+		"Flashforge Adventurer 5M Pro 0.8 Nozzle"
 	]
 }

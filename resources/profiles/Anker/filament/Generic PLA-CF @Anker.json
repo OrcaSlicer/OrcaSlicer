@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @Anker",
+	"inherits": "Generic PLA-CF @Anker base",
+	"renamed_from": "Anker Generic PLA-CF",
+	"from": "system",
+	"setting_id": "5AdjHUxRi8LCU4E9",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anker M5 0.4 nozzle",
+		"Anker M5 0.6 nozzle",
+		"Anker M5 All-Metal 0.4 nozzle",
+		"Anker M5 All-Metal 0.6 nozzle",
+		"Anker M5C 0.4 nozzle",
+		"Anker M5C 0.6 nozzle"
+	]
+}

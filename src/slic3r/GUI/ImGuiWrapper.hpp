@@ -98,7 +98,11 @@ public:
     const ImWchar *get_glyph_ranges() const { return m_glyph_ranges; } // language specific
 
     void new_frame();
-    void render();
+    // Ends the frame and returns its draw data without drawing it.
+    ImDrawData* end_frame();
+    void render(ImDrawData* draw_data);
+    // Hash of every draw list's vertices, indices and commands.
+    static ImGuiID draw_data_signature(const ImDrawData* draw_data);
 
     float scaled(float x) const { return x * m_font_size; }
     ImVec2 scaled(float x, float y) const { return ImVec2(x * m_font_size, y * m_font_size); }

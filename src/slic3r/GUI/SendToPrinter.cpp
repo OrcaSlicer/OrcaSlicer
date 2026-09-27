@@ -384,7 +384,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     //show bind failed info
     m_sw_print_failed_info = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(380), FromDIP(125)), wxVSCROLL);
     m_sw_print_failed_info->SetBackgroundColour(*wxWHITE);
-    m_sw_print_failed_info->SetScrollRate(0, 5);
+    m_sw_print_failed_info->SetScrollRate(0, FromDIP(20));
     m_sw_print_failed_info->SetMinSize(wxSize(FromDIP(380), FromDIP(125)));
     m_sw_print_failed_info->SetMaxSize(wxSize(FromDIP(380), FromDIP(125)));
 
@@ -1391,7 +1391,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
             update_print_status_msg(wxEmptyString, true, true);
             m_connecting_panel->Show();
             m_animaicon->Stop();
-            m_animaicon->Enable();
+            m_animaicon->ShowEnabledIcon();
 
             Layout();
             Enable_Send_Button(false);

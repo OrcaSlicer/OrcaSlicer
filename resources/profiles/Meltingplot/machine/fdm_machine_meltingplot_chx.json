@@ -1,0 +1,71 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_meltingplot_chx",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"fan_kickstart": "0.5",
+	"fan_speedup_time": "1",
+	"machine_max_acceleration_e": [
+		"3000"
+	],
+	"machine_max_acceleration_extruding": [
+		"6000"
+	],
+	"machine_max_acceleration_retracting": [
+		"3000"
+	],
+	"machine_max_acceleration_travel": [
+		"6000"
+	],
+	"machine_max_acceleration_x": [
+		"6000"
+	],
+	"machine_max_acceleration_y": [
+		"6000"
+	],
+	"machine_max_acceleration_z": [
+		"400"
+	],
+	"machine_max_jerk_e": [
+		"33.33"
+	],
+	"machine_max_jerk_x": [
+		"12"
+	],
+	"machine_max_jerk_y": [
+		"12"
+	],
+	"machine_max_jerk_z": [
+		"1.2"
+	],
+	"machine_max_speed_x": [
+		"833.33"
+	],
+	"machine_max_speed_y": [
+		"1000"
+	],
+	"machine_max_speed_z": [
+		"30"
+	],
+	"extruder_clearance_radius": "65",
+	"extruder_clearance_height_to_rod": "20",
+	"extruder_clearance_height_to_lid": "150",
+	"nozzle_type": [
+		"stainless_steel"
+	],
+	"min_resonance_avoidance_speed": "40",
+	"max_resonance_avoidance_speed": "105",
+	"time_cost": "5",
+	"retraction_minimum_travel": [
+		"2"
+	],
+	"retraction_speed": [
+		"60"
+	],
+	"deretraction_speed": [
+		"40"
+	],
+	"printable_height": "943",
+	"machine_start_gcode": "M140 P0 S{first_layer_bed_temperature[0]} ; set bed temp\nG10 P0 S{first_layer_temperature[0]}\nM568 P0 R{first_layer_temperature[0] + standby_temperature_delta} S{first_layer_temperature[0]} A2\n\nM83 ; use relative distances for extrusion\nG90 ; use absolute coordinates\n\nM98 P\"0:/sys/meltingplot/print_start\""
+}

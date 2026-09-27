@@ -32,13 +32,21 @@ jobs:
             }
 
             const allowedLabels = [
+              // kind of change
+              'crash',
               'bug-fix',
               'enhancement',
-              'Localization',
-              'profile',
               'QoL',
+              'optimization',
+              // area
               'UI/UX',
-              'dependencies'
+              'profile',
+              'Localization',
+              // infrastructure
+              'build',
+              'test',
+              'dependencies',
+              'documentation'
             ];
             const pr = context.payload.pull_request;
             const labelsList = `${allowedLabels
@@ -182,13 +190,21 @@ jobs:
             }
 
             const allowedLabels = [
+              // kind of change
+              'crash',
               'bug-fix',
               'enhancement',
-              'Localization',
-              'profile',
               'QoL',
+              'optimization',
+              // area
               'UI/UX',
-              'dependencies'
+              'profile',
+              'Localization',
+              // infrastructure
+              'build',
+              'test',
+              'dependencies',
+              'documentation'
             ];
 
             const issue = context.payload.issue;

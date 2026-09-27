@@ -1,4 +1,7 @@
 #include "SendJob.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r/MTUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -146,6 +149,13 @@ void SendJob::process(Ctl &ctl)
         }
     }
 
+    LifecycleEventContext start_ctx;
+    start_ctx.name = m_project_name;
+    start_ctx.device_id = m_dev_id;
+    start_ctx.source = "send_job";
+    fire_lifecycle_event(LifecycleEvent::SendJobStarted, start_ctx);
+    m_lifecycle_started = true;
+
     int total_plate_num = m_plater->get_partplate_list().get_plate_count();
 
     PartPlate* plate = m_plater->get_partplate_list().get_plate(job_data.plate_idx);
@@ -213,7 +223,6 @@ void SendJob::process(Ctl &ctl)
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
     params.use_ssl_for_mqtt = m_local_use_ssl;
-    wxString error_text;
     std::string msg_text;
 
     const int StagePercentPoint[(int)PrintingStageFinished + 1] = {
@@ -227,7 +236,7 @@ void SendJob::process(Ctl &ctl)
     };
 
     auto update_fn = [this, &ctl,
-        &msg, &curr_percent, &error_text, StagePercentPoint](int stage, int code, std::string info) {
+        &msg, &curr_percent, StagePercentPoint](int stage, int code, std::string info) {
                         if (stage == SendingPrintJobStage::PrintingStageCreate) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending G-code file over LAN");
@@ -421,6 +430,19 @@ void SendJob::finalize(bool canceled, std::exception_ptr &eptr)
         eptr = nullptr;
     } catch (...) {
         eptr = std::current_exception();
+    }
+
+    if (m_lifecycle_started && !m_lifecycle_finished) {
+        LifecycleEventContext finish_ctx;
+        finish_ctx.name = m_project_name;
+        finish_ctx.device_id = m_dev_id;
+        finish_ctx.source = "send_job";
+        finish_ctx.code = canceled ? LifecycleEvtCode::Warn :
+            (eptr ? LifecycleEvtCode::Error : (m_job_finished ? LifecycleEvtCode::Ok : LifecycleEvtCode::Error));
+        finish_ctx.msg = canceled ? "cancelled" : (eptr ? "exception" :
+            (m_job_finished ? "" : "failed"));
+        fire_lifecycle_event(LifecycleEvent::SendJobFinished, finish_ctx);
+        m_lifecycle_finished = true;
     }
 
     if (canceled || eptr)

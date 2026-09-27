@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic PA @OrcaArena",
+	"inherits": "fdm_filament_pa",
+	"renamed_from": "OrcaArena Generic PA",
+	"from": "system",
+	"setting_id": "KScdeqdB3UR6uvxs",
+	"filament_id": "OFg8ndtj",
+	"instantiation": "true",
+	"required_nozzle_HRC": [
+		"3"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}

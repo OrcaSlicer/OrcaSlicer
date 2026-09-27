@@ -14,7 +14,19 @@
 	],
 	"default_print_profile": "0.20mm Standard @Anycubic Kobra X 0.4 nozzle;0.08mm Standard @Anycubic Kobra X 0.4 nozzle",
 	"default_filament_profile": [
-		"Anycubic PLA @Anycubic Kobra X 0.4 nozzle;Anycubic ABS @Anycubic Kobra X 0.4 nozzle;Anycubic ASA @Anycubic Kobra X 0.4 nozzle;Anycubic PETG @Anycubic Kobra X 0.4 nozzle;Anycubic PLA+ @Anycubic Kobra X 0.4 nozzle;Anycubic PLA Glow @Anycubic Kobra X 0.4 nozzle;Anycubic PLA High Speed @Anycubic Kobra X 0.4 nozzle;Anycubic PLA Matte @Anycubic Kobra X 0.4 nozzle;Anycubic PLA Silk @Anycubic Kobra X 0.4 nozzle;Anycubic PVA @Anycubic Kobra X 0.4 nozzle;Anycubic TPU 95A @Anycubic Kobra X 0.4 nozzle;Anycubic TPU for ACE @Anycubic Kobra X 0.4 nozzle;Anycubic Generetic PETG @Anycubic Kobra X 0.4 nozzle"
+		"Anycubic PLA @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic ABS @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic ASA @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PETG @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PLA+ @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PLA Glow @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PLA High Speed @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PLA Matte @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PLA Silk @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic PVA @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic TPU 95A @Anycubic Kobra X 0.4 nozzle",
+		"Anycubic TPU for ACE @Anycubic Kobra X 0.4 nozzle",
+		"Generic PETG @Anycubic Kobra X 0.4 nozzle"
 	],
 	"disable_m73": "0",
 	"gcode_flavor": "klipper",
@@ -188,7 +200,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "1",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG-GF @base",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"filament_id": "OFmveLWz",
+	"instantiation": "false"
+}

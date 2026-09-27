@@ -10,6 +10,7 @@
 #include "FilamentMixer.hpp"
 #include "LocalesUtils.hpp"
 #include "Utils.hpp"
+#include "format.hpp"
 #include "I18N.hpp"
 
 #include <boost/log/trivial.hpp>
@@ -82,8 +83,9 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
         int printable_status = print_config->filament_printable.get_at(filament_id);
         int extruder_idx = filament_maps[filament_id];
         if (!(printable_status >> extruder_idx & 1)) {
-            std::string extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
-            std::string error_msg     = _L("Grouping error: ") + filament_type + _L(" can not be placed in the ") + extruder_name + _L(" nozzle");
+            std::string error_msg = extruder_idx == 0 ?
+                                        Slic3r::format(_L("Grouping error: %1% cannot be placed in the left nozzle"), filament_type) :
+                                        Slic3r::format(_L("Grouping error: %1% cannot be placed in the right nozzle"), filament_type);
             throw Slic3r::RuntimeError(error_msg);
         }
     }
@@ -1488,10 +1490,10 @@ static FilamentGroupContext build_filament_group_context(
 
     auto machine_filament_info = build_machine_filaments(print->get_extruder_filament_info(), extruder_ams_counts, ignore_ext_filament);
 
-    std::vector<std::string>   filament_types      = print_config.filament_type.values;
-    std::vector<std::string>   filament_colours    = print_config.filament_colour.values;
-    std::vector<unsigned char> filament_is_support = print_config.filament_is_support.values;
-    std::vector<std::string>   filament_ids        = print_config.filament_ids.values;
+    // The grouping code walks filament_ids and indexes filament_info by the same position.
+    std::vector<std::string> filament_ids = print_config.filament_ids.values;
+    if (filament_ids.size() > filament_nums)
+        filament_ids.resize(filament_nums);
 
     FGMode fg_mode = mode == FilamentMapMode::fmmAutoForMatch ? FGMode::MatchMode : FGMode::FlushMode;
     context.model_info.flush_matrix          = std::move(nozzle_flush_mtx);
@@ -1500,11 +1502,14 @@ static FilamentGroupContext build_filament_group_context(
     context.model_info.filament_ids          = filament_ids;
     context.model_info.unprintable_volumes   = unprintable_volumes;
 
-    for (size_t idx = 0; idx < filament_types.size(); ++idx) {
+    // Consumers index filament_info by filament id, so it must span the filament count: a partial
+    // or legacy config can leave any of these arrays short, and get_at clamps.
+    context.model_info.filament_info.reserve(filament_nums);
+    for (size_t idx = 0; idx < filament_nums; ++idx) {
         FilamentGroupUtils::FilamentInfo info;
-        info.color      = filament_colours[idx];
-        info.type       = filament_types[idx];
-        info.is_support = filament_is_support[idx];
+        info.color      = print_config.filament_colour.get_at(idx);
+        info.type       = print_config.filament_type.get_at(idx);
+        info.is_support = print_config.filament_is_support.get_at(idx);
         context.model_info.filament_info.emplace_back(std::move(info));
     }
 
@@ -2732,6 +2737,28 @@ void ToolOrdering::enforce_mixed_component_order()
     }
 }
 
+// Declared in ToolOrdering.hpp (exposed for unit testing).
+std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned int number_of_extruders)
+{
+    std::vector<unsigned int> order;
+    for (const std::string& token : split_string(str, ',')) {
+        try {
+            size_t pos      = 0;
+            int    filament = std::stoi(token, &pos); // stoi skips leading whitespace by itself
+            // stoi stops at the first non-digit, so "2x" would parse as 2. Require the whole token to be
+            // consumed (bar trailing whitespace) to drop it like any other garbage.
+            if (token.find_first_not_of(" \t\r\n", pos) != std::string::npos)
+                continue;
+            if (filament >= 1 && (unsigned int)filament <= number_of_extruders
+                && std::find(order.begin(), order.end(), (unsigned int)(filament - 1)) == order.end())
+                order.emplace_back((unsigned int)(filament - 1));
+        } catch (const std::exception&) {
+            // Not a number, ignore it.
+        }
+    }
+    return order;
+}
+
 void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer)
 {
     const PrintConfig* print_config = m_print_config_ptr;
@@ -2829,11 +2856,41 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
     const bool use_cyclic_ordering =
         (print_config->toolchange_ordering == ToolChangeOrderingType::Cyclic);
 
+    // By default the first layer keeps its adhesion-optimized order (and any custom first layer
+    // sequence); the cyclic sequence is only forced onto it when the user opts in.
+    const bool cyclic_first_layer = use_cyclic_ordering && print_config->toolchange_cyclic_first_layer.value;
+
+    // Optional user defined cyclic sequence, given as 1-based filament numbers ("3,2,1,4"). Filaments
+    // missing from it keep their ascending order after the listed ones, so a partial or bogus entry
+    // still yields the default cyclic order.
+    const std::vector<unsigned int> cyclic_order =
+        use_cyclic_ordering ? parse_cyclic_order(print_config->toolchange_cyclic_order.value, number_of_extruders)
+                            : std::vector<unsigned int>();
+
+    // Reorder a layer's filaments (0-based) for cyclic ordering: ascending by default, or following the
+    // user defined sequence when one was given. Filaments absent from the sequence keep ascending order
+    // after the listed ones.
+    auto apply_cyclic_order = [&cyclic_order](std::vector<unsigned int>& filaments) {
+        std::sort(filaments.begin(), filaments.end());
+        if (!cyclic_order.empty())
+            std::stable_sort(filaments.begin(), filaments.end(), [&cyclic_order](unsigned int lhs, unsigned int rhs) {
+                auto rank = [&cyclic_order](unsigned int filament) {
+                    return size_t(std::find(cyclic_order.begin(), cyclic_order.end(), filament) - cyclic_order.begin());
+                };
+                return rank(lhs) < rank(rhs);
+            });
+    };
+
     // other_layers_seq: the layer_idx and extruder_idx are base on 1
-    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering](int layer_idx, std::vector<int>& out_seq) -> bool {
+    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering, cyclic_first_layer, &apply_cyclic_order](int layer_idx, std::vector<int>& out_seq) -> bool {
         if (!reorder_first_layer && layer_idx == 0) {
-            out_seq.resize(first_layer_filaments.size());
-            std::transform(first_layer_filaments.begin(), first_layer_filaments.end(), out_seq.begin(), [](auto item) {return item + 1; });
+            // The first layer tool order is already decided (adhesion-optimized, plus any custom first
+            // layer sequence). Only override it with the cyclic sequence when the user opted in.
+            std::vector<unsigned int> ordered = first_layer_filaments;
+            if (cyclic_first_layer)
+                apply_cyclic_order(ordered);
+            out_seq.resize(ordered.size());
+            std::transform(ordered.begin(), ordered.end(), out_seq.begin(), [](auto item) {return int(item) + 1; });
             return true;
         }
         for (size_t idx = other_layers_seqs.size() - 1; idx != size_t(-1); --idx) {
@@ -2844,9 +2901,12 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
             }
         }
 
-        if (use_cyclic_ordering && layer_idx >= 0 && size_t(layer_idx) < layer_filaments.size()) {
+        // Skip the first layer here (layer_idx == 0 only reaches this point on the reorder_first_layer
+        // path) unless the user asked for cyclic order on it, so it keeps the default flush ordering.
+        if (use_cyclic_ordering && layer_idx >= 0 && (layer_idx != 0 || cyclic_first_layer)
+            && size_t(layer_idx) < layer_filaments.size()) {
             std::vector<unsigned int> ordered = layer_filaments[size_t(layer_idx)];
-            std::sort(ordered.begin(), ordered.end());
+            apply_cyclic_order(ordered);
             out_seq.resize(ordered.size());
             std::transform(ordered.begin(), ordered.end(), out_seq.begin(), [](auto item) { return int(item) + 1; });
             return true;
@@ -3137,7 +3197,7 @@ void ToolOrdering::assign_custom_gcodes(const Print &print)
 		// Skip all custom G-codes above this layer and skip all extruder switches.
 		for (; custom_gcode_it != custom_gcode_per_print_z.gcodes.rend() && (
             (print_z_above > lt.print_z && custom_gcode_it->print_z > 0.5 * (lt.print_z + print_z_above))
-            || custom_gcode_it->type == CustomGCode::ToolChange); ++ custom_gcode_it);
+            || custom_gcode_it->type == CustomGCode::ToolChange); ++ custom_gcode_it) {}
         print_z_above = lt.print_z;
 		if (custom_gcode_it == custom_gcode_per_print_z.gcodes.rend())
 			// Custom G-codes were processed.

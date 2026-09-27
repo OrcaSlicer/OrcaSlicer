@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic PVA @Prusa MK3.5 0.6",
+	"inherits": "fdm_filament_pva",
+	"renamed_from": "Prusa Generic PVA @MK3.5 0.6;Prusa Generic PVA MK3.5 0.6",
+	"from": "system",
+	"setting_id": "rvSzvHZL6FIiOQV1",
+	"filament_id": "OFDvXujf",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"4"
+	],
+	"slow_down_layer_time": [
+		"7"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.012"
+	],
+	"compatible_printers": [
+		"Prusa MK3.5 0.6 nozzle"
+	]
+}
