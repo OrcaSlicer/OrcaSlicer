@@ -290,7 +290,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_compare_btn->SetToolTip(_L("Compare presets"));
-        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
+        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { DiffPresetDialog::ensure()->show(); }));
 
         m_setting_btn = new ScalableButton(m_top_panel, wxID_ANY, "table", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_setting_btn->SetToolTip(_L("View all object's settings"));
@@ -550,16 +550,34 @@ void ParamsPanel::clear_page()
 void ParamsPanel::OnActivate()
 {
     if (m_current_tab == NULL)
-    {
-        //the first time
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
-        // BBS: open/close tab
-        //m_current_tab = m_tab_print;
-        set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
-    }
+        select_default_tab();
     Tab* cur_tab = dynamic_cast<Tab *> (m_current_tab);
     if (cur_tab)
         cur_tab->OnActivate();
+}
+
+void ParamsPanel::select_default_tab()
+{
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
+    // BBS: open/close tab
+    //m_current_tab = m_tab_print;
+    set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
+}
+
+bool ParamsPanel::SettingsPagePrebuild::built() const
+{
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && !tab->page_build_pending();
+}
+
+bool ParamsPanel::SettingsPagePrebuild::build_step()
+{
+    if (m_panel.m_current_tab == nullptr) {
+        m_panel.select_default_tab();
+        return !built();
+    }
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && tab->page_build_step();
 }
 
 void ParamsPanel::OnToggled(wxCommandEvent& event)

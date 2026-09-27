@@ -491,14 +491,15 @@ void CalibrationPanel::init_tabpanel() {
             selected);
     }
 
+    for (int i = 0; i < (int)CALI_MODE_COUNT; i++)
+        add_build_steps_of(*m_cali_panels[i]);
+
     // ORCA use standard paddings and keep arrow icon for consistent look between sidebars
     //for (int i = 0; i < (int)CALI_MODE_COUNT; i++)
     //    m_tabpanel->SetPageImage(i, "");
 
     //auto padding_size = m_tabpanel->GetBtnsListCtrl()->GetPaddingSize(0);
     //m_tabpanel->GetBtnsListCtrl()->SetPaddingSize({ FromDIP(15), padding_size.y });
-
-    m_initialized = true;
 }
 
 void CalibrationPanel::init_timer()
@@ -534,6 +535,8 @@ void CalibrationPanel::update_print_error_info(int code, std::string msg, std::s
 }
 
 void CalibrationPanel::update_all() {
+    // Every wizard's pages exist once the last build step has run.
+    if (!built()) return;
 
     NetworkAgent* m_agent = wxGetApp().getAgent();
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
@@ -597,7 +600,7 @@ void CalibrationPanel::update_all() {
 
 void CalibrationPanel::show_status(int status)
 {
-    if (!m_initialized) return;
+    if (!built()) return;
     if (last_status == status)return;
     last_status = status;
 

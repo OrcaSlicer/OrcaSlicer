@@ -339,7 +339,7 @@ public:
     // Helper: returns config indices where filament_is_mixed == false
     std::vector<size_t> physical_filament_config_indices() const;
 
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString());
+    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     int save_project(bool saveAs = false);
@@ -499,7 +499,7 @@ public:
     void deselect_all();
     void exit_gizmo();
     void remove(size_t obj_idx);
-    void reset(bool apply_presets_change = false);
+    void reset(bool apply_presets_change = false, bool reload_presets = true);
     void reset_with_confirm();
     //BBS: return int for various result
     int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr); // BBS close project

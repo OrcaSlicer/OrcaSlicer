@@ -1962,8 +1962,9 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     assert(wxGetApp().preset_bundle);
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    // show() copies the app's bundle into both before anything is displayed.
+    m_preset_bundle_left  = std::make_unique<PresetBundle>();
+    m_preset_bundle_right = std::make_unique<PresetBundle>();
 
     // Create UI items
 

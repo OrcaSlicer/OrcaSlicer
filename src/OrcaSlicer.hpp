@@ -1,6 +1,8 @@
 #ifndef SLIC3R_HPP
 #define SLIC3R_HPP
 
+#include <set>
+
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
 
@@ -113,6 +115,8 @@ private:
     std::vector<std::string>    m_input_files;
     std::vector<std::string>    m_actions;
     std::vector<std::string>    m_transforms;
+    // Options the user typed; setup() fills the CLI's own options with defaults afterwards.
+    std::set<std::string>       m_given_option_keys;
     std::vector<Model>          m_models;
 
     bool setup(int argc, char **argv);

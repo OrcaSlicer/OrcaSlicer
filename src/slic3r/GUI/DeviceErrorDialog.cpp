@@ -538,7 +538,8 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
         break;
     }
     case DeviceErrorDialog::CHECK_ASSISTANT: {
-        wxGetApp().mainframe->m_monitor->jump_to_HMS(); // go to assistant page
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->jump_to_HMS(); // go to assistant page
         break;
     }
     case DeviceErrorDialog::FILAMENT_EXTRUDED: {
@@ -568,7 +569,8 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
     }
     case DeviceErrorDialog::JUMP_TO_LIVEVIEW: {
         Slic3r::GUI::wxGetApp().mainframe->jump_to_monitor();
-        Slic3r::GUI::wxGetApp().mainframe->m_monitor->jump_to_LiveView();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->jump_to_LiveView();
         break;
     }
     case DeviceErrorDialog::NO_REMINDER_NEXT_TIME: {
@@ -618,7 +620,8 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
     }
     case DeviceErrorDialog::OK_JUMP_RACK: {
         Slic3r::GUI::wxGetApp().mainframe->jump_to_monitor();
-        Slic3r::GUI::wxGetApp().mainframe->m_monitor->jump_to_Rack();
+        if (MonitorPanel* monitor = MonitorPanel::if_built())
+            monitor->jump_to_Rack();
         break;
     }
     case DeviceErrorDialog::ABORT: {
