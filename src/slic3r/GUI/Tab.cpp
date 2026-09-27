@@ -804,6 +804,10 @@ void Tab::OnActivate()
     }
 #endif
 
+    // The OnActivate() that shows the tab builds the page.
+    if (wxGetApp().mainframe != nullptr && !wxGetApp().mainframe->is_active_and_shown_tab(m_parent))
+        return;
+
     // BBS: select on first active
     if (!m_active_page)
         restore_last_select_item();
@@ -2787,7 +2791,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("is_infill_first", "quality_settings_wall_and_surfaces#print-infill-first");
         optgroup->append_single_option_line("wall_direction", "quality_settings_wall_and_surfaces#wall-loop-direction");
         optgroup->append_single_option_line("print_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
-        optgroup->append_single_option_line("top_solid_infill_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
+        optgroup->append_single_option_line("top_solid_infill_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio", 0);
         optgroup->append_single_option_line("bottom_solid_infill_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
         optgroup->append_single_option_line("set_other_flow_ratios", "quality_settings_wall_and_surfaces#surface-flow-ratio");
         optgroup->append_single_option_line("first_layer_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
@@ -3065,6 +3069,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");
         optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_no_sparse_layers", "multimaterial_settings_prime_tower#no-sparse-layers");
+        optgroup->append_single_option_line("wipe_tower_sparse_layers_combination", "multimaterial_settings_prime_tower#combine-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
@@ -7159,6 +7164,22 @@ void Tab::restore_last_select_item()
     m_tabctrl->SelectItem(item);
 }
 
+bool Tab::page_build_pending() const
+{
+    return m_active_page != nullptr && (m_active_page->build_pending() || m_active_page->visibility_pending());
+}
+
+bool Tab::page_build_step()
+{
+    if (m_active_page == nullptr)
+        return false;
+    if (m_active_page->build_pending())
+        m_active_page->build_step(m_mode);
+    else
+        m_active_page->update_visibility(m_mode, true);
+    return page_build_pending();
+}
+
 void Tab::update_description_lines()
 {
     if (m_active_page && m_active_page->title() == "Dependencies" && m_parent_preset_description_line)
@@ -7170,6 +7191,14 @@ void Tab::activate_selected_page(std::function<void()> throw_if_canceled)
     if (!m_active_page)
         return;
 
+#ifdef __WXGTK__
+    // Builds the page off screen, since GTK crashes when it desensitizes a multiline text view
+    // that was built on screen and hidden before its first size allocation.
+    const bool hide_view = m_active_page->build_pending() && m_page_view->IsShown();
+    if (hide_view)
+        m_page_view->Hide();
+    ScopeGuard show_view([this, hide_view] { if (hide_view) m_page_view->Show(); });
+#endif
     m_active_page->activate(m_mode, throw_if_canceled);
     update_changed_ui();
     update_description_lines();
@@ -7375,7 +7404,7 @@ void Tab::OnKeyDown(wxKeyEvent& event)
 
 void Tab::compare_preset()
 {
-    wxGetApp().mainframe->diff_dialog.show(m_type);
+    DiffPresetDialog::ensure()->show(m_type);
 }
 
 void Tab::transfer_options(const std::string &name_from, const std::string &name_to, std::vector<std::string> options)
@@ -7543,8 +7572,10 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
             wxGetApp().get_tab(preset_type)->update_tab_ui();
     }
 
-    // update preset comboboxes in DiffPresetDlg
-    wxGetApp().mainframe->diff_dialog.update_presets(m_type);
+    // show() reloads the presets, so only a visible Compare dialog needs updating.
+    DiffPresetDialog* diff_dialog = DiffPresetDialog::if_built();
+    if (diff_dialog != nullptr && diff_dialog->IsShown())
+        diff_dialog->update_presets(m_type);
 }
 
 // Called for a currently selected preset.
@@ -8577,6 +8608,8 @@ void Page::update_visibility(ConfigOptionMode mode, bool update_contolls_visibil
     }
 
     m_show = ret_val;
+    if (update_contolls_visibility)
+        m_visibility_applied = true;
 #ifdef __WXMSW__
     if (!m_show) return;
     // BBS: fix field control position
@@ -8604,20 +8637,8 @@ void Page::activate(ConfigOptionMode mode, std::function<void()> throw_if_cancel
 #else
     //m_vsizer->AddSpacer(10);
 #endif
-#if HIDE_FIRST_SPLIT_LINE
-    // BBS: no line spliter for first group
-    bool first = true;
-#endif
-    for (auto group : m_optgroups) {
-        if (!group->activate(throw_if_canceled))
-            continue;
-        m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), m_parent->FromDIP(5)); // ORCA use less margin on parameters section
-        group->update_visibility(mode);
-#if HIDE_FIRST_SPLIT_LINE
-        if (first) group->stb->Hide();
-        first = false;
-#endif
-        group->reload_config();
+    for (size_t i = 0; i < m_optgroups.size(); ++i) {
+        activate_group(i, mode, throw_if_canceled);
         throw_if_canceled();
     }
 
@@ -8636,11 +8657,48 @@ void Page::activate(ConfigOptionMode mode, std::function<void()> throw_if_cancel
 #endif
 }
 
+// Builds one option group; false when it already has its controls.
+bool Page::activate_group(size_t i, ConfigOptionMode mode, std::function<void()> throw_if_canceled)
+{
+    auto& group = m_optgroups[i];
+    if (!group->activate(throw_if_canceled))
+        return false;
+    m_visibility_applied = false;
+    m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), m_parent->FromDIP(5)); // ORCA use less margin on parameters section
+    group->update_visibility(mode);
+#if HIDE_FIRST_SPLIT_LINE
+    // BBS: no line spliter for first group
+    if (i == 0) group->stb->Hide();
+#endif
+    group->reload_config();
+    return true;
+}
+
+// The first group without controls.
+size_t Page::next_group_to_build() const
+{
+    return std::find_if(m_optgroups.begin(), m_optgroups.end(), [](const auto& group) { return !group->is_activated(); }) - m_optgroups.begin();
+}
+
+bool Page::build_pending() const
+{
+    return next_group_to_build() < m_optgroups.size();
+}
+
+bool Page::build_step(ConfigOptionMode mode)
+{
+    const size_t i = next_group_to_build();
+    if (i < m_optgroups.size())
+        activate_group(i, mode, [] {});
+    return build_pending();
+}
+
 void Page::clear()
 {
     for (auto group : m_optgroups)
         group->clear();
     m_page_title = NULL;
+    m_visibility_applied = false;
 }
 
 void Page::msw_rescale()

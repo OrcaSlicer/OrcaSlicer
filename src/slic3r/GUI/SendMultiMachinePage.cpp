@@ -278,7 +278,7 @@ SendMultiMachinePage::SendMultiMachinePage(Plater* plater)
 
     m_main_scroll = new ScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     m_main_scroll->SetBackgroundColour(*wxWHITE);
-    m_main_scroll->SetScrollRate(5, 5);
+    m_main_scroll->SetScrollRate(5, FromDIP(20));
 
     m_sizer_body = new wxBoxSizer(wxVERTICAL);
     m_main_page = create_page();
@@ -1353,7 +1353,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     scroll_macine_list = new wxScrolledWindow(main_page, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(800), FromDIP(300)), wxHSCROLL | wxVSCROLL);
     scroll_macine_list->SetBackgroundColour(*wxWHITE);
-    scroll_macine_list->SetScrollRate(5, 5);
+    scroll_macine_list->SetScrollRate(5, FromDIP(SEND_ITEM_MAX_HEIGHT));
     scroll_macine_list->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(SEND_ITEM_MAX_HEIGHT)));
     scroll_macine_list->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(SEND_ITEM_MAX_HEIGHT)));
 

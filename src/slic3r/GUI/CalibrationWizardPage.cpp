@@ -834,7 +834,7 @@ void CaliPageSendingPanel::create(wxWindow* parent)
 
     m_sw_print_failed_info = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(380), FromDIP(125)), wxVSCROLL);
     m_sw_print_failed_info->SetBackgroundColour(*wxWHITE);
-    m_sw_print_failed_info->SetScrollRate(0, 5);
+    m_sw_print_failed_info->SetScrollRate(0, FromDIP(20));
     m_sw_print_failed_info->SetMinSize(wxSize(FromDIP(380), FromDIP(125)));
     m_sw_print_failed_info->SetMaxSize(wxSize(FromDIP(380), FromDIP(125)));
 

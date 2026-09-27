@@ -378,6 +378,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_bridging"
             || opt_key == "wipe_tower_extra_flow"
             || opt_key == "wipe_tower_no_sparse_layers"
+            || opt_key == "wipe_tower_sparse_layers_combination"
             || opt_key == "flush_volumes_matrix"
             || opt_key == "prime_volume"
             || opt_key == "flush_into_infill"
@@ -1705,6 +1706,25 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
 
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic
+// The exception's own message is just "Errors"; the detail is in the per-object errors,
+// whose object id is the PrintObject's.
+std::string Print::slicing_errors_message(const SlicingErrors &errors) const
+{
+    std::string message;
+    for (const SlicingError &error : errors.errors_) {
+        std::string object_name;
+        for (const PrintObject *object : m_objects)
+            if (object->id().id == error.objectId()) {
+                object_name = object->model_object()->name;
+                break;
+            }
+        if (!message.empty())
+            message += "\n";
+        message += object_name.empty() ? std::string(error.what()) : object_name + ": " + error.what();
+    }
+    return message;
+}
+
 StringObjectException Print::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     auto add_warning = [warnings](StringObjectException w) {

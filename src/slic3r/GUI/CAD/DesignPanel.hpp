@@ -12,6 +12,7 @@
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "slic3r/GUI/CAD/DesignInteraction.hpp"   // CadLevel: what one Esc press means
+#include "slic3r/GUI/Lazy.hpp"
 
 class ComboBox;    // Orca dropdown (Widgets/ComboBox.hpp) — replaces wxChoice everywhere here
 class StaticBox;   // Orca rounded card frame (Widgets/StaticBox.hpp)
@@ -46,7 +47,7 @@ class DesignCanvas;
 // Design (CAD) tab: a sketch-first, Onshape-style form-driven CAD panel.
 // Sketch and Extrude are independent tools: the user creates a Sketch first,
 // then selects it and Extrudes to produce a solid.
-class DesignPanel : public wxPanel
+class DesignPanel : public wxPanel, public LazyInstance<DesignPanel>
 {
 public:
     explicit DesignPanel(wxWindow* parent);
