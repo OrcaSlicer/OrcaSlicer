@@ -3,6 +3,7 @@
 #include "CurveEditorPanel.hpp"
 #include <utility>
 #include <wx/dialog.h>
+#include "Widgets/TextInput.hpp"
 
 class wxGrid;
 class wxStaticText;
@@ -51,7 +52,7 @@ private:
     CurveEditorPanel* m_chart;
     wxGrid* m_grid;
     wxStaticText* m_status;
-    wxTextCtrl* m_range_fields[4];
+    TextInput* m_range_fields[4];
     wxStaticText* m_range_status;
 };
 
