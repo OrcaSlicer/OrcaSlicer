@@ -130,7 +130,7 @@ MsgUpdateConfig::MsgUpdateConfig(const std::vector<Update> &updates, bool force_
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     auto m_scrollwindw_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)),wxVSCROLL);
-    m_scrollwindw_release_note->SetScrollRate(0, 5);
+    m_scrollwindw_release_note->SetScrollRate(0, FromDIP(20));
     m_scrollwindw_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_scrollwindw_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     m_scrollwindw_release_note->SetWindowStyle(wxVSCROLL);

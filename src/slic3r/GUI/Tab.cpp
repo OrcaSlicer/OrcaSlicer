@@ -3069,6 +3069,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");
         optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_no_sparse_layers", "multimaterial_settings_prime_tower#no-sparse-layers");
+        optgroup->append_single_option_line("wipe_tower_sparse_layers_combination", "multimaterial_settings_prime_tower#combine-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
@@ -7166,12 +7167,18 @@ void Tab::restore_last_select_item()
 
 bool Tab::page_build_pending() const
 {
-    return m_active_page != nullptr && m_active_page->build_pending();
+    return m_active_page != nullptr && (m_active_page->build_pending() || m_active_page->visibility_pending());
 }
 
 bool Tab::page_build_step()
 {
-    return m_active_page != nullptr && m_active_page->build_step(m_mode);
+    if (m_active_page == nullptr)
+        return false;
+    if (m_active_page->build_pending())
+        m_active_page->build_step(m_mode);
+    else
+        m_active_page->update_visibility(m_mode, true);
+    return page_build_pending();
 }
 
 void Tab::update_description_lines()
@@ -8602,6 +8609,8 @@ void Page::update_visibility(ConfigOptionMode mode, bool update_contolls_visibil
     }
 
     m_show = ret_val;
+    if (update_contolls_visibility)
+        m_visibility_applied = true;
 #ifdef __WXMSW__
     if (!m_show) return;
     // BBS: fix field control position
@@ -8655,6 +8664,7 @@ bool Page::activate_group(size_t i, ConfigOptionMode mode, std::function<void()>
     auto& group = m_optgroups[i];
     if (!group->activate(throw_if_canceled))
         return false;
+    m_visibility_applied = false;
     m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), m_parent->FromDIP(5)); // ORCA use less margin on parameters section
     group->update_visibility(mode);
 #if HIDE_FIRST_SPLIT_LINE
@@ -8689,6 +8699,7 @@ void Page::clear()
     for (auto group : m_optgroups)
         group->clear();
     m_page_title = NULL;
+    m_visibility_applied = false;
 }
 
 void Page::msw_rescale()

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <map>
 #include <numeric>
 #include <sstream>
@@ -11,8 +12,10 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
+#include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/IntersectionPoints.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -1194,6 +1197,231 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
     REQUIRE(single_sharp.point_count > 0);
     REQUIRE(single_smooth.point_count == single_sharp.point_count);
     REQUIRE(single_smooth.length == single_sharp.length);
+}
+
+TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
+{
+    const int    multiline = GENERATE(2, 3);
+    const double spacing   = 0.45;
+    const double density   = 0.3;
+    const double wall      = multiline * spacing;
+    CAPTURE(multiline);
+
+    const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
+                                            Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
+    auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
+        filler->spacing  = spacing;
+        filler->angle    = float(M_PI / 7.);
+        filler->layer_id = layer_id;
+        filler->z        = z;
+
+        FillParams params;
+        params.density           = float(density);
+        params.multiline         = lines;
+        params.dont_adjust       = true;
+        params.anchor_length_max = 0.f; // The bare pattern, without connections along the boundary.
+        Slic3r::Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary, where a line is clipped earlier than the side of its wall.
+    const Polygons inner = shrink(to_polygons(region), scale_(3.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+
+    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing.
+    const double z_period = std::sqrt(2.) * wall / density;
+    const size_t layers   = 30;
+    for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
+        const double z = z_period * (layer_id + 0.5) / layers;
+        CAPTURE(layer_id, z);
+        const Polylines walls = fill(multiline, density, layer_id, z);
+        REQUIRE_FALSE(walls.empty());
+        CHECK(get_intersections(to_lines(walls)).empty());
+        // Long paths running out to the boundary, not loops around the cells.
+        CHECK(std::none_of(walls.begin(), walls.end(), [](const Polyline &path) { return path.first_point() == path.last_point(); }));
+
+        // Single lines at the same spacing: the walls are drawn along them.
+        const Polylines lines = fill(1, density / multiline, layer_id, z);
+        REQUIRE_FALSE(lines.empty());
+        CHECK(farthest(lines, walls) < 0.5 * wall);
+        CHECK(farthest(walls, lines) < 1.5 * wall);
+    }
+}
+
+TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing them around the cells", "[Fill]")
+{
+    const std::string pattern   = GENERATE("adaptivecubic", "supportcubic");
+    const int         multiline = GENERATE(2, 3);
+    CAPTURE(pattern, multiline);
+
+    // A sphere refines the octree all around, so the finer lines end on the coarser ones at every layer.
+    TriangleMesh sphere = Slic3r::Test::mesh(Slic3r::Test::TestMesh::sphere_50mm);
+    sphere.scale(0.3f);
+    Print print;
+    Slic3r::Test::init_and_process_print({sphere}, print,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "40%"},
+                                         {"fill_multiline", multiline},
+                                         {"infill_anchor", 0},
+                                         {"infill_anchor_max", 0},
+                                         {"layer_height", 0.3}});
+
+    size_t paths = 0, loops = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        Polylines printed;
+        Polygons  sparse;
+        double    spacing = 0.;
+        for (const LayerRegion *region : layer->regions()) {
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (entity->role() == erInternalInfill)
+                    entity->collect_polylines(printed);
+            for (const Surface &surface : region->fill_surfaces.surfaces)
+                if (surface.surface_type == stInternal)
+                    append(sparse, shrink(to_polygons(surface.expolygon), scale_(1.)));
+            spacing = region->flow(frInfill).spacing();
+        }
+        if (printed.empty())
+            continue;
+        CAPTURE(layer->print_z);
+        paths += printed.size();
+        loops += std::count_if(printed.begin(), printed.end(), [](const Polyline &pl) { return pl.first_point() == pl.last_point(); });
+        CHECK(get_intersections(to_lines(printed)).empty());
+
+        // Neighbouring lines stay a line spacing apart, less the overlap of a line end with the wall it stops on.
+        // Pieces of one line that meet end to end are one line.
+        std::vector<size_t> line_of(printed.size());
+        std::iota(line_of.begin(), line_of.end(), 0);
+        std::function<size_t(size_t)> find = [&](size_t i) { return line_of[i] == i ? i : line_of[i] = find(line_of[i]); };
+        for (size_t i = 0; i < printed.size(); ++i)
+            for (size_t j = i + 1; j < printed.size(); ++j)
+                for (const Point &a : { printed[i].first_point(), printed[i].last_point() })
+                    for (const Point &b : { printed[j].first_point(), printed[j].last_point() })
+                        if ((a - b).cast<double>().norm() < SCALED_EPSILON)
+                            line_of[find(i)] = find(j);
+        Lines               lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < printed.size(); ++i)
+            for (const Line &line : printed[i].lines()) {
+                lines.push_back(line);
+                owner.push_back(find(i));
+            }
+        AABBTreeLines::LinesDistancer<Line> tree(lines);
+        double closest = spacing;
+        for (size_t i = 0; i < printed.size(); ++i)
+            for (const Point &p : printed[i].equally_spaced_points(scale_(0.1)))
+                if (contains(sparse, p))
+                    for (size_t k : tree.all_lines_in_radius(p, scale_(spacing)))
+                        if (owner[k] != find(i))
+                            closest = std::min(closest, unscale<double>(lines[k].distance_to(p)));
+        CHECK(closest > 0.45 * spacing);
+    }
+    REQUIRE(paths > 0);
+    // The lines run on through the cells instead of each cell getting its own loops.
+    CHECK(loops < paths / 4);
+}
+
+TEST_CASE("Multiline adaptive cubic paths touch where they bounce off each other", "[Fill]")
+{
+    const int    sweep = GENERATE(0, 1, 2);
+    // Offset of the third family in walls, so the three meet in points or in small triangles.
+    const double shift = GENERATE(0., 0.1, 0.5, 1., 2.5, -0.5, -1.);
+    // Like finer octree lines ending on coarser ones, the 60 degree lines may start on the horizontal line through 0.
+    const bool   starting = GENERATE(false, true);
+    CAPTURE(sweep, shift, starting);
+
+    const double d1 = scale_(0.8), pitch = scale_(8.), inner = scale_(12.);
+    Lines        lines;
+    for (int k = 0; k < 3; ++k) {
+        const Vec2d dir(std::cos(k * M_PI / 3.), std::sin(k * M_PI / 3.)), normal(-dir.y(), dir.x());
+        for (int i = -6; i <= 6; ++i) {
+            const Vec2d  mid   = (i * pitch + (k == 2 ? shift * d1 : 0.)) * normal;
+            const double start = k == 1 && starting ? -mid.y() / dir.y() : -10. * pitch;
+            lines.emplace_back((mid + start * dir).cast<coord_t>(), (mid + 10. * pitch * dir).cast<coord_t>());
+        }
+    }
+    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, 0., sweep, BoundingBox(Point::new_scale(-20., -20.), Point::new_scale(20., 20.)));
+    REQUIRE_FALSE(paths.empty());
+    CHECK(get_intersections(to_lines(paths)).empty());
+
+    Lines               pieces;
+    std::vector<size_t> owner;
+    for (size_t i = 0; i < paths.size(); ++i)
+        for (const Line &line : paths[i].lines()) {
+            pieces.push_back(line);
+            owner.push_back(i);
+        }
+    AABBTreeLines::LinesDistancer<Line> tree(pieces);
+    auto clearance = [&](size_t i) {
+        const Line &a        = pieces[i];
+        double      distance = std::numeric_limits<double>::max();
+        for (size_t j : tree.all_lines_in_radius(a.midpoint(), 0.5 * a.length() + 2. * d1))
+            if (owner[j] != owner[i]) {
+                const Line &b = pieces[j];
+                distance      = std::min({ distance, a.distance_to(b.a), a.distance_to(b.b), b.distance_to(a.a), b.distance_to(a.b) });
+            }
+        return distance;
+    };
+    auto inside = [inner](const Point &p) { return std::abs(p.x()) < inner && std::abs(p.y()) < inner; };
+
+    double closest = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < pieces.size(); ++i)
+        if (inside(pieces[i].midpoint()))
+            closest = std::min(closest, clearance(i));
+    CHECK(closest > 0.99 * d1);
+
+    // Each path at a crossing touches another one there, none stops short of it.
+    double widest = 0.;
+    for (size_t i = 0; i < lines.size(); ++i)
+        for (size_t j = i + 1; j < lines.size(); ++j)
+            if (Point crossing; line_alg::intersection(lines[i], lines[j], &crossing) && inside(crossing)) {
+                std::map<size_t, double> at;
+                for (size_t k : tree.all_lines_in_radius(crossing, 1.2 * d1))
+                    at.emplace(owner[k], std::numeric_limits<double>::max());
+                for (size_t k : tree.all_lines_in_radius(crossing, 2. * d1))
+                    if (auto it = at.find(owner[k]); it != at.end())
+                        it->second = std::min(it->second, clearance(k));
+                for (const auto &path : at)
+                    widest = std::max(widest, path.second);
+            }
+    CHECK(widest < 1.02 * d1);
+}
+
+TEST_CASE("Multiline adaptive cubic paths reach the line they end on when another path ends on them", "[Fill]")
+{
+    const int    sweep = GENERATE(0, 1, 2);
+    // Where the 120 degree line starts on the horizontal one, in walls from the 60 degree line.
+    const double start = GENERATE(0.3, 0.6, 1., 2.);
+    CAPTURE(sweep, start);
+
+    const double d1 = scale_(0.8), overlap = 0.1 * d1, length = scale_(30.);
+    const Vec2d  diagonal(0.5, 0.5 * std::sqrt(3.)), horizontal(1., 0.), steep(-0.5, 0.5 * std::sqrt(3.));
+    const Vec2d  on_horizontal = start * d1 * horizontal;
+    const Lines  lines{ Line((-length * diagonal).cast<coord_t>(), (length * diagonal).cast<coord_t>()),
+                        Line(Point(0, 0), (length * horizontal).cast<coord_t>()),
+                        Line(on_horizontal.cast<coord_t>(), (on_horizontal - length * steep).cast<coord_t>()) };
+    const Polylines paths = FillAdaptive::multiline_paths(lines, d1, overlap, sweep, BoundingBox(Point::new_scale(-40., -40.), Point::new_scale(40., 40.)));
+
+    // The end of the path along each line nearest to where that line starts.
+    auto end_along = [&paths](const Line &line) {
+        for (const Polyline &path : paths)
+            if (line.distance_to(path.first_point()) < SCALED_EPSILON && line.distance_to(path.last_point()) < SCALED_EPSILON)
+                return (path.first_point() - line.a).cast<double>().norm() < (path.last_point() - line.a).cast<double>().norm() ? path.first_point() : path.last_point();
+        return Point(std::numeric_limits<coord_t>::max(), 0);
+    };
+    const Point horizontal_end = end_along(lines[1]), steep_end = end_along(lines[2]);
+    REQUIRE(horizontal_end.x() != std::numeric_limits<coord_t>::max());
+    REQUIRE(steep_end.x() != std::numeric_limits<coord_t>::max());
+    // Both reach the overlap into the wall of the path they stop at, none stops short of it.
+    CHECK_THAT(line_alg::distance_to_infinite(lines[0], horizontal_end) / d1, Catch::Matchers::WithinAbs(0.9, 0.01));
+    CHECK(lines[1].distance_to(steep_end) / d1 < 0.91);
+    CHECK(get_intersections(to_lines(paths)).empty());
 }
 
 TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")
