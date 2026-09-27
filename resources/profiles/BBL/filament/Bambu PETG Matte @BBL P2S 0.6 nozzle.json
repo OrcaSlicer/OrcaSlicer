@@ -1,0 +1,121 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Matte @BBL P2S 0.6 nozzle",
+    "inherits": "Bambu PETG Matte @base",
+    "from": "system",
+    "setting_id": "GFSG03_40",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_density": [
+        "1.37"
+    ],
+    "filament_max_volumetric_speed": [
+        "15",
+        "23",
+        "23"
+    ],
+    "filament_overhang_2_4_speed": [
+        "80",
+        "50",
+        "50"
+    ],
+    "filament_overhang_3_4_speed": [
+        "50",
+        "30",
+        "30"
+    ],
+    "filament_overhang_4_4_speed": [
+        "50",
+        "10",
+        "10"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "0.4",
+        "0.4"
+    ],
+    "filament_tower_ironing_area": [
+        "8"
+    ],
+    "filament_wipe": [
+        "1",
+        "1",
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "1",
+        "1",
+        "1"
+    ],
+    "filament_z_hop": [
+        "0.2",
+        "0.2",
+        "0.2"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "Spiral Lift",
+        "Spiral Lift"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual_e3d"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "245",
+        "250",
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245",
+        "245",
+        "245"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0",
+        "0"
+    ],
+    "supertack_plate_temp": [
+        "60"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P2S 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

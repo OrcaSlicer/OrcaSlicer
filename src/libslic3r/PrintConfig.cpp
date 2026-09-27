@@ -1522,7 +1522,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
-    def = this->add("top_solid_infill_flow_ratio", coFloat);
+    def = this->add("top_solid_infill_flow_ratio", coFloats);
     def->label = L("Top surface flow ratio");
     def->category = L("Advanced");
     def->tooltip = L("This factor affects the amount of material for top solid infill. "
@@ -1531,7 +1531,8 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(1));
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{1});
 
     def = this->add("bottom_solid_infill_flow_ratio", coFloat);
     def->label = L("Bottom surface flow ratio");
@@ -6704,6 +6705,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wipe_tower_sparse_layers_combination", coBool);
+    def->label = L("Combine sparse layers");
+    def->tooltip = L("If enabled, consecutive layers on which the prime tower has no filament change are printed as a single "
+                     "thicker tower layer instead of one thin layer each, the same way infill combination merges sparse infill. "
+                     "The merged layer is printed at the top of the run, at the height of everything it covers.\n\n"
+                     "Only whole layers are merged, and never past the maximum layer height of the nozzle printing the tower "
+                     "(three quarters of the nozzle diameter when that is left at 0). Two or more layers therefore have to fit "
+                     "under that limit before anything changes at all: at a 0.2 mm layer height under a 0.3 mm maximum nothing "
+                     "is merged, while at 0.1 mm three layers become one.\n\n"
+                     "Unlike \"No sparse layers\" the tower keeps following the model, so the toolhead never has to reach down to it. "
+                     "Has no effect with \"No sparse layers\", smooth timelapse or clumping detection, which need a tower on every layer.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("single_extruder_multi_material_priming", coBool);
     def->label = L("Prime all printing extruders");
     def->tooltip = L("If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print.");
@@ -9127,6 +9142,8 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "tree(auto)";
     } else if (opt_key == "support_base_pattern" && value == "none") {
         value = "hollow";
+    } else if (opt_key == "tree_support_wall_count" && value == "-1") {
+        value = "0";
     } else if (opt_key == "different_settings_to_system") {
         std::string copy_value = value;
         copy_value.erase(std::remove(copy_value.begin(), copy_value.end(), '\"'), copy_value.end()); // remove '"' in string
@@ -9395,7 +9412,8 @@ std::set<std::string> print_options_with_variant = {
     "initial_layer_travel_jerk",
     "default_junction_deviation",
     "print_extruder_id", //coInts
-    "print_extruder_variant" //coStrings
+    "print_extruder_variant", //coStrings
+    "top_solid_infill_flow_ratio"
 };
 
 std::set<std::string> filament_options_with_variant = {

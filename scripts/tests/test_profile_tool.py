@@ -411,6 +411,26 @@ class TestUpdateIndex(TreeCase):
         for entry in self.t.read_index("V")["filament_list"]:
             self.assertEqual(sorted(entry), ["name", "sub_path"])
 
+    def test_include_targets_are_listed_before_their_users(self):
+        # The loader resolves include like inherits: in one pass over the list, so
+        # a template must be listed before every preset that includes it - even
+        # though a template has no parent of its own to order it by.
+        self.t.write("V", "machine/P.json", {"type": "machine", "name": "P",
+                                             "include": ["T start", "T end"]})
+        self.t.write("V", "machine/T start.json", {"type": "machine", "name": "T start"})
+        self.t.write("V", "machine/T end.json", {"type": "machine", "name": "T end"})
+        self.t.write("V", "filament/F.json", {"type": "filament", "name": "F",
+                                              "inherits": "B", "include": "S"})
+        self.t.write("V", "filament/B.json", {"type": "filament", "name": "B"})
+        self.t.write("V", "filament/S.json", {"type": "filament", "name": "S"})
+        rc, out = self.run_command("update-index")
+        self.assertEqual(rc, 0, out)
+        machines = [e["name"] for e in self.t.read_index("V")["machine_list"]]
+        self.assertEqual(machines, ["T end", "T start", "P"])
+        filaments = [e["name"] for e in self.t.read_index("V")["filament_list"]]
+        self.assertLess(filaments.index("B"), filaments.index("F"))
+        self.assertLess(filaments.index("S"), filaments.index("F"))
+
     def test_a_profile_with_no_usable_type_is_reported_not_dropped(self):
         self.t.write("V", "filament/A.json", {"type": "filament", "name": "A"})
         self.t.write("V", "filament/B.json", {"name": "B"})

@@ -254,7 +254,7 @@ constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
 // save_entries below), or a change to the cache's own layout or the
 // meaning of its stamps. Option-schema drift is NOT such a change — the
 // dictionary handles it, which is why this no longer moves every release.
-constexpr uint32_t CACHE_VERSION = 1;
+constexpr uint32_t CACHE_VERSION = 2;
 
 // A stamp-string read that refuses an absurd length before allocating anything.
 // The stamps are read from files named from the outside (peek_version is
@@ -325,7 +325,7 @@ void visit_entry(Archive& ar, Entry& e, ConfigFn&& config)
 {
     ar(e.name, e.sub_path);
     config();
-    ar(e.inherits, e.description, e.instantiation, e.setting_id, e.filament_id, e.renamed_from);
+    ar(e.inherits, e.includes, e.description, e.instantiation, e.setting_id, e.filament_id, e.renamed_from);
 }
 
 // The count comes from a file that has already passed magic and CRC, but a

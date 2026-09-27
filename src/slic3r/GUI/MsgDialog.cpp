@@ -398,7 +398,7 @@ static void add_msg_content(wxWindow   *parent,
             }
             wxScrolledWindow *scrolledWindow = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
             scrolledWindow->SetBackgroundColour(*wxWHITE);
-            scrolledWindow->SetScrollRate(0, 20);
+            scrolledWindow->SetScrollRate(0, scrolledWindow->FromDIP(20));
             scrolledWindow->EnableScrolling(false, true);
             wxBoxSizer *sizer_scrolled = new wxBoxSizer(wxHORIZONTAL);
             Label *wrapped_text = new Label(scrolledWindow, font, msg, LB_AUTO_WRAP, wxSize(info_width, -1));
