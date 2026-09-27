@@ -857,7 +857,12 @@ void GUI_App::post_init()
         slow_bootup = true;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", slow bootup, won't render gl here.";
     }
-    if (!switch_to_3d) {
+    // Starting on Home, the GL resources load at idle so Home paints first and Prepare is never
+    // shown.
+    const bool gl_at_idle = !starts_on_prepare() && is_editor();
+    if (!switch_to_3d && gl_at_idle) {
+        plater_->select_view_3D("3D");
+    } else if (!switch_to_3d) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
 #ifndef __linux__
         mainframe->Freeze();
@@ -865,9 +870,6 @@ void GUI_App::post_init()
         plater_->canvas3D()->enable_render(false);
         mainframe->select_prepare_for_gl_init();
         plater_->select_view_3D("3D");
-        // The first render happens before the queued new_project() sets the same view.
-        plater_->get_camera().select_view("topfront");
-        plater_->get_camera().requires_zoom_to_bed = true;
         //BBS init the opengl resource here
         if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
             !plater_->canvas3D()->make_current_for_postinit()) {
@@ -905,8 +907,6 @@ void GUI_App::post_init()
         }
         if (starts_on_prepare())
             mainframe->select_tab(TAB_ID_PREPARE);
-        else if (is_editor())
-            mainframe->select_tab(TAB_ID_HOME);
 #ifndef __linux__
         mainframe->Thaw();
 #endif
@@ -3423,6 +3423,10 @@ bool GUI_App::on_init_inner()
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
+    // The first render can happen as soon as the frame is shown, before the queued
+    // new_project() sets the same view.
+    plater_->get_camera().select_view("topfront");
+    plater_->get_camera().requires_zoom_to_bed = true;
     if (is_editor()) {
         if (starts_on_prepare()) {
             mainframe->select_tab(TAB_ID_PREPARE);
@@ -8201,10 +8205,12 @@ int GUI_App::input_idle_ms() const
     return int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_input).count());
 }
 
-// Every wxCommandEvent claims the user-input category, so only real mouse and key events count.
+// Every wxCommandEvent claims the user-input category, so only real mouse and key events count,
+// plus main window resizes, since a border drag produces no mouse events.
 int GUI_App::FilterEvent(wxEvent& event)
 {
-    if (!event.IsCommandEvent() && (event.GetEventCategory() & wxEVT_CATEGORY_USER_INPUT))
+    if ((!event.IsCommandEvent() && (event.GetEventCategory() & wxEVT_CATEGORY_USER_INPUT)) ||
+        (event.GetEventType() == wxEVT_SIZE && event.GetEventObject() == mainframe))
         m_last_input = std::chrono::steady_clock::now();
     return Event_Skip;
 }

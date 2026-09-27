@@ -308,6 +308,119 @@ TEST_CASE("A single-filament plate reserves a tower only when one is actually pr
     }
 }
 
+// Filament 2 on the top surface only, so every layer below it is a toolchange-free tower layer: the
+// run "Combine sparse layers" folds. The two heights decide whether anything folds, so they are the
+// caller's business.
+static DynamicPrintConfig sparse_run_config(double layer_height, const char *max_layer_height, bool combine)
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "top_surface_filament_id",        2     },
+        { "enable_prime_tower",             true  },
+        { "wipe_tower_x",                   50    }, // inside the 200x200 test bed
+        { "wipe_tower_y",                   50    },
+        { "prime_tower_width",              35    },
+        { "min_layer_height",               "0.08"},
+        { "single_extruder_multi_material", true  },
+        { "timelapse_type",                 "0"   },
+        { "enable_wrapping_detection",      false },
+        { "raft_layers",                    "0"   } });
+    // A taller first layer would top the plan and hide what the run does, so slice at one height.
+    config.set_deserialize_strict({ { "layer_height",               std::to_string(layer_height) },
+                                    { "initial_layer_print_height", std::to_string(layer_height) },
+                                    { "max_layer_height", max_layer_height },
+                                    { "wipe_tower_sparse_layers_combination", combine ? "1" : "0" } });
+    return config;
+}
+
+// What a sliced tower did with its sparse run.
+struct SparseRunResult { size_t planned, sparse, folded; float tallest_printed, printed_height; std::string gcode; };
+
+static SparseRunResult slice_sparse_run(const DynamicPrintConfig &config)
+{
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+
+    SparseRunResult r{};
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : print.wipe_tower_data().tool_changes) {
+        if (layer.empty())
+            continue;
+        ++r.planned;
+        if (wipe_tower_layer_is_sparse(layer))
+            ++r.sparse;
+        if (wipe_tower_layer_is_combined_away(layer)) {
+            ++r.folded;
+        } else {
+            r.tallest_printed = std::max(r.tallest_printed, layer.front().layer_height);
+            r.printed_height += layer.front().layer_height;
+        }
+    }
+    r.gcode = Slic3r::Test::gcode(print);
+    return r;
+}
+
+// How often the G-code declares `height` in the tag this printer's processor reads. The dialect is a
+// global the exporter sets from the printer, so this is only correct after a slice - the point below.
+static size_t count_height_tags(const std::string &gcode, const char *height)
+{
+    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) + height + "\n";
+    size_t n = 0;
+    for (size_t p = gcode.find(tag); p != std::string::npos; p = gcode.find(tag, p + 1))
+        ++n;
+    return n;
+}
+
+TEST_CASE("Combining sparse layers folds a run into whole layers the nozzle can lay down", "[WipeTower]")
+{
+    // 0.1 mm layers under a 0.32 mm cap: three fit (0.3), a fourth does not, so a run prints once
+    // every three layers at 0.3 mm.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.1, "0.32", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.1, "0.32", true));
+
+    REQUIRE(plain.planned == combined.planned); // the plan still has one layer per object layer
+    REQUIRE(plain.sparse > 10);
+    CHECK(plain.folded == 0);
+    CHECK_THAT(plain.tallest_printed, Catch::Matchers::WithinAbs(0.1f, 1e-4f));
+
+    CHECK(combined.folded > 0);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.3f, 1e-4f));
+    // Two of every three sparse layers fold away, leaving the toolchange layers untouched.
+    CHECK(combined.folded <= plain.sparse);
+    CHECK(combined.folded >= plain.sparse / 2);
+    // What folds away comes back as height on the layer that prints the run: no gap, nothing twice.
+    CHECK_THAT(combined.printed_height, Catch::Matchers::WithinAbs(plain.printed_height, 1e-3f));
+}
+
+TEST_CASE("A run too thin to reach the nozzle's layer height is left alone", "[WipeTower]")
+{
+    // Only whole layers merge, so two 0.2 mm layers (0.4) do not fit a 0.32 mm maximum and the tower
+    // prints as if the option were off. This is the common 0.4 nozzle case; the tooltip says so.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.32", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.32", true));
+
+    REQUIRE(plain.sparse > 10);
+    CHECK(combined.folded == 0);
+    CHECK(combined.planned == plain.planned);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.2f, 1e-4f));
+}
+
+TEST_CASE("A merged tower layer declares its own height to the G-code processor", "[WipeTower]")
+{
+    // Each writer declares a height in a hardcoded tag dialect while the processor reads only its
+    // printer's, so one of them is always dropped. A merged layer is the first time that shows, as a
+    // thick layer drawn and costed as a thin one. 0.2 mm layers under a 0.42 mm maximum merge in pairs.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.42", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.42", true));
+
+    REQUIRE(combined.folded > 0);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.4f, 1e-4f));
+    // Every layer that prints a merged run has to say so, and nothing may say so without the option.
+    CHECK(count_height_tags(combined.gcode, "0.4") - count_height_tags(plain.gcode, "0.4") == combined.folded);
+}
+
 TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")
 {
     // Wrapping detection prints a tower on a plate that purges one filament. Neither the old

@@ -45,7 +45,7 @@ jobs:
           [ -n "$OTA_API_BASE_URL" ] || { echo "::error::vars.OTA_API_BASE_URL is not set"; exit 1; }
           [ -n "$OTA_API_KEY" ] || { echo "::error::secrets.OFL_OTA_PUBLISH_KEY is not set"; exit 1; }
 
-          timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          timestamp="$(date -u +%s)"
           echo "timestamp=$timestamp" >> "$GITHUB_OUTPUT"
 
           resp_file="$RUNNER_TEMP/ota-pending-clear-response.json"
