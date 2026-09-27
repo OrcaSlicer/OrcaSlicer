@@ -107,7 +107,8 @@ public:
         m_is_first_print(true),
         m_print_config(&print_config),
         m_last_wipe_tower_print_z(print_config.z_offset.value),
-        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config))
+        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config)),
+        m_sparse_layers_combined(wipe_tower_sparse_layers_combined(print_config))
     {
         // Precomputed rather than accumulated while emitting, so that the clearance validator and
         // the emitter cannot disagree about where the compacted tower sits on any given layer.
@@ -138,6 +139,7 @@ public:
 private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    std::string tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, const std::string &tcr_gcode) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
@@ -175,6 +177,9 @@ private:
     // wipe_tower_no_sparse_layers, as answered by the shared compaction rule rather than by the raw
     // option: smooth timelapse and wrapping detection keep a tower on every layer regardless.
     const bool                                                   m_sparse_layers_skipped;
+    // Combined tower layers are thicker than the object layer they sit on, the only case where the
+    // tower's height is not the one process_layer already declared.
+    const bool                                                   m_sparse_layers_combined;
     // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
     std::vector<float>                                           m_compacted_tower_z;
 };

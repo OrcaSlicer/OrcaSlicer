@@ -391,7 +391,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
     m_page_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_page_view->SetSizer(m_page_sizer);
-    m_page_view->SetScrollbars(1, 20, 1, 2);
+    m_page_view->SetScrollbars(1, FromDIP(20), 1, 2);
     //m_page_view->SetScrollRate( 5, 5 );
 
     if (m_mode_region)

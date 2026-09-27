@@ -81,6 +81,7 @@
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#include <wx/glcanvas.h>
 #endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
 
@@ -510,6 +511,9 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         wxQueueEvent(wxGetApp().plater(), new SimpleEvent(EVT_NOTICE_CHILDE_SIZE_CHANGED));
 
         fit_tab_labels(); // ORCA on resize
+        // Restarts the idle build so a hidden Prepare page is laid out at the new size.
+        if (m_prebuild_started)
+            m_idle.start();
     });
 
     //BBS
@@ -4008,13 +4012,81 @@ bool MainFrame::Show(bool show)
     return changed;
 }
 
+bool MainFrame::GLResourcesPrebuild::built() const
+{
+    return m_frame.m_plater != nullptr && m_frame.m_plater->canvas3D()->is_initialized() &&
+           m_frame.m_plater->get_partplate_list().icon_textures_loaded();
+}
+
+bool MainFrame::GLResourcesPrebuild::build_step()
+{
+    GLCanvas3D* canvas = m_frame.m_plater->canvas3D();
+#ifdef __WXGTK__
+    // wx creates a GTK canvas's GL surface when the widget is realized, so the context can be
+    // made current on it while hidden.
+    gtk_widget_realize(canvas->get_wxglcanvas()->GetHandle());
+#endif
+    if (!canvas->make_current_for_postinit()) {
+        // The first render of the canvas loads everything instead.
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": cannot make the GL context current on the hidden canvas";
+        m_failed = true;
+        return false;
+    }
+    switch (m_step) {
+    case 0:
+        m_failed = !wxGetApp().init_opengl();
+        break;
+    case 1: {
+        const Size size = canvas->get_canvas_size();
+        wxGetApp().imgui()->set_display_size(float(std::max(1, size.get_width())), float(std::max(1, size.get_height())));
+        canvas->set_imgui_scaling();
+        // Builds the font atlas without leaving a frame open at the hidden canvas's size.
+        wxGetApp().imgui()->new_frame();
+        wxGetApp().imgui()->end_frame();
+        break;
+    }
+    case 2:
+        // One texture per unit until none remain.
+        if (m_frame.m_plater->get_partplate_list().load_next_plate_texture())
+            return true;
+        break;
+    case 3:
+        m_failed = !canvas->init();
+        break;
+    default:
+        // Runs after init(), which sets the color mode the icons are drawn for.
+        m_frame.m_plater->get_partplate_list().load_icon_textures();
+        return false;
+    }
+    ++m_step;
+    return !m_failed;
+}
+
+bool MainFrame::PrepareLayoutPrebuild::built() const
+{
+    // The book lays out the page it shows.
+    const wxWindow* page = m_frame.m_tabpanel != nullptr ? m_frame.m_tabpanel->GetCurrentPage() : nullptr;
+    return page == nullptr || page == m_frame.m_plater || page->GetSize() == m_laid_out_size;
+}
+
+bool MainFrame::PrepareLayoutPrebuild::build_step()
+{
+    // Sized as the book sizes the page it selects, so the selection finds nothing to lay out.
+    const wxWindow* page = m_frame.m_tabpanel->GetCurrentPage();
+    m_laid_out_size      = page->GetSize();
+    m_frame.m_plater->SetSize(page->GetRect());
+    return false;
+}
+
 // A page out of the book stays registered and is passed over; a negative order is never
 // registered.
 void MainFrame::prebuild_pages_when_idle()
 {
     m_idle.clear();
+    m_idle.add(m_gl_prebuild);
     if (m_param_panel)
         m_idle.add(m_param_panel->settings_page_prebuild());
+    m_idle.add(m_prepare_layout_prebuild);
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
