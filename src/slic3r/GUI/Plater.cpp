@@ -11898,8 +11898,10 @@ bool Plater::priv::reload_from_disk(bool interactive, std::vector<std::pair<int,
                     unreloaded_volumes->insert(unreloaded_volumes->end(), it->second.begin(), it->second.end());
             }
         }
-        if (!missing_input_paths.empty())
+        if (!missing_input_paths.empty()) {
             notification_manager->push_plater_error_notification(into_u8(message));
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": pushed a PlaterError notification for missing source(s)";
+        }
         missing_input_paths.clear();
     }
 
@@ -12225,6 +12227,7 @@ bool Plater::priv::reload_from_disk(bool interactive, std::vector<std::pair<int,
                 message += "  " + s + "\n";
             }
             notification_manager->push_plater_error_notification(into_u8(message));
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": pushed a PlaterError notification for the failed reload";
         }
     }
 

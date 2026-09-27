@@ -39,6 +39,10 @@ SLICE_DONE_MARK  = "on_process_completed:finished"
 MISSING_SOURCE_MARK = "source file missing, skipping reload"
 LOAD_FAILED_MARK = "failed to load"
 PAINT_DECLINED_MARK = "skipping reload, declined in the paint-loss prompt"
+# Logged right after the non-interactive path pushes a PlaterError toast, separately from the
+# visual "did you see it" check -- disambiguates "the call never fired" from "it fired but the
+# toast didn't render", since only the latter is a rendering bug.
+NOTIFICATION_MARK = "pushed a PlaterError notification"
 # Logged once per reload_from_disk() call with the number of volumes it's about to reload --
 # the targeted-reload path (only the volumes whose source actually changed) should log 1 here
 # even when other objects are loaded, not the total volume count on the plate.
@@ -451,17 +455,20 @@ def main():
             record("I2 the load failure was logged, not silently accepted", failed,
                    "" if failed else "no '%s' warning within %gs" % (LOAD_FAILED_MARK, args.timeout))
             record("I3 no dialog appeared for the failed load", ask("  No error/warning dialog popped up?"))
-            record("I4 an error toast appeared for the failed load",
+            pushed = tail.wait_for(NOTIFICATION_MARK, args.timeout)
+            record("I4 the notification call fired", pushed,
+                   "" if pushed else "no '%s' line within %gs" % (NOTIFICATION_MARK, args.timeout))
+            record("I5 an error toast appeared for the failed load",
                    ask("  Did a small error notification (not a blocking dialog) appear in the bottom-right corner?"))
-            record("I5 the object is unchanged (still 26 mm)",
+            record("I6 the object is unchanged (still 26 mm)",
                    ask("  Is flaky.stl still the original 26 mm cube?"))
             tail.mark()
             write_cube_stl(flaky_stl, 12)
             ok2 = tail.wait_for(RELOAD_MARK, args.timeout)
-            record("I6 a later valid write still reloads (the failed attempt didn't consume it)", ok2,
+            record("I7 a later valid write still reloads (the failed attempt didn't consume it)", ok2,
                    "" if ok2 else "no reload line within %gs" % args.timeout)
             if ok2:
-                record("I7 model visibly updated", ask("  Did flaky.stl shrink to 12 mm?"))
+                record("I8 model visibly updated", ask("  Did flaky.stl shrink to 12 mm?"))
 
     def phase_j():
         print("\n[J] Plate 3: two overwrites landing close together, different sizes -- both must be picked up")
