@@ -1169,6 +1169,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               rib_support_contact_spacing))
     ((ConfigOptionFloat,               rib_support_contact_projection_angle))
     ((ConfigOptionFloat,               rib_support_depth))
+    ((ConfigOptionFloat,               rib_support_expansion_factor))
     ((ConfigOptionFloat,               rib_support_max_spacing))
 
     // Orca: a flag enabling the ability to override flow ratios

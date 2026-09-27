@@ -1341,6 +1341,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "rib_support_contact_spacing"
             || opt_key == "rib_support_contact_projection_angle"
             || opt_key == "rib_support_depth"
+            || opt_key == "rib_support_expansion_factor"
             || opt_key == "rib_support_max_spacing"
             || opt_key == "support_object_xy_distance"
             || opt_key == "support_object_first_layer_gap"

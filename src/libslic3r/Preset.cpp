@@ -1132,6 +1132,7 @@ static std::vector<std::string> s_Preset_print_options{
     "rib_support_contact_height", "rib_support_contact_spacing", "rib_support_depth", "rib_support_max_spacing",
     "rib_support_contact_width", "rib_support_thickness",
     "rib_support_contact_projection_angle",
+    "rib_support_expansion_factor",
     // BBS
     "print_extruder_id",
     "print_extruder_variant",

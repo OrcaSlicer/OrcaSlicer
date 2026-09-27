@@ -932,7 +932,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
     bool support_is_rib = support_type == stRib;
     toggle_line("support_style", !support_is_rib);
-    for (auto el : { "rib_support_contact_height", "rib_support_contact_width", "rib_support_thickness", "rib_support_contact_spacing", "rib_support_contact_projection_angle", "rib_support_depth", "rib_support_max_spacing" })
+    for (auto el : { "rib_support_contact_height", "rib_support_contact_width", "rib_support_thickness", "rib_support_contact_spacing", "rib_support_contact_projection_angle", "rib_support_depth", "rib_support_expansion_factor", "rib_support_max_spacing" })
         toggle_line(el, have_support_material && support_is_rib);
     for (auto el : { "support_style", "support_base_pattern",
         "support_base_pattern_spacing", "support_expansion", "support_angle",

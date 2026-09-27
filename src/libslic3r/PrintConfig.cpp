@@ -7178,12 +7178,20 @@ void PrintConfigDef::init_fff_params()
     def = this->add("rib_support_depth", coFloat);
     def->label = L("Top layer depth");
     def->category = L("Support");
-    def->tooltip = L("Outward depth of the rib at its top layer. The outer edge is projected vertically toward the bed; lower layers fit the model surface without translating the rib.");
+    def->tooltip = L("Outward depth of the rib at its top layer. Lower layers expand outward according to the rib expansion factor while the inner edge follows the model surface.");
     def->sidetext = L("mm");
     def->min = 2;
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(4));
+
+    def = this->add("rib_support_expansion_factor", coFloat);
+    def->label = L("Rib expansion factor");
+    def->category = L("Support");
+    def->tooltip = L("Multiplier for outward rib expansion toward the build plate. The expansion slope is this factor times height divided by the square root of the model's first-layer area, increased by the printed volume's XY center offset from the base center. Only horizontal or downward-facing surface normals contribute to the average around the seed; upward-facing normals are ignored. The average outward tilt reduces this slope with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees outward, and zero at 30 degrees or more. This weight stays constant over the whole rib. This is a geometric estimate, not a force simulation. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("rib_support_max_spacing", coFloat);
     def->label = L("Maximum rib spacing");

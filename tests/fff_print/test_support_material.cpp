@@ -7,6 +7,7 @@
 #include "libslic3r/TriangleSelector.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <map>
@@ -25,6 +26,8 @@ using namespace Slic3r;
 
 struct RibRun {
     size_t first_layer_paths = 0;
+    size_t first_layer_closed_paths = 0;
+    size_t first_layer_islands = 0;
     size_t contact_layers = 0;
     size_t gap_layers = 0;
     double foot_short_span = 0;
@@ -46,30 +49,36 @@ struct RibRun {
     size_t projection_layers = 0;
     double projection_front_span = 0;
     double min_projection_gap = std::numeric_limits<double>::infinity();
+    double top_outer_depth = 0;
+    double first_body_z = 0;
 };
 
 static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                          double thickness = 1.2, double contact_width = 1.2,
                          int wall_count = 0, double projection_angle = 30,
                          bool contact_percent = false, bool thickness_percent = false, double outer_width = 0.4,
-                         double contact_spacing = 8.0)
+                         double contact_spacing = 8.0, double expansion_factor = 0,
+                         double model_height = 60, double model_width = 6,
+                         const indexed_triangle_set *custom_mesh = nullptr)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "enable_support", 1 }, { "support_type", "rib" },
         { "rib_support_max_spacing", max_spacing },
         { "rib_support_depth", 8.0 },
+        { "rib_support_expansion_factor", expansion_factor },
         { "outer_wall_line_width", outer_width },
         { "support_object_xy_distance", 0.6 }, { "support_line_width", 0.4 },
         { "rib_support_contact_height", 0.6 }, { "rib_support_contact_spacing", contact_spacing },
         { "tree_support_wall_count", wall_count }, { "rib_support_contact_projection_angle", projection_angle },
         { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
     });
     config.set_key_value("rib_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
     config.set_key_value("rib_support_thickness", new ConfigOptionFloatOrPercent(thickness, thickness_percent));
     Model model;
     Print print;
-    indexed_triangle_set mesh = its_make_cube(6, 60, 60);
+    indexed_triangle_set mesh = custom_mesh == nullptr ? its_make_cube(model_width, 60, model_height) : *custom_mesh;
     for (Vec3f &vertex : mesh.vertices)
         vertex.x() += float(lean * vertex.z());
     init_print({ TriangleMesh(std::move(mesh)) }, print, model, config);
@@ -81,7 +90,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             const auto &f = mesh.indices[i];
             const Vec3f n = (mesh.vertices[f(1)] - mesh.vertices[f(0)]).cross(
                             mesh.vertices[f(2)] - mesh.vertices[f(0)]).normalized();
-            if (n.x() > 0.9f)
+            if (n.x() > 0.5f)
                 selector.set_facet(i, EnforcerBlockerType::ENFORCER);
         }
         REQUIRE(volume->supported_facets.set(selector));
@@ -94,6 +103,12 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
     if (layers.empty())
         return result;
     result.first_layer_paths = layers.front()->support_fills.entities.size();
+    result.first_layer_islands = layers.front()->support_islands.size();
+    for (const ExtrusionEntity *entity : layers.front()->support_fills.entities) {
+        const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+        REQUIRE(path != nullptr);
+        result.first_layer_closed_paths += path->first_point() == path->last_point();
+    }
     for (const ExPolygon &island : layers.front()->support_islands) {
         const Vec2d size = unscale(get_extents(island).size());
         result.foot_short_span = std::max(result.foot_short_span, std::min(size.x(), size.y()));
@@ -123,6 +138,8 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             result.contact_top_z = std::max(result.contact_top_z, layer->print_z);
         result.gap_layers += distance > 0.4;
         if (layer != layers.front()) {
+            if (result.first_body_z == 0)
+                result.first_body_z = layer->print_z;
             if (distance > 0.4)
                 result.min_body_paths = std::min(result.min_body_paths, layer->support_fills.entities.size());
             for (const ExtrusionEntity *entity : layer->support_fills.entities) {
@@ -194,6 +211,8 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                 [](const Point &a, const Point &b) { return a.x() < b.x(); })->x();
             min_outer = std::min(min_outer, unscale<double>(outer_x));
             max_outer = std::max(max_outer, unscale<double>(outer_x));
+            if (layer == layers.back())
+                result.top_outer_depth = unscale<double>(outer_x - face_x) + rib_half_width;
         }
         previous_layer = layer;
     }
@@ -228,12 +247,184 @@ TEST_CASE("Rib support has a filled first-layer foot", "[SupportMaterial]")
     REQUIRE(result.foot_long_span > 7.0);
 }
 
+TEST_CASE("Rib feet share one perimeter per merged bed island", "[SupportMaterial]")
+{
+    const double spacing = GENERATE(2.0, 20.0);
+    CAPTURE(spacing);
+    const RibRun result = slice_ribs(spacing, true, 0, 1.2, 1.2, 1);
+    REQUIRE(result.first_layer_islands > 0);
+    REQUIRE(result.min_body_paths > 1);
+    REQUIRE(result.first_layer_closed_paths == result.first_layer_islands);
+    REQUIRE(result.first_layer_paths > result.first_layer_closed_paths);
+    if (spacing == 2.0)
+        REQUIRE(result.first_layer_islands == 1);
+    else
+        REQUIRE(result.first_layer_islands > 1);
+}
+
 TEST_CASE("Rib outer edge stays vertical while contacts fit a leaning wall", "[SupportMaterial]")
 {
     const RibRun result = slice_ribs(20, true, 0.2);
     REQUIRE(result.contact_layers > 0);
     REQUIRE(result.gap_layers > 0);
     REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Rib expansion widens lower layers and their foot without changing top depth", "[SupportMaterial]")
+{
+    const double factor = GENERATE(0.025, 0.05);
+    const RibRun vertical = slice_ribs(20);
+    const RibRun expanded = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, factor);
+    REQUIRE(expanded.contact_layers > 0);
+    REQUIRE_THAT(expanded.top_outer_depth, Catch::Matchers::WithinAbs(8, 0.001));
+    // Constant 6x60mm cross-section: no XY centroid offset, so tan(theta) = k*H/sqrt(A0).
+    const double slope = factor * expanded.support_top_z / std::sqrt(6. * 60.);
+    REQUIRE_THAT(expanded.outer_edge_spread,
+                 Catch::Matchers::WithinAbs(slope * (expanded.support_top_z - expanded.first_body_z), 0.002));
+    REQUIRE(expanded.foot_long_span > vertical.foot_long_span);
+    REQUIRE(expanded.open_paths == 0);
+    REQUIRE(expanded.contact_starts == 0);
+}
+
+TEST_CASE("Rib expansion increases with height and smaller base area", "[SupportMaterial]")
+{
+    auto slice = [](double height, double width) {
+        return slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, height, width);
+    };
+    const RibRun reference = slice(60, 6);
+    const RibRun taller = slice(80, 6);
+    const RibRun narrower = slice(60, 3);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(taller.contact_layers > 0);
+    REQUIRE(narrower.contact_layers > 0);
+    REQUIRE(taller.outer_edge_spread > reference.outer_edge_spread);
+    REQUIRE(narrower.outer_edge_spread > reference.outer_edge_spread);
+}
+
+TEST_CASE("The seed face outward tilt reduces expansion for the whole rib", "[SupportMaterial]")
+{
+    const RibRun centered = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    const RibRun leaning = slice_ribs(20, true, 0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    REQUIRE(centered.contact_layers > 0);
+    REQUIRE(leaning.contact_layers > 0);
+    REQUIRE_THAT(leaning.support_top_z, Catch::Matchers::WithinAbs(centered.support_top_z, 0.001));
+    REQUIRE(leaning.outer_edge_spread > 0);
+    REQUIRE(leaning.outer_edge_spread < centered.outer_edge_spread);
+    // Uniform sheared prism: XY volume centroid is halfway up the printed body.
+    const double tilt_fraction = std::atan(0.2) / (M_PI / 6.);
+    const double weight = (1 - tilt_fraction) * (1 - tilt_fraction);
+    const double base_scale = std::sqrt(6. * 60.);
+    const double offset = 0.2 * (leaning.support_top_z / 2 - 0.1);
+    const double slope = 0.05 * leaning.support_top_z / base_scale * (1 + offset / base_scale) * weight;
+    REQUIRE_THAT(leaning.outer_edge_spread,
+                 Catch::Matchers::WithinAbs(slope * (leaning.support_top_z - leaning.first_body_z), 0.002));
+}
+
+TEST_CASE("Outward tilt of thirty degrees or more leaves the rib outer edge vertical", "[SupportMaterial]")
+{
+    const double tilt = GENERATE(30., 40.);
+    const double lean = std::tan(tilt * M_PI / 180.);
+    const RibRun result = slice_ribs(20, true, lean, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(0, 0.001));
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+}
+
+TEST_CASE("Painted patches containing only upward facing normals do not create ribs", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20, true, -0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    REQUIRE(result.first_layer_paths == 0);
+    REQUIRE(result.contact_layers == 0);
+}
+
+TEST_CASE("Rib contact layers stay below the painted face top", "[SupportMaterial]")
+{
+    const double height = GENERATE(60., 60.1, 60.15);
+    const double lean = GENERATE(0., 0.6);
+    const RibRun result = slice_ribs(20, true, lean, 1.2, 1.2, 1, 30,
+                                    false, false, 0.4, 8, 0.05, height);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.contact_top_z <= height + 0.001);
+    REQUIRE(result.support_top_z <= height + 0.001);
+    if (lean > 0)
+        REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(0, 0.001));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Curved seed patches allow different normals across width and layer height", "[SupportMaterial]")
+{
+    // A faceted round column bends outward in its last 0.1mm. The last
+    // 0.2mm contact layer spans both vertical and leaning side facets.
+    indexed_triangle_set mesh;
+    constexpr int sides = 90;
+    const std::array<double, 3> zs{0., 59.9, 60.};
+    for (double z : zs)
+        for (int i = 0; i < sides; ++i) {
+            const double angle = 2 * M_PI * i / sides;
+            mesh.vertices.emplace_back(float(6 * std::cos(angle) + std::max(0., z - 59.9) * 0.2),
+                                       float(6 * std::sin(angle)), float(z));
+        }
+    for (int ring = 0; ring < 2; ++ring)
+        for (int i = 0; i < sides; ++i) {
+            const int a = ring * sides + i, b = ring * sides + (i + 1) % sides;
+            mesh.indices.emplace_back(a, b, a + sides);
+            mesh.indices.emplace_back(b, b + sides, a + sides);
+        }
+    const int bottom = int(mesh.vertices.size());
+    mesh.vertices.emplace_back(0.f, 0.f, 0.f);
+    const int top = int(mesh.vertices.size());
+    mesh.vertices.emplace_back(0.02f, 0.f, 60.f);
+    for (int i = 0; i < sides; ++i) {
+        mesh.indices.emplace_back(bottom, (i + 1) % sides, i);
+        mesh.indices.emplace_back(top, 2 * sides + i, 2 * sides + (i + 1) % sides);
+    }
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30,
+                                    false, false, 0.4, 8, 0, 60, 6, &mesh);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(60, 0.001));
+    REQUIRE(result.closed_paths > 0);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("An upward facing neighbor does not change a downward facing contact normal", "[SupportMaterial]")
+{
+    auto column = [](double top_slope) {
+        indexed_triangle_set mesh;
+        const std::array<double, 3> zs{0., 59.9, 60.};
+        for (double z : zs) {
+            const double x = z <= 59.9 ? 0.2 * z : 0.2 * 59.9 + top_slope * (z - 59.9);
+            mesh.vertices.emplace_back(float(x), 0.f, float(z));
+            mesh.vertices.emplace_back(float(x + 6), 0.f, float(z));
+            mesh.vertices.emplace_back(float(x + 6), 60.f, float(z));
+            mesh.vertices.emplace_back(float(x), 60.f, float(z));
+        }
+        for (int ring = 0; ring < 2; ++ring)
+            for (int i = 0; i < 4; ++i) {
+                const int a = ring * 4 + i, b = ring * 4 + (i + 1) % 4;
+                mesh.indices.emplace_back(a, b, a + 4);
+                mesh.indices.emplace_back(b, b + 4, a + 4);
+            }
+        mesh.indices.emplace_back(0, 2, 1);
+        mesh.indices.emplace_back(0, 3, 2);
+        mesh.indices.emplace_back(8, 9, 10);
+        mesh.indices.emplace_back(8, 10, 11);
+        return mesh;
+    };
+    const indexed_triangle_set straight = column(0.2);
+    const indexed_triangle_set creased = column(-0.8);
+    // The last layer's top section is upward-facing, while the middle and
+    // bottom lie on the original downward-facing wall. Only its normal applies.
+    auto slice = [](const indexed_triangle_set &mesh) {
+        return slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, 60, 6, &mesh);
+    };
+    const RibRun reference = slice(straight);
+    const RibRun result = slice(creased);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(60, 0.001));
+    REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(reference.outer_edge_spread, 0.002));
+    REQUIRE(result.open_paths == 0);
 }
 
 TEST_CASE("Rib contact bead stays inside the wall edges", "[SupportMaterial]")

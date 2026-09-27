@@ -2991,6 +2991,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("rib_support_contact_spacing", "support_settings_support");
         optgroup->append_single_option_line("rib_support_contact_projection_angle", "support_settings_support");
         optgroup->append_single_option_line("rib_support_depth", "support_settings_support");
+        optgroup->append_single_option_line("rib_support_expansion_factor", "support_settings_support");
         optgroup->append_single_option_line("rib_support_max_spacing", "support_settings_support");
         optgroup->append_single_option_line("support_threshold_angle", "support_settings_support#threshold-angle");
         optgroup->append_single_option_line("support_threshold_overlap", "support_settings_support#threshold-overlap");
