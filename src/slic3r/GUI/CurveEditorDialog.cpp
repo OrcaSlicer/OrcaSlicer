@@ -39,12 +39,19 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     : wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_appearance(appearance)
 {
+    SetBackgroundColour(*wxWHITE);
+
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     auto* help = new wxStaticText(this, wxID_ANY, help_text);
+    help->SetFont(Label::Body_14);
+    help->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     help->Wrap(FromDIP(640));
     sizer->Add(help, 0, wxEXPAND | wxALL, FromDIP(16));
 
     m_chart = new CurveEditorPanel(this, appearance);
+    m_chart->SetBackgroundColour(*wxWHITE);
+    m_chart->SetFont(Label::Body_12);
+    m_chart->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     m_chart->before_drag = [this] { finish_edit(); update_preview(); };
     m_chart->on_select = [this](int row) {
         m_grid->SetGridCursor(row, 0);
@@ -55,26 +62,48 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& event) { m_chart->finish_drag(); event.Skip(); }, wxID_CANCEL);
     sizer->Add(m_chart, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(16));
 
-    auto* ranges = new wxFlexGridSizer(3, FromDIP(6), FromDIP(8));
-    ranges->Add(new wxStaticText(this, wxID_ANY, _L("Visible range")), 0, wxALIGN_CENTER_VERTICAL);
-    ranges->Add(new wxStaticText(this, wxID_ANY, _L("Minimum")));
-    ranges->Add(new wxStaticText(this, wxID_ANY, _L("Maximum")));
+    auto* ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
+    ranges->AddGrowableCol(1, wxHORIZONTAL); // only input areas has dynamic size to support longer translations on buttons and labels
+    ranges->AddGrowableCol(2, wxHORIZONTAL);
+
+    auto* apply_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* fit_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto add_title = [this, ranges](const wxString& label) {
+        auto* title = new wxStaticText(this, wxID_ANY, label);
+        title->SetFont(Label::Body_12);
+        title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        ranges->Add(title);
+    };
+
+    add_title(_L("Visible range"));
+    add_title(_L("Minimum"));
+    add_title(_L("Maximum"));
+    ranges->AddSpacer(0);
     for (int axis = 0; axis < 2; ++axis) {
-        ranges->Add(new wxStaticText(this, wxID_ANY, axis == 0 ? appearance.x_label : appearance.y_label),
-                    0, wxALIGN_CENTER_VERTICAL);
+        auto range_label = new wxStaticText(this, wxID_ANY, axis == 0 ? appearance.x_label : appearance.y_label);
+        range_label->SetFont(Label::Body_14);
+        range_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        ranges->Add(range_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
         for (int bound = 0; bound < 2; ++bound) {
-            auto* field = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, FromDIP(wxSize(100, -1)), wxTE_PROCESS_ENTER);
+            auto* field = new TextInput(this, "", "", "", wxDefaultPosition, FromDIP(wxSize(-1, -1)), wxTE_PROCESS_ENTER);
             m_range_fields[axis * 2 + bound] = field;
-            field->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { apply_chart_range(); });
+            wxTextValidator validator(wxFILTER_DIGITS);
+            field->GetTextCtrl()->SetValidator(validator);
+            field->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { apply_chart_range(); });
+            field->GetTextCtrl()->Bind(wxEVT_SET_FOCUS,  [this](wxFocusEvent &e) {apply_chart_range();e.Skip();});
+            field->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &e) {apply_chart_range();e.Skip();});
             field->SetToolTip(_L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."));
-            ranges->Add(field, 0, wxEXPAND);
+            ranges->Add(field, 1, wxEXPAND);
         }
+        ranges->Add(axis == 0 ? apply_btn_sizer : fit_btn_sizer, 0, wxEXPAND | wxLEFT, FromDIP(5));
     }
-    auto* range_buttons = new wxBoxSizer(wxVERTICAL);
+
     auto* apply_range = new Button(this, _L("Apply"));
     apply_range->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     apply_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { apply_chart_range(); });
-    range_buttons->Add(apply_range, 0, wxBOTTOM, FromDIP(6));
+    apply_btn_sizer->Add(apply_range, 1, wxEXPAND);
+
     auto* fit_range = new Button(this, _L("Show entire curve"));
     fit_range->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     fit_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -82,16 +111,16 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         update_preview();
         fit_chart();
     });
-    range_buttons->Add(fit_range);
-    auto* range_sizer = new wxBoxSizer(wxHORIZONTAL);
-    range_sizer->Add(ranges, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(16));
-    range_sizer->Add(range_buttons, 0, wxALIGN_CENTER_VERTICAL);
-    sizer->Add(range_sizer, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
+    fit_btn_sizer->Add(fit_range, 1, wxEXPAND);
+
+    sizer->Add(ranges, 0, wxEXPAND | wxALL, FromDIP(16));
     m_range_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
     m_range_status->Hide();
-    sizer->Add(m_range_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(16));
+    sizer->Add(m_range_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
 
-    m_grid = new wxGrid(this, wxID_ANY);
+    m_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
+    m_grid->SetFont(Label::Body_14);
+    m_grid->SetDefaultCellFont(Label::Body_14);
     m_grid->CreateGrid(0, 2);
     m_grid->SetColLabelValue(0, appearance.x_label);
     m_grid->SetColLabelValue(1, appearance.y_label);
@@ -110,14 +139,16 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         }
         event.Skip();
     });
-    sizer->Add(m_grid, 1, wxEXPAND | wxALL, FromDIP(16));
+    sizer->Add(m_grid, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(16));
+
+    sizer->AddSpacer(FromDIP(5));
 
     auto* actions = new wxBoxSizer(wxHORIZONTAL);
     auto add_button = [this, actions](const wxString& label, auto handler) {
         auto* button = new Button(this, label);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         button->Bind(wxEVT_BUTTON, handler);
-        actions->Add(button, 0, wxRIGHT, FromDIP(8));
+        actions->Add(button);
     };
     add_button(_L("Add point"), [this](wxCommandEvent&) {
         finish_edit();
@@ -138,6 +169,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         }
         update_preview();
     });
+    actions->AddSpacer(FromDIP(10));
     add_button(_L("Remove point"), [this](wxCommandEvent&) {
         finish_edit();
         const int row = m_grid->GetGridCursorRow();
@@ -145,22 +177,27 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
             m_grid->DeleteRows(row);
         update_preview();
     });
+    actions->AddStretchSpacer();
     add_button(_L("Reset to defaults"), [this](wxCommandEvent&) {
         finish_edit();
         load_points(default_rows());
         update_preview();
     });
-    sizer->Add(actions, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
+    sizer->Add(actions, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
 
     m_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
     sizer->Add(m_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
     sizer->Add(new DialogButtons(this, {"OK", "Cancel"}), 0, wxEXPAND);
     SetSizerAndFit(sizer);
     wxGetApp().UpdateDlgDarkUI(this);
+    m_grid->SetCellHighlightColour(StateColor::darkModeColorFor(wxColour("#009688")));
+    m_grid->SetGridLineColour(     StateColor::darkModeColorFor(wxColour("#DBDBDB")));
+    m_grid->SetSelectionBackground(StateColor::darkModeColorFor(wxColour("#BFE1DE")));
+    m_grid->SetSelectionForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
     m_grid->SetDefaultCellBackgroundColour(GetBackgroundColour());
-    m_grid->SetDefaultCellTextColour(GetForegroundColour());
+    m_grid->SetDefaultCellTextColour(StateColor::darkModeColorFor(wxColour("#262E30")));
     m_grid->SetLabelBackgroundColour(GetBackgroundColour());
-    m_grid->SetLabelTextColour(GetForegroundColour());
+    m_grid->SetLabelTextColour(StateColor::darkModeColorFor(wxColour("#262E30")));
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
@@ -287,7 +324,7 @@ void CurveEditorDialog::sync_chart_range()
     const auto& view = m_chart->view();
     const double values[] = {view.min_x, view.max_x, view.min_y, view.max_y};
     for (int i = 0; i < 4; ++i)
-        m_range_fields[i]->ChangeValue(wxString::FromUTF8(format_number(values[i])));
+        m_range_fields[i]->GetTextCtrl()->ChangeValue(wxString::FromUTF8(format_number(values[i])));
     m_range_status->Hide();
     Layout();
 }
@@ -308,7 +345,7 @@ void CurveEditorDialog::apply_chart_range()
     double values[4];
     bool valid = true;
     for (int i = 0; i < 4; ++i)
-        valid = read_number(m_range_fields[i]->GetValue(), values[i]) && valid;
+        valid = read_number(m_range_fields[i]->GetTextCtrl()->GetValue(), values[i]) && valid;
     if (valid)
         valid = values[0] < values[1] && values[2] < values[3] &&
                 std::isfinite(values[1] - values[0]) && std::isfinite(values[3] - values[2]);
