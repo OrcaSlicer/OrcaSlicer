@@ -138,7 +138,13 @@ PROFILE_SUBDIRS = ("filament", "process", "machine")
 PROFILE_TYPES = ("machine_model", "process", "filament", "machine")
 
 # Data files that sit under a vendor bundle but are not presets: no name, no type.
-NON_PROFILE_FILES = {"filaments_color_codes.json", "cli_config.json"}
+NON_PROFILE_FILES = {
+    "filaments_color_codes.json",
+    "cli_config.json",
+    "filament_id_map.json",
+    "filament_name_map.json",
+    "support_recommended_params.json",
+}
 
 # Mirror PrintConfigDef::handle_legacy's ignore set in PrintConfig.cpp; a test
 # checks parity. Used by normalize and check. Active options and
@@ -431,6 +437,7 @@ def resolve_filament_field(name, field, filaments, ofl_filaments, seen=None, in_
     the same hop semantics as resolve_filament_id: own value, else walk
     `inherits` in the vendor map with OFL base-bundle fallback. Values are list
     options — the first element counts; "" when the chain never defines one.
+    Templates pulled in by `include` are not consulted: none states either field.
     """
     if seen is None:
         seen = set()
@@ -881,8 +888,8 @@ def _vendor_json_files(vendor_path):
 def check_preset_name_uniqueness(profiles_dir, vendor):
     """No two profiles in a bundle may share a type and a name, indexed or not.
 
-    The loader resolves "inherits" through a per-type map of the bundle's profiles
-    (PresetBundle.cpp load_subfiles), and std::map::emplace keeps the first
+    The loader resolves "inherits" and "include" through per-type maps of the bundle's
+    profiles (PresetBundle.cpp load_subfiles), and std::map::emplace keeps the first
     insertion: a second file claiming the name is silently dropped, and which one
     wins is nothing but index order. An unindexed twin counts too - it is one
     sub_path edit away from deciding that silently.
@@ -1281,11 +1288,11 @@ def check_normalized(profiles_dir, vendor):
 
     Those two commands define a profile file's canonical shape - identifying keys
     first, keys the slicer no longer reads gone, filament options that are vectors
-    written as vectors - and a <vendor>.json's canonical lists, ordered parents-first
-    so the loader resolves every "inherits" in one pass. Running them over a
-    contributed bundle has to be a no-op; where it would not be, the file that was
-    reviewed is not the file that ships, and the next maintainer to run normalize
-    carries an unrelated diff into their own change.
+    written as vectors - and a <vendor>.json's canonical lists, ordered
+    dependencies-first so the loader resolves every "inherits" and "include" in one
+    pass. Running them over a contributed bundle has to be a no-op; where it would
+    not be, the file that was reviewed is not the file that ships, and the next
+    maintainer to run normalize carries an unrelated diff into their own change.
 
     It asks the normalize and update-index sections below rather than restating what
     they do, because a second definition of normal is free to drift from the one that
@@ -2028,9 +2035,9 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
     cli_config.json carry no "type" - all of them stay. A file that cannot be parsed
     is reported and kept: never delete what could not be read.
 
-    An unindexed file that some surviving profile names in "inherits" is kept too,
-    and reported, UNLESS an indexed profile already carries that name: "inherits" is
-    resolved by preset name, so the indexed one is the parent every child actually
+    An unindexed file that some surviving profile names in "inherits" or "include" is
+    kept too, and reported, UNLESS an indexed profile already carries that name: both
+    are resolved by preset name, so the indexed one is the parent every child actually
     gets, and the unindexed file is a stale copy the loader never reaches. Where no
     indexed profile provides the name the inheriting preset really is broken, and
     deleting the file would destroy the only record of the settings it was written
@@ -2063,7 +2070,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
                     listed.add(posixpath.normpath(sub_path.replace("\\", "/")))
 
         candidates = {}    # path -> profile, for every unindexed preset
-        inherited = set()  # every name the files that stay claim as a parent
+        inherited = set()  # every name the files that stay claim as a parent or include
         provided = {}      # name -> sub_path, for the profiles the loader can see
         for sub in subs:
             for path in _walk_json(os.path.join(vendor_dir, sub)):
@@ -2078,8 +2085,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
                 if not isinstance(profile, dict):
                     continue
                 if sub_path in listed or profile.get("type") not in PROFILE_TYPES:
-                    if profile.get("inherits"):
-                        inherited.add(profile["inherits"])
+                    inherited.update(profile_dependencies(profile))
                     if sub_path in listed and profile.get("name"):
                         provided[profile["name"]] = sub_path
                     continue
@@ -2098,8 +2104,7 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
             for path, profile in rescued.items():
                 del candidates[path]
                 kept[path] = profile
-                if profile.get("inherits"):
-                    inherited.add(profile["inherits"])
+                inherited.update(profile_dependencies(profile))
 
         for path in sorted(kept):
             print_warning(f"{_rel(path, profiles_dir)}: not indexed by {vendor}.json but "
@@ -2136,40 +2141,48 @@ def trim_profiles(profiles_dir=PROFILES_DIR, vendors=None, profile_types=None,
 # update-index
 # ---------------------------------------------------------------------------
 
-def topological_sort(profiles):
-    """Order index entries parents-first, so the loader resolves inherits in one pass.
+def profile_dependencies(profile):
+    """The names a profile needs loaded before it: its parent and every include."""
+    include = profile.get("include") or []
+    if isinstance(include, str):
+        include = [include]
+    return [name for name in [profile.get("inherits"), *include] if name]
 
-    Entries whose parent is not in the same section keep their own (sorted) order at
-    the end; the loader finds those parents through the base bundle instead.
+
+def topological_sort(profiles):
+    """Order index entries dependencies-first, so the loader resolves every
+    "inherits" and "include" in one pass.
+
+    Entries that neither depend on nor are depended on by another in the same section
+    go at the end in name order; the loader finds their parents, if any, through the
+    base bundle instead. Every entry on a dependency cycle, which no order can satisfy,
+    goes there too.
     """
     graph = defaultdict(list)
     in_degree = defaultdict(int)
     by_name = {p["name"]: p for p in profiles}
     all_names = set(by_name)
 
-    placed = set()
     for profile in profiles:
-        parent = profile.get("inherits")
         child = profile["name"]
-        if parent in all_names:
-            graph[parent].append(child)
-            in_degree[child] += 1
-            in_degree.setdefault(parent, 0)
-            placed.add(child)
-            placed.add(parent)
+        for parent in profile_dependencies(profile):
+            if parent in all_names:
+                graph[parent].append(child)
+                in_degree[child] += 1
+                in_degree.setdefault(parent, 0)
 
     queue = sorted(name for name, degree in in_degree.items() if degree == 0)
     result = []
     while queue:
         current = queue.pop(0)
         result.append(by_name[current])
-        placed.add(current)
         for child in sorted(graph[current]):
             in_degree[child] -= 1
             if in_degree[child] == 0:
                 queue.append(child)
 
-    result.extend(by_name[name] for name in sorted(all_names - placed))
+    ordered = {p["name"] for p in result}
+    result.extend(by_name[name] for name in sorted(all_names - ordered))
     return result
 
 
@@ -2219,15 +2232,15 @@ def build_index_sections(profiles_dir, vendor, profile_types=None):
                 "name": name,
                 "sub_path": os.path.relpath(path, vendor_dir).replace(os.sep, "/"),
             }
-            if profile.get("inherits"):
-                entry["inherits"] = profile["inherits"]
+            for key in ("inherits", "include"):
+                if profile.get(key):
+                    entry[key] = profile[key]
             by_name[name].append(entry["sub_path"])
             entries.append(entry)
 
-        sorted_entries = topological_sort(entries)
-        for entry in sorted_entries:
-            entry.pop("inherits", None)  # ordering input only, not part of the index
-        sections[profile_type + "_list"] = sorted_entries
+        # inherits/include were ordering input only; the index holds name and sub_path
+        sections[profile_type + "_list"] = [{"name": e["name"], "sub_path": e["sub_path"]}
+                                            for e in topological_sort(entries)]
 
     for rel, found in sorted(unplaceable.items()):
         problems.append(f'{rel}: type {found!r} is not one of {list(PROFILE_TYPES)}, so it '
@@ -2412,7 +2425,8 @@ def build_parser():
     add("update-index", [vendor_opt, type_opt, dry_run_opt, profiles_opt],
         "regenerate the *_list sections of <vendor>.json",
         "Rebuild the *_list sections of each <vendor>.json from the files on disk,\n"
-        "ordered parents-first so the loader resolves inherits in one pass.\n"
+        "ordered dependencies-first so the loader resolves inherits and include\n"
+        "in one pass.\n"
         "\n"
         "A profile is indexed under the section its own \"type\" names, so run\n"
         "normalize first: it is what writes a missing type. Two files claiming one\n"
