@@ -72,7 +72,9 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     : wxPanel(parent), m_appearance(appearance)
 {
     SetMinSize(FromDIP(wxSize(640, 230)));
-    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    #ifndef __WXOSX__
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+    #endif
     Bind(wxEVT_PAINT, [this](wxPaintEvent&) { paint_chart(); });
     Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
         m_hovered_point = -1;
@@ -244,8 +246,8 @@ void CurveEditorPanel::paint_chart()
     const int gap = FromDIP(8), tick_size = FromDIP(4);
     const int bottom = top + height;
     const bool dark = wxGetApp().dark_mode();
-    const wxColour colour(dark ? "#52C7B8" : "#007D70");
-    const wxColour accent(dark ? "#79B8FF" : "#2463A6");
+    const wxColour colour("#009688");
+    const wxColour accent(dark ? "#223C3C" : "#BFE1DE");
     std::vector<wxPoint> curve;
     std::vector<double> curve_factors;
     if (!m_x.empty() && m_interpolate) {
@@ -333,12 +335,12 @@ void CurveEditorPanel::paint_chart()
         const bool selected = int(i) == m_selected_point;
         const bool active = int(i) == m_dragged_point || int(i) == m_hovered_point;
         const wxPoint position = chart_point(m_x[i], m_y[i], plot);
-        dc.SetPen(wxPen(selected ? accent : colour, FromDIP(2)));
-        dc.SetBrush(wxBrush(selected ? accent : GetBackgroundColour()));
+        dc.SetPen(wxPen(colour, FromDIP(2)));
+        dc.SetBrush(wxBrush(selected ? colour : GetBackgroundColour()));
         dc.DrawCircle(position, FromDIP(selected ? 5 : 4));
         if (active) {
             dc.SetBrush(*wxTRANSPARENT_BRUSH);
-            dc.SetPen(wxPen(accent, FromDIP(2)));
+            dc.SetPen(wxPen(colour, FromDIP(2)));
             dc.DrawCircle(position, FromDIP(8));
         }
     }
