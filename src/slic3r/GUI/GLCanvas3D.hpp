@@ -1299,6 +1299,8 @@ public:
     Vec3d _mouse_to_3d(const Point& mouse_pos, float* z = nullptr);
 
     bool make_current_for_postinit();
+    // Sizes ImGui's fonts and style for this canvas; the fonts are rebuilt when the size changes.
+    void set_imgui_scaling();
 
 private:
     bool _is_shown_on_screen() const;
