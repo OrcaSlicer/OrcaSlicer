@@ -123,12 +123,7 @@ so a retry that fails again just refreshes the same toast instead of reopening i
 function returns whether anything was skipped, cancelled or failed to load, which is
 what drives the commit/retry decision above.
 
-`reload_from_disk()` also takes an `obj_color_fun` callback for a colour-import dialog
-on `.obj` sources, but its `.obj` branch is dead code in the current tree — upstream
-moved OBJ colour import to the texture importer, so the callback's `.obj` check never
-matches and no such dialog appears for a reload, interactively or not.
-
-A second hazard is re-entrancy: even with the three dialogs gone, `wxBusyInfo` and
+A second hazard is re-entrancy: even with the dialogs above gone, `wxBusyInfo` and
 `Model::read_from_file()` itself can pump the event loop, letting the debounce timer
 fire again while an earlier reload is still on the stack. `SourceFileWatcher` guards
 against this with an in-flight flag around the callback; a timer firing while it's set
