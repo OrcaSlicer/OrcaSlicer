@@ -5018,6 +5018,7 @@ int PartPlateList::select_plate(int index)
 		(*it)->set_unselected();
 	}
 
+	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": current plate switched to " << index;
 	m_current_plate = index;
 	m_plate_list[m_current_plate]->set_selected();
 

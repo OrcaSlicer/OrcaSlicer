@@ -170,6 +170,11 @@ next to the auto-reload options for now. The dialog itself also carries a "Reloa
 without warning" checkbox that turns the preference off right there, for whichever kind
 of reload it was raised from and regardless of which button is then pressed — the
 alternative to hunting down the Preferences checkbox after being surprised once.
+
+`ORCA_TEST_HOOKS_DIR` (an env var, checked just before `ShowModal()`) lets
+`scripts/test_auto_reload_headless.py` answer this dialog from a file instead of a click,
+so it can drive the watcher unattended. It's inert unless that env var is exported —
+nothing a real user's session sets — and it only exists for that script.
 - Declining a manual "Reload from disk"/"Reload all from disk" cancels the whole reload,
   the same as cancelling the missing-file picker does.
 - Declining from the watcher only skips the painted volumes, not the whole batch — an

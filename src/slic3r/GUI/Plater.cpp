@@ -10296,6 +10296,7 @@ std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
 void Plater::priv::update_source_file_watches()
 {
     if (!wxGetApp().app_config->get_bool("auto_reload_on_source_change")) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": watching 0 source file(s) for changes (auto-reload disabled)";
         source_file_watcher.clear();
         return;
     }
@@ -10304,6 +10305,7 @@ void Plater::priv::update_source_file_watches()
     for (const SourcedVolume& sv : sourced_volumes())
         current_files.insert(sv.path);
 
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": watching " << current_files.size() << " source file(s) for changes";
     source_file_watcher.set_watched_files(std::move(current_files));
 }
 
@@ -11707,11 +11709,31 @@ bool Plater::priv::reload_from_disk(bool interactive, std::vector<std::pair<int,
                 message += "  " + from_u8(volume->name.empty() ? model.objects[sv.first]->name : volume->name) + "\n";
             }
             message += _L("Continue reloading from disk?");
-            MessageDialog dlg(q, message, _L("Reload from disk"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
-            dlg.show_dsa_button(_L("Reload without warning"));
-            int result = dlg.ShowModal();
-            if (dlg.get_checkbox_state())
-                wxGetApp().app_config->set_bool("auto_reload_confirm_paint_loss", false);
+            int result;
+            // TEST-ONLY hook for the headless variant of scripts/test_auto_reload.py: never
+            // exposed via Preferences, and inert unless ORCA_TEST_HOOKS_DIR is explicitly
+            // exported, so it can't fire in a real user's session. The answer is read from a
+            // file (not the env var itself) because a script needs to change the answer between
+            // phases without restarting the process an env var would require.
+            const char *test_hooks_dir = std::getenv("ORCA_TEST_HOOKS_DIR");
+            std::string test_answer;
+            if (test_hooks_dir) {
+                std::ifstream ifs((fs::path(test_hooks_dir) / "paint_loss_answer").string());
+                if (ifs)
+                    std::getline(ifs, test_answer);
+            }
+            if (!test_answer.empty()) {
+                bool answer_yes = boost::algorithm::iequals(test_answer, "yes");
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": paint-loss dialog auto-answered "
+                                         << (answer_yes ? "yes" : "no") << " via ORCA_TEST_HOOKS_DIR";
+                result = answer_yes ? wxID_YES : wxID_NO;
+            } else {
+                MessageDialog dlg(q, message, _L("Reload from disk"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                dlg.show_dsa_button(_L("Reload without warning"));
+                result = dlg.ShowModal();
+                if (dlg.get_checkbox_state())
+                    wxGetApp().app_config->set_bool("auto_reload_confirm_paint_loss", false);
+            }
             if (result != wxID_YES) {
                 if (interactive)
                     return false;
@@ -12228,6 +12250,24 @@ bool Plater::priv::reload_from_disk(bool interactive, std::vector<std::pair<int,
             }
             notification_manager->push_plater_error_notification(into_u8(message));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": pushed a PlaterError notification for the failed reload";
+        }
+    }
+
+    // Headless-testability: log the resulting size of every object this call actually touched
+    // (i.e. not one of the volumes reported back as unreloaded), keyed by source path rather than
+    // internal object/volume index -- a script watching the log knows which file it wrote, not
+    // which index OrcaSlicer assigned it -- so it can confirm "did it grow to N mm" without a
+    // human looking at the viewport.
+    if (unreloaded_volumes) {
+        std::set<std::pair<int, int>> failed(unreloaded_volumes->begin(), unreloaded_volumes->end());
+        for (const auto &sv : selected_volumes) {
+            if (failed.count(sv))
+                continue;
+            const ModelVolume *volume = model.objects[sv.first]->volumes[sv.second];
+            Vec3d size = model.objects[sv.first]->bounding_box_approx().size();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reloaded " << volume->source.input_file
+                                     << ", bounding box size = " << size.x() << " x " << size.y()
+                                     << " x " << size.z() << " mm";
         }
     }
 
@@ -13331,7 +13371,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 
     if (is_finished)
     {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":finished, reload print soon");
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":finished, reload print soon, plate %1%") % m_cur_slice_plate;
         m_is_slicing = false;
         this->preview->reload_print(false);
         q->mark_plate_toolbar_image_dirty();

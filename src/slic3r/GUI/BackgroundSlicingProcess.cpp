@@ -226,7 +226,8 @@ void BackgroundSlicingProcess::process_fff()
                                 << boost::format(" %1%: will start slicing, reset gcode_result %2% firstly") % __LINE__ % m_gcode_result;
         m_gcode_result->reset();
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process") % __LINE__;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process, plate %2%")
+                                        % __LINE__ % m_current_plate->get_index();
         m_print->process();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__
                                 << boost::format(" %1%: after print::process, send slicing complete event to gui...") % __LINE__;
