@@ -27,6 +27,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
     test_shortcuts.cpp
+    test_sequential_clearance.cpp
     ../fff_print/test_helpers.cpp
     )
 
