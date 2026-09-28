@@ -7,9 +7,22 @@
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"filament_cost": [
-		"24.99"
+		"15.99"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
 	],
 	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
 		"0.95"
 	],
 	"filament_vendor": [

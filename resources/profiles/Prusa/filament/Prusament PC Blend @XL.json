@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PC Blend @XL",
+	"renamed_from": "Prusament PC Blend XL;Prusament PC Blend @XL 5T;Prusament PC Blend XL 5T",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "DLTlxt04GREtOiec",
@@ -61,7 +62,6 @@
 		"Prusa XL 5T 0.6 nozzle",
 		"Prusa XL 5T 0.8 nozzle"
 	],
-	"renamed_from": "Prusament PC Blend XL;Prusament PC Blend @XL 5T;Prusament PC Blend XL 5T",
 	"filament_multitool_ramming": [
 		"1"
 	],

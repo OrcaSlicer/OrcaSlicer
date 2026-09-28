@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament ASA @XL",
+	"renamed_from": "Prusament ASA XL;Prusament ASA @XL 5T;Prusament ASA XL 5T",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "RaEoFoZdXkkOz9yh",
@@ -61,7 +62,6 @@
 		"Prusa XL 5T 0.6 nozzle",
 		"Prusa XL 5T 0.8 nozzle"
 	],
-	"renamed_from": "Prusament ASA XL;Prusament ASA @XL 5T;Prusament ASA XL 5T",
 	"filament_multitool_ramming": [
 		"1"
 	],

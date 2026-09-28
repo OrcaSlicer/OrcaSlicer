@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Prusa CORE One",
-	"inherits": "Generic PLA @Prusa base",
 	"renamed_from": "Prusa Generic PLA @CORE One;Prusa Generic PLA CORE One;Generic PLA @Prusa CORE One MMU3;Generic PLA @MMU3",
+	"inherits": "Generic PLA @Prusa base",
 	"from": "system",
 	"setting_id": "r2i4c7DsYXYIMVCX",
 	"instantiation": "true",

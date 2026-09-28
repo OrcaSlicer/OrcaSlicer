@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PLA @XL",
+	"renamed_from": "Prusament PLA XL;Prusament PLA @XL 5T;Prusament PLA XL 5T",
 	"inherits": "Prusament PLA @base",
 	"from": "system",
 	"setting_id": "PlHq1KqHrreo5W8m",
@@ -53,7 +54,6 @@
 		"Prusa XL 5T 0.6 nozzle",
 		"Prusa XL 5T 0.8 nozzle"
 	],
-	"renamed_from": "Prusament PLA XL;Prusament PLA @XL 5T;Prusament PLA XL 5T",
 	"filament_multitool_ramming": [
 		"1"
 	],

@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PC Blend Carbon Fiber @CORE One",
+	"renamed_from": "Prusament PC-CF CORE One;Prusament PC-CF @CORE One MMU3;Prusament PC-CF CORE One MMU3;Prusament PC-CF @CORE One",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "B8Cm9l8i9osp5J2q",
@@ -98,6 +99,5 @@
 	],
 	"slow_down_min_speed": [
 		"15"
-	],
-	"renamed_from": "Prusament PC-CF CORE One;Prusament PC-CF @CORE One MMU3;Prusament PC-CF CORE One MMU3;Prusament PC-CF @CORE One"
+	]
 }

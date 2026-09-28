@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PVB @XL",
+	"renamed_from": "Prusament PVB XL;Prusament PVB @XL 5T;Prusament PVB XL 5T",
 	"inherits": "fdm_filament_pvb",
 	"from": "system",
 	"setting_id": "RF55nfxQwqUqe00Q",
@@ -62,7 +63,6 @@
 		"Prusa XL 5T 0.6 nozzle",
 		"Prusa XL 5T 0.8 nozzle"
 	],
-	"renamed_from": "Prusament PVB XL;Prusament PVB @XL 5T;Prusament PVB XL 5T",
 	"filament_multitool_ramming": [
 		"1"
 	],

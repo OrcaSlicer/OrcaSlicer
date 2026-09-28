@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PETG @XL",
+	"renamed_from": "Prusament PETG XL;Prusament PETG @XL 5T;Prusament PETG XL 5T",
 	"inherits": "Prusament PETG @base",
 	"from": "system",
 	"setting_id": "vPPD8EkKFy5j8pg5",
@@ -58,7 +59,6 @@
 		"Prusa XL 5T 0.6 nozzle",
 		"Prusa XL 5T 0.8 nozzle"
 	],
-	"renamed_from": "Prusament PETG XL;Prusament PETG @XL 5T;Prusament PETG XL 5T",
 	"filament_multitool_ramming": [
 		"1"
 	],

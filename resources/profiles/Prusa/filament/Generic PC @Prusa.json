@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Prusa",
-	"inherits": "Generic PC @System",
 	"renamed_from": "Prusa Generic PC;Generic PC @Prusa CORE One MMU3;Generic PC @MMU3",
+	"inherits": "Generic PC @System",
 	"from": "system",
 	"setting_id": "UJ5KpqIb5mpcNXzl",
 	"instantiation": "true",
@@ -49,6 +49,11 @@
 		"10"
 	],
 	"filament_retraction_distances_when_cut": [
+		"18",
+		"18",
+		"18",
+		"18",
+		"18",
 		"18"
 	],
 	"textured_plate_temp_initial_layer": [
@@ -61,6 +66,11 @@
 		"140"
 	],
 	"filament_long_retractions_when_cut": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
 		"0"
 	],
 	"required_nozzle_HRC": [
@@ -70,12 +80,22 @@
 		"280"
 	],
 	"during_print_exhaust_fan_speed": [
+		"60",
+		"60",
+		"60",
+		"60",
+		"60",
 		"60"
 	],
 	"supertack_plate_temp_initial_layer": [
 		"35"
 	],
 	"filament_z_hop_types": [
+		"",
+		"",
+		"",
+		"",
+		"",
 		""
 	],
 	"filament_end_gcode": [
@@ -85,6 +105,11 @@
 		"0"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"80",
+		"80",
+		"80",
+		"80",
+		"80",
 		"80"
 	]
 }

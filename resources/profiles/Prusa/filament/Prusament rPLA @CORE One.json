@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament rPLA @CORE One",
+	"renamed_from": "Prusament rPLA CORE One;Prusament rPLA @CORE One MMU3;Prusament rPLA CORE One MMU3",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "Bw6H4vFnq7YExyLd",
@@ -104,6 +105,5 @@
 	],
 	"slow_down_min_speed": [
 		"20"
-	],
-	"renamed_from": "Prusament rPLA CORE One;Prusament rPLA @CORE One MMU3;Prusament rPLA CORE One MMU3"
+	]
 }

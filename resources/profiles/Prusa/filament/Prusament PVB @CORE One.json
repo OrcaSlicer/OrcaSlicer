@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PVB @CORE One",
+	"renamed_from": "Prusament PVB CORE One;Prusament PVB @CORE One MMU3;Prusament PVB CORE One MMU3",
 	"inherits": "fdm_filament_pvb",
 	"from": "system",
 	"setting_id": "085dGkrnPhatF07x",
@@ -104,6 +105,5 @@
 	],
 	"slow_down_min_speed": [
 		"20"
-	],
-	"renamed_from": "Prusament PVB CORE One;Prusament PVB @CORE One MMU3;Prusament PVB CORE One MMU3"
+	]
 }

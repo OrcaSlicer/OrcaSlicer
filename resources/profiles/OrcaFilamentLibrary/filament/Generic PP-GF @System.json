@@ -13,6 +13,11 @@
 		"1.05"
 	],
 	"filament_max_volumetric_speed": [
+		"6",
+		"6",
+		"6",
+		"6",
+		"6",
 		"6"
 	],
 	"filament_multitool_ramming_flow": [

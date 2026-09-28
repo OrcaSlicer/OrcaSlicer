@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PA11 Carbon Fiber @CORE One",
+	"renamed_from": "Prusament PA-CF CORE One;Prusament PA-CF @CORE One MMU3;Prusament PA-CF CORE One MMU3;Prusament PA-CF @CORE One",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "sNGgucQjiFXwuFkq",
@@ -98,6 +99,5 @@
 	],
 	"slow_down_min_speed": [
 		"15"
-	],
-	"renamed_from": "Prusament PA-CF CORE One;Prusament PA-CF @CORE One MMU3;Prusament PA-CF CORE One MMU3;Prusament PA-CF @CORE One"
+	]
 }

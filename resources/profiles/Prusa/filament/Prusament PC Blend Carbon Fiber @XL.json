@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PC Blend Carbon Fiber @XL",
+	"renamed_from": "Prusament PC-CF XL;Prusament PC-CF @XL 5T;Prusament PC-CF XL 5T;Prusament PC-CF @XL",
 	"inherits": "fdm_filament_pccf",
 	"from": "system",
 	"setting_id": "kEl0d9cAhfqIdihm",
@@ -98,7 +99,6 @@
 	"filament_multitool_ramming": [
 		"1"
 	],
-	"renamed_from": "Prusament PC-CF XL;Prusament PC-CF @XL 5T;Prusament PC-CF XL 5T;Prusament PC-CF @XL",
 	"nozzle_temperature_initial_layer": [
 		"285"
 	]

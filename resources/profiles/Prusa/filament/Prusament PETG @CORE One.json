@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PETG @CORE One",
+	"renamed_from": "Prusament PETG CORE One;Prusament PETG @CORE One MMU3;Prusament PETG CORE One MMU3",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "LSvba9ds3XTwDMCG",
@@ -111,6 +112,5 @@
 	],
 	"slow_down_min_speed": [
 		"15"
-	],
-	"renamed_from": "Prusament PETG CORE One;Prusament PETG @CORE One MMU3;Prusament PETG CORE One MMU3"
+	]
 }

@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PC Blend Carbon Fiber @CORE One 0.8",
+	"renamed_from": "Prusament PC-CF CORE One 0.8;Prusament PC-CF @CORE One 0.8",
 	"inherits": "Prusament PC Blend Carbon Fiber @CORE One",
 	"from": "system",
 	"setting_id": "9xRQMlnH6yEd960F",
@@ -17,6 +18,5 @@
 	],
 	"overhang_fan_speed": [
 		"30"
-	],
-	"renamed_from": "Prusament PC-CF CORE One 0.8;Prusament PC-CF @CORE One 0.8"
+	]
 }

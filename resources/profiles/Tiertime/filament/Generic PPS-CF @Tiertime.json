@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PPS-CF @Tiertime",
-	"inherits": "fdm_filament_pps",
 	"renamed_from": "Tiertime Generic PPS-CF",
+	"inherits": "fdm_filament_pps",
 	"from": "system",
 	"setting_id": "QUPOb7dBkg6bPul2",
 	"filament_id": "OF6rdQ6M",

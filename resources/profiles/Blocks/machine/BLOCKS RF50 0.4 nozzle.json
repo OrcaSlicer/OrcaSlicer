@@ -39,15 +39,19 @@
 		"20000"
 	],
 	"machine_max_speed_e": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"12",
 		"12"
 	],
 	"retraction_length": [

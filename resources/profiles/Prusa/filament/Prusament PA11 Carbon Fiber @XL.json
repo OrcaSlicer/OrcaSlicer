@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PA11 Carbon Fiber @XL",
+	"renamed_from": "Prusament PA-CF XL;Prusament PA-CF @XL 5T;Prusament PA-CF XL 5T;Prusament PA-CF @XL",
 	"inherits": "fdm_filament_pa11cf",
 	"from": "system",
 	"setting_id": "exG5swknk2cWAbpY",
@@ -98,7 +99,6 @@
 	"filament_multitool_ramming": [
 		"1"
 	],
-	"renamed_from": "Prusament PA-CF XL;Prusament PA-CF @XL 5T;Prusament PA-CF XL 5T;Prusament PA-CF @XL",
 	"nozzle_temperature_initial_layer": [
 		"275"
 	]
