@@ -10,6 +10,8 @@
 #include "clipper2/clipper.engine.h"
 #include "clipper2/clipper.h"
 #include <stdexcept>
+#include <new>
+#include <oneapi/tbb/scalable_allocator.h>
 
 // https://github.com/AngusJohnson/Clipper2/discussions/334
 // #discussioncomment-4248602
@@ -26,6 +28,26 @@ namespace Clipper2Lib_Z {
 #else
 namespace Clipper2Lib {
 #endif
+
+  // Orca: tbbmalloc scales far better than the default heap when all slicing threads clip at once.
+  static void* NodeAlloc(size_t size)
+  {
+    if (void* p = scalable_malloc(size)) return p;
+    throw std::bad_alloc();
+  }
+
+#define CLIPPER2_DEFINE_NODE_ALLOCATOR(T) \
+  void* T::operator new(size_t size) { return NodeAlloc(size); } \
+  void T::operator delete(void* ptr) noexcept { scalable_free(ptr); } \
+  void* T::operator new[](size_t size) { return NodeAlloc(size); } \
+  void T::operator delete[](void* ptr) noexcept { scalable_free(ptr); }
+  CLIPPER2_DEFINE_NODE_ALLOCATOR(Vertex)
+  CLIPPER2_DEFINE_NODE_ALLOCATOR(OutPt)
+  CLIPPER2_DEFINE_NODE_ALLOCATOR(OutRec)
+  CLIPPER2_DEFINE_NODE_ALLOCATOR(Active)
+  CLIPPER2_DEFINE_NODE_ALLOCATOR(LocalMinima)
+  CLIPPER2_DEFINE_NODE_ALLOCATOR(PolyPath)
+#undef CLIPPER2_DEFINE_NODE_ALLOCATOR
 
   static const Rect64 invalid_rect = Rect64(false);
 

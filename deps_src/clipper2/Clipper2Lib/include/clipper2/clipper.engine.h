@@ -15,6 +15,13 @@
 #include <functional>
 #include <memory>
 
+// Orca: engine nodes are allocated through tbbmalloc, see clipper.engine.cpp.
+#define CLIPPER2_NODE_ALLOCATOR \
+	static void* operator new(size_t size); \
+	static void operator delete(void* ptr) noexcept; \
+	static void* operator new[](size_t size); \
+	static void operator delete[](void* ptr) noexcept;
+
 #ifdef USINGZ
 namespace Clipper2Lib_Z {
 #else
@@ -50,6 +57,7 @@ namespace Clipper2Lib {
 	}
 
 	struct Vertex {
+		CLIPPER2_NODE_ALLOCATOR
 		Point64 pt;
 		Vertex* next = nullptr;
 		Vertex* prev = nullptr;
@@ -57,6 +65,7 @@ namespace Clipper2Lib {
 	};
 
 	struct OutPt {
+		CLIPPER2_NODE_ALLOCATOR
 		Point64 pt;
 		OutPt*	next = nullptr;
 		OutPt*	prev = nullptr;
@@ -81,6 +90,7 @@ namespace Clipper2Lib {
 	//OutRec: contains a path in the clipping solution. Edges in the AEL will
 	//have OutRec pointers assigned when they form part of the clipping solution.
 	struct OutRec {
+		CLIPPER2_NODE_ALLOCATOR
 		size_t idx = 0;
 		OutRec* owner = nullptr;
 		Active* front_edge = nullptr;
@@ -106,6 +116,7 @@ namespace Clipper2Lib {
 	///////////////////////////////////////////////////////////////////
 
 	struct Active {
+		CLIPPER2_NODE_ALLOCATOR
 		Point64 bot;
 		Point64 top;
 		int64_t curr_x = 0;		//current (updated at every new scanline)
@@ -133,6 +144,7 @@ namespace Clipper2Lib {
 	};
 
 	struct LocalMinima {
+		CLIPPER2_NODE_ALLOCATOR
 		Vertex* vertex;
 		PathType polytype;
 		bool is_open;
@@ -303,6 +315,7 @@ namespace Clipper2Lib {
 	protected:
 		PolyPath* parent_;
 	public:
+		CLIPPER2_NODE_ALLOCATOR
 		PolyPath(PolyPath* parent = nullptr): parent_(parent){}
 		virtual ~PolyPath() {};
 		//https://en.cppreference.com/w/cpp/language/rule_of_three
