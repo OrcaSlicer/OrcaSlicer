@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Prusa CORE One",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Prusa Generic PETG @CORE One;Prusa Generic PETG CORE One",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "W71PW5bpf7CV16D4",
 	"filament_id": "OFYPdQJh",

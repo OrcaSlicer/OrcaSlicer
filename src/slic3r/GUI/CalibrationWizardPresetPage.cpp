@@ -803,6 +803,29 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 #define NOZZLE_LIST_DEFAULT     1
 float nozzle_diameter_list[NOZZLE_LIST_COUNT] = {0.2, 0.4, 0.6, 0.8 };
 
+// The nozzle_volume_type labels are in display order, not enum order (E3D High Flow is 5 but the fifth
+// label), so each item carries its NozzleVolumeType as client data and is selected by that value.
+static void select_nozzle_volume(ComboBox *combo, NozzleVolumeType volume_type)
+{
+    for (unsigned int i = 0; i < combo->GetCount(); ++i)
+        if (NozzleVolumeType(intptr_t(combo->GetClientData(i))) == volume_type) {
+            combo->SetSelection(i);
+            return;
+        }
+}
+
+static void fill_nozzle_volume_combo(ComboBox *combo)
+{
+    combo->Clear();
+    const ConfigOptionDef *nozzle_volume_type_def = print_config_def.get("nozzle_volume_type");
+    if (nozzle_volume_type_def && nozzle_volume_type_def->enum_keys_map) {
+        for (size_t i = 0; i < nozzle_volume_type_def->enum_labels.size(); ++i)
+            combo->Append(_L(nozzle_volume_type_def->enum_labels[i]), wxNullBitmap,
+                          (void *) (intptr_t) nozzle_volume_type_def->enum_keys_map->at(nozzle_volume_type_def->enum_values[i]));
+    }
+    select_nozzle_volume(combo, NozzleVolumeType::nvtStandard);
+}
+
 void CalibrationPresetPage::init_selection_values()
 {
     // init nozzle diameter and nozzle volume
@@ -813,15 +836,7 @@ void CalibrationPresetPage::init_selection_values()
         }
         m_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
 
-        m_comboBox_nozzle_volume->Clear();
-        const ConfigOptionDef *nozzle_volume_type_def = print_config_def.get("nozzle_volume_type");
-        if (nozzle_volume_type_def && nozzle_volume_type_def->enum_keys_map) {
-            for (auto item : nozzle_volume_type_def->enum_labels) {
-                m_comboBox_nozzle_volume->AppendString(_L(item));
-            }
-        }
-
-        m_comboBox_nozzle_volume->SetSelection(int(NozzleVolumeType::nvtStandard));
+        fill_nozzle_volume_combo(m_comboBox_nozzle_volume);
     }
 
     Preset* cur_printer_preset = get_printer_preset(curr_obj, 0.4);
@@ -866,15 +881,7 @@ void CalibrationPresetPage::init_selection_values()
         }
         m_left_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
 
-        m_left_comboBox_nozzle_volume->Clear();
-        const ConfigOptionDef *nozzle_volume_type_def = print_config_def.get("nozzle_volume_type");
-        if (nozzle_volume_type_def && nozzle_volume_type_def->enum_keys_map) {
-            for (auto item : nozzle_volume_type_def->enum_labels) {
-                m_left_comboBox_nozzle_volume->AppendString(_L(item));
-            }
-        }
-
-        m_left_comboBox_nozzle_volume->SetSelection(int(NozzleVolumeType::nvtStandard));
+        fill_nozzle_volume_combo(m_left_comboBox_nozzle_volume);
     }
 
     // right
@@ -885,15 +892,7 @@ void CalibrationPresetPage::init_selection_values()
         }
         m_right_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
 
-        m_right_comboBox_nozzle_volume->Clear();
-        const ConfigOptionDef *nozzle_volume_type_def = print_config_def.get("nozzle_volume_type");
-        if (nozzle_volume_type_def && nozzle_volume_type_def->enum_keys_map) {
-            for (auto item : nozzle_volume_type_def->enum_labels) {
-                m_right_comboBox_nozzle_volume->AppendString(_L(item));
-            }
-        }
-
-        m_right_comboBox_nozzle_volume->SetSelection(int(NozzleVolumeType::nvtStandard));
+        fill_nozzle_volume_combo(m_right_comboBox_nozzle_volume);
     }
 }
 
@@ -980,13 +979,13 @@ NozzleVolumeType CalibrationPresetPage::get_nozzle_volume_type(int extruder_id) 
     if (curr_obj) {
         if (curr_obj->is_multi_extruders()) {
             if (extruder_id == LEFT_EXTRUDER_ID) {
-                return NozzleVolumeType(m_left_comboBox_nozzle_volume->GetSelection());
+                return NozzleVolumeType(intptr_t(m_left_comboBox_nozzle_volume->GetClientData(m_left_comboBox_nozzle_volume->GetSelection())));
             } else if (extruder_id == RIGHT_EXTRUDER_ID) {
-                return NozzleVolumeType(m_right_comboBox_nozzle_volume->GetSelection());
+                return NozzleVolumeType(intptr_t(m_right_comboBox_nozzle_volume->GetClientData(m_right_comboBox_nozzle_volume->GetSelection())));
             }
         }
         else
-            return NozzleVolumeType(m_comboBox_nozzle_volume->GetSelection());
+            return NozzleVolumeType(intptr_t(m_comboBox_nozzle_volume->GetClientData(m_comboBox_nozzle_volume->GetSelection())));
     }
     return NozzleVolumeType::nvtStandard;
 }
@@ -2139,7 +2138,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                 }
 
                 if (obj->GetExtderSystem()->GetNozzleFlowType(i) != NozzleFlowType::NONE_FLOWTYPE) {
-                    m_left_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i))));
+                    select_nozzle_volume(m_left_comboBox_nozzle_volume, DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i)));
                 } else {
                     m_left_comboBox_nozzle_volume->SetSelection(0);
                 }
@@ -2159,7 +2158,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                 }
 
                 if (obj->GetExtderSystem()->GetNozzleFlowType(i) != NozzleFlowType::NONE_FLOWTYPE) {
-                    m_right_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i))));
+                    select_nozzle_volume(m_right_comboBox_nozzle_volume, DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i)));
                 } else {
                     m_right_comboBox_nozzle_volume->SetSelection(0);
                 }
@@ -2197,7 +2196,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
     else {
         if ((obj->GetExtderSystem()->GetTotalExtderCount() > 0) && (obj->GetExtderSystem()->GetNozzleFlowType(0) != NozzleFlowType::NONE_FLOWTYPE))
         {
-            m_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(0))));
+            select_nozzle_volume(m_comboBox_nozzle_volume, DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(0)));
         } else {
             m_comboBox_nozzle_volume->SetSelection(0);
         }

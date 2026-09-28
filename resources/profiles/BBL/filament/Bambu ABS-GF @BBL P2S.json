@@ -6,6 +6,8 @@
     "setting_id": "GFSB50_04",
     "instantiation": "true",
     "activate_air_filtration": [
+        "0",
+        "0",
         "0"
     ],
     "chamber_temperatures": [

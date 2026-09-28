@@ -362,6 +362,8 @@ private:
     int m_uni_segments_height_width_angle_tex_id{ -1 };
     int m_uni_segments_colors_tex_id{ -1 };
     int m_uni_segments_segment_index_tex_id{ -1 };
+    int m_uni_segments_reverse_order_id{ -1 };
+    int m_uni_segments_instance_count_id{ -1 };
     int m_uni_segments_shadow_map_id{ -1 };
     int m_uni_segments_shadow_light_vp_id{ -1 };
     int m_uni_segments_shadow_intensity_id{ -1 };

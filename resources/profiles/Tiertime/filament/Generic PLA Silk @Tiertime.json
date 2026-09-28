@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Silk @Tiertime",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Tiertime Generic PLA Silk",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "5R7nTGblzuEWfdog",
 	"filament_id": "OFesA6rF",

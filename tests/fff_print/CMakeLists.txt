@@ -14,9 +14,12 @@ add_executable(${_TEST_NAME}_tests
 	test_model.cpp
 	test_multifilament.cpp
 	test_perimeters.cpp
+	# Seam geometry and pipeline regressions share the existing Print fixtures.
+	test_precise_seam.cpp
 	test_print.cpp
 	test_printobject.cpp
 	test_mixed_filament.cpp
+	test_seam_placer.cpp
 	test_skirt_brim.cpp
 	test_slicing_pipeline_hook.cpp
 	test_support_material.cpp

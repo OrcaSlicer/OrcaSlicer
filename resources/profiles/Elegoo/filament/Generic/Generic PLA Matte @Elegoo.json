@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"setting_id": "dH2Yf92iqsOj5XYo",
 	"name": "Generic PLA Matte @Elegoo",
+	"inherits": "Generic PLA @base",
 	"from": "system",
+	"setting_id": "dH2Yf92iqsOj5XYo",
 	"filament_id": "OFmY0l6t",
 	"instantiation": "true",
-	"inherits": "Generic PLA @base",
 	"cool_plate_temp": [
 		"60"
 	],

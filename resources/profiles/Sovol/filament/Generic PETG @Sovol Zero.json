@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFYPdQJh",
-	"setting_id": "i4OW2eAtXOKdtVNj",
 	"name": "Generic PETG @Sovol Zero",
 	"renamed_from": "Sovol Zero PETG",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "i4OW2eAtXOKdtVNj",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.0348"
 	],
