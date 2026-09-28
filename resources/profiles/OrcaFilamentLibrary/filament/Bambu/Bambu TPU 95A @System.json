@@ -6,7 +6,12 @@
 	"setting_id": "LVi6dblW9n9rnSNJ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"3.6"
+		"3.2",
+		"3.2",
+		"3.2",
+		"3.2",
+		"3.2",
+		"3.2"
 	],
 	"compatible_printers": []
 }

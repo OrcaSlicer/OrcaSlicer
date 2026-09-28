@@ -34,6 +34,8 @@
 	"machine_end_gcode": "G1 X-19 F3000 ; home X axis\nG1 Y1 F3000 ; home Y axis\nM104 S0 T0 ; turn off extruder\nM104 S0 T1 ; turn off extruder\nM104 S0 T2 ; turn off extruder\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nM806 S0 ; turn of housing fan\nM84 ; disable motor\n",
 	"machine_max_speed_z": [
 		"15",
+		"12",
+		"15",
 		"12"
 	],
 	"machine_pause_gcode": "M10710 S0",

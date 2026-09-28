@@ -347,6 +347,10 @@ static wxString _generate_nozzle_id(NozzleVolumeType nozzle_type, const std::str
         nozzle_id += "H";
         break;
     }
+    case NozzleVolumeType::nvtE3DHighFlow: {
+        nozzle_id += "B";
+        break;
+    }
     default:
         nozzle_id += "H";
         break;
@@ -368,6 +372,8 @@ NozzleVolumeType convert_to_nozzle_type(const std::string &str)
         res = NozzleVolumeType::nvtStandard;
     else if (str[1] == 'H')
         res = NozzleVolumeType::nvtHighFlow;
+    else if (str[1] == 'B')
+        res = NozzleVolumeType::nvtE3DHighFlow;
     return res;
 }
 

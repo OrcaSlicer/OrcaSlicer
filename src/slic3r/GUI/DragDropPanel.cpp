@@ -566,7 +566,8 @@ std::vector<int> SeparatedDragDropPanel::GetHighFlowFilaments() const
     const int right_eid = 1;
     if (nozzle_volumes->values.size() > right_eid) {
         int volume_type = nozzle_volumes->values[right_eid];
-        if (volume_type == static_cast<int>(NozzleVolumeType::nvtHighFlow)) {
+        if (volume_type == static_cast<int>(NozzleVolumeType::nvtHighFlow) ||
+            volume_type == static_cast<int>(NozzleVolumeType::nvtE3DHighFlow)) {
             return m_unified_panel->GetAllFilaments();
         }
     }

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Prusa CORE One HF 0.8",
-	"inherits": "Generic ASA @Prusa CORE One",
 	"renamed_from": "Prusa Generic ASA @CORE One HF 0.8;Prusa Generic ASA CORE One HF 0.8",
+	"inherits": "Generic ASA @Prusa CORE One",
 	"from": "system",
 	"setting_id": "UQYl8pGvqg2D9zJX",
 	"filament_id": "OFLPAxz3",

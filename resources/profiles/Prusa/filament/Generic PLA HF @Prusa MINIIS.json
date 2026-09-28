@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA HF @Prusa MINIIS",
-	"inherits": "Generic PLA HF @Prusa base",
 	"renamed_from": "Prusa Generic PLA HF @MINIIS;Prusa Generic PLA HF MINIIS",
+	"inherits": "Generic PLA HF @Prusa base",
 	"from": "system",
 	"setting_id": "cQJUt7LR5hkKT0Za",
 	"instantiation": "true",
