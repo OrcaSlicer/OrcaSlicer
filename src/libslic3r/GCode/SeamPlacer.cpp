@@ -449,12 +449,20 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
   return polygons;
 }
 
+// Corners sharper than this angle attract the seam. Configured by seam_angle_threshold, whose default matches
+// SeamPlacer::sharp_angle_snapping_threshold. The setting stops at 1 degree; the clamp guards the aligned
+// blending below, which divides by this, against a hand edited config that goes lower.
+float sharp_angle_threshold_rad(int degrees) {
+  return std::max(1.0f, float(degrees)) * float(PI) / 180.0f;
+}
+
 // Insert SeamCandidates created from perimeter polygons in to the result vector.
 // Compute its type (Enfrocer,Blocker), angle, and position
 //each SeamCandidate also contains pointer to shared Perimeter structure representing the polygon
 // if Custom Seam modifiers are present, oversamples the polygon if necessary to better fit user intentions
 void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const LayerRegion *region,
-                               const GlobalModelInfo &global_model_info, PrintObjectSeamData::LayerSeams &result) {
+                               const GlobalModelInfo &global_model_info, float sharp_angle_threshold,
+                               PrintObjectSeamData::LayerSeams &result) {
   if (orig_polygon.size() == 0) {
     return;
   }
@@ -579,8 +587,7 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
       for (size_t point_idx = longest_patch.first; point_idx != longest_patch.second;
            point_idx = next_index(point_idx)) {
         viable_points_indices.push_back(point_idx);
-        if (std::abs(result.points[point_idx].local_ccw_angle)
-            > SeamPlacer::sharp_angle_snapping_threshold) {
+        if (std::abs(result.points[point_idx].local_ccw_angle) > sharp_angle_threshold) {
           large_angle_points_indices.push_back(point_idx);
         }
       }
@@ -1015,9 +1022,10 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
   using namespace SeamPlacerImpl;
   PrintObjectSeamData &seam_data = m_seam_per_object.emplace(po, PrintObjectSeamData { }).first->second;
   seam_data.layers.resize(po->layer_count());
+  const float sharp_angle_threshold = sharp_angle_threshold_rad(po->config().seam_angle_threshold);
 
   tbb::parallel_for(tbb::blocked_range<size_t>(0, po->layers().size()),
-                    [po, &global_model_info, &seam_data]
+                    [po, &global_model_info, &seam_data, sharp_angle_threshold]
                     (tbb::blocked_range<size_t> r) {
                       for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
                         PrintObjectSeamData::LayerSeams &layer_seams = seam_data.layers[layer_idx];
@@ -1028,7 +1036,8 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
                         Polygons polygons = extract_perimeter_polygons(layer, regions);
                         for (size_t poly_index = 0; poly_index < polygons.size(); ++poly_index) {
                           process_perimeter_polygon(polygons[poly_index], unscaled_z,
-                                                    regions[poly_index], global_model_info, layer_seams);
+                                                    regions[poly_index], global_model_info,
+                                                    sharp_angle_threshold, layer_seams);
                         }
                         auto functor = SeamCandidateCoordinateFunctor { layer_seams.points };
                         seam_data.layers[layer_idx].points_tree =
@@ -1236,6 +1245,7 @@ std::vector<std::pair<size_t, size_t>> SeamPlacer::find_seam_string(const PrintO
 // Note that this position does not necesarilly lay on the perimeter.
 void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::SeamComparator &comparator) {
   using namespace SeamPlacerImpl;
+  const float sharp_angle_threshold = sharp_angle_threshold_rad(po->config().seam_angle_threshold);
 
   // Prepares Debug files for writing.
 #ifdef DEBUG_FILES
@@ -1375,7 +1385,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
       for (size_t index = 0; index < seam_string.size(); ++index) {
         const auto &pair = seam_string[index];
         float t = std::min(1.0f, std::pow(std::abs(layers[pair.first].points[pair.second].local_ccw_angle)
-                                              / SeamPlacer::sharp_angle_snapping_threshold, 3.0f));
+                                              / sharp_angle_threshold, 3.0f));
         if (layers[pair.first].points[pair.second].type == EnforcedBlockedSeamPoint::Enforced){
           t = std::max(0.4f, t);
         }

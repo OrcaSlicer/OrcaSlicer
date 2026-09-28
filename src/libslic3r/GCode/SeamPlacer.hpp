@@ -116,7 +116,8 @@ public:
   //square of number of rays per sample point
   static constexpr size_t sqr_rays_per_sample_point = 5;
 
-  // snapping angle - angles larger than this value will be snapped to during seam painting
+  // snapping angle - angles larger than this value will be snapped to during seam painting.
+  // Only the default of the seam_angle_threshold setting; that setting is what is used at runtime.
   static constexpr float sharp_angle_snapping_threshold = 55.0f * float(PI) / 180.0f;
   // overhang angle for seam placement that still yields good results, in degrees, measured from vertical direction
   static constexpr float overhang_angle_threshold = 45.0f * float(PI) / 180.0f;
