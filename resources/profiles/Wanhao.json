@@ -1,12 +1,60 @@
 {
 	"name": "Wanhao",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Wanhao configurations",
 	"machine_model_list": [
 		{
 			"name": "Wanhao D12-300",
 			"sub_path": "machine/Wanhao D12-300.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK1",
+			"sub_path": "machine/Wanhao D9-300 MK1.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK1 BLTouch kit",
+			"sub_path": "machine/Wanhao D9-300 MK1 BLTouch kit.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK2",
+			"sub_path": "machine/Wanhao D9-300 MK2.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK3",
+			"sub_path": "machine/Wanhao D9-300 MK3.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK1",
+			"sub_path": "machine/Wanhao D9-400 MK1.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK1 BLTouch kit",
+			"sub_path": "machine/Wanhao D9-400 MK1 BLTouch kit.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK2",
+			"sub_path": "machine/Wanhao D9-400 MK2.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK3",
+			"sub_path": "machine/Wanhao D9-400 MK3.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK1",
+			"sub_path": "machine/Wanhao D9-500 MK1.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK1 BLTouch kit",
+			"sub_path": "machine/Wanhao D9-500 MK1 BLTouch kit.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK2",
+			"sub_path": "machine/Wanhao D9-500 MK2.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK3",
+			"sub_path": "machine/Wanhao D9-500 MK3.json"
 		}
 	],
 	"process_list": [
@@ -33,6 +81,38 @@
 		{
 			"name": "0.24mm Draft @Wanhao D12-300",
 			"sub_path": "process/0.24mm Draft @Wanhao D12-300.json"
+		},
+		{
+			"name": "fdm_process_wanhao_d9_common",
+			"sub_path": "process/fdm_process_wanhao_d9_common.json"
+		},
+		{
+			"name": "0.12mm Fine @Wanhao D9",
+			"sub_path": "process/0.12mm Fine @Wanhao D9.json"
+		},
+		{
+			"name": "0.20mm Standard @Wanhao D9",
+			"sub_path": "process/0.20mm Standard @Wanhao D9.json"
+		},
+		{
+			"name": "0.28mm Draft @Wanhao D9",
+			"sub_path": "process/0.28mm Draft @Wanhao D9.json"
+		},
+		{
+			"name": "fdm_process_wanhao_d9_mk1_common",
+			"sub_path": "process/fdm_process_wanhao_d9_mk1_common.json"
+		},
+		{
+			"name": "0.12mm Fine @Wanhao D9 MK1",
+			"sub_path": "process/0.12mm Fine @Wanhao D9 MK1.json"
+		},
+		{
+			"name": "0.20mm Standard @Wanhao D9 MK1",
+			"sub_path": "process/0.20mm Standard @Wanhao D9 MK1.json"
+		},
+		{
+			"name": "0.28mm Draft @Wanhao D9 MK1",
+			"sub_path": "process/0.28mm Draft @Wanhao D9 MK1.json"
 		}
 	],
 	"filament_list": [],
@@ -48,6 +128,62 @@
 		{
 			"name": "Wanhao D12-300 0.4 nozzle",
 			"sub_path": "machine/Wanhao D12-300 0.4 nozzle.json"
+		},
+		{
+			"name": "fdm_wanhao_d9_common",
+			"sub_path": "machine/fdm_wanhao_d9_common.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK1 BLTouch kit 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-300 MK1 BLTouch kit 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK2 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-300 MK2 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK3 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-300 MK3 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK1 BLTouch kit 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-400 MK1 BLTouch kit 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK2 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-400 MK2 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK3 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-400 MK3 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK1 BLTouch kit 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-500 MK1 BLTouch kit 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK2 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-500 MK2 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK3 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-500 MK3 0.4 nozzle.json"
+		},
+		{
+			"name": "fdm_wanhao_d9_mk1_common",
+			"sub_path": "machine/fdm_wanhao_d9_mk1_common.json"
+		},
+		{
+			"name": "Wanhao D9-300 MK1 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-300 MK1 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-400 MK1 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-400 MK1 0.4 nozzle.json"
+		},
+		{
+			"name": "Wanhao D9-500 MK1 0.4 nozzle",
+			"sub_path": "machine/Wanhao D9-500 MK1 0.4 nozzle.json"
 		}
 	]
 }

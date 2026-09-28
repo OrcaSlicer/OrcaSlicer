@@ -15,6 +15,9 @@
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
@@ -22,7 +25,10 @@
 #include <algorithm>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -224,7 +230,87 @@ std::string resolved_output_name(Model& model, const std::string& format, const 
     return print.output_filename(filename_base);
 }
 
+struct ScopedLifecycleHook
+{
+    explicit ScopedLifecycleHook(LifecycleHookFn hook) { set_lifecycle_hook_fn(std::move(hook)); }
+    ~ScopedLifecycleHook() { set_lifecycle_hook_fn(nullptr); }
+};
+
 } // namespace
+
+TEST_CASE("Slicing lifecycle events identify the model", "[Print][LifecycleEvents]")
+{
+    struct ObservedEvent {
+        LifecycleEvent event;
+        std::string id;
+        std::string name;
+    };
+    std::vector<ObservedEvent> events;
+    ScopedLifecycleHook hook([&](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        events.push_back({ event, ctx.id, ctx.name });
+    });
+
+    Print print;
+    Model model;
+    ModelInfo info;
+    info.model_name = "Lifecycle test model";
+    model.model_info = std::make_shared<ModelInfo>(std::move(info));
+    init_print({cube(20)}, print, model);
+
+    print.process();
+    ScopedTemporaryFile temp(".gcode");
+    print.export_gcode(temp.string(), nullptr, nullptr);
+    GCodeProcessorResult result;
+    print.export_gcode_from_previous_file(temp.string(), &result);
+
+    const std::string expected_id = std::to_string(print.model().id().id);
+    const std::vector<LifecycleEvent> expected_events = {
+        LifecycleEvent::SliceStarted,
+        LifecycleEvent::SliceGeometryFinished,
+        LifecycleEvent::GCodeExportStarted,
+        LifecycleEvent::GCodeExportFinished,
+        LifecycleEvent::GCodeExportStarted,
+        LifecycleEvent::GCodeExportFinished,
+    };
+    REQUIRE(events.size() == expected_events.size());
+    for (size_t i = 0; i < expected_events.size(); ++i) {
+        CHECK(events[i].event == expected_events[i]);
+        CHECK(events[i].id == expected_id);
+        CHECK(events[i].name == "Lifecycle test model");
+    }
+}
+
+TEST_CASE("Slicing lifecycle event name is empty without model metadata", "[Print][LifecycleEvents]")
+{
+    std::string event_id;
+    std::string event_name = "unset";
+    ScopedLifecycleHook hook([&](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        if (event == LifecycleEvent::SliceStarted) {
+            event_id = ctx.id;
+            event_name = ctx.name;
+        }
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model);
+    print.process();
+
+    CHECK(event_id == std::to_string(print.model().id().id));
+    CHECK(event_name.empty());
+}
+
+TEST_CASE("Output filenames with numeric statistics fail before slicing finishes", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filename_format", new ConfigOptionString("{int(total_weight*10) / 10.0}"));
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+
+    CHECK_THROWS_AS(print.output_filename(), PlaceholderParserError);
+}
 
 TEST_CASE("Print: {first_object_name} names the first printable object on the plate", "[Print]")
 {
@@ -504,4 +590,30 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         });
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
+}
+
+TEST_CASE("Slicing errors are reported per object with the object's name", "[Print]")
+{
+    Print print;
+    Model model;
+    init_print({Slic3r::Test::cube(20.)}, print, model);
+    // Lift the cube off the bed: its first layer is empty, which G-code export reports per object.
+    ModelObject *object = model.objects.front();
+    object->name = "floating cube";
+    object->instances.front()->set_offset(object->instances.front()->get_offset() + Vec3d(0., 0., 2.));
+    print.apply(model, DynamicPrintConfig::full_print_config());
+    print.set_status_silent();
+
+    ScopedTemporaryFile temp(".gcode");
+    std::string message;
+    try {
+        print.process();
+        print.export_gcode(temp.string(), nullptr, nullptr);
+        FAIL("slicing did not report the empty first layer");
+    } catch (const SlicingErrors &errors) {
+        REQUIRE(errors.errors_.size() == 1);
+        message = print.slicing_errors_message(errors);
+    }
+    CHECK(message.rfind("floating cube: ", 0) == 0);
+    CHECK(message.find("empty first layer") != std::string::npos);
 }

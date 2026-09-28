@@ -53,41 +53,64 @@ void write_vendor_tree(const fs::path& dir, const std::string& vendor, const std
 }
 
 // A small but complete vendor: one machine model, one process, a non-instantiated
-// base filament with an instantiated child inheriting it, a second standalone
-// filament carrying explicit metadata, and one machine preset with a rename — so
-// the equivalence test below sees every CachedPreset field populated.
-void write_full_vendor_tree(const fs::path& dir, const std::string& vendor, const std::string& version)
+// base filament with an instantiated child that inherits it and includes a
+// dual-extruder template, a second standalone filament carrying explicit
+// metadata, and one machine preset with a rename that includes a G-code template
+// — so the equivalence test below sees every CachedPreset field populated. The
+// templates are listed before the presets that include them, as update-index
+// orders them, or after them when `templates_last` asks for the broken order.
+void write_full_vendor_tree(const fs::path& dir, const std::string& vendor, const std::string& version,
+                            bool templates_last = false)
 {
     fs::create_directories(dir / vendor / "process");
     fs::create_directories(dir / vendor / "filament");
     fs::create_directories(dir / vendor / "machine");
+    const std::string filament_template = R"({"name":")" + vendor + R"( dual template","sub_path":"filament/template.json"})";
+    const std::string filament_presets  = R"({"name":")" + vendor + R"( Base PLA","sub_path":"filament/base.json"},)"
+                                          R"({"name":")" + vendor + R"( PLA @0.4","sub_path":"filament/pla.json"},)"
+                                          R"({"name":")" + vendor + R"( Silk PLA @0.4","sub_path":"filament/silk.json"})";
+    const std::string machine_template  = R"({"name":")" + vendor + R"( 0.4 template machine_start_gcode","sub_path":"machine/start.json"})";
+    const std::string machine_presets   = R"({"name":")" + vendor + R"( 0.4 nozzle","sub_path":"machine/printer.json"})";
     std::ofstream((dir / (vendor + ".json")).string())
         << R"({"version":")" << version << R"(","name":")" << vendor << R"(",)"
         << R"("machine_model_list":[{"name":"Test Model","sub_path":"machine/model.json"}],)"
         << R"("process_list":[{"name":"0.20mm Standard @)" << vendor << R"(","sub_path":"process/standard.json"}],)"
         << R"("filament_list":[)"
-        << R"({"name":")" << vendor << R"( Base PLA","sub_path":"filament/base.json"},)"
-        << R"({"name":")" << vendor << R"( PLA @0.4","sub_path":"filament/pla.json"},)"
-        << R"({"name":")" << vendor << R"( Silk PLA @0.4","sub_path":"filament/silk.json"}],)"
-        << R"("machine_list":[{"name":")" << vendor << R"( 0.4 nozzle","sub_path":"machine/printer.json"}]})";
+        << (templates_last ? filament_presets + "," + filament_template : filament_template + "," + filament_presets)
+        << R"(],"machine_list":[)"
+        << (templates_last ? machine_presets + "," + machine_template : machine_template + "," + machine_presets)
+        << "]}";
     std::ofstream((dir / vendor / "machine" / "model.json").string())
         << R"({"type":"machine_model","name":"Test Model","nozzle_diameter":"0.4"})";
     std::ofstream((dir / vendor / "process" / "standard.json").string())
         << R"({"type":"process","name":"0.20mm Standard @)" << vendor
         << R"(","from":"system","instantiation":"true","layer_height":"0.2"})";
+    // The base sets two per-variant keys; the template restates one of them for
+    // two variants and adds a third; the child restates the third.
     std::ofstream((dir / vendor / "filament" / "base.json").string())
         << R"({"type":"filament","name":")" << vendor
-        << R"( Base PLA","from":"system","instantiation":"false","filament_id":"GFA_base","filament_cost":"42"})";
+        << R"( Base PLA","from":"system","instantiation":"false","filament_id":"GFA_base","filament_cost":"42",)"
+        << R"("activate_air_filtration":["1"],"filament_max_volumetric_speed":["12"]})";
+    std::ofstream((dir / vendor / "filament" / "template.json").string())
+        << R"({"type":"filament","name":")" << vendor << R"( dual template","from":"system","instantiation":"false",)"
+        << R"("filament_extruder_variant":["Direct Drive Standard","Direct Drive High Flow"],)"
+        << R"("filament_max_volumetric_speed":["20","22"],"filament_flush_temp":["0","0"]})";
     std::ofstream((dir / vendor / "filament" / "pla.json").string())
         << R"({"type":"filament","name":")" << vendor
         << R"( PLA @0.4","from":"system","instantiation":"true","filament_id":"GFA00","filament_cost":"20",)"
         << R"("setting_id":"GFSA04","description":"Test PLA description"})";
     std::ofstream((dir / vendor / "filament" / "silk.json").string())
         << R"({"type":"filament","name":")" << vendor
-        << R"( Silk PLA @0.4","from":"system","instantiation":"true","inherits":")" << vendor << R"( Base PLA"})";
+        << R"( Silk PLA @0.4","from":"system","instantiation":"true","inherits":")" << vendor << R"( Base PLA",)"
+        << R"("include":[")" << vendor << R"( dual template"],"filament_flush_temp":["5","5"]})";
+    // The template states two G-codes; the printer restates one of them.
+    std::ofstream((dir / vendor / "machine" / "start.json").string())
+        << R"({"type":"machine","name":")" << vendor << R"( 0.4 template machine_start_gcode","from":"system",)"
+        << R"("instantiation":"false","machine_start_gcode":"G28 ; template","machine_end_gcode":"M84 ; template"})";
     std::ofstream((dir / vendor / "machine" / "printer.json").string())
         << R"({"type":"machine","name":")" << vendor
         << R"( 0.4 nozzle","from":"system","instantiation":"true","printer_model":"Test Model","printer_variant":"0.4",)"
+        << R"("include":[")" << vendor << R"( 0.4 template machine_start_gcode"],"machine_end_gcode":"M84 ; own",)"
         << R"("renamed_from":")" << vendor << R"( old 0.4 nozzle"})";
 }
 
@@ -598,6 +621,7 @@ TEST_CASE("a cache-loaded vendor is indistinguishable from a JSON-loaded one", "
     const Preset* pr = from_cache.printers.find_preset("Acme 0.4 nozzle", false);
     REQUIRE(pr != nullptr);
     CHECK(pr->renamed_from == std::vector<std::string>{"Acme old 0.4 nozzle"});
+    CHECK(pr->config.opt_string("machine_start_gcode") == "G28 ; template");   // through the include
 }
 
 TEST_CASE("a cache-served vendor reports the errors its parse counted", "[VendorCache]")
@@ -1618,3 +1642,73 @@ TEST_CASE("a stamp string with an absurd length is rejected, not allocated", "[V
     CHECK(VendorCacheFile::peek_version(cache, "Evil").empty());
 }
 
+TEST_CASE("an included template's keys land on the preset, between the parent's and its own", "[VendorCache]")
+{
+    InstallDirs dirs;
+    write_full_vendor_tree(dirs.system, "Acme", "1.0.0");
+    PresetBundle bundle;
+    bundle.load_vendor_configs_from_json(dirs.system.string(), "Acme", PresetBundle::LoadSystem,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
+    CHECK(bundle.error_count() == 0);
+
+    const Preset* pr = bundle.printers.find_preset("Acme 0.4 nozzle", false);
+    REQUIRE(pr != nullptr);
+    CHECK(pr->config.opt_string("machine_start_gcode") == "G28 ; template");   // from the include
+    CHECK(pr->config.opt_string("machine_end_gcode") == "M84 ; own");          // the preset's own key wins
+    CHECK(presets_for(bundle.printers, "Acme").size() == 1);                   // the template is no preset
+
+    const Preset* silk = bundle.filaments.find_preset("Acme Silk PLA @0.4", false);
+    REQUIRE(silk != nullptr);
+    const auto* speed = silk->config.option<ConfigOptionFloats>("filament_max_volumetric_speed");
+    REQUIRE(speed != nullptr);
+    CHECK(speed->values == std::vector<double>{20., 22.});                     // the include wins over the parent
+    const auto* flush = silk->config.option<ConfigOptionInts>("filament_flush_temp");
+    REQUIRE(flush != nullptr);
+    CHECK(flush->values == std::vector<int>{5, 5});                             // the preset's own key wins
+    // A per-variant key the template never mentions keeps the parent's value.
+    // The loader pads every base to its variant count; an include taken from the
+    // padded copy would carry the padded default [0,0] over the parent's 1.
+    const auto* air = silk->config.option<ConfigOptionBools>("activate_air_filtration");
+    REQUIRE(air != nullptr);
+    CHECK(air->values == std::vector<unsigned char>{1, 1});
+    CHECK(presets_for(bundle.filaments, "Acme").size() == 2);                  // the template is no preset
+}
+
+TEST_CASE("an include listed after the preset that names it is an error, and the preset loads without it", "[VendorCache]")
+{
+    InstallDirs dirs;
+    write_full_vendor_tree(dirs.system, "Acme", "1.0.0", /*templates_last=*/true);
+    PresetBundle bundle;
+    bundle.load_vendor_configs_from_json(dirs.system.string(), "Acme", PresetBundle::LoadSystem,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
+    // One error per unresolved include: the printer's and the filament's.
+    CHECK(bundle.error_count() == 2);
+    const Preset* pr = bundle.printers.find_preset("Acme 0.4 nozzle", false);
+    REQUIRE(pr != nullptr);
+    CHECK(pr->config.opt_string("machine_start_gcode") != "G28 ; template");
+    const Preset* silk = bundle.filaments.find_preset("Acme Silk PLA @0.4", false);
+    REQUIRE(silk != nullptr);
+    CHECK(silk->config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>{12.});
+}
+
+TEST_CASE("a G-code template that states no instantiation is included, not loaded as a preset", "[VendorCache]")
+{
+    InstallDirs dirs;
+    write_full_vendor_tree(dirs.system, "Acme", "1.0.0");
+    const fs::path start = dirs.system / "Acme" / "machine" / "start.json";
+    SECTION("named as G-code") {
+        std::ofstream(start.string()) << R"({"type":"machine","name":"Acme 0.4 template machine_start_gcode","from":"system",)"
+                                      << R"("machine_start_gcode":"G28 ; template"})";
+    }
+    SECTION("not named, so included by its name in the vendor index") {
+        std::ofstream(start.string()) << R"({"type":"machine","from":"system","machine_start_gcode":"G28 ; template"})";
+    }
+    PresetBundle bundle;
+    bundle.load_vendor_configs_from_json(dirs.system.string(), "Acme", PresetBundle::LoadSystem,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
+    CHECK(bundle.error_count() == 0);
+    const Preset* pr = bundle.printers.find_preset("Acme 0.4 nozzle", false);
+    REQUIRE(pr != nullptr);
+    CHECK(pr->config.opt_string("machine_start_gcode") == "G28 ; template");
+    CHECK(presets_for(bundle.printers, "Acme").size() == 1);
+}

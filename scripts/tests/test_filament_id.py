@@ -405,6 +405,20 @@ class TestTripleResolution(unittest.TestCase):
         self.assertEqual(afi.resolve_triple("MyPLA @P1", fmap, {}),
                          ("MyVendor", "PLA", "MyPLA"))
 
+    def test_split_vendor_and_type_bases_resolve(self):
+        # A partial base is normal, not an error: vendor and type may live on
+        # different ancestors, with an intermediate supplying neither (the
+        # Snapmaker shape). The pair is complete at the instantiated preset.
+        recs = [
+            self.rec("APLA @P1", inherits="mid"),
+            self.rec("mid", inherits="typebase"),
+            self.rec("typebase", filament_type=["PLA"], inherits="vendorbase"),
+            self.rec("vendorbase", filament_vendor=["AV"]),
+        ]
+        fmap = {r["name"]: r for r in recs}
+        self.assertEqual(afi.resolve_triple("APLA @P1", fmap, {}),
+                         ("AV", "PLA", "APLA"))
+
 
 # ---------------------------------------------------------------------------
 # checks on synthetic trees
@@ -416,6 +430,24 @@ class TestChecks(OfCleanTreeCase):
         self.assertEqual(errors, 0, out)
         self.assertNotIn("[ERROR]", out)
         self.assertNotIn("[WARNING]", out)
+
+    def test_instantiated_preset_over_partial_bases_is_silent(self):
+        # Vendor and type split across two non-instantiated bases, an
+        # intermediate base with neither: base profiles are allowed to be
+        # partial. Only the instantiated preset must resolve both.
+        self.t.write_preset("VendorA", preset("XPLA vendorbase", instantiation=False,
+                                              filament_vendor="XV"))
+        self.t.write_preset("VendorA", preset("XPLA typebase", instantiation=False,
+                                              filament_type="PLA",
+                                              inherits="XPLA vendorbase"))
+        self.t.write_preset("VendorA", preset("XPLA mid", instantiation=False,
+                                              inherits="XPLA typebase"))
+        self.t.write_preset("VendorA", preset(
+            "XPLA @P1", inherits="XPLA mid",
+            filament_id=afi.generate_filament_id("XV", "PLA", "XPLA"),
+            compatible_printers=["P1"]))
+        errors, out = self.t.check()
+        self.assertEqual(errors, 0, out)
 
     def test_check1_unknown_non_of_id(self):
         self.t.write_preset("VendorA", preset("BPLA @base", filament_id="BOGUS_9",
@@ -1522,6 +1554,19 @@ class TestRealTree(unittest.TestCase):
         analysis = afi.analyze_tree(REAL_PROFILES)
         self.assertEqual(analysis["missing_effective"], [])
         self.assertEqual(analysis["read_errors"], [])
+
+    def test_every_instantiated_filament_resolves_vendor_and_type(self):
+        # The property the web guide resolves at load: a partial base is fine as
+        # long as the instantiated preset ends up with both fields. Guards the
+        # split-base bundles (Snapmaker, Anker, SeeMeCNC).
+        analysis = afi.analyze_tree(REAL_PROFILES)
+        unresolved = [
+            (vendor, rec["name"], rec["triple"][0], rec["triple"][1])
+            for vendor, filaments in analysis["vendors"].items()
+            for rec in filaments.values()
+            if rec["instantiation"] and not (rec["triple"][0] and rec["triple"][1])
+        ]
+        self.assertEqual(unresolved, [])
 
 # ---------------------------------------------------------------------------
 # review-fix regressions

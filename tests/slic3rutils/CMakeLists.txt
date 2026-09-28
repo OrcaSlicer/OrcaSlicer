@@ -5,6 +5,10 @@ add_executable(${_TEST_NAME}_tests
     test_creality_cfs_match.cpp
     test_dev_mapping.cpp
     test_filament_bitmap_utils.cpp
+    test_scene_raycaster.cpp
+    test_lazy.cpp
+    test_prebuild_queue.cpp
+    test_staged_build.cpp
     test_network_versions.cpp
     test_action_source.cpp
     test_plugin_host_api.cpp
@@ -14,6 +18,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
     test_plugin_printer_agent.cpp
+    test_printhost.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp

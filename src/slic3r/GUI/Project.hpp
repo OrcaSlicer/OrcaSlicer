@@ -35,6 +35,7 @@
 #include "libslic3r/ProjectTask.hpp"
 #include "wxExtensions.hpp"
 #include "Auxiliary.hpp"
+#include "Lazy.hpp"
 
 #define AUFILE_GREY700 wxColour(107, 107, 107)
 #define AUFILE_GREY500 wxColour(158, 158, 158)
@@ -59,7 +60,7 @@ struct project_file{
     std::string size;
 };
 
-class ProjectPanel : public wxPanel
+class ProjectPanel : public wxPanel, public StagedBuild, public LazyInstance<ProjectPanel>
 {
 private:
     std::atomic<bool> m_web_init_completed{false};
@@ -90,7 +91,6 @@ public:
     void msw_rescale();
     void update_model_data();
     void clear_model_info();
-    void init_auxiliary() { m_auxiliary->init_auxiliary(); }
 
     bool Show(bool show);
     void OnScriptMessage(wxWebViewEvent& evt);

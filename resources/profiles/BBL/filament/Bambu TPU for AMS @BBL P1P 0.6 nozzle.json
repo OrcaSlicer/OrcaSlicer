@@ -1,0 +1,61 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU for AMS @BBL P1P 0.6 nozzle",
+    "inherits": "Bambu TPU for AMS @base",
+    "from": "system",
+    "setting_id": "GFSU02_16",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "filament_flow_ratio": [
+        "0.97",
+        "0.975"
+    ],
+    "filament_max_volumetric_speed": [
+        "18",
+        "6"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "0.2"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_deretraction_speed": [
+        "nil",
+        "40"
+    ],
+    "filament_retraction_speed": [
+        "nil",
+        "40"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "0.6"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "230",
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230",
+        "230"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P1P 0.6 nozzle"
+    ]
+}

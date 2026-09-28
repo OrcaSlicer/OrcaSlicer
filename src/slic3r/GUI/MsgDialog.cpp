@@ -194,9 +194,10 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
     bd->button = btn;
     //bd->type   = type;
 
-    mb->id        = wxString::Format("%d", m_buttons.size());
+    // m_buttons.size() is a size_t, which does not match the %d conversion
+    mb->id        = wxString(std::to_string(m_buttons.size()));
     mb->buttondata = bd;
-    m_buttons[ wxString::Format("%d", m_buttons.size())] = mb;
+    m_buttons[ wxString(std::to_string(m_buttons.size()))] = mb;
     return btn;
 };
 
@@ -398,7 +399,7 @@ static void add_msg_content(wxWindow   *parent,
             }
             wxScrolledWindow *scrolledWindow = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
             scrolledWindow->SetBackgroundColour(*wxWHITE);
-            scrolledWindow->SetScrollRate(0, 20);
+            scrolledWindow->SetScrollRate(0, scrolledWindow->FromDIP(20));
             scrolledWindow->EnableScrolling(false, true);
             wxBoxSizer *sizer_scrolled = new wxBoxSizer(wxHORIZONTAL);
             Label *wrapped_text = new Label(scrolledWindow, font, msg, LB_AUTO_WRAP, wxSize(info_width, -1));
