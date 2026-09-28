@@ -40,6 +40,12 @@ The pattern is phased on fixed positions, so it lines up across layers and
 across the regions of one layer. Rounding the corners with
 `sparse_infill_smooth_factor` happens before `multiline_fill()`.
 
+Each region builds only the rows over its bounding box in that frame, and
+outlines only the centerlines within `d1 / 2` of it, the ones whose outlines
+reach it. Every row is monotone along its direction, so each outline is started
+on the cap at the first end of its centerline, outside the region, and clipping
+to the region cuts it only where it crosses the boundary.
+
 ## Cubic
 
 Single-line Cubic draws the three families at the same spacing `h` and shifts

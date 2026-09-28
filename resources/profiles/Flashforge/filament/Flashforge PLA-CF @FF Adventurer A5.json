@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "EpC2ItdGUxFV7x1y",
 	"filament_id": "OF9cAwMK",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"
 	],

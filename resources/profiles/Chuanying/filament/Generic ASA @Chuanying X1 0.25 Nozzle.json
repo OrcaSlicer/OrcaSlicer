@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Chuanying X1 0.25 Nozzle",
-	"inherits": "Generic ASA @Chuanying",
 	"renamed_from": "Chuanying ASA @Chuanying X1 0.25 Nozzle;Chuanying ASA Chuanying X1 0.25 Nozzle",
+	"inherits": "Generic ASA @Chuanying",
 	"from": "system",
 	"setting_id": "bVxY01TC9sAM9KQW",
 	"instantiation": "true",

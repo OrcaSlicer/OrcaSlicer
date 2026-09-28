@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Creality",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Creality Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "B8lWG3jJQ4ar4j70",
 	"filament_id": "OFYPdQJh",

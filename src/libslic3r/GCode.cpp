@@ -2509,7 +2509,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(print->model().id().id);
+        ctx.id = std::to_string(print->model().id().id);
+        ctx.name = print->get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = path;
         ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2561,7 +2562,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         }
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(print->model().id().id);
+            ctx.id = std::to_string(print->model().id().id);
+            ctx.name = print->get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = std::string(path) + "\n" + err_msg;
             ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2585,7 +2587,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         boost::nowide::remove(path_tmp.c_str());
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(print->model().id().id);
+            ctx.id = std::to_string(print->model().id().id);
+            ctx.name = print->get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = std::string(path) + "\n" + ex.what();
             ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2698,7 +2701,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     if (ret) {
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(print->model().id().id);
+            ctx.id = std::to_string(print->model().id().id);
+            ctx.name = print->get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = std::string(path) + "\nFailed to rename the output G-code file: " + ret.message();
             ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -2717,7 +2721,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(print->model().id().id);
+        ctx.id = std::to_string(print->model().id().id);
+        ctx.name = print->get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = path;
         ctx.cancellation_check = [print]() { return print->canceled(); };
@@ -4198,6 +4203,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Const input (tool-change fallback for non-wipe-tower prints)
         print.tool_ordering()));
     print.m_print_statistics.initial_tool = initial_extruder_id;
+    print.m_print_statistics.initial_no_support_tool = initial_non_support_extruder_id;
     if (!is_bbl_printers) {
         file.write_format("; total filament used [g] = %.2lf\n",
             print.m_print_statistics.total_weight);
@@ -7969,6 +7975,20 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
     return res;
 }
 
+// ORCA: Overlap at or below which the overhang fan switches on; negative when it does not depend on overlap
+// (Overhang_threshold_none cools every external perimeter).
+static float overhang_fan_overlap_threshold(int overhang_fan_threshold)
+{
+    switch (overhang_fan_threshold) {
+    case (int) Overhang_threshold_1_4: return 0.9f;
+    case (int) Overhang_threshold_2_4: return 0.75f;
+    case (int) Overhang_threshold_3_4: return 0.5f;
+    case (int) Overhang_threshold_4_4: return 0.25f;
+    case (int) Overhang_threshold_bridge: return 0.05f;
+    default: return -1.f;
+    }
+}
+
 std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
 {
     std::string gcode;
@@ -8311,6 +8331,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             
             ConfigOptionPercents         overhang_overlap_levels({90, 75, 50, 25, 13, 0});
 
+            // ORCA: Lets the path be split where the overhang fan switches, not only where the speed changes.
+            // Bridges and overhang perimeters are cooled regardless of overlap.
+            float fan_overlap_threshold = -1.f;
+            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers && path.role() != erBridgeInfill &&
+                path.role() != erOverhangPerimeter)
+                fan_overlap_threshold = overhang_fan_overlap_threshold(FILAMENT_CONFIG(overhang_fan_threshold));
+
             if (NOZZLE_CONFIG(slowdown_for_curled_perimeters)){
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                     {FloatOrPercent{100, true},
@@ -8331,7 +8358,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                          FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
+                                                                              fan_overlap_threshold);
         	}else{
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                                                                      {FloatOrPercent{100, true},
@@ -8350,7 +8378,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                      FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true}});
 
                 new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
-                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters));
+                                                                              ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
+                                                                              fan_overlap_threshold);
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
@@ -8502,28 +8531,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
       if (role == erBridgeInfill || role == erOverhangPerimeter) { // ORCA: Split out bridge infill to internal and external to apply separate fan settings
         return true;
       }
-      switch (overhang_fan_threshold) {
-      case (int)Overhang_threshold_1_4:
-        return overlap <= 0.9f;
-        break;
-      case (int)Overhang_threshold_2_4:
-        return overlap <= 0.75f;
-        break;
-      case (int)Overhang_threshold_3_4:
-        return overlap <= 0.5f;
-        break;
-      case (int)Overhang_threshold_4_4:
-        return overlap <= 0.25f;
-        break;
-      case (int)Overhang_threshold_bridge:
-        return overlap <= 0.05f;
-        break;
-      case (int)Overhang_threshold_none:
+      if (overhang_fan_threshold == Overhang_threshold_none)
         return is_external_perimeter(role);
-        break;
-      default:
-        return false;
-      }
+      const float overlap_threshold = overhang_fan_overlap_threshold(overhang_fan_threshold);
+      return overlap_threshold >= 0.f && overlap <= overlap_threshold;
     };
 
     std::string comment;

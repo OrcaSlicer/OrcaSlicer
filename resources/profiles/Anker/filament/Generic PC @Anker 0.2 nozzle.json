@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Anker 0.2 nozzle",
-	"inherits": "Generic PC @Anker base",
 	"renamed_from": "Anker Generic PC 0.2 nozzle",
+	"inherits": "Generic PC @Anker base",
 	"from": "system",
 	"setting_id": "2sSOgctcnVh9bGbQ",
 	"instantiation": "true",

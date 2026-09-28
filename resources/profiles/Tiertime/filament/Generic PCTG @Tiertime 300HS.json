@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PCTG @Tiertime 300HS",
-	"inherits": "fdm_filament_pctg",
 	"renamed_from": "Tiertime Generic PCTG@300HS;Tiertime Generic PCTG300HS",
+	"inherits": "fdm_filament_pctg",
 	"from": "system",
 	"setting_id": "1VNFGuUO3KSO6Yfr",
 	"filament_id": "OFu1evlr",

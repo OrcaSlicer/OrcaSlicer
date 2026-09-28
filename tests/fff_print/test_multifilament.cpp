@@ -715,3 +715,56 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+// A filament can define several variants (Standard, High Flow). Each filament prints with its
+// variant of the extruder's variant string, or with its own first variant when it defines none, on a
+// printer listing a single variant as on one listing several.
+TEST_CASE("Each filament prints with its variant of the extruder's variant string", "[MultiFilament]")
+{
+    auto [variant_list, nozzle_volume_type, filament, temperature, resolved] = GENERATE(table<std::string, NozzleVolumeType, int, int, std::string>({
+        { "Direct Drive Standard",                        nvtStandard, 1, 211, "211,223" },
+        { "Direct Drive Standard",                        nvtStandard, 2, 223, "211,223" },
+        { "Direct Drive High Flow",                       nvtHighFlow, 1, 239, "239,223" },
+        { "Direct Drive High Flow",                       nvtHighFlow, 2, 223, "239,223" }, // filament 2 defines no High Flow variant
+        { "Direct Drive Standard,Direct Drive High Flow", nvtHighFlow, 1, 239, "239,223" },
+        { "Direct Drive Standard,Direct Drive High Flow", nvtHighFlow, 2, 223, "239,223" },
+    }));
+    DYNAMIC_SECTION(variant_list << " printer, " << get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "extruder_variant_list",            variant_list },
+            // filament 1 defines Standard (211) and High Flow (239), filament 2 Standard (223)
+            { "filament_extruder_variant",        "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",              "1,1,2" },
+            { "nozzle_temperature",               "211,239,223" },
+            { "nozzle_temperature_initial_layer", "211,239,223" },
+            { "sparse_infill_filament_id",        filament },
+            { "internal_solid_filament_id",       filament },
+            { "top_surface_filament_id",          filament },
+            { "bottom_surface_filament_id",       filament },
+            { "outer_wall_filament_id",           filament },
+            { "inner_wall_filament_id",           filament },
+            { "enable_prime_tower",               0 },
+            { "skirt_loops",                      0 },
+            { "brim_type",                        "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",              "; start temperature {nozzle_temperature_initial_layer[initial_extruder]}" },
+        });
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        std::set<int> temperatures;
+        std::istringstream stream(gcode);
+        for (std::string line; std::getline(stream, line);) {
+            if (line.rfind("M104 ", 0) != 0 && line.rfind("M109 ", 0) != 0)
+                continue;
+            const size_t s = line.find(" S");
+            if (s != std::string::npos && std::stoi(line.substr(s + 2)) > 0)
+                temperatures.insert(std::stoi(line.substr(s + 2)));
+        }
+        CHECK(temperatures == std::set<int>{ temperature });
+        CHECK(gcode.find("; start temperature " + std::to_string(temperature) + "\n") != std::string::npos);
+        // The config the slice ran with holds one value per filament, as the readers that index
+        // it by filament (the wipe tower, the filament compatibility check) expect.
+        CHECK(gcode.find("; nozzle_temperature = " + resolved + "\n") != std::string::npos);
+    }
+}

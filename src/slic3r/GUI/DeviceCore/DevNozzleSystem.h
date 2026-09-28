@@ -12,8 +12,9 @@
 
 // Device flow-type mapping note (nozzle rack): the device U_FLOW value maps to nvtTPUHighFlow
 // (TPU High Flow), so a device-synced TPU-HF rack resolves to nvtTPUHighFlow and the H2C
-// change_filament_gcode TPU-kit branch can activate. nvtHybrid is a slicer-only sentinel with no
-// device representation, so it stays out of these device flow-type conversions.
+// change_filament_gcode TPU-kit branch can activate. E_FLOW maps to nvtE3DHighFlow. nvtHybrid is a
+// slicer-only sentinel with no device representation, so it stays out of these device flow-type
+// conversions.
 //
 // GetExtruderNozzleInfo (and its ExtruderNozzleInfos aggregate) is intentionally omitted here;
 // the SelectMachine slicing-vs-installed nozzle comparison collects its per-extruder NozzleDef
@@ -36,13 +37,13 @@ namespace Slic3r
        float           m_diameter = 0.0f;// unknown until reported by the printer
 
    public:
-       // flow/volume conversions (Standard / High Flow / TPU High Flow)
+       // flow/volume conversions (Standard / High Flow / TPU High Flow / E3D High Flow)
        static NozzleFlowType       ToNozzleFlowType(const NozzleVolumeType& type);
        static NozzleVolumeType     ToNozzleVolumeType(const NozzleFlowType& type);
 
        static wxString             GetNozzleFlowTypeStr(NozzleFlowType type);
-       static std::string          GetNozzleFlowTypeString(NozzleFlowType type);// untranslated literal ("High Flow"/"Standard"/"TPU High Flow") — the filament blacklist JSON matches these raw strings, so it must NOT use the translated GetNozzleFlowTypeStr (would break non-English locales)
-       static std::string          ToNozzleFlowString(const NozzleFlowType& type);// untranslated "Standard"/"High Flow"/"TPU High Flow" ("" for none) — the raw literal serialized into the get_auto_nozzle_mapping payload
+       static std::string          GetNozzleFlowTypeString(NozzleFlowType type);// untranslated literal ("High Flow"/"Standard"/"TPU High Flow"/"E3D High Flow") — the filament blacklist JSON matches these raw strings, so it must NOT use the translated GetNozzleFlowTypeStr (would break non-English locales)
+       static std::string          ToNozzleFlowString(const NozzleFlowType& type);// untranslated "Standard"/"High Flow"/"TPU High Flow"/"E3D High Flow" ("" for none) — the raw literal serialized into the get_auto_nozzle_mapping payload
        static wxString             GetNozzleTypeStr(NozzleType type);
 
    public:

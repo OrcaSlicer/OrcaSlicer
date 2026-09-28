@@ -1199,6 +1199,64 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
     REQUIRE(single_smooth.length == single_sharp.length);
 }
 
+TEST_CASE("Multiline infill of an object matches the infill of a larger object with the same center", "[Fill]")
+{
+    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic);
+    const int           multiline = GENERATE(2, 3);
+    // A square with cells as large as itself, whose corners are as far out as the object bounding box
+    // reaches, and a strip with small cells, whose extents change with every layer orientation.
+    const auto [half, density] = GENERATE(table<Vec2d, float>({ { Vec2d(20., 20.), 0.15f }, { Vec2d(60., 4.), 0.35f } }));
+    CAPTURE(pattern, multiline, half.x(), half.y(), density);
+
+    // Off the origin; the same center gives both objects the same pattern.
+    auto rectangle = [](const Vec2d &half) {
+        const Vec2d center(100., 60.);
+        return ExPolygon{ Points{ Point::new_scale(center.x() - half.x(), center.y() - half.y()),
+                                  Point::new_scale(center.x() + half.x(), center.y() - half.y()),
+                                  Point::new_scale(center.x() + half.x(), center.y() + half.y()),
+                                  Point::new_scale(center.x() - half.x(), center.y() + half.y()) } };
+    };
+    const ExPolygon object = rectangle(half);
+    const ExPolygon larger = rectangle(half + Vec2d(10., 10.));
+    auto fill = [pattern, multiline, density = density](const ExPolygon &region, size_t layer_id) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing     = 0.45;
+        filler->angle       = float(M_PI / 7.);
+        filler->fixed_angle = true;
+        filler->layer_id    = layer_id;
+        filler->z           = 0.2 * double(layer_id + 1);
+        filler->set_bounding_box(get_extents(region.contour));
+
+        FillParams params;
+        params.density           = density;
+        params.multiline         = multiline;
+        params.dont_adjust       = true;
+        Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary of the object, where both are clipped and connected the same way.
+    const Polygons inner = shrink(to_polygons(object), scale_(1.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+
+    // Both layer orientations of Grid, all three of the triangular family.
+    for (size_t layer_id = 0; layer_id < 3; ++layer_id) {
+        CAPTURE(layer_id);
+        const Polylines walls = fill(object, layer_id);
+        REQUIRE_FALSE(walls.empty());
+        CHECK(get_intersections(to_lines(walls)).empty());
+        const Polylines reference = fill(larger, layer_id);
+        CHECK(farthest(reference, walls) < 0.01);
+        CHECK(farthest(walls, reference) < 0.01);
+    }
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
     const int    multiline = GENERATE(2, 3);
