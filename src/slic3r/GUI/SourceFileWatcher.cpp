@@ -185,6 +185,17 @@ void SourceFileWatcher::on_timer(wxTimerEvent&)
         commit_source_stamps(committed);
     if (!failed.empty())
         record_failed_attempt(failed);
+    else
+        // m_on_changed just re-armed the watch for every file that committed (forget_watched_files()
+        // followed by update_source_file_watches() -- needed so a rename-into-place isn't skipped as
+        // "unchanged path set", but it means every successful reload tears down and rebuilds the
+        // underlying OS watch, not just a renamed file's). A write landing in that window can be
+        // missed: the backend's own teardown/rebuild bookkeeping (e.g. inotify's IN_IGNORED for the
+        // removed watch descriptors) is asynchronous, so nothing guarantees an event during it is
+        // still delivered. One extra tick catches it instead of relying on unrelated directory
+        // activity to ever wake the timer again -- changed_source_files() is a no-op if nothing
+        // else changed, since the committed stamps above are already the current baseline.
+        m_debounce_timer.Start(500, wxTIMER_ONE_SHOT);
 }
 
 std::map<std::string, SourceStamp> SourceFileWatcher::changed_source_files() const
