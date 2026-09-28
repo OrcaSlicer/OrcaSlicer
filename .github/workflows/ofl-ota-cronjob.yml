@@ -103,9 +103,9 @@ jobs:
 
             if [ "$changed" = true ]; then
               dispatch_id="${GITHUB_RUN_ID}-${branch//\//-}"
-              # Record successful dispatches for the barrier step below. A
-              # dispatch failure prevents clearing, so the branch is retried
-              # on the next cron run.
+              # Record successful dispatches for the barrier step below.
+              # Branches whose workflow predates workflow_dispatch are skipped
+              # with a warning, as they were before the barrier was added.
               if gh workflow run post_merge_profiles.yml \
                 --repo "${{ github.repository }}" \
                 --ref "$branch" \
@@ -113,8 +113,7 @@ jobs:
                 -f ofl_cron_dispatch_id="$dispatch_id"; then
                 printf '%s\t%s\n' "$branch" "$dispatch_id" >> "$RUNNER_TEMP/ofl-dispatches.tsv"
               else
-                echo "::error::failed to dispatch post_merge_profiles.yml for $branch"
-                printf '%s\n' "$branch" >> "$RUNNER_TEMP/ofl-dispatch-failures.txt"
+                echo "::warning::skipping $branch because post_merge_profiles.yml could not be dispatched at that ref"
               fi
             fi
 
@@ -127,15 +126,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISPATCHES_FILE: ${{ runner.temp }}/ofl-dispatches.tsv
-          DISPATCH_FAILURES_FILE: ${{ runner.temp }}/ofl-dispatch-failures.txt
         run: |
           set -euo pipefail
-
-          if [ -s "$DISPATCH_FAILURES_FILE" ]; then
-            echo "::error::one or more OFL publisher workflows could not be dispatched:"
-            sed 's/^/ - /' "$DISPATCH_FAILURES_FILE"
-            exit 1
-          fi
 
           if [ ! -s "$DISPATCHES_FILE" ]; then
             echo "No OFL publisher workflows were dispatched; pending queue will not be cleared."
