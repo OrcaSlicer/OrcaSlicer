@@ -554,7 +554,6 @@ void OrcaMqttConnection::connect_and_read() {
 
         ws_handshake(*connection, current_config, endpoint);
 
-        expires_never(*connection);
         // Auth precedence: a bearer_provider authenticates the WebSocket upgrade, so the
         // CONNECT username/password fields are omitted entirely (the cloud form).
         const bool use_bearer = static_cast<bool>(current_config.bearer_provider);
