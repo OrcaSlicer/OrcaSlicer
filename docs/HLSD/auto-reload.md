@@ -59,10 +59,17 @@ show a transient gap to a remote watcher even when the writer's own operation wa
 Waiting for the file to come back handles all of these the same way, regardless of which
 one actually applies.
 
-The debounce window coalesces a burst of events into one 500ms quiet period, but caps
-the total delay at 2s from the first event in a burst: a directory with unrelated
-activity more frequent than that (a sync client, a build directory) would otherwise
-reset the timer forever and the reload would never fire.
+Firing is gated on content, not on event quiet: an fs event only wakes a poll loop that
+resamples each candidate file's own stamp on a fixed ~150ms cadence, and a candidate is only
+reported once its stamp has held unchanged for 500ms, verified by resampling rather than
+inferred from how quiet incoming events have been. A file that's still being written (a large
+STEP/3MF export whose bytes keep landing well after the directory-listing event that first
+revealed it) keeps getting its stability clock reset and is never read mid-write; a directory
+with unrelated activity (a sync client, a build directory) can't push anything out further than
+usual either, since the poll cadence is fixed regardless of how many more events arrive once
+polling has started. Two candidates that change together aren't held to each other: each is
+reported as soon as its own stamp settles, so one slow file doesn't hold back an unrelated fast
+one from the same burst.
 
 ## Detection, commit and retry are separate
 

@@ -18,6 +18,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <chrono>
 #include <fstream>
 #include <functional>
 #include <set>
@@ -28,6 +29,18 @@
 
 using namespace Slic3r::GUI;
 namespace fs = boost::filesystem;
+
+namespace Slic3r { namespace GUI {
+
+// Defines the friend hook declared in SourceFileWatcher.hpp; nothing outside this test binary
+// calls it. Lets a test replace the watcher's clock with a FakeClock (below) that it advances by
+// hand, so the 500ms stability window can be asserted without a real sleep.
+void test_set_watcher_clock(SourceFileWatcher& watcher, std::function<std::chrono::steady_clock::time_point()> now)
+{
+    watcher.m_now = std::move(now);
+}
+
+}} // namespace Slic3r::GUI
 
 namespace {
 
@@ -66,28 +79,58 @@ struct TempDir
     void remove(const std::string& name) const { fs::remove(path / name); }
 };
 
+// A steady_clock stand-in a test advances by hand instead of sleeping; installed on a watcher via
+// test_set_watcher_clock(). Starts at the real "now" only as an arbitrary monotonic anchor -- its
+// value is otherwise never compared against real time.
+struct FakeClock
+{
+    std::chrono::steady_clock::time_point t{ std::chrono::steady_clock::now() };
+
+    std::chrono::steady_clock::time_point operator()() const { return t; }
+    void advance(std::chrono::milliseconds delta) { t += delta; }
+};
+
+// More than the watcher's 500ms stability window, so advancing a FakeClock by this always settles
+// a candidate whose stamp hasn't changed since it was first observed.
+constexpr std::chrono::milliseconds past_stability_window{ 600 };
+
 // Owns a watcher plus a recording callback, and drives the debounce timer by hand: the timer's
-// event is what the watcher acts on, so delivering it directly runs the same code as a real fire
-// without needing an event loop or waiting out the debounce.
+// event is what the watcher acts on, so delivering it directly runs the same code as a real fire,
+// and a FakeClock lets that include waiting out the stability window without an event loop or a
+// real sleep.
 struct Harness
 {
+    FakeClock                           clock;
     SourceFileWatcher                   watcher;
     std::vector<std::set<std::string>>  calls;
     bool                                reload_succeeds{ true };
 
     Harness()
     {
+        test_set_watcher_clock(watcher, [this] { return clock.t; });
         watcher.set_on_changed([this](const std::set<std::string>& files) {
             calls.push_back(files);
             return reload_succeeds ? files : std::set<std::string>{};
         });
     }
 
-    void fire_timer()
+    // A single raw timer tick, with no clock advance -- for tests asserting the not-yet-settled
+    // state itself.
+    void tick()
     {
         wxTimer timer;
         wxTimerEvent evt(timer);
         watcher.ProcessEvent(evt);
+    }
+
+    // Two ticks with the clock fast-forwarded past the stability window in between: the sequence
+    // every existing test wants, "deliver the debounce timer's event and see the settled result,"
+    // now that settling needs the same stamp observed on two ticks 500ms apart.
+    void fire_timer()
+    {
+        tick();
+        clock.advance(past_stability_window);
+        tick();
     }
 };
 
@@ -147,6 +190,63 @@ TEST_CASE("A changed file is reported until its reload succeeds, then not again"
 
     h.fire_timer();
     CHECK(h.calls.size() == 1);
+}
+
+TEST_CASE("A changed file is not reported until its stamp has held for the stability window", "[SourceFileWatcher]")
+{
+    WxEnv wx;
+    TempDir dir;
+    Harness h;
+    const std::string file = dir.write("a.stl", 10);
+    h.watcher.set_watched_files({ file });
+    dir.write("a.stl", 20);
+
+    h.tick();
+    CHECK(h.calls.empty()); // first observation: stamp recorded, not yet settled
+
+    h.clock.advance(past_stability_window);
+    h.tick();
+    CHECK(h.calls.size() == 1); // same stamp held long enough: settled
+}
+
+TEST_CASE("A file whose stamp keeps changing is never reported", "[SourceFileWatcher]")
+{
+    WxEnv wx;
+    TempDir dir;
+    Harness h;
+    const std::string file = dir.write("a.stl", 10);
+    h.watcher.set_watched_files({ file });
+
+    // Simulates a slow export still growing: each write lands well inside the stability window of
+    // the one before it, so the "since" it's timed against keeps resetting and it never settles --
+    // this is the behavior a size-blind, purely event-based debounce couldn't guarantee.
+    for (int size = 20; size <= 60; size += 10) {
+        dir.write("a.stl", size);
+        h.tick();
+        h.clock.advance(std::chrono::milliseconds(200));
+    }
+
+    CHECK(h.calls.empty());
+}
+
+TEST_CASE("A settled file is reported while another keeps being polled", "[SourceFileWatcher]")
+{
+    WxEnv wx;
+    TempDir dir;
+    Harness h;
+    const std::string a = dir.write("a.stl", 10);
+    const std::string b = dir.write("b.stl", 10);
+    h.watcher.set_watched_files({ a, b });
+    dir.write("a.stl", 20); // will settle
+    dir.write("b.stl", 20); // will keep changing
+
+    h.tick(); // both observed for the first time
+    h.clock.advance(past_stability_window);
+    dir.write("b.stl", 30); // b moves again just before the settling tick
+    h.tick();
+
+    REQUIRE(h.calls.size() == 1);
+    CHECK(h.calls[0] == std::set<std::string>{ a }); // only the settled one is reported
 }
 
 TEST_CASE("A failed reload is not retried at the same stamp but is at the next", "[SourceFileWatcher]")
@@ -243,6 +343,8 @@ TEST_CASE("A batch that partially succeeds commits only the succeeded file's sta
     WxEnv wx;
     TempDir dir;
     SourceFileWatcher watcher;
+    FakeClock clock;
+    test_set_watcher_clock(watcher, [&clock] { return clock.t; });
     const std::string a = dir.write("a.stl", 10);
     const std::string b = dir.write("b.stl", 10);
     watcher.set_watched_files({ a, b });
@@ -260,16 +362,22 @@ TEST_CASE("A batch that partially succeeds commits only the succeeded file's sta
     wxTimer timer;
     wxTimerEvent evt(timer);
     watcher.ProcessEvent(evt);
+    clock.advance(past_stability_window);
+    watcher.ProcessEvent(evt);
     REQUIRE(calls.size() == 1);
     CHECK(calls[0] == std::set<std::string>{ a, b });
 
     // `a`'s stamp advanced (committed), so it is not reported again on its own.
+    watcher.ProcessEvent(evt);
+    clock.advance(past_stability_window);
     watcher.ProcessEvent(evt);
     CHECK(calls.size() == 1);
 
     // `b` is still at the stamp that didn't succeed, so it is not retried until it changes again --
     // once it does, only `b` is reported, not `a` too.
     dir.write("b.stl", 30);
+    watcher.ProcessEvent(evt);
+    clock.advance(past_stability_window);
     watcher.ProcessEvent(evt);
     REQUIRE(calls.size() == 2);
     CHECK(calls[1] == std::set<std::string>{ b });
@@ -355,6 +463,8 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
     WxEnv wx;
     TempDir dir;
     SourceFileWatcher watcher;
+    FakeClock clock;
+    test_set_watcher_clock(watcher, [&clock] { return clock.t; });
     const std::string file = dir.write("a.stl", 10);
     watcher.set_watched_files({ file });
     dir.write("a.stl", 20);
@@ -364,7 +474,9 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
     watcher.set_on_changed([&](const std::set<std::string>& files) {
         ++calls;
         // Stands in for a modal dialog or wxBusyInfo pumping the event loop mid-reload and letting
-        // the debounce timer fire again: the callback must not be re-entered.
+        // the debounce timer fire again: the callback must not be re-entered. This nested tick
+        // hits the m_reload_in_progress guard immediately, before any stability check, so it
+        // doesn't need the clock advanced first.
         if (!nested) {
             nested = true;
             wxTimer timer;
@@ -377,6 +489,8 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
     wxTimer timer;
     wxTimerEvent evt(timer);
     watcher.ProcessEvent(evt);
+    clock.advance(past_stability_window);
+    watcher.ProcessEvent(evt);
 
     CHECK(calls == 1);
 }
@@ -386,16 +500,23 @@ TEST_CASE("Without a callback a change stays pending", "[SourceFileWatcher]")
     WxEnv wx;
     TempDir dir;
     SourceFileWatcher watcher;
+    FakeClock clock;
+    test_set_watcher_clock(watcher, [&clock] { return clock.t; });
     const std::string file = dir.write("a.stl", 10);
     watcher.set_watched_files({ file });
     dir.write("a.stl", 20);
 
     wxTimer timer;
     wxTimerEvent evt(timer);
+    // No callback yet: changed_source_files() sees the change, but on_timer() returns without
+    // starting any stability tracking for it (see the early "!m_on_changed" return) -- so once a
+    // callback is set below, it also needs a full stability window, not an immediate report.
     watcher.ProcessEvent(evt);
 
     int calls = 0;
     watcher.set_on_changed([&](const std::set<std::string>& files) { ++calls; return files; });
+    watcher.ProcessEvent(evt);
+    clock.advance(past_stability_window);
     watcher.ProcessEvent(evt);
 
     CHECK(calls == 1);

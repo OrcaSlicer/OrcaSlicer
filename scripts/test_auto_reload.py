@@ -163,9 +163,9 @@ BOX_FACES = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
              (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7)]
 
 
-def write_stl(path, boxes, atomic=False, voids=()):
-    """Writes an ASCII STL of axis-aligned boxes given as (x0, y0, z0, x1, y1, z1). Boxes in
-    `voids` are wound inward, so the slicer treats them as enclosed cavities, not solids."""
+def stl_data(boxes, voids=()):
+    """Builds the ASCII STL text for axis-aligned boxes given as (x0, y0, z0, x1, y1, z1). Boxes
+    in `voids` are wound inward, so the slicer treats them as enclosed cavities, not solids."""
     lines = ["solid test"]
     for x0, y0, z0, x1, y1, z1 in list(boxes) + list(voids):
         inward = (x0, y0, z0, x1, y1, z1) in voids
@@ -179,7 +179,11 @@ def write_stl(path, boxes, atomic=False, voids=()):
                 lines.append("      vertex %g %g %g" % v[i])
             lines.append("    endloop\n  endfacet")
     lines.append("endsolid test\n")
-    data = "\n".join(lines)
+    return "\n".join(lines)
+
+
+def write_stl(path, boxes, atomic=False, voids=()):
+    data = stl_data(boxes, voids)
     if atomic:
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
@@ -193,6 +197,26 @@ def write_stl(path, boxes, atomic=False, voids=()):
 def write_cube_stl(path, size, atomic=False):
     s = float(size)
     write_stl(path, [(0, 0, 0, s, s, s)], atomic)
+
+
+def write_cube_stl_slow(path, size, num_chunks=6, chunk_delay=0.6):
+    """Writes a cube STL like write_cube_stl(), but in num_chunks pieces with chunk_delay seconds
+    between each, flushing and fsyncing after every piece -- simulates a slow in-place export (a
+    large STEP/3MF write) that keeps growing for well over the watcher's 500ms stability window
+    (and, at the default settings, the old 2s debounce cap this replaced). While a write is in
+    progress the file is truncated/invalid STL content, the same shape write_truncated_stl()
+    produces deliberately for phase I's failed-reload check -- so a premature read here would hit
+    that same failure signature, which phase P checks doesn't happen."""
+    data = stl_data([(0, 0, 0, float(size), float(size), float(size))])
+    step = max(1, len(data) // num_chunks)
+    pieces = [data[i:i + step] for i in range(0, len(data), step)]
+    with open(path, "w") as f:
+        for i, piece in enumerate(pieces):
+            f.write(piece)
+            f.flush()
+            os.fsync(f.fileno())
+            if i < len(pieces) - 1:
+                time.sleep(chunk_delay)
 
 
 def write_buried_pillars_stl(path, height, n=32, pitch=1.5, width=1.0, with_voids=True):
@@ -218,7 +242,8 @@ def write_truncated_stl(path):
 def directory_noise(dir_path, stop_event, interval=0.2):
     """Creates and immediately deletes a uniquely-named file every `interval` seconds until
     stop_event is set -- reliable directory-listing churn regardless of watcher backend, for
-    phase K's debounce-cap check."""
+    phase K's noise-immunity check (unrelated fs events can't push out a tracked file's own
+    stability window)."""
     i = 0
     while not stop_event.is_set():
         p = os.path.join(dir_path, "noise_%d.tmp" % i)
@@ -511,20 +536,35 @@ def main():
                        ask("  Is quick.stl 14.5 mm?"))
 
     def phase_k():
-        print("\n[K] Plate 2: background directory noise while overwriting -- reload must still fire within the debounce cap")
+        print("\n[K] Plate 2: background directory noise while overwriting -- reload must still fire once the write settles")
         stop_noise = threading.Event()
         noise_thread = threading.Thread(target=directory_noise, args=(work_dir, stop_noise), daemon=True)
         tail.mark()
         noise_thread.start()
         time.sleep(0.5)
         write_cube_stl(stl_g_changed, 16)  # reuses second_a.stl from phase G, shrinking it further
-        ok = tail.wait_for(RELOAD_MARK, 6.0)  # well under the noise's duration, comfortably above the ~2.5s cap
+        ok = tail.wait_for(RELOAD_MARK, 6.0)  # well under the noise's duration, comfortably above the ~700ms worst case
         stop_noise.set()
         noise_thread.join(timeout=2.0)
         record("K1 reload still fires despite directory noise", ok,
-               "" if ok else "no reload line within 6s -- the debounce cap may not be holding")
+               "" if ok else "no reload line within 6s -- unrelated noise may be starving the stability check")
         if ok:
             record("K2 model visibly updated", ask("  Did second_a.stl shrink to 16 mm?"))
+
+    def phase_p():
+        print("\n[P] Plate 2: a slow multi-chunk write (like a large STEP/3MF export) must not be read until it stops growing")
+        tail.mark(); time.sleep(1.5)
+        write_cube_stl_slow(stl_g_changed, 11)  # reuses second_a.stl from phase K, shrinking it further
+        quiet_during_write = not tail.has_seen(RELOAD_MARK) and not tail.has_seen(LOAD_FAILED_MARK)
+        record("P1 no reload or load-failure logged while the file was still growing", quiet_during_write,
+               "" if quiet_during_write else "a reload was attempted mid-write -- the stability check may not be holding")
+        ok = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("P2 reload fires once the write settles", ok,
+               "" if ok else "no reload line within %gs after the write finished" % args.timeout)
+        if ok:
+            record("P3 no load failure was logged for it (read only once it was complete)",
+                   not tail.has_seen(LOAD_FAILED_MARK))
+            record("P4 model visibly updated", ask("  Did second_a.stl shrink to 11 mm?"))
 
     def phase_l():
         print("\n[L] Multi-plate: only the plate with the reloaded object should reslice")
@@ -616,15 +656,16 @@ def main():
                    ask("  Is cube.stl still the ~50 x 50 mm block, %g mm tall (not a 35 mm cube)?" % h2))
 
     # (letter, (want_reload, want_confirm, want_slice), fn), in the order they normally run.
-    # Grouped by preference state so the whole sequence needs only a few toggles: G-K, H, N are
-    # pure reload checks (targeting, missing sources, retry, debounce, paint-loss prompt) that
-    # never look at slicing at all, so they run with auto-slice off, same as A-C -- there's no
-    # reason to also track whether a slice fired, and which plate it landed on, while checking
-    # those. D, L, M and F specifically exercise the slice-after-reload behavior, so they're the
-    # only ones that need it on before E flips reload off entirely. want_confirm is True (the
-    # default) everywhere except O, the only phase that needs the prompt turned off to check the
-    # silent path; O runs last within the reload-only group, as its own single-phase state, so it
-    # doesn't split up G-K/H/N's shared confirm=True, slice=False group.
+    # Grouped by preference state so the whole sequence needs only a few toggles: G-P, H, N are
+    # pure reload checks (targeting, missing sources, retry, directory noise, growing writes,
+    # paint-loss prompt) that never look at slicing at all, so they run with auto-slice off, same
+    # as A-C -- there's no reason to also track whether a slice fired, and which plate it landed
+    # on, while checking those. D, L, M and F specifically exercise the slice-after-reload
+    # behavior, so they're the only ones that need it on before E flips reload off entirely.
+    # want_confirm is True (the default) everywhere except O, the only phase that needs the
+    # prompt turned off to check the silent path; O runs last within the reload-only group, as
+    # its own single-phase state, so it doesn't split up G-P/H/N's shared confirm=True,
+    # slice=False group.
     PHASES = [
         ("A", (True, True,  False), phase_a),
         ("B", (True, True,  False), phase_b),
@@ -635,6 +676,7 @@ def main():
         ("I", (True, True,  False), phase_i),
         ("J", (True, True,  False), phase_j),
         ("K", (True, True,  False), phase_k),
+        ("P", (True, True,  False), phase_p),
         ("O", (True, False, False), phase_o),
         ("D", (True, True,  True),  phase_d),
         ("L", (True, True,  True),  phase_l),

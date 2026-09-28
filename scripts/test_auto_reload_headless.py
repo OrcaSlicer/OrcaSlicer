@@ -347,7 +347,7 @@ BOX_FACES = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
              (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7)]
 
 
-def write_stl(path, boxes, atomic=False, voids=()):
+def stl_data(boxes, voids=()):
     lines = ["solid test"]
     for x0, y0, z0, x1, y1, z1 in list(boxes) + list(voids):
         inward = (x0, y0, z0, x1, y1, z1) in voids
@@ -361,7 +361,11 @@ def write_stl(path, boxes, atomic=False, voids=()):
                 lines.append("      vertex %g %g %g" % v[i])
             lines.append("    endloop\n  endfacet")
     lines.append("endsolid test\n")
-    data = "\n".join(lines)
+    return "\n".join(lines)
+
+
+def write_stl(path, boxes, atomic=False, voids=()):
+    data = stl_data(boxes, voids)
     if atomic:
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
@@ -375,6 +379,23 @@ def write_stl(path, boxes, atomic=False, voids=()):
 def write_cube_stl(path, size, atomic=False):
     s = float(size)
     write_stl(path, [(0, 0, 0, s, s, s)], atomic)
+
+
+def write_cube_stl_slow(path, size, num_chunks=6, chunk_delay=0.6):
+    """Writes a cube STL like write_cube_stl(), but in num_chunks pieces with chunk_delay seconds
+    between each, flushing and fsyncing after every piece -- see test_auto_reload.py's identically
+    named helper for why (simulates a slow in-place export that keeps growing past the watcher's
+    500ms stability window, for phase P's mid-write check)."""
+    data = stl_data([(0, 0, 0, float(size), float(size), float(size))])
+    step = max(1, len(data) // num_chunks)
+    pieces = [data[i:i + step] for i in range(0, len(data), step)]
+    with open(path, "w") as f:
+        for i, piece in enumerate(pieces):
+            f.write(piece)
+            f.flush()
+            os.fsync(f.fileno())
+            if i < len(pieces) - 1:
+                time.sleep(chunk_delay)
 
 
 def write_buried_pillars_stl(path, height, n=32, pitch=1.5, width=1.0, with_voids=True):
@@ -638,21 +659,37 @@ def main():
                        size is not None and all(abs(v - 14.5) < 0.05 for v in size))
 
     def phase_k():
-        print("\n[K] Plate 2: background directory noise while overwriting -- reload must still fire within the debounce cap")
+        print("\n[K] Plate 2: background directory noise while overwriting -- reload must still fire once the write settles")
         stop_noise = threading.Event()
         noise_thread = threading.Thread(target=directory_noise, args=(work_dir, stop_noise), daemon=True)
         tail.mark()
         noise_thread.start()
         time.sleep(0.5)
         write_cube_stl(stl_g_changed, 16)
-        ok = tail.wait_for(RELOAD_MARK, 6.0)
+        ok = tail.wait_for(RELOAD_MARK, 6.0)  # well under the noise's duration, comfortably above the ~700ms worst case
         stop_noise.set()
         noise_thread.join(timeout=2.0)
         record("K1 reload still fires despite directory noise", ok,
-               "" if ok else "no reload line within 6s -- the debounce cap may not be holding")
+               "" if ok else "no reload line within 6s -- unrelated noise may be starving the stability check")
         if ok:
             size = tail.wait_for_size(stl_g_changed, args.timeout)
             record("K2 model shrank to 16 mm", size is not None and all(abs(v - 16) < 0.05 for v in size))
+
+    def phase_p():
+        print("\n[P] Plate 2: a slow multi-chunk write (like a large STEP/3MF export) must not be read until it stops growing")
+        tail.mark(); time.sleep(1.5)
+        write_cube_stl_slow(stl_g_changed, 11)  # reuses second_a.stl from phase K, shrinking it further
+        quiet_during_write = not tail.has_seen(RELOAD_MARK) and not tail.has_seen(LOAD_FAILED_MARK)
+        record("P1 no reload or load-failure logged while the file was still growing", quiet_during_write,
+               "" if quiet_during_write else "a reload was attempted mid-write -- the stability check may not be holding")
+        ok = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("P2 reload fires once the write settles", ok,
+               "" if ok else "no reload line within %gs after the write finished" % args.timeout)
+        if ok:
+            record("P3 no load failure was logged for it (read only once it was complete)",
+                   not tail.has_seen(LOAD_FAILED_MARK))
+            size = tail.wait_for_size(stl_g_changed, args.timeout)
+            record("P4 model shrank to 11 mm", size is not None and all(abs(v - 11) < 0.05 for v in size))
 
     def phase_d():
         print("\n[D] Plate 1: in-place overwrite with auto-slice on (-> 25 mm)")
@@ -756,14 +793,14 @@ def main():
 
     # (state, [phase letters]), in the order test_auto_reload.py's PHASES groups them.
     STATE_GROUPS = [
-        ((True, True, False), ["A", "B", "C", "G", "H", "N", "I", "J", "K"]),
+        ((True, True, False), ["A", "B", "C", "G", "H", "N", "I", "J", "K", "P"]),
         ((True, False, False), ["O"]),
         ((True, True, True), ["D", "L", "M", "F"]),
         ((False, True, True), ["E"]),
     ]
     PHASE_FUNCS = {
         "A": phase_a, "B": phase_b, "C": phase_c, "G": phase_g, "H": phase_h, "N": phase_n,
-        "I": phase_i, "J": phase_j, "K": phase_k, "O": phase_o, "D": phase_d, "L": phase_l,
+        "I": phase_i, "J": phase_j, "K": phase_k, "P": phase_p, "O": phase_o, "D": phase_d, "L": phase_l,
         "M": phase_m, "F": phase_f, "E": phase_e,
     }
 

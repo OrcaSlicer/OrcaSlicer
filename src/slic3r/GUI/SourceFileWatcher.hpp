@@ -37,10 +37,10 @@ struct SourceStamp
 // place (only visible as a directory-listing change), while an in-place overwrite produces no
 // directory event at all and needs a watch on the file itself. The event handler doesn't try to
 // match the reported path -- macOS's kqueue backend can report a rename with just the directory
-// and no filename -- it only wakes a debounced stamp comparison against the baseline recorded in
-// set_watched_files(). Per-file watches are skipped on Windows: wx's MSW backend rejects them
-// with an error dialog, and its ReadDirectoryChangesW directory watch already reports in-place
-// writes.
+// and no filename -- it only wakes a polling loop that resamples each candidate file's own stamp
+// against the baseline recorded in set_watched_files() until it holds steady. Per-file watches
+// are skipped on Windows: wx's MSW backend rejects them with an error dialog, and its
+// ReadDirectoryChangesW directory watch already reports in-place writes.
 class SourceFileWatcher : public wxEvtHandler
 {
 public:
@@ -99,16 +99,34 @@ private:
     // briefly locked -- e.g. a large STEP export that takes longer than one short retry to settle.
     void record_failed_attempt(const std::map<std::string, SourceStamp>& stamps);
 
+    // A candidate's stamp as last observed, and when that stamp was first observed -- used to
+    // require it hold unchanged for stability_window before the candidate is treated as settled.
+    struct PendingStamp
+    {
+        SourceStamp                           stamp;
+        std::chrono::steady_clock::time_point since;
+    };
+
+    // Test-only hook (see tests/slic3rutils/test_source_file_watcher.cpp) letting a test replace
+    // m_now with a fake clock it can fast-forward, so it can assert the stability-window behavior
+    // without a real sleep. Declared but never defined outside the test binary -- like
+    // ORCA_TEST_HOOKS_DIR elsewhere in this feature, production code never calls it.
+    friend void test_set_watcher_clock(SourceFileWatcher& watcher,
+                                        std::function<std::chrono::steady_clock::time_point()> now);
+
     std::function<std::set<std::string>(const std::set<std::string>&)> m_on_changed;
     wxFileSystemWatcher*               m_watcher{ nullptr };
     wxTimer                            m_debounce_timer;
-    // When the current debounce coalescing window opened (on_fs_event() only); caps how long a
-    // burst of unrelated directory activity can keep pushing the check out.
-    std::chrono::steady_clock::time_point m_debounce_started_at;
     std::set<std::string>              m_watched_files;
     std::map<std::string, SourceStamp> m_stamps;        // committed baseline
     std::map<std::string, SourceStamp> m_failed_stamps; // stamp of the last failed attempt, if any
     std::map<std::string, int>         m_retry_counts;  // consecutive failed attempts, per file
+    // Candidates (files differing from the baseline) currently being timed for stability; a
+    // candidate is only reported to m_on_changed once its stamp has held unchanged here for at
+    // least stability_window. Pruned in lockstep with m_stamps/m_failed_stamps/m_retry_counts.
+    std::map<std::string, PendingStamp> m_pending_stamps;
+    // Real time in production; overridable only via test_set_watcher_clock() above.
+    std::function<std::chrono::steady_clock::time_point()> m_now{ std::chrono::steady_clock::now };
     // Guards m_on_changed() against re-entry from a nested event loop pumped during the reload
     // it triggers (a modal dialog, wxBusyInfo) while this timer is re-armed by another fs event.
     bool                                m_reload_in_progress{ false };
