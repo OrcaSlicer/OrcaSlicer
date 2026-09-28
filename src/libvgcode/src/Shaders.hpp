@@ -34,6 +34,10 @@ static const char* Segments_Vertex_Shader =
 // ORCA: 0 during the shadow caster pass - the bias below shifts eye_position but not
 // world_position, so the caster would write a depth the receiver never looks up.
 "uniform float bias_scale;\n"
+// draw the instances last to first, top layers before the ones they hide, so that early depth
+// rejection discards most of the hidden fragments; set when the camera looks down on the print
+"uniform int reverse_order;\n"
+"uniform int instance_count;\n"
 "in int vertex_id;\n"
 "out vec3 color;\n"
 "// ORCA: realistic view - the light the shadow map is able to block, kept apart from the\n"
@@ -59,7 +63,8 @@ static const char* Segments_Vertex_Shader =
 "  return top_diffuse + front_diffuse + top_specular;\n"
 "}\n"
 "void main() {\n"
-"  int id_a = int(texelFetch(segment_index_tex, gl_InstanceID).r);\n"
+"  int instance = (reverse_order != 0) ? instance_count - 1 - gl_InstanceID : gl_InstanceID;\n"
+"  int id_a = int(texelFetch(segment_index_tex, instance).r);\n"
 "  int id_b = id_a + 1;\n"
 "  vec3 pos_a = texelFetch(position_tex, id_a).xyz;\n"
 "  vec3 pos_b = texelFetch(position_tex, id_b).xyz;\n"

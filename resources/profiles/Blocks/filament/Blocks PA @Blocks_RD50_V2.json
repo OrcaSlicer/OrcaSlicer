@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Blocks PA @Blocks_RD50_V2",
+	"inherits": "Blocks PA @base",
+	"from": "system",
+	"setting_id": "gxD81n2jjrReLD29",
+	"instantiation": "true",
+	"compatible_printers": [
+		"BLOCKS RD50 V2 0.4 nozzle",
+		"BLOCKS RD50 V2 0.6 nozzle",
+		"BLOCKS RD50 V2 0.8 nozzle"
+	],
+	"renamed_from": "Blocks Generic PA;Generic PA @Blocks"
+}
