@@ -8,9 +8,11 @@ debug log for evidence of what would otherwise have been eyeballed on screen (an
 size, which tab or plate is active, whether a notification call fired) instead of asking yes/no
 questions.
 
-Requires the interactive script's one-time setup to have already produced a template project (see
-test_auto_reload.py's docstring: import the six generated STLs onto three plates, paint one, save
-as autoreload_test_template.3mf). This script only reuses that template -- it doesn't author one.
+Uses the checked-in template project at scripts/testdata/autoreload_test_template.3mf by default.
+Pass --template to use a different one instead -- e.g. one freshly hand-authored via
+test_auto_reload.py's one-time setup (import the six generated STLs onto three plates, paint one,
+save), if you're testing a change to the template's own layout or paint. This script only reuses
+a template -- it doesn't author one.
 
 Preferences can't be changed in a running instance (AppConfig loads OrcaSlicer.conf once at
 startup and never re-reads it), so this script restarts the app whenever the phases ahead need a
@@ -58,6 +60,7 @@ import zipfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
+DEFAULT_TEMPLATE = os.path.join(SCRIPT_DIR, "testdata", "autoreload_test_template.3mf")
 
 RELOAD_MARK          = "source file(s) changed on disk, reloading"
 SLICE_START_MARK     = "will start print::process"
@@ -400,8 +403,13 @@ def main():
     parser.add_argument("--slow-height", type=float, default=60.0)
     parser.add_argument("--mid-slice-delay", type=float, default=3.0)
     parser.add_argument("--work-dir", default=os.path.expanduser("~/orca_autoreload_test"),
-                        help="must already hold the template project from test_auto_reload.py's "
-                             "one-time setup (default ~/orca_autoreload_test)")
+                        help="scratch dir for the generated STLs and the live project copy "
+                             "(default ~/orca_autoreload_test)")
+    parser.add_argument("--template", default=DEFAULT_TEMPLATE,
+                        help="the template project to reload from (default: the checked-in fixture "
+                             "at scripts/testdata/autoreload_test_template.3mf). Point this at a "
+                             "hand-authored one instead if you're testing a change to the template's "
+                             "own layout or paint -- see test_auto_reload.py's docstring.")
     parser.add_argument("--hooks-dir", default=None,
                         help="scratch dir for the paint-loss-answer test hook file "
                              "(default <work-dir>/hooks)")
@@ -419,12 +427,13 @@ def main():
         sys.exit("No log directory at %s -- pass --data-dir if OrcaSlicer stores its data elsewhere." % log_dir)
 
     work_dir = os.path.abspath(args.work_dir)
-    template_path = os.path.join(work_dir, "autoreload_test_template.3mf")
+    os.makedirs(work_dir, exist_ok=True)
+    template_path = os.path.abspath(args.template)
     project_path = os.path.join(work_dir, "autoreload_test.3mf")
     if not os.path.exists(template_path):
-        sys.exit("No template project at %s -- run test_auto_reload.py once first to do its "
-                  "one-time setup (import the six STLs onto three plates, paint one, save), then "
-                  "re-run this script." % template_path)
+        sys.exit("No template project at %s -- pass --template, or run test_auto_reload.py once to "
+                  "author one (its docstring: import the six STLs onto three plates, paint one, "
+                  "save)." % template_path)
     check_template_sources(template_path)
 
     hooks_dir = os.path.abspath(args.hooks_dir) if args.hooks_dir else os.path.join(work_dir, "hooks")
@@ -435,6 +444,16 @@ def main():
     paint_stl     = os.path.join(work_dir, "painted.stl")
     flaky_stl     = os.path.join(work_dir, "flaky.stl")
     quick_stl     = os.path.join(work_dir, "quick.stl")
+
+    # SourceFileWatcher::resolve_source_file_path() only re-points a bare recorded filename (what
+    # the template stores) at <project folder>/<filename> if that candidate already exists on disk
+    # at the moment a project is first loaded -- otherwise it's left unresolved and nothing this
+    # script writes afterward is ever seen as a change. A work-dir that already has these from an
+    # earlier run is unaffected (each phase overwrites its own target anyway); a brand new one
+    # needs them written before the very first restart, not just whenever a phase gets to them.
+    for path in (stl, stl_g_changed, stl_g_missing, paint_stl, flaky_stl, quick_stl):
+        if not os.path.exists(path):
+            write_cube_stl(path, 20)
 
     h1, h2 = args.slow_height, args.slow_height / 2
     results = []
