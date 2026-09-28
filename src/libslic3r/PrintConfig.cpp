@@ -7194,9 +7194,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("rib_support_max_spacing", coFloat);
-    def->label = L("Maximum rib spacing");
+    def->label = L("Rib placement distance scale");
     def->category = L("Support");
-    def->tooltip = L("Maximum uncovered distance along a painted side before another rib is added.");
+    def->tooltip = L("Minimum preferred distance between ribs facing the same painted surface, limited to half the usable painted span. Also scales the estimated capacity penalty for long contact necks. Rib count follows remaining directional demand.");
     def->sidetext = L("mm");
     def->min = 2;
     def->max = 100;

@@ -51,6 +51,17 @@ struct RibRun {
     double min_projection_gap = std::numeric_limits<double>::infinity();
     double top_outer_depth = 0;
     double first_body_z = 0;
+    size_t first_body_paths = 0;
+    size_t top_body_paths = 0;
+    std::vector<Vec2d> top_body_directions;
+    bool positive_x_sheet = false;
+    bool negative_x_sheet = false;
+    bool lower_y_contact = false;
+    bool upper_y_contact = false;
+    std::vector<double> top_contact_y;
+    double max_rib_center_overlap = 0;
+    double max_projection_side_overrun = 0;
+    size_t bounded_projection_vertices = 0;
 };
 
 static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
@@ -59,7 +70,10 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                          bool contact_percent = false, bool thickness_percent = false, double outer_width = 0.4,
                          double contact_spacing = 8.0, double expansion_factor = 0,
                          double model_height = 60, double model_width = 6,
-                         const indexed_triangle_set *custom_mesh = nullptr)
+                         const indexed_triangle_set *custom_mesh = nullptr, double lean_y = 0,
+                         bool paint_all_sides = false, bool measure_projection_bounds = false, bool half_painted_face = false,
+                         bool zaa_enabled = false, double zaa_min_z = 0,
+                         double painted_max_z = std::numeric_limits<double>::infinity())
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
@@ -73,25 +87,38 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
         { "tree_support_wall_count", wall_count }, { "rib_support_contact_projection_angle", projection_angle },
         { "layer_height", 0.2 },
         { "initial_layer_print_height", 0.2 },
+        { "zaa_enabled", zaa_enabled ? 1 : 0 }, { "zaa_min_z", zaa_min_z },
     });
     config.set_key_value("rib_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
     config.set_key_value("rib_support_thickness", new ConfigOptionFloatOrPercent(thickness, thickness_percent));
     Model model;
     Print print;
     indexed_triangle_set mesh = custom_mesh == nullptr ? its_make_cube(model_width, 60, model_height) : *custom_mesh;
-    for (Vec3f &vertex : mesh.vertices)
+    for (Vec3f &vertex : mesh.vertices) {
         vertex.x() += float(lean * vertex.z());
+        vertex.y() += float(lean_y * vertex.z());
+    }
     init_print({ TriangleMesh(std::move(mesh)) }, print, model, config);
     if (paint) {
         ModelVolume *volume = model.objects.front()->volumes.front();
         TriangleSelector selector(volume->mesh());
         const indexed_triangle_set &mesh = volume->mesh().its;
+        bool painted_one_face_facet = false;
         for (size_t i = 0; i < mesh.indices.size(); ++i) {
             const auto &f = mesh.indices[i];
             const Vec3f n = (mesh.vertices[f(1)] - mesh.vertices[f(0)]).cross(
                             mesh.vertices[f(2)] - mesh.vertices[f(0)]).normalized();
-            if (n.x() > 0.5f)
+            if (n.x() > 0.5f || (paint_all_sides && n.head<2>().norm() > 0.5f)) {
+                const float facet_mid_z = (mesh.vertices[f(0)].z() + mesh.vertices[f(1)].z() +
+                                           mesh.vertices[f(2)].z()) / 3.f;
+                if (facet_mid_z > painted_max_z)
+                    continue;
+                // A cube's side has two triangles; one is half the same plane.
+                if (half_painted_face && painted_one_face_facet)
+                    continue;
                 selector.set_facet(i, EnforcerBlockerType::ENFORCER);
+                painted_one_face_facet = true;
+            }
         }
         REQUIRE(volume->supported_facets.set(selector));
     }
@@ -119,6 +146,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
     const auto model_layers = object->layers();
     const double rib_half_width = 0.5 * support_material_flow(object).width();
     const SupportLayer *previous_layer = nullptr;
+    std::vector<Points> projection_rings;
     for (const SupportLayer *layer : layers) {
         result.support_top_z = std::max(result.support_top_z, layer->print_z);
         Points points;
@@ -131,6 +159,17 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             [layer](const Layer *candidate) { return std::abs(candidate->print_z - layer->print_z) < 1e-6; });
         REQUIRE(model_layer != model_layers.end());
         const BoundingBox model_bounds = get_extents((*model_layer)->lslices);
+        const Vec2d model_size = unscale(model_bounds.size());
+        if (layer->print_z > 15 && layer->print_z < 25 && model_size.y() < 20)
+            result.lower_y_contact |= std::any_of(points.begin(), points.end(), [&](const Point &point) {
+                const double gap = unscale<double>(point.y() - model_bounds.max.y());
+                return std::abs(unscale<double>(point.x() - model_bounds.center().x())) < 1 && gap > 0 && gap < 0.45;
+            });
+        if (layer->print_z > 40 && layer->print_z < 55 && model_size.y() > 50)
+            result.upper_y_contact |= std::any_of(points.begin(), points.end(), [&](const Point &point) {
+                const double gap = unscale<double>(point.y() - model_bounds.max.y());
+                return std::abs(unscale<double>(point.x() - model_bounds.center().x())) < 1 && gap > 0 && gap < 0.45;
+            });
         const coord_t face_x = model_bounds.max.x();
         const double distance = unscale<double>(min_x - face_x) - rib_half_width;
         result.contact_layers += distance < 0.01;
@@ -138,8 +177,11 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             result.contact_top_z = std::max(result.contact_top_z, layer->print_z);
         result.gap_layers += distance > 0.4;
         if (layer != layers.front()) {
-            if (result.first_body_z == 0)
+            ExPolygons rib_center_areas;
+            if (result.first_body_z == 0) {
                 result.first_body_z = layer->print_z;
+                result.first_body_paths = layer->support_fills.entities.size();
+            }
             if (distance > 0.4)
                 result.min_body_paths = std::min(result.min_body_paths, layer->support_fills.entities.size());
             for (const ExtrusionEntity *entity : layer->support_fills.entities) {
@@ -147,10 +189,52 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                 REQUIRE(path != nullptr);
                 result.closed_paths += (path->first_point() - path->last_point()).squaredNorm() == 0;
                 result.open_paths += (path->first_point() - path->last_point()).squaredNorm() != 0;
-                result.contact_starts += unscale<double>(path->first_point().x() - face_x) < 1.0;
+                result.contact_starts += unscale<double>(path->first_point().x() - face_x) < rib_half_width + 0.01;
                 const Polyline ring_path = path->polyline.to_polyline();
                 const Points &ring = ring_path.points;
+                if (measure_projection_bounds)
+                    projection_rings.push_back(ring);
+                if (wall_count <= 1 && ring.size() >= 4 && ring.front() == ring.back()) {
+                    Points contour = ring;
+                    contour.pop_back();
+                    Polygon polygon(std::move(contour));
+                    polygon.make_counter_clockwise();
+                    const ExPolygon center_area(std::move(polygon));
+                    for (const ExPolygon &other : rib_center_areas) {
+                        const ExPolygons overlap = intersection_ex(ExPolygons{center_area}, ExPolygons{other});
+                        for (const ExPolygon &area : overlap)
+                            result.max_rib_center_overlap = std::max(result.max_rib_center_overlap,
+                                area.area() * SCALING_FACTOR * SCALING_FACTOR);
+                    }
+                    rib_center_areas.push_back(center_area);
+                }
                 const BoundingBox bounds = get_extents(ring);
+                Vec2d longest_edge = Vec2d::Zero();
+                for (size_t i = 1; i < ring.size(); ++i) {
+                    const Vec2d edge = unscale(ring[i] - ring[i - 1]);
+                    if (edge.squaredNorm() > longest_edge.squaredNorm())
+                        longest_edge = edge;
+                }
+                if (longest_edge.norm() > 0 && std::abs(longest_edge.normalized().x()) > 0.95) {
+                    const double offset = unscale<double>(bounds.center().x() - model_bounds.center().x());
+                    result.positive_x_sheet |= offset > 1.;
+                    result.negative_x_sheet |= offset < -1.;
+                }
+                if (layer == layers.back()) {
+                    ++result.top_body_paths;
+                    if (longest_edge.squaredNorm() > 0)
+                        result.top_body_directions.push_back(longest_edge.normalized());
+                    double front_min_y = std::numeric_limits<double>::infinity();
+                    double front_max_y = -std::numeric_limits<double>::infinity();
+                    for (const Point &point : ring)
+                        if (unscale<double>(point.x() - face_x) < rib_half_width + 0.01) {
+                            front_min_y = std::min(front_min_y, unscale<double>(point.y()));
+                            front_max_y = std::max(front_max_y, unscale<double>(point.y()));
+                        }
+                    if (front_max_y >= front_min_y)
+                        result.top_contact_y.push_back(0.5 * (front_min_y + front_max_y) -
+                            unscale<double>(model_bounds.center().y()));
+                }
                 const double front_gap = unscale<double>(bounds.min.x() - face_x) - rib_half_width;
                 if (front_gap > 0.01 && front_gap < 0.4) {
                     result.min_projection_gap = std::min(result.min_projection_gap, front_gap);
@@ -164,8 +248,18 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                     ++result.projection_layers;
                     result.projection_front_span = std::max(result.projection_front_span, front_max_y - front_min_y);
                 }
-                if (unscale<double>(bounds.min.x() - face_x) - rib_half_width > 0.4)
-                    result.body_thickness = std::max(result.body_thickness, unscale<double>(bounds.size().y()) + 2 * rib_half_width);
+                if (front_gap > 0.4 && longest_edge.squaredNorm() > 0) {
+                    const Vec2d axis = longest_edge.normalized();
+                    const Vec2d side(-axis.y(), axis.x());
+                    double minimum = std::numeric_limits<double>::infinity();
+                    double maximum = -std::numeric_limits<double>::infinity();
+                    for (const Point &point : ring) {
+                        const double position = unscale(point).dot(side);
+                        minimum = std::min(minimum, position);
+                        maximum = std::max(maximum, position);
+                    }
+                    result.body_thickness = std::max(result.body_thickness, maximum - minimum + 2 * rib_half_width);
+                }
                 double front_min = std::numeric_limits<double>::infinity();
                 double front_max = -std::numeric_limits<double>::infinity();
                 for (const Point &point : ring) {
@@ -217,6 +311,27 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
         previous_layer = layer;
     }
     result.outer_edge_spread = max_outer - min_outer;
+    if (measure_projection_bounds && result.top_body_paths == 1 && result.top_contact_y.size() == 1) {
+        Vec2d direction = result.top_body_directions.front();
+        if (direction.x() < 0)
+            direction = -direction;
+        const Vec2d tangent(-direction.y(), direction.x());
+        const BoundingBox top_bounds = get_extents(model_layers.back()->lslices);
+        const Vec2d seed(unscale<double>(top_bounds.max.x()),
+                         unscale<double>(top_bounds.center().y()) + result.top_contact_y.front());
+        const double actual_thickness = config.option<ConfigOptionFloatOrPercent>("rib_support_thickness")->get_abs_value(outer_width);
+        const double overlap_end = (0.6 + 0.5 * actual_thickness * std::abs(tangent.x())) / direction.x() +
+                                   3 * rib_half_width;
+        for (const Points &ring : projection_rings)
+            for (const Point &point : ring) {
+                const Vec2d relative = unscale(point) - seed;
+                if (relative.dot(direction) <= overlap_end + 0.01)
+                    continue;
+                ++result.bounded_projection_vertices;
+                result.max_projection_side_overrun = std::max(result.max_projection_side_overrun,
+                    std::abs(relative.dot(tangent)) - 0.5 * actual_thickness + rib_half_width);
+            }
+    }
     return result;
 }
 
@@ -225,12 +340,211 @@ TEST_CASE("Rib support does not create contacts without painted sides", "[Suppor
     REQUIRE(slice_ribs(20, false).first_layer_paths == 0);
 }
 
-TEST_CASE("More ribs cover a long painted side when maximum spacing decreases", "[SupportMaterial]")
+TEST_CASE("Rib count follows directional demand rather than uniform face spacing", "[SupportMaterial]")
 {
-    const size_t sparse = slice_ribs(30).first_layer_paths;
-    const size_t dense = slice_ribs(10).first_layer_paths;
-    REQUIRE(sparse > 0);
-    REQUIRE(dense > sparse);
+    const RibRun first = slice_ribs(30);
+    const RibRun second = slice_ribs(10);
+    REQUIRE(first.top_body_paths > 0);
+    REQUIRE(first.top_body_paths <= 8);
+    REQUIRE(second.top_body_paths == first.top_body_paths);
+    const indexed_triangle_set wide = its_make_cube(6, 120, 60);
+    const RibRun large_face = slice_ribs(30, true, 0, 1.2, 1.2, 1, 30,
+                                      false, false, 0.4, 8, 0, 60, 6, &wide);
+    REQUIRE(large_face.top_body_paths == first.top_body_paths);
+}
+
+TEST_CASE("The first rib attaches near the middle of a large painted plane", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20);
+    REQUIRE(!result.top_contact_y.empty());
+    REQUIRE_THAT(result.top_contact_y.front(), Catch::Matchers::WithinAbs(0, 0.05));
+}
+
+TEST_CASE("Half painting a leaning plane does not rotate its ribs", "[SupportMaterial]")
+{
+    const bool half_painted = GENERATE(false, true);
+    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0,
+                                  false, false, half_painted);
+    REQUIRE(!result.top_body_directions.empty());
+    for (const Vec2d &direction : result.top_body_directions)
+        REQUIRE(std::abs(direction.y()) < 0.002);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("A full painted side starts the rib at its highest printable layer", "[SupportMaterial]")
+{
+    const double height = 60.;
+    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, height);
+    REQUIRE(result.top_body_paths > 0);
+    REQUIRE_THAT(result.contact_top_z, Catch::Matchers::WithinAbs(height, 0.001));
+}
+
+TEST_CASE("Rib directions follow a continuous lean instead of angular bins", "[SupportMaterial]")
+{
+    const double angle = GENERATE(7., 17., 26.);
+    const double radians = angle * M_PI / 180.;
+    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(radians));
+    REQUIRE(!result.top_body_directions.empty());
+    const Vec2d expected(std::cos(radians), std::sin(radians));
+    REQUIRE(std::abs(result.top_body_directions.front().dot(expected)) > 0.9999);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("An unavailable lean direction does not hide other feasible support", "[SupportMaterial]")
+{
+    const double angle = GENERATE(45., 61., 75., 90.);
+    const double radians = angle * M_PI / 180.;
+    const RibRun result = slice_ribs(20, true, 0.2 * std::cos(radians), 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::sin(radians));
+    REQUIRE(result.top_body_paths > 0);
+    // The unavailable lean is not rotated to fit the face. The independently
+    // feasible +X bed demand still supplies a sheet after the lean is blocked.
+    for (const Vec2d &direction : result.top_body_directions)
+        REQUIRE(std::abs(direction.y()) < 0.002);
+}
+
+TEST_CASE("A cube resting on an edge receives ribs on both sides of its narrow base", "[SupportMaterial]")
+{
+    const double side = 40.;
+    indexed_triangle_set mesh = its_make_cube(side, side, side);
+    const double c = std::sqrt(0.5);
+    for (Vec3f &vertex : mesh.vertices) {
+        const double x = vertex.x() - side / 2;
+        const double z = vertex.z() - side / 2;
+        vertex.x() = float(c * (x + z));
+        vertex.z() = float(c * (z - x) + side * c);
+    }
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, side * std::sqrt(2.), side,
+                                  &mesh, 0, true);
+    REQUIRE(result.positive_x_sheet);
+    REQUIRE(result.negative_x_sheet);
+    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Centered upper expansion supplies a direction beyond the bed axes", "[SupportMaterial]")
+{
+    const double degrees = GENERATE(25., 55.);
+    const double angle = degrees * M_PI / 180.;
+    const double c = std::cos(angle), sn = std::sin(angle);
+    indexed_triangle_set mesh;
+    const std::array<Vec2d, 4> corners{
+        Vec2d(-1, -1), Vec2d(1, -1), Vec2d(1, 1), Vec2d(-1, 1)};
+    for (const Vec2d &corner : corners)
+        mesh.vertices.emplace_back(float(7.5 * corner.x()), float(7.5 * corner.y()), 0.f);
+    for (const Vec2d &corner : corners) {
+        const double x = 30 * corner.x(), y = 4 * corner.y();
+        mesh.vertices.emplace_back(float(c * x - sn * y), float(sn * x + c * y), 60.f);
+    }
+    for (int i = 0; i < 4; ++i) {
+        const int next = (i + 1) % 4;
+        mesh.indices.emplace_back(i, next, next + 4);
+        mesh.indices.emplace_back(i, next + 4, i + 4);
+    }
+    mesh.indices.emplace_back(0, 2, 1);
+    mesh.indices.emplace_back(0, 3, 2);
+    mesh.indices.emplace_back(4, 5, 6);
+    mesh.indices.emplace_back(4, 6, 7);
+    // Opposite vertices preserve the same XY centroid at every height.
+    // The square bed has no preference for the rotated upper long axis.
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 15, &mesh, 0, true);
+    REQUIRE(!result.top_body_directions.empty());
+    const Vec2d expansion(c, sn);
+    REQUIRE(std::abs(result.top_body_directions.front().dot(expansion)) > std::cos(M_PI / 18.));
+    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Ribs stay within thirty degrees of the only available painted face normal", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 1.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(M_PI / 9.));
+    REQUIRE(!result.top_body_directions.empty());
+    const double minimum_alignment = std::cos(M_PI / 6.);
+    for (const Vec2d &direction : result.top_body_directions)
+        REQUIRE(std::abs(direction.x()) >= minimum_alignment - 0.002);
+    // Oblique attachment remains allowed; a tangent Y sheet is not a fallback.
+    REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.1);
+    REQUIRE(result.contact_layers > 6);
+    REQUIRE(result.contact_width > 1.1);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+    REQUIRE(result.max_rib_center_overlap < 1e-6);
+}
+
+TEST_CASE("Ribs at different seed heights do not emit overlapping sheet contours", "[SupportMaterial]")
+{
+    const double lean = GENERATE(0., 0.2);
+    const RibRun result = slice_ribs(20, true, lean, 1.2, 0.4, 1, 30,
+                                  false, false, 0.4, 8, 0.05);
+    REQUIRE(result.closed_paths > 0);
+    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.contact_layers > 6);
+}
+
+TEST_CASE("Oblique contact projections stay inside the sheet after the neck overlap", "[SupportMaterial]")
+{
+    const double angle = GENERATE(30., 60., 80.);
+    const double contact_length = GENERATE(0., 0.2);
+    const RibRun result = slice_ribs(20, true, 0.2, 2.4, contact_length, 1, angle,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(M_PI / 9.), false, true);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.1);
+    REQUIRE(result.projection_layers > 0);
+    REQUIRE(result.bounded_projection_vertices > 0);
+    REQUIRE(result.max_projection_side_overrun < 0.002);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("A new demand direction selects a differently facing painted side", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.4, true);
+    REQUIRE(!result.top_body_directions.empty());
+    // With a +Y-facing side available, the first sheet follows +Y instead of
+    // attaching tangentially to the large +X-facing side.
+    REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.95);
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+        [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Thicker ribs reduce remaining directional demand without creating more sheets", "[SupportMaterial]")
+{
+    const RibRun thin = slice_ribs(20, true, 0, 1.2, 0.2);
+    const RibRun thick = slice_ribs(20, true, 0, 2.4, 0.2);
+    REQUIRE(thin.top_body_paths > 0);
+    REQUIRE(thick.top_body_paths > 0);
+    REQUIRE(thick.top_body_paths <= thin.top_body_paths);
+}
+
+TEST_CASE("A centered column with painted sides receives ribs in multiple broad directions", "[SupportMaterial]")
+{
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0, true);
+    REQUIRE(result.top_body_paths > 1);
+    REQUIRE(result.top_body_paths <= 8);
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+        [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+        [](const Vec2d &direction) { return std::abs(direction.y()) > 0.95; }));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("A centered narrow column can start several ribs on one layer", "[SupportMaterial]")
+{
+    const indexed_triangle_set column = its_make_cube(6, 6, 60);
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, &column, 0, true);
+    REQUIRE(result.first_body_z > 0);
+    REQUIRE(result.first_body_paths >= 2);
+    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
 }
 
 TEST_CASE("Rib support alternates painted side contacts with side gaps", "[SupportMaterial]")
@@ -253,13 +567,9 @@ TEST_CASE("Rib feet share one perimeter per merged bed island", "[SupportMateria
     CAPTURE(spacing);
     const RibRun result = slice_ribs(spacing, true, 0, 1.2, 1.2, 1);
     REQUIRE(result.first_layer_islands > 0);
-    REQUIRE(result.min_body_paths > 1);
+    REQUIRE(result.min_body_paths > 0);
     REQUIRE(result.first_layer_closed_paths == result.first_layer_islands);
     REQUIRE(result.first_layer_paths > result.first_layer_closed_paths);
-    if (spacing == 2.0)
-        REQUIRE(result.first_layer_islands == 1);
-    else
-        REQUIRE(result.first_layer_islands > 1);
 }
 
 TEST_CASE("Rib outer edge stays vertical while contacts fit a leaning wall", "[SupportMaterial]")
@@ -338,12 +648,72 @@ TEST_CASE("Painted patches containing only upward facing normals do not create r
     REQUIRE(result.contact_layers == 0);
 }
 
+TEST_CASE("An L shaped profile retains lower contacts and adds upper contacts", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh;
+    const std::array<float, 4> heights{0.f, 29.9f, 30.1f, 60.f};
+    for (float z : heights) {
+        const float reach = z < 30.f ? 12.f : 60.f;
+        mesh.vertices.emplace_back(0.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, reach, z);
+        mesh.vertices.emplace_back(0.f, reach, z);
+    }
+    for (int ring = 0; ring < 3; ++ring)
+        for (int i = 0; i < 4; ++i) {
+            const int a = 4 * ring + i, b = 4 * ring + (i + 1) % 4;
+            mesh.indices.emplace_back(a, b, a + 4);
+            mesh.indices.emplace_back(b, b + 4, a + 4);
+        }
+    mesh.indices.emplace_back(0, 2, 1);
+    mesh.indices.emplace_back(0, 3, 2);
+    mesh.indices.emplace_back(12, 13, 14);
+    mesh.indices.emplace_back(12, 14, 15);
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, &mesh, 0, true);
+    REQUIRE(result.lower_y_contact);
+    REQUIRE(result.upper_y_contact);
+    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("An active rib stops at the last painted height", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh;
+    for (float z : {0.f, 30.f, 60.f}) {
+        mesh.vertices.emplace_back(0.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, 60.f, z);
+        mesh.vertices.emplace_back(0.f, 60.f, z);
+    }
+    for (int ring = 0; ring < 2; ++ring)
+        for (int i = 0; i < 4; ++i) {
+            const int a = 4 * ring + i, b = 4 * ring + (i + 1) % 4;
+            mesh.indices.emplace_back(a, b, a + 4);
+            mesh.indices.emplace_back(b, b + 4, a + 4);
+        }
+    mesh.indices.emplace_back(0, 2, 1);
+    mesh.indices.emplace_back(0, 3, 2);
+    mesh.indices.emplace_back(8, 9, 10);
+    mesh.indices.emplace_back(8, 10, 11);
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, &mesh, 0,
+                                  false, false, false, false, 0, 30);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.contact_top_z > 20);
+    REQUIRE(result.contact_top_z <= 30.001);
+    REQUIRE(result.support_top_z <= 30.001);
+    REQUIRE(result.open_paths == 0);
+}
+
 TEST_CASE("Rib contact layers stay below the painted face top", "[SupportMaterial]")
 {
     const double height = GENERATE(60., 60.1, 60.15);
     const double lean = GENERATE(0., 0.6);
+    const double slice_offset = GENERATE(-1., 0., 0.05);
     const RibRun result = slice_ribs(20, true, lean, 1.2, 1.2, 1, 30,
-                                    false, false, 0.4, 8, 0.05, height);
+                                    false, false, 0.4, 8, 0.05, height, 6, nullptr, 0,
+                                    false, false, false, slice_offset >= 0, std::max(0., slice_offset));
     REQUIRE(result.contact_layers > 0);
     REQUIRE(result.contact_top_z <= height + 0.001);
     REQUIRE(result.support_top_z <= height + 0.001);
