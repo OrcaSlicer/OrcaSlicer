@@ -246,6 +246,33 @@ public:
 };
 
 // ---------------------------------
+// ***  PhysicalFilamentComboBox  ***
+// ---------------------------------
+
+// Grouped filament-preset picker for the Physical Filaments editor: same rendering as the
+// sidebar selector (user/system groups, color bitmaps, tooltips) but selection is plain row
+// state -- it never touches the project's filament_presets. Same pattern as
+// CalibrateFilamentComboBox, minus the sidebar chrome (built on the base PresetComboBox).
+class PhysicalFilamentComboBox : public PresetComboBox
+{
+public:
+    PhysicalFilamentComboBox(wxWindow* parent);
+
+    void update() override;
+    // Seed/replace the selection by canonical preset name; "" clears the selection.
+    void select_preset(const std::string& name);
+    const Preset* get_selected_preset() const;
+
+    // Invoked after the user picks a preset row (never for group markers or programmatic
+    // selection); the row owner reads get_selected_preset() from it.
+    std::function<void()> on_preset_picked;
+
+private:
+    std::map<int, std::string> m_item_presets; // item index -> canonical preset name
+    std::string                m_wanted;       // current selection by name ("" = none)
+};
+
+// ---------------------------------
 // ***  CalibrateFilamentComboBox  ***
 // ---------------------------------
 

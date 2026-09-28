@@ -3,6 +3,7 @@
 	"name": "fdm_ultra_common",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
+	"printer_agent": "wondermaker",
 	"instantiation": "false",
 	"default_bed_type": "4",
 	"default_filament_profile": [

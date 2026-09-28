@@ -4,6 +4,7 @@
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -13,6 +14,70 @@
 #include <nlohmann/json.hpp>
 
 namespace Slic3r {
+
+// One reported slot, as the Moonraker readers collect it before build_ams_payload turns it into
+// the device model's tray. Namespace-level so the pure readers below can fill it.
+struct MoonrakerAmsTrayData {
+    int         slot_index = 0;      // 0-based index in the agent's slot order
+    bool        has_filament = false;
+    std::string tray_type;           // Material type (e.g., "PLA", "ASA")
+    std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
+    std::string tray_info_idx;       // Setting ID (optional)
+    int         bed_temp = 0;        // Optional
+    int         nozzle_temp = 0;     // Optional
+    std::string tag_uid;             // Non-empty when the slot's data came from an NFC/RFID
+                                     // tag (Bambu tag_uid convention); such slots are
+                                     // authoritative and excluded from filament pushes.
+    std::string slot_name;           // The printer's own name for the slot (AFC lane key such
+                                     // as "lane1" / "e1"); empty when the changer has none.
+    std::string unit;                // Changer unit the slot sits in, by stable id ("ace0", "Turtle_1"); "" = flat.
+    std::string unit_label;          // The unit's display name (openACE unit_name), the id when it has none.
+    std::string head;                // Klipper extruder the slot feeds ("extruder1"); "" = unknown.
+    int         slot = 0;            // Position within its unit.
+    int         extruder = -1;       // 0-based extruder it feeds; -1 = unknown.
+    int         virtual_tool = -1;   // The T<n> the printer maps the slot to now; -1 = unknown.
+};
+
+// Orca: the two filament-changer dialects a Moonraker printer can report slots in, and the
+// g-code each takes to write a slot back (IPrinterAgent::push_filament_info). AFC keys its
+// lane_data namespace by lane NAME and has no combined command; Happy Hare addresses gates by
+// index and takes everything in one MMU_GATE_MAP. Neither has a field for vendor or sub-type,
+// so those are not sent. Pure functions so the wire strings are pinned by tests.
+namespace MoonrakerFilamentDialect {
+// openace: publishes lane_data in AFC's shape and takes AFC's lane commands for writes, but maps
+// per print through one parameter on the SD start (OPENACE_MAP), not through SET_MAP.
+enum class Dialect { none, afc_lane_data, happy_hare, openace };
+bool        dialect_supports_push(Dialect dialect);
+// The wire/persistence name of a dialect ("afc", "happy_hare", ""), and back.
+std::string dialect_name(Dialect dialect);
+Dialect     dialect_from_name(const std::string& name);
+// Slot writes (IPrinterAgent::push_filament_info). AFC addresses the lane by info.name.
+std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info);
+std::string              happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info);
+// Print-start scripts: reset the changer's map, assign every used tool in ascending order, then
+// the plain SD start. tool_to_slot_1based is the dialog's shape (index = 0-based tool, value =
+// 1-based slot, 0 = unassigned). AFC needs the slot names; a used slot without one renders an
+// empty script, which the send path refuses to auto-start on.
+std::string afc_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based,
+                                     const std::vector<std::string>& slot_names);
+std::string happy_hare_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based);
+// openACE: the SD start with OPENACE_MAP="[[sliced,virtual],...]" (0-based, no spaces); only
+// assigned tools are listed, the printer's default map covers the rest, and the job map is
+// frozen at start and dropped at the end, so nothing is reset first.
+std::string openace_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based);
+// How many logical tools the printer registers, from /printer/gcode/help's {command: help}
+// object: the highest T<n> + 1. The highest, not the count -- a Klipper toolchanger registers
+// its physical T0..T3 without help text, so they are absent from the listing. 0 = none found.
+int tool_count_from_gcode_help(const nlohmann::json& help);
+// Where a slot sits and what it feeds, from the lane's own record, in AFC's schema: "lane" (the
+// index, which is the lane's virtual tool), "unit", "extruder" / "extruder_index", and "slot"
+// once a changer publishes it. openACE adds "unit_name", read as the unit's label only. AFC's
+// lane_data carries just the extruder index, so its AFC_stepper status object is read with the
+// same function. Missing fields leave the defaults (-1 / "" / 0).
+int  extruder_index_from_name(const std::string& name); // "extruder" -> 0, "extruder2" -> 2, else -1
+void apply_lane_topology(const nlohmann::json& lane, MoonrakerAmsTrayData& tray);
+} // namespace MoonrakerFilamentDialect
+class Http;
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
@@ -72,6 +137,10 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id) override;
+    // Writes go through whichever dialect the last fetch read; see MoonrakerFilamentDialect.
+    bool supports_filament_push() const override;
+    bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
 protected:
     struct MoonrakerDeviceInfo
@@ -86,25 +155,38 @@ protected:
         std::string version;
         std::string klippy_state;
         bool        use_ssl = false;
+        std::string ca_file;                       // printhost_cafile
+        bool        ssl_revoke_best_effort = false; // printhost_ssl_ignore_revoke
     } device_info;
 
-    // Tray data for AMS payload building
-    struct AmsTrayData {
-        int         slot_index = 0;      // 0-based slot index
-        bool        has_filament = false;
-        std::string tray_type;           // Material type (e.g., "PLA", "ASA")
-        std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
-        std::string tray_info_idx;       // Setting ID (optional)
-        int         bed_temp = 0;        // Optional
-        int         nozzle_temp = 0;     // Optional
-    };
+    using AmsTrayData = MoonrakerAmsTrayData;
+
+    // Shape of the AMS units build_ams_payload() emits:
+    //  - Toolchanger: one 1-slot TOOLCHANGER unit per lane (honest per-tool presentation).
+    //    ams_count is the tool/lane count.
+    //  - Box4: one AMS_LITE unit per up-to-4 lanes, chunked (legacy MMU-box presentation).
+    //    ams_count is the number of 4-slot boxes.
+    enum class AmsUnitShape { Toolchanger, Box4 };
 
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                            AmsUnitShape shape = AmsUnitShape::Box4);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+
+    // Builds the gcode macro start_local_print() sends once the upload has finished. Generic by
+    // default (plain Klipper SD-print start); a dialect-specific agent (e.g. SnapmakerPrinterAgent)
+    // overrides this to fold in whatever a prior send_filament_mapping() call stashed, instead of
+    // this class knowing about any vendor's print-start dialect.
+    virtual std::string build_start_print_gcode(const std::string& upload_filename) const;
+
+    // Fallback for a REST entry point reached with a dev_id that was never bound through
+    // bind_device_connection(): rebuilds device_info from the MachineObject's persisted state.
+    // No-op if device_info is already current. See bind_device_connection() for why the bound
+    // address is the better source, and ActivePrinterSession for who binds it.
+    bool ensure_device_info(const std::string& dev_id);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
@@ -126,7 +208,15 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
+    // Auth + TLS options for one request, from device_info (see Moonraker::set_auth in the printhost layer).
+    void set_auth(Http& http, const std::string& api_key) const;
+    // One GET of a Moonraker JSON endpoint, unwrapping the "result" envelope.
+    bool fetch_json(const std::string& url, const std::string& api_key, nlohmann::json& result, std::string& error) const;
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
+    bool fetch_tool_count(const std::string& base_url, const std::string& api_key, int& tool_count, std::string& error) const;
+    // AFC keeps a lane's unit / extruder / map in the lane's Klipper status object, not in
+    // lane_data: one query for every lane, joined by lane name.
+    void fetch_afc_lane_topology(std::vector<AmsTrayData>& trays) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
 
@@ -146,10 +236,15 @@ private:
     int resume_print(const std::string& dev_id);
     int cancel_print(const std::string& dev_id);
 
-    // File upload
+    // File upload. When confirmed_filename is non-null, it's set to the storage-relative name
+    // Moonraker's response (result.item.path) confirms the file was actually stored under --
+    // which can differ from `filename` on a server-side collision rename -- or left untouched if
+    // the response doesn't include one. Callers that go on to reference the uploaded file by name
+    // (e.g. a print-start command) should prefer this confirmed value over `filename` itself.
     bool upload_gcode(const std::string& local_path, const std::string& filename,
                       const std::string& base_url, const std::string& api_key,
-                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn,
+                      std::string* confirmed_filename = nullptr);
 
     // JSON-RPC helper
     bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,
@@ -164,6 +259,12 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    // Which dialect the last successful fetch_filament_info read. Published with the slots
+    // (build_ams_payload) so the inventory can cache it and a send can re-confirm it.
+    MoonrakerFilamentDialect::Dialect m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
+    // Logical tools the printer registered at the last fetch_filament_info (0 = not probed);
+    // published alongside the dialect so the profile can cache it.
+    int m_tool_count = 0;
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);

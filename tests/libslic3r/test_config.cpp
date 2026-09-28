@@ -1289,3 +1289,99 @@ TEST_CASE("Static print configs compare, order and hash by their option values",
         REQUIRE(c.optptr("gcode_flavor") == &c.gcode_flavor);
     }
 }
+TEST_CASE("A json config with one bad value still loads every other key", "[Config]")
+{
+    // A project_settings.config written by another vendor's fork can type a single option
+    // differently -- a WonderMaker-vendor export writes bed_mesh_max as the scalar "290" where
+    // this tree defines a point. One alien value must cost only its own key: the loader used to
+    // abandon the whole file at the throw, and since nlohmann iterates keys alphabetically,
+    // everything after "bed_mesh_max" (filament_colour included) silently vanished -- which a
+    // blind dereference in the 3mf open path then turned into a crash.
+    ScopedTemporaryFile file(".json");
+    {
+        boost::nowide::ofstream out(file.path().string());
+        out << R"({
+            "bed_mesh_max": "290",
+            "filament_colour": ["#112233", "#445566"],
+            "layer_height": "0.28"
+        })";
+    }
+
+    DynamicPrintConfig                 config;
+    ConfigSubstitutionContext          substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    const int ret = config.load_from_json(file.path().string(), substitutions, true, key_values, reason);
+
+    // The load as a whole succeeds; only the bad key is dropped.
+    CHECK(ret == 0);
+    CHECK(config.option("bed_mesh_max") == nullptr);
+    REQUIRE(config.option<ConfigOptionStrings>("filament_colour") != nullptr);
+    CHECK(config.option<ConfigOptionStrings>("filament_colour")->values ==
+          std::vector<std::string>{"#112233", "#445566"});
+    REQUIRE(config.option("layer_height") != nullptr);
+    CHECK(config.option<ConfigOptionFloat>("layer_height")->value == Catch::Approx(0.28));
+}
+
+// The protocol is the vendor's declaration of how the map reaches the printer. A reported
+// Klipper changer is a separate, cached fact: it never rewrites the vendor's value (a ZR Ultra
+// keeps its wondermaker options and prelude with openACE installed) and by itself makes a
+// plain Klipper profile device-resolved.
+TEST_CASE("A reported changer is cached beside the vendor protocol, never over it", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(reported_changer_of(config).empty());
+    CHECK_FALSE(device_resolves_filament_mapping(config));
+
+    CHECK(seed_printer_from_report(config, "afc", 0));
+    CHECK(reported_changer_of(config) == "afc");
+    CHECK(filament_mapping_protocol_of(config) == FilamentMappingProtocol::fmpNone);
+    CHECK(device_resolves_filament_mapping(config));
+    CHECK_FALSE(seed_printer_from_report(config, "afc", 0));
+    // A different changer replaces the cached one; "" (nothing reported) never clears it.
+    CHECK(seed_printer_from_report(config, "openace", 0));
+    CHECK_FALSE(seed_printer_from_report(config, "", 0));
+    CHECK(reported_changer_of(config) == "openace");
+
+    DynamicPrintConfig vendor = DynamicPrintConfig::full_print_config();
+    vendor.set_deserialize_strict({ { "filament_mapping_protocol", "wondermaker" } });
+    CHECK(seed_printer_from_report(vendor, "openace", 32));
+    CHECK(filament_mapping_protocol_of(vendor) == FilamentMappingProtocol::fmpWonderMaker);
+    CHECK(reported_changer_of(vendor) == "openace");
+    CHECK(vendor.opt_int("device_tool_count") == 32);
+}
+
+// One namespace: the count of T<n> the printer registers. Probed wins; otherwise the vendor's
+// constant (the U1's 32-entry extruder_map_table) or the nozzle count.
+TEST_CASE("The filament namespace is the probed tool count, else the vendor's constant", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(filament_namespace_size(config, 4) == 4);
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "snapmaker" } });
+    CHECK(filament_namespace_size(config, 4) == 32);
+    config.set_key_value("device_tool_count", new ConfigOptionInt(28));
+    CHECK(filament_namespace_size(config, 4) == 28);
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "wondermaker" } });
+    config.set_key_value("device_tool_count", new ConfigOptionInt(0));
+    CHECK(filament_namespace_size(config, 4) == 4);
+    // The tool count only ever tightens or widens what a sync measured; 0 leaves the cache.
+    CHECK(seed_printer_from_report(config, "", 4));
+    CHECK_FALSE(seed_printer_from_report(config, "", 0));
+    CHECK(filament_namespace_size(config, 4) == 4);
+}
+
+// The value the earlier drafts of this branch wrote for a Klipper changer loads as "none"
+// (a substitution), since the changer is a reported fact now and not a protocol.
+TEST_CASE("klipper_changer is no longer a protocol value", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    ConfigSubstitutionContext ctx(ForwardCompatibilitySubstitutionRule::Enable);
+    config.set_deserialize({ { "filament_mapping_protocol", "klipper_changer" } }, ctx);
+    CHECK(filament_mapping_protocol_of(config) == FilamentMappingProtocol::fmpNone);
+    CHECK(ctx.substitutions.size() == 1);
+}
+
+// The flushing-volume matrix is one block per extruder (upstream's format, unchanged). On a
+// toolchanger the dialog edits one entry per physical extruder, and this switch keeps the blocks
+// identical when the user wants one matrix for all of them. Default on: the common case.
+TEST_CASE("flush_volumes_synced is a print option defaulting to one matrix for every extruder", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(config.opt_bool("flush_volumes_synced"));
+}

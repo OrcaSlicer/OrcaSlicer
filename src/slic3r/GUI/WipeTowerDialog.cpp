@@ -245,6 +245,7 @@ void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
         auto flush_multipliers = dlg.GetMultipliers();
         (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
         (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
+        project_config.option<ConfigOptionBool>("flush_volumes_synced", true)->value = dlg.GetSynced();
         bool flushing_volume_modify = is_flush_config_modified();
         wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
         wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
@@ -343,6 +344,16 @@ wxString WipingDialog::BuildTableObjStr()
     obj["max_flush_multiplier"] = g_max_flush_multiplier;
     obj["is_dark_mode"] = wxGetApp().dark_mode();
     obj["default_matrixs"]      = json::array();
+    // Orca: which extruders the page offers. Bambu's dual-nozzle head keeps its Left/Right
+    // wording (BuildTextObjStr); every other multi-nozzle printer lists its physical extruders
+    // as E<n>, and gets the "same for all extruders" toggle -- the matrix format is unchanged
+    // (one block per extruder), synced simply writes identical blocks.
+    const bool bbl_head = wxGetApp().preset_bundle->is_bbl_vendor();
+    obj["extruder_labels"] = json::array();
+    for (int idx = 0; idx < nozzle_num; ++idx)
+        obj["extruder_labels"].push_back(bbl_head ? std::string() : "E" + std::to_string(idx + 1));
+    obj["show_sync"] = nozzle_num > 1 && !bbl_head;
+    obj["synced"]    = full_config.option<ConfigOptionBool>("flush_volumes_synced", true)->value;
 
     for (const auto& vec : flush_matrixs) {
         obj["flush_volume_matrixs"].push_back(vec);
@@ -408,6 +419,7 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
     text_obj += wxString::Format("\"calc_btn_panel\":\"%s\",", calc_btn_panel);
     text_obj += wxString::Format("\"extruder_label_0\":\"%s\",", extruder_label_0);
     text_obj += wxString::Format("\"extruder_label_1\":\"%s\",", extruder_label_1);
+    text_obj += wxString::Format("\"sync_label\":\"%s\",", multi_language ? _L("Same flushing volumes for all extruders") : wxString("Same flushing volumes for all extruders"));
     text_obj += wxString::Format("\"multiplier_label\":\"%s\",", multiplier_label);
     text_obj += wxString::Format("\"ok_btn_label\":\"%s\",", ok_btn_label);
     text_obj += wxString::Format("\"cancel_btn_label\":\"%s\",", cancel_btn_label);
@@ -541,7 +553,8 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
                         }
                     }
                 }
-                this->StoreFlushData(extruder_num, store_matrixs, store_multipliers);
+                const bool synced = j.contains("synced") && j["synced"].is_boolean() && j["synced"].get<bool>();
+                this->StoreFlushData(extruder_num, store_matrixs, store_multipliers, synced);
                 m_submit_flag = true;
                 this->Close();
             }
@@ -635,10 +648,18 @@ WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
     return matrix;
 }
 
-void WipingDialog::StoreFlushData(int extruder_num, const std::vector<std::vector<double>>& flush_volume_vecs, const std::vector<double>&flush_multipliers)
+void WipingDialog::StoreFlushData(int extruder_num, const std::vector<std::vector<double>>& flush_volume_vecs, const std::vector<double>&flush_multipliers, bool synced)
 {
     m_flush_multipliers = flush_multipliers;
     m_raw_matrixs = flush_volume_vecs;
+    m_synced = synced;
+    // One matrix for every extruder: the block the page edited (the first) is what every
+    // extruder gets, so the file keeps its per-extruder layout with identical blocks.
+    if (synced && !m_raw_matrixs.empty())
+        for (size_t idx = 1; idx < m_raw_matrixs.size(); ++idx) {
+            m_raw_matrixs[idx]      = m_raw_matrixs[0];
+            m_flush_multipliers[idx] = m_flush_multipliers.empty() ? 1. : m_flush_multipliers[0];
+        }
 }
 
 // The table edits a physical-only sub-matrix; GetFlattenMatrix has to hand back a full-size
