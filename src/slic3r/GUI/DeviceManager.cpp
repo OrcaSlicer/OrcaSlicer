@@ -4890,7 +4890,8 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                 std::string subtask_json;
                 unsigned http_code = 0;
                 std::string http_body;
-                if (m_agent->get_subtask_info(subtask_id, &subtask_json, &http_code, &http_body) == 0) {
+                // Bambu MQTT protocol data; the default (Orca) agent is a stub.
+                if (m_agent->get_subtask_info(subtask_id, &subtask_json, &http_code, &http_body, Slic3r::GUI::wxGetApp().get_printer_cloud_provider()) == 0) {
                     try {
                         if (!subtask_json.empty()) {
 
