@@ -1342,6 +1342,7 @@ void ViewerImpl::update_enabled_entities()
     // surfaces the range cuts open
     const EReducedDetailMode reduced_mode = m_settings.reduced_detail_mode;
     const bool build_reduced = reduced_mode != EReducedDetailMode::Off;
+    const bool hide_infill = m_settings.reduced_detail_hide_infill;
     std::vector<uint32_t> enabled_segments_reduced;
     std::vector<uint32_t> enabled_options_reduced;
     const Interval& layers_range = m_layers.get_view_range();
@@ -1402,7 +1403,7 @@ void ViewerImpl::update_enabled_entities()
             else if (reduced_mode == EReducedDetailMode::ShellOnly) {
                 if (v.is_option())
                     enabled_options_reduced.push_back(static_cast<uint32_t>(i));
-                else if (!v.is_extrusion() || !is_hidden_in_shell(v.role))
+                else if (!v.is_extrusion() || !hide_infill || !is_hidden_in_shell(v.role))
                     enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
             }
         }
@@ -1660,12 +1661,20 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     m_settings.update_enabled_entities = true;
 }
 
-// The mode decides which vertices land in the reduced set, so the sets are rebuilt.
+// Both decide which vertices land in the reduced set, so the sets are rebuilt.
 void ViewerImpl::set_reduced_detail_mode(EReducedDetailMode mode)
 {
     if (m_settings.reduced_detail_mode == mode)
         return;
     m_settings.reduced_detail_mode = mode;
+    m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_reduced_detail_hide_infill(bool value)
+{
+    if (m_settings.reduced_detail_hide_infill == value)
+        return;
+    m_settings.reduced_detail_hide_infill = value;
     m_settings.update_enabled_entities = true;
 }
 

@@ -147,6 +147,10 @@ public:
     //
     EReducedDetailMode get_reduced_detail_mode() const;
     void set_reduced_detail_mode(EReducedDetailMode mode);
+    // Whether the shell mode hides the infill roles; off for a profile that leaves them on the
+    // surface, with no top or bottom shell or no walls.
+    bool get_reduced_detail_hide_infill() const;
+    void set_reduced_detail_hide_infill(bool value);
     void set_reduced_detail(bool value);
     bool is_reduced_detail() const;
     float get_dim_previous_layers_brightness() const;

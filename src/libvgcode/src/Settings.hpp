@@ -31,6 +31,8 @@ struct Settings
 		bool spiral_vase_mode{ false };
 		// what the reduced set holds and whether it is drawn. Ignored on the OpenGL ES path.
 		EReducedDetailMode reduced_detail_mode{ EReducedDetailMode::Off };
+		// whether the shell mode may hide the infill roles: false when the profile leaves them on the surface
+		bool reduced_detail_hide_infill{ true };
 		bool reduced_detail{ false };
 		//
 		// Required update flags
