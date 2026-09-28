@@ -134,6 +134,8 @@ public:
     bool is_reduced_detail() const { return m_settings.reduced_detail; }
     EReducedDetailMode get_reduced_detail_mode() const { return m_settings.reduced_detail_mode; }
     void set_reduced_detail_mode(EReducedDetailMode mode);
+    bool get_reduced_detail_hide_infill() const { return m_settings.reduced_detail_hide_infill; }
+    void set_reduced_detail_hide_infill(bool value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
 

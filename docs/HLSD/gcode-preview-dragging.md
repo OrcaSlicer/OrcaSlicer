@@ -37,7 +37,9 @@ are the faces the range cuts open, and the top is what the user is looking at.
   print looks as it does at rest. The roles come from
   the slicer, so the classification is exact wherever the slicer's is; what it cannot express is
   the inside of the prime tower and of a support, which share one role with their outside and are
-  kept whole. A profile with no top or bottom shell layers exposes infill, which this mode hides.
+  kept whole. A profile with no top or bottom shell layers, or no walls, leaves the infill on the
+  surface, so `GCodeViewer` turns the hiding off for such a print when it loads it, from the
+  print's default region settings; per-object overrides are not consulted.
 
 ## The solid model
 

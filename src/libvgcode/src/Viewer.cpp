@@ -144,6 +144,16 @@ void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
     m_impl->set_reduced_detail_mode(mode);
 }
 
+bool Viewer::get_reduced_detail_hide_infill() const
+{
+    return m_impl->get_reduced_detail_hide_infill();
+}
+
+void Viewer::set_reduced_detail_hide_infill(bool value)
+{
+    m_impl->set_reduced_detail_hide_infill(value);
+}
+
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);
