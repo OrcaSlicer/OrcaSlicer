@@ -105,7 +105,7 @@ static bool is_bambu_x2d_printer(const FullPrintConfig &config)
 
 static bool is_bambu_h2d_printer(const FullPrintConfig &config)
 {
-    return config.printer_model.value == "Bambu Lab H2D";
+    return config.printer_model.value == "Bambu Lab H2D" || config.printer_model.value == "Bambu Lab H2D Pro";
 }
 
 // Multi-nozzle printer predicate: an extruder carries a nozzle cluster (extruder_max_nozzle_count
