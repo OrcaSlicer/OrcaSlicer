@@ -176,6 +176,13 @@ def write_prefs(data_dir, want_reload, want_confirm, want_slice):
     app[PREF_RELOAD] = want_reload
     app[PREF_CONFIRM] = want_confirm
     app[PREF_SLICE] = want_slice
+    # The template's presets are whatever the machine that last authored it had installed, so
+    # loading it on a different machine trips the "Customized Preset"/"Modified G-code" modal
+    # (Plater.cpp, guarded by this exact key -- it's what that dialog's own "don't show again"
+    # checkbox writes) with nobody there to click it. Suppressing it doesn't change what actually
+    # gets sliced: the dialog only warns about the *preset name* not being found system-side, the
+    # project's own embedded config values are used either way (PresetBundle::validate_presets()).
+    app["no_warn_when_modified_gcodes"] = True
     with open(path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent="\t")
         f.write("\n")
@@ -261,7 +268,7 @@ class OrcaApp:
         self.hooks_dir = hooks_dir
         self.proc = None
 
-    def start(self, project_path, ready_timeout):
+    def start(self, project_path, ready_timeout, expected_watch_count):
         os.makedirs(self.hooks_dir, exist_ok=True)
         self.set_paint_answer(None)
         env = os.environ.copy()
@@ -303,6 +310,12 @@ class OrcaApp:
             if current != last_seen:
                 last_seen = current
                 quiet_since = time.monotonic()
+        if last_seen != str(expected_watch_count):
+            raise RuntimeError(
+                "App settled on watching %s source file(s), expected %d -- probably blocked on a "
+                "modal dialog the project load never got past (e.g. the \"Customized Preset\"/"
+                "\"Modified G-code\" warning, if the template's presets aren't installed here). "
+                "Check %s." % (last_seen, expected_watch_count, log_path))
         return tail
 
     def set_paint_answer(self, answer):
@@ -476,7 +489,7 @@ def main():
         shutil.copy2(template_path, project_path)
         os.chmod(project_path, 0o644)
         print("\n--- restarting OrcaSlicer: reload=%s confirm=%s slice=%s ---" % (want_reload, want_confirm, want_slice))
-        tail = app.start(project_path, args.startup_timeout)
+        tail = app.start(project_path, args.startup_timeout, len(EXPECTED_TEMPLATE_SOURCES) if want_reload else 0)
 
     # --- phase bodies ------------------------------------------------------------------------
     # Mirrors test_auto_reload.py's phases one for one; see that file for the narrative context
