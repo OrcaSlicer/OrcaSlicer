@@ -1570,11 +1570,11 @@ void GLCanvas3D::set_section_view_ratio(double ratio)
     if (ratio == m_section_view->ratio)
         return;
 
-    const bool switched_on = m_section_view->ratio == 0.;
     if (ratio == 0.)
         m_section_view->last_ratio = m_section_view->ratio;
     m_section_view->ratio = ratio;
-    if (switched_on)
+    // Only the first cut faces the camera; later ones keep their angle until it is set again.
+    if (m_section_view->normal.isZero())
         align_section_view_to_camera();
     else
         _on_section_view_changed();
@@ -1582,14 +1582,8 @@ void GLCanvas3D::set_section_view_ratio(double ratio)
 
 void GLCanvas3D::toggle_section_view()
 {
-    if (is_section_view_active())
-        set_section_view_ratio(0.);
-    else if (m_section_view->last_ratio > 0.) {
-        // Brings back the same cut, not one facing the camera.
-        m_section_view->ratio = m_section_view->last_ratio;
-        _on_section_view_changed();
-    } else
-        set_section_view_ratio(0.5);
+    const double last_ratio = m_section_view->last_ratio;
+    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : 0.5);
 }
 
 void GLCanvas3D::align_section_view_to_camera()
@@ -3827,6 +3821,11 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
         render();
     else
     {
+        // Before the gizmos and the selection, which Esc also closes.
+        if (evt.GetEventType() == wxEVT_KEY_DOWN && keyCode == WXK_ESCAPE && std::exchange(m_section_view->panel_open, false)) {
+            _set_overlay_as_dirty();
+            return;
+        }
         if (!m_gizmos.on_key(evt)) {
             if (evt.GetEventType() == wxEVT_KEY_UP) {
                 if (evt.ShiftDown() && evt.ControlDown() && keyCode == WXK_SPACE) {
@@ -9875,7 +9874,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
             toggle_section_view();
-        else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) && section_view)
+        else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
             align_section_view_to_camera();
         imgui.tooltip(_L("Section view"), ImGui::GetFontSize() * 20.0f);
     }
@@ -10096,11 +10095,11 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
     if (changed)
         set_section_view_ratio(ratio);
 
-    imgui.disabled_begin(!is_section_view_active());
     ImGui::SameLine();
     if (imgui.button(_L("Set viewing angle")))
         align_section_view_to_camera();
 
+    imgui.disabled_begin(!is_section_view_active());
     ImGui::SameLine();
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));

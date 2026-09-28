@@ -598,7 +598,7 @@ private:
         explicit SectionView(const GLCanvas3D* owner) : owner(owner) {}
         double ratio{ 0. }; // 0 = off
         double last_ratio{ 0. }; // before it was switched off
-        Vec3d  normal{ Vec3d::UnitZ() };
+        Vec3d  normal{ Vec3d::Zero() }; // zero until first aimed
         bool   panel_open{ false };
         const GLCanvas3D* owner; // whose objects place the plane
     };

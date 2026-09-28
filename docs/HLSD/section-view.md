@@ -11,7 +11,8 @@ The user controls it from the section button of the canvas toolbar in the bottom
 the 3D view. The button opens a panel above it with a slider for the depth of the cut, a "Set
 viewing angle" button that turns the plane to face the camera at the same depth, and a button that
 resets the depth to zero. The panel is an ordinary overlay window, not a popup, so the scene keeps
-taking clicks and drags while it is open; the button closes it again. The button is highlighted
+taking clicks and drags while it is open; the button or Esc closes it again. Esc closes the panel
+before it closes a gizmo or clears the selection. The button is highlighted
 while a section cuts the scene and has shortcuts of its own: the mouse wheel over it moves the
 plane, a right click switches the section off and back on, and a middle click sets the viewing
 angle. Alt + mouse wheel moves the plane anywhere in the 3D view, with or without a gizmo open.
@@ -25,14 +26,14 @@ tab keep their own. The section itself is two values.
 - **Ratio**, from 0 to 1. At 0 the section is off. As the ratio grows, the plane sweeps the
   sphere around the objects, from its side facing the camera to the opposite side, so at 1
   everything is cut away.
-- **Normal**, taken from the camera direction when the ratio leaves 0, and again whenever the
-  user presses "Set viewing angle". The plane keeps that orientation while the camera orbits,
-  so the cut face can be seen from any side.
+- **Normal**, taken from the camera direction the first time the section is switched on, and
+  again whenever the user sets the viewing angle. The plane keeps that orientation while the
+  camera orbits and while the section is off, so the cut face can be seen from any side and
+  bringing the depth back to 0 does not lose the angle.
 
-The ratio in use when the section is switched off is kept. The right click on the button brings
-the section back at that ratio and with its old normal, so it restores the same cut, while the
-slider and the wheel start a new cut facing the camera. Whether the panel is open is shared along
-with the section.
+The ratio in use when the section is switched off is kept, and the right click on the button
+brings the section back at that ratio, which restores the same cut. Whether the panel is open is
+shared along with the section.
 
 The sphere is recomputed every frame from the volumes of the canvas the section view belongs to:
 the objects on the current plate, or every object when that plate is empty. Preview holds no
