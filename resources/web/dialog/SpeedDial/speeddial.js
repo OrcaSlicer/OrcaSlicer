@@ -30,7 +30,7 @@ var USER_MODE = "simple";
 var MODE_RANK = { simple: 0, advanced: 1, expert: 2, develop: 3 };
 
 // Search ranking weights: every contiguous match must outrank every fuzzy one regardless of field,
-// and title must outrank group, which outranks source.
+// and title must outrank group/category, which outranks source.
 var SCORE_CONTIGUOUS = 100000;
 var SCORE_TITLE = 2000;
 var SCORE_GROUP = 1000;
@@ -118,6 +118,18 @@ function sourceNorm(a) {
         a._sn = NormText(a.source || "", false);
     return a._sn;
 }
+function pluginCategoryNorm(a) {
+    if (a._pcn === undefined)
+        a._pcn = a.kind === "plugin" ? NormText(T("sd_plugins", "Plugins"), false) : "";
+    return a._pcn;
+}
+// Plugin type is searchable metadata, so typing "plugin" can find runnable plugin actions even
+// when neither their capability nor plugin name contains that word. Keep both category forms.
+function pluginTypeNorm(a) {
+    if (a._pn === undefined)
+        a._pn = a.kind === "plugin" ? NormText("plugin plugins", false) : "";
+    return a._pn;
+}
 // Search-only alias for the descriptive name when the title differs (e.g. "Reverse on even" vs
 // "Overhang reversal"). Never rendered, so no highlight ranges.
 function fullNorm(a) {
@@ -152,7 +164,7 @@ function fieldMatchScore(norm, needle, wwRe) {
 
 // Split a query into normalized (folded+lowercased) whitespace-separated tokens. Empty for a blank
 // query. These drive the multi-token path: every token must match some field, but different tokens
-// may match different fields (the title, the group, or the source breadcrumb).
+// may match different fields (the title, group, source breadcrumb, or plugin kind).
 function queryTokens(query) {
     var norm = NormText(String(query || "").trim(), false);
     return norm ? norm.split(/\s+/).filter(Boolean) : [];
@@ -170,14 +182,19 @@ function tokenMatch(a, token, wwRe) {
     var g = fieldMatchScore(groupNorm(a), token, wwRe);
     var s = fieldMatchScore(sourceNorm(a), token, wwRe);
     var f = fieldMatchScore(fullNorm(a), token, wwRe);
-    if (!t && !g && !s && !f) return null;
+    var p = fieldMatchScore(pluginCategoryNorm(a), token, wwRe);
+    var typeMatch = fieldMatchScore(pluginTypeNorm(a), token, wwRe);
+    if (!t && !g && !s && !f && !p && !typeMatch) return null;
     var score = Math.max(
         t ? (t.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_TITLE + t.score : -Infinity,
         g ? (g.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_GROUP + g.score : -Infinity,
         s ? (s.contiguous ? SCORE_CONTIGUOUS : 0) + s.score : -Infinity,
-        f ? (f.contiguous ? SCORE_CONTIGUOUS : 0) + f.score : -Infinity
+        f ? (f.contiguous ? SCORE_CONTIGUOUS : 0) + f.score : -Infinity,
+        p ? (p.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_GROUP + p.score : -Infinity,
+        typeMatch ? (typeMatch.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_GROUP + typeMatch.score : -Infinity
     );
-    return { score: score, title: t ? t.ranges : null, group: g ? g.ranges : null, source: s ? s.ranges : null };
+    return { score: score, title: t ? t.ranges : null, group: g ? g.ranges : null, source: s ? s.ranges : null,
+             plugin: p ? p.ranges : null };
 }
 
 // Merge per-field token ranges into sorted, coalesced ranges for highlighting. Overlapping or adjacent
@@ -201,8 +218,8 @@ function mergeRanges(ranges) {
 }
 
 // Combine per-field scores into one value, or null when nothing matched.
-// Ranking: contiguous > fuzzy, then title > group > source/full alias, then start/gaps.
-function scoreFields(t, g, s, f) {
+// Ranking: contiguous > fuzzy, then title > group/category > source/full alias, then start/gaps.
+function scoreFields(t, g, s, f, p, typeMatch) {
     var best = null;
     function consider(m, weight) {
         if (!m) return;
@@ -213,6 +230,8 @@ function scoreFields(t, g, s, f) {
     consider(g, SCORE_GROUP);
     consider(s, 0);
     consider(f, 0);
+    consider(p, SCORE_GROUP);
+    consider(typeMatch, SCORE_GROUP);
     return best;
 }
 
@@ -226,7 +245,8 @@ function scoreFields(t, g, s, f) {
 //   - tokens: every whitespace-separated word must match SOME field, but different words may match
 //     different fields. This is what lets "speed acceleration inner" find "Inner wall" whose path is
 //     "Process : Speed : Acceleration" (title + source breadcrumb together).
-// full_label is searchable too but never highlighted, since it is not rendered.
+// full_label and canonical plugin kind are searchable aliases. The visible category is also searchable
+// so its own match can be highlighted in plugin rows.
 // A phrase match always outranks a distributed token match.
 function searchActions(actions, query) {
     var q = (query || "").trim();
@@ -251,26 +271,31 @@ function searchActions(actions, query) {
         var g = fieldMatchScore(groupNorm(a), searchNeedle, wwRe);
         var s = fieldMatchScore(sourceNorm(a), searchNeedle, wwRe);
         var f = fieldMatchScore(fullNorm(a), searchNeedle, wwRe);
-        var phrase = scoreFields(t, g, s, f);
+        var p = fieldMatchScore(pluginCategoryNorm(a), searchNeedle, wwRe);
+        var typeMatch = fieldMatchScore(pluginTypeNorm(a), searchNeedle, wwRe);
+        var phrase = scoreFields(t, g, s, f, p, typeMatch);
         var score, ranges;
         if (phrase !== null) {
             score = phrase + SCORE_PHRASE;
-            ranges = { title: t ? t.ranges : null, group: g ? g.ranges : null, source: s ? s.ranges : null };
+            ranges = { title: t ? t.ranges : null, group: g ? g.ranges : null, source: s ? s.ranges : null,
+                       plugin: p ? p.ranges : null };
         } else {
             // Require every token; a token that matches nothing drops the action immediately. Ranges
             // from all matching tokens are merged per field so each matched word highlights.
-            var sum = 0, titleR = null, groupR = null, sourceR = null, all = true;
-            for (var k = 0; k < searchTokens.length; k++) {
-                var m = tokenMatch(a, searchTokens[k], searchTokenRes[k]);
+            var sum = 0, titleR = null, groupR = null, sourceR = null, pluginR = null, all = true;
+            for (var tokenIndex = 0; tokenIndex < searchTokens.length; tokenIndex++) {
+                var m = tokenMatch(a, searchTokens[tokenIndex], searchTokenRes[tokenIndex]);
                 if (!m) { all = false; break; }
                 sum += m.score;
                 if (m.title) (titleR || (titleR = [])).push(m.title);
                 if (m.group) (groupR || (groupR = [])).push(m.group);
                 if (m.source) (sourceR || (sourceR = [])).push(m.source);
+                if (m.plugin) (pluginR || (pluginR = [])).push(m.plugin);
             }
             if (!all) continue;
             score = sum;
-            ranges = { title: mergeRanges(titleR), group: mergeRanges(groupR), source: mergeRanges(sourceR) };
+            ranges = { title: mergeRanges(titleR), group: mergeRanges(groupR), source: mergeRanges(sourceR),
+                       plugin: mergeRanges(pluginR) };
         }
         // Ranges are per-field against the ACTUAL text drawn: title for the row-name, and group (or
         // source when group is empty) for the eyebrow - so highlight offsets stay aligned to the label.
@@ -278,6 +303,7 @@ function searchActions(actions, query) {
             title: ranges.title,
             group: ranges.group,
             source: ranges.source,
+            plugin: ranges.plugin,
             useEyebrowGroup: !!(a.group)
         };
         scored.push({ a: a, s: score });
@@ -390,7 +416,7 @@ function favDigitFromEvent(e) {
 
 function resultCountText(total, shown, query) {
     return (query || "").trim() ?
-        T("sd_result_count", "Showing %s of %s actions", shown, total) :
+        T("sd_result_count", "Showing %s actions", shown) :
         T("sd_result_count_all", "%s actions", total);
 }
 
@@ -459,6 +485,12 @@ function actionCategory(a) {
     var sep = src.indexOf(" : ");
     var cat = sep === -1 ? src : src.slice(0, sep);
     return cat || T("sd_other", "Other");
+}
+
+function actionEyebrow(a, typedQuery, isRecent) {
+    if (a && a.kind === "plugin" && (String(typedQuery || "").trim() || isRecent))
+        return T("sd_plugins", "Plugins");
+    return (a && (a.group || a.source)) || "";
 }
 
 // Stable-bucket actions by category, then order the groups alphabetically. Within a group the incoming
@@ -711,7 +743,7 @@ window.HandleStudio = function (payload) {
         builtKey = "";
         if (qEl) {
             qEl.value = "";
-            qEl.placeholder = T("sd_search_n", "Search %s actions", ACTIONS.length);
+            qEl.placeholder = T("sd_search", "Search actions");
             syncClearButton();
         }
         render({ resize: true, resetScroll: true });
@@ -931,12 +963,14 @@ function beginRow(item, i, mono, ariaLabel) {
 function renderActionRow(a, i) {
     var on = FAVS.indexOf(a.id) !== -1;
     var shell = beginRow(a, i, false, actionLabel(a, ACTIONS));
-    var mi = matchIndex[a.id];
-    // The eyebrow shows group when present, else source. Highlight with the ranges of whichever of the
-    // two the eyebrow actually renders (so a "Recent Projects"/"Object" header match lights up like a
-    // setting path does - the offsets are computed against the same string we are marking).
-    var eyebrow = a.group || a.source;
-    var eyebrowMatch = mi ? (mi.useEyebrowGroup ? mi.group : mi.source) : null;
+    var typedQuery = String(query || "").trim();
+    var isRecent = !typedQuery && i < RECENTS.length && RECENTS[i].id === a.id;
+    var mi = typedQuery ? matchIndex[a.id] : null;
+    // Plugin search/recent rows show their category; other rows show their group or source breadcrumb.
+    // Use match ranges from the visible field so category and breadcrumb highlights stay aligned.
+    var showPluginCategory = a.kind === "plugin" && (typedQuery || isRecent);
+    var eyebrow = actionEyebrow(a, query, isRecent);
+    var eyebrowMatch = mi ? (showPluginCategory ? mi.plugin : (mi.useEyebrowGroup ? mi.group : mi.source)) : null;
     shell.left.insertBefore(markedText("row-eyebrow", eyebrow, eyebrowMatch), shell.line);
     shell.line.appendChild(markedText("row-name", a.title, mi ? mi.title : null));
     var badge = modeBadge(a, USER_MODE);
@@ -1376,7 +1410,7 @@ function exitPhase() {
     // It survives a second-phase exit (which never goes through exitPhase from the commands view),
     // so without a reset the cached empty-query key would skip the rebuild and leave stale content.
     builtKey = "";
-    qEl.placeholder = T("sd_search_n", "Search %s actions", ACTIONS.length);
+    qEl.placeholder = T("sd_search", "Search actions");
     render({ resize: true, resetScroll: true });
     qEl.focus();
 }

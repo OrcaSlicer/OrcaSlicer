@@ -107,12 +107,13 @@ void load_config(cereal::BinaryInputArchive& ar, DynamicPrintConfig& config, con
 // comes after.
 void skip_config(cereal::BinaryInputArchive& ar, const CacheDictionary& dict);
 
-// One preset as its JSON subfile states it: the config diff, the name of the
-// preset it inherits, and the parse metadata — everything the parse phase of
-// load_vendor_configs_from_json extracts and nothing it derives. Inheritance
-// is resolved when the entry is installed, against whatever filament library
-// is loaded then, so a cache carries no other vendor's values and no other
-// vendor's update can make it stale.
+// One preset as its JSON subfile states it: the config diff, the names of the
+// preset it inherits and the presets it includes, and the parse metadata —
+// everything the parse phase of load_vendor_configs_from_json extracts and
+// nothing it derives. Inheritance and includes are resolved when the entry is
+// installed, against whatever filament library is loaded then, so a cache
+// carries no other vendor's values and no other vendor's update can make it
+// stale.
 // Written and read by visit_entry in PresetCacheFormat.cpp, which lists every
 // field below in this order — once, for the save, the load and the name peek alike.
 struct CachedPreset
@@ -121,6 +122,7 @@ struct CachedPreset
     std::string              sub_path;       // path under the vendor's directory
     DynamicPrintConfig       config_src;     // the preset's own diff, nothing inherited
     std::string              inherits;
+    std::vector<std::string> includes;       // layered under config_src, in this order
     std::string              description;
     std::string              instantiation;  // "true"/"false" as stated; anything else was already counted as a parse error
     std::string              setting_id;

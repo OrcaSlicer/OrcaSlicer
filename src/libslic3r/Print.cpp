@@ -378,6 +378,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_bridging"
             || opt_key == "wipe_tower_extra_flow"
             || opt_key == "wipe_tower_no_sparse_layers"
+            || opt_key == "wipe_tower_sparse_layers_combination"
             || opt_key == "flush_volumes_matrix"
             || opt_key == "prime_volume"
             || opt_key == "flush_into_infill"
@@ -1705,6 +1706,25 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
 
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
 //BBS: refine seq-print validation logic
+// The exception's own message is just "Errors"; the detail is in the per-object errors,
+// whose object id is the PrintObject's.
+std::string Print::slicing_errors_message(const SlicingErrors &errors) const
+{
+    std::string message;
+    for (const SlicingError &error : errors.errors_) {
+        std::string object_name;
+        for (const PrintObject *object : m_objects)
+            if (object->id().id == error.objectId()) {
+                object_name = object->model_object()->name;
+                break;
+            }
+        if (!message.empty())
+            message += "\n";
+        message += object_name.empty() ? std::string(error.what()) : object_name + ": " + error.what();
+    }
+    return message;
+}
+
 StringObjectException Print::validate(std::vector<StringObjectException> *warnings, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     auto add_warning = [warnings](StringObjectException w) {
@@ -2697,7 +2717,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.cancellation_check = [this]() { return canceled(); };
         fire_lifecycle_event(LifecycleEvent::SliceStarted, ctx);
@@ -3324,7 +3345,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.cancellation_check = [this]() { return canceled(); };
         fire_lifecycle_event(LifecycleEvent::SliceGeometryFinished, ctx);
@@ -4930,7 +4952,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 {
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = file;
         ctx.cancellation_check = [this]() { return canceled(); };
@@ -4960,7 +4983,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ <<  boost::format(": found errors when process gcode file %1%") %file.c_str();
         {
             LifecycleEventContext ctx;
-            ctx.name = std::to_string(m_model.id().id);
+            ctx.id = std::to_string(m_model.id().id);
+            ctx.name = get_model_name();
             ctx.code = LifecycleEvtCode::Error;
             ctx.msg  = file + "\n" + ex.what();
             ctx.cancellation_check = [this]() { return canceled(); };
@@ -4974,7 +4998,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 
     {
         LifecycleEventContext ctx;
-        ctx.name = std::to_string(m_model.id().id);
+        ctx.id = std::to_string(m_model.id().id);
+        ctx.name = get_model_name();
         ctx.code = LifecycleEvtCode::Ok;
         ctx.msg  = file;
         ctx.cancellation_check = [this]() { return canceled(); };
