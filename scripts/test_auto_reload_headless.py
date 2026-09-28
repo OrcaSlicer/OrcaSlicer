@@ -121,6 +121,12 @@ def binary_path_suggestions():
                 for config in configs]
     if system == "Windows":
         return [os.path.join(REPO_ROOT, "build", "src", config, "orca-slicer.exe") for config in configs]
+    if system == "Linux":
+        # build_linux.sh picks a config-specific build dir (build / build-dbg / build-dbginfo) and
+        # configures with the Ninja Multi-Config generator, so each still has its own <Config>
+        # subfolder underneath.
+        build_dirs = {"Release": "build", "Debug": "build-dbg", "RelWithDebInfo": "build-dbginfo"}
+        return [os.path.join(REPO_ROOT, build_dirs[config], "src", config, "orca-slicer") for config in configs]
     return []
 
 
