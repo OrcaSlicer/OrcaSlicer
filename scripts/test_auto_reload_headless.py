@@ -114,10 +114,14 @@ def binary_path_suggestions():
     """Example --binary values for this checkout's build layout, one per config, to put in
     --help -- not a default, since which config the caller actually built isn't this script's
     business to guess."""
-    if platform.system() != "Darwin":
-        return []
-    return [os.path.join(REPO_ROOT, "build/arm64-ninja/src", config, "OrcaSlicer.app/Contents/MacOS/OrcaSlicer")
-            for config in ("Debug", "Release", "RelWithDebInfo")]
+    configs = ("Debug", "Release", "RelWithDebInfo")
+    system = platform.system()
+    if system == "Darwin":
+        return [os.path.join(REPO_ROOT, "build/arm64-ninja/src", config, "OrcaSlicer.app/Contents/MacOS/OrcaSlicer")
+                for config in configs]
+    if system == "Windows":
+        return [os.path.join(REPO_ROOT, "build", "src", config, "orca-slicer.exe") for config in configs]
+    return []
 
 
 _MONTHS = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
