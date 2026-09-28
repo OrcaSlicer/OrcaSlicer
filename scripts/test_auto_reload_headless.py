@@ -434,6 +434,10 @@ def main():
         sys.exit("Don't know this platform's build layout -- pass --binary explicitly.")
     if not os.path.exists(args.binary):
         sys.exit("No OrcaSlicer executable at %s -- build it first, or pass --binary." % args.binary)
+    # Windows' CreateProcess doesn't resolve a relative path with forward slashes (subprocess.Popen
+    # then fails with WinError 2, even though the os.path.exists() check above just passed against
+    # the current working directory) -- an absolute path works regardless of slash direction.
+    args.binary = os.path.abspath(args.binary)
 
     log_dir = os.path.join(args.data_dir, "log")
     if not os.path.isdir(log_dir):
