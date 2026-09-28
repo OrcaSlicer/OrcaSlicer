@@ -2116,9 +2116,14 @@ int CLI::run(int argc, char **argv)
 
     // One resolver for the whole run, so presets from the same vendor tree share its load.
     std::unique_ptr<PresetBundle> system_preset_resolver;
-    auto resolve_preset = [&ensure_cli_preset_bundle, &system_preset_resolver](const std::string &file, DynamicPrintConfig &config,
-                                                                               std::string &config_type, const std::string &config_from,
-                                                                               bool probe_type, std::string &error) {
+    auto ensure_system_preset_resolver = [&system_preset_resolver]() -> PresetBundle & {
+        if (!system_preset_resolver)
+            system_preset_resolver = std::make_unique<PresetBundle>();
+        return *system_preset_resolver;
+    };
+    auto resolve_preset = [&ensure_cli_preset_bundle, &ensure_system_preset_resolver](const std::string &file, DynamicPrintConfig &config,
+                                                                                      std::string &config_type, const std::string &config_from,
+                                                                                      bool probe_type, std::string &error) {
         const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
         if (!probe_type && (inherits == nullptr || inherits->value.empty()))
             return true;
@@ -2126,9 +2131,7 @@ int CLI::run(int argc, char **argv)
         PresetBundle                 *bundle = nullptr;
         bool                          allow_source_manifest = false;
         if (config_from == "system") {
-            if (!system_preset_resolver)
-                system_preset_resolver = std::make_unique<PresetBundle>();
-            bundle                = system_preset_resolver.get();
+            bundle                = &ensure_system_preset_resolver();
             allow_source_manifest = true;
         } else {
             bundle = ensure_cli_preset_bundle(error);
@@ -3119,6 +3122,49 @@ int CLI::run(int argc, char **argv)
         }
         return 0;
     };
+
+    // A project saved before a printer or process option existed has no value for it. The GUI takes such
+    // keys from the project's system preset (load_external_preset refreshes every key the project did not
+    // override), so fill them from there too instead of leaving them to the option default.
+    // The extruder variant keys describe the project's variant layout and are kept as they are, so an
+    // older project is not left with a variant list from one layout and ids from another.
+    auto fill_missing_project_keys = [this, &ensure_system_preset_resolver](const std::string &system_name, Preset::Type type) {
+        if (system_name.empty())
+            return;
+        static const std::set<std::string> skip_keys = {
+            "inherits", "compatible_printers", "compatible_prints", "compatible_printers_condition", "compatible_prints_condition",
+            "print_settings_id", "filament_settings_id", "printer_settings_id",
+            "print_host", "print_host_webui", "printhost_apikey", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port",
+            "printer_extruder_id", "printer_extruder_variant", "print_extruder_id", "print_extruder_variant", "extruder_variant_list"};
+        const std::vector<std::string> &options = type == Preset::TYPE_PRINTER ? Preset::printer_options() : Preset::print_options();
+        // Keys the legacy handler drops on load can never be in a project, so they do not count as missing.
+        auto dropped_on_load = [](std::string key) {
+            std::string value;
+            PrintConfigDef::handle_legacy(key, value);
+            return key.empty();
+        };
+        std::vector<std::string> missing;
+        for (const std::string &key : options)
+            if (m_print_config.option(key) == nullptr && skip_keys.count(key) == 0 && !dropped_on_load(key))
+                missing.push_back(key);
+        if (missing.empty())
+            return;
+        DynamicPrintConfig system_config;
+        std::string        error;
+        if (!ensure_system_preset_resolver().resolve_system_preset(system_config, type, system_name, config_substitution_rule, error)) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: system preset '%1%' not resolved (%2%); keys missing from the project keep their defaults") % system_name % error;
+            return;
+        }
+        for (const std::string &key : missing)
+            if (const ConfigOption *opt = system_config.option(key)) {
+                m_print_config.set_key_value(key, opt->clone());
+                BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% missing from the project, taken from '%2%': %3%") % key % system_name % opt->serialize();
+            }
+    };
+    if (new_printer_name.empty())
+        fill_missing_project_keys(current_printer_system_name, Preset::TYPE_PRINTER);
+    if (new_process_name.empty())
+        fill_missing_project_keys(current_process_system_name, Preset::TYPE_PRINT);
 
     std::vector<std::string>& different_settings = m_print_config.option<ConfigOptionStrings>("different_settings_to_system", true)->values;
     std::vector<std::string>& inherits_group = m_print_config.option<ConfigOptionStrings>("inherits_group", true)->values;

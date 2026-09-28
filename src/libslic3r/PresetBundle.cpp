@@ -581,18 +581,20 @@ bool PresetBundle::resolve_preset_config(DynamicPrintConfig &config, Preset::Typ
 const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::path &root_dir,
                                                     const std::string &vendor_id,
                                                     ForwardCompatibilitySubstitutionRule compatibility_rule,
-                                                    std::string &error)
+                                                    std::string &error, bool allow_cache)
 {
-    auto key = std::make_tuple(root_dir.string(), vendor_id, compatibility_rule);
+    auto key = std::make_tuple(root_dir.string(), vendor_id, compatibility_rule, allow_cache);
     if (auto it = m_source_vendor_bundles.find(key); it != m_source_vendor_bundles.end())
         return it->second.get();
 
     // The library loads with no base of its own, so the tree a vendor inherits from
     // is the same one that resolves the library's own presets.
-    const PresetBundle *library = nullptr;
+    const std::string   library_file = std::string(ORCA_FILAMENT_LIBRARY);
+    const PresetBundle *library      = nullptr;
     if (vendor_id != ORCA_FILAMENT_LIBRARY &&
-        boost::filesystem::is_regular_file(root_dir / (std::string(ORCA_FILAMENT_LIBRARY) + ".json"))) {
-        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error);
+        (boost::filesystem::is_regular_file(root_dir / (library_file + ".json")) ||
+         (allow_cache && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"))))) {
+        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache);
         if (library == nullptr) {
             error = "OrcaFilamentLibrary contains invalid presets";
             return nullptr;
@@ -601,7 +603,7 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
 
     auto bundle = std::make_unique<PresetBundle>();
     bundle->m_preserve_vendor_source_paths = true;
-    bundle->load_vendor_configs_from_json(root_dir.string(), vendor_id, LoadSystem, compatibility_rule, library, false);
+    bundle->load_vendor_configs_from_json(root_dir.string(), vendor_id, LoadSystem, compatibility_rule, library, allow_cache);
     if (bundle->error_count() != 0) {
         error = "Vendor bundle contains invalid presets";
         return nullptr;
@@ -640,6 +642,43 @@ bool PresetBundle::resolve_preset_config_type(DynamicPrintConfig &config, Preset
 
     type   = resolved->first;
     config = std::move(resolved->second);
+    error.clear();
+    return true;
+}
+
+bool PresetBundle::resolve_system_preset(DynamicPrintConfig &config, Preset::Type type, const std::string &name,
+                                         ForwardCompatibilitySubstitutionRule compatibility_rule, std::string &error)
+{
+    const std::string vendor_id = find_preset_vendor(name, type);
+    if (vendor_id.empty()) {
+        error = "No vendor lists the preset";
+        return false;
+    }
+    // Release builds ship a vendor as its preset cache alone, without the profile JSONs.
+    auto installed = [&vendor_id](const fs::path &root) {
+        return fs::is_regular_file(root / (vendor_id + ".json")) || fs::is_regular_file(root / (vendor_id + ".opc"));
+    };
+    fs::path root_dir = fs::path(data_dir()) / PRESET_SYSTEM_DIR;
+    if (!installed(root_dir))
+        root_dir = fs::path(resources_dir()) / PRESET_PROFILES_DIR;
+    const bool cache_only = !fs::is_regular_file(root_dir / (vendor_id + ".json"));
+
+    try {
+        const PresetBundle *vendor = load_source_vendor(root_dir, vendor_id, compatibility_rule, error, cache_only);
+        if (vendor == nullptr)
+            return false;
+        const PresetCollection &collection = type == Preset::TYPE_PRINTER ? vendor->printers :
+                                             type == Preset::TYPE_PRINT   ? vendor->prints : vendor->filaments;
+        const Preset *preset = collection.find_preset(name, false);
+        if (preset == nullptr) {
+            error = "Preset was not found in its vendor bundle";
+            return false;
+        }
+        config = preset->config;
+    } catch (const std::exception &ex) {
+        error = ex.what();
+        return false;
+    }
     error.clear();
     return true;
 }
