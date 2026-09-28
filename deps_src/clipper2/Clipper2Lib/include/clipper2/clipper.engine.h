@@ -330,15 +330,16 @@ namespace Clipper2Lib {
 			//Even levels except level 0
 			return lvl && !(lvl & 1);
 		}
-        template<typename T>
-        static double Clipper2LibArea(const Path<T> &poly)
-        {
+		// Area() of the namespace this header is compiled into (Clipper2Lib or Clipper2Lib_Z).
+		template<typename T>
+		static double Clipper2LibArea(const Path<T> &poly)
+		{
 #ifdef USINGZ
-            return Clipper2Lib_Z::Area<T>(poly);
+			return Clipper2Lib_Z::Area<T>(poly);
 #else
-            return Clipper2Lib::Area<T>(poly);
+			return Clipper2Lib::Area<T>(poly);
 #endif
-        }
+		}
 	};
 
 	typedef typename std::vector<std::unique_ptr<PolyPath64>> PolyPath64List;
@@ -388,7 +389,8 @@ namespace Clipper2Lib {
 
 		double Area() const
 		{
-			return std::accumulate(childs_.cbegin(), childs_.cend(), Clipper2LibArea<int64_t>(polygon_),
+			return std::accumulate(childs_.cbegin(), childs_.cend(),
+				Clipper2LibArea<int64_t>(polygon_),
 				[](double a, const auto& child) {return a + child->Area(); });
 		}
 
@@ -462,7 +464,8 @@ namespace Clipper2Lib {
 
 		double Area() const
 		{
-			return std::accumulate(childs_.begin(), childs_.end(), Clipper2LibArea<double>(polygon_),
+			return std::accumulate(childs_.begin(), childs_.end(),
+				Clipper2LibArea<double>(polygon_),
 				[](double a, const auto& child) {return a + child->Area(); });
 		}
 	};
