@@ -291,31 +291,25 @@ class OrcaApp:
         if log_path is None:
             raise RuntimeError("No new debug log appeared within %gs of launch" % ready_timeout)
 
-        tail = LogTail(log_path)
-        if not tail.wait_for_match(WATCHING_RE, ready_timeout):
-            raise RuntimeError("App didn't report watching source files within %gs of launch -- "
-                                "did it start up cleanly?" % ready_timeout)
         # update_source_file_watches() logs more than once while a project loads:
         # object_list_changed() fires once before the project folder is resolved (transiently
         # reporting a stale/incomplete count) and again after load_project() finishes with the
-        # real one. Wait for that count to stop changing before trusting it as ready, or an early
-        # transient can become a phase's baseline and race its first write (seen on a slower disk,
-        # where the gap between the two lines outlasted a phase's post-mark settle delay).
-        last_seen = tail.last_match(WATCHING_RE)
-        deadline = time.monotonic() + ready_timeout
-        quiet_since = time.monotonic()
-        while time.monotonic() - quiet_since < 1.5 and time.monotonic() < deadline:
-            time.sleep(0.25)
-            current = tail.last_match(WATCHING_RE)
-            if current != last_seen:
-                last_seen = current
-                quiet_since = time.monotonic()
-        if last_seen != str(expected_watch_count):
+        # real one -- and how far apart those two lines land is a matter of local disk/GL-init
+        # speed, not something a fixed quiet window can safely bound (seen anywhere from under a
+        # second to a bit over two). So wait for the specific count this restart actually expects
+        # (all six sources, or zero when auto-reload is off) instead of guessing when the log has
+        # gone quiet -- that also makes a transient reading impossible to mistake for the real one,
+        # since it's never equal to the true count by construction (the early call fails to resolve
+        # every entry, precisely because the project folder isn't set yet).
+        tail = LogTail(log_path)
+        target_re = re.compile(r"watching %d source file\(s\) for changes" % expected_watch_count)
+        if not tail.wait_for_match(target_re, ready_timeout):
+            last_seen = tail.last_match(WATCHING_RE)
             raise RuntimeError(
-                "App settled on watching %s source file(s), expected %d -- probably blocked on a "
-                "modal dialog the project load never got past (e.g. the \"Customized Preset\"/"
-                "\"Modified G-code\" warning, if the template's presets aren't installed here). "
-                "Check %s." % (last_seen, expected_watch_count, log_path))
+                "App never reported watching %d source file(s) within %gs of launch (last seen: "
+                "%s) -- probably blocked on a modal dialog the project load never got past (e.g. "
+                "the \"Customized Preset\"/\"Modified G-code\" warning, if the template's presets "
+                "aren't installed here). Check %s." % (expected_watch_count, ready_timeout, last_seen, log_path))
         return tail
 
     def set_paint_answer(self, answer):
