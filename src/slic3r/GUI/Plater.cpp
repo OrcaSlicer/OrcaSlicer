@@ -3050,8 +3050,7 @@ Sidebar::Sidebar(Plater *parent)
 
     // add filament content
     p->m_panel_filament_content = new wxScrolledWindow(p->m_filament_area_wrapper, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-    p->m_panel_filament_content->SetScrollbars(0, 100, 1, 2);
-    p->m_panel_filament_content->SetScrollRate(0, 5);
+    p->m_panel_filament_content->SetScrollRate(0, FromDIP(20));
     //p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(174)});
     p->m_panel_filament_content->SetBackgroundColour(wxColour(255, 255, 255));
 
@@ -3143,8 +3142,7 @@ Sidebar::Sidebar(Plater *parent)
     // 3) Mixed filament rows, in their own scroll area so a long mixed list does not
     //    push the physical filament list off screen.
     p->m_mixed_scroll_area = new wxScrolledWindow(p->m_filament_area_wrapper, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    p->m_mixed_scroll_area->SetScrollbars(0, 100, 1, 2);
-    p->m_mixed_scroll_area->SetScrollRate(0, 5);
+    p->m_mixed_scroll_area->SetScrollRate(0, FromDIP(20));
     p->m_mixed_scroll_area->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     {
         auto* mix_scroll_sizer = new wxBoxSizer(wxVERTICAL);
@@ -13207,17 +13205,6 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     notification_manager->set_slicing_progress_export_possible();
 
     // Reset the "export G-code path" name, so that the automatic background processing will be enabled again.
-    std::string lifecycle_job_name;
-    if (this->background_process.fff_print()) {
-        try {
-            lifecycle_job_name = this->background_process.fff_print()->output_filename();
-        } catch (const std::exception &ex) {
-            // A cancelled/unfinished print (e.g. a slice cut short by a reload) leaves placeholders
-            // like {initial_tool} unresolved, so the filename_format template can fail here even
-            // though nothing is actually being exported.
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": output_filename() failed: " << ex.what();
-        }
-    }
     this->background_process.reset_export();
     // This bool stops showing export finished notification even when process_completed_with_error is false
     bool has_error = false;
@@ -13264,8 +13251,18 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 
     {
         Slic3r::LifecycleEventContext ctx;
-        ctx.name = lifecycle_job_name;
-        ctx.code = evt.cancelled() ? Slic3r::LifecycleEvtCode::Warn : (has_error ? Slic3r::LifecycleEvtCode::Error : Slic3r::LifecycleEvtCode::Ok);
+        if (const PrintBase* print = this->background_process.current_print()) {
+            const Model& model = print->model();
+            ctx.id             = std::to_string(model.id().id);
+            if (model.model_info)
+                ctx.name = model.model_info->model_name;
+        } else {
+            // Realistically Printbase* print will never be null because select_technology already asserts an active print
+            // and the worker thread asserts it before processing.
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": slicing completed without an active print; lifecycle event has no model ID";
+        }
+        ctx.code = evt.cancelled() ? Slic3r::LifecycleEvtCode::Warn :
+                                     (has_error ? Slic3r::LifecycleEvtCode::Error : Slic3r::LifecycleEvtCode::Ok);
         ctx.msg  = evt.cancelled() ? "cancelled" : (has_error ? lifecycle_error_msg : std::string());
         Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::SlicingJobComplete, ctx);
     }
