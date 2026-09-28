@@ -135,12 +135,12 @@
 		"35"
 	],
 	"filament_z_hop_types": [
-		"",
-		"",
-		"",
-		"",
-		"",
-		""
+		"nil",
+		"nil",
+		"nil",
+		"nil",
+		"nil",
+		"nil"
 	],
 	"filament_multitool_ramming": [
 		"0"
