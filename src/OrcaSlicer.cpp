@@ -7287,6 +7287,16 @@ int CLI::run(int argc, char **argv)
 #endif
 
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
+#ifndef __WXMAC__
+                if (window == NULL) {
+                    // Some drivers (e.g. older Mesa) only expose compatibility profile 3.0; take whatever they offer.
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to create OpenGL 3.3 compatibility context, retrying with driver default" << std::endl;
+                    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
+                    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+                    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+                    window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
+                }
+#endif
                 if (window == NULL)
                 {
                     BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window; skipping thumbnail rendering for CLI export" << std::endl;
