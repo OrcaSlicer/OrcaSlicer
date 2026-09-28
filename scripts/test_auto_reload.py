@@ -2,14 +2,16 @@
 """Manual verification of "Reload objects when their source file changes".
 
 Drives the on-disk side of the feature (in-place overwrite, rename-into-place) against a
-running OrcaSlicer and checks the outcome in OrcaSlicer's own log. The GUI steps that can't
-be scripted are kept to a one-time setup: the first run asks you to import the generated test
-objects onto three plates and save that as a read-only template project; every run after that
-(including a future one on a different day) opens a fresh working copy cloned from that
-template and drives every phase by itself -- the only GUI work left per phase is answering a
-handful of "does this look right" questions. The working copy is disposable: whatever happens
-to it in OrcaSlicer during a run, including an accidental save, is discarded and re-cloned from
-the template the next time.
+running OrcaSlicer and checks the outcome in OrcaSlicer's own log. The GUI steps that can't be
+scripted are kept to a one-time setup, which the first run normally skips by reusing the
+checked-in template fixture (scripts/testdata/autoreload_test_template.3mf) instead: import the
+generated test objects onto three plates and save that as a read-only template project; every
+run after that (including a future one on a different day) opens a fresh working copy cloned
+from that template and drives every phase by itself -- the only GUI work left per phase is
+answering a handful of "does this look right" questions. Pass --reauthor-template to do that
+setup by hand instead, e.g. if you're deliberately changing the template's own layout or paint.
+The working copy is disposable: whatever happens to it in OrcaSlicer during a run, including an
+accidental save, is discarded and re-cloned from the template the next time.
 
     python3 scripts/test_auto_reload.py [options]
 
@@ -32,6 +34,9 @@ import shutil
 import sys
 import threading
 import time
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_TEMPLATE_FIXTURE = os.path.join(SCRIPT_DIR, "testdata", "autoreload_test_template.3mf")
 
 RELOAD_MARK      = "source file(s) changed on disk, reloading"
 SLICE_START_MARK = "will start print::process"
@@ -281,6 +286,10 @@ def main():
     parser.add_argument("--only", metavar="LETTERS",
                         help="run only these phases, comma-separated (e.g. --only L or --only G,K,L) "
                              "instead of the full A-E sequence.")
+    parser.add_argument("--reauthor-template", action="store_true",
+                        help="do the manual one-time setup even if the checked-in template fixture "
+                             "(scripts/testdata/autoreload_test_template.3mf) is available -- use this "
+                             "if you're deliberately changing the template's own layout or paint")
     args = parser.parse_args()
 
     log_dir = os.path.join(args.data_dir, "log")
@@ -298,6 +307,13 @@ def main():
     project_path = os.path.join(work_dir, "autoreload_test.3mf")
     first_time = not os.path.exists(template_path)
 
+    if first_time and not args.reauthor_template and os.path.exists(DEFAULT_TEMPLATE_FIXTURE):
+        shutil.copy2(DEFAULT_TEMPLATE_FIXTURE, template_path)
+        os.chmod(template_path, 0o444)
+        first_time = False
+        print("Reusing the checked-in template fixture: %s\n"
+              "(pass --reauthor-template to do the manual one-time setup instead)" % DEFAULT_TEMPLATE_FIXTURE)
+
     stl           = os.path.join(work_dir, "cube.stl")        # plate 1, alone
     stl_g_changed = os.path.join(work_dir, "second_a.stl")    # plate 2, with stl_g_missing
     stl_g_missing = os.path.join(work_dir, "second_b.stl")    # plate 2, with stl_g_changed
@@ -305,21 +321,21 @@ def main():
     flaky_stl     = os.path.join(work_dir, "flaky.stl")       # plate 3
     quick_stl     = os.path.join(work_dir, "quick.stl")       # plate 3
 
-    if first_time:
-        # Only written once, before the one-time import+arrange+save below: each object is
-        # imported at its largest size here and every phase only ever shrinks it afterward
-        # (across every future run of this script, not just this one), so a plate's Auto Arrange
-        # -- done once, as part of that one-time setup -- never has to account for an object
-        # growing into a neighbor. A later run reusing the saved project intentionally does NOT
-        # reset these: each phase's own write() carries the file from whatever the last run left
-        # it at to that phase's own target size, which the watcher picks up as a change either
-        # way (the mtime always advances on a real write, regardless of the size).
-        write_cube_stl(stl, 20)
-        write_cube_stl(stl_g_changed, 30)
-        write_cube_stl(stl_g_missing, 8)
-        write_cube_stl(paint_stl, 18)
-        write_cube_stl(flaky_stl, 26)
-        write_cube_stl(quick_stl, 25)
+    # Written once per work-dir, before the one-time import+arrange+save below (each object is
+    # imported at its largest size here and every phase only ever shrinks it afterward, across
+    # every future run of this script, so a plate's Auto Arrange never has to account for an
+    # object growing into a neighbor) -- and also needed the first time a fresh work-dir reuses
+    # the checked-in template fixture instead of doing that one-time setup: OrcaSlicer's fallback
+    # for a bare recorded filename only re-points it at this work-dir if a same-named file is
+    # already sitting here at the moment the project is first opened, or the watch is left
+    # unresolved and nothing this script writes afterward is ever seen as a change. A later run
+    # reusing an already-populated work-dir intentionally leaves an existing file alone: each
+    # phase's own write() carries it from whatever the last run left it at to that phase's own
+    # target size, which the watcher picks up as a change either way.
+    for path, size in ((stl, 20), (stl_g_changed, 30), (stl_g_missing, 8),
+                        (paint_stl, 18), (flaky_stl, 26), (quick_stl, 25)):
+        if not os.path.exists(path):
+            write_cube_stl(path, size)
 
     h1, h2 = args.slow_height, args.slow_height / 2
     results = []
@@ -666,8 +682,9 @@ def main():
         pause("Open the test project: %s" % project_path)
     else:
         pause("Open the test project: %s\n"
-              "(To redo the one-time setup instead: delete %s -- it's read-only, so on Windows "
-              "you may need to clear that attribute first -- then rerun this script.)"
+              "(To redo the one-time setup instead of reopening this: delete %s -- it's read-only, "
+              "so on Windows you may need to clear that attribute first -- then rerun with "
+              "--reauthor-template, or it'll just recopy the checked-in fixture again.)"
               % (project_path, template_path))
 
     if args.only:
