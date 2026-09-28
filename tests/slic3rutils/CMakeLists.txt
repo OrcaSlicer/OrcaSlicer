@@ -83,4 +83,16 @@ elseif (FLATPAK)
     )
 endif()
 
+# scripts/run_unit_tests.sh installs the tests' numpy into that runtime with this uv,
+# staged where the app build tree keeps it (<exe dir>/tools/uv, see src/CMakeLists.txt).
+if (ORCA_BUNDLED_UV_EXECUTABLE)
+    add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/tools/uv"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ORCA_BUNDLED_UV_EXECUTABLE}"
+            "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/tools/uv/${ORCA_BUNDLED_UV_FILENAME}"
+        COMMENT "Copying uv for the plugin host API tests"
+        VERBATIM
+    )
+endif()
+
 orcaslicer_discover_tests(${_TEST_NAME}_tests)
