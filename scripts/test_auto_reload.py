@@ -199,16 +199,20 @@ def write_cube_stl(path, size, atomic=False):
     write_stl(path, [(0, 0, 0, s, s, s)], atomic)
 
 
-def write_cube_stl_slow(path, size, num_chunks=6, chunk_delay=0.6):
+def write_cube_stl_slow(path, size, num_chunks=12, chunk_delay=0.25):
     """Writes a cube STL like write_cube_stl(), but in num_chunks pieces with chunk_delay seconds
     between each, flushing and fsyncing after every piece -- simulates a slow in-place export (a
     large STEP/3MF write) that keeps growing for well over the watcher's 500ms stability window
-    (and, at the default settings, the old 2s debounce cap this replaced). While a write is in
-    progress the file is truncated/invalid STL content, the same shape write_truncated_stl()
-    produces deliberately for phase I's failed-reload check -- so a premature read here would hit
-    that same failure signature, which phase P checks doesn't happen."""
+    (and, at the default settings, the old 2s debounce cap this replaced) without ever holding
+    still long enough to look finished. chunk_delay must stay clearly under the 500ms window --
+    equal to or above it and a gap between chunks legitimately looks settled, so the watcher is
+    then *right* to fire before the write is actually done (this bit a first version of this
+    helper that used 600ms). While a write is in progress the file is truncated/invalid STL
+    content, the same shape write_truncated_stl() produces deliberately for phase I's
+    failed-reload check -- so a premature read here would hit that same failure signature, which
+    phase P checks doesn't happen."""
     data = stl_data([(0, 0, 0, float(size), float(size), float(size))])
-    step = max(1, len(data) // num_chunks)
+    step = -(-len(data) // num_chunks)  # ceiling division: exactly num_chunks pieces, no tiny tail
     pieces = [data[i:i + step] for i in range(0, len(data), step)]
     with open(path, "w") as f:
         for i, piece in enumerate(pieces):

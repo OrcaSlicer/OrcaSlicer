@@ -381,13 +381,15 @@ def write_cube_stl(path, size, atomic=False):
     write_stl(path, [(0, 0, 0, s, s, s)], atomic)
 
 
-def write_cube_stl_slow(path, size, num_chunks=6, chunk_delay=0.6):
+def write_cube_stl_slow(path, size, num_chunks=12, chunk_delay=0.25):
     """Writes a cube STL like write_cube_stl(), but in num_chunks pieces with chunk_delay seconds
     between each, flushing and fsyncing after every piece -- see test_auto_reload.py's identically
     named helper for why (simulates a slow in-place export that keeps growing past the watcher's
-    500ms stability window, for phase P's mid-write check)."""
+    500ms stability window, for phase P's mid-write check; chunk_delay must stay clearly under
+    that window or a gap between chunks legitimately looks settled -- a first version used 600ms
+    and was flaky for exactly that reason)."""
     data = stl_data([(0, 0, 0, float(size), float(size), float(size))])
-    step = max(1, len(data) // num_chunks)
+    step = -(-len(data) // num_chunks)  # ceiling division: exactly num_chunks pieces, no tiny tail
     pieces = [data[i:i + step] for i in range(0, len(data), step)]
     with open(path, "w") as f:
         for i, piece in enumerate(pieces):
