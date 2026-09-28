@@ -1,6 +1,7 @@
 #include "DragCanvas.hpp"
 #include "wxExtensions.hpp"
 #include "GUI_App.hpp"
+#include "Widgets/StateColor.hpp"
 
 namespace Slic3r { namespace GUI {
 

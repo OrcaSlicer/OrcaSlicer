@@ -6,5 +6,5 @@
 	"machine_tech": "FFF",
 	"family": "VOLUMIC",
 	"bed_model": "VS30U_bed.STL",
-	"default_materials": "Volumic UNIVERSAL Ultra"
+	"default_materials": "Volumic UNIVERSAL Ultra;Volumic PLA Ultra (Performance)"
 }

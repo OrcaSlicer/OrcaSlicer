@@ -2,6 +2,7 @@
 #define slic3r_PerimeterGenerator_hpp_
 
 #include "libslic3r.h"
+#include <optional>
 #include <vector>
 #include "Layer.hpp"
 #include "Flow.hpp"
@@ -105,6 +106,8 @@ public:
     bool                                            has_fuzzy_hole = false;
     // Preserve construction order so overlap precedence remains deterministic.
     std::vector<std::pair<FuzzySkinConfig, ExPolygons>> regions_by_fuzzify;
+    // Area resting on the layer below, where fuzzy skin is allowed. Unset means no restriction.
+    std::optional<ExPolygons>                       fuzzy_supported_area;
     
     PerimeterGenerator(
         // Input:
@@ -149,6 +152,8 @@ public:
     //BBS
     double      smaller_width_ext_mm3_per_mm()   const { return m_ext_mm3_per_mm_smaller_width; }
     Polygons    lower_slices_polygons() const { return m_lower_slices_polygons; }
+    // ORCA: the slices less the slivers the wall generator prints nothing for, so they never count as support.
+    ExPolygons  printable_slices(const ExPolygons &slices) const;
 
 private:
     std::vector<Polygons>     generate_lower_polygons_series(float width);

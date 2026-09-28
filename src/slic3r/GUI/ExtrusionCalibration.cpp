@@ -1,5 +1,6 @@
 #include "ExtrusionCalibration.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Preset.hpp"
 #include <algorithm>

@@ -75,6 +75,8 @@ if(document.documentElement)
 
 } // namespace
 
+std::string WebViewHostDialog::theme_apply_script() { return host_theme_apply_js(); }
+
 // Document-start user script: injects the contract <style>, stamps data-orca-theme before
 // first paint, and raises a JS flag so the legacy globalapi.js dark.css poll stands down for
 // host-themed pages. The WebView2 timing guard lives in document_start_injector().
@@ -87,7 +89,7 @@ std::string WebViewHostDialog::theme_user_script()
         "if(document.documentElement)document.documentElement.setAttribute('data-orca-theme',theme);");
 }
 
-std::string WebViewHostDialog::plugin_defaults_user_script()
+std::string WebViewHostDialog::element_defaults_user_script()
 {
     std::string css;
     css += "<style id=\"orca-plugin-defaults\">";

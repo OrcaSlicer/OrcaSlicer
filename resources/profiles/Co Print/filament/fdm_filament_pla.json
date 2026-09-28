@@ -173,12 +173,6 @@
 	"filament_unloading_speed": [
 		"90"
 	],
-	"filament_load_time": [
-		"9.75"
-	],
-	"filament_unload_time": [
-		"9.75"
-	],
 	"filament_toolchange_delay": [
 		"0"
 	],

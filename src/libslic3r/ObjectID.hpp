@@ -170,6 +170,10 @@ public:
         this->m_check_sum      = rhs.check_sum();
         this->m_connectors_cnt = rhs.connectors_cnt();
     }
+    // A user-declared copy assignment or destructor deprecates the implicitly generated
+    // copy constructor, and this class has both, so declare it rather than rely on it.
+    CutObjectBase(const CutObjectBase &) = default;
+
     CutObjectBase &operator=(const CutObjectBase &other)
     {
         this->copy(other);

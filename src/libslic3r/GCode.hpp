@@ -39,6 +39,7 @@ namespace Slic3r {
 
 // Forward declarations.
 class GCode;
+struct WipeInwardSupport;
 
 namespace CustomGCode{ struct Item; }
 struct PrintInstance;
@@ -61,7 +62,7 @@ public:
     bool enable;
     Polyline path;
 
-    // Orca:
+    // Orca: retraction portions emitted before, during, and after the wipe move.
     struct RetractionValues{
         double retraction_length_before_wipe = 0.;
         double retraction_length_during_wipe = 0.;
@@ -73,8 +74,10 @@ public:
     void reset_path() { this->path = Polyline(); }
     std::string wipe(GCode &gcodegen, double length, bool toolchange = false, bool is_last = false);
 
-    // Orca:
+    // Orca: calculate the retraction portions that can be emitted at wipe speed.
     RetractionValues calculateWipeRetractionLengths(GCode& gcodegen, bool toolchange);
+    // Orca: rebuild the stored path while deduplicating shared path boundaries.
+    void update_path(const ExtrusionPaths &paths, bool reverse = false);
 };
 
 class WipeTowerIntegration {
@@ -103,8 +106,14 @@ public:
         m_enable_wrapping_detection(print_config.enable_wrapping_detection && (print_config.wrapping_exclude_area.values.size() > 2) && (slice_used_filaments.size() <= 1)),
         m_is_first_print(true),
         m_print_config(&print_config),
-        m_last_wipe_tower_print_z(print_config.z_offset.value)
+        m_last_wipe_tower_print_z(print_config.z_offset.value),
+        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config)),
+        m_sparse_layers_combined(wipe_tower_sparse_layers_combined(print_config))
     {
+        // Precomputed rather than accumulated while emitting, so that the clearance validator and
+        // the emitter cannot disagree about where the compacted tower sits on any given layer.
+        if (m_sparse_layers_skipped)
+            m_compacted_tower_z = compute_compacted_wipe_tower_z(tool_changes, float(print_config.z_offset.value));
         // initialize with the extruder offset of master extruder id
         m_extruder_offsets.resize(print_config.filament_map.size(), print_config.extruder_offset.get_at(print_config.master_extruder_id.value - 1));
         const auto& filament_map = print_config.filament_map.values; // 1 based idx
@@ -130,6 +139,7 @@ public:
 private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    std::string tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, const std::string &tcr_gcode) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
@@ -164,6 +174,14 @@ private:
     float                                                        m_wipe_tower_depth;
     BoundingBoxf                                                 m_wipe_tower_bbx;
     Vec2f                                                        m_rib_offset{Vec2f(0, 0)};
+    // wipe_tower_no_sparse_layers, as answered by the shared compaction rule rather than by the raw
+    // option: smooth timelapse and wrapping detection keep a tower on every layer regardless.
+    const bool                                                   m_sparse_layers_skipped;
+    // Combined tower layers are thicker than the object layer they sit on, the only case where the
+    // tower's height is not the one process_layer already declared.
+    const bool                                                   m_sparse_layers_combined;
+    // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
+    std::vector<float>                                           m_compacted_tower_z;
 };
 
 class ColorPrintColors
@@ -430,14 +448,16 @@ private:
     std::string extrude_entity(const ExtrusionEntity&      entity,
                                const std::string&          description       = "",
                                double                      speed             = -1.,
-                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
+                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
+                               const WipeInwardSupport*     wipe_support      = nullptr);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
     std::string extrude_loop(const ExtrusionLoop&        loop,
                              const std::string&          description,
                              double                      speed             = -1.,
                              const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                             const Point*                start_point       = nullptr);
+                             const Point*                start_point       = nullptr,
+                             const WipeInwardSupport*     wipe_support      = nullptr);
     std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
     std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
 
@@ -519,7 +539,7 @@ private:
 		// For sequential print, the instance of the object to be printing has to be defined.
 		const size_t                     				 single_object_instance_idx);
 
-    std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first);
+    std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only = false);
     std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
     std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
 
@@ -695,6 +715,7 @@ private:
 
     // Always check gcode placeholders when building in debug mode.
 #if !defined(NDEBUG)
+#undef ORCA_CHECK_GCODE_PLACEHOLDERS
 #define ORCA_CHECK_GCODE_PLACEHOLDERS 1
 #endif
     

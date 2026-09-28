@@ -20,6 +20,8 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -505,10 +507,10 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glClearStencil(0));
     glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
     glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
+    // This pass paints the visible surface, so it must go through simple_render() to keep
+    // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
+    // highlight and are fine using the single-color model.
+    simple_render(shader, model_objects, colors);
     glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
     glsafe(::glStencilMask(0x00));
     shader->set_uniform("is_outline", true);
@@ -668,6 +670,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
     } while (0);
 
     if (color_volume && !picking) {
+        const bool brighten_selected = selected && !disabled && !force_native_color && !force_neutral_color;
+
         // when force_transparent, we need to keep the alpha
         if (force_native_color && render_color.is_transparent()) {
             for (auto &extruder_color : extruder_colors)
@@ -689,6 +693,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                         int color_idx = std::clamp(extruder_id - 1, 0, int(extruder_colors.size()) - 1);
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - color_idx)/255.0f;
                         }
@@ -700,6 +706,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     if (idx <= extruder_colors.size()) {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[idx - 1]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - (idx - 1))/255.0f;
                         }
@@ -709,6 +717,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     else {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[0]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - 0) / 255.0f;
                         }
@@ -919,6 +929,21 @@ int GLVolumeCollection::load_wipe_tower_preview(
     GUI::PartPlateList& ppl = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int> plate_extruders = ppl.get_plate(plate_idx)->get_extruders(true);
     TriangleMesh wipe_tower_shell = make_cube(width, depth, height);
+    // The brim is part of the printed footprint: draw it and fold it into the shell so the
+    // outside-bed shader and the drag clamp react to the true first-layer extent.
+    const bool   show_brim   = brim_width > 0.f;
+    const float  brim_height = 0.2f; // one first layer, visual only
+    TriangleMesh brim_slab;
+    if (show_brim) {
+        // The brim follows the real first-layer outline: a Type2 cone-wall tower's base bulges
+        // past the body box. The wall type and angle are print settings, the planner a printer one.
+        const DynamicPrintConfig &print_cfg   = GUI::wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        const DynamicPrintConfig &printer_cfg = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const Polygon  outline      = estimate_wipe_tower_first_layer_outline(print_cfg, resolve_wipe_tower_type(printer_cfg), width, depth, height);
+        const Polygons brim_outline = offset(outline, scaled(brim_width));
+        brim_slab                   = WipeTower::its_make_rib_brim(brim_outline.empty() ? outline : brim_outline.front(), brim_height);
+        wipe_tower_shell.merge(brim_slab);
+    }
     for (int extruder_id : plate_extruders) {
         if (extruder_id <= extruder_colors.size())
             colors.push_back(extruder_colors[extruder_id - 1]);
@@ -929,14 +954,19 @@ int GLVolumeCollection::load_wipe_tower_preview(
     // Orca: make it transparent
     for(auto& color : colors)
         color.a(0.66f);
+    const size_t slab_count = colors.size(); // per-filament body slabs; the brim part comes after
+    if (show_brim && !colors.empty())
+        colors.push_back(colors.front());
     volumes.emplace_back(new GLWipeTowerVolume(colors));
     GLWipeTowerVolume& v = *dynamic_cast<GLWipeTowerVolume*>(volumes.back());
     v.model_per_colors.resize(colors.size());
-    for (int i = 0; i < colors.size(); i++) {
-        TriangleMesh color_part = make_cube(width, depth / colors.size(), height);
-        color_part.translate({ 0.f, depth * i / colors.size(), 0. });
+    for (size_t i = 0; i < slab_count; i++) {
+        TriangleMesh color_part = make_cube(width, depth / slab_count, height);
+        color_part.translate({ 0.f, depth * i / slab_count, 0. });
         v.model_per_colors[i].init_from(color_part);
     }
+    if (show_brim && !colors.empty())
+        v.model_per_colors[slab_count].init_from(brim_slab);
     v.model.init_from(wipe_tower_shell);
     v.mesh_raycaster = std::make_unique<GUI::MeshRaycaster>(std::make_shared<const TriangleMesh>(wipe_tower_shell));
     v.set_convex_hull(wipe_tower_shell);
@@ -1127,6 +1157,10 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
     const float support_normal_z = get_selection_support_normal_z();
 
+    // The outline passes below are driven by is_outline, which only the object shaders have; with an
+    // overlay one (wireframe, x-ray) bound they would just draw the volume again.
+    const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
+
     // Prime depth_tex on every frame so non-outline draws do not keep the
     // default sampler unit 0, which can conflict with other sampler types.
     shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
@@ -1227,7 +1261,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
 		//BBS: add outline related logic
-        if (volume.first->selected && GUI::wxGetApp().show_outline())
+        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();

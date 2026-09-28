@@ -212,7 +212,6 @@ private:
     wxGridSizer* m_sizer_fanControl { nullptr };
 
     wxBoxSizer *m_mode_sizer{ nullptr };
-    wxBoxSizer *m_bottom_sizer{ nullptr };
 
     // mode switch buttons
     std::unordered_map<int, SendModeSwitchButton*> m_mode_switch_btns; //<mode_id, SendModeSwitchButton>

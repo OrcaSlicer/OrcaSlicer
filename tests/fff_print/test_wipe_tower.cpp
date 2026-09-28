@@ -152,6 +152,8 @@ static DynamicPrintConfig wipe_tower_toolchange_config(const std::string &gcode_
         { "outer_wall_filament_id",     2 },
         { "inner_wall_filament_id",     2 },
         { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 }, // inside the 200x200 test bed
+        { "wipe_tower_y",               50 }, // (the default y, 220, is not)
         { "layer_height",               0.3 },
         { "gcode_flavor",               gcode_flavor },
     });
@@ -181,4 +183,262 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(expected));
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring(unexpected));
     }
+}
+
+// What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
+// they call the estimator directly. The estimate counts the filaments the print really uses,
+// so the two-filament shape gives the outer wall the second one.
+static DynamicPrintConfig tower_estimate_config(const char *wall_type, unsigned int filaments = 2)
+{
+    // 100 mm3 per purge on a 50 mm wide tower: one purge is 100/(layer_height * 50) of depth.
+    return multifilament_config(filaments, {
+        { "outer_wall_filament_id",         filaments == 2 ? "2" : "1" },
+        { "enable_prime_tower",             "1"       },
+        { "wipe_tower_wall_type",           wall_type },
+        { "prime_tower_width",              "50"      },
+        { "prime_volume",                   "100"     },
+        { "prime_tower_infill_gap",         "100%"    },
+        { "prime_tower_brim_width",         "3"       },
+        { "purge_in_prime_tower",           "0"       },
+        { "single_extruder_multi_material", "0"       },
+        { "timelapse_type",                 "0"       },
+        { "layer_height",                   "0.2"     },
+        { "enable_wrapping_detection",      "0"       },
+        { "raft_layers",                    "0"       } });
+}
+
+TEST_CASE("The tower is sized for the thinnest layer any object on the plate is sliced at", "[WipeTower]")
+{
+    // The tower has to survive its thinnest layer, so an override finer than the preset drives
+    // the estimate even on the second object. Two 20 mm cubes, the second at 0.1 mm.
+    const DynamicPrintConfig config = tower_estimate_config("rectangle");
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = {
+        {}, { { "layer_height", "0.1" } } };
+
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+
+    // One purge at 0.1 mm: 100 / (0.1 * 50) = 20 mm, above the 20 mm-tall tower's stability
+    // floor. At the preset's 0.2 mm it would be half that, so the two are easy to tell apart.
+    const float floor_20mm = WipeTower::get_limit_depth_by_height(20.f);
+    REQUIRE(floor_20mm < 10.f);
+    CHECK_THAT(print.wipe_tower_data(2).depth, Catch::Matchers::WithinAbs(20., 1e-4));
+}
+
+TEST_CASE("Validation is given the tower's effective width, not the configured one", "[WipeTower]")
+{
+    // A rib wall squares the tower, so its width is its depth. Validation reads this rather
+    // than re-deriving the rule from the wall type.
+    Print print;
+    Model model;
+
+    SECTION("a rectangle wall keeps the configured width") {
+        const DynamicPrintConfig config = tower_estimate_config("rectangle");
+        init_print({ cube(20) }, print, model, config);
+        const WipeTowerData &data = print.wipe_tower_data(2);
+        CHECK_THAT(data.width, Catch::Matchers::WithinAbs(50., 1e-4));
+        CHECK(data.depth < data.width);
+    }
+
+    SECTION("a rib wall reports the squared footprint") {
+        const DynamicPrintConfig config = tower_estimate_config("rib");
+        init_print({ cube(20) }, print, model, config);
+        const WipeTowerData &data = print.wipe_tower_data(2);
+        CHECK_THAT(data.width, Catch::Matchers::WithinAbs(data.depth, 1e-4));
+        CHECK(data.width > 0.f);
+    }
+}
+
+TEST_CASE("Generating the tower keeps its reported width current", "[WipeTower]")
+{
+    // width is handed out after the slice, so leaving it at the estimate reports a zero-width
+    // tower to every post-generation consumer.
+    const DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    REQUIRE(print.wipe_tower_data(2).width > 0.f);
+
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+    const WipeTowerData &data = print.wipe_tower_data();
+    // A width the generator never wrote reads as zero. A rib wall squares the tower, so the
+    // generated width is the body square: under the configured 50 mm, and inside the depth.
+    CHECK(data.width > 0.f);
+    CHECK(data.width < 50.f);
+    CHECK(data.width <= data.depth + EPSILON);
+}
+
+TEST_CASE("A single-filament plate reserves a tower only when one is actually printed", "[WipeTower]")
+{
+    // The estimate has to answer this the way Print::apply does: reporting no tower for one
+    // that is built collapses the validation hull to a point, and reporting one for a tower
+    // that is not built takes that bed area away from the arranger and draws a preview box
+    // over nothing.
+    Print print;
+    Model model;
+
+    SECTION("no tool change and nothing else that prints one") {
+        const DynamicPrintConfig config = tower_estimate_config("rib", 1);
+        init_print({ cube(20) }, print, model, config);
+        REQUIRE_FALSE(print.has_wipe_tower());
+        CHECK_THAT(print.wipe_tower_data(1).depth, Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    // A raft puts the tower on every layer below the object, but only where there is a tower:
+    // Print::apply runs normalize_fdm_2, which clears enable_prime_tower for a plate that
+    // purges one filament and has neither smooth timelapse nor wrapping detection on.
+    SECTION("a raft alone does not print one") {
+        DynamicPrintConfig config = tower_estimate_config("rib", 1);
+        config.set_deserialize_strict({ { "raft_layers", "3" } });
+        init_print({ cube(20) }, print, model, config);
+        REQUIRE_FALSE(print.config().enable_prime_tower.value);
+        REQUIRE_FALSE(print.has_wipe_tower());
+        CHECK_THAT(print.wipe_tower_data(1).depth, Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    SECTION("smooth timelapse prints one, and keeps enable_prime_tower on") {
+        DynamicPrintConfig config = tower_estimate_config("rib", 1);
+        config.set_deserialize_strict({ { "timelapse_type", "1" } });
+        init_print({ cube(20) }, print, model, config);
+        REQUIRE(print.has_wipe_tower());
+        CHECK(print.wipe_tower_data(1).depth > 0.f);
+    }
+}
+
+// Filament 2 on the top surface only, so every layer below it is a toolchange-free tower layer: the
+// run "Combine sparse layers" folds. The two heights decide whether anything folds, so they are the
+// caller's business.
+static DynamicPrintConfig sparse_run_config(double layer_height, const char *max_layer_height, bool combine)
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "top_surface_filament_id",        2     },
+        { "enable_prime_tower",             true  },
+        { "wipe_tower_x",                   50    }, // inside the 200x200 test bed
+        { "wipe_tower_y",                   50    },
+        { "prime_tower_width",              35    },
+        { "min_layer_height",               "0.08"},
+        { "single_extruder_multi_material", true  },
+        { "timelapse_type",                 "0"   },
+        { "enable_wrapping_detection",      false },
+        { "raft_layers",                    "0"   } });
+    // A taller first layer would top the plan and hide what the run does, so slice at one height.
+    config.set_deserialize_strict({ { "layer_height",               std::to_string(layer_height) },
+                                    { "initial_layer_print_height", std::to_string(layer_height) },
+                                    { "max_layer_height", max_layer_height },
+                                    { "wipe_tower_sparse_layers_combination", combine ? "1" : "0" } });
+    return config;
+}
+
+// What a sliced tower did with its sparse run.
+struct SparseRunResult { size_t planned, sparse, folded; float tallest_printed, printed_height; std::string gcode; };
+
+static SparseRunResult slice_sparse_run(const DynamicPrintConfig &config)
+{
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+
+    SparseRunResult r{};
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : print.wipe_tower_data().tool_changes) {
+        if (layer.empty())
+            continue;
+        ++r.planned;
+        if (wipe_tower_layer_is_sparse(layer))
+            ++r.sparse;
+        if (wipe_tower_layer_is_combined_away(layer)) {
+            ++r.folded;
+        } else {
+            r.tallest_printed = std::max(r.tallest_printed, layer.front().layer_height);
+            r.printed_height += layer.front().layer_height;
+        }
+    }
+    r.gcode = Slic3r::Test::gcode(print);
+    return r;
+}
+
+// How often the G-code declares `height` in the tag this printer's processor reads. The dialect is a
+// global the exporter sets from the printer, so this is only correct after a slice - the point below.
+static size_t count_height_tags(const std::string &gcode, const char *height)
+{
+    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) + height + "\n";
+    size_t n = 0;
+    for (size_t p = gcode.find(tag); p != std::string::npos; p = gcode.find(tag, p + 1))
+        ++n;
+    return n;
+}
+
+TEST_CASE("Combining sparse layers folds a run into whole layers the nozzle can lay down", "[WipeTower]")
+{
+    // 0.1 mm layers under a 0.32 mm cap: three fit (0.3), a fourth does not, so a run prints once
+    // every three layers at 0.3 mm.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.1, "0.32", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.1, "0.32", true));
+
+    REQUIRE(plain.planned == combined.planned); // the plan still has one layer per object layer
+    REQUIRE(plain.sparse > 10);
+    CHECK(plain.folded == 0);
+    CHECK_THAT(plain.tallest_printed, Catch::Matchers::WithinAbs(0.1f, 1e-4f));
+
+    CHECK(combined.folded > 0);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.3f, 1e-4f));
+    // Two of every three sparse layers fold away, leaving the toolchange layers untouched.
+    CHECK(combined.folded <= plain.sparse);
+    CHECK(combined.folded >= plain.sparse / 2);
+    // What folds away comes back as height on the layer that prints the run: no gap, nothing twice.
+    CHECK_THAT(combined.printed_height, Catch::Matchers::WithinAbs(plain.printed_height, 1e-3f));
+}
+
+TEST_CASE("A run too thin to reach the nozzle's layer height is left alone", "[WipeTower]")
+{
+    // Only whole layers merge, so two 0.2 mm layers (0.4) do not fit a 0.32 mm maximum and the tower
+    // prints as if the option were off. This is the common 0.4 nozzle case; the tooltip says so.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.32", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.32", true));
+
+    REQUIRE(plain.sparse > 10);
+    CHECK(combined.folded == 0);
+    CHECK(combined.planned == plain.planned);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.2f, 1e-4f));
+}
+
+TEST_CASE("A merged tower layer declares its own height to the G-code processor", "[WipeTower]")
+{
+    // Each writer declares a height in a hardcoded tag dialect while the processor reads only its
+    // printer's, so one of them is always dropped. A merged layer is the first time that shows, as a
+    // thick layer drawn and costed as a thin one. 0.2 mm layers under a 0.42 mm maximum merge in pairs.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.42", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.42", true));
+
+    REQUIRE(combined.folded > 0);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.4f, 1e-4f));
+    // Every layer that prints a merged run has to say so, and nothing may say so without the option.
+    CHECK(count_height_tags(combined.gcode, "0.4") - count_height_tags(plain.gcode, "0.4") == combined.folded);
+}
+
+TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")
+{
+    // Wrapping detection prints a tower on a plate that purges one filament. Neither the old
+    // estimate (which read the wall type and smooth timelapse) nor the old containment gate (the
+    // filament count or smooth timelapse) knew about it, so between them that tower was never
+    // checked against the bed.
+    Print print;
+    Model model;
+    DynamicPrintConfig config = tower_estimate_config("rectangle", 1);
+    // Relative E without a per-layer G92 is rejected before the tower is ever looked at, and
+    // has_wipe_tower() wants a real exclusion polygon before it honours wrapping detection.
+    config.set_deserialize_strict({ { "enable_wrapping_detection", "1" },
+                                    { "wrapping_exclude_area", "180x180,190x180,190x190,180x190" },
+                                    { "wipe_tower_x", "500" }, { "wipe_tower_y", "500" },                                    { "use_relative_e_distances", "0" } });
+
+    init_print({ cube(20) }, print, model, config);
+    REQUIRE(print.extruders(true).size() == 1);
+    REQUIRE(print.has_wipe_tower());
+    CHECK(print.wipe_tower_data(1).depth > 0.f);
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
 }
