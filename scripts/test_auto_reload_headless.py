@@ -197,7 +197,14 @@ class LogTail:
         self.buf = ""
 
     def mark(self):
+        # A line the app already emitted can still be mid-flight to the log file's OS buffers at
+        # the exact instant this reads -- a single _read() can race the very last writes of
+        # whatever just happened and miss them, only to have them show up in a *later* caller's
+        # window instead, mistaken for new content there. Drain briefly before clearing.
         self._read()
+        for _ in range(3):
+            time.sleep(0.05)
+            self._read()
         self.buf = ""
 
     def _read(self):
