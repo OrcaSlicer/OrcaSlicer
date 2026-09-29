@@ -166,10 +166,15 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                             obj_info.uv_map_pngs[face_index] = png_name;
                         }
                         if (data.textureCoordinates.size() > 0) {
-                            Vec2f                uv0(data.textureCoordinates[uvs[0] * 2], data.textureCoordinates[uvs[0] * 2 + 1]);
-                            Vec2f                uv1(data.textureCoordinates[uvs[1] * 2], data.textureCoordinates[uvs[1] * 2 + 1]);
-                            Vec2f                uv2(data.textureCoordinates[uvs[2] * 2], data.textureCoordinates[uvs[2] * 2 + 1]);
-                            std::array<Vec2f, 3> uv_array{uv0, uv1, uv2};
+                            // A face vertex may omit vt or reference a missing one. Fall back to (0, 0) rather than
+                            // skipping the face, so obj_info.uvs stays aligned with the face indices.
+                            const int uv_count = static_cast<int>(data.textureCoordinates.size() / OBJ_TEXCOORD_LENGTH);
+                            auto      uv_at    = [&data, uv_count](int idx) -> Vec2f {
+                                if (idx < 0 || idx >= uv_count)
+                                    return Vec2f::Zero();
+                                return Vec2f(data.textureCoordinates[idx * OBJ_TEXCOORD_LENGTH], data.textureCoordinates[idx * OBJ_TEXCOORD_LENGTH + 1]);
+                            };
+                            std::array<Vec2f, 3> uv_array{uv_at(uvs[0]), uv_at(uvs[1]), uv_at(uvs[2])};
                             obj_info.uvs.emplace_back(uv_array);
                         }
                         obj_info.face_colors.emplace_back(face_color);

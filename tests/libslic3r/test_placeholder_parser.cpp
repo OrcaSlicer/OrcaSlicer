@@ -356,3 +356,38 @@ SCENARIO("Placeholder parser coFloatsOrPercents vector access", "[PlaceholderPar
         REQUIRE(std::stod(parser.process("{pressure_advance[2]}")) == Catch::Approx(3.0));
     }
 }
+
+SCENARIO("Placeholder parser names in branches that are not taken", "[PlaceholderParser]") {
+    PlaceholderParser parser;
+    auto config = DynamicPrintConfig::full_print_config();
+    parser.apply_config(config);
+    parser.set("idx", 0);
+    PlaceholderParser::ContextData context;
+    context.global_config = std::make_unique<DynamicConfig>();
+    auto process = [&parser, &context](const std::string &templ) { return parser.process(templ, 0, nullptr, nullptr, &context); };
+
+    SECTION("a declaration continuing after a variable reference parses when not taken") {
+        REQUIRE(process("{if false}{local a = layer_height + 1}{endif}ok") == "ok");
+    }
+    SECTION("names are not checked by default") {
+        REQUIRE(process("{if false}{no_such_var}[no_such_var]{endif}ok") == "ok");
+    }
+    SECTION("names must resolve when check_inactive_branches is set") {
+        struct Restore { ~Restore() { PlaceholderParser::check_inactive_branches = false; } } restore;
+        PlaceholderParser::check_inactive_branches = true;
+
+        CHECK_THROWS_WITH(process("{if false}{no_such_var}{endif}"), Catch::Matchers::ContainsSubstring("Not a variable name (in an inactive branch)"));
+        CHECK_THROWS_WITH(process("{if false}[no_such_var]{endif}"), Catch::Matchers::ContainsSubstring("Variable does not exist (in an inactive branch)"));
+        CHECK_THROWS_WITH(process("{if false}[nozzle_temperature[no_such_var]]{endif}"), Catch::Matchers::ContainsSubstring("Variable does not exist (in an inactive branch)"));
+        CHECK_THROWS(process("{if true}{else}{no_such_var}{endif}"));
+        CHECK_THROWS(process("{if false}{local a = no_such_var + 1}{endif}"));
+
+        CHECK(process("{if false}{layer_height}[layer_height][nozzle_temperature_0][nozzle_temperature[idx]]{endif}ok") == "ok");
+        CHECK(process("{if false}{local a = 1}{a = a + 1}{a}{endif}{if false}{a}{endif}ok") == "ok");
+        // A global declared in a branch that is not taken counts as defined for later expansions sharing the context.
+        CHECK(process("{if false}{global g = 1}{endif}{if false}{g}{endif}ok") == "ok");
+        CHECK(process("{if false}{g}{endif}ok") == "ok");
+        // Boolean expressions are not checked, so compatibility conditions keep their behaviour.
+        CHECK(PlaceholderParser::evaluate_boolean_expression("false ? no_such_var == 1 : true", config));
+    }
+}
