@@ -4183,10 +4183,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     print.throw_if_canceled();
 
-    // Config block before the filament/time stats, not after: some firmwares only scan the last N
-    // lines of the file for "estimated printing time" (and similar), so the whole stats footer -
-    // per-filament lines below and the totals/estimate further down - has to stay together at the
-    // tail, with a possibly-large config block clear of that window instead of splitting it.
+    // Some firmwares only scan the last N lines for the time estimate, so the stats are written
+    // after the config block.
     if (!is_bbl_printers && !skip_config_block) {
         file.write("; CONFIG_BLOCK_START\n");
         std::string full_config;
