@@ -1,5 +1,6 @@
 #include "CrealityDiscoveryDialog.hpp"
 #include "slic3r/Utils/CrealityHostDiscovery.hpp"
+#include "slic3r/Utils/CrealityPrint.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -79,7 +80,7 @@ void CrealityDiscoveryDialog::run_discovery()
         Row row;
         row.ip           = h.ip;
         row.hostname     = h.hostname;
-        row.is_k2_family = !h.model_name.empty();
+        row.is_k2_family = Slic3r::CrealityPrint::model_is_k2_platform(h.model_code);
         if (!h.model_name.empty())
             row.model = h.model_name;
         else if (h.cfs_capable)

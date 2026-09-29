@@ -80,13 +80,6 @@ wxString CrealityPrint::get_test_failed_msg(wxString& msg) const
     return GUI::format_wxstr("%s: %s", _L("Could not connect to CrealityPrint"), msg.Truncate(256));
 }
 
-// An /info response that looks like a web page rather than the native API's JSON: Hostname, IP or
-// URL points at the printer's own web UI (Mainsail, etc.) instead of the REST API.
-bool creality_print_looks_like_html_response(const std::string &body)
-{
-    return boost::algorithm::icontains(body, "<html");
-}
-
 bool CrealityPrint::test(wxString& msg) const
 { 
     bool res = true;
@@ -115,7 +108,7 @@ bool CrealityPrint::test(wxString& msg) const
             } catch (const json::exception& e) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse /info response: %2%") % name % e.what();
                 // Fail instead of silently accepting an unparseable body as a successful connection.
-                if (creality_print_looks_like_html_response(body)) {
+                if (boost::algorithm::icontains(body, "<html")) {
                     res = false;
                     msg = _L("This address returned a web page instead of the printer's native API. "
                              "If this is the printer's web UI address, set it in \"Device UI\" instead of "
@@ -127,8 +120,10 @@ bool CrealityPrint::test(wxString& msg) const
         .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
         .on_ip_resolve([&](std::string address) {
             // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
-            // Remember resolved address to be reused at successive REST API call.
-            msg = GUI::from_u8(address);
+            // Remember resolved address to be reused at successive REST API call. Runs after
+            // on_complete/on_error, so it must not clobber an error message already set there.
+            if (res)
+                msg = GUI::from_u8(address);
         })
 #endif // WIN32
         .perform_sync();
@@ -318,6 +313,11 @@ std::string CrealityPrint::model_display_name(const std::string& model)
     auto& names = cfs_capable_models();
     auto it = names.find(model);
     return it != names.end() ? it->second : std::string{};
+}
+
+bool CrealityPrint::model_is_k2_platform(const std::string& model)
+{
+    return model == "F008" || model == "F012" || model == "F021";
 }
 
 bool CrealityPrint::supports_multi_color_print() const

@@ -168,11 +168,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                     m_optgroup->set_value("print_host", new_url, true);
                     m_optgroup->get_field("print_host")->field_changed();
 
-                    // K2-family firmware serves its own web UI (Mainsail) on :4408, not the bare
-                    // host that print_host now holds - the native REST API needs that left alone
-                    // (see CrealityPrint::make_url()), so the port belongs in Device UI instead.
-                    // Restores the convenience #14326 removed as a blanket default, scoped to
-                    // K2-family only and to Browse, and only when the user hasn't set one already.
+                    // K2 firmware serves its web UI on :4408; print_host is the bare API address.
                     if (dialog.selected_is_k2_family() && m_config->opt_string("print_host_webui").empty()) {
                         wxString webui_url = wxString::FromUTF8("http://" + dialog.selected_ip() + ":4408");
                         m_optgroup->set_value("print_host_webui", webui_url, true);
