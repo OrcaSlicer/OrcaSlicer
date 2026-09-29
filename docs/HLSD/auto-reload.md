@@ -4,13 +4,19 @@
 
 Keeps OrcaSlicer in sync with an external CAD tool: when a model's source file is
 re-exported, the affected objects are reloaded from disk automatically, and
-optionally resliced, without the user switching back to OrcaSlicer. Both behaviors
-are opt-in (`auto_reload_on_source_change`, `auto_slice_after_reload`, both off by
-default).
+optionally resliced, without the user switching back to OrcaSlicer.
 
-An optional warning dialog prevents unintended overwrites when there are painted-on
-features (support, fuzzy skin, seam). By default the warning is on, and affects both
-manual and automatic reloads. See "Painted features do not survive a reload" below.
+Three Preferences options control it, with defaults set in `AppConfig::set_defaults()`:
+
+| Option | Default | Effect |
+|---|---|---|
+| `auto_reload_on_source_change` | off | Watch the loaded objects' source files and reload an object when its file changes. Takes effect immediately when toggled. |
+| `auto_slice_after_reload` | off | After an automatic reload, slice the plate(s) containing the reloaded objects. |
+| `auto_reload_confirm_paint_loss` | on | Before any reload, manual or automatic, that touches a volume with painted supports, seam, color or fuzzy skin, ask first. |
+
+With the first option off, nothing is watched and nothing in this document runs,
+except the paint-loss confirmation, which also applies to the manual "Reload from
+disk" menu items. See "Painted features do not survive a reload" below.
 
 The feature has two parts: `SourceFileWatcher` (`src/slic3r/GUI/SourceFileWatcher.{hpp,cpp}`),
 which only knows how to detect that a tracked file's content changed, and
@@ -45,6 +51,18 @@ catches an in-place overwrite, which produces no directory event at all. Per-fil
 watches are skipped on Windows: wx's MSW backend rejects them outright, and
 `ReadDirectoryChangesW`'s directory watch already reports in-place writes, so nothing
 is lost by skipping them there.
+
+A per-file watch follows the file's inode, so after a rename-into-place it is still
+bound to the replaced file. Every reload therefore ends by rebuilding the OS watches
+from scratch (`forget_watched_files()` followed by `update_source_file_watches()`),
+whether it was manual or automatic and whether or not the user declined part of it.
+The watch set is also rebuilt once a project has finished loading, because the
+object-list refresh during loading runs before the project folder is known, so a
+bare recorded filename can't be resolved yet at that point.
+
+If a directory never delivers events at all (seen once with a very large, busy
+directory), nothing wakes the check and the reload never happens; the manual "Reload
+from disk" menu item remains the fallback.
 
 ## Waiting for a write to finish
 
@@ -185,7 +203,7 @@ experimental, gets renamed, or is removed; the mechanism is documented here inst
 one preference covers both a manual reload (the "Reload from disk"/"Reload all from disk"
 menu items) and the watcher: the risk of losing paint is identical regardless of what
 triggered the reload, so it isn't scoped to auto-reload specifically, even though it's
-grouped in Preferences next to the auto-reload options for now. Declining the dialog
+grouped in Preferences next to the auto-reload options. Declining the dialog
 only drops the painted volumes from that reload, not the whole selection — a single
 reload (manual or the watcher's own) can cover several unrelated volumes that happen to
 share a source file, most commonly clones of the same object, and protecting one
@@ -260,10 +278,19 @@ the export itself the deliberate request to see a sliced result, no less than cl
   paint-loss confirm block, `maybe_auto_slice_after_reload()`, `slice_after_reload()`.
 - [MainFrame.cpp](../../src/slic3r/GUI/MainFrame.cpp) — `slice_current_plate()`, shared
   by Cmd/Ctrl+R and the watcher's auto-slice.
-- [Preferences.cpp](../../src/slic3r/GUI/Preferences.cpp) — the three checkboxes.
+- [Preferences.cpp](../../src/slic3r/GUI/Preferences.cpp) — the three checkboxes;
+  [AppConfig.cpp](../../src/libslic3r/AppConfig.cpp) — their defaults.
 - [tests/slic3rutils/test_source_file_watcher.cpp](../../tests/slic3rutils/test_source_file_watcher.cpp) —
   the watcher's stamp comparison (including a same-size rewrite within one second),
   unconditional baseline advance, re-entrancy guard and, on Windows, the
   open-for-writing hold-back, driven by delivering the debounce timer's event directly.
   The event-driven restart and the 30-second backstop depend on real events and elapsed
   time, and are covered by `scripts/test_auto_reload_simple_headless.py` instead.
+- [scripts/test_auto_reload_simple_headless.py](../../scripts/test_auto_reload_simple_headless.py) —
+  drives a built OrcaSlicer end to end against a checked-in template project
+  (`scripts/testdata/auto_reload_simple_test_template.3mf`, which has one painted clone):
+  in-place, rename-into-place and back-to-back writes, the paint-loss decline/accept on
+  clones sharing a source, unrelated directory noise, a slow multi-chunk write, a writer
+  that never goes quiet, and each Preferences option gating what it claims to. It
+  answers the paint-loss dialog through `ORCA_TEST_HOOKS_DIR`; a missing or corrupt
+  source would raise a dialog it can't answer, so it never writes one.

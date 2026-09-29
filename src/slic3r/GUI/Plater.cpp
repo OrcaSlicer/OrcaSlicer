@@ -10654,8 +10654,8 @@ void Plater::priv::update_source_file_watches()
 // Called once the watcher confirms one or more tracked source files actually changed on disk.
 // Unattended: this reload runs the exact same reload_from_disk() a manual "Reload from disk"
 // click would, dialogs included -- there's no separate silent/notification path for the watcher
-// to take (see docs/HLSD/auto-reload.md for why: this branch assumes every write it sees is
-// atomic, so there's no in-flux state to hide dialogs from).
+// to take (see docs/HLSD/auto-reload.md for why: the watcher only reports a file once it has
+// settled, so there's no in-flux state to hide dialogs from).
 void Plater::priv::on_source_files_changed(const std::set<std::string>& changed_files)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": source file(s) changed on disk, reloading";
@@ -12081,8 +12081,13 @@ void Plater::priv::reload_from_disk()
                 for (const auto &sv : painted_volumes)
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": skipping reload, declined in the paint-loss prompt: object "
                                              << sv.first << " volume " << sv.second;
-                if (selected_volumes.empty())
+                if (selected_volumes.empty()) {
+                    // Nothing left to reload, but the watch still needs the rearm at the end of
+                    // this function: the declined file may have been renamed into place.
+                    source_file_watcher.forget_watched_files();
+                    update_source_file_watches();
                     return;
+                }
             }
         }
     }
