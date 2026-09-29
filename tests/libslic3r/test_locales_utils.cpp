@@ -67,3 +67,22 @@ TEST_CASE("a setter nested in another sets C again when the locale changed betwe
         CHECK_FALSE(is_decimal_separator_point());
     }
 }
+
+TEST_CASE("atof_decimal_point parses what atof parses in the C locale", "[LocalesUtils]")
+{
+    const auto [text, value] = GENERATE(table<const char*, double>({
+        { "5", 5. },
+        { "  12.5", 12.5 },
+        { "\t+3", 3. },
+        { "\r\n7", 7. },
+        { "-1.25", -1.25 },
+        { "1e2", 100. },
+        { ".5", 0.5 },
+        { "12.5;comment", 12.5 },
+        { "+-5", 0. },
+        { "", 0. },
+        { "abc", 0. },
+    }));
+    INFO(text);
+    CHECK_THAT(atof_decimal_point(text), Catch::Matchers::WithinAbs(value, 1e-12));
+}
