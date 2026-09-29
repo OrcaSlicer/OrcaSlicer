@@ -9,10 +9,13 @@
 #include "libslic3r/InstanceLock.hpp"
 #include "test_utils.hpp"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
+#else
 #include <fcntl.h>
 #include <sys/file.h>
-#include <sys/wait.h>
 #include <unistd.h>
 #endif
 
@@ -146,38 +149,64 @@ TEST_CASE("InstanceLock serialises the threads of one process", "[InstanceLock]"
     REQUIRE(released_before_acquire);
 }
 
-#ifndef _WIN32
-// The cross-process side of the lock is a POSIX flock, which a child process
-// takes here directly; LockFileEx backs the guard on Windows, but spawning a
-// child there is not worth a test.
-TEST_CASE("InstanceLock yields to another process and reports it", "[InstanceLock]")
+// Holds the OS lock on a file through a handle of its own, as another instance would. The lock
+// belongs to the handle on Windows and to the open file description elsewhere, so the guard's
+// handle is refused while this one holds it.
+class OtherHolder
+{
+public:
+    explicit OtherHolder(const std::string &path)
+    {
+#ifdef _WIN32
+        boost::nowide::ofstream(path, std::ios::app).close();
+        m_lock = boost::interprocess::file_lock(boost::nowide::widen(path).c_str());
+        m_held = m_lock.try_lock();
+#else
+        m_fd   = ::open(path.c_str(), O_RDWR | O_CREAT, 0644);
+        m_held = m_fd >= 0 && ::flock(m_fd, LOCK_EX | LOCK_NB) == 0;
+#endif
+    }
+    ~OtherHolder() { release(); }
+    OtherHolder(const OtherHolder &) = delete;
+    OtherHolder &operator=(const OtherHolder &) = delete;
+
+    bool held() const { return m_held; }
+    void release()
+    {
+#ifdef _WIN32
+        if (m_held)
+            m_lock.unlock();
+        m_lock = boost::interprocess::file_lock();
+#else
+        if (m_fd >= 0)
+            ::close(m_fd);
+        m_fd = -1;
+#endif
+        m_held = false;
+    }
+
+private:
+#ifdef _WIN32
+    boost::interprocess::file_lock m_lock;
+#else
+    int m_fd{-1};
+#endif
+    bool m_held{false};
+};
+
+TEST_CASE("InstanceLock yields to a lock held through another handle and reports it", "[InstanceLock]")
 {
     ScopedTemporaryFile lock_file(".lock");
     const std::string   path = lock_file.string();
     ScopedStaticValue   cooldown(InstanceLock::cooldown, 300ms);
 
-    int child_holds[2], child_may_exit[2];
-    REQUIRE(::pipe(child_holds) == 0);
-    REQUIRE(::pipe(child_may_exit) == 0);
+    OtherHolder other(path);
+    REQUIRE(other.held());
 
-    const pid_t child = ::fork();
-    REQUIRE(child >= 0);
-    if (child == 0) {
-        int  fd   = ::open(path.c_str(), O_RDWR | O_CREAT, 0644);
-        char byte = ::flock(fd, LOCK_EX | LOCK_NB) == 0 ? '1' : '0';
-        if (::write(child_holds[1], &byte, 1) != 1 || ::read(child_may_exit[0], &byte, 1) != 1)
-            ::_exit(1);
-        ::_exit(0);
-    }
-
-    char byte = '0';
-    REQUIRE(::read(child_holds[0], &byte, 1) == 1);
-    REQUIRE(byte == '1');
-
-    bool locked_while_child_holds;
+    bool locked_while_other_holds;
     {
         InstanceLock lock(path, 100ms);
-        locked_while_child_holds = lock.locked();
+        locked_while_other_holds = lock.locked();
     }
     // The timed-out wait starts a cool-down: the next guard does not touch the file.
     const auto started = std::chrono::steady_clock::now();
@@ -187,18 +216,13 @@ TEST_CASE("InstanceLock yields to another process and reports it", "[InstanceLoc
         locked_during_cooldown = lock.locked();
     }
     const auto cooldown_wait = std::chrono::steady_clock::now() - started;
-    REQUIRE(::write(child_may_exit[1], "x", 1) == 1);
-    int status = 0;
-    REQUIRE(::waitpid(child, &status, 0) == child);
-    for (int fd : {child_holds[0], child_holds[1], child_may_exit[0], child_may_exit[1]})
-        ::close(fd);
+    other.release();
 
-    REQUIRE_FALSE(locked_while_child_holds);
+    REQUIRE_FALSE(locked_while_other_holds);
     REQUIRE_FALSE(locked_during_cooldown);
     REQUIRE(cooldown_wait < 4000ms);
-    // Once the cool-down passes, the lock the child released is taken again.
+    // Once the cool-down passes, the lock the other holder released is taken again.
     std::this_thread::sleep_for(400ms);
     InstanceLock lock(path);
     REQUIRE(lock.locked());
 }
-#endif
