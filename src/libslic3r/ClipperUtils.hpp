@@ -323,9 +323,6 @@ namespace ClipperUtils {
 
     }
 
-// Perform union of input polygons using the non-zero rule, convert to ExPolygons.
-ExPolygons ClipperPaths_to_Slic3rExPolygons(const ClipperLib::Paths &input, bool do_union = false);
-
 // offset Polygons
 // Wherever applicable, please use the expand() / shrink() variants instead, they convey their purpose better.
 Slic3r::Polygons offset(const Slic3r::Polygon &polygon, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);

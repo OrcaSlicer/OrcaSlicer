@@ -10,6 +10,27 @@
 
 using namespace Slic3r;
 
+// Clipper may start an output polygon at any of its vertices.
+static Polygon start_at_min(Polygon polygon)
+{
+    std::rotate(polygon.points.begin(), std::min_element(polygon.points.begin(), polygon.points.end()), polygon.points.end());
+    return polygon;
+}
+static Polygons start_at_min(Polygons polygons)
+{
+    for (Polygon &polygon : polygons)
+        polygon = start_at_min(std::move(polygon));
+    return polygons;
+}
+static ExPolygons start_at_min(ExPolygons expolygons)
+{
+    for (ExPolygon &expolygon : expolygons) {
+        expolygon.contour = start_at_min(std::move(expolygon.contour));
+        expolygon.holes   = start_at_min(std::move(expolygon.holes));
+    }
+    return expolygons;
+}
+
 SCENARIO("Various Clipper operations - xs/t/11_clipper.t", "[ClipperUtils]") {
     // CCW oriented contour
     Slic3r::Polygon   square{ { 200, 100 }, {200, 200}, {100, 200}, {100, 100} };
@@ -20,25 +41,25 @@ SCENARIO("Various Clipper operations - xs/t/11_clipper.t", "[ClipperUtils]") {
         WHEN("offset") {
             Polygons result = Slic3r::offset(square_with_hole, 5.f);
             THEN("offset matches") {
-                REQUIRE(result == Polygons {
+                REQUIRE(start_at_min(result) == start_at_min(Polygons {
                     { { 205, 205 }, { 95, 205 }, { 95, 95 }, { 205, 95 }, },
-                    { { 155, 145 }, { 145, 145 }, { 145, 155 }, { 155, 155 } } });
+                    { { 155, 145 }, { 145, 145 }, { 145, 155 }, { 155, 155 } } }));
             }
         }
         WHEN("offset_ex") {
             ExPolygons result = Slic3r::offset_ex(square_with_hole, 5.f);
             THEN("offset matches") {
-                REQUIRE(result == ExPolygons { {
+                REQUIRE(start_at_min(result) == start_at_min(ExPolygons { {
                     { { 205, 205 }, { 95, 205 }, { 95, 95 }, { 205, 95 }, },
-                    { { 145, 145 }, { 145, 155 }, { 155, 155 }, { 155, 145 } } } } );
+                    { { 145, 145 }, { 145, 155 }, { 155, 155 }, { 155, 145 } } } }));
             }
         }
         WHEN("offset2_ex") {
             ExPolygons result = Slic3r::offset2_ex({ square_with_hole }, 5.f, -2.f);
             THEN("offset matches") {
-                REQUIRE(result == ExPolygons { {
+                REQUIRE(start_at_min(result) == start_at_min(ExPolygons { {
                     { { 203, 203 }, { 97, 203 }, { 97, 97 }, { 203, 97 } },
-                    { { 143, 143 }, { 143, 157 }, { 157, 157 }, { 157, 143 } } } } );
+                    { { 143, 143 }, { 143, 157 }, { 157, 157 }, { 157, 143 } } } }));
             }
         }
     }
