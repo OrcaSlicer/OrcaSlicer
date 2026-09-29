@@ -200,7 +200,8 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     if (num_filaments <= 1) {
         // BBS: update filament config related with variants
         DynamicPrintConfig filament_config = in_filament_presets[0].config;
-        if (apply_extruder && ((extruder_count > 1) || different_extruder))
+        // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+        if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_config.has_multi_variant_filament()))
             filament_config.update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[0], (NozzleVolumeType)filament_volume_maps[0]);
         out.apply(filament_config);
         compatible_printers_condition.emplace_back(in_filament_presets[0].compatible_printers_condition());
@@ -224,7 +225,8 @@ DynamicPrintConfig PresetBundle::construct_full_config(
         filament_temp_configs.resize(num_filaments);
         for (size_t i = 0; i < num_filaments; ++i) {
             filament_temp_configs[i] = *(filament_configs[i]);
-            if (apply_extruder && ((extruder_count > 1) || different_extruder))
+            // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+            if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_temp_configs[i].has_multi_variant_filament()))
                 filament_temp_configs[i].update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[i], (NozzleVolumeType)filament_volume_maps[i]);
         }
 
@@ -4994,7 +4996,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     if (num_filaments <= 1) {
         //BBS: update filament config related with variants
         DynamicPrintConfig filament_config = this->filaments.get_edited_preset().config;
-        if (apply_extruder && ((extruder_count > 1) || different_extruder))
+        // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+        if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_config.has_multi_variant_filament()))
             filament_config.update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[0], (NozzleVolumeType)filament_volume_maps[0]);
         out.apply(filament_config);
         compatible_printers_condition.emplace_back(this->filaments.get_edited_preset().compatible_printers_condition());
@@ -5088,7 +5091,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         filament_temp_configs.resize(num_filaments);
         for (size_t i = 0; i < num_filaments; ++i) {
             filament_temp_configs[i] = *(filament_configs[i]);
-            if (apply_extruder && ((extruder_count > 1) || different_extruder))
+            // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+            if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_temp_configs[i].has_multi_variant_filament()))
                 filament_temp_configs[i].update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[i], (NozzleVolumeType)filament_volume_maps[i]);
         }
 
@@ -6928,7 +6932,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 // now, or deserialized from the vendor's cache; the code is shared so a
 // cache-loaded bundle cannot come out different from a JSON-loaded one.
 // Resolves `inherits` against the presets loaded before this one
-// (config_maps) or against base_bundle's filament library, flattens, validates
+// (config_maps) or against base_bundle's filament library, layers each
+// `include` (include_maps) under the preset's own keys, flattens, validates
 // and registers the preset. Returns the reason loading failed, empty on
 // success.
 std::string PresetBundle::load_vendor_preset(
@@ -6937,9 +6942,10 @@ std::string PresetBundle::load_vendor_preset(
     const PresetBundle* base_bundle,
     LoadConfigBundleAttributes flags,
     ConfigSubstitutionContext& substitution_context, PresetsConfigSubstitutions& substitutions,
-    std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, std::string>& filament_id_maps,
+    std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, DynamicPrintConfig>& include_maps,
+    std::map<std::string, std::string>& filament_id_maps,
     PresetCollection* presets_collection, size_t& count, bool is_from_lib,
-    const std::set<std::string>* retain_configs)
+    const std::set<std::string>* retain_configs, const std::set<std::string>* retain_includes)
 {
     const VendorProfile*      current_vendor_profile = &this->vendors.at(vendor_name);
     const std::string         subfile = path + "/" + vendor_name + "/" + entry.sub_path;
@@ -6982,14 +6988,30 @@ std::string PresetBundle::load_vendor_preset(
             return reason;
         }
     }
-    else {
-        if (presets_collection->type() == Preset::TYPE_PRINTER)
-            default_config = &presets_collection->default_preset_for(entry.config_src).config;
-        else
-            default_config = &presets_collection->default_preset().config;
-    }
+    else
+        default_config = &presets_collection->default_preset_for(entry.config_src).config;
     config = *default_config;
+    // Layer each included preset's own keys over the parent, in the order listed;
+    // this preset's own keys go on top.
+    for (const std::string& name : entry.includes) {
+        auto it = include_maps.find(name);
+        if (it == include_maps.end()) {
+            ++m_errors;
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": can not find include " << name << " for " << preset_name;
+            continue;
+        }
+        config.apply(it->second);
+    }
     config.apply(entry.config_src);
+    // Record what a base states, its diff against the default, for the presets
+    // that include it. It is taken before extend_default_config_length pads every
+    // per-variant key to the base's variant count: the padded defaults would
+    // otherwise override the values each includer inherits.
+    if (entry.instantiation == "false" && (retain_includes == nullptr || retain_includes->count(preset_name) != 0)) {
+        DynamicPrintConfig included;
+        included.apply_only(config, config.diff(presets_collection->default_preset_for(config).config));
+        include_maps.emplace(preset_name, std::move(included));
+    }
     extend_default_config_length(config, true, *default_config);
     if (entry.instantiation == "false" && "Template" != vendor_name) {
         // Report configuration fields, which are misplaced into a wrong group.
@@ -7448,6 +7470,15 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             }
             entry.name        = key_values[BBL_JSON_KEY_NAME];
             entry.description = key_values[BBL_JSON_KEY_DESCRIPTION];
+            // A file that states no instantiation and is named as G-code, or has no
+            // name, is a template that is only there to be included. A nameless one
+            // goes by its name in the vendor index.
+            if (auto it = key_values.find(BBL_JSON_KEY_INSTANTIATION);
+                (it == key_values.end() || it->second.empty()) && (entry.name.empty() || entry.name.find("gcode") != std::string::npos)) {
+                key_values[BBL_JSON_KEY_INSTANTIATION] = "false";
+                if (entry.name.empty())
+                    entry.name = subfile_iter.first;
+            }
             if(key_values.find(BBL_JSON_KEY_INSTANTIATION) == key_values.end())
             {
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Missing instantiation attribute for " << entry.name;
@@ -7476,6 +7507,20 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                     return reason;
                 }
             }
+            if (auto it = key_values.find(BBL_JSON_KEY_INCLUDES); it != key_values.end()) {
+                // An array of names, or one bare name; load_from_json kept the JSON text.
+                nlohmann::json includes = nlohmann::json::parse(it->second);
+                if (!includes.is_array())
+                    includes = nlohmann::json::array({std::move(includes)});
+                for (const auto& name : includes) {
+                    if (name.is_string())
+                        entry.includes.push_back(name.get<std::string>());
+                    else {
+                        ++m_errors;
+                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": invalid include " << name.dump() << " for " << entry.name;
+                    }
+                }
+            }
             if (key_values.find(ORCA_JSON_KEY_RENAMED_FROM) != key_values.end()) {
                 if (!unescape_strings_cstyle(key_values[ORCA_JSON_KEY_RENAMED_FROM], entry.renamed_from)) {
                     BOOST_LOG_TRIVIAL(error) << "Error in a Config \"" << dir << "\": The preset \"" << entry.name
@@ -7492,7 +7537,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
         return reason;
     };
 
-    std::map<std::string, DynamicPrintConfig> configs;
+    std::map<std::string, DynamicPrintConfig> configs, include_maps;
     std::map<std::string, std::string> filament_id_maps;
     // Orca: whether to (re)write the vendor's cache after this parse, leaving it
     // in step with the profile so the next run reads it instead. It is written
@@ -7509,6 +7554,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     auto load_subfiles = [&](std::vector<std::pair<std::string, std::string>>& subfiles,
                              std::vector<CachedPreset>& entries, const char* kind, bool is_from_lib = false) {
         configs.clear();
+        include_maps.clear();
         filament_id_maps.clear();
         for (auto& subfile : subfiles) {
             CachedPreset entry;
@@ -7516,8 +7562,8 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             if (reason.empty()) {
                 const int errors_before_install = m_errors;
                 reason = load_vendor_preset(entry, dir, vendor_name, base_bundle, flags,
-                                               substitution_context, substitutions, configs, filament_id_maps, presets,
-                                               presets_loaded, is_from_lib);
+                                               substitution_context, substitutions, configs, include_maps, filament_id_maps,
+                                               presets, presets_loaded, is_from_lib);
                 install_errors += m_errors - errors_before_install;
             }
             if (!reason.empty()) {
@@ -8312,26 +8358,29 @@ bool PresetBundle::load_vendor_cache(const std::string& cache_path, const std::s
         // parsed), so no substitutions are reported, as before.
         ConfigSubstitutionContext  substitution_context { ForwardCompatibilitySubstitutionRule::EnableSilent };
         PresetsConfigSubstitutions substitutions;
-        std::map<std::string, DynamicPrintConfig> configs;
+        std::map<std::string, DynamicPrintConfig> configs, include_maps;
         std::map<std::string, std::string> filament_id_maps;
         const std::string path = boost::filesystem::path(cache_path).parent_path().string();
         size_t count = 0;
         auto install_entries = [&](const std::vector<CachedPreset>& entries, PresetCollection* presets, bool is_from_lib) {
             configs.clear();
+            include_maps.clear();
             filament_id_maps.clear();
-            // Only configs of presets that other entries inherit are ever looked
-            // up again; registering just those skips one full config copy for
-            // every leaf preset. The library's filaments are all retained — they
-            // become the m_config_maps other vendors resolve against.
-            std::set<std::string> inherited;
-            for (const CachedPreset& entry : entries)
+            // Only configs of presets that other entries inherit or include are
+            // ever looked up again; registering just those skips one full config
+            // copy for every leaf preset. The library's filaments are all retained
+            // — they become the m_config_maps other vendors resolve against.
+            std::set<std::string> inherited, included;
+            for (const CachedPreset& entry : entries) {
                 if (! entry.inherits.empty())
                     inherited.insert(entry.inherits);
+                included.insert(entry.includes.begin(), entry.includes.end());
+            }
             const std::set<std::string>* retain_configs = is_from_lib ? nullptr : &inherited;
             for (const CachedPreset& entry : entries) {
                 const std::string reason = load_vendor_preset(entry, path, vendor_name,
                     base_bundle, LoadConfigBundleAttribute::LoadSystem, substitution_context, substitutions,
-                    configs, filament_id_maps, presets, count, is_from_lib, retain_configs);
+                    configs, include_maps, filament_id_maps, presets, count, is_from_lib, retain_configs, &included);
                 if (! reason.empty())
                     throw std::runtime_error("entry " + entry.name + " failed to install: " + reason);
             }

@@ -36,7 +36,8 @@ static NozzleVolumeType convert_to_nozzle_type(const std::string &str)
         return NozzleVolumeType::nvtHighFlow;
     else if (str[1] == 'U')
         return NozzleVolumeType::nvtTPUHighFlow;
-    // Orca: no nvtE3DHighFlow in Orca's NozzleVolumeType; map 'B' to Standard
+    else if (str[1] == 'B')
+        return NozzleVolumeType::nvtE3DHighFlow;
     else
         return NozzleVolumeType::nvtStandard;
 }

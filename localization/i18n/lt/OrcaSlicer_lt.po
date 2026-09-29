@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 15:50+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -5911,11 +5911,14 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr "Dešinė"
 
-msgid "Add"
-msgstr "Įtraukti"
-
 msgid "Add plate"
 msgstr "Įtraukti plokštę"
+
+msgid "Split to objects"
+msgstr "Padalinti į objektus"
+
+msgid "Add"
+msgstr "Įtraukti"
 
 msgid "Auto orient all/selected objects"
 msgstr "Automatiškai orientuoti visus / pasirinktus objektus"
@@ -5928,9 +5931,6 @@ msgstr "Išdėstyti visus objektus"
 
 msgid "Arrange objects on selected plates"
 msgstr "Išdėstyti objektus pasirinktose plokštėse"
-
-msgid "Split to objects"
-msgstr "Padalinti į objektus"
 
 msgid "Assembly View"
 msgstr "Surinkimo vaizdas"
@@ -5985,6 +5985,9 @@ msgstr "Kontūras"
 
 msgid "Wireframe"
 msgstr "Rodyti karkasinį vaizdą"
+
+msgid "X-Ray"
+msgstr ""
 
 msgid "Realistic View"
 msgstr "Realistiškas vaizdas"
@@ -6525,9 +6528,6 @@ msgstr "Rodyti kontūrą aplink pasirinktą objektą 3D scenoje."
 msgid "Preferences"
 msgstr "Parinktys"
 
-msgid "Open speed dial..."
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6535,6 +6535,9 @@ msgstr "Redaguoti"
 
 msgid "View"
 msgstr "Vaizdas"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 msgid "Preset Bundle"
 msgstr "Profilių rinkinys"
@@ -8353,9 +8356,6 @@ msgstr "Išskleisti šoninę juostą"
 msgid "Collapse sidebar"
 msgstr "Sutraukti šoninę juostą"
 
-msgid "Tab"
-msgstr "Tab"
-
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "Įkeliamas failas: %s"
@@ -9369,10 +9369,10 @@ msgstr "Kelių įrenginių valdymas"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Kai įjungta ši funkcija, jūs galite siųsti užduotį keliems įrenginiams vienu metu, taip apt kontroliuoti keletą įrenginių."
 
-msgid "Open the Speed Dial with the Space key"
+msgid "Open the Speed Dial from the keyboard"
 msgstr ""
 
-msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
 msgstr ""
 
 msgid "Recent actions"
@@ -9504,6 +9504,15 @@ msgstr "Vilkti dešiniuoju pelės mygtuku"
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Nustatykite veiksmą, kuris turi būti atliktas, velkant dešinįjį pelės mygtuką."
 
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
+
 msgid "Clear my choice on..."
 msgstr "Išvalyti mano pasirinkimą..."
 
@@ -9612,11 +9621,39 @@ msgid ""
 "Set to 0 for unlimited frame rate."
 msgstr "Riboja vaizdo srities kadrų dažnį, kad sumažintų vaizdo plokštės (GPU) apkrovą ir energijos sąnaudas. Įveskite 0, jei kadrų dažnis neribojamas."
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 msgid "Show FPS overlay"
 msgstr "Rodyti KPS (FPS) indikatorių"
 
-msgid "Displays current viewport FPS in the top-right corner."
-msgstr "Viršutiniame dešiniajame kampe rodo esamą vaizdo srities kadrų dažnį."
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
+msgstr ""
 
 # AI Translated
 msgid "G-code Preview"
@@ -10073,13 +10110,8 @@ msgstr "Talpinti 3MF..."
 msgid "Select which settings to be published in the 3MF file"
 msgstr "Pasirinkite, kuriuos parametrus talpinti 3MF faile"
 
-# AI Translated
-msgid "Publish 3MF Wiki"
-msgstr "3MF talpinimo wiki"
-
-# AI Translated
-msgid "Publish 3MF Video Guide"
-msgstr "3MF talpinimo vaizdo vadovas"
+msgid "Video Guide"
+msgstr ""
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10280,6 +10312,13 @@ msgstr ""
 
 msgid "No wiki page for this action"
 msgstr ""
+
+msgid "Show details"
+msgstr "Rodyti išsamiau"
+
+# AI Translated
+msgid "Hide details"
+msgstr "Slėpti išsamią informaciją"
 
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
@@ -12117,67 +12156,39 @@ msgstr "Konfigūracijos paketas buvo pakeistas ankstesniame konfigūravimo vadov
 msgid "Configuration package changed"
 msgstr "Pakeistas konfigūracijos paketas"
 
-msgid "Toolbar"
-msgstr "Įrankių juosta"
-
-msgid "Objects list"
-msgstr "Objektų sąrašas"
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "Importuoti geometrijos duomenis iš STL/STEP/3MF/OBJ/AMF failų"
-
-msgid "Paste from clipboard"
-msgstr "Įklijuoti iš mainų srities"
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "Rodyti/slėpti 3DConnexion įrenginių nustatymų dialogo langą"
-
-msgid "Switch table page"
-msgstr "Perjungti lentelės puslapį"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Tarpas"
-
-msgid "Open speed dial"
-msgstr ""
-
-msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
-msgstr ""
-
-msgid "Show keyboard shortcuts list"
-msgstr "Rodyti sparčiųjų klavišų sąrašą"
-
-msgid "Global shortcuts"
-msgstr "Bendrieji spartieji klavišai"
-
 msgid "Pan View"
 msgstr "Vaizdo stūmimas (panoraminis vaizdas)"
 
 msgid "Rotate View"
 msgstr "Vaizdo pasukimas"
 
-msgid "Middle mouse button"
-msgstr "Vidurinis pelės mygtukas"
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
+msgstr ""
 
-msgid "Zoom View"
-msgstr "Vaizdo mastelio keitimas (zoom)"
+msgctxt "Keyboard Shortcut"
+msgid "Key"
+msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-msgstr "Automatiškai orientuoja pasirinktus objektus arba visus objektus. Jei yra pasirinkti objektai, orientuoja tik pasirinktus. Kitais atvejais orientuoja visus esamo projekto objektus."
+msgid "Left mouse"
+msgstr ""
 
-msgid "Auto orients all objects on the active plate."
-msgstr "Automatiškai orientuoja visus objektus aktyvioje plokštėje."
+msgid "Available anywhere in the window, even while typing in a text field."
+msgstr ""
 
-msgid "Collapse/Expand the sidebar"
-msgstr "Sutraukti / išskleisti šoninę juostą"
+msgid "Run a speed dial favorite while the dial is open"
+msgstr ""
 
-msgid "Any arrow"
-msgstr "Bet kuri rodyklė"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
 
-msgid "Movement in camera space"
-msgstr "Judėjimas kameros erdvėje"
+msgid "Switch to the next main tab"
+msgstr ""
+
+msgid "Available while the 3D view on the Prepare tab has focus."
+msgstr ""
 
 msgid "Select a part"
 msgstr "Pasirinkti dalį"
@@ -12188,126 +12199,29 @@ msgstr "Pasirinkite kelis objektus"
 msgid "Select objects by rectangle"
 msgstr "Pasirinkti objektus stačiakampio rėmeliu"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr "Rodyklė aukštyn"
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr "Perkelti pasirinkimą 10 mm teigiama Y kryptimi"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr "Rodyklė žemyn"
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr "Perkelti pasirinkimą 10 mm neigiama Y kryptimi"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr "Rodyklė kairėn"
-
-msgid "Move selection 10mm in negative X direction"
-msgstr "Perkelti pasirinkimą 10 mm neigiama X kryptimi"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr "Rodyklė dešinėn"
-
-msgid "Move selection 10mm in positive X direction"
-msgstr "Perkelti pasirinkimą 10 mm teigiama X kryptimi"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "Klaviatūra 1-9: nustatyti objekto/dalies giją"
 
 msgid "Movement step set to 1mm"
 msgstr "Judėjimo žingsnis nustatytas į 1 mm"
 
-msgid "Keyboard 1-9: set filament for object/part"
-msgstr "Klaviatūra 1-9: nustatyti objekto/dalies giją"
+msgid "Movement in camera space"
+msgstr "Judėjimas kameros erdvėje"
 
-msgid "Camera view - Default"
-msgstr "Kameros vaizdas - Numatytasis"
+msgid "Middle mouse"
+msgstr ""
 
-msgid "Camera view - Top"
-msgstr "Kameros vaizdas - Viršus"
+msgid "Right mouse"
+msgstr ""
 
-msgid "Camera view - Bottom"
-msgstr "Kameros vaizdas - Apačia"
+msgid "Zoom View"
+msgstr "Vaizdo mastelio keitimas (zoom)"
 
-msgid "Camera view - Front"
-msgstr "Kameros vaizdas - Priekis"
+msgid "Painting"
+msgstr ""
 
-msgid "Camera view - Behind"
-msgstr "Kameros vaizdas – iš galo"
-
-msgid "Camera Angle - Left side"
-msgstr "Kameros kampas – iš kairės"
-
-msgid "Camera Angle - Right side"
-msgstr "Kameros kampas – iš dešinės"
-
-msgid "Select all objects"
-msgstr "Pasirinkti visus objektus"
-
-msgid "Gizmo move"
-msgstr "Perkėlimo manipuliatorius"
-
-msgid "Gizmo rotate"
-msgstr "Pasukimo manipuliatorius"
-
-msgid "Gizmo scale"
-msgstr "Mastelio keitimo manipuliatorius"
-
-msgid "Gizmo place face on bed"
-msgstr "Paviršiaus dėjimo ant pagrindo manipuliatorius"
-
-msgid "Gizmo cut"
-msgstr "Pjovimo manipuliatorius"
-
-msgid "Gizmo mesh boolean"
-msgstr "Loginių tinklelio veiksmų (Boolean) manipuliatorius"
-
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "FDM užtepamo grublėto paviršiaus (fuzzy skin) manipuliatorius"
-
-msgid "Gizmo SLA support points"
-msgstr "SLA atramų taškų manipuliatorius"
-
-msgid "Gizmo FDM paint-on seam"
-msgstr "FDM užtepamos siūlės (seam) manipuliatorius"
-
-msgid "Gizmo text emboss/engrave"
-msgstr "Teksto iškėlimo ir įspaudimo (emboss/engrave) manipuliatorius"
-
-msgid "Gizmo measure"
-msgstr "Matavimo manipuliatorius"
-
-msgid "Gizmo assemble"
-msgstr "Surinkimo manipuliatorius"
-
-msgid "Gizmo brim ears"
-msgstr "Krašto „auselių“ (brim ears) manipuliatorius"
-
-msgid "Zoom in"
-msgstr "Padidinti"
-
-msgid "Zoom out"
-msgstr "Nutolinti"
-
-msgid "Toggle printable for object/part"
-msgstr "Perjungti objekto / dalies spausdinimą"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr "Tab"
-
-msgid "Switch between Prepare/Preview"
-msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
-
-msgid "Plater"
-msgstr "Plokštė"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "Perkėlimas: paspauskite, kad pritrauktumėte kas 1 mm"
@@ -12318,14 +12232,19 @@ msgstr "Atramų ir spalvų užtepimas: keisti teptuko spindulį"
 msgid "Support/Color Painting: adjust section position"
 msgstr "Atramų ir spalvų užtepimas: keisti pjūvio padėtį"
 
-msgid "Gizmo"
-msgstr "Manipuliatorius"
+msgid "Objects list"
+msgstr "Objektų sąrašas"
+
+msgid "Available while the object list has focus."
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Nustatykite ekstruderio numerį objektams ir dalims"
 
-msgid "Delete objects, parts, modifiers"
-msgstr "Ištrinti objektus, dalis, modifikatorius"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Tarpas"
 
 msgid "Select the object/part and press space to change the name"
 msgstr "Pasirinkite objektą ir (arba) dalį ir paspauskite tarpo klavišą, kad pakeistumėte pavadinimą"
@@ -12336,45 +12255,48 @@ msgstr "Pelės paspaudimas"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Pasirinkite objektą/dalį ir spustelėkite pele, kad pakeistumėte pavadinimą"
 
-msgid "Objects List"
-msgstr "Objektų sąrašas"
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr "Vertikalus slankiklis – kelti aktyvų žymeklį aukštyn"
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr "Vertikalus slankiklis – nuleisti aktyvų žymeklį žemyn"
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį kairėn"
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį dešinėn"
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr "Vertikalaus slankiklio vieno sluoksnio režimas įjungimas / išjungimas"
-
-msgid "On/Off G-code window"
-msgstr "G-kodo lango įjungimas / išjungimas"
+msgid "Available while the 3D view on the Preview tab has focus."
+msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr "Judinkite slankiklį 5 kartus greičiau"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Home"
-msgstr "Home"
+msgid "Scroll slider 5x faster"
+msgstr ""
 
-msgid "Horizontal slider - Move to start position"
-msgstr "Horizontalus slankiklis – perkelti į pradinę padėtį"
+msgid "Not customizable"
+msgstr ""
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "End"
-msgstr "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
+msgstr ""
 
-msgid "Horizontal slider - Move to last position"
-msgstr "Horizontalus slankiklis – perkelti į paskutinę padėtį"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
+msgstr ""
 
 msgid "Release Note"
 msgstr "Versijos pastabos (Release notes)"
@@ -17222,8 +17144,8 @@ msgstr "Įkaitinimo etapai"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "Įterpkite kelias įkaitinimo komandas (pvz., M104.1). Naudinga tik „Prusa XL“. Kitiems spausdintuvams nustatykite 1."
 
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "G-kodas, įrašomas pačiame išvesties failo viršuje, prieš bet kokį kitą turinį. Naudingas įterpti metaduomenims, kuriuos spausdintuvo aparatinė programinė įranga nuskaito iš pirmųjų failo eilučių (pvz., numatomą spausdinimo laiką, gijos sąnaudas). Palaiko kintamuosius (placeholders), tokius kaip {print_time_sec} ir {used_filament_length}."
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "Pradžios G-kodas"
@@ -18765,11 +18687,35 @@ msgstr "Naudota gija"
 msgid "Total length of filament used in the print."
 msgstr "Bendras viso spausdinimo metu sunaudotos gijos ilgis."
 
-msgid "Print time (seconds)"
-msgstr "Spausdinimo laikas (sekundėmis)"
+msgid "Print time (total seconds)"
+msgstr ""
 
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Bendras numatomas spausdinimo laikas sekundėmis. Papildomo apdorojimo (post-processing) metu pakeičiama faktine reikšme."
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
 
 msgid "Filament length (meters)"
 msgstr "Gijos ilgis (metrais)"
@@ -20612,6 +20558,9 @@ msgstr "Nerasta galiojančios sesijos. Prisijungti prie „3DPrinterOS“?"
 msgid "Success!"
 msgstr "Pavyko!"
 
+msgid "Generate API Key"
+msgstr ""
+
 msgid "Are you sure to log out?"
 msgstr "Ar tikrai norite atsijungti?"
 
@@ -21566,13 +21515,6 @@ msgstr "„Bambu“ tinklo papildinys yra būtinas, kad veiktų debesijos funkci
 #, c-format, boost-format
 msgid "Error: %s"
 msgstr "Klaida: %s"
-
-msgid "Show details"
-msgstr "Rodyti išsamiau"
-
-# AI Translated
-msgid "Hide details"
-msgstr "Slėpti išsamią informaciją"
 
 msgid "Version to install:"
 msgstr "Diegiama versija:"
@@ -24202,6 +24144,12 @@ msgstr ""
 msgid "No binding for that field"
 msgstr ""
 
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
 msgid "Primitive"
 msgstr ""
 
@@ -24212,6 +24160,216 @@ msgid "Pocket (Cut)"
 msgstr ""
 
 msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "End"
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr "Rodyklė kairėn"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr "Rodyklė dešinėn"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr "Rodyklė aukštyn"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr "Rodyklė žemyn"
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr "Importuoti geometrijos duomenis iš STL/STEP/3MF/OBJ/AMF failų"
+
+msgid "Select all objects"
+msgstr "Pasirinkti visus objektus"
+
+msgid "Paste from clipboard"
+msgstr "Įklijuoti iš mainų srities"
+
+msgid "Toggle printable for object/part"
+msgstr "Perjungti objekto / dalies spausdinimą"
+
+msgid "Move selection 10mm in negative X direction"
+msgstr "Perkelti pasirinkimą 10 mm neigiama X kryptimi"
+
+msgid "Move selection 10mm in positive X direction"
+msgstr "Perkelti pasirinkimą 10 mm teigiama X kryptimi"
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr "Perkelti pasirinkimą 10 mm teigiama Y kryptimi"
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr "Perkelti pasirinkimą 10 mm neigiama Y kryptimi"
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr "Perkėlimo manipuliatorius"
+
+msgid "Gizmo rotate"
+msgstr "Pasukimo manipuliatorius"
+
+msgid "Gizmo scale"
+msgstr "Mastelio keitimo manipuliatorius"
+
+msgid "Gizmo place face on bed"
+msgstr "Paviršiaus dėjimo ant pagrindo manipuliatorius"
+
+msgid "Gizmo cut"
+msgstr "Pjovimo manipuliatorius"
+
+msgid "Gizmo mesh boolean"
+msgstr "Loginių tinklelio veiksmų (Boolean) manipuliatorius"
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "FDM užtepamos siūlės (seam) manipuliatorius"
+
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr "FDM užtepamo grublėto paviršiaus (fuzzy skin) manipuliatorius"
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr "Teksto iškėlimo ir įspaudimo (emboss/engrave) manipuliatorius"
+
+msgid "Gizmo measure"
+msgstr "Matavimo manipuliatorius"
+
+msgid "Gizmo assemble"
+msgstr "Surinkimo manipuliatorius"
+
+msgid "Gizmo brim ears"
+msgstr "Krašto „auselių“ (brim ears) manipuliatorius"
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr "Vertikalus slankiklis – kelti aktyvų žymeklį aukštyn"
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr "Vertikalus slankiklis – nuleisti aktyvų žymeklį žemyn"
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį kairėn"
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr "Horizontalus slankiklis – stumti aktyvų žymeklį dešinėn"
+
+msgid "Horizontal slider - Move to start position"
+msgstr "Horizontalus slankiklis – perkelti į pradinę padėtį"
+
+msgid "Horizontal slider - Move to last position"
+msgstr "Horizontalus slankiklis – perkelti į paskutinę padėtį"
+
+msgid "Camera view - Default"
+msgstr "Kameros vaizdas - Numatytasis"
+
+msgid "Camera view - Top"
+msgstr "Kameros vaizdas - Viršus"
+
+msgid "Camera view - Bottom"
+msgstr "Kameros vaizdas - Apačia"
+
+msgid "Camera view - Front"
+msgstr "Kameros vaizdas - Priekis"
+
+msgid "Camera view - Behind"
+msgstr "Kameros vaizdas – iš galo"
+
+msgid "Camera Angle - Left side"
+msgstr "Kameros kampas – iš kairės"
+
+msgid "Camera Angle - Right side"
+msgstr "Kameros kampas – iš dešinės"
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr "Padidinti"
+
+msgid "Zoom out"
+msgstr "Nutolinti"
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "Rodyti/slėpti 3DConnexion įrenginių nustatymų dialogo langą"
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr "G-kodo lango įjungimas / išjungimas"
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr "Vertikalaus slankiklio vieno sluoksnio režimas įjungimas / išjungimas"
+
+msgid "Switch between Prepare/Preview"
+msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
+
+msgid "Collapse/Expand the sidebar"
+msgstr "Sutraukti / išskleisti šoninę juostą"
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr "Rodyti sparčiųjų klavišų sąrašą"
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -24513,6 +24671,62 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Tab"
+#~ msgstr "Tab"
+
+#~ msgid "Displays current viewport FPS in the top-right corner."
+#~ msgstr "Viršutiniame dešiniajame kampe rodo esamą vaizdo srities kadrų dažnį."
+
+# AI Translated
+#~ msgid "Publish 3MF Wiki"
+#~ msgstr "3MF talpinimo wiki"
+
+# AI Translated
+#~ msgid "Publish 3MF Video Guide"
+#~ msgstr "3MF talpinimo vaizdo vadovas"
+
+#~ msgid "Toolbar"
+#~ msgstr "Įrankių juosta"
+
+#~ msgid "Switch table page"
+#~ msgstr "Perjungti lentelės puslapį"
+
+#~ msgid "Global shortcuts"
+#~ msgstr "Bendrieji spartieji klavišai"
+
+#~ msgid "Middle mouse button"
+#~ msgstr "Vidurinis pelės mygtukas"
+
+#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+#~ msgstr "Automatiškai orientuoja pasirinktus objektus arba visus objektus. Jei yra pasirinkti objektai, orientuoja tik pasirinktus. Kitais atvejais orientuoja visus esamo projekto objektus."
+
+#~ msgid "Auto orients all objects on the active plate."
+#~ msgstr "Automatiškai orientuoja visus objektus aktyvioje plokštėje."
+
+#~ msgid "Any arrow"
+#~ msgstr "Bet kuri rodyklė"
+
+#~ msgid "Gizmo SLA support points"
+#~ msgstr "SLA atramų taškų manipuliatorius"
+
+#~ msgid "Plater"
+#~ msgstr "Plokštė"
+
+#~ msgid "Gizmo"
+#~ msgstr "Manipuliatorius"
+
+#~ msgid "Delete objects, parts, modifiers"
+#~ msgstr "Ištrinti objektus, dalis, modifikatorius"
+
+#~ msgid "Objects List"
+#~ msgstr "Objektų sąrašas"
+
+#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+#~ msgstr "G-kodas, įrašomas pačiame išvesties failo viršuje, prieš bet kokį kitą turinį. Naudingas įterpti metaduomenims, kuriuos spausdintuvo aparatinė programinė įranga nuskaito iš pirmųjų failo eilučių (pvz., numatomą spausdinimo laiką, gijos sąnaudas). Palaiko kintamuosius (placeholders), tokius kaip {print_time_sec} ir {used_filament_length}."
+
+#~ msgid "Print time (seconds)"
+#~ msgstr "Spausdinimo laikas (sekundėmis)"
 
 # AI Translated
 #~ msgid "Open actions speed dial"

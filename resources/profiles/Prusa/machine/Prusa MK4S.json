@@ -3,7 +3,7 @@
 	"name": "Prusa MK4S",
 	"bed_model": "mk4_bed.stl",
 	"bed_texture": "mk4s.svg",
-	"default_materials": "Generic ABS @Prusa MK4S;Generic ASA @Prusa MK4S;Generic PETG @Prusa MK4S;Generic PLA @Prusa MK4S;Generic PLA Silk @Prusa MK4S;Generic TPU @Prusa MK4S;Generic PLA @Prusa MK4S 0.6;Generic PLA @Prusa MK4S 0.8",
+	"default_materials": "Generic ABS @Prusa MK4S;Generic ASA @Prusa MK4S;Generic PETG @Prusa MK4S;Generic PLA @Prusa MK4S;Generic PLA Silk @Prusa MK4S;Generic TPU @Prusa MK4S;Generic PLA @Prusa MK4S 0.6;Generic PLA @Prusa MK4S 0.8;Prusament PLA @MK4S;Prusament rPLA @MK4S;Prusament PETG @MK4S;Prusament ASA @MK4S;Prusament PC Blend @MK4S;Prusament PVB @MK4S;Prusament PC Blend Carbon Fiber @MK4S;Prusament PA11 Carbon Fiber @MK4S",
 	"family": "Prusa",
 	"hotend_model": "",
 	"machine_tech": "FFF",

@@ -152,3 +152,238 @@ TEST_CASE("resolve_cli_input_path leaves inputs that must not be completed uncha
         REQUIRE(resolve_cli_input_path("").empty());
     }
 }
+
+TEST_CASE("sanitize_file_basename keeps only a plain file name from an untrusted name", "[Utils]") {
+    const std::string unicode = "\xe6\xa8\xa1\xe5\x9e\x8b \xc3\xa9t\xc3\xa9.3mf"; // UTF-8 CJK and accented Latin
+    const auto [input, expected] = GENERATE_COPY(table<std::string, std::string>({
+        {"normal.3mf", "normal.3mf"},
+        {"../../x.3mf", "x.3mf"},
+        {"..\\..\\x.3mf", "x.3mf"},
+        {"C:\\x.3mf", "x.3mf"},
+        {"C:x.3mf", "C_x.3mf"},
+        {"/etc/x", "x"},
+        {"a/b\\c.gcode", "c.gcode"},
+        {"x:stream", "x_stream"}, // no NTFS alternate data stream
+        {"x.", "x."},
+        {".3mf", ".3mf"},
+        {unicode, unicode},
+    }));
+    CAPTURE(input);
+    CHECK(sanitize_file_basename(input) == expected);
+}
+
+TEST_CASE("sanitize_file_basename rejects names that do not name a file", "[Utils]") {
+    const std::string input = GENERATE(as<std::string>{}, "", ".", "..", "../..", "dir/", "..\\", " ", ". .", "...");
+    CAPTURE(input);
+    CHECK(sanitize_file_basename(input).empty());
+}
+
+namespace {
+void touch(const boost::filesystem::path &path) { std::ofstream(path.string()) << "existing"; }
+std::string file_contents(const boost::filesystem::path &path)
+{
+    std::ifstream file(path.string());
+    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+}
+} // namespace
+
+TEST_CASE("find_unused_filename keeps a name nothing uses", "[Utils]") {
+    ScopedTemporaryDir dir;
+    std::string name;
+    REQUIRE(find_unused_filename(dir.path(), "model.3mf", {}, name));
+    CHECK(name == "model.3mf");
+}
+
+TEST_CASE("find_unused_filename versions a name an existing file uses", "[Utils]") {
+    ScopedTemporaryDir dir;
+    touch(dir.path() / "model.3mf");
+    std::string name;
+    REQUIRE(find_unused_filename(dir.path(), "model.3mf", {}, name));
+    CHECK(name == "model(1).3mf");
+}
+
+TEST_CASE("find_unused_filename versions a name that maps onto an existing file once sanitized", "[Utils]") {
+    ScopedTemporaryDir dir;
+    touch(dir.path() / "my_model.3mf");
+    const std::string input = GENERATE(as<std::string>{}, "my?model.3mf", "my:model.3mf", "my*model.3mf");
+    CAPTURE(input);
+    std::string name;
+    REQUIRE(find_unused_filename(dir.path(), input, {}, name));
+    CHECK(name == "my_model(1).3mf");
+    CHECK(file_contents(dir.path() / "my_model.3mf") == "existing");
+}
+
+TEST_CASE("find_unused_filename treats the marker of another download as used", "[Utils]") {
+    ScopedTemporaryDir dir;
+    touch(download_marker_path(dir.path(), "model.3mf"));
+    std::string name;
+    REQUIRE(find_unused_filename(dir.path(), "model.3mf", {}, name));
+    CHECK(name == "model(1).3mf");
+}
+
+TEST_CASE("find_unused_filename ignores the marker of the download asking", "[Utils]") {
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path own_marker = download_marker_path(dir.path(), "model.3mf");
+    touch(own_marker);
+    std::string name;
+    REQUIRE(find_unused_filename(dir.path(), "model.3mf", own_marker, name));
+    CHECK(name == "model.3mf");
+}
+
+TEST_CASE("find_unused_filename gives up after 999 versions", "[Utils]") {
+    ScopedTemporaryDir dir;
+    touch(dir.path() / "model.3mf");
+    for (int version = 1; version < 999; ++version)
+        touch(dir.path() / ("model(" + std::to_string(version) + ").3mf"));
+    std::string name;
+    REQUIRE(find_unused_filename(dir.path(), "model.3mf", {}, name));
+    CHECK(name == "model(999).3mf");
+
+    touch(dir.path() / name);
+    REQUIRE_FALSE(find_unused_filename(dir.path(), "model.3mf", {}, name));
+    CHECK(name == "model(999).3mf");
+}
+
+TEST_CASE("is_path_within_root accepts a root given with a trailing separator", "[utils]") {
+    ScopedTemporaryDir tmp;
+    const std::string root = tmp.path().string();
+    const std::string with_separator = GENERATE_COPY(root + "/", root + std::string(1, static_cast<char>(boost::filesystem::path::preferred_separator)));
+
+    CAPTURE(with_separator);
+    CHECK(is_path_within_root("vendor.json", with_separator));
+    CHECK(is_path_within_root("vendor/machine/printer.json", with_separator));
+    CHECK_FALSE(is_path_within_root("../vendor.json", with_separator));
+}
+
+TEST_CASE("is_path_within_root treats Windows-specific name forms the same on every platform", "[utils]") {
+    ScopedTemporaryDir tmp;
+
+    SECTION("names ending in dots or spaces stay inside the root") {
+        const std::string name = GENERATE(std::string("name."), std::string("name "), std::string("dir./file.json"), std::string("dir /file.json"));
+        CAPTURE(name);
+        CHECK(is_path_within_root(name, tmp.path()));
+    }
+    SECTION("drive-relative names are rejected") {
+        const std::string name = GENERATE(std::string("C:x"), std::string("c:x/y.json"), std::string("C:"));
+        CAPTURE(name);
+        CHECK_FALSE(is_path_within_root(name, tmp.path()));
+    }
+}
+
+TEST_CASE("is_path_within_root rejects a name with an embedded NUL", "[utils]") {
+    ScopedTemporaryDir tmp;
+    // The filesystem calls stop at the NUL, so they would act on a different path than the one checked.
+    const std::string name = GENERATE(std::string("..\0", 3), std::string("..\0x/file.json", 14), std::string("sub/..\0x", 8),
+                                      std::string("file.json\0", 10), std::string("\0file.json", 10));
+    CAPTURE(name.size());
+    CHECK_FALSE(is_path_within_root(name, tmp.path()));
+}
+
+TEST_CASE("is_symlink_target_within_root accepts relative targets that stay inside the root", "[utils]") {
+    ScopedTemporaryDir tmp;
+    const auto [link, target] = GENERATE(std::make_pair(std::string("Versions/Current"), std::string("A")),
+                                         std::make_pair(std::string("Foo.framework/Foo"), std::string("Versions/Current/Foo")),
+                                         std::make_pair(std::string("libfoo.so"), std::string("libfoo.so.1")),
+                                         std::make_pair(std::string("a/b/link"), std::string("c/d")));
+    CAPTURE(link, target);
+    CHECK(is_symlink_target_within_root(link, target, tmp.path()));
+}
+
+TEST_CASE("is_symlink_target_within_root rejects absolute targets and targets that climb out", "[utils]") {
+    ScopedTemporaryDir tmp;
+    const std::string outside = (tmp.path().parent_path() / "outside").generic_string();
+    const auto [link, target] = GENERATE_COPY(std::make_pair(std::string("sub/link"), outside),
+                                              std::make_pair(std::string("sub/link"), std::string("/etc/passwd")),
+                                              std::make_pair(std::string("sub/link"), std::string("\\outside")),
+                                              std::make_pair(std::string("sub/link"), std::string("C:/outside")),
+                                              std::make_pair(std::string("sub/link"), std::string("C:outside")),
+                                              std::make_pair(std::string("sub/link"), std::string("")),
+                                              std::make_pair(std::string("link"), std::string("..")),
+                                              std::make_pair(std::string("link"), std::string("../outside")),
+                                              std::make_pair(std::string("sub/link"), std::string("../../outside")),
+                                              std::make_pair(std::string("sub/link"), std::string("x/../../../outside")),
+                                              std::make_pair(std::string("sub/link"), std::string("..\\..\\outside")),
+                                              // symlink() stops at the NUL, so this target would be created as "..".
+                                              std::make_pair(std::string("link"), std::string("..\0", 3)));
+    CAPTURE(link, target);
+    CHECK_FALSE(is_symlink_target_within_root(link, target, tmp.path()));
+}
+
+#ifndef _WIN32
+TEST_CASE("is_symlink_target_within_root rejects a target that passes through a symlink leading out", "[utils]") {
+    ScopedTemporaryDir tmp;
+    const boost::filesystem::path root    = tmp.path() / "root";
+    const boost::filesystem::path outside = tmp.path() / "outside";
+    boost::filesystem::create_directories(root);
+    boost::filesystem::create_directories(outside);
+    boost::filesystem::create_symlink(outside, root / "out");
+
+    CHECK_FALSE(is_symlink_target_within_root("link", "out/lib.so", root));
+    CHECK(is_symlink_target_within_root("link", "in/lib.so", root));
+}
+#endif
+
+TEST_CASE("is_absolute_path_within_root accepts only entries inside the root", "[utils]") {
+    namespace fs = boost::filesystem;
+    ScopedTemporaryDir outer;
+    const fs::path root = outer.path() / "Auxiliaries";
+    fs::create_directories(root / "Others");
+    const fs::path inside = root / "Others" / "note.txt";
+    const fs::path outside = outer.path() / "secret.txt";
+    std::ofstream(inside.string()) << "inside";
+    std::ofstream(outside.string()) << "outside";
+
+    SECTION("a file inside the root") {
+        REQUIRE(is_absolute_path_within_root(inside, root));
+    }
+    SECTION("a path inside the root whose file does not exist yet") {
+        REQUIRE(is_absolute_path_within_root(root / "Others" / "missing.txt", root));
+    }
+    SECTION("the root itself") {
+        REQUIRE_FALSE(is_absolute_path_within_root(root, root));
+    }
+    SECTION("a parent-directory escape spelled under the root") {
+        REQUIRE_FALSE(is_absolute_path_within_root(root / "Others" / ".." / ".." / "secret.txt", root));
+    }
+    SECTION("an absolute path elsewhere") {
+        REQUIRE_FALSE(is_absolute_path_within_root(outside, root));
+    }
+    SECTION("a sibling directory sharing the root's name as a prefix") {
+        const fs::path sibling = outer.path() / "Auxiliaries2" / "note.txt";
+        REQUIRE_FALSE(is_absolute_path_within_root(sibling, root));
+    }
+    SECTION("a relative path") {
+        REQUIRE_FALSE(is_absolute_path_within_root(fs::path("Others") / "note.txt", root));
+    }
+    SECTION("an empty path") {
+        REQUIRE_FALSE(is_absolute_path_within_root(fs::path(), root));
+    }
+#ifndef _WIN32
+    // Creating symlinks on Windows needs elevated rights or developer mode.
+    SECTION("a symlink inside the root that points outside") {
+        const fs::path link = root / "Others" / "link.txt";
+        fs::create_symlink(outside, link);
+        REQUIRE_FALSE(is_absolute_path_within_root(link, root));
+    }
+#endif
+}
+
+TEST_CASE("is_safe_to_open_file_name accepts plain documents, images and models", "[utils]") {
+    const std::string safe = GENERATE(as<std::string>{},
+        "Manual.pdf", "BOM.xlsx", "BOM.csv", "guide.docx", "notes.txt", "README.md", "photo.JPG", "render.png",
+        "assembly.step", "part.stl", "project.3mf", "drawing.dxf", "build.mp4", "setup.exe.pdf", ".pdf");
+    INFO(safe);
+    CHECK(is_safe_to_open_file_name(safe));
+}
+
+TEST_CASE("is_safe_to_open_file_name rejects programs and anything it does not know", "[utils]") {
+    const std::string unsafe = GENERATE(as<std::string>{},
+        "setup.exe", "SETUP.EXE", "Manual.pdf.exe", "run.bat", "shortcut.lnk", "site.url", "script.ps1", "help.chm",
+        "tool.jar", "script.py", "Install.command", "install.sh", "launcher.desktop", "Printer.AppImage",
+        // Documents that can carry macros or scripts.
+        "BOM.xls", "BOM.xlsm", "guide.doc", "guide.docm", "sheet.ods", "page.html", "logo.svg", "bundle.zip",
+        // No extension, an unknown one, or a name the desktop would read differently.
+        "readme", "pdf", "data.xyz", "", "...", "Manual.pdf.", "Manual.pdf ", "setup.exe:note.txt", "dir.pdf/readme");
+    INFO(unsafe);
+    CHECK_FALSE(is_safe_to_open_file_name(unsafe));
+}

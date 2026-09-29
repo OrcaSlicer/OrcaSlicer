@@ -464,7 +464,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
-        wxString url = wxFileSystem::FileNameToURL(fn);
+        wxString url = file_url_from_path(filepath);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "File exists and load url " << url.ToStdString();
         m_webview->LoadURL(url);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "Successfully loaded url: " << url.ToStdString();

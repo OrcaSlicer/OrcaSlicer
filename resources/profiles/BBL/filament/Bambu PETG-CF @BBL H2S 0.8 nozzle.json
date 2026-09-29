@@ -1,0 +1,108 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG-CF @BBL H2S 0.8 nozzle",
+    "inherits": "Bambu PETG-CF @base",
+    "from": "system",
+    "setting_id": "GFSG50_35",
+    "instantiation": "true",
+    "counter_coef_2": [
+        "0.0022"
+    ],
+    "counter_coef_3": [
+        "-0.0178"
+    ],
+    "counter_limit_max": [
+        "0.036"
+    ],
+    "counter_limit_min": [
+        "-0.0178"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "5"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "65",
+        "55",
+        "55"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_max_volumetric_speed": [
+        "11.5",
+        "11.5"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "hole_coef_2": [
+        "-0.0014"
+    ],
+    "hole_coef_3": [
+        "0.11"
+    ],
+    "hole_limit_max": [
+        "0.11"
+    ],
+    "hole_limit_min": [
+        "0.075"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "255",
+        "255"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "255",
+        "255"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "supertack_plate_temp": [
+        "60"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2S 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

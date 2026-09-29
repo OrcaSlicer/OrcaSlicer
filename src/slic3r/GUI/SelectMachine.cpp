@@ -75,6 +75,9 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
     else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
         return "tpu_high_flow";
     }
+    else if (nozzle_volume_type == NozzleVolumeType::nvtE3DHighFlow) {
+        return "e3d_high_flow";
+    }
     else if (nozzle_volume_type == NozzleVolumeType::nvtHybrid) {
         // to be supported
         return "hybrid_flow";
@@ -148,7 +151,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     wxBoxSizer* m_scroll_sizer = new wxBoxSizer(wxVERTICAL);
     m_scroll_area              = new wxScrolledWindow(this);
-    m_scroll_area->SetScrollRate(0, 20);
+    m_scroll_area->SetScrollRate(0, FromDIP(20));
     m_scroll_area->SetBackgroundColour(m_colour_def_color);
     m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(600)));
     m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(600)));
@@ -707,7 +710,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     //show bind failed info
     m_sw_print_failed_info = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2.x, FromDIP(125)), wxVSCROLL);
     m_sw_print_failed_info->SetBackgroundColour(*wxWHITE);
-    m_sw_print_failed_info->SetScrollRate(0, 5);
+    m_sw_print_failed_info->SetScrollRate(0, FromDIP(20));
     m_sw_print_failed_info->SetMinSize(wxSize(SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2.x, FromDIP(125)));
     m_sw_print_failed_info->SetMaxSize(wxSize(SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2.x, FromDIP(125)));
 
@@ -3470,7 +3473,7 @@ void SelectMachineDialog::navigate_to_timelapse_page()
         main_frame->jump_to_monitor();
 
         // then switch to Storage (Media) tab inside Monitor
-        auto* monitor = dynamic_cast<MonitorPanel*>(main_frame->m_monitor);
+        MonitorPanel* monitor = MonitorPanel::if_built();
         if (monitor) {
             auto* tabpanel = monitor->get_tabpanel();
             if (tabpanel) {

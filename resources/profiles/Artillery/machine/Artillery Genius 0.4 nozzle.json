@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "F9lEQfH826Mqt6u3",
 	"name": "Artillery Genius 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_machine_common",
+	"from": "system",
+	"setting_id": "F9lEQfH826Mqt6u3",
+	"instantiation": "true",
 	"printer_model": "Artillery Genius",
 	"default_print_profile": "0.20mm Standard @Artillery Genius",
 	"nozzle_diameter": [

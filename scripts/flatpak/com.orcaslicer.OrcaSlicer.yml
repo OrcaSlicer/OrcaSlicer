@@ -384,7 +384,7 @@ modules:
       - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
-    # Built (not run) here via the action's run-tests, then shipped to a separate
+    # Built (not run) here when CI injects run-tests, then shipped to a separate
     # test job. Only the test sources compile; nothing installs to /app.
     test-commands:
       - cmake . -B build_flatpak -DBUILD_TESTS=ON

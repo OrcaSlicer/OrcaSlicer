@@ -6,6 +6,7 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
@@ -31,7 +32,7 @@ std::string GLGizmoFuzzySkin::on_get_name() const
 
 bool GLGizmoFuzzySkin::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_H;
+    m_shortcut = Shortcut::GizmoFuzzySkin;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     const wxString alt   = GUI::shortkey_alt_prefix();

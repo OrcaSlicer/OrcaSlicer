@@ -75,6 +75,8 @@ if(document.documentElement)
 
 } // namespace
 
+std::string WebViewHostDialog::theme_apply_script() { return host_theme_apply_js(); }
+
 // Document-start user script: injects the contract <style>, stamps data-orca-theme before
 // first paint, and raises a JS flag so the legacy globalapi.js dark.css poll stands down for
 // host-themed pages. The WebView2 timing guard lives in document_start_injector().
@@ -87,7 +89,7 @@ std::string WebViewHostDialog::theme_user_script()
         "if(document.documentElement)document.documentElement.setAttribute('data-orca-theme',theme);");
 }
 
-std::string WebViewHostDialog::plugin_defaults_user_script()
+std::string WebViewHostDialog::element_defaults_user_script()
 {
     std::string css;
     css += "<style id=\"orca-plugin-defaults\">";
@@ -190,7 +192,7 @@ bool WebViewHostDialog::create_webview(const std::string& resource_path,
 
 wxString WebViewHostDialog::build_resource_url(const std::string& resource_path) const
 {
-    wxString target_url = from_u8((boost::filesystem::path(resources_dir()) / resource_path).make_preferred().string());
+    wxString target_url = file_url_from_path(boost::filesystem::path(resources_dir()) / resource_path);
 
     if (append_language_to_url()) {
         const wxString lang = wxGetApp().current_language_code_safe();
@@ -200,7 +202,7 @@ wxString WebViewHostDialog::build_resource_url(const std::string& resource_path)
         }
     }
 
-    return wxString("file://") + target_url;
+    return target_url;
 }
 
 void WebViewHostDialog::load_url(const wxString& url)

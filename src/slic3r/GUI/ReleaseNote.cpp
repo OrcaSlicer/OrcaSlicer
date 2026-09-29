@@ -76,7 +76,7 @@ ReleaseNoteDialog::ReleaseNoteDialog(Plater *plater /*= nullptr*/)
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)), wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(5, 5);
+    m_vebview_release_note->SetScrollRate(5, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_vebview_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
 
@@ -142,7 +142,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(5, 5);
+    m_vebview_release_note->SetScrollRate(5, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(260), FromDIP(150)));
     m_vebview_release_note->SetMaxSize(wxSize(FromDIP(260), FromDIP(150)));
@@ -277,7 +277,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     m_simplebook_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
 
     m_scrollwindows_release_note = new wxScrolledWindow(m_simplebook_release_note, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)), wxVSCROLL);
-    m_scrollwindows_release_note->SetScrollRate(5, 5);
+    m_scrollwindows_release_note->SetScrollRate(5, FromDIP(20));
     m_scrollwindows_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
 
     //webview
@@ -510,7 +510,7 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
         out_buf->append(text, size);
     }, (void*) &html_source, MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH | MD_FLAG_WIKILINKS, 0);
     html_source.append("</body></html>");
-    m_vebview_release_note->LoadURL("file://" + (boost::filesystem::path (resources_dir()) / "web/guide/0/index.html").string());
+    m_vebview_release_note->LoadURL(file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/0/index.html"));
 
     SetMinSize(GetSize());
     SetMaxSize(GetSize());
@@ -538,7 +538,7 @@ SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, cons
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(0, 5);
+    m_vebview_release_note->SetScrollRate(0, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(*wxWHITE);
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(400), FromDIP(380)));
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));
@@ -823,7 +823,7 @@ PrintErrorDialog::PrintErrorDialog(wxWindow* parent, wxWindowID id, const wxStri
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(5));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(0, 5);
+    m_vebview_release_note->SetScrollRate(0, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(*wxWHITE);
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(320), FromDIP(250)));
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));
@@ -1122,7 +1122,7 @@ ConfirmBeforeSendDialog::ConfirmBeforeSendDialog(wxWindow* parent, wxWindowID id
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
 
     m_vebview_release_note = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_vebview_release_note->SetScrollRate(0, 5);
+    m_vebview_release_note->SetScrollRate(0, FromDIP(20));
     m_vebview_release_note->SetBackgroundColour(*wxWHITE);
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(400), FromDIP(380)));
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));

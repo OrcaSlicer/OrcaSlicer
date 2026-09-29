@@ -335,6 +335,10 @@ TEST_CASE("The shipped defaults size the tower from the flush matrix", "[WipeTow
     const double flush_volume = WipeTower2::estimate_semm_flush_volume(config, 2);
     const double expected     = std::max(double(WipeTower::get_limit_depth_by_height(5.f)), flush_volume / (0.2 * 50.));
     CHECK_THAT(estimate(config, 2, 0.2, 5.).depth, WithinAbs(expected, 1e-6));
+
+    // The flush volume is nonzero for one slot, but a lone filament makes no tool change.
+    REQUIRE(WipeTower2::estimate_semm_flush_volume(config, 1) > 0.);
+    CHECK_THAT(estimate(config, 1, 0.2, 5.).depth, WithinAbs(0., 1e-9));
 }
 
 TEST_CASE("A config missing a tower key falls back to that key's default", "[WipeTowerEstimate]") {

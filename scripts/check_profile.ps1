@@ -21,8 +21,10 @@
     normalize and update-index would still rewrite.
 
     Everything that has to be downloaded - the profile validator and the custom-preset fixture
-    archives - lands under <repo>\.test\check_profiles and is reused on the next run. That
-    directory also holds one log per check plus a copy of the comment CI would post on the PR.
+    archives - lands under a per-user cache directory (%LOCALAPPDATA%\orca-profile-check) and
+    is reused on the next run. Being outside the checkout, that directory is shared by every
+    worktree on the machine. It also holds one log per check plus a copy of the comment CI would
+    post on the PR.
 
     resources\profiles\user, which the validator creates as its data dir but a CI checkout never
     has, is moved aside for the duration of the run and restored on exit. Only one run per work
@@ -60,8 +62,8 @@
     Re-download the validator and fixtures instead of using the cache.
 
 .PARAMETER WorkDir
-    Downloads, logs and fixture trees (default: .test\check_profiles). Point it somewhere short,
-    such as D:\t, if a fixture tree trips Windows' 260-character path limit.
+    Downloads, logs and fixture trees (default: %LOCALAPPDATA%\orca-profile-check). Point it
+    somewhere short, such as D:\t, if a fixture tree trips Windows' 260-character path limit.
 
 .PARAMETER LogLevel
     Validator log level (default: 2, as in CI).
@@ -212,7 +214,10 @@ if ($Vendor) {
 $VendorArgs = if ($Vendor) { @('-v', $Vendor) } else { @() }
 $VendorPyArgs = if ($Vendor) { @('--vendor', $Vendor) } else { @() }
 
-if (-not $WorkDir) { $WorkDir = Join-Path $RepoRoot '.test\check_profiles' }
+if (-not $WorkDir) {
+    # Per-user cache dir, so every worktree on the machine shares one set of downloads.
+    $WorkDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'orca-profile-check'
+}
 $LogDir = Join-Path $WorkDir 'logs'
 try { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null } catch { Die "cannot create ${LogDir}: $_" }
 $WorkDir = (Resolve-Path -LiteralPath $WorkDir).Path

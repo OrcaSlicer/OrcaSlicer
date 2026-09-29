@@ -28,6 +28,7 @@
 #include <csignal>
 #include <atomic>
 #include <new>
+#include <optional>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -1614,6 +1615,10 @@ int CLI::run(int argc, char **argv)
     ConfigOptionBool* allow_rotations_option = m_config.option<ConfigOptionBool>("allow_rotations");
     if (allow_rotations_option)
         allow_rotations = allow_rotations_option->value;
+    // Only an explicit --align-to-y-axis overrides the printer-structure default.
+    std::optional<bool> align_to_y_axis;
+    if (m_given_option_keys.count("align_to_y_axis") > 0)
+        align_to_y_axis = m_config.opt_bool("align_to_y_axis");
 
     ConfigOptionBool* skip_modified_gcodes_option = m_config.option<ConfigOptionBool>("skip_modified_gcodes");
     if (skip_modified_gcodes_option)
@@ -3471,6 +3476,14 @@ int CLI::run(int argc, char **argv)
         }
         new_variant_counts = old_variant_counts;
         //filament_variant_count = old_variant_counts;
+        //ORCA: lay the per-variant options out one value per variant of the current filaments before each
+        //      loaded filament replaces its own variants, including an option only a loaded filament
+        //      defines, which otherwise starts as a single default value and never reaches the others.
+        for (const DynamicPrintConfig &config : load_filaments_config)
+            for (const std::string &opt_key : filament_options_with_variant)
+                if (opt_key != "filament_extruder_variant" && config.has(opt_key))
+                    m_print_config.option(opt_key, true);
+        normalize_filament_values_to_variants(m_print_config);
         for (int index = 0; index < load_filaments_config.size(); index++) {
             DynamicPrintConfig&  config = load_filaments_config[index];
             int filament_index = load_filaments_index[index];
@@ -3640,6 +3653,25 @@ int CLI::run(int argc, char **argv)
                         opt_vec_dst->set_at(opt_vec_src, filament_index - 1, 0);
                     }
                 }
+            }
+
+            //ORCA: a per-variant option the loaded filament does not define keeps the values of the
+            //      variants the filament already had, and a variant new to it takes its first one's.
+            const int old_start = old_start_indice[filament_index - 1];
+            std::vector<int> kept_variant_indice = new_variant_indice;
+            for (int &i : kept_variant_indice)
+                if (i < 0)
+                    i = old_start;
+            for (const std::string &opt_key : filament_options_with_variant) {
+                if (config.has(opt_key))
+                    continue;
+                auto *opt_vec_dst = dynamic_cast<ConfigOptionVectorBase *>(m_print_config.option(opt_key));
+                if (opt_vec_dst == nullptr || opt_vec_dst->size() < size_t(old_start + old_variant_count))
+                    continue;
+                // set_with_restore_2() pads its source in place
+                std::unique_ptr<ConfigOption> old_values(opt_vec_dst->clone());
+                opt_vec_dst->set_with_restore_2(static_cast<ConfigOptionVectorBase *>(old_values.get()), kept_variant_indice, old_start,
+                                                old_variant_count, true);
             }
 
             //update the old index
@@ -4076,6 +4108,9 @@ int CLI::run(int argc, char **argv)
     if (printer_technology == ptFFF) {
         fff_print_config.apply(m_print_config, true);
         m_print_config.apply(fff_print_config, true);
+        //ORCA: an option no preset or project defines has just come in as its single default value, and a
+        //      command line override may hold one value per filament.
+        normalize_filament_values_to_variants(m_print_config);
     } else {
         boost::nowide::cerr << "invalid printer_technology " << std::endl;
         record_exit_reson(outfile_dir, CLI_INVALID_PRINTER_TECH, 0, cli_errors[CLI_INVALID_PRINTER_TECH], sliced_info);
@@ -5298,7 +5333,9 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
                     arrange_cfg.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
                 }
-                if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
+                if (align_to_y_axis.has_value()) {
+                    arrange_cfg.align_to_y_axis = *align_to_y_axis;
+                } else if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
@@ -5520,12 +5557,28 @@ int CLI::run(int argc, char **argv)
                     //add the virtual object into unselect list if has
                     partplate_list.preprocess_exclude_areas(unselected, enable_wrapping_detect);
 
-                    if (used_filament_set.size() > 0)
+                    // Filament ids given on the command line size the tower for STL input. A project
+                    // records its filament use per plate, so count there and keep its tower positions.
+                    const int  plate_count  = partplate_list.get_plate_count();
+                    const bool from_project = used_filament_set.empty();
+                    std::vector<int> plate_filament_counts(plate_count, static_cast<int>(used_filament_set.size()));
+                    if (from_project)
+                        for (int plate_index = 0; plate_index < plate_count; ++plate_index)
+                            plate_filament_counts[plate_index] = static_cast<int>(partplate_list.get_plate(plate_index)->get_extruders_under_cli(true, m_print_config).size());
+                    // A project only gets a tower the slicer will print: the prime tower enabled, and not
+                    // a by-object print unless a smooth timelapse needs it, as the per-plate arrange decides.
+                    const bool project_tower_allowed = m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value &&
+                                                       (is_smooth_timelapse || !arrange_cfg.is_seq_print);
+                    const auto plate_needs_wipe_tower = [from_project, project_tower_allowed, is_smooth_timelapse](int filament_count) {
+                        if (!from_project)
+                            return filament_count > 0;
+                        return project_tower_allowed && (filament_count > 1 || (filament_count > 0 && is_smooth_timelapse));
+                    };
+                    const int max_filament_count = plate_count > 0 ? *std::max_element(plate_filament_counts.begin(), plate_filament_counts.end()) : 0;
+
+                    if (plate_needs_wipe_tower(max_filament_count))
                     {
                         //prepare the wipe tower
-                        int plate_count = partplate_list.get_plate_count();
-                        int extruder_size = used_filament_set.size();
-
                         auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
                         // This margin only pre-adjusts the default away from the near edges;
                         // estimate_wipe_tower_polygon below computes the real clamped position.
@@ -5561,7 +5614,11 @@ int CLI::run(int argc, char **argv)
 
                         for (int bedid = 0; bedid < MAX_PLATE_COUNT; bedid++) {
                             int plate_index_valid = std::min(bedid, plate_count - 1);
-                            if (bedid < plate_count) {
+                            // Overflow beds may receive objects from any plate, so size them for the busiest one.
+                            const int extruder_size = bedid < plate_count ? plate_filament_counts[bedid] : max_filament_count;
+                            if (!plate_needs_wipe_tower(extruder_size))
+                                continue;
+                            if (bedid < plate_count && !from_project) {
                                 wipe_x_option->set_at(&wt_x_opt, plate_index_valid, 0);
                                 wipe_y_option->set_at(&wt_y_opt, plate_index_valid, 0);
                             }
@@ -5748,7 +5805,9 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
                     arrange_cfg.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
                 }
-                if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
+                if (align_to_y_axis.has_value()) {
+                    arrange_cfg.align_to_y_axis = *align_to_y_axis;
+                } else if (auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure")) {
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
@@ -7015,6 +7074,12 @@ int CLI::run(int argc, char **argv)
                                     }
                                 }
                                 sliced_info.sliced_plates.push_back(sliced_plate_info);
+                            } catch (const Slic3r::SlicingErrors &exs) {
+                                const std::string message = print_fff ? print_fff->slicing_errors_message(exs) : std::string(exs.what());
+                                BOOST_LOG_TRIVIAL(error) << "found slicing or export error for partplate " << index+1 << ": " << message;
+                                boost::nowide::cerr << message << std::endl;
+                                record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index+1, message, sliced_info);
+                                flush_and_exit(CLI_SLICING_ERROR);
                             } catch (const std::exception &ex) {
                                 BOOST_LOG_TRIVIAL(error) << "found slicing or export error for partplate "<<index+1 << std::endl;
                                 boost::nowide::cerr << ex.what() << std::endl;
@@ -7255,9 +7320,9 @@ int CLI::run(int argc, char **argv)
                 colors_out[color_idx] = ColorRGBA(float(rgb_color[0]) / 255.f, float(rgb_color[1]) / 255.f, float(rgb_color[2]) / 255.f, float(rgb_color[3]) / 255.f);
             }
 
-            int gl_major, gl_minor, gl_verbos;
-            glfwGetVersion(&gl_major, &gl_minor, &gl_verbos);
-            BOOST_LOG_TRIVIAL(info) << boost::format("opengl version %1%.%2%.%3%")%gl_major %gl_minor %gl_verbos;
+            int glfw_major, glfw_minor, glfw_revision;
+            glfwGetVersion(&glfw_major, &glfw_minor, &glfw_revision);
+            BOOST_LOG_TRIVIAL(info) << boost::format("GLFW version %1%.%2%.%3%") % glfw_major % glfw_minor % glfw_revision;
 
             bool thumbnail_opengl_ready = false;
             glfwSetErrorCallback(glfw_callback);
@@ -7269,8 +7334,9 @@ int CLI::run(int argc, char **argv)
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "glfwInit Success."<< std::endl;
-                glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl_major);
-                glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, gl_minor);
+                // Request OrcaSlicer's minimum OpenGL version, independently of the GLFW library version.
+                glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+                glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
                 glfwWindowHint(GLFW_RED_BITS, 8);
                 glfwWindowHint(GLFW_GREEN_BITS, 8);
                 glfwWindowHint(GLFW_BLUE_BITS, 8);
@@ -7286,6 +7352,16 @@ int CLI::run(int argc, char **argv)
 #endif
 
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
+#ifndef __WXMAC__
+                if (window == NULL) {
+                    // Some drivers (e.g. older Mesa) only expose compatibility profile 3.0; take whatever they offer.
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to create OpenGL 3.3 compatibility context, retrying with driver default" << std::endl;
+                    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
+                    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+                    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+                    window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
+                }
+#endif
                 if (window == NULL)
                 {
                     BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window; skipping thumbnail rendering for CLI export" << std::endl;
@@ -7942,6 +8018,8 @@ bool CLI::setup(int argc, char **argv)
     // opens these files in post_init(), and a relative path would then resolve against that.
     for (std::string &input_file : m_input_files)
         input_file = resolve_cli_input_path(input_file);
+
+    m_given_option_keys.insert(opt_order.begin(), opt_order.end());
 
     // Parse actions and transform options.
     for (auto const &opt_key : opt_order) {

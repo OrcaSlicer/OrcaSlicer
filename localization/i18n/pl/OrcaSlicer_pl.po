@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-18 15:50+0800\n"
+"POT-Creation-Date: 2026-09-22 17:02+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -6047,11 +6047,14 @@ msgctxt "Camera View"
 msgid "Right"
 msgstr "Prawy"
 
-msgid "Add"
-msgstr "Dodaj"
-
 msgid "Add plate"
 msgstr "Dodaj płytę"
+
+msgid "Split to objects"
+msgstr "Podziel na obiekty"
+
+msgid "Add"
+msgstr "Dodaj"
 
 msgid "Auto orient all/selected objects"
 msgstr "Automatyczna orientacja wszystkie/wybrane obiekty"
@@ -6064,9 +6067,6 @@ msgstr "Rozmieść wszystkie obiekty"
 
 msgid "Arrange objects on selected plates"
 msgstr "Rozmieść obiekty na wybranych płytach"
-
-msgid "Split to objects"
-msgstr "Podziel na obiekty"
 
 msgid "Assembly View"
 msgstr "Widok montażu"
@@ -6129,6 +6129,9 @@ msgstr "kontur"
 # AI Translated
 msgid "Wireframe"
 msgstr "Siatka"
+
+msgid "X-Ray"
+msgstr ""
 
 # AI Translated
 msgid "Realistic View"
@@ -6686,9 +6689,6 @@ msgstr "Przełącza wyświetlanie konturu wokół zaznaczonego obiektu w scenie 
 msgid "Preferences"
 msgstr "Preferencje"
 
-msgid "Open speed dial..."
-msgstr ""
-
 # AI Translated
 msgctxt "Menu"
 msgid "Edit"
@@ -6696,6 +6696,9 @@ msgstr "Edycja"
 
 msgid "View"
 msgstr "Widok"
+
+msgid "Open Speed Dial"
+msgstr ""
 
 # AI Translated
 msgid "Preset Bundle"
@@ -8546,9 +8549,6 @@ msgstr "Rozwiń pasek boczny"
 msgid "Collapse sidebar"
 msgstr "Zwiń pasek boczny"
 
-msgid "Tab"
-msgstr "Karty"
-
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "Wczytywanie pliku: %s"
@@ -9626,10 +9626,10 @@ msgstr "Obsługiwanie wielu urządzeń"
 msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
 msgstr "Umożliwia wysyłanie zadania do wielu urządzeń jednocześnie i zarządzanie nimi."
 
-msgid "Open the Speed Dial with the Space key"
+msgid "Open the Speed Dial from the keyboard"
 msgstr ""
 
-msgid "When enabled, pressing Space (with no other key held) opens the Speed Dial action search from any page."
+msgid "When enabled, the Speed Dial keyboard shortcut (Space by default) opens the action search from any page."
 msgstr ""
 
 msgid "Recent actions"
@@ -9777,6 +9777,15 @@ msgstr "Przeciąganie prawym przyciskiem myszy"
 msgid "Set the action that dragging the right mouse button should perform."
 msgstr "Ustaw akcję wykonywaną przy przeciąganiu prawym przyciskiem myszy."
 
+msgid "Keyboard"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Choose the key for each action."
+msgstr ""
+
 # AI Translated
 msgid "Clear my choice on..."
 msgstr "Wyczyść mój wybór dla..."
@@ -9905,13 +9914,40 @@ msgstr ""
 "Ogranicza liczbę klatek w widoku, aby zmniejszyć obciążenie GPU i zużycie energii.\n"
 "Ustaw 0, aby nie ograniczać liczby klatek."
 
+msgid "Reuse the 3D scene while idle"
+msgstr ""
+
+msgid ""
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
+"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Disable it if the viewport shows stale or missing contents.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "Skip unchanged frames"
+msgstr ""
+
+msgid ""
+"Skips drawing a frame altogether when it would be identical to the one already on screen.\n"
+"Only applies to frames that reuse the 3D scene, so it needs Reuse the 3D scene while idle.\n"
+"Disable it if a hover highlight, tooltip or animation stops updating.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
 # AI Translated
 msgid "Show FPS overlay"
 msgstr "Pokaż nakładkę FPS"
 
-# AI Translated
-msgid "Displays current viewport FPS in the top-right corner."
-msgstr "Wyświetla bieżącą wartość FPS widoku w prawym górnym rogu."
+msgid "Displays rendering counts in the top-right corner of the viewport."
+msgstr ""
+
+msgid "FPS: frames presented to the screen per second."
+msgstr ""
+
+msgid "3D: frames per second that redrew the 3D scene."
+msgstr ""
 
 # AI Translated
 msgid "G-code Preview"
@@ -10403,13 +10439,8 @@ msgstr "Opublikuj 3MF..."
 msgid "Select which settings to be published in the 3MF file"
 msgstr "Wybierz, które ustawienia zostaną opublikowane w pliku 3MF"
 
-# AI Translated
-msgid "Publish 3MF Wiki"
-msgstr "Wiki publikowania 3MF"
-
-# AI Translated
-msgid "Publish 3MF Video Guide"
-msgstr "Poradnik wideo publikowania 3MF"
+msgid "Video Guide"
+msgstr ""
 
 # AI Translated
 msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
@@ -10611,6 +10642,14 @@ msgstr ""
 
 msgid "No wiki page for this action"
 msgstr ""
+
+# AI Translated
+msgid "Show details"
+msgstr "Pokaż szczegóły"
+
+# AI Translated
+msgid "Hide details"
+msgstr "Ukryj szczegóły"
 
 #, c-format, boost-format
 msgid "\"%s\" is a Developer setting. Enable Developer mode to edit it?"
@@ -12518,68 +12557,39 @@ msgstr "Pakiet konfiguracyjny został zmieniony w poprzednim Przewodniku konfigu
 msgid "Configuration package changed"
 msgstr "Zmieniono pakiet konfiguracyjny"
 
-msgid "Toolbar"
-msgstr "Pasek narzędzi"
-
-msgid "Objects list"
-msgstr "Lista obiektów"
-
-msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "Import danych geometrycznych z plików STL/STEP/3MF/OBJ/AMF"
-
-msgid "Paste from clipboard"
-msgstr "Wklej z schowka"
-
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "Pokaż/ukryj okno dialogowe ustawień urządzeń 3Dconnexion"
-
-msgid "Switch table page"
-msgstr "Przełącz stronę tabeli"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Space"
-msgstr "Spacja"
-
-msgid "Open speed dial"
-msgstr ""
-
-msgid "Run a Speed Dial favourite (while the Speed Dial is open)"
-msgstr ""
-
-msgid "Show keyboard shortcuts list"
-msgstr "Pokaż listę skrótów klawiszowych"
-
-msgid "Global shortcuts"
-msgstr "Globalne skróty"
-
 msgid "Pan View"
 msgstr "Przesuń widok"
 
 msgid "Rotate View"
 msgstr "Obróć widok"
 
+#, c-format, boost-format
+msgid "Use %s or %s, or a key that does not type a character."
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Key"
+msgstr ""
+
+msgid "Left mouse"
+msgstr ""
+
+msgid "Available anywhere in the window, even while typing in a text field."
+msgstr ""
+
+msgid "Run a speed dial favorite while the dial is open"
+msgstr ""
+
 # AI Translated
-msgid "Middle mouse button"
-msgstr "Środkowy przycisk myszy"
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
 
-msgid "Zoom View"
-msgstr "Powiększ widok"
+msgid "Switch to the next main tab"
+msgstr ""
 
-msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-msgstr "Ta funkcja automatycznie ustawia orientację zaznaczonych lub wszystkich obiektów. Jeśli są wybrane obiekty, ustawi tylko te wybrane. W przeciwnym razie ustawi wszystkie obiekty bieżącego projektu."
-
-msgid "Auto orients all objects on the active plate."
-msgstr "Ta funkcja automatycznie ustawia orientację wszystkie obiekty na aktualnej płycie roboczej."
-
-msgid "Collapse/Expand the sidebar"
-msgstr "Zwiń/Rozwiń pasek boczny"
-
-msgid "Any arrow"
-msgstr "Dowolna strzałka"
-
-msgid "Movement in camera space"
-msgstr "Ruch w przestrzeni kamery"
+msgid "Available while the 3D view on the Prepare tab has focus."
+msgstr ""
 
 msgid "Select a part"
 msgstr "Wybierz część"
@@ -12590,127 +12600,29 @@ msgstr "Wybierz wiele obiektów"
 msgid "Select objects by rectangle"
 msgstr "Wybierz obiekty prostokątem"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Up"
-msgstr "Strzałka w górę"
-
-msgid "Move selection 10mm in positive Y direction"
-msgstr "Przesuń wybrane o 10 mm w kierunku dodatnim osi Y"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Down"
-msgstr "Strzałka w dół"
-
-msgid "Move selection 10mm in negative Y direction"
-msgstr "Przesuń wybrane o 10 mm w kierunku ujemnym osi Y"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Left"
-msgstr "Strzałka w lewo"
-
-msgid "Move selection 10mm in negative X direction"
-msgstr "Przesuń wybrane o 10 mm w kierunku ujemnym osi X"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Arrow Right"
-msgstr "Strzałka w prawo"
-
-msgid "Move selection 10mm in positive X direction"
-msgstr "Przesuń wybrane o 10 mm w kierunku dodatnim osi X"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "klawiatura 1-9: ustaw filament dla obiektu/części"
 
 msgid "Movement step set to 1mm"
 msgstr "Ustaw krok ruchu na 1 mm"
 
-msgid "Keyboard 1-9: set filament for object/part"
-msgstr "klawiatura 1-9: ustaw filament dla obiektu/części"
+msgid "Movement in camera space"
+msgstr "Ruch w przestrzeni kamery"
 
-msgid "Camera view - Default"
-msgstr "Widok kamery - Domyślny"
+msgid "Middle mouse"
+msgstr ""
 
-msgid "Camera view - Top"
-msgstr "Widok kamery - Z góry"
+msgid "Right mouse"
+msgstr ""
 
-msgid "Camera view - Bottom"
-msgstr "Widok kamery - Z dołu"
+msgid "Zoom View"
+msgstr "Powiększ widok"
 
-msgid "Camera view - Front"
-msgstr "Widok kamery - Z przodu"
+msgid "Painting"
+msgstr ""
 
-msgid "Camera view - Behind"
-msgstr "Widok kamery - Z tyłu"
-
-msgid "Camera Angle - Left side"
-msgstr "Kąt kamery - Lewa strona"
-
-msgid "Camera Angle - Right side"
-msgstr "Kąt kamery - Prawa strona"
-
-msgid "Select all objects"
-msgstr "Wybierz wszystkie obiekty"
-
-msgid "Gizmo move"
-msgstr "Przenoszenie za pomocą „uchwytów”"
-
-msgid "Gizmo rotate"
-msgstr "Obracanie za pomocą „uchwytów”"
-
-msgid "Gizmo scale"
-msgstr "Skalowanie za pomocą „uchwytów”"
-
-msgid "Gizmo place face on bed"
-msgstr "Położenie na płaszczyźnie za pomocą „uchwytów”"
-
-msgid "Gizmo cut"
-msgstr "Cięcie za pomocą „uchwytów”"
-
-msgid "Gizmo mesh boolean"
-msgstr "Gizmo operacje boolowskie na siatce"
-
-msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Uchwyt malowania Fuzzy Skin FDM"
-
-msgid "Gizmo SLA support points"
-msgstr "Punkty podpór SLA za pomocą „uchwytów”"
-
-msgid "Gizmo FDM paint-on seam"
-msgstr "Uchwyt malowania szwu FDM"
-
-msgid "Gizmo text emboss/engrave"
-msgstr "Uchwyt wytłaczania/grawerowania tekstu"
-
-msgid "Gizmo measure"
-msgstr "Gizmo mierzyć"
-
-msgid "Gizmo assemble"
-msgstr "Gizmo montować"
-
-msgid "Gizmo brim ears"
-msgstr "Gizmo uszy brim"
-
-msgid "Zoom in"
-msgstr "Przybliżenie"
-
-msgid "Zoom out"
-msgstr "Oddalenie"
-
-# AI Translated
-msgid "Toggle printable for object/part"
-msgstr "Przełącz drukowalność obiektu/części"
-
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Tab"
-msgstr "Tab"
-
-msgid "Switch between Prepare/Preview"
-msgstr "Przełączanie między przygotowaniem/podglądem"
-
-msgid "Plater"
-msgstr "Płyta"
+msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
+msgstr ""
 
 msgid "Move: press to snap by 1mm"
 msgstr "Przesuń: naciśnij, aby przyciągnąć co 1 mm"
@@ -12721,14 +12633,19 @@ msgstr "Podpory/Kolorowanie: dostosuj promień pędzla"
 msgid "Support/Color Painting: adjust section position"
 msgstr "Podpory/Kolorowanie: dostosuj pozycję sekcji"
 
-msgid "Gizmo"
-msgstr "Uchwyt"
+msgid "Objects list"
+msgstr "Lista obiektów"
+
+msgid "Available while the object list has focus."
+msgstr ""
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Ustaw numer extrudera dla obiektów i części"
 
-msgid "Delete objects, parts, modifiers"
-msgstr "Usuń obiekty, części, modyfikatory"
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Spacja"
 
 msgid "Select the object/part and press space to change the name"
 msgstr "Wybierz obiekt/część i naciśnij spację, aby zmienić nazwę"
@@ -12739,45 +12656,48 @@ msgstr "Kliknięcie myszą"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Wybierz obiekt/część i kliknij myszą, aby zmienić nazwę"
 
-msgid "Objects List"
-msgstr "Lista obiektów"
-
-msgid "Vertical slider - Move active thumb Up"
-msgstr "Pionowy suwak - Przesuń aktywny punkt w górę"
-
-msgid "Vertical slider - Move active thumb Down"
-msgstr "Pionowy suwak - Przesuń aktywny punkt w dół"
-
-msgid "Horizontal slider - Move active thumb Left"
-msgstr "Poziomy suwak - Przesuń aktywny punkt w lewo"
-
-msgid "Horizontal slider - Move active thumb Right"
-msgstr "Poziomy suwak - Przesuń aktywny punkt w prawo"
-
-msgid "On/Off one layer mode of the vertical slider"
-msgstr "Włącz/wyłącz wyświetlanie jednej warstwy suwaka pionowego"
-
-msgid "On/Off G-code window"
-msgstr "Włącz/Wyłącz okno G-code"
+msgid "Available while the 3D view on the Preview tab has focus."
+msgstr ""
 
 msgid "Move slider 5x faster"
 msgstr "Przesuń suwak 5x szybciej"
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "Home"
-msgstr "Home"
+msgid "Scroll slider 5x faster"
+msgstr ""
 
-msgid "Horizontal slider - Move to start position"
-msgstr "Suwak poziomy - Przesuń do pozycji początkowej"
+msgid "Not customizable"
+msgstr ""
 
-# AI Translated
-msgctxt "Keyboard Shortcut"
-msgid "End"
-msgstr "End"
+#, c-format, boost-format
+msgid "%s is assigned to %s. Reassign it to %s?"
+msgstr ""
 
-msgid "Horizontal slider - Move to last position"
-msgstr "Suwak poziomy - Przesuń do ostatniej pozycji"
+#, c-format, boost-format
+msgid "The default %s is assigned to %s. Reassign it to %s?"
+msgstr ""
+
+msgid "Global shortcuts also apply while typing."
+msgstr ""
+
+msgid "A key that types a character cannot be a global shortcut."
+msgstr ""
+
+msgid "Esc cancels, Enter confirms."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Press the new shortcut for\n"
+"\"%s\""
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already used as a step of %s."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Already assigned to %s. Press OK to reassign it."
+msgstr ""
 
 msgid "Release Note"
 msgstr "Informacje o wydaniu"
@@ -17852,9 +17772,8 @@ msgstr "Kroki wstępnego podgrzewania"
 msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. For other printers, please set it to 1."
 msgstr "Wprowadź wiele poleceń dotyczących podgrzewania (np. M104.1). Funkcja ta działa tylko w drukarce Prusa XL. Dla pozostałych drukarek ustaw wartość na 1."
 
-# AI Translated
-msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "G-code zapisywany na samej górze pliku wyjściowego, przed jakąkolwiek inną treścią. Przydatny do dodawania metadanych, które oprogramowanie sprzętowe drukarki odczytuje z pierwszych wierszy pliku (np. szacowany czas druku, zużycie filamentu). Obsługuje symbole zastępcze, takie jak {print_time_sec} i {used_filament_length}."
+msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_total_sec}, {print_time_day}, {print_time_hour}, {print_time_minute}, {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "Początkowy G-code"
@@ -19433,13 +19352,36 @@ msgstr "Użyty filament"
 msgid "Total length of filament used in the print."
 msgstr "Całkowita długość filamentu użytego w wydruku."
 
-# AI Translated
-msgid "Print time (seconds)"
-msgstr "Czas druku (sekundy)"
+msgid "Print time (total seconds)"
+msgstr ""
 
 # AI Translated
 msgid "Total estimated print time in seconds. Replaced with actual value during post-processing."
 msgstr "Całkowity szacowany czas druku w sekundach. Zastępowany rzeczywistą wartością podczas postprocessingu."
+
+msgid "Print time (days component)"
+msgstr ""
+
+msgid "Estimated print time day component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (hours component)"
+msgstr ""
+
+msgid "Estimated print time hour component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (minutes component)"
+msgstr ""
+
+msgid "Estimated print time minute component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
+
+msgid "Print time (seconds component)"
+msgstr ""
+
+msgid "Estimated print time second component (normal mode). Replaced with actual value during post-processing."
+msgstr ""
 
 # AI Translated
 msgid "Filament length (meters)"
@@ -21356,6 +21298,9 @@ msgstr "Nie wykryto prawidłowej sesji. Kontynuować logowaniem do 3DPrinterOS?"
 msgid "Success!"
 msgstr "Powodzenie!"
 
+msgid "Generate API Key"
+msgstr ""
+
 msgid "Are you sure to log out?"
 msgstr "Czy na pewno wylogować?"
 
@@ -22426,14 +22371,6 @@ msgstr "Wtyczka Bambu Network jest wymagana do funkcji chmurowych, wykrywania dr
 #, c-format, boost-format
 msgid "Error: %s"
 msgstr "Błąd: %s"
-
-# AI Translated
-msgid "Show details"
-msgstr "Pokaż szczegóły"
-
-# AI Translated
-msgid "Hide details"
-msgstr "Ukryj szczegóły"
 
 # AI Translated
 msgid "Version to install:"
@@ -25096,6 +25033,12 @@ msgstr ""
 msgid "No binding for that field"
 msgstr ""
 
+msgid "Enter a number"
+msgstr ""
+
+msgid "Not a number"
+msgstr ""
+
 msgid "Primitive"
 msgstr ""
 
@@ -25106,6 +25049,217 @@ msgid "Pocket (Cut)"
 msgstr ""
 
 msgid "Clear All"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Ins"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "End"
+
+msgctxt "Keyboard Shortcut"
+msgid "PgUp"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "PgDn"
+msgstr ""
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Left"
+msgstr "Strzałka w lewo"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Right"
+msgstr "Strzałka w prawo"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Up"
+msgstr "Strzałka w górę"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Arrow Down"
+msgstr "Strzałka w dół"
+
+msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
+msgstr "Import danych geometrycznych z plików STL/STEP/3MF/OBJ/AMF"
+
+msgid "Select all objects"
+msgstr "Wybierz wszystkie obiekty"
+
+msgid "Paste from clipboard"
+msgstr "Wklej z schowka"
+
+# AI Translated
+msgid "Toggle printable for object/part"
+msgstr "Przełącz drukowalność obiektu/części"
+
+msgid "Move selection 10mm in negative X direction"
+msgstr "Przesuń wybrane o 10 mm w kierunku ujemnym osi X"
+
+msgid "Move selection 10mm in positive X direction"
+msgstr "Przesuń wybrane o 10 mm w kierunku dodatnim osi X"
+
+msgid "Move selection 10mm in positive Y direction"
+msgstr "Przesuń wybrane o 10 mm w kierunku dodatnim osi Y"
+
+msgid "Move selection 10mm in negative Y direction"
+msgstr "Przesuń wybrane o 10 mm w kierunku ujemnym osi Y"
+
+msgid "Rotate selection 45 degrees counterclockwise"
+msgstr ""
+
+msgid "Rotate selection 45 degrees clockwise"
+msgstr ""
+
+msgid "Gizmo move"
+msgstr "Przenoszenie za pomocą „uchwytów”"
+
+msgid "Gizmo rotate"
+msgstr "Obracanie za pomocą „uchwytów”"
+
+msgid "Gizmo scale"
+msgstr "Skalowanie za pomocą „uchwytów”"
+
+msgid "Gizmo place face on bed"
+msgstr "Położenie na płaszczyźnie za pomocą „uchwytów”"
+
+msgid "Gizmo cut"
+msgstr "Cięcie za pomocą „uchwytów”"
+
+msgid "Gizmo mesh boolean"
+msgstr "Gizmo operacje boolowskie na siatce"
+
+msgid "Gizmo FDM paint-on supports"
+msgstr ""
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "Uchwyt malowania szwu FDM"
+
+msgid "Gizmo FDM paint-on fuzzy skin"
+msgstr "Uchwyt malowania Fuzzy Skin FDM"
+
+msgid "Gizmo multi-material painting"
+msgstr ""
+
+msgid "Gizmo text emboss/engrave"
+msgstr "Uchwyt wytłaczania/grawerowania tekstu"
+
+msgid "Gizmo measure"
+msgstr "Gizmo mierzyć"
+
+msgid "Gizmo assemble"
+msgstr "Gizmo montować"
+
+msgid "Gizmo brim ears"
+msgstr "Gizmo uszy brim"
+
+msgid "Vertical slider - Move active thumb Up"
+msgstr "Pionowy suwak - Przesuń aktywny punkt w górę"
+
+msgid "Vertical slider - Move active thumb Down"
+msgstr "Pionowy suwak - Przesuń aktywny punkt w dół"
+
+msgid "Horizontal slider - Move active thumb Left"
+msgstr "Poziomy suwak - Przesuń aktywny punkt w lewo"
+
+msgid "Horizontal slider - Move active thumb Right"
+msgstr "Poziomy suwak - Przesuń aktywny punkt w prawo"
+
+msgid "Horizontal slider - Move to start position"
+msgstr "Suwak poziomy - Przesuń do pozycji początkowej"
+
+msgid "Horizontal slider - Move to last position"
+msgstr "Suwak poziomy - Przesuń do ostatniej pozycji"
+
+msgid "Camera view - Default"
+msgstr "Widok kamery - Domyślny"
+
+msgid "Camera view - Top"
+msgstr "Widok kamery - Z góry"
+
+msgid "Camera view - Bottom"
+msgstr "Widok kamery - Z dołu"
+
+msgid "Camera view - Front"
+msgstr "Widok kamery - Z przodu"
+
+msgid "Camera view - Behind"
+msgstr "Widok kamery - Z tyłu"
+
+msgid "Camera Angle - Left side"
+msgstr "Kąt kamery - Lewa strona"
+
+msgid "Camera Angle - Right side"
+msgstr "Kąt kamery - Prawa strona"
+
+msgid "Camera view - Current plate"
+msgstr ""
+
+msgid "Zoom in"
+msgstr "Przybliżenie"
+
+msgid "Zoom out"
+msgstr "Oddalenie"
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "Pokaż/ukryj okno dialogowe ustawień urządzeń 3Dconnexion"
+
+msgid "Show/Hide wireframe"
+msgstr ""
+
+msgid "On/Off G-code window"
+msgstr "Włącz/Wyłącz okno G-code"
+
+msgid "On/Off one layer mode of the vertical slider"
+msgstr "Włącz/wyłącz wyświetlanie jednej warstwy suwaka pionowego"
+
+msgid "Switch between Prepare/Preview"
+msgstr "Przełączanie między przygotowaniem/podglądem"
+
+msgid "Collapse/Expand the sidebar"
+msgstr "Zwiń/Rozwiń pasek boczny"
+
+msgid "Open the speed dial"
+msgstr ""
+
+msgid "Reload the device page"
+msgstr ""
+
+msgid "Show keyboard shortcuts list"
+msgstr "Pokaż listę skrótów klawiszowych"
+
+msgid "Slicing and printing"
+msgstr ""
+
+msgid "Editing"
+msgstr ""
+
+msgid "Placement"
+msgstr ""
+
+msgid "Gizmos"
+msgstr ""
+
+msgid "Sliders"
+msgstr ""
+
+msgid "Painting tools"
+msgstr ""
+
+msgid "Application"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
@@ -25408,6 +25562,66 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "Tab"
+#~ msgstr "Karty"
+
+# AI Translated
+#~ msgid "Displays current viewport FPS in the top-right corner."
+#~ msgstr "Wyświetla bieżącą wartość FPS widoku w prawym górnym rogu."
+
+# AI Translated
+#~ msgid "Publish 3MF Wiki"
+#~ msgstr "Wiki publikowania 3MF"
+
+# AI Translated
+#~ msgid "Publish 3MF Video Guide"
+#~ msgstr "Poradnik wideo publikowania 3MF"
+
+#~ msgid "Toolbar"
+#~ msgstr "Pasek narzędzi"
+
+#~ msgid "Switch table page"
+#~ msgstr "Przełącz stronę tabeli"
+
+#~ msgid "Global shortcuts"
+#~ msgstr "Globalne skróty"
+
+# AI Translated
+#~ msgid "Middle mouse button"
+#~ msgstr "Środkowy przycisk myszy"
+
+#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
+#~ msgstr "Ta funkcja automatycznie ustawia orientację zaznaczonych lub wszystkich obiektów. Jeśli są wybrane obiekty, ustawi tylko te wybrane. W przeciwnym razie ustawi wszystkie obiekty bieżącego projektu."
+
+#~ msgid "Auto orients all objects on the active plate."
+#~ msgstr "Ta funkcja automatycznie ustawia orientację wszystkie obiekty na aktualnej płycie roboczej."
+
+#~ msgid "Any arrow"
+#~ msgstr "Dowolna strzałka"
+
+#~ msgid "Gizmo SLA support points"
+#~ msgstr "Punkty podpór SLA za pomocą „uchwytów”"
+
+#~ msgid "Plater"
+#~ msgstr "Płyta"
+
+#~ msgid "Gizmo"
+#~ msgstr "Uchwyt"
+
+#~ msgid "Delete objects, parts, modifiers"
+#~ msgstr "Usuń obiekty, części, modyfikatory"
+
+#~ msgid "Objects List"
+#~ msgstr "Lista obiektów"
+
+# AI Translated
+#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
+#~ msgstr "G-code zapisywany na samej górze pliku wyjściowego, przed jakąkolwiek inną treścią. Przydatny do dodawania metadanych, które oprogramowanie sprzętowe drukarki odczytuje z pierwszych wierszy pliku (np. szacowany czas druku, zużycie filamentu). Obsługuje symbole zastępcze, takie jak {print_time_sec} i {used_filament_length}."
+
+# AI Translated
+#~ msgid "Print time (seconds)"
+#~ msgstr "Czas druku (sekundy)"
 
 # AI Translated
 #~ msgid "Open actions speed dial"

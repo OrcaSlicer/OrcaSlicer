@@ -32,7 +32,7 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
 
 
     m_scrollwindow = new wxScrolledWindow(this, wxID_ANY);
-    m_scrollwindow->SetScrollRate(0, FromDIP(10));
+    m_scrollwindow->SetScrollRate(0, FromDIP(20));
     m_scrollwindow->SetBackgroundColour(*wxWHITE);
     m_scrollwindow->SetMinSize(wxSize(FromDIP(480), wxDefaultCoord));
     m_scrollwindow->SetMaxSize(wxSize(FromDIP(480), wxDefaultCoord));
@@ -1793,6 +1793,7 @@ wxString PrinterPartsDialog::GetString(NozzleFlowType nozzle_flow_type) const {
         case Slic3r::S_FLOW: return _L("Standard");
         case Slic3r::H_FLOW: return _L("High flow");
         case Slic3r::U_FLOW: return _L("TPU High flow");
+        case Slic3r::E_FLOW: return _L("E3D High Flow");
         default: break;
     }
 

@@ -5,6 +5,7 @@
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -46,7 +47,7 @@ bool GLGizmoBrimEars::on_init()
 {
     m_new_point_head_radius = get_brim_default_radius();
 
-    m_shortcut_key = WXK_CONTROL_E;
+    m_shortcut = Shortcut::GizmoBrimEars;
 
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
     const wxString alt  = GUI::shortkey_alt_prefix();
