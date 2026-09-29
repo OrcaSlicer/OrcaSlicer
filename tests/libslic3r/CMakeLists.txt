@@ -16,6 +16,7 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_utils.cpp
     test_config.cpp
     test_config_variant_expansion.cpp
+    test_drc.cpp
     test_toolordering_nozzle_group.cpp
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
@@ -34,6 +35,7 @@ add_executable(${_TEST_NAME}_tests
     test_mutable_priority_queue.cpp
     test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
+    test_obj.cpp
     test_step.cpp
     test_stl.cpp
     test_triangle_selector.cpp
@@ -42,6 +44,7 @@ add_executable(${_TEST_NAME}_tests
     test_lay_on_face.cpp
     test_model.cpp
     test_utils.cpp
+    test_miniz_extension.cpp
     test_timeutils.cpp
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
@@ -69,7 +72,9 @@ if (TARGET OpenVDB::openvdb)
     target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)
 endif()
 
-target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+# libslic3r links Draco privately; test_drc.cpp encodes its own fixtures.
+find_package(Draco REQUIRED)
+target_link_libraries(${_TEST_NAME}_tests test_common libslic3r draco::draco Catch2::Catch2WithMain)
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 

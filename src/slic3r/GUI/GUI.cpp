@@ -14,6 +14,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/any.hpp>
 
+#include <wx/filename.h>
+#include <wx/filesys.h>
+
 #if __APPLE__
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #elif _WIN32
@@ -529,6 +532,11 @@ wxString from_path(const boost::filesystem::path &path)
 boost::filesystem::path into_path(const wxString &str)
 {
 	return boost::filesystem::path(str.wx_str());
+}
+
+wxString file_url_from_path(const boost::filesystem::path &path)
+{
+	return wxFileSystem::FileNameToURL(wxFileName(from_path(path)));
 }
 
 void about()

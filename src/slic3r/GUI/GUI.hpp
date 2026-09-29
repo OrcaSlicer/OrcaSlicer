@@ -76,6 +76,9 @@ std::string	into_u8(const wxString &str);
 wxString	from_path(const boost::filesystem::path &path);
 // boost path from wxString
 boost::filesystem::path	into_path(const wxString &str);
+// file:// URL of a local path, percent-encoded so characters such as '#', '%' and '?' stay part of the path.
+// Append any query or fragment to the result.
+wxString	file_url_from_path(const boost::filesystem::path &path);
 
 // Display an About dialog
 extern void about();

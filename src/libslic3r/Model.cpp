@@ -3750,7 +3750,11 @@ void FacetsAnnotation::set_triangle_from_string(int triangle_id, const std::stri
             m_data.bitstream.insert(m_data.bitstream.end(), bool(dec & (1 << i)));
     }
 
-    m_data.update_used_states(bitstream_start_idx);
+    if (!m_data.update_used_states(bitstream_start_idx)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": dropping malformed paint data of triangle " << triangle_id;
+        m_data.bitstream.resize(bitstream_start_idx);
+        m_data.triangles_to_split.pop_back();
+    }
 }
 
 bool FacetsAnnotation::equals(const FacetsAnnotation &other) const

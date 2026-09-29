@@ -1093,6 +1093,9 @@ bool is_path_within_root(const std::string &rel_path, const boost::filesystem::p
     auto is_separator = [](char c) { return c == '/' || c == '\\'; };
     if (rel_path.empty() || is_separator(rel_path.front()) || (rel_path.size() > 1 && rel_path[1] == ':'))
         return false;
+    // The filesystem calls stop at a NUL, so they would act on a shorter path than the one checked here.
+    if (rel_path.find('\0') != std::string::npos)
+        return false;
     for (size_t start = 0; start <= rel_path.size();) {
         size_t end = start;
         while (end < rel_path.size() && !is_separator(rel_path[end]))
@@ -1103,13 +1106,25 @@ bool is_path_within_root(const std::string &rel_path, const boost::filesystem::p
     }
     // Resolve against the canonical root so a symlink inside it cannot lead back out.
     try {
-        const std::string root_str = boost::filesystem::weakly_canonical(root).string();
+        std::string root_str = boost::filesystem::weakly_canonical(root).string();
+        // A trailing separator on root would otherwise fail the prefix match below for every path.
+        while (!root_str.empty() && (root_str.back() == '/' || root_str.back() == boost::filesystem::path::preferred_separator))
+            root_str.pop_back();
         const std::string full_str = boost::filesystem::weakly_canonical(root / rel_path).string();
         return full_str.compare(0, root_str.size(), root_str) == 0 &&
                (full_str.size() == root_str.size() || full_str[root_str.size()] == boost::filesystem::path::preferred_separator);
     } catch (const boost::filesystem::filesystem_error &) {
         return false;
     }
+}
+
+bool is_symlink_target_within_root(const std::string &link_rel_path, const std::string &target, const boost::filesystem::path &root)
+{
+    if (target.empty() || target.front() == '/' || target.front() == '\\' || (target.size() > 1 && target[1] == ':'))
+        return false;
+    // A relative target without ".." only descends from the link's directory, so no chain of such links can leave root.
+    const size_t sep = link_rel_path.find_last_of("/\\");
+    return is_path_within_root((sep == std::string::npos ? std::string() : link_rel_path.substr(0, sep + 1)) + target, root);
 }
 
 bool is_img_file(const std::string &path)
@@ -1319,6 +1334,31 @@ unsigned get_current_pid()
 #else
     return ::getpid();
 #endif
+}
+
+boost::filesystem::path download_marker_path(const boost::filesystem::path &dest_folder, const std::string &filename)
+{
+    return dest_folder / (filename + "." + std::to_string(get_current_pid()) + ".download");
+}
+
+bool find_unused_filename(const boost::filesystem::path &dest_folder, const std::string &filename,
+                          const boost::filesystem::path &ignored_marker, std::string &result)
+{
+    // Probe the name that will be written, so a name the sanitizing maps onto an existing file is versioned too.
+    const std::string sanitized = sanitize_filename(filename);
+    const std::string extension = boost::filesystem::path(sanitized).extension().string();
+    const std::string stem      = sanitized.substr(0, sanitized.size() - extension.size());
+    auto is_used = [&](const std::string &name) {
+        const boost::filesystem::path marker = download_marker_path(dest_folder, name);
+        return boost::filesystem::exists(dest_folder / name) || (marker != ignored_marker && boost::filesystem::exists(marker));
+    };
+    result = sanitized;
+    for (size_t version = 1; is_used(result); ++version) {
+        if (version > 999)
+            return false;
+        result = stem + "(" + std::to_string(version) + ")" + extension;
+    }
+    return true;
 }
 
 std::string per_user_temp_id()

@@ -5482,3 +5482,39 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
         CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
 }
+
+// A project saved before a key joined filament_options_with_variant stores it once per filament,
+// while the keys that were already per variant store it once per filament variant. Loading such a
+// project gives every variant of a filament that filament's value.
+TEST_CASE("A project saved with pressure advance per filament applies it to every variant of the filament", "[Preset][Bundle]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_settings_id", true)->values = { "Project PLA", "Project PETG" };
+    // A multi-variant printer: full_print_config() leaves the list out, and the loader splits the
+    // variant keys per filament only when the project carries it.
+    config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = { "Direct Drive Standard,Direct Drive High Flow" };
+    // filament 1 defines Standard and High Flow, filament 2 Standard
+    config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = { "Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard" };
+    config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 1, 2 };
+    config.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values = { 0.95, 0.96, 0.97 }; // one per filament variant
+    // One per filament, read through the loader that project files go through.
+    config.load_from_ini_string("pressure_advance = 0.021,0.043", ForwardCompatibilitySubstitutionRule::Disable);
+    // The CLI slices the config as loaded.
+    check_double_vector(config.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.021, 0.021, 0.043 });
+    check_double_vector(config.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.95, 0.96, 0.97 });
+    // The GUI normalizes the config before load; mirror that so only the production path runs.
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    REQUIRE(bundle.filament_presets.size() == 2);
+    const DynamicPrintConfig &pla  = bundle.filaments.find_preset(bundle.filament_presets[0], false, true)->config;
+    const DynamicPrintConfig &petg = bundle.filaments.find_preset(bundle.filament_presets[1], false, true)->config;
+    check_double_vector(pla.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.021, 0.021 });
+    check_double_vector(petg.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.043 });
+    check_double_vector(pla.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.95, 0.96 });
+    check_double_vector(petg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.97 });
+}

@@ -218,37 +218,38 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
     m_page = startpage;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(" enter, load=%1%, start_page=%2%")%load%int(startpage);
     //wxLogMessage("GUIDE: webpage_1  %s", (boost::filesystem::path(resources_dir()) / "web\\guide\\1\\index.html").make_preferred().string().c_str() );
-    wxString TargetUrl = from_u8( (boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=1").make_preferred().string() );
+    const wxString guide_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/0/index.html");
+    wxString TargetUrl = guide_url + "?target=1";
     //wxLogMessage("GUIDE: webpage_2  %s", TargetUrl.mb_str());
 
     if (startpage == BBL_WELCOME){
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=1").make_preferred().string());
+        TargetUrl = guide_url + "?target=1";
     } else if (startpage == BBL_REGION) {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=11").make_preferred().string());
+        TargetUrl = guide_url + "?target=11";
     } else if (startpage == BBL_MODELS) {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+        TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENTS) {
         SetTitle(_L("Setup Wizard"));
 
         int nSize = m_ProfileJson["model"].size();
 
         if (nSize>0)
-            TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=22").make_preferred().string());
+            TargetUrl = guide_url + "?target=22";
         else
-            TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+            TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENT_ONLY) {
         SetTitle("");
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=23").make_preferred().string());
+        TargetUrl = guide_url + "?target=23";
     } else if (startpage == BBL_MODELS_ONLY) {
         SetTitle("");
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=24").make_preferred().string());
+        TargetUrl = guide_url + "?target=24";
     }
     else {
         SetTitle(_L("Setup Wizard"));
-        TargetUrl = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/0/index.html?target=21").make_preferred().string());
+        TargetUrl = guide_url + "?target=21";
     }
 
     wxString strlang = wxGetApp().current_language_code_safe();
@@ -256,7 +257,6 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
     if (strlang != "")
         TargetUrl = wxString::Format("%s&lang=%s", w2s(TargetUrl), strlang);
 
-    TargetUrl = "file://" + TargetUrl;
     if (load)
         load_url(TargetUrl);
 
@@ -1284,7 +1284,7 @@ bool GuideFrame::BuildProfileJson(const PresetBundle& bundle, bool require_all_r
                 entry["vendor"]          = vp.id;
                 entry["nozzle_diameter"] = nozzle_str;
                 entry["materials"]       = materials_str;
-                entry["cover"]           = cover_path.string();
+                entry["cover"]           = into_u8(file_url_from_path(cover_path));
                 entry["nozzle_selected"] = "";
                 entry["sub_path"]        = "";
                 m_ProfileJson["model"].push_back(entry);
@@ -1732,7 +1732,7 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
                     cover_path = (boost::filesystem::absolute(boost::filesystem::path(resources_dir()) / "/web/image/printer/") / cover_file)
                                      .make_preferred();
             }
-            OneModel["cover"]                  = cover_path.string();
+            OneModel["cover"]                  = into_u8(file_url_from_path(cover_path));
 
             OneModel["nozzle_selected"] = "";
 
