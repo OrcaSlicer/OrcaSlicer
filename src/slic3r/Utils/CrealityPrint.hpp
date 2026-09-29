@@ -38,8 +38,7 @@ public:
     // value: an F-code on the K2 platform, a literal name on K1-family.
     static bool model_supports_multi_color(const std::string& model);
     static std::string model_display_name(const std::string& model);
-    // True only for the K2 platform (F008/F012/F021), a strict subset of the CFS-capable table
-    // above: whether K1-family also defaults its web UI to :4408 is unconfirmed.
+    // Whether the model's web UI defaults to :4408.
     static bool model_is_k2_platform(const std::string& model);
     std::string query_boxes_info() const;
     std::string model_name() const;
