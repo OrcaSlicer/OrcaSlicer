@@ -100,6 +100,22 @@ SCENARIO("Origin manipulation", "[GCodeWriter]") {
     }
 }
 
+TEST_CASE("A cached config slot is looked up again whenever its key changes", "[GCodeWriter]")
+{
+    GCode::ConfigIndexCache cache;
+    int lookups = 0;
+    auto slot = [&](int filament, size_t layer, size_t generation) {
+        return cache.get(filament, layer, generation, [&] { ++lookups; return filament * 100 + int(layer) * 10 + int(generation); });
+    };
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(lookups == 1);
+    REQUIRE(slot(4, 2, 3) == 423);
+    REQUIRE(slot(4, 5, 3) == 453);
+    REQUIRE(slot(4, 5, 6) == 456);
+    REQUIRE(lookups == 4);
+}
+
 // Verify that emit_machine_limits_to_gcode emits the correct max value across
 // used extruders (regression for commit b4ee665: "Emit max value of machine
 // limit among used extruders").

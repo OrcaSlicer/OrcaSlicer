@@ -510,6 +510,22 @@ TEST_CASE("Print config-index resolvers pick per-filament Hybrid slots", "[Print
     }
 }
 
+TEST_CASE("Regrouping or rewriting the filament maps changes the config-index generation", "[Print][H2C]")
+{
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
+    Print print;
+    print.apply(model, DynamicPrintConfig::full_print_config());
+
+    size_t generation = print.config_index_generation();
+    print.set_nozzle_group_result(nullptr);
+    REQUIRE(print.config_index_generation() != generation);
+
+    generation = print.config_index_generation();
+    print.update_filament_maps_to_config({1}, {(int) nvtStandard}, {0});
+    REQUIRE(print.config_index_generation() != generation);
+}
+
 TEST_CASE("Re-applying an unchanged config after slicing keeps the result valid", "[Print][H2C]")
 {
     // apply() rebuilds m_config.filament_map_2 to the real per-filament slot map, while the

@@ -1309,7 +1309,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         // Reproduce that exact expansion here so an unchanged config diffs empty — the expanded
         // keys invalidate the wipe tower / g-code export, and the placeholder parser aliases
         // the full config — instead of trimming back to one slot per filament.
-        auto group_result = std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(this->get_nozzle_group_result());
+        auto group_result = this->get_layered_nozzle_group_result();
         std::unordered_map<int, std::vector<FilamentVariantUse>> filament_variant_uses;
         if (group_result && group_result->is_support_dynamic_nozzle_map()
             && collect_filament_variant_uses(*group_result, m_ori_full_print_config, filament_variant_uses))
