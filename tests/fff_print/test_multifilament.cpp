@@ -310,11 +310,18 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
 // sibling caller of change_filament_gcode) needs the same bracketing of its own.
 TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", "[MultiFilament]")
 {
-    const std::string custom_gcode = "; fan full\nM106 P1 S255\nM400 S3\n\nG1 X77 F5000\nG1 X91 F3000\n";
+    const std::string custom_gcode = "; fan full\nM106 P1 S255\nM400 S3\nG1 X77 F5000\nG1 X91 F3000\n";
 
-    // Direct toolchange: no prime tower, GCode::set_extruder() runs it. By-object sequencing with
-    // a per-object filament override is what makes one happen at all without a tower.
-    {
+    // "direct": no prime tower, GCode::set_extruder() runs the toolchange. By-object sequencing
+    // with a per-object filament override is what makes one happen at all without a tower.
+    // "type1": a Type1 prime tower routes the toolchange through WipeTowerIntegration::append_tcr()
+    // instead (append_tcr2, Type2's equivalent, itself calls set_extruder() - so Type2 needs no
+    // separate case here).
+    const std::string path = GENERATE(as<std::string>{}, "direct", "type1");
+    CAPTURE(path);
+
+    std::string gcode_str;
+    if (path == "direct") {
         const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> per_object_overrides = {
             {}, { { "outer_wall_filament_id", "2" }, { "inner_wall_filament_id", "2" } }
         };
@@ -326,25 +333,8 @@ TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", 
             { "fan_speedup_time",      0.5 },
             { "fan_kickstart",         0.1 },
         });
-        const std::string gcode_str = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides);
-
-        size_t region_count = 0;
-        size_t pos = 0;
-        while (true) {
-            const size_t region_start = gcode_str.find("; custom gcode start", pos);
-            if (region_start == std::string::npos)
-                break;
-            const size_t region_end = gcode_str.find("; custom gcode end", region_start);
-            REQUIRE(region_end != std::string::npos);
-            if (gcode_str.substr(region_start, region_end - region_start).find("M106 P1 S255") != std::string::npos)
-                ++region_count;
-            pos = region_end + 1;
-        }
-        CHECK(region_count >= 1);
-    }
-
-    // Type1 wipe-tower toolchange, through WipeTowerIntegration::append_tcr().
-    {
+        gcode_str = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides);
+    } else {
         const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> per_object_overrides = {
             { { "extruder", "1" } }, { { "extruder", "2" } }
         };
@@ -361,27 +351,27 @@ TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", 
             { "skirt_loops",           0 },
             { "brim_type",             "no_brim" },
         });
-        std::string gcode_str = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides);
-        // The resolved-settings config footer echoes "change_filament_gcode = ..." with its value
-        // escaped (literal "\n", not real newlines) - drop it and everything after, or that echo's
-        // own "G1 X77 F5000" is counted as an unbracketed toolchange.
-        const size_t footer_start = gcode_str.find("; CONFIG_BLOCK_START");
-        REQUIRE(footer_start != std::string::npos);
-        gcode_str.erase(footer_start);
-
-        auto count_occurrences = [](const std::string &haystack, const std::string &needle) {
-            size_t count = 0, pos = 0;
-            while ((pos = haystack.find(needle, pos)) != std::string::npos) {
-                ++count;
-                pos += needle.size();
-            }
-            return count;
-        };
-        const size_t total_waypoints = count_occurrences(gcode_str, "G1 X77 F5000");
-        const size_t bracketed       = count_occurrences(gcode_str, "M400 S3\n\nG1 X77 F5000");
-        REQUIRE(total_waypoints > 0);
-        CHECK(bracketed == total_waypoints);
+        gcode_str = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides);
     }
+
+    // The resolved-settings config footer echoes "change_filament_gcode = ..." with its value
+    // escaped, so drop it before counting or its own copy of "G1 X77 F5000" is miscounted.
+    const size_t footer_start = gcode_str.find("; CONFIG_BLOCK_START");
+    REQUIRE(footer_start != std::string::npos);
+    gcode_str.erase(footer_start);
+
+    auto count_occurrences = [](const std::string &haystack, const std::string &needle) {
+        size_t count = 0, pos = 0;
+        while ((pos = haystack.find(needle, pos)) != std::string::npos) {
+            ++count;
+            pos += needle.size();
+        }
+        return count;
+    };
+    const size_t total_waypoints = count_occurrences(gcode_str, "G1 X77 F5000");
+    const size_t bracketed       = count_occurrences(gcode_str, "M400 S3\nG1 X77 F5000");
+    REQUIRE(total_waypoints > 0);
+    CHECK(bracketed == total_waypoints);
 }
 
 // With wait_for_temp_on_wipe_tower the blocking M109 moves from right after the Tn command to
