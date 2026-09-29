@@ -3751,16 +3751,17 @@ int CLI::run(int argc, char **argv)
     //compute the flush volume
     ConfigOptionStrings *selected_filament_colors_option = m_extra_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *project_filament_colors_option = m_print_config.option<ConfigOptionStrings>("filament_colour");
-    if ((!project_filament_colors_option || (project_filament_colors_option->values.size() == 0)) && selected_filament_colors_option)
-    {
-        BOOST_LOG_TRIVIAL(info) << boost::format("initial project_filament_colors is null, create it due to filament_colour set in cli");
+    // Loading filament profiles can change the slot count without supplying display colours.
+    // Painting, purge matrices and nozzle grouping must all see the same number of slots.
+    const bool filament_palette_resized = filament_count > 0 &&
+        (!project_filament_colors_option || project_filament_colors_option->size() != filament_count);
+    if (filament_palette_resized) {
         project_filament_colors_option = m_print_config.option<ConfigOptionStrings>("filament_colour", true);
-        std::vector<std::string>& project_filament_colors = project_filament_colors_option->values;
-        project_filament_colors.resize(filament_count, "#FFFFFF");
+        project_filament_colors_option->values.resize(filament_count, "#FFFFFF");
     }
 
     if (project_filament_colors_option &&
-        (selected_filament_colors_option || !m_print_config.option<ConfigOptionFloats>("flush_volumes_matrix") || (current_extruder_count != new_extruder_count) || (new_nozzle_volume_type != current_nozzle_volume_type)))
+        (filament_palette_resized || selected_filament_colors_option || !m_print_config.option<ConfigOptionFloats>("flush_volumes_matrix") || (current_extruder_count != new_extruder_count) || (new_nozzle_volume_type != current_nozzle_volume_type)))
     {
         std::vector<std::string>  selected_filament_colors;
         if (selected_filament_colors_option) {

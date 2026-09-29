@@ -19,6 +19,32 @@
 
 using namespace Slic3r;
 
+TEST_CASE("Bambu automatic support walls load without disabling range validation", "[Config][Regression]")
+{
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict("tree_support_wall_count", "-1");
+    REQUIRE(config.opt_int("tree_support_wall_count") == 0);
+    REQUIRE(config.validate(true).empty());
+
+    const auto invalid = GENERATE("-2", "3");
+    config.set_deserialize_strict("tree_support_wall_count", invalid);
+    REQUIRE(config.validate(true).count("tree_support_wall_count") == 1);
+}
+
+TEST_CASE("Bambu default filament selectors and automatic tower brim remain valid", "[Config][Regression]")
+{
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict("wall_filament", "0");
+    config.set_deserialize_strict("sparse_infill_filament", "0");
+    config.set_deserialize_strict("solid_infill_filament", "0");
+    config.set_deserialize_strict("prime_tower_brim_width", "-1");
+    REQUIRE(config.opt_int("outer_wall_filament_id") == 0);
+    REQUIRE(config.opt_int("sparse_infill_filament_id") == 0);
+    REQUIRE(config.opt_int("internal_solid_filament_id") == 0);
+    REQUIRE_THAT(config.opt_float("prime_tower_brim_width"), Catch::Matchers::WithinAbs(-1., 1e-9));
+    REQUIRE(config.validate(true).empty());
+}
+
 SCENARIO("Generic config validation performs as expected.", "[Config]") {
     GIVEN("A config generated from default options") {
         Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();

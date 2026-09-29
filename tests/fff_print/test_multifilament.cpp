@@ -2,6 +2,8 @@
 
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
@@ -38,6 +40,35 @@ static std::set<int> tools_for_role(const std::string& gcode, const std::string&
             tools.insert(current_tool);
     });
     return tools;
+}
+
+TEST_CASE("Painted filaments slice when the display palette is shorter than the filament list", "[MultiFilament][Regression]")
+{
+    auto config = multifilament_config(2, {
+        { "filament_colour", "#FF0000" },
+        { "enable_prime_tower", "0" },
+        { "gcode_comments", "1" }
+    });
+    Print print;
+    Model model;
+    init_print({cube(10)}, print, model, config);
+    auto *volume = model.objects.front()->volumes.front();
+    TriangleSelector selector(volume->mesh());
+    // Paint one side with the second filament, leaving the rest on the first.
+    selector.set_facet(4, EnforcerBlockerType::Extruder2);
+    selector.set_facet(5, EnforcerBlockerType::Extruder2);
+    REQUIRE(volume->mmu_segmentation_facets.set(selector));
+    print.apply(model, config);
+    PrintObject *object = print.objects_mutable().front();
+    object->slice();
+    const auto segmentation = multi_material_segmentation_by_painting(*object, [] {});
+    REQUIRE_FALSE(segmentation.empty());
+    bool second_filament_present = false;
+    for (const auto &layer : segmentation) {
+        REQUIRE(layer.size() == 2);
+        second_filament_present |= !layer[1].empty();
+    }
+    REQUIRE(second_filament_present);
 }
 
 // X where the nozzle sits while each tagged _WAIT_FOR_TEMP_ON_WIPE_TOWER M109 blocks:

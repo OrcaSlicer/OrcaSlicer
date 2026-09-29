@@ -23,3 +23,10 @@ set_tests_properties(cli_project_missing_keys PROPERTIES
     LABELS "CLI;RequiresApp"
     SKIP_RETURN_CODE 77
     TIMEOUT 900)
+
+add_test(NAME cli_bambuddy_compatibility
+    COMMAND ${ORCA_CLI_TEST_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_bambuddy_compatibility.py $<TARGET_FILE:OrcaSlicer>)
+set_tests_properties(cli_bambuddy_compatibility PROPERTIES
+    LABELS "CLI;RequiresApp"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 1000)
