@@ -4458,9 +4458,21 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     return filament_infos;
 }
 
-// ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
-// printer_type: "Bambu Lab X2D", nozzle_diameter_str: "0.4 nozzle" => printer_name: "Bambu Lab X2D 0.4 nozzle". If the printer name does
-// not follow this pattern, the function may not work correctly.
+std::string PresetBundle::get_printer_model_display_name(const std::string &model_id) const
+{
+    if (model_id.empty())
+        return {};
+    for (const auto &vendor_entry : vendors) {
+        for (const auto &model : vendor_entry.second.models) {
+            if (model.model_id == model_id)
+                return model.name;
+        }
+    }
+    return {};
+}
+
+// ORCA TODO: this assumes printer names follow "<printer_model> <nozzle_diameter>", e.g.
+// "Bambu Lab X2D 0.4 nozzle". Other naming schemes may not resolve correctly.
 std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only)
 {
     std::set<std::string> printer_names;
@@ -4482,7 +4494,9 @@ std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle
         if (printer_it->name.find(nozzle_diameter_str) != std::string::npos) printer_names.insert(printer_it->name);
     }
 
-    assert(printer_names.size() == 1);
+    // No match is normal for a connected machine the user has not installed; only an
+    // ambiguous match is a bug (the caller assumes one preset per model and nozzle).
+    assert(printer_names.size() <= 1);
 
     for (auto& printer_name : printer_names) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " printer name: " << printer_name;
@@ -4495,8 +4509,8 @@ std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::
                                                                     const std::string &nozzle_diameter_str,
                                                                     bool               include_user_presets)
 {
-    // Printer model plus nozzle diameter is expected to resolve to a single system printer preset;
-    // get_printer_names_by_printer_type_and_nozzle asserts as much in debug builds.
+    // Printer model plus nozzle diameter normally resolves to a single system printer preset.
+    // Zero matches is normal for a connected machine the user never installed.
     const std::set<std::string> printer_names = get_printer_names_by_printer_type_and_nozzle(printer_type, nozzle_diameter_str);
     const Preset *printer = printer_names.empty() ? nullptr : printers.find_preset(*printer_names.begin());
     if (printer == nullptr)

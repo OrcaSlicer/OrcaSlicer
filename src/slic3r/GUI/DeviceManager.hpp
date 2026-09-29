@@ -74,6 +74,7 @@ class DeviceErrorDialog; // Previous definitions
 
 class NetworkAgent;
 // Orca: ManualPaCaliMethod now provided by DeviceCore/DevCalib.h (enum class)
+class PresetBundle;
 
 #define UpgradeNoError          0
 #define UpgradeDownloadFailed   -1
@@ -108,6 +109,11 @@ struct DevPrintTaskRatingInfo;
 // Returns true when filament_id (e.g. "GFA11", "GFU00") is on the stringing-prone list for the
 // given nozzle diameter (mm), bucketed per nozzle size to mirror the printer firmware.
 bool is_stringing_prone_filament(const std::string& filament_id, float nozzle_diameter);
+
+// The printer model filament presets are matched against for a connected machine. OrcaSonar's
+// model id is optional, so a device with no installed vendor model falls back to the selected
+// printer profile rather than resolving to no filament list at all.
+std::string resolve_filament_printer_model(const std::string& printer_type, PresetBundle* preset_bundle);
 
 class MachineObject
 {
@@ -808,6 +814,10 @@ public:
     // always allow; an Orca device must have advertised the command (unknown
     // capability is not support).
     bool orca_ams_command_supported(const char* command) const;
+    // The per-tray flow-dynamics K/N records are a Bambu firmware feature. Other
+    // agents have no printer-side calibration to read or write, so the AMS UI must
+    // not offer K/N for them.
+    bool supports_extrusion_cali() const;
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
     int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210, std::optional<int> extruder_id = std::nullopt);

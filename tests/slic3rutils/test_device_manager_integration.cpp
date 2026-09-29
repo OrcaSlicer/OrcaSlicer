@@ -4,6 +4,8 @@
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <libslic3r/AppConfig.hpp>
+#include <libslic3r/PresetBundle.hpp>
+#include <libslic3r/PrintConfig.hpp>
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
@@ -275,4 +277,53 @@ TEST_CASE("Orca per-command AMS gate requires fms and the advertised command", "
     // Bambu keeps the legacy permissive path.
     obj->printer_agent_id = "bbl";
     CHECK(obj->orca_ams_command_supported("print.anything"));
+}
+
+// The AMS dialogs resolve their filament list from the connected device's model. OrcaSonar's
+// model id is optional (the agent falls back to "orcasonar"), so the resolver must stand in
+// with the selected printer profile instead of yielding no model at all.
+TEST_CASE("Filament printer model resolution falls back to the selected profile", "[DeviceManager][integration]")
+{
+    PresetBundle bundle;
+
+    VendorProfile qidi("Qidi");
+    qidi.name = "Qidi";
+    VendorProfile::PrinterModel model;
+    model.model_id = "Qidi-Q1Pro";
+    model.name     = "Qidi Q1 Pro";
+    qidi.models.push_back(model);
+    bundle.vendors.emplace(qidi.id, qidi);
+
+    // A vendor model id the device reported resolves through the vendor catalog.
+    CHECK(resolve_filament_printer_model("Qidi-Q1Pro", &bundle) == "Qidi Q1 Pro");
+
+    // The OrcaSonar fallback id has no vendor model; the selected profile stands in.
+    CHECK(resolve_filament_printer_model("orcasonar", &bundle).empty());
+    bundle.printers.get_selected_preset().config.set_key_value("printer_model", new ConfigOptionString("Generic Klipper Printer"));
+    CHECK(resolve_filament_printer_model("orcasonar", &bundle) == "Generic Klipper Printer");
+    CHECK(resolve_filament_printer_model("", &bundle) == "Generic Klipper Printer");
+
+    CHECK(resolve_filament_printer_model("orcasonar", nullptr).empty());
+}
+
+// The per-tray K/N records are Bambu firmware's flow-dynamics calibration. Agents with no
+// printer-side records must not offer the AMS K/N controls (they would show a synthesized
+// default and then refuse to confirm it).
+TEST_CASE("Flow-dynamics K/N is offered for Bambu agents only", "[DeviceManager][integration]")
+{
+    MachineObject bbl(nullptr, nullptr, "test", "bbl-device", "127.0.0.1");
+    bbl.printer_agent_id = "bbl";
+    CHECK(bbl.supports_extrusion_cali());
+
+    MachineObject orca(nullptr, nullptr, "test", "orca-device", "127.0.0.1");
+    orca.printer_agent_id = "orca";
+    CHECK_FALSE(orca.supports_extrusion_cali());
+
+    MachineObject moonraker(nullptr, nullptr, "test", "moonraker-device", "127.0.0.1");
+    moonraker.printer_agent_id = "moonraker";
+    CHECK_FALSE(moonraker.supports_extrusion_cali());
+
+    // No agent id predates the agent split and keeps the Bambu path.
+    MachineObject legacy(nullptr, nullptr, "test", "legacy-device", "127.0.0.1");
+    CHECK(legacy.supports_extrusion_cali());
 }

@@ -432,6 +432,32 @@ NozzleVolumeType convert_to_nozzle_type(const std::string &str)
     return res;
 }
 
+std::string resolve_filament_printer_model(const std::string& printer_type, PresetBundle* preset_bundle)
+{
+    if (!preset_bundle)
+        return {};
+
+    // Devices with a shipped printer config (Bambu) resolve directly.
+    if (const std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type); !display_name.empty())
+        return display_name;
+
+    // A vendor model id the device reported (SSDP modelNumber, manual binding).
+    if (!printer_type.empty()) {
+        if (const std::string model_name = preset_bundle->get_printer_model_display_name(printer_type); !model_name.empty())
+            return model_name;
+    }
+
+    // OrcaSonar's model id is optional; a generic device resolves against the selected profile.
+    if (const ConfigOptionString* model = preset_bundle->printers.get_selected_preset().config.opt<ConfigOptionString>("printer_model");
+        model && !model->value.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "resolve_filament_printer_model: device type \"" << printer_type
+                                << "\" has no installed model; using the selected profile \"" << model->value << "\"";
+        return model->value;
+    }
+
+    return {};
+}
+
 wxString MachineObject::get_printer_type_display_str() const
 {
     std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type);
@@ -1817,6 +1843,12 @@ bool MachineObject::orca_ams_command_supported(const char* command) const
     return command != nullptr && supported_commands.count(command) != 0;
 }
 
+bool MachineObject::supports_extrusion_cali() const
+{
+    // Devices with no agent id predate the agent split and keep the Bambu path.
+    return printer_agent_id.empty() || printer_agent_id == BBL_PRINTER_AGENT_ID;
+}
+
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
 {
     // OrcaSonar: writing slot metadata is gated on the filament_slots capability.
@@ -2908,6 +2940,7 @@ int MachineObject::local_publish_json(std::string json_str, int qos, int flag)
 std::string MachineObject::setting_id_to_type(std::string setting_id, std::string tray_type)
 {
     std::string type;
+    if (wxTheApp == nullptr) return tray_type;
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
@@ -4244,6 +4277,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             vt_slot[0].setting_id = jj["tray_info_idx"].get<std::string>();
                             //vt_tray.type = jj["tray_type"].get<std::string>();
                             vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
+                            // The ack carries the whole slot; re-derive empty so the panel flips off
+                            // "Empty" without waiting out the hold.
+                            vt_slot[0].UpdateEmptyState(true);
                             // delay update
                             vt_slot[0].set_hold_count();
                         } else {
@@ -4269,6 +4305,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                                     tray_it->second->setting_id = jj["tray_info_idx"].get<std::string>();
                                     tray_it->second->m_fila_type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
+                                    // The ack carries the whole slot; re-derive empty so the panel flips off
+                                    // "Empty" without waiting out the hold.
+                                    tray_it->second->UpdateEmptyState(true);
                                     // delay update
                                     tray_it->second->set_hold_count();
                                 } else {
@@ -5207,7 +5246,7 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
             // vt_tray.setting_id is our OF id (translated on the way in); the two support ids below are the printer's own.
-            auto* agent = GUI::wxGetApp().getAgent();
+            auto* agent = wxTheApp != nullptr ? GUI::wxGetApp().getAgent() : nullptr;
             const std::string printer_filament_id = agent ? agent->from_orca_filament_id(vt_tray.setting_id) : vt_tray.setting_id;
             if (printer_filament_id == "GFS00") {
                 vt_tray.m_fila_type = "PLA-S";
@@ -5302,6 +5341,7 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
         else {
             vt_tray.remain = -1;
         }
+        vt_tray.UpdateEmptyState(vtray.contains("tray_info_idx") && vtray.contains("tray_type"));
     }
 
     return vt_tray;
