@@ -12829,7 +12829,7 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
 // Common Defs
     def = this->add("layer_num", coInt);
     def->label = L("Layer number");
-    def->tooltip = L("Index of the current layer. One-based (i.e. first layer is number 1).");
+    def->tooltip = L("Index of the current layer. Zero-based (i.e. first layer is number 0).");
 
     def = this->add("layer_z", coFloat);
     def->label = L("Layer Z");
