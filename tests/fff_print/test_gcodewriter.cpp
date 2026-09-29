@@ -4,18 +4,21 @@
 #include <cstdlib>
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "nlohmann/json.hpp"
 
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
 #include "test_helpers.hpp"
@@ -890,4 +893,47 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(custom_gcode_pos != std::string::npos);
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}
+
+TEST_CASE("Percent accelerations resolve against the option they are a percentage of", "[GCodeWriter]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                       "marlin" },
+        { "machine_max_acceleration_extruding", "20000,20000" },
+        { "default_acceleration",               "4000" },
+        { "initial_layer_acceleration",         "0" },
+        { "outer_wall_acceleration",            "3000" },
+        { "bridge_acceleration",                "50%" },
+        { "sparse_infill_acceleration",         "25%" },
+        { "internal_solid_infill_acceleration", "60%" },
+        { "sparse_infill_density",              "20%" },
+    });
+    // get_abs_value_at() resolves each percentage through the ratio_over in the config definitions.
+    const std::map<std::string, int> expected = {
+        { "Bridge",                int(config.get_abs_value_at("bridge_acceleration", 0)) },
+        { "Sparse infill",         int(config.get_abs_value_at("sparse_infill_acceleration", 0)) },
+        { "Internal solid infill", int(config.get_abs_value_at("internal_solid_infill_acceleration", 0)) },
+    };
+    REQUIRE(expected.at("Bridge") == 1500);
+    REQUIRE(expected.at("Sparse infill") == 1000);
+    REQUIRE(expected.at("Internal solid infill") == 2400);
+
+    std::map<std::string, std::set<int>> accelerations_by_role;
+    std::string role;
+    int         acceleration = 0;
+    GCodeReader reader;
+    reader.parse_buffer(Slic3r::Test::slice({ TestMesh::bridge }, config), [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        float value;
+        if (boost::starts_with(line.raw(), ";TYPE:"))
+            role = line.raw().substr(6);
+        else if (line.cmd_is("M204") && line.has_value('S', value))
+            acceleration = int(value);
+        else if (line.extruding(self) && line.dist_XY(self) > 0)
+            accelerations_by_role[role].insert(acceleration);
+    });
+    for (const auto &[role_name, value] : expected) {
+        INFO(role_name);
+        REQUIRE(accelerations_by_role[role_name] == std::set<int>{ value });
+    }
 }
