@@ -27,6 +27,37 @@ std::unique_ptr<OrcaCloudServiceAgent> make_file_backed_agent(const fs::path& di
 
 fs::path secret_file(const fs::path& dir) { return dir / secret_constants::USER_SECRET_FILENAME; }
 
+nlohmann::json flat_session_json(const nlohmann::json& fields)
+{
+    nlohmann::json session = {
+        {"access_token", "test-token"},
+        {"user_id", "test-user-id"}
+    };
+    session.update(fields);
+    return session;
+}
+
+nlohmann::json nested_session_json(const nlohmann::json& metadata)
+{
+    return {
+        {"access_token", "test-token"},
+        {"user", {
+            {"id", "test-user-id"},
+            {"user_metadata", metadata}
+        }}
+    };
+}
+
+// set_user_session() persists the session, so it goes to a throwaway token file rather than the
+// system keychain of whoever runs the tests.
+std::string resolved_display_name(const nlohmann::json& session)
+{
+    ScopedTemporaryDir dir("orca-secret");
+    auto               agent = make_file_backed_agent(dir.path());
+    REQUIRE(agent->set_user_session(session, false));
+    return agent->get_user_nickname();
+}
+
 } // namespace
 
 TEST_CASE("Logging out removes the secret this instance saved", "[OrcaCloudServiceAgent]")
@@ -83,4 +114,60 @@ TEST_CASE("Logging out leaves a secret this instance could not read alone", "[Or
 
     agent->user_logout(false);
     CHECK(fs::exists(secret_file(dir.path())));
+}
+
+TEST_CASE("Orca cloud flat session resolves display name consistently", "[OrcaCloudServiceAgent]")
+{
+    CHECK(resolved_display_name(flat_session_json({
+        {"username", "orca_username"},
+        {"display_name", "Display Name"},
+        {"nickname", "Nickname"}
+    })) == "Display Name");
+
+    CHECK(resolved_display_name(flat_session_json({
+        {"username", "orca_username"},
+        {"nickname", "Nickname"}
+    })) == "Nickname");
+
+    CHECK(resolved_display_name(flat_session_json({
+        {"username", "orca_username"},
+        {"full_name", "Full Name"}
+    })) == "Full Name");
+
+    CHECK(resolved_display_name(flat_session_json({
+        {"username", "orca_username"},
+        {"name", "Provider Name"}
+    })) == "Provider Name");
+
+    CHECK(resolved_display_name(flat_session_json({
+        {"username", "orca_username"}
+    })) == "orca_username");
+}
+
+TEST_CASE("Orca cloud nested session resolves display name consistently", "[OrcaCloudServiceAgent]")
+{
+    CHECK(resolved_display_name(nested_session_json({
+        {"username", "orca_username"},
+        {"display_name", "Display Name"},
+        {"nickname", "Nickname"}
+    })) == "Display Name");
+
+    CHECK(resolved_display_name(nested_session_json({
+        {"username", "orca_username"},
+        {"nickname", "Nickname"}
+    })) == "Nickname");
+
+    CHECK(resolved_display_name(nested_session_json({
+        {"username", "orca_username"},
+        {"full_name", "Full Name"}
+    })) == "Full Name");
+
+    CHECK(resolved_display_name(nested_session_json({
+        {"username", "orca_username"},
+        {"name", "Provider Name"}
+    })) == "Provider Name");
+
+    CHECK(resolved_display_name(nested_session_json({
+        {"username", "orca_username"}
+    })) == "orca_username");
 }
