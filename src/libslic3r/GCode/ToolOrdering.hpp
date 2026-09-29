@@ -153,6 +153,10 @@ public:
     unsigned int internal_solid_filament_id(const PrintRegion &region) const;
 	// Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 	unsigned int extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const;
+    // Returns true for a perimeter eec with mixed wall roles when the outer and inner wall filament settings differ.
+    // Sets outer and inner to the zero based filaments they print with, before mixed filament slots are resolved.
+    bool wall_split_filaments(const ExtrusionEntityCollection &extrusions, const PrintRegion &region,
+                              bool perimeters, int &outer, int &inner) const;
 
     coordf_t 					print_z	= 0.;
     bool 						has_object = false;
@@ -271,6 +275,7 @@ public:
 
     void    clear() {
         m_layer_tools.clear();
+        m_has_periodic_recolor = false;
         m_stats_by_single_extruder.clear();
         m_stats_by_multi_extruder_best.clear();
         m_stats_by_multi_extruder_curr.clear();
@@ -357,9 +362,13 @@ public:
 
     bool                has_non_support_filament(const PrintConfig &config);
 
+    // Whether any layer declared a periodic recolor filament.
+    bool                has_periodic_recolor() const { return m_has_periodic_recolor; }
+
 private:
     void				initialize_layers(std::vector<coordf_t> &zs);
     void 				collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches);
+    void                collect_periodic_recolor_extruders(const PrintObject &object);
     void 				fill_wipe_tower_partitions(const PrintConfig &config, coordf_t object_bottom_z, coordf_t max_layer_height);
     bool                insert_wipe_tower_extruder();
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
@@ -373,6 +382,7 @@ private:
     std::vector<unsigned int> generate_first_layer_tool_order(const PrintObject& object);
 
     std::vector<LayerTools>    m_layer_tools;
+    bool                       m_has_periodic_recolor = false;
     // First printing extruder, including the multi-material priming sequence.
     unsigned int               m_first_printing_extruder = (unsigned int)-1;
     // Final printing extruder.

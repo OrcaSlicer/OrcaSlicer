@@ -10,6 +10,7 @@
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MutablePolygon.hpp"
+#include "PeriodicRecolor.hpp"
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
@@ -443,9 +444,17 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
             }
         });
 
+    // Orca: the checks above only read the region filament settings. Mark pattern filaments unprintable on every
+    // nozzle that cannot print one of this object's filaments, since a band covers part of that geometry. This is
+    // conservative: it can rule out a nozzle whose limit only affects a feature the pattern does not recolor.
+    std::vector<unsigned int> recolor_targets;
+    periodic_recolor_append_targets(*this, recolor_targets);
+
     // add the elems in tbb container to final contianer
     for (size_t idx = 0; idx < extruder_size; ++idx) {
         geometric_unprintables[idx].insert(tbb_geometric_unprintables[idx].begin(), tbb_geometric_unprintables[idx].end());
+        if (! geometric_unprintables[idx].empty())
+            geometric_unprintables[idx].insert(recolor_targets.begin(), recolor_targets.end());
     }
 
     return geometric_unprintables;
@@ -1586,6 +1595,11 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "flush_into_support") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (opt_key == "periodic_recolor_patterns") {
+            // Orca: patterns change which filaments each layer needs, so also invalidate psSkirtBrim, which publishes the
+            // used filament list for the G-code header and bed temperature. psGCodeExport follows from invalidate_step().
+            invalidated |= m_print->invalidate_step(psWipeTower);
+            invalidated |= m_print->invalidate_step(psSkirtBrim);
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
             this->invalidate_all_steps();
