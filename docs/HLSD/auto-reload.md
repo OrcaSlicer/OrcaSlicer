@@ -116,20 +116,9 @@ themselves. It skips them because of the retry/backoff loop ("Detection, commit 
 retry are separate" above): a permanently unparseable file, a momentary lock, or a
 source that vanishes between the stability check above confirming a stamp and
 `reload_from_disk()` actually opening it a moment later, all get retried automatically
-at 1.5s/3s/6s/12s until the stamp stops advancing. Running interactively would mean
+at 1.5s/3s/6s/12s. Running interactively would mean
 showing one of these dialogs again on every failed retry — a file picker or error
-dialog demanding attention for something the user didn't just ask for, not a one-off
-interruption they meant to trigger.
-
-Before the stability gate ("Watching for a change" above), this retry loop also had to
-absorb a still-growing export getting read, and failing, again and again while it was
-still being written — each new stamp during the write was its own attempt, so an
-interactive path would have popped a dialog on every retry for an export that simply
-wasn't finished yet. The stability gate now heads that off directly: a file isn't
-attempted until its stamp has actually stopped changing, so there's nothing left
-mid-write to retry. The retry loop, and the reason it can't run interactively, are
-both still needed — just for what's left once timing isn't the problem: a file that's
-genuinely broken, or a lock or vanish that outlasts the stability window itself.
+dialog demanding attention for something the user didn't just ask for, not a one-off interruption they meant to trigger.
 
 `reload_from_disk()`/`reload_all_from_disk()` take an `interactive` parameter (default
 `true`, so the menu item and canvas shortcut are unaffected); the watcher always calls
