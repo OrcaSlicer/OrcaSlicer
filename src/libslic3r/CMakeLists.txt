@@ -96,8 +96,6 @@ set(lisbslic3r_sources
     Circle.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
-    Clipper2Utils.cpp
-    Clipper2Utils.hpp
     ClipperZUtils.cpp
     ClipperZUtils.hpp
     Color.cpp

@@ -4,7 +4,6 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
-#include "Clipper2Utils.hpp"
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
@@ -1851,7 +1850,7 @@ void PrintObject::detect_surfaces_type()
 
                             // Grow, then keep only what the configured direction allows, using the top's own filled
                             // outline (same outer edge, holes closed) to tell the two apart.
-                            ExPolygons expanded = offset_ex_2(island_top, d, Clipper2Lib::JoinType::Miter);
+                            ExPolygons expanded = offset_ex(island_top, float(d), jtMiter, 2.);
                             if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
                                 ExPolygons outline;
                                 outline.reserve(island_top.size());

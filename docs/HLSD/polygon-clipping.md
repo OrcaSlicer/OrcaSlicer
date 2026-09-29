@@ -16,10 +16,7 @@ the Clipper2 library vendored in `deps_src/clipper2`:
   vertices carry a Z value, which callers use to tag vertices with a source
   index or an extrusion width.
 
-`Clipper2Utils` holds a few older helpers on Clipper2 types. They, and the
-callers in `FillBase.cpp` and `PrintObject.cpp` that use Clipper2 types
-through them, bypass `ClipperUtils` and do not get the behaviour described
-below.
+No other code calls Clipper2.
 
 `ClipperUtils` declares its own `JoinType`, `EndType`, `PolyFillType` and
 `ClipType` enums and maps them to Clipper2's. Every call builds its own
