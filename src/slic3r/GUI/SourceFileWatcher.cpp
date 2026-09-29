@@ -3,28 +3,69 @@
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <algorithm>
+#include <filesystem>
+#include <limits>
+#include <system_error>
+
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
+    #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <boost/nowide/convert.hpp>
+#endif
+
 namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
 namespace {
     // Sentinel for "file does not currently exist" so a create is detected as a change too.
-    constexpr std::time_t source_file_missing_mtime = 0;
+    constexpr std::int64_t source_file_missing_mtime = std::numeric_limits<std::int64_t>::min();
 
-    // Delay between the first fs event of a burst and the check it wakes. Under the atomic-write
-    // assumption there's nothing further to wait out beyond this -- no resampling -- so this is
-    // the only delay in the whole path.
+    // How long a tracked file has to stay quiet (no fs event naming it) before it's reported.
     constexpr int debounce_ms = 300;
+
+    // Backstop for a tracked file that never goes quiet: once this long has passed since the
+    // first sign of activity, it's reported as it stands rather than held back any longer.
+    constexpr auto max_settle = std::chrono::seconds(30);
 
     SourceStamp get_source_stamp(const std::string& path)
     {
-        boost::system::error_code ec;
-        std::time_t mtime = fs::last_write_time(path, ec);
+        // std::filesystem rather than boost's for the mtime: boost only exposes whole seconds.
+        // u8path because OrcaSlicer's std::string paths are UTF-8, which Windows would otherwise
+        // read in the ANSI code page.
+        std::error_code ec;
+        const std::filesystem::path p = std::filesystem::u8path(path);
+        const auto mtime = std::filesystem::last_write_time(p, ec);
         if (ec)
             return SourceStamp{source_file_missing_mtime, 0};
-        std::uintmax_t size = fs::file_size(path, ec);
-        return ec ? SourceStamp{source_file_missing_mtime, 0} : SourceStamp{mtime, size};
+        const std::uintmax_t size = std::filesystem::file_size(p, ec);
+        if (ec)
+            return SourceStamp{source_file_missing_mtime, 0};
+        // libc++'s file_time_type counts nanoseconds in a 128-bit rep; int64 nanoseconds last
+        // until 2262.
+        return SourceStamp{static_cast<std::int64_t>(mtime.time_since_epoch().count()), size};
     }
+
+#ifdef _WIN32
+    // ReadDirectoryChangesW only reports a size/mtime change once the write reaches the disk, and
+    // NTFS updates the directory entry lazily while the file is open, so neither the events nor
+    // the stamp reliably show a write still in progress. Whether another process still holds the
+    // file open for writing does: a share mode that excludes writers fails against any open
+    // handle with write access.
+    bool is_open_for_writing(const std::string& path)
+    {
+        HANDLE handle = ::CreateFileW(boost::nowide::widen(path).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle == INVALID_HANDLE_VALUE)
+            return ::GetLastError() == ERROR_SHARING_VIOLATION;
+        ::CloseHandle(handle);
+        return false;
+    }
+#endif
 
     // fs::exists()/fs::is_directory() throw on an I/O error (e.g. an unreachable network share);
     // these treat that the same as "not found" instead, matching get_source_stamp() above.
@@ -128,22 +169,47 @@ void SourceFileWatcher::forget_watched_files()
     m_watched_files.clear();
 }
 
-void SourceFileWatcher::on_fs_event(wxFileSystemWatcherEvent&)
+bool SourceFileWatcher::is_tracked_file_event(const wxFileSystemWatcherEvent& evt) const
 {
-    // Starts the timer only if one isn't already pending -- an event arriving while it's running
-    // (another event from the same atomic write landing moments later, or unrelated activity
-    // elsewhere in a watched directory) does not push the check further out. It always resolves
-    // within debounce_ms of the *first* sign of activity, regardless of how much more follows.
+    // Reads (inotify's IN_ACCESS, including OrcaSlicer's own reload) and attribute changes don't
+    // mean the file is still being written.
+    const int type = evt.GetChangeType();
+    if ((type & (wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME | wxFSW_EVENT_MODIFY)) == 0)
+        return false;
+
+    // SameAs() normalizes both sides, so case and separators don't matter on Windows.
+    auto tracked = [this](const wxFileName& path) {
+        return path.IsOk() && std::any_of(m_stamps.begin(), m_stamps.end(), [&path](const auto& entry) {
+                   return wxFileName(wxString::FromUTF8(entry.first)).SameAs(path);
+               });
+    };
+    return tracked(evt.GetPath()) || (type == wxFSW_EVENT_RENAME && tracked(evt.GetNewPath()));
+}
+
+bool SourceFileWatcher::settle_expired() const
+{
+    return m_settle_start && std::chrono::steady_clock::now() - *m_settle_start >= max_settle;
+}
+
+void SourceFileWatcher::on_fs_event(wxFileSystemWatcherEvent& evt)
+{
+    if (!m_settle_start)
+        m_settle_start = std::chrono::steady_clock::now();
+
+    // An event naming a tracked file restarts the timer, so a file written in place over several
+    // chunks is only reported once it goes quiet -- up to max_settle, after which the pending
+    // tick is left to fire and report it as it stands.
     //
-    // Restarting on every event (an earlier version of this) doesn't just fail to coalesce
-    // faster -- it starves the check indefinitely under sustained unrelated activity in the same
-    // watched directory (a build process, a sync client, anything else writing nearby), since
-    // Windows has no per-file watch to fall back on and every one of those events also reaches
-    // here through the single directory watch. Found via a headless test's directory-noise phase,
-    // which failed deterministically on Windows for exactly this reason while passing on macOS
-    // (whose backend happens to coalesce/space out events enough in practice not to trigger it --
-    // not a guarantee either platform's watcher API makes).
-    if (!m_debounce_timer.IsRunning())
+    // Any other event only starts the timer if one isn't already pending, never extends it. On
+    // Windows there's no per-file watch, so every event in a watched directory reaches here
+    // through the single directory watch; restarting on those too would starve the check
+    // indefinitely under sustained unrelated activity in the same directory (a build process, a
+    // sync client, anything else writing nearby). Events that don't name a tracked file still
+    // start the timer, because some backends report a rename-into-place with just the directory
+    // (macOS's kqueue) or drop the path entirely (a Windows buffer overflow warning).
+    if (is_tracked_file_event(evt) && !settle_expired())
+        m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
+    else if (!m_debounce_timer.IsRunning())
         m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
 }
 
@@ -157,19 +223,46 @@ void SourceFileWatcher::on_timer(wxTimerEvent&)
         return;
     }
 
-    std::map<std::string, SourceStamp> changed = changed_source_files();
-    if (changed.empty() || !m_on_changed)
-        return; // nothing to watch, or nobody to report to; go idle until the next fs event
+    if (!m_settle_start)
+        m_settle_start = std::chrono::steady_clock::now();
 
-    // Advance the baseline for every changed file before calling out, not after: an assumed-
-    // atomic write means there's nothing left to retry, so whether the reload below succeeds or
-    // not, this is the last attempt that stamp will ever get -- a failure is reported through the
-    // callback's own usual path (the same dialog a manual reload would show), not retried here.
+    std::map<std::string, SourceStamp> changed = changed_source_files();
+
+    bool deferred = false;
+#ifdef _WIN32
+    // Hold back a file another process still has open for writing (see is_open_for_writing());
+    // the rest of the batch goes ahead. Bounded by the same backstop as the event restarts.
+    if (!settle_expired()) {
+        for (auto it = changed.begin(); it != changed.end();) {
+            if (is_open_for_writing(it->first)) {
+                it = changed.erase(it);
+                deferred = true;
+            } else
+                ++it;
+        }
+    }
+#endif
+    if (deferred)
+        m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
+
+    if (changed.empty() || !m_on_changed) {
+        // Nothing to watch, or nobody to report to; go idle until the next fs event.
+        if (!deferred)
+            m_settle_start.reset();
+        return;
+    }
+
+    // Advance the baseline for every changed file before calling out, not after: the file has
+    // settled, so whether the reload below succeeds or not, this is the last attempt that stamp
+    // will ever get -- a failure is reported through the callback's own usual path (the same
+    // dialog a manual reload would show), not retried here.
     std::set<std::string> changed_files;
     for (const auto& [file, stamp] : changed) {
         m_stamps[file] = stamp;
         changed_files.insert(file);
     }
+    if (!deferred)
+        m_settle_start.reset();
 
     m_reload_in_progress = true;
     struct ScopeGuard { bool& flag; ~ScopeGuard() { flag = false; } } guard{m_reload_in_progress};

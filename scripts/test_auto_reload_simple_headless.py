@@ -10,7 +10,8 @@ watcher -- see docs/HLSD/auto-reload.md. What's worth covering here is narrower 
 kind: the three Preferences options actually gate what they claim to, and the paint-loss dialog's
 decline only drops the declined volume, not an unrelated sibling that happens to share its source
 file (the scenario this script exists to catch: a painted clone and an unpainted one, same source,
-one dialog).
+one dialog). Phases J and K cover in-place writers: a slow multi-chunk write is reloaded once,
+after it finishes, and a file that never goes quiet is still reloaded by the 30s backstop.
 
 Two categories of scenario are deliberately NOT covered here, not just under-instrumented:
   - A missing source file (the "Please select a file" wxFileDialog) or a load failure (the
@@ -322,7 +323,7 @@ BOX_FACES = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
              (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7)]
 
 
-def write_cube_stl(path, size, atomic=False):
+def cube_stl_text(size):
     s = float(size)
     v = [(0, 0, 0), (s, 0, 0), (s, s, 0), (0, s, 0), (0, 0, s), (s, 0, s), (s, s, s), (0, s, s)]
     lines = ["solid test"]
@@ -332,7 +333,37 @@ def write_cube_stl(path, size, atomic=False):
             lines.append("      vertex %g %g %g" % v[i])
         lines.append("    endloop\n  endfacet")
     lines.append("endsolid test\n")
-    data = "\n".join(lines)
+    return "\n".join(lines)
+
+
+def write_cube_stl_slowly(path, size, chunks=20, pause=0.1):
+    """Overwrites `path` in place in `chunks` flushed pieces, `pause` seconds apart, holding the file
+    open throughout -- the way OpenSCAD, Blender and most scripts write an export."""
+    data = cube_stl_text(size)
+    step = -(-len(data) // chunks)
+    with open(path, "w") as f:
+        for i in range(0, len(data), step):
+            f.write(data[i:i + step])
+            f.flush()
+            time.sleep(pause)
+
+
+def rewrite_cube_stl_continuously(path, size, stop_event, pause=0.1):
+    """Keeps rewriting `path` in place with the same complete cube until `stop_event` is set, holding
+    the file open throughout. The content is valid whenever it's read, but the file never goes
+    quiet."""
+    data = cube_stl_text(size)
+    with open(path, "w") as f:
+        while not stop_event.is_set():
+            f.seek(0)
+            f.write(data)
+            f.truncate()
+            f.flush()
+            stop_event.wait(pause)
+
+
+def write_cube_stl(path, size, atomic=False):
+    data = cube_stl_text(size)
     if atomic:
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
@@ -519,6 +550,43 @@ def main():
             stop.set()
             noise_thread.join(timeout=2)
 
+    def phase_j():
+        print("\n[J] Slow in-place write (-> 28 mm over ~2s) -- reloaded once, after the last chunk")
+        tail.mark(); time.sleep(1.0)
+        # Each 0.1s pause is under the 300ms debounce, but the whole write is far longer: only the
+        # restart on events naming basic.stl (or, on Windows, the open-for-writing check) keeps it
+        # from being read half-written. A torn read shows up as a second reload line or, if the
+        # partial file doesn't parse, as the "Error during reload" dialog blocking every check below.
+        write_cube_stl_slowly(basic_stl, 28)
+        ok = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("J1 reload after the slow write", ok, "" if ok else "no reload line within %gs" % args.timeout)
+        if ok:
+            time.sleep(args.quiet_window)
+            sizes = tail.count_sizes(basic_stl, args.timeout, want=1)
+            record("J2 reloaded exactly once", len(sizes) == 1, "" if len(sizes) == 1 else "got %d" % len(sizes))
+            record("J3 model is the finished 28 mm cube",
+                   bool(sizes) and all(abs(v - 28) < 0.05 for v in sizes[-1]))
+
+    def phase_k():
+        print("\n[K] A file that never goes quiet (~40s of rewrites) -- reloaded by the 30s backstop")
+        stop = threading.Event()
+        tail.mark(); time.sleep(1.0)
+        started = time.monotonic()
+        writer = threading.Thread(target=rewrite_cube_stl_continuously, args=(basic_stl, 26, stop), daemon=True)
+        writer.start()
+        try:
+            ok = tail.wait_for(RELOAD_MARK, 38.0)
+            elapsed = time.monotonic() - started
+            record("K1 reload while the writer is still running", ok, "" if ok else "no reload line within 38s")
+            if ok:
+                record("K2 not before the backstop (after ~30s, not ~0.3s)", elapsed > 25.0,
+                       "" if elapsed > 25.0 else "after %.1fs" % elapsed)
+        finally:
+            stop.set()
+            writer.join(timeout=2)
+        # The writer's last rewrite is a change of its own; let its reload finish before moving on.
+        time.sleep(2.0)
+
     def phase_g():
         print("\n[G] With auto-slice on: overwrite basic.stl -> slice starts automatically")
         tail.mark(); time.sleep(1.0)
@@ -551,14 +619,14 @@ def main():
         record("I1 no reload when auto-reload is off", quiet, "" if quiet else "a reload happened anyway")
 
     STATE_GROUPS = [
-        ((True, True, False), ["A", "B", "C", "D", "E", "F"]),
+        ((True, True, False), ["A", "B", "C", "D", "E", "F", "J", "K"]),
         ((True, True, True), ["G"]),
         ((True, False, False), ["H"]),
         ((False, True, False), ["I"]),
     ]
     PHASE_FUNCS = {
         "A": phase_a, "B": phase_b, "C": phase_c, "D": phase_d, "E": phase_e,
-        "F": phase_f, "G": phase_g, "H": phase_h, "I": phase_i,
+        "F": phase_f, "G": phase_g, "H": phase_h, "I": phase_i, "J": phase_j, "K": phase_k,
     }
 
     if args.only:

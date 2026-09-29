@@ -19,13 +19,13 @@ Neither half depends on the other's internals; the watcher's callback contract i
 "here are the files that changed" — nothing more, see "Detecting and committing a
 change" below for why there's nothing to report back.
 
-This design rests on one deliberate premise: **every write to a watched file is
-atomic** from the reader's point of view — either a temp file written elsewhere and
-`rename()`'d into place, or a single `write()` that lands in one piece — so a file's
-on-disk stamp is never observed mid-write. A source written in several chunks over
-real time (a slow multi-part export taking noticeably longer than the debounce below)
-falls outside this premise and can be read while still incomplete; there is no
-protection against that case here.
+A change is reported once the file has gone quiet, so both common ways of writing an
+export are covered: a temp file written elsewhere and `rename()`'d into place (atomic
+from the reader's point of view), and an in-place overwrite written in several chunks
+over real time (OpenSCAD, Blender and most scripts write their exports this way). The
+wait is bounded: a file that keeps being written for 30 seconds is reported as it
+stands, so a runaway writer can't hold back reloads indefinitely. See "Waiting for a
+write to finish" below.
 
 ## Watching for a change
 
@@ -46,23 +46,45 @@ watches are skipped on Windows: wx's MSW backend rejects them outright, and
 `ReadDirectoryChangesW`'s directory watch already reports in-place writes, so nothing
 is lost by skipping them there.
 
-Either watch firing starts a fixed 300ms debounce timer (`on_fs_event()`) — but only if
-one isn't already pending. A rename-into-place, for instance, can produce more than one
-filesystem event for what is logically a single change; the first of them starts the
-timer, and the rest (arriving moments later, while it's still running) don't push the
-check further out. That "only if not already running" matters beyond just coalescing a
-burst efficiently: on Windows, where there's no per-file watch to fall back on (see
-above), *every* filesystem event in a watched directory — not just ones from the change
-being tracked — reaches `on_fs_event()` through the single directory watch. An earlier
-version of this restarted the timer on every event unconditionally, which coalesces a
-burst just as well but starves the check indefinitely under sustained unrelated activity
-in the same directory (a build process, a sync client, anything else writing nearby) —
-found via a headless test's directory-noise phase, which failed deterministically on
-Windows for this reason while passing on macOS, whose backend happens to coalesce/space
-out events enough in practice not to trigger it (not something either platform's watcher
-API actually guarantees). Starting only when idle bounds the wait to debounce_ms after
-the *first* sign of activity regardless of how much more follows, with no separate cap
-needed.
+## Waiting for a write to finish
+
+Every filesystem event wakes a 300ms debounce timer (`on_fs_event()`), but what it does
+to a timer that is already pending depends on which file the event names:
+
+- **An event naming a tracked file** (its path, or a rename's new path; creates,
+  deletes, renames and modifications only, not reads) restarts the timer. An in-place
+  writer produces an event per write, so the check only runs once the file has gone
+  300ms without one.
+- **Any other event** starts the timer if it isn't already running, but never extends
+  it. On Windows there is no per-file watch, so *every* event in a watched directory
+  reaches `on_fs_event()` through the single directory watch. Restarting on those too
+  would starve the check indefinitely under sustained unrelated activity in the same
+  directory (a build process, a sync client). A headless test's directory-noise phase
+  catches exactly this, deterministically on Windows. Such events still start the timer
+  because some backends report a rename-into-place with just the directory (macOS's
+  kqueue) or with no path at all (a Windows buffer-overflow warning).
+
+Paths are compared with `wxFileName::SameAs()`, so case and separator differences on
+Windows don't matter.
+
+Windows needs one more signal. `ReadDirectoryChangesW` only reports a size or mtime
+change once the data reaches the disk, and NTFS updates a directory entry lazily while
+the file is open, so a long write can go quiet in the events (and in the stamp) while
+still in progress. When the timer fires, each changed file is therefore opened with a
+share mode that excludes writers; if that fails with a sharing violation, another
+process still holds it open for writing, so that file is held back and the timer
+re-armed while the rest of the batch goes ahead. POSIX has no equivalent, and needs
+none: inotify and kqueue report each write as it happens.
+
+Both ways of waiting share one backstop. The first event of a burst records when the
+activity began (`m_settle_start`); after 30 seconds, events for tracked files stop
+restarting the timer and the Windows open-for-writing check is skipped, so the pending
+tick reports the file as it stands. The next event starts a fresh 30-second window, so a
+file written continuously is reloaded at most every 30 seconds.
+
+A writer that pauses for more than 300ms mid-file without holding the file open (closing
+and reopening it between chunks) is still read while incomplete. The file's next write
+is a new change, so the finished file is reloaded once it settles.
 
 ## Detecting and committing a change
 
@@ -73,9 +95,11 @@ file — caught mid-rename between the old name's removal and the new one's arri
 is skipped rather than reported; it's picked up once it reappears changed). Whatever
 that set is, `on_timer()` advances the baseline for every one of those files
 *immediately*, before calling `m_on_changed()` — not after, and not conditionally.
+The mtime is kept at the filesystem's sub-second resolution: a binary STL's size
+depends only on its triangle count, so a vertex-only edit re-exported within the same
+second would be invisible to a whole-second mtime.
 
-This is the direct consequence of the atomic-write premise: since a stamp is never
-observed mid-write, there's nothing to wait out and nothing worth retrying. Whatever
+Since a file is only checked once it has settled, there's nothing worth retrying. Whatever
 the callback's reload does with a file — succeeds, fails because the source is
 genuinely corrupt, or the user declines a confirmation dialog it raises — that
 attempt is final for this stamp. A file that keeps failing simply keeps not being
@@ -238,6 +262,8 @@ the export itself the deliberate request to see a sliced result, no less than cl
   by Cmd/Ctrl+R and the watcher's auto-slice.
 - [Preferences.cpp](../../src/slic3r/GUI/Preferences.cpp) — the three checkboxes.
 - [tests/slic3rutils/test_source_file_watcher.cpp](../../tests/slic3rutils/test_source_file_watcher.cpp) —
-  the watcher's stamp comparison, unconditional baseline advance, and re-entrancy guard,
-  driven by delivering the debounce timer's event directly (no clock injection needed:
-  unlike a stability-gated design, nothing here depends on real elapsed time).
+  the watcher's stamp comparison (including a same-size rewrite within one second),
+  unconditional baseline advance, re-entrancy guard and, on Windows, the
+  open-for-writing hold-back, driven by delivering the debounce timer's event directly.
+  The event-driven restart and the 30-second backstop depend on real events and elapsed
+  time, and are covered by `scripts/test_auto_reload_simple_headless.py` instead.

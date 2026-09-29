@@ -6,20 +6,23 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include <chrono>
 #include <cstdint>
-#include <ctime>
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 
 namespace Slic3r { namespace GUI {
 
-// A tracked file's on-disk identity: mtime alone is whole-second resolution, so a second write
-// landing in the same wall-clock second as a first would otherwise be invisible.
+// A tracked file's on-disk identity. mtime is kept at the filesystem's native sub-second
+// resolution (ticks of std::filesystem::file_time_type): a binary STL's size depends only on its
+// triangle count, so a vertex-only edit re-exported within the same wall-clock second would be
+// invisible to a whole-second mtime.
 struct SourceStamp
 {
-    std::time_t    mtime{ 0 };
+    std::int64_t   mtime{ 0 };
     std::uintmax_t size{ 0 };
 
     bool operator==(const SourceStamp& other) const { return mtime == other.mtime && size == other.size; }
@@ -31,22 +34,23 @@ struct SourceStamp
 // about Model/ModelVolume, Plater, or what "reload" means -- the caller supplies the set of
 // resolved paths to watch and a callback to run once a change is confirmed.
 //
-// Assumes every write to a watched file is atomic from the reader's point of view -- a temp file
-// written elsewhere and rename()'d into place, or a single write() that lands in one piece --
-// so there is nothing to wait out beyond coalescing the handful of fs events one such write can
-// produce: once the debounce below settles, the stamp on disk is final and it's safe to act on
-// it immediately. A source written in several chunks over time (a slow multi-part export) can be
-// read mid-write under this design and either reload onto a truncated mesh or fail outright --
-// accepted as out of scope for this class's premise. See docs/HLSD/auto-reload.md.
+// A change is reported once its file goes quiet: every fs event naming a tracked file restarts
+// the debounce timer, so a file written in place over several chunks (OpenSCAD, Blender, most
+// scripts) is reported after its last write, not in the middle. Any other event -- unrelated
+// activity in a watched directory, or a backend that only names the directory -- starts the timer
+// if it isn't running but never extends it, so unrelated noise can't starve the check. On Windows,
+// where change notifications can lag behind cached writes, a file still held open for writing by
+// another process is also held back when the timer fires. A write that never goes quiet is
+// reported anyway once max_settle (30s) has passed since the first sign of activity. See
+// docs/HLSD/auto-reload.md.
 //
 // Two watches cover each other's blind spot: most exporters write a temp file and rename it into
 // place (only visible as a directory-listing change), while an in-place overwrite produces no
-// directory event at all and needs a watch on the file itself. The event handler doesn't try to
-// match the reported path -- macOS's kqueue backend can report a rename with just the directory
-// and no filename -- it only wakes the debounce timer below, which resamples every candidate
-// file's own stamp against the baseline recorded in set_watched_files(). Per-file watches are
-// skipped on Windows: wx's MSW backend rejects them with an error dialog, and its
-// ReadDirectoryChangesW directory watch already reports in-place writes.
+// directory event at all and needs a watch on the file itself. Whatever wakes it, the timer
+// resamples every tracked file's own stamp against the baseline recorded in set_watched_files()
+// -- the event's path only decides whether to extend the wait. Per-file watches are skipped on
+// Windows: wx's MSW backend rejects them with an error dialog, and its ReadDirectoryChangesW
+// directory watch already reports in-place writes.
 class SourceFileWatcher : public wxEvtHandler
 {
 public:
@@ -63,9 +67,9 @@ public:
     SourceFileWatcher(const SourceFileWatcher&) = delete;
     SourceFileWatcher& operator=(const SourceFileWatcher&) = delete;
 
-    // Invoked (after the debounce delay) with the set of tracked files confirmed changed. The
-    // baseline for every one of them advances unconditionally right before this call -- there is
-    // no retry: a write assumed atomic either reloads now or it doesn't, and if it doesn't,
+    // Invoked (once the changed files have gone quiet) with the set of tracked files confirmed
+    // changed. The baseline for every one of them advances unconditionally right before this call
+    // -- there is no retry: a settled write either reloads now or it doesn't, and if it doesn't,
     // that's surfaced through the caller's own usual "reload failed" dialog (see
     // Plater::priv::reload_from_disk()), not retried later against the same bytes.
     void set_on_changed(std::function<void(const std::set<std::string>&)> on_changed) { m_on_changed = std::move(on_changed); }
@@ -91,6 +95,11 @@ private:
     void on_fs_event(wxFileSystemWatcherEvent& evt);
     void on_timer(wxTimerEvent& evt);
 
+    // Whether the event names a tracked file (as its path, or as a rename's new path).
+    bool is_tracked_file_event(const wxFileSystemWatcherEvent& evt) const;
+    // Whether max_settle has passed since the first sign of the current burst of activity.
+    bool settle_expired() const;
+
     // Returns the tracked files whose stamp differs from the committed baseline, without
     // mutating anything -- a vanished file (mtime reads as missing) is skipped rather than
     // reported, since a single atomic rename(2) over an existing destination can't cause a file
@@ -102,6 +111,9 @@ private:
     wxTimer                            m_debounce_timer;
     std::set<std::string>              m_watched_files;
     std::map<std::string, SourceStamp> m_stamps; // committed baseline
+    // When the current burst of activity began; unset while idle. Bounds how long a tracked file
+    // that keeps being written can hold back its own report.
+    std::optional<std::chrono::steady_clock::time_point> m_settle_start;
     // Guards m_on_changed() against re-entry from a nested event loop pumped during the reload it
     // triggers (a modal dialog, wxBusyInfo) while this timer is re-armed by another fs event.
     bool                                m_reload_in_progress{ false };

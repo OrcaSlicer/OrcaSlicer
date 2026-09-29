@@ -18,9 +18,11 @@
 
 #include <boost/filesystem.hpp>
 
+#include <chrono>
 #include <fstream>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "slic3r/GUI/SourceFileWatcher.hpp"
@@ -67,8 +69,8 @@ struct TempDir
 
 // Owns a watcher plus a recording callback, and drives the debounce timer by hand: delivering its
 // event directly runs the same code on_fs_event() would eventually trigger, without needing a
-// real event loop or a real wait -- this class has no stability window to wait out, so a single
-// tick is always enough to see a settled result.
+// real event loop or a real wait -- waiting for a file to go quiet is on_fs_event()'s job, so a
+// single tick is always enough to see the result of a finished write.
 struct Harness
 {
     SourceFileWatcher                  watcher;
@@ -146,6 +148,48 @@ TEST_CASE("A changed file is reported once", "[SourceFileWatcher]")
     h.tick();
     CHECK(h.calls.size() == 1);
 }
+
+TEST_CASE("A same-size rewrite within the same second is reported", "[SourceFileWatcher]")
+{
+    // A binary STL's size depends only on its triangle count, so a vertex-only edit keeps the
+    // size; only a sub-second mtime tells the two exports apart. The short sleep clears the
+    // kernel's timestamp granularity (a few ms on Linux) while staying well inside one second.
+    WxEnv wx;
+    TempDir dir;
+    Harness h;
+    const std::string file = dir.write("a.stl", 10);
+    h.watcher.set_watched_files({ file });
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    dir.write("a.stl", 10);
+
+    h.tick();
+
+    CHECK(h.calls.size() == 1);
+}
+
+#ifdef _WIN32
+TEST_CASE("A file still open for writing is held back until it is closed", "[SourceFileWatcher]")
+{
+    // Windows only: elsewhere the per-file watch's events are what keep an in-place write from
+    // being reported early, and those aren't exercised by ticking the timer directly.
+    WxEnv wx;
+    TempDir dir;
+    Harness h;
+    const std::string file = dir.write("a.stl", 10);
+    h.watcher.set_watched_files({ file });
+
+    {
+        std::ofstream writer(file, std::ios::binary | std::ios::app);
+        writer << std::string(10, 'y') << std::flush;
+
+        h.tick();
+        CHECK(h.calls.empty());
+    }
+
+    h.tick();
+    CHECK(h.calls.size() == 1);
+}
+#endif
 
 TEST_CASE("A file's baseline advances even if the callback's reload failed", "[SourceFileWatcher]")
 {
