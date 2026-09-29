@@ -1750,11 +1750,13 @@ int CLI::run(int argc, char **argv)
 
                     BOOST_LOG_TRIVIAL(info) << boost::format("current_printer_name %1%, current_process_name %2%")%current_printer_name %current_process_name;
                     ConfigOptionStrings* option_strings = config.option<ConfigOptionStrings>("inherits_group");
-                    // One entry for the process, one per filament and one for the printer.
+                    // One entry for the process, one per filament and one for the printer. A group of another
+                    // length still has the process first and the printer last; one too short for that is ignored.
                     if (option_strings && option_strings->values.size() != current_filaments_name.size() + 2) {
-                        boost::nowide::cerr << "Warning: ignoring inherits_group with " << option_strings->values.size() << " entries, expected "
+                        boost::nowide::cerr << "Warning: inherits_group has " << option_strings->values.size() << " entries, expected "
                                             << current_filaments_name.size() + 2 << " for " << current_filaments_name.size() << " filaments" << std::endl;
-                        option_strings = nullptr;
+                        if (option_strings->values.size() < 2)
+                            option_strings = nullptr;
                     }
                     if (option_strings) {
                         current_inherits_group = option_strings->values;
@@ -1777,14 +1779,11 @@ int CLI::run(int argc, char **argv)
                             BOOST_LOG_TRIVIAL(info) << boost::format("inherits of process valid, current_process_system_name is %1%") %current_process_system_name;
                         }
 
-                        current_filaments_system_name.resize(size - 2);
-                        for (int index = 1; index < (size - 1); index++) {
-                            if (current_inherits_group[index].empty()) {
-                                current_filaments_system_name[index-1] = current_filaments_name[index-1];
-                            }
-                            else {
+                        // A filament without an entry of its own counts as a system preset.
+                        current_filaments_system_name = current_filaments_name;
+                        for (size_t index = 1; index < size - 1 && index <= current_filaments_name.size(); index++) {
+                            if (!current_inherits_group[index].empty())
                                 current_filaments_system_name[index-1] = current_inherits_group[index];
-                            }
                         }
                     }
                     else {

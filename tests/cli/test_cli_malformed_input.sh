@@ -3,7 +3,7 @@
 # orca-slicer binary. Each case lives inline in CLI::run(), so only the binary can reach it.
 #
 # - A project whose inherits_group does not have one entry per filament plus the process and
-#   printer entries is loaded as if it had none.
+#   printer entries still loads.
 # - --slice N --arrange 1 on a project without plate metadata slices plate N.
 # - An assemble list object with an empty filament list, or a negative filament id, is rejected
 #   as a config error.
@@ -155,7 +155,7 @@ run_presets export --slice 0 --export-3mf project.3mf "$WORK/cube.stl"
 expect_status export $CLI_SUCCESS
 [ -f "$WORK/export/project.3mf" ] || { echo "FAIL: project export failed"; tail -n 40 "$WORK/export/log"; exit 1; }
 
-echo "== an inherits_group of the wrong length is ignored"
+echo "== an inherits_group of the wrong length still loads"
 for group in '[]' '[""]' '["", "", "", "", ""]'; do
     tag="inherits_$("$PY" -c 'import json, sys; print(len(json.loads(sys.argv[1])))' "$group")"
     rewrite_3mf "$WORK/export/project.3mf" "$WORK/$tag.3mf" inherits "$group"
