@@ -478,8 +478,9 @@ def main():
             declined = tail.wait_for(PAINT_DECLINED_MARK, args.timeout)
             record("D2 the decline was auto-answered and logged", declined)
             sizes = tail.count_sizes(clone_stl, args.timeout, want=1)
-            record("D3 exactly one clone.stl volume was reloaded (the unpainted one)", len(sizes) == 1,
-                   "" if sizes else "no matching bounding-box log line")
+            ok = len(sizes) == 1
+            record("D3 exactly one clone.stl volume was reloaded (the unpainted one)", ok,
+                   "" if ok else ("got %d" % len(sizes) if sizes else "no matching bounding-box log line"))
             if sizes:
                 record("D4 the reloaded one grew to 25 mm", abs(sizes[0][0] - 25) < 0.05 and abs(sizes[0][1] - 25) < 0.05)
 
@@ -494,8 +495,9 @@ def main():
             not_declined = tail.absent_after(PAINT_DECLINED_MARK, args.quiet_window)
             record("E2 no decline was logged this time", not_declined)
             sizes = tail.count_sizes(clone_stl, args.timeout, want=2)
-            record("E3 both clone.stl volumes were reloaded", len(sizes) == 2,
-                   "only %d" % len(sizes) if sizes else "no matching bounding-box log lines")
+            ok = len(sizes) == 2
+            record("E3 both clone.stl volumes were reloaded", ok,
+                   "" if ok else ("only %d" % len(sizes) if sizes else "no matching bounding-box log lines"))
             if len(sizes) == 2:
                 record("E4 both grew to 15 mm", all(abs(v - 15) < 0.05 for size in sizes for v in size[:2]))
 
@@ -537,8 +539,9 @@ def main():
             record("H2 no decline was logged (no dialog to decline)",
                    tail.absent_after(PAINT_DECLINED_MARK, args.quiet_window))
             sizes = tail.count_sizes(clone_stl, args.timeout, want=2)
-            record("H3 both clone.stl volumes reloaded despite the paint", len(sizes) == 2,
-                   "only %d" % len(sizes) if sizes else "no matching bounding-box log lines")
+            ok = len(sizes) == 2
+            record("H3 both clone.stl volumes reloaded despite the paint", ok,
+                   "" if ok else ("only %d" % len(sizes) if sizes else "no matching bounding-box log lines"))
 
     def phase_i():
         print("\n[I] With auto-reload off: no reload happens")
