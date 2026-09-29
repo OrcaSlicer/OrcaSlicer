@@ -736,6 +736,23 @@ std::string CoolingBuffer::apply_layer_cooldown(
         &supp_interface_fan_control, &supp_interface_fan_speed,
         &ironing_fan_control, &ironing_fan_speed
     ](bool immediately_apply) {
+        bool is_always_off = false;
+        if (!m_config.fan_always_off.values.empty()) {
+            is_always_off = m_config.fan_always_off.get_at(m_current_extruder);
+        }
+
+        if (is_always_off) {
+            m_fan_speed         = 0;
+            m_current_fan_speed = 0;
+            if (immediately_apply)
+                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, 0, part_cooling_fan_min_pwm);
+
+            overhang_fan_control        = false;
+            internal_bridge_fan_control = false;
+            supp_interface_fan_control  = false;
+            ironing_fan_control         = false;
+            return;
+        }
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
         float fan_min_speed = EXTRUDER_CONFIG(fan_min_speed);
         float fan_speed_new = EXTRUDER_CONFIG(reduce_fan_stop_start_freq) ? fan_min_speed : 0;
