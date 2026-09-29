@@ -3893,42 +3893,58 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_array_maps.push_back(temp);
         index++;
         if (filament_id.empty()) {
-            if (use_map) {
-                for (int j = maps.size() - 1; j >= 0; j--) {
-                    if (maps[j].slot_id == slot_id && maps[j].ams_id == ams_id) {
-                        maps.erase(j);
+            // A tray written by the printer UI carries a material type but no
+            // OrcaSlicer preset id. Resolve it to the matching Generic preset with
+            // the tray's own color instead of dropping it (direct sync) or forcing
+            // "Generic PLA" (mapping sync). Placeholders and typeless trays keep
+            // the previous behavior.
+            const auto tray_type = ams.opt_string("filament_type", 0u);
+            if (is_placeholder || tray_type.empty()) {
+                if (use_map) {
+                    for (int j = maps.size() - 1; j >= 0; j--) {
+                        if (maps[j].slot_id == slot_id && maps[j].ams_id == ams_id) {
+                            maps.erase(j);
+                        }
                     }
+                    ams_filament_presets.push_back("Generic PLA");//for unknow matieral
+                    auto default_unknown_color = "#CECECE";
+                    ams_filament_colors.push_back(default_unknown_color);
+                    ams_filament_color_types.push_back("1");
+                    if (filament_multi_color.size() == 0) {
+                        filament_multi_color.push_back(default_unknown_color);
+                    }
+                    ams_multi_color_filment.push_back(filament_multi_color);
+                } else if (is_placeholder) {
+                    // Orca: push placeholders to keep index alignment with ams_infos
+                    ams_filament_presets.push_back("");
+                    ams_filament_colors.push_back("");
+                    ams_filament_color_types.push_back("");
+                    ams_multi_color_filment.push_back({});
                 }
-                ams_filament_presets.push_back("Generic PLA");//for unknow matieral
-                auto default_unknown_color = "#CECECE";
-                ams_filament_colors.push_back(default_unknown_color);
-                ams_filament_color_types.push_back("1");
-                if (filament_multi_color.size() == 0) {
-                    filament_multi_color.push_back(default_unknown_color);
-                }
-                ams_multi_color_filment.push_back(filament_multi_color);
-            } else if (is_placeholder) {
-                // Orca: push placeholders to keep index alignment with ams_infos
-                ams_filament_presets.push_back("");
-                ams_filament_colors.push_back("");
-                ams_filament_color_types.push_back("");
-                ams_multi_color_filment.push_back({});
+                continue;
             }
-            continue;
         }
         if (!filament_changed && this->filament_presets.size() > ams_filament_presets.size()) {
             ams_filament_presets.push_back(this->filament_presets[ams_filament_presets.size()]);
             ams_filament_colors.push_back(filament_color);
             ams_filament_color_types.push_back(filament_color_type);
             ams_multi_color_filment.push_back(filament_multi_color);
+            ams_infos.back().valid = true;
             continue;
         }
         bool has_type = false;
         auto filament_type = ams.opt_string("filament_type", 0u);
-        auto iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
-            has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
-            return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
-        warn_ambiguous_filament_id_match(filaments, iter, filament_id);
+        auto iter = filaments.end();
+        if (!filament_id.empty()) {
+            iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
+                has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
+                return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
+            warn_ambiguous_filament_id_match(filaments, iter, filament_id);
+        } else {
+            // The material type is the only identity a printer-set tray carries.
+            has_type = std::any_of(filaments.begin(), filaments.end(), [&filament_type](auto &f) {
+                return f.is_compatible && f.config.opt_string("filament_type", 0u) == filament_type; });
+        }
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {
@@ -3975,6 +3991,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     ams_filament_colors.push_back(filament_color);
                     ams_filament_color_types.push_back(filament_color_type);
                     ams_multi_color_filment.push_back(filament_multi_color);
+                    ams_infos.back().valid = true;
                     unknowns.emplace_back(&ams, has_type ? L("The filament may not be compatible with the current machine settings. Generic filament presets will be used.") :
                                                            L("The filament model is unknown. Still using the previous filament preset."));
                     continue;
@@ -4001,6 +4018,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_filament_colors.push_back(filament_color);
         ams_filament_color_types.push_back(filament_color_type);
         ams_multi_color_filment.push_back(filament_multi_color);
+        ams_infos.back().valid = true;
     }
     if (ams_filament_presets.empty())
         return 0;

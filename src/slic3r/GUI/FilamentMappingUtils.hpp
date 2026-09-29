@@ -37,6 +37,15 @@ inline bool has_engaged_filament_mapping(const std::string& ams_mapping2)
     return false;
 }
 
+// A device with no AMS units has a single source: the external spool. OrcaSlicer's
+// auto-mapping force-selects it for every filament (DevMapping.cpp), but that is not
+// a lane choice: keep it out of the send gate and off print.gcode_file.
+inline void drop_forced_external_selection(bool device_has_ams, std::string& ams_mapping2)
+{
+    if (!device_has_ams)
+        ams_mapping2.clear();
+}
+
 // A used filament with no target would be silently dropped from the wire
 // mapping, so the print must be refused rather than run the wrong material.
 // m_ams_mapping_result carries exactly the filaments the slice uses.

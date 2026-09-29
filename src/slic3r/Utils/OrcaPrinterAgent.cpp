@@ -46,9 +46,7 @@ namespace fs = boost::filesystem;
 
 // Per-device filament_mapping capability, mirrored from the get_capabilities
 // reply in merge_capabilities and read by start_sdcard_print so the field is
-// refused defensively when the connector never advertised it or the
-// index-correlation merge gate (ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED) is
-// not satisfied.
+// refused defensively when the connector never advertised it.
 std::mutex                             g_filament_mapping_mutex;
 std::unordered_map<std::string, bool>  g_filament_mapping_cache;
 
@@ -1709,16 +1707,13 @@ int OrcaPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn up
     const std::string target = params.dst_file.empty() ? remote_gcode_name(params) : fs::path(params.dst_file).filename().string();
 
     // Per-print mapping. A mapped print is refused when the connector did not
-    // advertise filament_mapping or the index correlation is unverified: the GUI
-    // send gates make this visible first, and this is the defensive gate for
-    // callers that bypass them (calibration, plugin). Never start a mapped print
-    // with the map silently dropped.
+    // advertise filament_mapping: the GUI send gates make this visible first, and
+    // this is the defensive gate for callers that bypass them (calibration,
+    // plugin). Never start a mapped print with the map silently dropped.
     const nlohmann::json filament_mapping = build_filament_mapping(params.ams_mapping2);
     if (!filament_mapping.empty()) {
-        const bool mapping_capable = filament_mapping_advertised(params.dev_id);
-        if (!mapping_capable || !ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED) {
-            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: refusing mapped print (capable=" << mapping_capable
-                                       << ", correlation_verified=" << ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED << ")";
+        if (!filament_mapping_advertised(params.dev_id)) {
+            BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: refusing mapped print, connector does not advertise filament_mapping";
             return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
         }
         BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: start_sdcard_print emitting filament_mapping entries=" << filament_mapping.size();

@@ -154,6 +154,45 @@ TEST_CASE("the GUI mapping gate engages exactly the entries the serializer sends
     }
 }
 
+// The used-unmapped refusal reads m_ams_mapping_result: an entry with no target carries
+// empty ams_id/slot_id, while an external-spool assignment (ams_id 255/254) is a real
+// target. A wholly unmapped print reports no target and falls to the existing send flow.
+TEST_CASE("used-filament targets split mapped from unmapped", "[OrcaPrinterAgent]") {
+    using Slic3r::GUI::has_any_mapped_target;
+    using Slic3r::GUI::has_used_filament_without_target;
+
+    Slic3r::FilamentInfo box;      box.ams_id      = "0";   box.slot_id = "1";   // box slot
+    Slic3r::FilamentInfo external; external.ams_id = "255"; external.slot_id = "0"; // external spool
+    Slic3r::FilamentInfo unmapped;                                                // no target
+
+    CHECK_FALSE(has_used_filament_without_target({box, external}));
+    CHECK(has_used_filament_without_target({box, unmapped}));
+    CHECK(has_used_filament_without_target({external, unmapped}));
+    CHECK(has_used_filament_without_target({unmapped}));   // wholly unmapped: all-invalid flow, not this refusal
+    CHECK(has_any_mapped_target({box, unmapped}));
+    CHECK(has_any_mapped_target({external, unmapped}));
+    CHECK_FALSE(has_any_mapped_target({unmapped}));
+}
+
+// A device with no AMS units has one source, the external spool. OrcaSlicer's
+// auto-mapping force-selects it for every filament; that is not a lane choice, so it
+// must not gate the print or reach print.gcode_file.
+TEST_CASE("a no-AMS device drops the forced external-spool selection", "[OrcaPrinterAgent]") {
+    using Slic3r::GUI::drop_forced_external_selection;
+    using Slic3r::GUI::has_engaged_filament_mapping;
+
+    std::string external_only = R"([{"ams_id":255,"slot_id":0}])";
+    drop_forced_external_selection(/*device_has_ams=*/false, external_only);
+    CHECK(external_only.empty());
+    CHECK_FALSE(has_engaged_filament_mapping(external_only));
+    CHECK(Probe::build_filament_mapping(external_only).empty());
+
+    std::string box_mapping = R"([{"ams_id":0,"slot_id":2}])";
+    drop_forced_external_selection(/*device_has_ams=*/true, box_mapping);
+    CHECK(box_mapping == R"([{"ams_id":0,"slot_id":2}])");
+    CHECK(has_engaged_filament_mapping(box_mapping));
+}
+
 // An empty mapping must leave the gcode_file payload byte-identical to today:
 // exactly command, sequence_id and param, with no filament_mapping key.
 TEST_CASE("gcode_file payload omits filament_mapping when the map is empty", "[OrcaPrinterAgent]") {
@@ -170,6 +209,23 @@ TEST_CASE("gcode_file payload omits filament_mapping when the map is empty", "[O
     REQUIRE(with["print"].contains("filament_mapping"));
     REQUIRE(with["print"]["filament_mapping"].size() == 1);
     CHECK(with["print"]["filament_mapping"][0]["filament_index"] == 0);
+}
+
+// The defensive gate: a mapped print is refused before anything is published when the
+// connector never advertised filament_mapping. The GUI send gates make this visible first;
+// this covers callers that bypass them (calibration, plugin). A sentinel-only mapping does
+// not engage the gate and falls through to the normal publish path.
+TEST_CASE("an engaged mapping is refused when the connector never advertised filament_mapping", "[OrcaPrinterAgent]") {
+    OrcaPrinterAgent agent("/tmp");
+    Slic3r::PrintParams params;
+    params.dev_id       = "dev-no-mapping-cap";
+    params.dst_file     = "/tmp/job.gcode";
+    params.ams_mapping2 = R"([{"ams_id":0,"slot_id":2}])";
+
+    CHECK(agent.start_sdcard_print(params, {}, {}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+
+    params.ams_mapping2 = R"([{"ams_id":255,"slot_id":255}])";
+    CHECK(agent.start_sdcard_print(params, {}, {}) == BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED);
 }
 
 // The FTP "send with record" transport does not exist on OrcaSonar. It must

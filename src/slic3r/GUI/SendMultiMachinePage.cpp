@@ -798,16 +798,18 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
 
             if (!wxGetApp().is_blocking_printing(obj)) {
                 PrintParams params = request_params(obj);
+                // A device with no AMS unit has one source, the external spool: OrcaSlicer's
+                // auto-mapping force-selects it, which is not a lane choice.
+                if (obj->printer_agent_id == ORCA_PRINTER_AGENT_ID)
+                    drop_forced_external_selection(obj->HasAms(), params.ams_mapping2);
                 // OrcaSonar: a mapped print requires the connector to advertise
                 // filament_mapping, and a partially mapped print must not silently drop a
                 // used filament. Any entry the serializer would put on the wire engages the
                 // gate, external slots ({255,0}/{254,0}) included; the extra-spool branch
                 // rewrites to exactly those. Bambu is unchanged.
                 if (obj->printer_agent_id == ORCA_PRINTER_AGENT_ID) {
-                    const bool mapping_available = obj->is_support_filament_mapping && ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED;
-                    if (!mapping_available && has_engaged_filament_mapping(params.ams_mapping2)) {
-                        BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: filament mapping unavailable (capability=" << obj->is_support_filament_mapping
-                                                   << ", correlation_verified=" << ORCA_FILAMENT_MAPPING_CORRELATION_VERIFIED << "); refusing mapped print for "
+                    if (!obj->is_support_filament_mapping && has_engaged_filament_mapping(params.ams_mapping2)) {
+                        BOOST_LOG_TRIVIAL(warning) << "SendMultiMachinePage: connector does not advertise filament_mapping; refusing mapped print for "
                                                    << obj->get_dev_id();
                         MessageDialog msg_wingow(nullptr, _L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."), "", wxICON_WARNING | wxOK);
                         msg_wingow.ShowModal();
