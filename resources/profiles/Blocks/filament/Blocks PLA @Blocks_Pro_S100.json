@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Blocks PLA @Blocks_Pro_S100",
+	"renamed_from": "Blocks Generic PLA;Generic PLA @Blocks",
 	"inherits": "Blocks PLA @base",
 	"from": "system",
 	"setting_id": "vWojuLYIfduLGFLL",
@@ -11,6 +12,5 @@
 		"BLOCKS Pro S100 0.8 nozzle",
 		"BLOCKS Pro S100 1.0 nozzle",
 		"BLOCKS Pro S100 1.2 nozzle"
-	],
-	"renamed_from": "Blocks Generic PLA;Generic PLA @Blocks"
+	]
 }

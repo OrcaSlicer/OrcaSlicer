@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "VRicNQizOCKkgLBJ",
 	"name": "QIDI ASA @Qidi X-Plus 5 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "VRicNQizOCKkgLBJ",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"
 	],

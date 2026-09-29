@@ -318,10 +318,13 @@ Points Polygon::concave_points(double angle_threshold) const
 }
 
 // Projection of a point onto the polygon.
-Point Polygon::point_projection(const Point &point) const
+Point Polygon::point_projection(const Point &point, size_t *edge_index) const
 {
     Point proj = point;
     double dmin = std::numeric_limits<double>::max();
+    // Preserve the existing projection and tie order while optionally tracking its edge.
+    if (edge_index)
+        *edge_index = std::numeric_limits<size_t>::max();
     if (! this->points.empty()) {
         for (size_t i = 0; i < this->points.size(); ++ i) {
             const Point &pt0 = this->points[i];
@@ -330,11 +333,15 @@ Point Polygon::point_projection(const Point &point) const
             if (d < dmin) {
                 dmin = d;
                 proj = pt0;
+                if (edge_index)
+                    *edge_index = i;
             }
             d = (point - pt1).cast<double>().norm();
             if (d < dmin) {
                 dmin = d;
                 proj = pt1;
+                if (edge_index)
+                    *edge_index = (i + 1) % this->points.size();
             }
             Vec2d v1(coordf_t(pt1(0) - pt0(0)), coordf_t(pt1(1) - pt0(1)));
             coordf_t div = v1.squaredNorm();
@@ -347,6 +354,8 @@ Point Polygon::point_projection(const Point &point) const
                     if (d < dmin) {
                         dmin = d;
                         proj = foot;
+                        if (edge_index)
+                            *edge_index = i;
                     }
                 }
             }

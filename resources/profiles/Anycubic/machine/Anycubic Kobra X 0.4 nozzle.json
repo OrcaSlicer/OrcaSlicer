@@ -85,48 +85,63 @@
 	"machine_end_gcode": "M400\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107;turn off fan\nM84; disable motors\n; disable stepper motors",
 	"machine_load_filament_time": "0",
 	"machine_max_acceleration_e": [
+		"6500",
 		"6500"
 	],
 	"machine_max_acceleration_extruding": [
+		"6500",
 		"6500"
 	],
 	"machine_max_acceleration_retracting": [
+		"6500",
 		"6500"
 	],
 	"machine_max_acceleration_travel": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_x": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_y": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_z": [
+		"1000",
 		"1000"
 	],
 	"machine_max_jerk_e": [
+		"1",
 		"1"
 	],
 	"machine_max_jerk_x": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_y": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_z": [
+		"20",
 		"20"
 	],
 	"machine_max_speed_e": [
+		"250",
 		"250"
 	],
 	"machine_max_speed_x": [
+		"450",
 		"450"
 	],
 	"machine_max_speed_y": [
+		"450",
 		"450"
 	],
 	"machine_max_speed_z": [
+		"12",
 		"12"
 	],
 	"machine_min_extruding_rate": [
