@@ -992,7 +992,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     }
 
     // FanMover only reads "; custom gcode start/end" to avoid splitting a G1 inside custom gcode
-    // when it actually runs - same gate as its own construction (GCode.cpp ~4425/4523). Skip the
+    // when it actually runs - same gate as its own construction in GCode::process_layers. Skip the
     // markers otherwise so they aren't two dead comment lines on every toolchange.
     static std::string wrap_custom_gcode_for_fan_mover(const FullPrintConfig &config, const std::string &gcode)
     {
