@@ -1202,6 +1202,9 @@ class Print;
         EProducer m_producer;
 
         TimeProcessor m_time_processor;
+        // calculate_time()'s map from each block's move id to its index after the actual speed moves are inserted,
+        // a member to reuse its capacity.
+        std::vector<std::pair<unsigned int, unsigned int>> m_actual_speed_id_map;
         UsedFilaments m_used_filaments;
 
         Print* m_print{ nullptr };
