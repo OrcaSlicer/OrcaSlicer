@@ -11,10 +11,9 @@ namespace {
     // Sentinel for "file does not currently exist" so a create is detected as a change too.
     constexpr std::time_t source_file_missing_mtime = 0;
 
-    // Coalesces the handful of fs events one atomic write can produce (e.g. the several events a
-    // single rename-into-place triggers) into one check. Under the atomic-write assumption
-    // there's nothing further to wait out beyond this -- no resampling, no cap -- so this is the
-    // only delay in the whole path.
+    // Delay between the first fs event of a burst and the check it wakes. Under the atomic-write
+    // assumption there's nothing further to wait out beyond this -- no resampling -- so this is
+    // the only delay in the whole path.
     constexpr int debounce_ms = 300;
 
     SourceStamp get_source_stamp(const std::string& path)
@@ -131,11 +130,21 @@ void SourceFileWatcher::forget_watched_files()
 
 void SourceFileWatcher::on_fs_event(wxFileSystemWatcherEvent&)
 {
-    // Restarting an already-running one-shot timer just extends it -- exactly the coalescing a
-    // burst of events from one atomic write needs. No anti-starvation cap: under the atomic-write
-    // assumption a burst from one change is inherently brief, so unlike a design that has to keep
-    // resampling until a file settles, there's nothing pathological here to guard against.
-    m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
+    // Starts the timer only if one isn't already pending -- an event arriving while it's running
+    // (another event from the same atomic write landing moments later, or unrelated activity
+    // elsewhere in a watched directory) does not push the check further out. It always resolves
+    // within debounce_ms of the *first* sign of activity, regardless of how much more follows.
+    //
+    // Restarting on every event (an earlier version of this) doesn't just fail to coalesce
+    // faster -- it starves the check indefinitely under sustained unrelated activity in the same
+    // watched directory (a build process, a sync client, anything else writing nearby), since
+    // Windows has no per-file watch to fall back on and every one of those events also reaches
+    // here through the single directory watch. Found via a headless test's directory-noise phase,
+    // which failed deterministically on Windows for exactly this reason while passing on macOS
+    // (whose backend happens to coalesce/space out events enough in practice not to trigger it --
+    // not a guarantee either platform's watcher API makes).
+    if (!m_debounce_timer.IsRunning())
+        m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
 }
 
 void SourceFileWatcher::on_timer(wxTimerEvent&)

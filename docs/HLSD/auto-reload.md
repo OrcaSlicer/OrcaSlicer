@@ -46,14 +46,23 @@ watches are skipped on Windows: wx's MSW backend rejects them outright, and
 `ReadDirectoryChangesW`'s directory watch already reports in-place writes, so nothing
 is lost by skipping them there.
 
-Either watch firing only (re)starts a fixed 300ms debounce timer (`on_fs_event()`);
-restarting an already-running one-shot timer just extends it, which is exactly the
-coalescing a burst of events from one atomic write needs — a rename-into-place, for
-instance, can produce more than one filesystem event for what is logically a single
-change. There is no cap on how many times this can restart: under the atomic-write
-premise above, a burst from one change is inherently brief, so unlike a design that
-has to keep resampling a file until it settles, there's nothing pathological here to
-guard against.
+Either watch firing starts a fixed 300ms debounce timer (`on_fs_event()`) — but only if
+one isn't already pending. A rename-into-place, for instance, can produce more than one
+filesystem event for what is logically a single change; the first of them starts the
+timer, and the rest (arriving moments later, while it's still running) don't push the
+check further out. That "only if not already running" matters beyond just coalescing a
+burst efficiently: on Windows, where there's no per-file watch to fall back on (see
+above), *every* filesystem event in a watched directory — not just ones from the change
+being tracked — reaches `on_fs_event()` through the single directory watch. An earlier
+version of this restarted the timer on every event unconditionally, which coalesces a
+burst just as well but starves the check indefinitely under sustained unrelated activity
+in the same directory (a build process, a sync client, anything else writing nearby) —
+found via a headless test's directory-noise phase, which failed deterministically on
+Windows for this reason while passing on macOS, whose backend happens to coalesce/space
+out events enough in practice not to trigger it (not something either platform's watcher
+API actually guarantees). Starting only when idle bounds the wait to debounce_ms after
+the *first* sign of activity regardless of how much more follows, with no separate cap
+needed.
 
 ## Detecting and committing a change
 
