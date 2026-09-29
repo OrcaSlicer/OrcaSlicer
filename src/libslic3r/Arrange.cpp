@@ -1122,8 +1122,6 @@ void arrange(ArrangePolygons &      arrangables,
              const BedT &           bed,
              const ArrangeParams &  params)
 {
-    namespace clppr = Slic3r::ClipperLib;
-
     std::vector<Item> items, fixeditems;
     items.reserve(arrangables.size());
 

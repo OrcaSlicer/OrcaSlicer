@@ -20,7 +20,6 @@
 #include "TopExp_Explorer.hxx"
 #include "TopoDS.hxx"
 #include "BRepExtrema_SelfIntersection.hxx"
-#include "libslic3r/clipper.hpp"
 #include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {

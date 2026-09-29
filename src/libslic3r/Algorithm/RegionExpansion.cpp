@@ -10,7 +10,7 @@
 namespace Slic3r {
 namespace Algorithm {
 
-// Calculating radius discretization according to ClipperLib offsetter code, see void ClipperOffset::DoOffset(double delta)
+// Calculating radius discretization according to the Clipper offsetter code, see ClipperOffset::DoGroupOffset()
 inline double clipper_round_offset_error(double offset, double arc_tolerance)
 {
     static constexpr const double def_arc_tolerance = 0.25;

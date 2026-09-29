@@ -34,7 +34,7 @@ Points EmptyPathsProvider::s_empty_points;
 Points SinglePathProvider::s_end;
 
 // Clip source polygon to be used as a clipping polygon with a bouding box around the source (to be clipped) polygon.
-// Useful as an optimization for expensive ClipperLib operations, for example when clipping source polygons one by one
+// Useful as an optimization for expensive Clipper operations, for example when clipping source polygons one by one
 // with a set of polygons covering the whole layer below.
 template<typename PointsType> inline void clip_clipper_polygon_with_subject_bbox_templ(const PointsType &src, const BoundingBox &bbox, PointsType &out, const bool get_entire_polygons=false)
 {
