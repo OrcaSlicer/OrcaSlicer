@@ -759,13 +759,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         GCodeReader parser;
         parser.parse_buffer(gcode, [&changes](GCodeReader &parser, const GCodeReader::GCodeLine &line) {
             const std::string_view cmd = line.cmd();
-            if (boost::iequals(cmd, "M204") || boost::iequals(cmd, "M201") ||
-                boost::iequals(cmd, "M202"))
+            if (ascii_iequals(cmd, "M204") || ascii_iequals(cmd, "M201") ||
+                ascii_iequals(cmd, "M202"))
                 changes.acceleration = true;
-            else if ((boost::iequals(cmd, "M205") || boost::iequals(cmd, "M207") || boost::iequals(cmd, "M566")) &&
+            else if ((ascii_iequals(cmd, "M205") || ascii_iequals(cmd, "M207") || ascii_iequals(cmd, "M566")) &&
                      custom_gcode_line_has_xy_parameter(line.raw()))
                 changes.jerk = true;
-            else if (boost::iequals(cmd, "SET_VELOCITY_LIMIT")) {
+            else if (ascii_iequals(cmd, "SET_VELOCITY_LIMIT")) {
                 changes.acceleration |= boost::icontains(line.raw(), "ACCEL=");
                 changes.jerk         |= boost::icontains(line.raw(), "SQUARE_CORNER_VELOCITY=");
             }
