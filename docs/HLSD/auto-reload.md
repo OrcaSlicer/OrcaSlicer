@@ -37,9 +37,10 @@ watches are skipped on Windows: wx's MSW backend rejects them outright, and
 `ReadDirectoryChangesW`'s directory watch already reports in-place writes, so nothing
 is lost by skipping them there.
 
-Either watch firing only wakes a debounced comparison — the event handler never
-trusts the reported path, because macOS's kqueue backend can report a rename with
-just the directory and no filename. The comparison is against a *stamp*,
+Either watch firing only wakes a stamp comparison (how that comparison decides whether to
+actually report a change is below) — the event handler never trusts the reported path,
+because macOS's kqueue backend can report a rename with just the directory and no filename.
+The comparison is against a *stamp*,
 `(mtime, size)`: mtime alone is whole-second resolution, so a second write landing in
 the same wall-clock second as the first would otherwise be invisible. A same-second,
 same-size rewrite is still invisible; that's the accepted limit short of hashing
@@ -52,7 +53,7 @@ isn't because a rename-into-place is inherently non-atomic -- a single POSIX `re
 over an existing destination is atomic, and a lookup can never see it as absent because
 of that call alone. What isn't guaranteed is that every exporter's "rename-into-place"
 is actually one atomic rename: the classic C runtime `rename()` fails if the destination
-already exists, so plenty of tools -- especially on Windows -- do `unlink()` then
+already exists, so some tools -- especially on Windows -- do `unlink()` then
 `rename()` instead; a temp file on a different filesystem than the destination hits
 `EXDEV` and falls back to copy-then-delete; and a network share or cloud-sync client can
 show a transient gap to a remote watcher even when the writer's own operation was atomic.
@@ -112,11 +113,23 @@ show two dialogs: a file picker for a missing source, and a "replace it?" confir
 The watcher doesn't skip these because nobody is at the keyboard — the user is
 presumably still there, just not in the middle of clicking "Reload from disk"
 themselves. It skips them because of the retry/backoff loop ("Detection, commit and
-retry are separate" above): a source that's still missing, or still mid-write and
-unparseable, gets retried automatically at 1.5s/3s/6s/12s until its stamp stops
-changing. Running interactively would mean showing one of these dialogs again on every
-retry that still fails — a file picker demanding attention every few seconds for an
-export that simply isn't finished yet, not a one-off interruption the user asked for.
+retry are separate" above): a permanently unparseable file, a momentary lock, or a
+source that vanishes between the stability check above confirming a stamp and
+`reload_from_disk()` actually opening it a moment later, all get retried automatically
+at 1.5s/3s/6s/12s until the stamp stops advancing. Running interactively would mean
+showing one of these dialogs again on every failed retry — a file picker or error
+dialog demanding attention for something the user didn't just ask for, not a one-off
+interruption they meant to trigger.
+
+Before the stability gate ("Watching for a change" above), this retry loop also had to
+absorb a still-growing export getting read, and failing, again and again while it was
+still being written — each new stamp during the write was its own attempt, so an
+interactive path would have popped a dialog on every retry for an export that simply
+wasn't finished yet. The stability gate now heads that off directly: a file isn't
+attempted until its stamp has actually stopped changing, so there's nothing left
+mid-write to retry. The retry loop, and the reason it can't run interactively, are
+both still needed — just for what's left once timing isn't the problem: a file that's
+genuinely broken, or a lock or vanish that outlasts the stability window itself.
 
 `reload_from_disk()`/`reload_all_from_disk()` take an `interactive` parameter (default
 `true`, so the menu item and canvas shortcut are unaffected); the watcher always calls
@@ -240,8 +253,8 @@ the export itself the deliberate request to see a sliced result, no less than cl
 ## Implementation and verification
 
 - [SourceFileWatcher.{hpp,cpp}](../../src/slic3r/GUI/SourceFileWatcher.hpp) — the
-  watcher itself: path resolution, OS-level watches, debounce, stamp comparison,
-  commit/retry.
+  watcher itself: path resolution, OS-level watches, the stability-gated poll loop, stamp
+  comparison, commit/retry.
 - [Plater.cpp](../../src/slic3r/GUI/Plater.cpp) — `update_source_file_watches()`,
   `on_source_files_changed()`, `reload_source_files()`, `reload_from_disk()`'s
   `interactive` parameter, `maybe_auto_slice_after_reload()`, `slice_after_reload()`.
@@ -249,10 +262,14 @@ the export itself the deliberate request to see a sliced result, no less than cl
   by Cmd/Ctrl+R and the watcher's auto-slice.
 - [Preferences.cpp](../../src/slic3r/GUI/Preferences.cpp) — the three checkboxes.
 - [tests/slic3rutils/test_source_file_watcher.cpp](../../tests/slic3rutils/test_source_file_watcher.cpp) —
-  the watcher's stamp comparison, commit/retry, baseline handling and re-entrancy guard, driven
-  by delivering the debounce timer's event directly. The option defaults are in
-  `tests/libslic3r/test_appconfig.cpp`.
-- [scripts/test_auto_reload.py](../../scripts/test_auto_reload.py) — manual
-  verification driving a running OrcaSlicer against real on-disk file changes; the
-  GUI steps that can't be scripted (importing a model, toggling the preferences) are
-  prompted for.
+  the watcher's stamp comparison, commit/retry, baseline handling, re-entrancy guard, and the
+  500ms stability gate itself, driven by delivering the debounce timer's event directly and,
+  where a test needs real elapsed time to matter, a `FakeClock` installed via the
+  `test_set_watcher_clock()` test hook (a `friend` declared in the header, defined only in this
+  test file) instead of a real sleep. The option defaults are in `tests/libslic3r/test_appconfig.cpp`.
+- [scripts/test_auto_reload.py](../../scripts/test_auto_reload.py) and
+  [scripts/test_auto_reload_headless.py](../../scripts/test_auto_reload_headless.py) — manual
+  and fully-scripted verification driving a running OrcaSlicer against real on-disk file
+  changes, including phase P's slow multi-chunk write for the stability gate specifically. The
+  interactive script prompts for the GUI steps that can't be scripted (importing a model,
+  toggling the preferences); the headless one drives and restarts the app itself instead.
