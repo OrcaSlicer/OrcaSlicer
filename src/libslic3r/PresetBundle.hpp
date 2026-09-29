@@ -235,6 +235,9 @@ public:
 
     // ORCA: utility function to find the vendor for a given preset name
     static std::string find_preset_vendor(const std::string& preset_name, Preset::Type type);
+    // Keys a project keeps when its presets are loaded: those listed in its escaped
+    // "different_settings_to_system" entry for the preset, plus the preset bookkeeping keys.
+    static std::set<std::string> project_different_keys(const std::string &different_settings);
 
     PresetBundle();
     PresetBundle(const PresetBundle &rhs);

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# End-to-end check that the CLI fills settings missing from a project from the project's system presets.
+# End-to-end check that the CLI loads a project's printer and process settings as the GUI does.
 #
-# A project saved before an option existed has no value for it. The GUI takes such keys from the
-# project's system printer and process presets, not from the option defaults, and the CLI must slice
-# the project with the same values. A project is exported from the shipped Bambu Lab P1S presets, one
-# printer key and one process key are removed from it, one kept key is changed, and it is sliced again.
+# The GUI takes every key a project does not list as changed from the project's current system preset:
+# keys saved before an option existed, and keys holding an older system value. Keys the project lists
+# in different_settings_to_system keep the project's value. A project is exported from the shipped
+# Bambu Lab P1S presets; one printer key and one process key are removed, one printer key and one
+# process key are changed without being listed, one key is changed and listed, and it is sliced again.
 #
 # usage: test_cli_project_missing_keys.sh <orca-slicer binary> <python3> <resources/profiles/BBL>
 set -u
@@ -46,7 +47,8 @@ slice base "$WORK/cube.stl" \
     --load-settings "$PROFILES/machine/Bambu Lab P1S 0.4 nozzle.json;$PROFILES/process/0.20mm Standard @BBL X1C.json" \
     --load-filaments "$PROFILES/filament/Bambu PLA Basic @BBL P1S 0.4 nozzle.json"
 
-# The removed keys, with their option defaults from PrintConfig.cpp, and a kept key with a new value.
+# The removed keys, with their option defaults from PrintConfig.cpp; stale keys changed without being
+# listed as different, which must come back with the system value; and a listed key the project keeps.
 "$PY" - "$WORK/base/out.3mf" "$WORK/old.3mf" <<'EOF' || exit $?
 import json, sys, zipfile
 
@@ -62,8 +64,13 @@ with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED
                     print("SKIP: %s is %s in the system preset, the option default, so the test cannot tell them apart" % (key, default))
                     sys.exit(77)
             expected = {key: config.pop(key) for key in missing}
+            for key in ("top_shell_layers", "extruder_clearance_height_to_rod"):
+                expected[key] = config[key]
+                config[key] = str(int(float(config[key])) + 1)
             expected["wall_loops"] = str(int(config["wall_loops"]) + 1)
             config["wall_loops"] = expected["wall_loops"]
+            different = config["different_settings_to_system"]
+            different[0] = ";".join([k for k in different[0].split(";") if k] + ["wall_loops"])
             data = json.dumps(config, indent=4)
         zout.writestr(item, data)
 with open(dst + ".expected.json", "w") as f:

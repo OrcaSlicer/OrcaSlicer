@@ -3123,48 +3123,43 @@ int CLI::run(int argc, char **argv)
         return 0;
     };
 
-    // A project saved before a printer or process option existed has no value for it. The GUI takes such
-    // keys from the project's system preset (load_external_preset refreshes every key the project did not
-    // override), so fill them from there too instead of leaving them to the option default.
-    // The extruder variant keys describe the project's variant layout and are kept as they are, so an
-    // older project is not left with a variant list from one layout and ids from another.
-    auto fill_missing_project_keys = [this, &ensure_system_preset_resolver](const std::string &system_name, Preset::Type type) {
+    // Load the project's printer and process settings as the GUI loads its presets: over the default preset,
+    // with every key the project does not list as changed, including keys saved before an option existed,
+    // taken from its current system preset.
+    auto load_project_preset = [this, &ensure_system_preset_resolver, &current_different_settings, filament_count](const std::string &system_name, Preset::Type type) {
         if (system_name.empty())
             return;
-        static const std::set<std::string> skip_keys = {
-            "inherits", "compatible_printers", "compatible_prints", "compatible_printers_condition", "compatible_prints_condition",
-            "print_settings_id", "filament_settings_id", "printer_settings_id",
-            "print_host", "print_host_webui", "printhost_apikey", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port",
-            "printer_extruder_id", "printer_extruder_variant", "print_extruder_id", "print_extruder_variant", "extruder_variant_list"};
-        const std::vector<std::string> &options = type == Preset::TYPE_PRINTER ? Preset::printer_options() : Preset::print_options();
-        // Keys the legacy handler drops on load can never be in a project, so they do not count as missing.
-        auto dropped_on_load = [](std::string key) {
-            std::string value;
-            PrintConfigDef::handle_legacy(key, value);
-            return key.empty();
-        };
-        std::vector<std::string> missing;
-        for (const std::string &key : options)
-            if (m_print_config.option(key) == nullptr && skip_keys.count(key) == 0 && !dropped_on_load(key))
-                missing.push_back(key);
-        if (missing.empty())
-            return;
+        // Preset bookkeeping the CLI keeps in its own groups, e.g. inherits_group and print_compatible_printers.
+        static const std::set<std::string> bookkeeping_keys = {"inherits", "compatible_printers", "compatible_prints", "compatible_printers_condition",
+                                                               "compatible_prints_condition", "print_settings_id", "printer_settings_id"};
+        const size_t       index = type == Preset::TYPE_PRINTER ? filament_count + 1 : 0;
+        PresetBundle      &resolver = ensure_system_preset_resolver();
         DynamicPrintConfig system_config;
-        std::string        error;
-        if (!ensure_system_preset_resolver().resolve_system_preset(system_config, type, system_name, config_substitution_rule, error)) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: system preset '%1%' not resolved (%2%); keys missing from the project keep their defaults") % system_name % error;
-            return;
+        t_config_option_keys keys;
+        const DynamicPrintConfig config = Preset::load_external_config(type,
+            type == Preset::TYPE_PRINTER ? resolver.printers.default_preset_for(m_print_config).config : resolver.prints.default_preset().config,
+            m_print_config, PresetBundle::project_different_keys(index < current_different_settings.size() ? current_different_settings[index] : std::string()),
+            [&](const std::string &) -> DynamicPrintConfig * {
+                std::string error;
+                if (resolver.resolve_system_preset(system_config, type, system_name, config_substitution_rule, error))
+                    return &system_config;
+                BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: system preset '%1%' not resolved (%2%); the project keeps its values") % system_name % error;
+                return nullptr;
+            }, &keys);
+        for (const std::string &key : keys) {
+            const ConfigOption *opt = config.option(key);
+            const ConfigOption *old = m_print_config.option(key);
+            if (bookkeeping_keys.count(key) != 0 || opt == nullptr || (old != nullptr && *old == *opt))
+                continue;
+            BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% from '%2%': %3% -> %4%") % key % system_name % (old ? old->serialize() : std::string("(missing)")) % opt->serialize();
+            m_print_config.set_key_value(key, opt->clone());
         }
-        for (const std::string &key : missing)
-            if (const ConfigOption *opt = system_config.option(key)) {
-                m_print_config.set_key_value(key, opt->clone());
-                BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% missing from the project, taken from '%2%': %3%") % key % system_name % opt->serialize();
-            }
     };
-    if (new_printer_name.empty())
-        fill_missing_project_keys(current_printer_system_name, Preset::TYPE_PRINTER);
-    if (new_process_name.empty())
-        fill_missing_project_keys(current_process_system_name, Preset::TYPE_PRINT);
+    // The --uptodate path refreshes the project from its own system configs.
+    if (new_printer_name.empty() && load_machine_config.empty())
+        load_project_preset(current_printer_system_name, Preset::TYPE_PRINTER);
+    if (new_process_name.empty() && load_process_config.empty())
+        load_project_preset(current_process_system_name, Preset::TYPE_PRINT);
 
     std::vector<std::string>& different_settings = m_print_config.option<ConfigOptionStrings>("different_settings_to_system", true)->values;
     std::vector<std::string>& inherits_group = m_print_config.option<ConfigOptionStrings>("inherits_group", true)->values;
