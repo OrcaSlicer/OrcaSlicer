@@ -30,17 +30,21 @@ public:
     ~CrealityDiscoveryDialog() override = default;
 
     std::string selected_ip() const { return m_selected_ip; }
+    // True when the selected printer's model was recognized as a K2-family unit (its web UI
+    // defaults to port 4408) rather than an unrecognized/generic Creality host.
+    bool selected_is_k2_family() const { return m_selected_is_k2_family; }
 
 private:
     void run_discovery();
     void on_ok();
 
-    struct Row { std::string ip; std::string model; std::string hostname; };
+    struct Row { std::string ip; std::string model; std::string hostname; bool is_k2_family = false; };
 
     wxListView*   m_list = nullptr;
     wxStaticText* m_status = nullptr;
     std::vector<Row> m_rows;
     std::string   m_selected_ip;
+    bool          m_selected_is_k2_family = false;
 };
 
 } // namespace GUI

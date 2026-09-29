@@ -4,16 +4,12 @@
 
 using namespace Slic3r;
 
-TEST_CASE("CrealityPrint builds native-API URLs against the bare host, without any web-UI port", "[CrealityPrint]")
+TEST_CASE("CrealityPrint recognizes a web-UI page in place of the native API's JSON", "[CrealityPrint]")
 {
-    CHECK(creality_print_make_url("http://192.168.1.50:4408", "info") == "http://192.168.1.50/info");
-    CHECK(creality_print_make_url("192.168.1.50:4408", "info") == "http://192.168.1.50/info");
-    CHECK(creality_print_make_url("https://printer.local:8443", "upload/foo.gcode") == "https://printer.local/upload/foo.gcode");
+    CHECK(creality_print_looks_like_html_response("<!DOCTYPE html><html><head></head><body></body></html>"));
+    CHECK(creality_print_looks_like_html_response("<HTML><BODY>Mainsail</BODY></HTML>"));
 
-    // No port at all: unaffected.
-    CHECK(creality_print_make_url("http://192.168.1.50", "info") == "http://192.168.1.50/info");
-    CHECK(creality_print_make_url("192.168.1.50", "info") == "http://192.168.1.50/info");
-
-    // A trailing slash on the host must not double up when joined with path.
-    CHECK(creality_print_make_url("http://192.168.1.50:4408/", "info") == "http://192.168.1.50/info");
+    CHECK_FALSE(creality_print_looks_like_html_response(R"({"model":"K2 Plus","mac":"AA:BB:CC:DD:EE:FF"})"));
+    CHECK_FALSE(creality_print_looks_like_html_response(""));
+    CHECK_FALSE(creality_print_looks_like_html_response("not json and not html either"));
 }

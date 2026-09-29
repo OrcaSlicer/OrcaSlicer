@@ -80,6 +80,13 @@ wxString CrealityPrint::get_test_failed_msg(wxString& msg) const
     return GUI::format_wxstr("%s: %s", _L("Could not connect to CrealityPrint"), msg.Truncate(256));
 }
 
+// An /info response that looks like a web page rather than the native API's JSON: Hostname, IP or
+// URL points at the printer's own web UI (Mainsail, etc.) instead of the REST API.
+bool creality_print_looks_like_html_response(const std::string &body)
+{
+    return boost::algorithm::icontains(body, "<html");
+}
+
 bool CrealityPrint::test(wxString& msg) const
 { 
     bool res = true;
@@ -107,6 +114,13 @@ bool CrealityPrint::test(wxString& msg) const
                 }
             } catch (const json::exception& e) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse /info response: %2%") % name % e.what();
+                // Fail instead of silently accepting an unparseable body as a successful connection.
+                if (creality_print_looks_like_html_response(body)) {
+                    res = false;
+                    msg = _L("This address returned a web page instead of the printer's native API. "
+                             "If this is the printer's web UI address, set it in \"Device UI\" instead of "
+                             "\"Hostname, IP or URL\".");
+                }
             }
         })
 #ifdef WIN32
@@ -180,18 +194,17 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
     return res;
 }
 
-std::string creality_print_make_url(const std::string &host, const std::string &path)
-{
-    // The native REST API listens on its own fixed port, not whatever port the host field may
-    // carry for the printer's (proxied) web UI; strip it, as ws_connect() already does.
-    const bool        is_https  = host.find("https://") == 0;
-    const std::string bare_host = Http::get_host_from_url(host);
-    return (boost::format("%1%://%2%/%3%") % (is_https ? "https" : "http") % bare_host % path).str();
-}
-
 std::string CrealityPrint::make_url(const std::string &path) const
 {
-    return creality_print_make_url(m_host, path);
+    if (m_host.find("http://") == 0 || m_host.find("https://") == 0) {
+        if (m_host.back() == '/') {
+            return (boost::format("%1%%2%") % m_host % path).str();
+        } else {
+            return (boost::format("%1%/%2%") % m_host % path).str();
+        }
+    } else {
+        return (boost::format("http://%1%/%2%") % m_host % path).str();
+    }
 }
 
 std::string CrealityPrint::safe_filename(const std::string &filename) const
