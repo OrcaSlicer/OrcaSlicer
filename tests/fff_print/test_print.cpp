@@ -404,15 +404,27 @@ TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "
 }
 
 // Some firmwares only scan the last N lines of the file for "estimated printing time", so it
-// must stay close to EOF regardless of the resolved-settings config block's size.
-TEST_CASE("The estimated printing time comment follows the resolved-settings config block", "[Print]")
+// must stay close to EOF regardless of the resolved-settings config block's size - not just after
+// the block (a large per-filament stats footer between them would still push it out of range).
+TEST_CASE("The estimated printing time comment stays near the end of the file", "[Print]")
 {
     const std::string gcode = slice({ cube(20) }, {});
     const size_t config_block_end = gcode.find("; CONFIG_BLOCK_END");
+    const size_t filament_stats   = gcode.find("; filament used [mm]");
     const size_t time_comment     = gcode.find("estimated printing time");
     REQUIRE(config_block_end != std::string::npos);
+    REQUIRE(filament_stats != std::string::npos);
     REQUIRE(time_comment != std::string::npos);
-    CHECK(time_comment > config_block_end);
+    // Per-filament stats and the totals/estimate that follow them must both land after the config
+    // block, not split across it: the config block moves, not the stats footer.
+    CHECK(filament_stats > config_block_end);
+    CHECK(time_comment > filament_stats);
+
+    // Only the placeholder line itself and a few trailing blank/footer lines should follow it -
+    // not, say, an entire per-filament stats block the way a naive "after config block" fix allows.
+    const size_t line_start = gcode.rfind('\n', time_comment) + 1;
+    const size_t trailing_lines = std::count(gcode.begin() + line_start, gcode.end(), '\n');
+    CHECK(trailing_lines <= 5);
 }
 
 // Custom G-code templates substitute placeholders during export.
