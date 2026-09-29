@@ -63,9 +63,9 @@ namespace Slic3r {
 #define PILLAR_SIZE (2.5)
 #define PILLAR_SPACING 10
 
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 1.5
-#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
+#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 static constexpr bool support_with_sheath = false;
 
@@ -1634,7 +1634,7 @@ static inline std::tuple<Polygons, Polygons, double> detect_contacts(
                         offset(
                             diff_polygons,
                             scaled<float>(SUPPORT_MATERIAL_MARGIN / NUM_MARGIN_STEPS),
-                            ClipperLib::jtRound,
+                            jtRound,
                             // round mitter limit
                             scale_(0.05)),
                         slices_margin.polygons);

@@ -2558,9 +2558,9 @@ void PrintObject::discover_vertical_shells()
                             // Open to remove (filter out) regions narrower than an infill extrusion line width.
                             -narrow_ensure_vertical_wall_thickness_region_radius,
                             // Then close gaps narrower than 1.2 * line width, such gaps are difficult to fill in with sparse infill.
-                            narrow_ensure_vertical_wall_thickness_region_radius + narrow_sparse_infill_region_radius, ClipperLib::jtSquare),
+                            narrow_ensure_vertical_wall_thickness_region_radius + narrow_sparse_infill_region_radius, jtSquare),
                             // Finally expand the infill a bit to remove tiny gaps between solid infill and the other regions.
-                            narrow_sparse_infill_region_radius - tiny_overlap_radius, ClipperLib::jtSquare);
+                            narrow_sparse_infill_region_radius - tiny_overlap_radius, jtSquare);
 
                         Polygons object_volume;
                         Polygons internal_volume;
@@ -4170,7 +4170,7 @@ void PrintObject::clip_fill_surfaces()
         upper_internal = intersection(
             // Regularize the overhang regions, so that the infill areas will not become excessively jagged.
             smooth_outward(
-                closing(upper_internal, closing_radius, ClipperLib::jtSquare, 0.),
+                closing(upper_internal, closing_radius, jtSquare, 0.),
                 scaled<coord_t>(0.1)),
             lower_layer_internal_surfaces);
         // Apply new internal infill to regions.
@@ -4341,7 +4341,7 @@ void PrintObject::discover_horizontal_shells()
                         // have the same angle, so the next shell would be grown even more and so on.
                         Polygons too_narrow = diff(
                             new_internal_solid,
-                            opening(new_internal_solid, margin, margin + ClipperSafetyOffset, ClipperLib::jtMiter, 5));
+                            opening(new_internal_solid, margin, margin + ClipperSafetyOffset, jtMiter, 5));
                         if (! too_narrow.empty()) {
                             // grow the collapsing parts and add the extra area to  the neighbor layer
                             // as well as to our original surfaces so that we support this
@@ -4543,7 +4543,7 @@ void PrintObject::_generate_support_material()
 }
 
 // BBS
-#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 #define SUPPORT_MATERIAL_MARGIN 1.2
 template<typename PolysType>
 void PrintObject::remove_bridges_from_contacts(

@@ -246,24 +246,7 @@ SCENARIO("Various Clipper operations - t/clipper.t", "[ClipperUtils]") {
     }
 }
 
-template<e_ordering o = e_ordering::OFF, class P, class Tree, class Alloc>
-double polytree_area(const Tree &tree, std::vector<P, Alloc> *out)
-{
-    traverse_pt<o>(tree, out);
-
-    return std::accumulate(out->begin(), out->end(), 0.0,
-                           [](double a, const P &p) { return a + p.area(); });
-}
-
-size_t count_polys(const ExPolygons& expolys)
-{
-    size_t c = 0;
-    for (auto &ep : expolys) c += ep.holes.size() + 1;
-
-    return c;
-}
-
-TEST_CASE("Traversing Clipper PolyTree", "[ClipperUtils]") {
+TEST_CASE("Top level expolygons of an even-odd union", "[ClipperUtils]") {
     // Create a polygon representing unit box
     Polygon unitbox;
     const auto UNIT = coord_t(1. / SCALING_FACTOR);
@@ -287,36 +270,24 @@ TEST_CASE("Traversing Clipper PolyTree", "[ClipperUtils]") {
     Polygon inner_right = inner_left;
     inner_right.translate(UNIT * 10, 0);
 
-    Polygons reference = union_({box_frame, hole_left, hole_right, inner_left, inner_right});
+    ExPolygons reference;
+    for (const Polygon &polygon : union_({box_frame, hole_left, hole_right, inner_left, inner_right}))
+        reference.emplace_back(polygon);
 
-    ClipperLib::PolyTree tree = union_pt(reference);
     double area_sum = box_frame.area() + hole_left.area() +
                       hole_right.area() + inner_left.area() +
                       inner_right.area();
 
     REQUIRE(area_sum > 0);
 
-    SECTION("Traverse into Polygons WITHOUT spatial ordering") {
-        Polygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area(tree.GetFirst(), &output)));
-        REQUIRE(output.size() == reference.size());
-    }
-
-    SECTION("Traverse into ExPolygons WITHOUT spatial ordering") {
-        ExPolygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area(tree.GetFirst(), &output)));
-        REQUIRE(count_polys(output) == reference.size());
-    }
-
-    SECTION("Traverse into Polygons WITH spatial ordering") {
-        Polygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area<e_ordering::ON>(tree.GetFirst(), &output)));
-        REQUIRE(output.size() == reference.size());
-    }
-
-    SECTION("Traverse into ExPolygons WITH spatial ordering") {
-        ExPolygons output;
-        REQUIRE(area_sum == Catch::Approx(polytree_area<e_ordering::ON>(tree.GetFirst(), &output)));
-        REQUIRE(count_polys(output) == reference.size());
-    }
+    ExPolygons nested;
+    ExPolygons top_level = top_level_expolygons(reference, &nested);
+    auto area = [](const ExPolygons &expolys) {
+        return std::accumulate(expolys.begin(), expolys.end(), 0.0, [](double a, const ExPolygon &e) { return a + e.area(); });
+    };
+    REQUIRE(top_level.size() == 1);
+    REQUIRE(top_level.front().holes.size() == 2);
+    REQUIRE(nested.size() == 2);
+    REQUIRE(area_sum == Catch::Approx(area(top_level) + area(nested)));
+    REQUIRE(top_level_expolygons(reference).size() == 1);
 }

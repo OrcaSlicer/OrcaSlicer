@@ -2,6 +2,7 @@
 
 #include <libslic3r/AABBTreeIndirect.hpp>
 #include <libslic3r/ClipperZUtils.hpp>
+#include <libslic3r/clipper.hpp>
 #include <libslic3r/ClipperUtils.hpp>
 #include <libslic3r/Utils.hpp>
 
@@ -368,7 +369,7 @@ static ClipperLib::Paths wavefront_initial(ClipperLib::ClipperOffset &co, const 
     for (const ClipperLib::Path &path : polylines) {
         assert(path.size() >= 2);
         co.Clear();
-        co.AddPath(path, jtRound, path.front() == path.back() ? ClipperLib::etClosedLine : ClipperLib::etOpenRound);
+        co.AddPath(path, ClipperLib::jtRound, path.front() == path.back() ? ClipperLib::etClosedLine : ClipperLib::etOpenRound);
         co.Execute(out_this, offset);
         append(out, std::move(out_this));
     }
@@ -388,7 +389,7 @@ static ClipperLib::Paths wavefront_step(ClipperLib::ClipperOffset &co, const Cli
         // Execute reorients the contours so that the outer most contour has a positive area. Thus the output
         // contours will be CCW oriented even though the input paths are CW oriented.
         // Offset is applied after contour reorientation, thus the signum of the offset value is reversed.
-        co.AddPath(polygon, jtRound, ClipperLib::etClosedPolygon);
+        co.AddPath(polygon, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
         bool ccw = ClipperLib::Orientation(polygon);
         co.Execute(out_this, ccw ? offset : - offset);
         if (! ccw) {

@@ -251,9 +251,9 @@ enum class PrintOrder
 
 enum class SlicingMode
 {
-    // Regular, applying ClipperLib::pftNonZero rule when creating ExPolygons.
+    // Regular, applying pftNonZero rule when creating ExPolygons.
     Regular,
-    // Compatible with 3DLabPrint models, applying ClipperLib::pftEvenOdd rule when creating ExPolygons.
+    // Compatible with 3DLabPrint models, applying pftEvenOdd rule when creating ExPolygons.
     EvenOdd,
     // Orienting all contours CCW, thus closing all holes.
     CloseHoles,

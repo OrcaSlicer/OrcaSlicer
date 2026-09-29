@@ -3489,7 +3489,7 @@ void Print::_make_skirt()
             Polygon loop;
             {
                 // Orca: the hull already represents the occupied outline used for this skirt.
-                Polygons loops = offset(hull, distance, ClipperLib::jtRound, float(scale_(0.1)));
+                Polygons loops = offset(hull, distance, jtRound, float(scale_(0.1)));
                 Geometry::simplify_polygons(loops, scale_(0.05), &loops);
 			    if (loops.empty())
 				    break;
@@ -3526,7 +3526,7 @@ void Print::_make_skirt()
         }
 
         if (collect_skirt_hull)
-            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
+            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), jtRound, float(scale_(0.1))))
                 append(m_skirt_convex_hull, std::move(poly.points));
     };
 
@@ -3632,7 +3632,7 @@ void Print::_make_skirt()
                 if (group.emits_skirt) {
                     // Orca: If the expanded skirt outline touches another group
                     // or obstacle, merge them and run the pass again.
-                    Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
+                    Polygons envelopes = offset(envelope, grouping_offset, jtRound, float(scale_(0.1)));
                     if (envelopes.empty())
                         continue;
                     envelope = std::move(envelopes.front());

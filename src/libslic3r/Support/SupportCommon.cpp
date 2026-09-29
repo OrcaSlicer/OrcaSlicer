@@ -8,6 +8,7 @@
 #include "../Geometry.hpp"
 #include "../Point.hpp"
 #include "clipper/clipper_z.hpp"
+#include "../clipper.hpp"
 
 #include <cmath>
 #include <boost/container/static_vector.hpp>
@@ -39,9 +40,9 @@ namespace Slic3r {
 //FIXME this should be dependent on the nozzle diameter!
 #define SUPPORT_MATERIAL_MARGIN 1.5
 
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
-//#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 1.5
-#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
+//#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
+#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 // Convert some of the intermediate layers into top/bottom interface layers as well as base interface layers.
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(
@@ -280,13 +281,13 @@ SupportGeneratorLayersPtr generate_raft_base(
                 polygons_append(brim, offset(ex, brim_object_gap));
             else {
                 if (brim_outer)
-                    polygons_append(brim, offset(ex.contour, brim_object_gap, ClipperLib::jtRound, float(scale_(0.1))));
+                    polygons_append(brim, offset(ex.contour, brim_object_gap, jtRound, float(scale_(0.1))));
                 else
                     brim.emplace_back(ex.contour);
                 if (brim_inner) {
                     Polygons holes = ex.holes;
                     polygons_reverse(holes);
-                    holes = shrink(holes, brim_object_gap, ClipperLib::jtRound, float(scale_(0.1)));
+                    holes = shrink(holes, brim_object_gap, jtRound, float(scale_(0.1)));
                     polygons_reverse(holes);
                     polygons_append(brim, std::move(holes));
                 } else
@@ -511,7 +512,7 @@ void tree_supports_generate_paths(
         ClipperLib_Z::Paths contours;
         {
             ClipperLib::ClipperOffset co;
-            if (joinType == jtRound)
+            if (joinType == ClipperLib::jtRound)
                 co.ArcTolerance = miterLimit;
             else
                 co.MiterLimit = miterLimit;
@@ -534,7 +535,7 @@ void tree_supports_generate_paths(
             {
                 for (const Polygon &hole : expoly.holes) {
                     ClipperLib::ClipperOffset co;
-                    if (joinType == jtRound)
+                    if (joinType == ClipperLib::jtRound)
                         co.ArcTolerance = miterLimit;
                     else
                         co.MiterLimit = miterLimit;
@@ -608,7 +609,7 @@ void tree_supports_generate_paths(
             // First genrate a 2nd perimeter loop as a source for anchor candidates.
             // The anchor candidate points are annotated with an index of the source contour or with -1 if on intersection.
             anchor_candidates.clear();
-            shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), DefaultJoinType, 1.2, anchor_candidates);
+            shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), ClipperLib::jtMiter, 1.2, anchor_candidates);
             // Orient all contours CW.
             for (auto &path : anchor_candidates)
                 if (ClipperLib_Z::Area(path) > 0) std::reverse(path.begin(), path.end());
