@@ -1,4 +1,17 @@
 {
+	"type": "filament",
+	"name": "Flashforge TPU-64D @FF C5P",
+	"inherits": "Generic TPU @System",
+	"from": "system",
+	"setting_id": "hrcELA2qEMkZ6Wvj",
+	"filament_id": "OF8GtyKJ",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],
@@ -55,14 +68,9 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"filament_type": [
 		"TPU-64D"
 	],
-	"inherits": "Generic TPU @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge TPU-64D @FF C5P",
 	"nozzle_temperature": [
 		"230"
 	],
@@ -92,6 +100,5 @@
 	],
 	"textured_cool_plate_temp_initial_layer": [
 		"35"
-	],
-	"version": "2.3.0.3"
+	]
 }

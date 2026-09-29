@@ -3,7 +3,7 @@
 	"name": "COEX ASA PRIME @System",
 	"inherits": "COEX ASA PRIME @base",
 	"from": "system",
-	"setting_id": "CXASAP04",
+	"setting_id": "lh6T3We3AQa45aKJ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

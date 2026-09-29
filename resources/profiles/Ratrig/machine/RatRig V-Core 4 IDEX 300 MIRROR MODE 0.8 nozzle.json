@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 4 IDEX 300 MIRROR MODE 0.8 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "0Jj892NbeUdQdo5w",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 IDEX 300 MIRROR MODE",
 	"printer_variant": "0.8",
@@ -25,61 +25,91 @@
 	],
 	"machine_max_speed_x": [
 		"500",
+		"500",
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
+		"500",
 		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
 		"200",
+		"200",
+		"200",
 		"200"
 	],
 	"machine_max_speed_e": [
+		"120",
+		"120",
 		"120",
 		"120"
 	],
 	"machine_max_acceleration_x": [
 		"20000",
+		"20000",
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_y": [
+		"20000",
+		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_z": [
 		"200",
+		"200",
+		"200",
 		"200"
 	],
 	"machine_max_acceleration_e": [
+		"5000",
+		"5000",
 		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
 		"20000",
+		"20000",
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_retracting": [
+		"20000",
+		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_travel": [
 		"20000",
+		"20000",
+		"20000",
 		"20000"
 	],
 	"machine_max_jerk_x": [
+		"5",
+		"5",
 		"5",
 		"5"
 	],
 	"machine_max_jerk_y": [
 		"5",
+		"5",
+		"5",
 		"5"
 	],
 	"machine_max_jerk_z": [
 		"0.4",
+		"0.4",
+		"0.4",
 		"0.4"
 	],
 	"machine_max_jerk_e": [
+		"5",
+		"5",
 		"5",
 		"5"
 	],
@@ -93,24 +123,31 @@
 	"extruder_clearance_height_to_rod": "25",
 	"extruder_clearance_height_to_lid": "140",
 	"retract_lift_below": [
+		"0.2",
 		"0.2"
 	],
 	"retraction_length": [
+		"0.8",
 		"0.8"
 	],
 	"retraction_speed": [
+		"120",
 		"120"
 	],
 	"deretraction_speed": [
+		"120",
 		"120"
 	],
 	"wipe": [
+		"1",
 		"1"
 	],
 	"retract_before_wipe": [
+		"70%",
 		"70%"
 	],
 	"z_hop": [
+		"0.2",
 		"0.2"
 	],
 	"machine_start_gcode": "G28\nIDEX_MIRROR\nSTART_PRINT EXTRUDER_TEMP={first_layer_temperature[0]},{first_layer_temperature[1]} EXTRUDER_OTHER_LAYER_TEMP={temperature[0]},{temperature[1]} BED_TEMP=[first_layer_bed_temperature] INITIAL_TOOL={initial_tool} TOTAL_LAYER_COUNT={total_layer_count} X0={first_layer_print_min[0]} Y0={first_layer_print_min[1]} X1={first_layer_print_max[0]} Y1={first_layer_print_max[1]}",

@@ -1,4 +1,5 @@
 #include "DailyTips.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -202,7 +203,7 @@ void DailyTipsDataRenderer::render_text(const ImVec2& start_pos, const ImVec2& s
 
     // wiki
     if (!m_data.wiki_url.empty()) {
-        std::string tips_line = _u8L("For more information, please check out Wiki");
+        std::string tips_line = _u8L("For more information, please check out our Wiki");
         std::string wiki_part_text = _u8L("Wiki");
         std::string first_part_text = tips_line.substr(0, tips_line.find(wiki_part_text));
         ImVec2 wiki_part_size = ImGui::CalcTextSize(wiki_part_text.c_str());
@@ -245,7 +246,6 @@ DailyTipsPanel::DailyTipsPanel(bool can_expand, DailyTipsLayout layout)
     m_width(0),
     m_height(0),
     m_can_expand(can_expand),
-    m_layout(layout),
     m_uid(DailyTipsPanel::uid++),
     m_dailytips_renderer(std::make_unique<DailyTipsDataRenderer>(layout))
 {

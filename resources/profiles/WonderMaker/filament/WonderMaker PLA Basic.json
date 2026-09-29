@@ -3,7 +3,8 @@
 	"name": "WonderMaker PLA Basic",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA00",
+	"setting_id": "HRFI81hKAaT1LwjF",
+	"filament_id": "OFMK5gVo",
 	"instantiation": "true",
 	"filament_cost": [
 		"24.99"

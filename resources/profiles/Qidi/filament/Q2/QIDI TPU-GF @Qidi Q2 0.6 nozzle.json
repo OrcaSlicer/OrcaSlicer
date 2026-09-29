@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSR99",
 	"name": "QIDI TPU-GF @Qidi Q2 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI TPU-GF@Q2-Series",
+	"from": "system",
+	"setting_id": "K8X4uDSRbm3mPQEq",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.6 nozzle"
 	]

@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_PRE_PRINT_CHECK_hpp_
 #define slic3r_GUI_PRE_PRINT_CHECK_hpp_
 
+#include <functional>
 #include <wx/wx.h>
 #include "Widgets/Label.hpp"
 namespace Slic3r { namespace GUI {
@@ -23,13 +24,21 @@ struct prePrintInfo
     wxString msg;
     wxString tips;
     wxString wiki_url;
-    int index;
+    wxString              link_label;      // optional: clickable text appended after msg
+    std::function<void()> link_callback;   // optional: internal action for link_label click
+    wxString                  checkbox_label;    // optional: an acknowledgement checkbox under msg
+    bool                      checkbox_checked{false};
+    std::function<void(bool)> checkbox_callback; // called with the new state on toggle
+    int index{0};
 
 public:
     bool operator==(const prePrintInfo& other) const {
         return level == other.level && type == other.type &&
                msg == other.msg && tips == other.tips &&
-               wiki_url == other.wiki_url && index == other.index;
+               wiki_url == other.wiki_url && link_label == other.link_label &&
+               checkbox_label == other.checkbox_label && checkbox_checked == other.checkbox_checked &&
+               index == other.index;
+        // link_callback / checkbox_callback excluded: std::function is not comparable
     }
 };
 
@@ -48,13 +57,15 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusConnecting,
     PrintStatusReconnecting,
     PrintStatusInUpgrading,
+    PrintStatusFirmwareNotSupportTpuAtLeft,
     PrintStatusModeNotFDM,
     PrintStatusInSystemPrinting,
     PrintStatusInPrinting,
     PrintStatusNozzleMatchInvalid,
     PrintStatusNozzleDataInvalid,
-    PrintStatusNozzleDiameterMismatch,
     PrintStatusNozzleTypeMismatch,
+    PrintStatusNozzleNoMatchedHotends,
+    PrintStatusNozzleRackMaximumInstalled,
     PrintStatusRefreshingMachineList,
     PrintStatusSending,
     PrintStatusLanModeNoSdcard,
@@ -65,6 +76,10 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusNotSupportedPrintAll,
     PrintStatusBlankPlate,
     PrintStatusUnsupportedPrinter,
+    PrintStatusRackNozzleMappingWaiting,
+    PrintStatusRackNozzleMappingError,
+    PrintStatusRackReading,
+    PrintStatusFilaSwitcherError,
     PrintStatusPrinterErrorEnd,
 
     // Errors for filament, Block Print
@@ -87,8 +102,16 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusPrinterWarningBegin,
     PrintStatusTimelapseNoSdcard,
     PrintStatusTimelapseWarning,
+    PrintStatusTimelapseStorageLow,
     PrintStatusMixAmsAndVtSlotWarning,
     PrintStatusToolHeadCoolingFanWarning,
+    PrintStatusRackNozzleMappingWarning,
+    PrintStatusFilaSwitcherSlicingNotMatch,
+    PrintStatusRackNozzleNumUnmeetWarning,
+    PrintStatusHasUnreliableNozzleWarning,
+    // Orca: a nozzle diameter that differs from the one the printer remembers is a warning,
+    // not an error, so non-standard nozzles can still be printed with.
+    PrintStatusNozzleDiameterMismatch,
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament
@@ -100,6 +123,16 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusFilamentWarningHighChamberTempSoft,
     PrintStatusFilamentWarningUnknownHighChamberTempSoft,
     PrintStatusWarningExtFilamentNotMatch,
+    PrintStatusFilamentWarningNozzleHRC,
+    PrintStatusFilamentCrossExtruderWarning,
+    // Non-blocking advisories. FilamentWarningRemainNotEnough is declared but not wired (missing
+    // device-model surface); PrintTimeEstimateWarning has no call site or message and is kept only
+    // to match the reference enum table.
+    PrintStatusTPUUnsupportCaliOn,
+    PrintStatusTPUUnsuggestCali,
+    PrintStatusSmartNozzleBlobNeedAuto,
+    PrintStatusFilamentWarningRemainNotEnough,
+    PrintStatusPrintTimeEstimateWarning,
     PrintStatusFilamentWarningEnd,
 
     PrintStatusWarningEnd,//->end error<-
@@ -130,6 +163,11 @@ public:
     void clear();
     /*auto merge*/
     void add(PrintDialogStatus state, wxString msg, wxString tip, const wxString& wiki_url);
+    // Orca: minimal callback-link render path instead of the full style-bitmask machinery.
+    void add_with_link(PrintDialogStatus state, wxString msg, wxString link_label, std::function<void()> link_callback);
+    // Orca: render msg with an acknowledgement checkbox beneath it, for an overridable warning that
+    // the user must tick before proceeding (checkbox_callback reports the new state).
+    void add_with_checkbox(PrintDialogStatus state, wxString msg, wxString checkbox_label, bool checked, std::function<void(bool)> checkbox_callback);
     static ::std::string get_print_status_info(PrintDialogStatus status);
 
 	wxString get_pre_state_msg(PrintDialogStatus status);

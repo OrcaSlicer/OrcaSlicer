@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri 0.8 nozzle",
 	"inherits": "Elegoo Centauri 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EC08",
+	"setting_id": "CAp2D99kAoNTTHAg",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8"

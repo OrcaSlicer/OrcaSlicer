@@ -18,7 +18,7 @@ class WXDLLIMPEXP_FWD_CORE wxWindowDisabler;
 #define PROGRESSDIALOG_GAUGE_SIZE wxSize(FromDIP(320), FromDIP(6))
 #define PROGRESSDIALOG_CANCEL_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
 #define PROGRESSDIALOG_DEF_BK wxColour(255,255,255)
-#define PROGRESSDIALOG_GREY_700 wxColour(107,107,107)
+#define PROGRESSDIALOG_GREY_700 wxColour(54,54,54) // #363636 label color
 
 #define wxPD_NO_PROGRESS 0x0100
 
@@ -33,7 +33,7 @@ public:
 	void OnPaint(wxPaintEvent &evt);
     virtual ~ProgressDialog();
 
-    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
+    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO) override;
     bool Create(const wxString &title, const wxString &message, int maximum = 100, wxWindow *parent = NULL, int style = wxPD_APP_MODAL | wxPD_AUTO_HIDE);
 
     virtual bool Update(int value, const wxString &newmsg = wxEmptyString, bool *skip = NULL);

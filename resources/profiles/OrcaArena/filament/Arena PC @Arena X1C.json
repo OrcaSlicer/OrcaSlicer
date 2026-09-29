@@ -3,7 +3,7 @@
 	"name": "Arena PC @Arena X1C",
 	"inherits": "Arena PC @base",
 	"from": "system",
-	"setting_id": "GFSC00",
+	"setting_id": "jKE8fewlDCfLj8hK",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle"

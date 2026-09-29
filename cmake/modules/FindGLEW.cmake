@@ -124,6 +124,8 @@ endif()
 
 if("${CMAKE_GENERATOR_PLATFORM}" MATCHES "x64" OR "${CMAKE_GENERATOR}" MATCHES "Win64")
   set(_arch "x64")
+elseif("${CMAKE_GENERATOR_PLATFORM}" MATCHES "ARM64")
+  set(_arch "x64")  # GLEW ships one header set; ARM64 uses the x64 import path
 else()
   set(_arch "Win32")
 endif()

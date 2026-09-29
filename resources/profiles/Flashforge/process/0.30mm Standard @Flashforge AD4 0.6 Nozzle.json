@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @Flashforge AD4 0.6 Nozzle",
 	"inherits": "fdm_process_flashforge_0.30",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "fTyYTe7FN6ps1tMJ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 4 Series 0.6 Nozzle"

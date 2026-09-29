@@ -3,8 +3,8 @@
 	"name": "Bambu ABS @Qidi X-Plus 4 0.2 nozzle",
 	"inherits": "Bambu ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "CoYm8sbAVmpmJNIV",
+	"filament_id": "OFhuaUQB",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

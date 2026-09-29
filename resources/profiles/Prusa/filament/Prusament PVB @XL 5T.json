@@ -3,8 +3,12 @@
 	"name": "Prusament PVB @XL 5T",
 	"inherits": "fdm_filament_pvb",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "DIrPylH6rmu6YA43",
+	"filament_id": "OFh7mvPO",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Prusa Polymers"
+	],
 	"nozzle_temperature_intial_layer": "215",
 	"nozzle_temperature": "215",
 	"hot_plate_temp_initial_layer": "75",
@@ -38,8 +42,6 @@
 	"filament_loading_speed": "10",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "100",
-	"filament_load_time": "10.5",
-	"filament_unload_time": "8.5",
 	"filament_cooling_moves": "2",
 	"filament_cooling_initial_speed": "10",
 	"filament_cooling_final_speed": "3.5",

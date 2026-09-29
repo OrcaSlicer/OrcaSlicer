@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @iQ TiQ2 P2 - PACF Pro Fiberthree + VXL90 Xioneer (0.4 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "xLqfZEouOkHUrK2D",
 	"instantiation": "true",
 	"gap_infill_speed": "70",
 	"independent_support_layer_height": "0",

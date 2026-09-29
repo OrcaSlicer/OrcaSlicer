@@ -28,7 +28,6 @@ public:
 
 private:
     wxScrolledWindow *m_panel;
-    BBLSliceInfo *m_info { nullptr };
 
     void OnMouse(wxMouseEvent &event);
     void OnSize(wxSizeEvent &event);

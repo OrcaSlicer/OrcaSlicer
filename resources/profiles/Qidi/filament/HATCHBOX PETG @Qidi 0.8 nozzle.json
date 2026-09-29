@@ -3,8 +3,8 @@
 	"name": "HATCHBOX PETG @0.8 nozzle",
 	"inherits": "HATCHBOX PETG @Qidi",
 	"from": "system",
-	"setting_id": "GFSG99",
-	"filament_id": "GFG99",
+	"setting_id": "mndT3gxOniftGEEZ",
+	"filament_id": "OFIWMSGX",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -46,9 +46,6 @@
 		"10"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

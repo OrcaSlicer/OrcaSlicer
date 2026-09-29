@@ -89,9 +89,9 @@ Generator::Generator(const PrintObject &print_object, const std::function<void()
     
     m_supporting_radius = coord_t(m_infill_extrusion_width) * 100 * n_multiline / region_config.sparse_infill_density;
 
-    const double lightning_infill_overhang_angle      = M_PI / 4; // 45 degrees
-    const double lightning_infill_prune_angle         = M_PI / 4; // 45 degrees
-    const double lightning_infill_straightening_angle = M_PI / 4; // 45 degrees
+    const double lightning_infill_overhang_angle      = region_config.lightning_overhang_angle.value * M_PI / 180.0;
+    const double lightning_infill_prune_angle         = region_config.lightning_prune_angle.value * M_PI / 180.0;
+    const double lightning_infill_straightening_angle = region_config.lightning_straightening_angle.value * M_PI / 180.0;
     m_wall_supporting_radius                          = coord_t(layer_thickness * std::tan(lightning_infill_overhang_angle));
     m_prune_length                                    = coord_t(layer_thickness * std::tan(lightning_infill_prune_angle));
     m_straightening_max_distance                      = coord_t(layer_thickness * std::tan(lightning_infill_straightening_angle));
@@ -128,7 +128,7 @@ Generator::Generator(PrintObject* m_object, std::vector<Polygons>& contours, std
     //TODO: decide whether enable density controller in advanced options or not
     density = std::max(0.15f, density);
     m_supporting_radius = coord_t(m_infill_extrusion_width) / density;
-
+    // Keep support-lightning behavior fixed and independent of user print-region angles.
     const double lightning_infill_overhang_angle = M_PI / 4; // 45 degrees
     const double lightning_infill_prune_angle = M_PI / 4; // 45 degrees
     const double lightning_infill_straightening_angle = M_PI / 4; // 45 degrees

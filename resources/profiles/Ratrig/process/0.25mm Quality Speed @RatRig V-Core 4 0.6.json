@@ -3,7 +3,7 @@
 	"name": "0.25mm Quality Speed @RatRig V-Core 4 0.6",
 	"inherits": "fdm_process_ratrig_common",
 	"from": "system",
-	"setting_id": "GP006",
+	"setting_id": "Pynt8qNEfnOwT6kl",
 	"instantiation": "true",
 	"layer_height": "0.25",
 	"inital_layer_height": "0.35",

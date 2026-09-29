@@ -4,6 +4,8 @@
 
 #include "libslic3r/SLA/Hollowing.hpp"
 
+#include "test_utils.hpp"
+
 TEST_CASE("Hollow two overlapping spheres") {
     using namespace Slic3r;
 
@@ -16,6 +18,6 @@ TEST_CASE("Hollow two overlapping spheres") {
 
     sla::hollow_mesh(sphere1, sla::HollowingConfig{}, sla::HollowingFlags::hfRemoveInsideTriangles);
 
-    sphere1.WriteOBJFile("twospheres.obj");
+    write_debug_obj("hollowing/twospheres.obj", sphere1);
 }
 

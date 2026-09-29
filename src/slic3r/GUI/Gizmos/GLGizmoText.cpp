@@ -261,7 +261,6 @@ bool GLGizmoText::on_init()
     //m_avail_font_names = init_occt_fonts();
     update_font_texture();
     m_scale = m_imgui->get_font_size();
-    m_shortcut_key = WXK_CONTROL_T;
 
     m_grabbers.push_back(Grabber());
 
@@ -272,7 +271,7 @@ bool GLGizmoText::on_init()
     m_desc["thickness"]     = _L("Thickness");
     m_desc["text_gap"]      = _L("Text Gap");
     m_desc["angle"]         = _L("Angle");
-    m_desc["embeded_depth"] = _L("Embedded\ndepth");
+    m_desc["embeded_depth"] = _L("Embedded depth");
     m_desc["input_text"]    = _L("Input text");
 
     m_desc["surface"]         = _L("Surface");

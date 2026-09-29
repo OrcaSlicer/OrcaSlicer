@@ -9,42 +9,69 @@
 
 namespace Slic3r { namespace GUI {
 
+// Fired by the manual panel's validation timer: the event int is 1 when the current manual
+// grouping is printable with the installed nozzles, 0 when some zone has no matching nozzle.
+wxDECLARE_EVENT(wxEVT_INVALID_MANUAL_MAP, wxCommandEvent);
+
 class FilamentMapManualPanel : public wxPanel
 {
 public:
-    FilamentMapManualPanel(wxWindow *parent, const std::vector<std::string> &color, const std::vector<std::string> &type, const std::vector<int> &filament_list, const std::vector<int> &filament_map);
+    FilamentMapManualPanel(wxWindow                       *parent,
+                           const std::vector<std::string> &color,
+                           const std::vector<std::string> &type,
+                           const std::vector<int>         &filament_list,
+                           const std::vector<int>         &filament_map,
+                           const std::vector<int>         &filament_volume_map);
+    ~FilamentMapManualPanel();
 
-    std::vector<int> GetFilamentMaps() const { return m_filament_map; }
+    std::vector<int> GetFilamentMaps() const;
+    std::vector<int> GetFilamentVolumeMaps() const;
     std::vector<int> GetLeftFilaments() const { return m_left_panel->GetAllFilaments(); }
     std::vector<int> GetRightFilaments() const { return m_right_panel->GetAllFilaments(); }
 
-    void Hide();
-    void Show();
+    std::vector<int> GetRightHighFlowFilaments() const { return m_right_panel->GetHighFlowFilaments(); }
+    std::vector<int> GetRightStandardFilaments() const { return m_right_panel->GetStandardFilaments(); }
+    std::vector<int> GetRightTPUHighFlowFilaments() const { return m_right_panel->GetTPUHighFlowFilaments(); }
+    void UpdateNozzleVolumeType();
+    void UpdateNozzleCountDisplay();
+
+    bool Show(bool show = true) override;
 
 private:
-    void           OnSwitchFilament(wxCommandEvent &);
-    DragDropPanel *m_left_panel;
-    DragDropPanel *m_right_panel;
+    void OnTimer(wxTimerEvent &evt);
+    void OnSwitchFilament(wxCommandEvent &);
+    void SyncPanelHeights();
+    void OnDragDropCompleted(wxCommandEvent &evt);
+    void OnSuggestionClicked(wxCommandEvent &event);
 
-    Label *m_description;
-    Label *m_tips;
+    DragDropPanel          *m_left_panel;
+    SeparatedDragDropPanel *m_right_panel;
+
+    Label   *m_description;
+    Label   *m_tips;
+    Label   *m_errors;
+    wxPanel *m_suggestion_panel;
 
     ScalableButton *m_switch_btn;
 
     std::vector<int>         m_filament_map;
+    std::vector<int>         m_filament_volume_map;
     std::vector<int>         m_filament_list;
     std::vector<std::string> m_filament_color;
     std::vector<std::string> m_filament_type;
+
+    wxTimer *m_timer;
+    int      m_invalid_id{-1};
+    bool     m_force_validation{false};
 };
 
 class FilamentMapBtnPanel : public wxPanel
 {
 public:
     FilamentMapBtnPanel(wxWindow *parent, const wxString &label, const wxString &detail, const std::string &icon_path);
-    void Hide();
-    void Show();
+    bool Show(bool show = true) override;
     void Select(bool selected);
-    bool Enable(bool enable);
+    bool Enable(bool enable) override;
     bool IsEnabled() const { return m_enabled; }
 protected:
     void OnPaint(wxPaintEvent &event);
@@ -71,8 +98,7 @@ class FilamentMapAutoPanel : public wxPanel
 {
 public:
     FilamentMapAutoPanel(wxWindow *parent, FilamentMapMode mode, bool machine_synced);
-    void            Hide();
-    void            Show();
+    bool Show(bool show = true) override;
     FilamentMapMode GetMode() const { return m_mode; }
 
 private:
@@ -88,8 +114,7 @@ class FilamentMapDefaultPanel : public wxPanel
 {
 public:
     FilamentMapDefaultPanel(wxWindow *parent);
-    void Hide();
-    void Show();
+    bool Show(bool show = true) override;
 
 private:
     Label *m_label;

@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @Geeetech common",
 	"inherits": "fdm_process_geeetech_0.08",
 	"from": "system",
-	"setting_id": "GP_Geeetech_002",
+	"setting_id": "1MPhaoeIPZn5O9Yr",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Geeetech A10 Pro 0.4 nozzle",

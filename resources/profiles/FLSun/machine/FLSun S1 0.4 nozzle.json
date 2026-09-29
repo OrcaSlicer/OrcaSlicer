@@ -3,7 +3,7 @@
 	"name": "FLSun S1 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "49LTtJSqi4OEiaC4",
 	"instantiation": "true",
 	"printer_model": "FLSun S1",
 	"default_print_profile": "0.20mm Standard @FLSun S1",
@@ -46,45 +46,59 @@
 		"80"
 	],
 	"machine_max_acceleration_e": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_extruding": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_retracting": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_x": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_y": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_z": [
+		"40000",
 		"40000"
 	],
 	"machine_max_jerk_e": [
+		"100",
 		"100"
 	],
 	"machine_max_jerk_x": [
+		"20000",
 		"20000"
 	],
 	"machine_max_jerk_y": [
+		"20000",
 		"20000"
 	],
 	"machine_max_jerk_z": [
+		"10000",
 		"10000"
 	],
 	"machine_max_speed_e": [
+		"1200",
 		"1200"
 	],
 	"machine_max_speed_x": [
+		"1200",
 		"1200"
 	],
 	"machine_max_speed_y": [
+		"1200",
 		"1200"
 	],
 	"machine_max_speed_z": [
+		"1200",
 		"1200"
 	],
 	"printable_area": [

@@ -3,7 +3,7 @@
 	"name": "0.16 Optimal @Snapmaker J1 (0.4 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "931476703",
+	"setting_id": "aYABRtB6CLWpFLg8",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"

@@ -3,8 +3,8 @@
 	"name": "Other PA-CF",
 	"inherits": "fdm_filament_pa_other",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFN98",
+	"setting_id": "rgz4LjU9KyvbLhRQ",
+	"filament_id": "OFkAltI8",
 	"instantiation": "true",
 	"filament_type": [
 		"PA-CF"

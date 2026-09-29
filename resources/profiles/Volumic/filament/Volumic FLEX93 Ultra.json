@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFU99",
-	"setting_id": "GFSR99",
 	"name": "Volumic FLEX93 Ultra",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "DXZ4Gp5XP5VCJTXY",
+	"filament_id": "OFuxH0Uz",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.20"
 	],

@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Glow @System",
 	"inherits": "Panchroma PLA Glow @base",
 	"from": "system",
-	"setting_id": "OGFSPM010",
+	"setting_id": "WWhhCznk2myreFox",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

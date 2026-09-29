@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP002",
-	"setting_id": "GFSEP002_00",
 	"name": "Eolas Prints PLA Matte @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "7LiJHuwirgABvbUa",
+	"filament_id": "OFf5awy4",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

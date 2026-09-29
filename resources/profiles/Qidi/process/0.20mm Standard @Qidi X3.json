@@ -3,7 +3,6 @@
 	"name": "0.20mm Standard @Qidi X3",
 	"inherits": "fdm_process_qidi_x3_common",
 	"from": "system",
-	"setting_id": "GP004",
 	"instantiation": "false",
 	"layer_height": "0.2",
 	"elefant_foot_compensation": "0.15",

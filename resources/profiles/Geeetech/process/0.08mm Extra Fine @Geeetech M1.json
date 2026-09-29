@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @Geeetech M1",
 	"inherits": "fdm_process_Geeetech_HS_0.08",
 	"from": "system",
-	"setting_id": "GP_Geeetech_038",
+	"setting_id": "NaLK6UGsmP7nI9Qk",
 	"instantiation": "true",
 	"initial_layer_speed": "30",
 	"initial_layer_infill_speed": "50",

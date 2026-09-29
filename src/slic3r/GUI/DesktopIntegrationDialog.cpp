@@ -645,7 +645,7 @@ DesktopIntegrationDialog::DesktopIntegrationDialog(wxWindow *parent)
 	
 
 	wxBoxSizer *btn_szr = new wxBoxSizer(wxHORIZONTAL);
-	wxButton *btn_perform = new wxButton(this, wxID_ANY, _L("Perform"));
+	wxButton *btn_perform = new wxButton(this, wxID_ANY, _L("Apply"));
 	btn_szr->Add(btn_perform, 0, wxALL, 10);
 
 	btn_perform->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { DesktopIntegrationDialog::perform_desktop_integration(); EndModal(wxID_ANY); });

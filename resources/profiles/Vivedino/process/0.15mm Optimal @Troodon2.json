@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Troodon2",
 	"inherits": "fdm_process_klipper_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "ZXJ5Y1pWmqPqTnsf",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

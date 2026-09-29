@@ -3,7 +3,7 @@
 	"name": "0.44mm Draft @Geeetech M1 0.8 nozzle",
 	"inherits": "fdm_process_Geeetech_HS_0.44_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP_Geeetech_051",
+	"setting_id": "ekh9y1YlDb705tRt",
 	"instantiation": "true",
 	"initial_layer_speed": "30",
 	"initial_layer_infill_speed": "50",

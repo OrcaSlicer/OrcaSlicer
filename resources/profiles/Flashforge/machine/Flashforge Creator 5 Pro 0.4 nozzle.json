@@ -1,4 +1,10 @@
 {
+	"type": "machine",
+	"name": "Flashforge Creator 5 Pro 0.4 nozzle",
+	"inherits": "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+	"from": "system",
+	"setting_id": "DVWFCsTdr2KaH4Sk",
+	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",
 	"bbl_use_printhost": "0",
@@ -18,7 +24,7 @@
 	"cooling_tube_retraction": "0",
 	"default_bed_type": "",
 	"default_filament_profile": [
-		"Flashforge Generic PLA"
+		"Generic PLA @Flashforge"
 	],
 	"default_print_profile": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
 	"deretraction_speed": [
@@ -50,14 +56,10 @@
 	"fan_kickstart": "0",
 	"fan_speedup_overhangs": "1",
 	"fan_speedup_time": "0",
-	"from": "system",
 	"gcode_flavor": "klipper",
 	"head_wrap_detect_zone": [],
 	"high_current_on_filament_swap": "0",
 	"host_type": "octoprint",
-	"inherits": "Flashforge Adventurer 5M Pro 0.4 Nozzle",
-	"instantiation": "true",
-	"is_custom_defined": "0",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
 	"long_retractions_when_cut": [
 		"0",
@@ -69,65 +71,161 @@
 	"machine_load_filament_time": "0",
 	"machine_max_acceleration_e": [
 		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
+		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
+		"20000",
 		"30000",
 		"20000"
 	],
 	"machine_max_acceleration_retracting": [
 		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_travel": [
+		"20000",
+		"20000",
+		"20000",
+		"20000",
+		"20000",
+		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_x": [
 		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
 		"20000"
 	],
 	"machine_max_acceleration_y": [
+		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
+		"20000",
 		"30000",
 		"20000"
 	],
 	"machine_max_acceleration_z": [
 		"300",
+		"500",
+		"300",
+		"500",
+		"300",
+		"500",
+		"300",
 		"500"
 	],
 	"machine_max_jerk_e": [
+		"2.5",
+		"2.5",
+		"2.5",
+		"2.5",
+		"2.5",
+		"2.5",
 		"2.5",
 		"2.5"
 	],
 	"machine_max_jerk_x": [
 		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
 		"9"
 	],
 	"machine_max_jerk_y": [
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
 		"9",
 		"9"
 	],
 	"machine_max_jerk_z": [
 		"3",
+		"3",
+		"3",
+		"3",
+		"3",
+		"3",
+		"3",
 		"3"
 	],
 	"machine_max_junction_deviation": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
 		"0",
 		"0"
 	],
 	"machine_max_speed_e": [
 		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
 		"30"
 	],
 	"machine_max_speed_x": [
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
 		"600",
 		"600"
 	],
 	"machine_max_speed_y": [
 		"600",
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
 		"600"
 	],
 	"machine_max_speed_z": [
+		"20",
+		"20",
+		"20",
+		"20",
+		"20",
+		"20",
 		"20",
 		"20"
 	],
@@ -158,7 +256,6 @@
 		"0.08"
 	],
 	"min_resonance_avoidance_speed": "70",
-	"name": "Flashforge Creator 5 Pro 0.4 nozzle",
 	"nozzle_diameter": [
 		"0.4",
 		"0.4",
@@ -167,8 +264,18 @@
 	],
 	"nozzle_height": "4",
 	"nozzle_hrc": "0",
-	"nozzle_type": "hardened_steel",
-	"nozzle_volume": "0",
+	"nozzle_type": [
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel"
+	],
+	"nozzle_volume": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
 	"parking_pos_retraction": "0",
 	"pellet_modded_printer": "0",
 	"preferred_orientation": "0",
@@ -263,7 +370,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "0",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",
@@ -282,7 +388,6 @@
 	"upward_compatible_machine": [],
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",
-	"version": "2.1.1.0",
 	"wipe": [
 		"1",
 		"1",

@@ -3,7 +3,7 @@
 	"name": "Arena PLA Tough @Arena X1C 0.2 nozzle",
 	"inherits": "Arena PLA Tough @base",
 	"from": "system",
-	"setting_id": "GFSA09_00",
+	"setting_id": "mQik38fn05zlMAWl",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

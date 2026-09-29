@@ -3,8 +3,8 @@
 	"name": "Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "IQS1",
-	"filament_id": "IQM1",
+	"setting_id": "5M829nxsQdq2Sde5",
+	"filament_id": "OFXJ9iom",
 	"instantiation": "true",
 	"compatible_prints": [
 		"0.20mm Standard @iQ TiQ2 P1 - HPP4GF25 Grauts (0.4 Nozzle)"

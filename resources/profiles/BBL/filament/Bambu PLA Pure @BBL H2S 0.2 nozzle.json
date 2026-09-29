@@ -1,0 +1,78 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Pure @BBL H2S 0.2 nozzle",
+    "inherits": "Bambu PLA Pure @base",
+    "from": "system",
+    "setting_id": "GFSA19_17",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "75"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_flush_volumetric_speed": [
+        "3",
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.6",
+        "1.6"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "220",
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220",
+        "220"
+    ],
+    "pre_start_fan_time": [
+        "0"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20"
+    ],
+    "supertack_plate_temp": [
+        "40"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "40"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2S 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

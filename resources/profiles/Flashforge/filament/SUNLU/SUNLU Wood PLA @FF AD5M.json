@@ -3,7 +3,7 @@
 	"name": "SUNLU Wood PLA @FF AD5M",
 	"inherits": "SUNLU Wood PLA @base",
 	"from": "system",
-	"setting_id": "GFSNLS07",
+	"setting_id": "qNFWJW8dEhdd6HWm",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M Pro 0.4 Nozzle",

@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
 	"name": "SH65 IDRE (0.4 nozzle)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_volumic_common",
+	"from": "system",
+	"setting_id": "aKBeUSXzBU2qQIEE",
+	"instantiation": "true",
 	"printer_model": "SH65 IDRE",
 	"default_print_profile": "Performance 150 - 0.15mm",
 	"host_type": "octoprint",
@@ -20,7 +20,10 @@
 		"11x300"
 	],
 	"printable_height": "280",
-	"nozzle_type": "undefine",
+	"nozzle_type": [
+		"undefine",
+		"undefine"
+	],
 	"auxiliary_fan": "0",
 	"gcode_flavor": "klipper",
 	"max_layer_height": [
@@ -31,24 +34,37 @@
 	],
 	"printer_variant": "0.4",
 	"retraction_minimum_travel": [
+		"1",
 		"1"
 	],
 	"retraction_length": [
+		"2.4",
 		"2.4"
 	],
 	"retraction_speed": [
+		"30",
 		"30"
 	],
 	"deretraction_speed": [
+		"30",
 		"30"
 	],
 	"machine_max_acceleration_x": [
+		"4500",
+		"4500",
+		"4500",
 		"4500"
 	],
 	"machine_max_acceleration_y": [
+		"4500",
+		"4500",
+		"4500",
 		"4500"
 	],
 	"machine_max_acceleration_z": [
+		"50",
+		"50",
+		"50",
 		"50"
 	],
 	"single_extruder_multi_material": [

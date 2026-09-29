@@ -1,0 +1,104 @@
+{
+    "type": "filament",
+    "name": "Bambu ASA @BBL H2C 0.2 nozzle",
+    "inherits": "Bambu ASA @base",
+    "from": "system",
+    "setting_id": "GFSB01_24",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "65"
+    ],
+    "counter_coef_2": [
+        "0.0094"
+    ],
+    "counter_coef_3": [
+        "-0.0092"
+    ],
+    "counter_limit_max": [
+        "0.2258"
+    ],
+    "counter_limit_min": [
+        "-0.0092"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10"
+    ],
+    "filament_max_volumetric_speed": [
+        "2",
+        "2"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "230",
+        "230"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "hole_coef_2": [
+        "0.0013"
+    ],
+    "hole_coef_3": [
+        "0.1261"
+    ],
+    "hole_limit_max": [
+        "0.1586"
+    ],
+    "hole_limit_min": [
+        "0.1261"
+    ],
+    "filament_preheat_temperature_delta": [
+        "20",
+        "20"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "270",
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270",
+        "270"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20"
+    ],
+    "temperature_vitrification": [
+        "85"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

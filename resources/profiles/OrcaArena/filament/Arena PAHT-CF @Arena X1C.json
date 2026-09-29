@@ -3,7 +3,7 @@
 	"name": "Arena PAHT-CF @Arena X1C",
 	"inherits": "Arena PAHT-CF @base",
 	"from": "system",
-	"setting_id": "GFSN04",
+	"setting_id": "J9pZk6FWEksKLUB5",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

@@ -361,7 +361,8 @@ namespace Slic3r {
      * @param safe_areas A collection of extended polygons defining the safe areas.
      * @return Point The nearest point within the safe areas or the default timelapse position if no safe areas exist.
      */
-    Point pick_pos_internal(const Point& curr_pos, const ExPolygons& safe_areas, const ExPolygons& path_collision_area, bool detect_path_collision)
+    Point pick_pos_internal(const Point& curr_pos, const ExPolygons& safe_areas, const ExPolygons& path_collision_area, bool detect_path_collision,
+                            const std::optional<Point>& farthest_point = std::nullopt)
     {
         struct CandidatePoint
         {
@@ -381,7 +382,11 @@ namespace Slic3r {
         std::priority_queue<CandidatePoint> max_heap;
 
         const double candidate_point_segment = scale_(5), weight_of_camera=1./3.;
-        auto penaltyFunc = [&weight_of_camera](const Point &curr_post, const Point &CameraPos, const Point &candidatet) -> double {
+        auto penaltyFunc = [&weight_of_camera, &farthest_point](const Point &curr_post, const Point &CameraPos, const Point &candidatet) -> double {
+            if (farthest_point.has_value()) {
+                // Farthest-point timelapse: prefer candidate closest to the farthest point (L1 norm)
+                return (farthest_point.value() - candidatet).cwiseAbs().sum();
+            }
             // move distance + Camera occlusion penalty function
             double ret_pen = (curr_post - candidatet).cwiseAbs().sum() - weight_of_camera * (CameraPos - candidatet).cwiseAbs().sum();
             return ret_pen;
@@ -523,7 +528,7 @@ namespace Slic3r {
             path_collision_area = union_ex(layer_slices_without_curr, rod_limit_areas);
         }
 
-        return pick_pos_internal(center_p, safe_area,path_collision_area, by_object);
+        return pick_pos_internal(center_p, safe_area,path_collision_area, by_object, ctx.farthest_point);
     }
 
     /**
@@ -608,6 +613,52 @@ namespace Slic3r {
 
         m_all_layer_pos = pick_pos_internal(starting_pos, safe_area, {}, by_object);
         return *m_all_layer_pos;
+    }
+
+    // Whether the head can travel to X0 without crossing any other instance that is
+    // taller than the current print position.
+    bool TimelapsePosPicker::get_is_clear_to_x0(const PosPickCtx &ctx)
+    {
+        bool by_object = m_print_seq == PrintSequence::ByObject;
+        std::vector<const PrintObject *> object_list    = get_object_list(ctx.printed_objects);
+
+        auto range_intersect = [](int left1, int right1, int left2, int right2) {
+            if (left1 <= left2 && left2 <= right1) return true;
+            if (left2 <= left1 && left1 <= right2) return true;
+            return false;
+        };
+
+        ExPolygons   unclear_area;
+        const Layer *layer    = ctx.curr_layer;
+        float        z_target = layer->print_z;
+        float        z_low    = layer->print_z - 0.5;
+        float        z_high   = layer->print_z + 0.5;
+
+        for (auto &obj : object_list) {
+            for (auto &instance : obj->instances()) {
+                auto instance_bbox          = get_real_instance_bbox(instance);
+                bool is_curr_obj = ( obj == object_list.back() ) || ( !by_object ),
+                    higher_than_curr_pos = instance_bbox.max.z() > z_target;
+                if (!is_curr_obj && range_intersect(instance_bbox.min.z(), instance_bbox.max.z(), z_low, z_high)) {
+                    ExPolygon expoly;
+                    expoly.contour = {{scale_(instance_bbox.min.x()), scale_(instance_bbox.min.y())},
+                                      {scale_(instance_bbox.max.x()), scale_(instance_bbox.min.y())},
+                                      {scale_(instance_bbox.max.x()), scale_(instance_bbox.max.y())},
+                                      {scale_(instance_bbox.min.x()), scale_(instance_bbox.max.y())}};
+                    expoly.contour = expand_object_projection(expoly.contour, by_object, higher_than_curr_pos);
+                    unclear_area.emplace_back(std::move(expoly));
+                }
+            }
+        }
+
+        Point curr_pos_in_plate = {ctx.curr_pos.x() - scale_(m_plate_offset.x()), ctx.curr_pos.y() - scale_(m_plate_offset.y())};
+        for (const ExPolygon &expoly : unclear_area) {
+            BoundingBox bbox = expoly.contour.bounding_box();
+            if (curr_pos_in_plate.y() < bbox.min.y() || curr_pos_in_plate.y() > bbox.max.y()) continue;
+            if (bbox.min.x() <= curr_pos_in_plate.x()) return false;
+        }
+
+        return true;
     }
 
 }

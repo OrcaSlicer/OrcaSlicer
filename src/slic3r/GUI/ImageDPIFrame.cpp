@@ -74,7 +74,7 @@ bool ImageDPIFrame::Show(bool show)
 }
 
 void ImageDPIFrame::set_bitmap(const wxBitmap &bit_map) {
-    if (&bit_map && bit_map.IsOk()) {
+    if (bit_map.IsOk()) {
         m_bitmap->SetBitmap(bit_map);
     }
 }

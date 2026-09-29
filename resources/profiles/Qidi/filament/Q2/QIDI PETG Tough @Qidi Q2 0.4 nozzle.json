@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Tough @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI PETG Tough@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "CiBeqt50CKuYK1Dk",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.4 nozzle"

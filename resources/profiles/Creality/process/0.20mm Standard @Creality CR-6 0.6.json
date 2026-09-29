@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Creality CR-6 0.6",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "a7KaUj13TU2VGVeI",
 	"instantiation": "true",
 	"initial_layer_line_width": "0.63",
 	"initial_layer_print_height": "0.3",
@@ -17,5 +17,6 @@
 	"compatible_printers": [
 		"Creality CR-6 SE 0.6 nozzle",
 		"Creality CR-6 Max 0.6 nozzle"
-	]
+	],
+	"travel_acceleration": "500"
 }

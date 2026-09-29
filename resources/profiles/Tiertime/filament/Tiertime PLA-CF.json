@@ -3,7 +3,8 @@
 	"name": "Tiertime PLA-CF",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA50",
+	"setting_id": "AN8Ptxqrd3fAfsAk",
+	"filament_id": "OF7OqDp3",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

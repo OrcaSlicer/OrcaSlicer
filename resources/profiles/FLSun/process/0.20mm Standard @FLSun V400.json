@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @FLSun V400",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "LMRROTQlnO7o9Rcl",
 	"instantiation": "true",
 	"outer_wall_speed": "120",
 	"inner_wall_speed": "200",

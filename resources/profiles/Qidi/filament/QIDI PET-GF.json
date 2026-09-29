@@ -3,8 +3,8 @@
 	"name": "QIDI PET-GF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN99",
-	"filament_id": "GFN98",
+	"setting_id": "nXZR8ykt6JdxvTCd",
+	"filament_id": "OFhx4uOG",
 	"instantiation": "true",
 	"filament_type": [
 		"PET-GF"

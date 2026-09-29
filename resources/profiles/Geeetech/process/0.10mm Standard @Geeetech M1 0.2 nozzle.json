@@ -3,7 +3,7 @@
 	"name": "0.10mm Standard @Geeetech M1 0.2 nozzle",
 	"inherits": "fdm_process_Geeetech_HS_0.10_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP_Geeetech_041",
+	"setting_id": "yTKioYDUjlaSalwZ",
 	"instantiation": "true",
 	"initial_layer_speed": "30",
 	"initial_layer_infill_speed": "50",

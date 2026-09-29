@@ -42,6 +42,21 @@ void Viewer::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
     m_impl->render(view_matrix, projection_matrix);
 }
 
+void Viewer::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position)
+{
+    m_impl->render_shadow_casters(view_matrix, projection_matrix, light_position);
+}
+
+void Viewer::set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size)
+{
+    m_impl->set_shadow_map(texture_unit, light_view_projection, intensity, texel_size);
+}
+
+void Viewer::set_tone(float exposure, float saturation)
+{
+    m_impl->set_tone(exposure, saturation);
+}
+
 EViewType Viewer::get_view_type() const
 {
     return m_impl->get_view_type();
@@ -70,6 +85,26 @@ bool Viewer::is_top_layer_only_view_range() const
 void Viewer::toggle_top_layer_only_view_range()
 {
     m_impl->toggle_top_layer_only_view_range();
+}
+
+bool Viewer::is_dim_previous_layers() const
+{
+    return m_impl->is_dim_previous_layers();
+}
+
+void Viewer::set_dim_previous_layers(bool value)
+{
+    m_impl->set_dim_previous_layers(value);
+}
+
+float Viewer::get_dim_previous_layers_brightness() const
+{
+    return m_impl->get_dim_previous_layers_brightness();
+}
+
+void Viewer::set_dim_previous_layers_brightness(float value)
+{
+    m_impl->set_dim_previous_layers_brightness(value);
 }
 
 bool Viewer::is_option_visible(EOptionType type) const

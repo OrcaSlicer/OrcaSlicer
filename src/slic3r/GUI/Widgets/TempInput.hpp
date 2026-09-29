@@ -107,7 +107,7 @@ public:
     wxString GetTagTemp() { return text_ctrl->GetValue(); }
     wxString GetCurrTemp() { return GetLabel(); }
     int get_max_temp() { return max_temp; }
-    void SetLabel(const wxString &label);
+    void SetLabel(const wxString &label) override;
 
     void SetTextColor(StateColor const &color);
 
@@ -128,7 +128,7 @@ public:
     void  ReSetOnChanging() { m_on_changing = false; }
 
 protected:
-    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
+    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO) override;
 
     void DoSetToolTipText(wxString const &tip) override;
 

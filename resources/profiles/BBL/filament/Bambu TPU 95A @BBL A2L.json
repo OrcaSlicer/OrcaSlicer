@@ -1,0 +1,28 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 95A @BBL A2L",
+    "inherits": "Bambu TPU 95A @base",
+    "from": "system",
+    "setting_id": "GFSU01_11",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "35"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_max_volumetric_speed": [
+        "3.6"
+    ],
+    "pre_start_fan_time": [
+        "0"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.4 nozzle",
+        "Bambu Lab A2L 0.6 nozzle",
+        "Bambu Lab A2L 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}

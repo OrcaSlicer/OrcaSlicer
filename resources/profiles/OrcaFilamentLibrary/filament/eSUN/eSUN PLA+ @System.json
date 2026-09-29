@@ -3,7 +3,7 @@
 	"name": "eSUN PLA+ @System",
 	"inherits": "eSUN PLA+ @base",
 	"from": "system",
-	"setting_id": "OGFSL03_00",
+	"setting_id": "NA57fOmvp4jNEmn7",
 	"instantiation": "true",
 	"compatible_printers": []
 }

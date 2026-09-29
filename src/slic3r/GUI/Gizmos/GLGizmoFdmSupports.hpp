@@ -6,6 +6,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #include <boost/thread.hpp>
 
@@ -25,8 +26,7 @@ public:
         state_ready
     };
 
-    //BBS
-    bool on_key_down_select_tool_type(int keyCode);
+    bool on_tool_shortcut(Shortcut shortcut) override;
 
 protected:
     void on_render_input_window(float x, float y, float bottom_limit) override;
@@ -36,9 +36,9 @@ protected:
     void render_tooltip_button(float x, float y);
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
 
-    std::string get_gizmo_entering_text() const override { return "Entering Paint-on supports"; }
-    std::string get_gizmo_leaving_text() const override { return "Leaving Paint-on supports"; }
-    std::string get_action_snapshot_name() const override { return "Paint-on supports editing"; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Paint-on supports"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Paint-on supports"); }
+    std::string get_action_snapshot_name() const override { return _u8L("Paint-on supports editing"); }
 
     // BBS
     wchar_t                           m_current_tool = 0;
@@ -85,7 +85,6 @@ private:
     boost::thread   m_thread;
     // Mutex and condition variable to synchronize m_thread with the UI thread.
     std::mutex      m_mutex;
-    int m_generate_count;
 
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.

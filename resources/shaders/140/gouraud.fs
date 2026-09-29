@@ -1,4 +1,7 @@
 #version 140
+// Multisample depth texture for the anti-aliased outline (see 3DScene.cpp render_with_outline).
+// Optional on the GLSL 140 path: if unavailable, fallback to a non-multisample depth texture.
+#extension GL_ARB_texture_multisample : enable
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 //BBS: add grey and orange
@@ -36,7 +39,14 @@ uniform SlopeDetection slope;
 
 //BBS: add outline_color
 uniform bool is_outline;
+// The outline is a per-fragment discard mask, which the framebuffer MSAA cannot smooth, so the
+// silhouette is resolved per sample from a multisample copy of the outlined model's depth buffer.
+#ifdef GL_ARB_texture_multisample
+uniform sampler2DMS depth_tex;
+uniform int msaa_samples; // samples in depth_tex, 1 when MSAA is off
+#else
 uniform sampler2D depth_tex;
+#endif
 uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
@@ -45,9 +55,23 @@ uniform vec2 screen_size;
 #endif // ENABLE_ENVIRONMENT_MAP
 
 uniform PrintVolumeDetection print_volume;
+// BBS H2D/H2C per-extruder printable height (3DScene.cpp): .x = flag (>=1 active), .y/.z = the two
+// extruders' Z limits. Inert unless the CPU sets .x >= 1.0 (multi-extruder printers only), so the
+// shared object shader stays pixel-identical for single-extruder printers. See 3DScene.cpp.
+uniform vec3 extruder_printable_heights;
+const float ONE_OVER_EPSILON = 1e4;
 
 uniform float z_far;
 uniform float z_near;
+
+// Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
+uniform sampler2D shadow_map;
+uniform mat4 shadow_light_vp;
+uniform float shadow_intensity;
+uniform float shadow_map_texel;
+
+// LIGHT_TOP_DIR in eye space (matches the diffuse light used for shading in gouraud.vs).
+const vec3 SHADOW_LIGHT_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
 
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
@@ -85,43 +109,114 @@ float GetTolerance(float d, float k)
     return -k*(d+A)*(d+A)/B;   
 }
 
-float DetectSilho(vec2 fragCoord, vec2 dir)
+// Depth of sample s at integer pixel coord.
+#ifdef GL_ARB_texture_multisample
+float FetchDepth(ivec2 coord, int s)
+{
+    // texelFetch has no wrap mode, so clamp to the edge texel (sampler2D used CLAMP_TO_EDGE).
+    ivec2 sz = textureSize(depth_tex);
+    return abs(texelFetch(depth_tex, clamp(coord, ivec2(0), sz - 1), s).r);
+}
+#else
+float FetchDepth(ivec2 coord, int s)
+{
+    return abs(texture(depth_tex, (vec2(coord) + 0.5) / screen_size).r);
+}
+#endif
+
+float DetectSilho(ivec2 coord, ivec2 dir, int s)
 {
     // -------------------------------------------
-    //   x0 ___ x1----o 
-    //          :\    : 
+    //   x0 ___ x1----o
+    //          :\    :
     //       r0 : \   : r1
-    //          :  \  : 
+    //          :  \  :
     //          o---x2 ___ x3
     //
     // r0 and r1 are the differences between actual
     // and expected (as if x0..3 where on the same
     // plane) depth values.
     // -------------------------------------------
-    
-    float x0 = abs(texture(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
-    
+    float x0 = FetchDepth(coord + dir*-2, s);
+    float x1 = FetchDepth(coord + dir*-1, s);
+    float x2 = FetchDepth(coord,          s);
+    float x3 = FetchDepth(coord + dir* 1, s);
+
     float d0 = (x1-x0);
     float d1 = (x2-x3);
-    
+
     float r0 = x1 + d0 - x2;
     float r1 = x2 + d1 - x1;
-    
-    float tol = GetTolerance(x2, 0.04);
-    
-    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
 
+    float tol = GetTolerance(x2, 0.04);
+
+    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
 }
 
-float DetectSilho(vec2 fragCoord)
+float DetectSilho(ivec2 coord, int s)
 {
     return max(
-        DetectSilho(fragCoord, vec2(1,0)), // Horizontal
-        DetectSilho(fragCoord, vec2(0,1))  // Vertical
+        DetectSilho(coord, ivec2(1,0), s), // Horizontal
+        DetectSilho(coord, ivec2(0,1), s)  // Vertical
         );
+}
+
+// Full response of one sample. Reduce the max() per sample and average only afterwards:
+// max(mean) <= mean(max), and averaging first hollows out diagonal and curved lines.
+float DetectSilhoSample(ivec2 coord, int s)
+{
+    float v = DetectSilho(coord, s);
+    // Makes silhouettes thicker.
+    for (int i = 1; i <= INFLATE; ++i)
+    {
+        v = max(v, DetectSilho(coord + ivec2(i, 0), s));
+        v = max(v, DetectSilho(coord + ivec2(0, i), s));
+    }
+    return v;
+}
+
+// Average the per-sample coverage into the sub-pixel anti-aliasing of the line.
+float DetectSilho(vec2 fragCoord)
+{
+    ivec2 coord = ivec2(fragCoord);
+#ifdef GL_ARB_texture_multisample
+    int n = max(msaa_samples, 1);
+#else
+    const int n = 1;
+#endif
+    float acc = 0.0;
+    for (int s = 0; s < n; ++s)
+        acc += DetectSilhoSample(coord, s);
+    return acc / float(n);
+}
+
+// Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
+// occluded from the light in the shadow map. 3x3 PCF softens the edges.
+float shadow_shade()
+{
+    if (shadow_intensity <= 0.0)
+        return 1.0;
+
+    vec4 lp = shadow_light_vp * world_pos;
+    vec3 proj = lp.xyz / lp.w;
+    proj = proj * 0.5 + 0.5;
+    if (proj.z > 1.0)
+        return 1.0;
+
+    // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
+    // suppresses self-shadow acne without discarding real shadows cast by other objects onto
+    // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
+    float NdotL = dot(normalize(eye_normal), SHADOW_LIGHT_DIR);
+    float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
+    // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
+    float sum = 0.0;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            float closest = texture(shadow_map, proj.xy + vec2(float(x), float(y)) * shadow_map_texel).r;
+            sum += (proj.z - bias > closest) ? 1.0 : 0.0;
+        }
+    }
+    return 1.0 - shadow_intensity * (sum / 25.0);
 }
 
 out vec4 out_color;
@@ -167,23 +262,29 @@ void main()
 	}
 	color.rgb = (any(lessThan(pv_check_min, ZERO)) || any(greaterThan(pv_check_max, ZERO))) ? mix(color.rgb, ZERO, 0.3333) : color.rgb;
 
+    // BBS per-extruder printable-height shading (H2D/H2C). Gated on the flag so it is inert for
+    // single-extruder printers. Darkens the band between the two extruders' Z limits inside the bed
+    // rect (the zone only the taller extruder can reach). Math kept byte-identical to BBS gouraud.fs.
+    if (extruder_printable_heights.x >= 1.0) {
+        vec3 eph_check_min = (world_pos.xyz - vec3(print_volume.xy_data.x, print_volume.xy_data.y, extruder_printable_heights.y)) * ONE_OVER_EPSILON;
+        vec3 eph_check_max = (world_pos.xyz - vec3(print_volume.xy_data.z, print_volume.xy_data.w, extruder_printable_heights.z)) * ONE_OVER_EPSILON;
+        bool is_out_printable_height = (all(greaterThan(eph_check_min, vec3(1.0))) && all(lessThan(eph_check_max, vec3(1.0))));
+        color.rgb = is_out_printable_height ? mix(color.rgb, ZERO, 0.7) : color.rgb;
+    }
+    float shade = shadow_shade();
+
     //BBS: add outline_color
     if (is_outline) {
-        color = vec4(vec3(intensity.y) + color.rgb * intensity.x, color.a);
-        vec2 fragCoord = gl_FragCoord.xy;
-        float s = DetectSilho(fragCoord);
-        // Makes silhouettes thicker.
-        for(int i=1;i<=INFLATE; i++)
-        {
-           s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
-           s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
-        }   
+        color = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
+        float s = DetectSilho(gl_FragCoord.xy);
+        if (s < 0.01)
+            discard;
         out_color = vec4(mix(color.rgb, getBackfaceColor(color.rgb), s), color.a);
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
-        out_color = vec4(0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * intensity.x, color.a);
+        out_color = vec4((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * intensity.x) * shade, color.a);
 #endif
     else
-        out_color = vec4(vec3(intensity.y) + color.rgb * intensity.x, color.a);
+        out_color = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
 }

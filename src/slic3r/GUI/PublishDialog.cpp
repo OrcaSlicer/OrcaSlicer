@@ -18,7 +18,7 @@ namespace Slic3r {
 namespace GUI {
 
 static wxString PUBLISH_STEP_STRING[STEP_COUNT] = {
-    _L("Slice all plate to obtain time and filament estimation"),
+    _L("Slice all plates to obtain time and filament estimation"),
     _L("Packing project data into 3MF file"),
     _L("Uploading 3MF"),
     _L("Jump to model publish web page")
@@ -119,7 +119,7 @@ PublishDialog::PublishDialog(Plater *plater)
     top_sizer->Add(m_main_sizer, 1, wxALL | wxEXPAND, 0);
     top_sizer->Add(FromDIP(30), 0, 0, wxEXPAND, 0);
 
-    this->SetSizer(top_sizer);
+    this->SetSizerAndFit(top_sizer);
     this->Layout();
 
     this->Centre(wxBOTH);

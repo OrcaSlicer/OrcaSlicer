@@ -3,7 +3,7 @@
 	"name": "Snapmaker PA-CF",
 	"inherits": "Snapmaker PA-CF @base",
 	"from": "system",
-	"setting_id": "144230794",
+	"setting_id": "bQJVOpJTPWoAtDCk",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.4 nozzle)",

@@ -3,6 +3,7 @@
 	"name": "Prusa MK4S 0.25 nozzle",
 	"inherits": "Prusa MK4S 0.4 nozzle",
 	"from": "system",
+	"setting_id": "wehS5yGzuMR8nKq0",
 	"instantiation": "true",
 	"default_print_profile": "0.12mm STRUCTURAL @MK4S 0.25",
 	"machine_max_acceleration_travel": [

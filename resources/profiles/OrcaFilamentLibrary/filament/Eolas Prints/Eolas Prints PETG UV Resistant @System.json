@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP011",
-	"setting_id": "GFSEP011_00",
 	"name": "Eolas Prints PETG UV Resistant @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "eexjO9xiesNROPCK",
+	"filament_id": "OFx8Lmsd",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

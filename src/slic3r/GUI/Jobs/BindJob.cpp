@@ -3,6 +3,10 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
@@ -18,10 +22,11 @@ static auto waiting_auth_str = _u8L("Logging in");
 static auto login_failed_str = _u8L("Login failed");
 
 
-BindJob::BindJob(std::string dev_id, std::string dev_ip, std::string sec_link, std::string ssdp_version)
+BindJob::BindJob(std::string dev_id, std::string dev_ip, std::string dev_model, std::string sec_link, std::string ssdp_version)
     :
     m_dev_id(dev_id),
     m_dev_ip(dev_ip),
+    m_dev_model(dev_model),
     m_sec_link(sec_link),
     m_ssdp_version(ssdp_version)
 {
@@ -60,7 +65,7 @@ void BindJob::process(Ctl &ctl)
     std::string timezone = get_timezone_utc_hm(offset);
 
     m_agent->track_update_property("ssdp_version", m_ssdp_version, "string");
-    int result = m_agent->bind(m_dev_ip, m_dev_id, m_sec_link, timezone, m_improved,
+    int result = m_agent->bind(m_dev_ip, m_dev_id, m_dev_model, m_sec_link, timezone, m_improved,
         [this, &ctl, &curr_percent, &msg, &result_code, &result_info](int stage, int code, std::string info) {
 
             result_code = code;

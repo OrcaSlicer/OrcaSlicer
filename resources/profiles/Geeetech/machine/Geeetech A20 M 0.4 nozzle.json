@@ -3,7 +3,7 @@
 	"name": "Geeetech A20 M 0.4 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_031",
+	"setting_id": "bMMEwH5HswPZ38d1",
 	"instantiation": "true",
 	"printer_model": "Geeetech A20 M",
 	"default_filament_profile": [

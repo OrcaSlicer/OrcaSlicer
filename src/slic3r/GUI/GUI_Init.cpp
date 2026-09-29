@@ -70,7 +70,7 @@ int GUI_Run(GUI_InitParams &params)
         wxMessageBox(boost::nowide::widen(ex.what()), _L("Orca Slicer GUI initialization failed"), wxICON_STOP);
     } catch (const std::exception &ex) {
         BOOST_LOG_TRIVIAL(error) << ex.what() << std::endl;
-        wxMessageBox(format_wxstr(_L("Fatal error, exception caught: %1%"), ex.what()), _L("Orca Slicer GUI initialization failed"), wxICON_STOP);
+        wxMessageBox(format_wxstr(_L("Fatal error, exception: %1%"), ex.what()), _L("Orca Slicer GUI initialization failed"), wxICON_STOP);
     }
     // error
     return 1;

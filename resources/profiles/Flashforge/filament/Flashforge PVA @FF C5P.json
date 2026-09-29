@@ -1,4 +1,17 @@
 {
+	"type": "filament",
+	"name": "Flashforge PVA @FF C5P",
+	"inherits": "Generic PVA @System",
+	"from": "system",
+	"setting_id": "nwgbMjLRJLtJ04ri",
+	"filament_id": "OFaaddbQ",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],
@@ -49,17 +62,12 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"60"
 	],
 	"hot_plate_temp_initial_layer": [
 		"60"
 	],
-	"inherits": "Generic PVA @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PVA @FF C5P",
 	"nozzle_temperature": [
 		"240"
 	],
@@ -86,6 +94,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
-	],
-	"version": "2.3.0.3"
+	]
 }

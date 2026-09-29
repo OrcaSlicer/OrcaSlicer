@@ -1,6 +1,7 @@
 #include "ExtraRenderers.hpp"
 #include "wxExtensions.hpp"
 #include "GUI.hpp"
+#include "I18N.hpp"
 #include "BitmapComboBox.hpp"
 #include "Plater.hpp"
 #include "Widgets/ComboBox.hpp"

@@ -675,7 +675,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
 
     m_task_list = new wxScrolledWindow(m_main_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_task_list->SetBackgroundColour(*wxWHITE);
-    m_task_list->SetScrollRate(0, 5);
+    m_task_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
     m_task_list->SetMinSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_task_list->SetMaxSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
 
@@ -783,7 +783,7 @@ void LocalTaskManagerPage::refresh_user_device(bool clear)
             mtitem->m_send_time = task_state_info->get_sent_time();
             mtitem->state_local_task = task_state_info->state();
 
-            task_state_info->set_state_changed_fn([this, mtitem](TaskState state, int percent) {
+            task_state_info->set_state_changed_fn([mtitem](TaskState state, int percent) {
                 mtitem->state_local_task = state;
                 if (state == TaskState::TS_SEND_COMPLETED) {
 
@@ -1056,7 +1056,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
 
     m_task_list = new wxScrolledWindow(m_main_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_task_list->SetBackgroundColour(*wxWHITE);
-    m_task_list->SetScrollRate(0, 5);
+    m_task_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
     m_task_list->SetMinSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_task_list->SetMaxSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
 

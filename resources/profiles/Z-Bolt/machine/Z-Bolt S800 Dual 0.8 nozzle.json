@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S800 Dual 0.8 nozzle",
 	"inherits": "Z-Bolt S800 Dual 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM029",
+	"setting_id": "pCByNIozAYMfCW3T",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"nozzle_diameter": [
@@ -23,12 +23,15 @@
 		"0.16"
 	],
 	"retraction_length": [
+		"0.8",
 		"0.8"
 	],
 	"retract_length_toolchange": [
+		"3",
 		"3"
 	],
 	"retraction_minimum_travel": [
+		"3",
 		"3"
 	],
 	"thumbnails": "144x144/PNG,900x900/PNG",

@@ -1,9 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Pro @FF G4P",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
+	"setting_id": "6mvGOtkPZT6ROboo",
+	"filament_id": "OFm4SivL",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],

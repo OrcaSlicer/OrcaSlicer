@@ -3,7 +3,7 @@
 	"name": "0.20mm PET-CF 0.4 Nozzle Standard @MagnetoX",
 	"inherits": "fdm_process_pply_0.20",
 	"from": "system",
-	"setting_id": "GP016",
+	"setting_id": "bJFNzjyv23sg2utH",
 	"instantiation": "true",
 	"top_shell_thickness": "0.6",
 	"bridge_flow": "1",

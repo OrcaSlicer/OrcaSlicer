@@ -3,8 +3,12 @@
 	"name": "Prusament PC-CF @XL 5T",
 	"inherits": "fdm_filament_pccf",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "m1YND6uz3GWeVIBG",
+	"filament_id": "OFjz0a3m",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Prusa Polymers"
+	],
 	"nozzle_temperature_intial_layer": "285",
 	"nozzle_temperature": "285",
 	"hot_plate_temp_initial_layer": "100",
@@ -37,8 +41,6 @@
 	"filament_loading_speed": "14",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "20",
-	"filament_load_time": "15",
-	"filament_unload_time": "12",
 	"filament_cooling_moves": "5",
 	"filament_cooling_initial_speed": "10",
 	"filament_cooling_final_speed": "50",

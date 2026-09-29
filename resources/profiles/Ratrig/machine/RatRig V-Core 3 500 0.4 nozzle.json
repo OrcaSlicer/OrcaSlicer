@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 3 500 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "vEKAbNmYuiN6TIoY",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 3 500",
 	"nozzle_diameter": [

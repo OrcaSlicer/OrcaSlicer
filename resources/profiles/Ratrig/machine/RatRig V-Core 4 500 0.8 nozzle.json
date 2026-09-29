@@ -3,8 +3,9 @@
 	"name": "RatRig V-Core 4 500 0.8 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "VMKIyofeEpPvUvkY",
 	"instantiation": "true",
+	"default_print_profile": "0.30mm Big @RatRig V-Core 4 0.8",
 	"printer_model": "RatRig V-Core 4 500",
 	"printer_variant": "0.8",
 	"nozzle_diameter": [

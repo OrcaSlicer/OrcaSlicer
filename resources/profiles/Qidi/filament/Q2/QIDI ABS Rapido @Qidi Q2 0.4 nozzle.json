@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI ABS Rapido@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "8HIYmsVwqmihwMVw",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"

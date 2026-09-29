@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @Prusa base",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "false"
+}

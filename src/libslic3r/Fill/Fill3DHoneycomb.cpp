@@ -2,6 +2,7 @@
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 #include "FillBase.hpp"
+#include "FillCornerSmoothing.hpp"
 #include "Fill3DHoneycomb.hpp"
 
 namespace Slic3r {
@@ -271,6 +272,9 @@ void Fill3DHoneycomb::_fill_surface_single(
     for (Polyline &pl : polylines){
       pl.translate(bb.min);
       pl.simplify(5 * spacing); // simplify to 5x line width
+      // Orca: round the corners of the octahedral wave. The layers where the wave degenerates to a
+      // straight line have no corner to round.
+      smooth_polyline_corners(pl, params.smooth_factor, scaled<double>(params.resolution));
     }
 
     // Apply multiline offset if needed

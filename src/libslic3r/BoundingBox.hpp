@@ -25,7 +25,7 @@ public:
         min(p1), max(p1), defined(false) { merge(p2); merge(p3); }
 
     template<class It, class = IteratorOnly<It>>
-    BoundingBoxBase(It from, It to)
+    BoundingBoxBase(It from, It to) : BoundingBoxBase()
         { construct(*this, from, to); }
 
     BoundingBoxBase(const PointsType &points)
@@ -125,7 +125,7 @@ public:
     template<class It, class = IteratorOnly<It> > BoundingBox3Base(It from, It to)
     {
         if (from == to)
-            throw Slic3r::InvalidArgument("Empty point set supplied to BoundingBox3Base constructor");
+            throw Slic3r::InvalidArgument("Empty point set supplied to BoundingBox3Base constructor.");
 
         auto it = from;
         this->min = it->template cast<typename PointType::Scalar>();

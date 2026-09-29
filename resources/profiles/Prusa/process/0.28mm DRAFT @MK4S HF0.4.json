@@ -3,6 +3,7 @@
 	"name": "0.28mm DRAFT @MK4S HF0.4",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "Spw0OqvyBY2H5M9j",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and printer_notes=~/.*HF_NOZZLE.*/",

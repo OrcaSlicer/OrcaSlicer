@@ -3,6 +3,7 @@
 	"name": "0.20mm SOLUBLE INTERFACE @MK4S 0.4",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "bJQXRZ9OGtX61lLw",
 	"instantiation": "true",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and single_extruder_multi_material",
 	"default_acceleration": "2500",

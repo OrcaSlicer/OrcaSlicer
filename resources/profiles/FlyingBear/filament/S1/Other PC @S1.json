@@ -3,8 +3,8 @@
 	"name": "Other PC @S1",
 	"inherits": "fdm_filament_pc_other @S1",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFC99",
+	"setting_id": "mHuxaHppNFZbldHD",
+	"filament_id": "OFyRCIMh",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"12"

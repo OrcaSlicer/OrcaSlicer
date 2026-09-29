@@ -1123,18 +1123,17 @@ private:
 
         std::vector<RawShape> objs,excludes;
         for (const Item &item : items_) {
-            if (item.isFixed()) continue;
-            objs.push_back(item.transformedShape());
+            if (item.isFixed())
+                excludes.push_back(item.transformedShape());
+            else
+                objs.push_back(item.transformedShape());
         }
         if (objs.empty())
             return;
+        // Without fixed items this inner-fit NFP can exceed clipper's range and crash MSVC.
+        if (!excludes.empty())
         { // find a best position inside NFP of fixed items (excluded regions), so the center of pile is cloest to bed center
             RawShape objs_convex_hull = sl::convexHull(objs);
-            for (const Item &item : items_) {
-                if (item.isFixed()) {
-        		    excludes.push_back(item.transformedShape());
-                }
-            }
 
             auto   nfps = calcnfp(objs_convex_hull, excludes, bbin, Lvl<MaxNfpLevel::value>());
             if (nfps.empty()) {

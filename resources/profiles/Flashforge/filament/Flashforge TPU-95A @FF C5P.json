@@ -1,4 +1,17 @@
 {
+	"type": "filament",
+	"name": "Flashforge TPU-95A @FF C5P",
+	"inherits": "Generic TPU @System",
+	"from": "system",
+	"setting_id": "8MBRqfLIRdhxk1dF",
+	"filament_id": "OFx0WlzS",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],
@@ -58,11 +71,6 @@
 	"filament_type": [
 		"TPU-95A"
 	],
-	"from": "system",
-	"inherits": "Generic TPU @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge TPU-95A @FF C5P",
 	"nozzle_temperature": [
 		"230"
 	],
@@ -92,6 +100,5 @@
 	],
 	"textured_cool_plate_temp_initial_layer": [
 		"35"
-	],
-	"version": "2.3.0.3"
+	]
 }

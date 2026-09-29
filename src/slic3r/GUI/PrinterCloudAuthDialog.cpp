@@ -23,7 +23,7 @@
 namespace Slic3r { namespace GUI {
 
 PrinterCloudAuthDialog::PrinterCloudAuthDialog(wxWindow* parent, PrintHost* host)
-    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "Login")
+    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, _L("Login"))
 {
     SetBackgroundColour(*wxWHITE);
     // Url
@@ -95,7 +95,7 @@ void PrinterCloudAuthDialog::OnScriptMessage(wxWebViewEvent& evt)
         }
         Close();
     } catch (std::exception& e) {
-        wxMessageBox(e.what(), "parse json failed", wxICON_WARNING);
+        wxMessageBox(e.what(), _L("parse json failed"), wxICON_WARNING);
         Close();
     }
 }

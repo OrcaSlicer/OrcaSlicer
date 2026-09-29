@@ -3,7 +3,8 @@
 	"name": "Tiertime PA6-CF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFN05",
+	"setting_id": "HuOPyruYQNhxsjYW",
+	"filament_id": "OFe8tuNb",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"5"

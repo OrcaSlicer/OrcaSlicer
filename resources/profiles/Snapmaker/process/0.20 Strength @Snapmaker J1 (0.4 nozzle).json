@@ -3,7 +3,7 @@
 	"name": "0.20 Strength @Snapmaker J1 (0.4 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "563165128",
+	"setting_id": "3vunOdQ6JRC3hEGF",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"

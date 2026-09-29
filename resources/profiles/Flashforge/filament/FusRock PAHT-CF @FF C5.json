@@ -1,4 +1,18 @@
 {
+	"type": "filament",
+	"name": "FusRock PAHT-CF @FF C5",
+	"renamed_from": "Flashforge PAHT-CF @FF C5;Flashforge PAHT-CF FF C5",
+	"inherits": "Generic PA-CF @System",
+	"from": "system",
+	"setting_id": "gZqAGVOlWR79n7hN",
+	"filament_id": "OFKW5hEW",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"FusRock"
+	],
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",
 		"Flashforge Creator 5 0.6 nozzle",
@@ -43,17 +57,12 @@
 	"filament_type": [
 		"PAHT-CF"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"80"
 	],
 	"hot_plate_temp_initial_layer": [
 		"80"
 	],
-	"inherits": "Generic PA-CF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "FusRock PAHT-CF @FF C5",
 	"nozzle_temperature": [
 		"310"
 	],
@@ -77,6 +86,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"80"
-	],
-	"version": "2.3.0.3"
+	]
 }

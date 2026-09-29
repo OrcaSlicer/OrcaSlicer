@@ -3,7 +3,7 @@
 	"name": "The Positron 0.8 nozzle",
 	"inherits": "fdm_common_the_positron",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "Ayf2E7XkwriXINkt",
 	"instantiation": "true",
 	"printer_model": "The Positron",
 	"nozzle_diameter": [

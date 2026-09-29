@@ -3,7 +3,7 @@
 	"name": "NIT PETG @System",
 	"inherits": "NIT PETG @base",
 	"from": "system",
-	"setting_id": "PET01_00",
+	"setting_id": "f07BWDWp7pnA3YI2",
 	"instantiation": "true",
 	"compatible_printers": []
 }

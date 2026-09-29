@@ -3,8 +3,8 @@
 	"name": "HATCHBOX PLA @Qidi X-Plus 4 0.2 nozzle",
 	"inherits": "HATCHBOX PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "i3bQYXjlGipOAop7",
+	"filament_id": "OFeelsSM",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

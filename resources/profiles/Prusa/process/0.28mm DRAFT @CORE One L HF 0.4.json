@@ -3,6 +3,7 @@
 	"name": "0.28mm DRAFT @CORE One L HF 0.4",
 	"inherits": "0.28mm DRAFT @MK4S HF0.4",
 	"from": "system",
+	"setting_id": "RU7TfPyCeUvdXHhB",
 	"instantiation": "true",
 	"overhang_2_4_speed": "50",
 	"support_threshold_angle": "35",

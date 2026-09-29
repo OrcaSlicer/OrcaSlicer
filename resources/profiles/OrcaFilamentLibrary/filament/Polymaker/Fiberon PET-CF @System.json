@@ -3,7 +3,7 @@
 	"name": "Fiberon PET-CF @System",
 	"inherits": "Fiberon PET-CF @base",
 	"from": "system",
-	"setting_id": "OGFSL54_00",
+	"setting_id": "1yLcgRWt6LMlWyqN",
 	"instantiation": "true",
 	"compatible_printers": []
 }

@@ -115,7 +115,6 @@
 	"retraction_speed": [
 		"25"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

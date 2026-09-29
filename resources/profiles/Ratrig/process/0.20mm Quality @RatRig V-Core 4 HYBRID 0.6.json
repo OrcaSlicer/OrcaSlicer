@@ -3,7 +3,7 @@
 	"name": "0.20mm Quality @RatRig V-Core 4 HYBRID 0.6",
 	"inherits": "fdm_process_ratrig_common",
 	"from": "system",
-	"setting_id": "GP006",
+	"setting_id": "Utt26igxK6y0mr6n",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"inital_layer_height": "0.3",

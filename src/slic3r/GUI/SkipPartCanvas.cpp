@@ -287,7 +287,7 @@ void SkipPartCanvas::Render()
     glDisable(GL_CULL_FACE);
     glEnable(GL_STENCIL_TEST);
 
-    auto draw_shape = [this, border_w](const int stencil, const PartState part_type, const ColorRGB& rgb) {
+    auto draw_shape = [this](const int stencil, const PartState part_type, const ColorRGB& rgb) {
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glStencilFunc(GL_ALWAYS, stencil, 0xFF);
         glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
@@ -335,7 +335,7 @@ void SkipPartCanvas::Render()
     // stencil3 => skipped
     draw_shape(skipped_stencil, psSkipped, ColorRGB{95 / 255.f, 95 / 255.f, 95 / 255.f});
 
-    auto draw_mask = [this, view_rect, border_w, w, h](const int stencil, const PartState part_type,
+    auto draw_mask = [this, view_rect](const int stencil, const PartState part_type,
         const ColorRGB& background, const ColorRGB& line, const ColorRGB& bound) {
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glStencilFunc(GL_EQUAL, stencil, 0xFF);

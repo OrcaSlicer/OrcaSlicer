@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSG99",
 	"name": "QIDI PETG Rapido @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "GGulRExJ8O22prw5",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"
 	],

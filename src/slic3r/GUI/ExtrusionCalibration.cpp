@@ -1,7 +1,9 @@
 #include "ExtrusionCalibration.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Preset.hpp"
+#include <algorithm>
 #include "I18N.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/dcgraph.h>
@@ -86,7 +88,7 @@ void ExtrusionCalibration::create()
     select_sizer->Add(m_comboBox_filament, 0, wxEXPAND);
     select_sizer->Add(0, EXTRUSION_CALIBRATION_WIDGET_GAP, 0, 0);
 
-    auto bed_type_sel_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Bed Type"), wxDefaultPosition, wxDefaultSize, 0);
+    auto bed_type_sel_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Plate Type"), wxDefaultPosition, wxDefaultSize, 0);
     select_sizer->Add(bed_type_sel_text, 0, wxALIGN_LEFT);
     select_sizer->AddSpacer(FromDIP(4));
 
@@ -170,7 +172,7 @@ void ExtrusionCalibration::create()
     m_error_text->SetForegroundColour(wxColour(208, 27, 27));
     m_error_text->Hide();
 
-    m_button_cali = new Button(m_step_1_panel, _L("Start calibration"));
+    m_button_cali = new Button(m_step_1_panel, _L("Start"));
     m_button_cali->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_cali->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_cali, this);
 
@@ -239,7 +241,7 @@ void ExtrusionCalibration::create()
     m_button_save_result->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_save_result->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_save, this);
 
-    m_button_last_step = new Button(m_step_2_panel, _L("Last Step")); // Back for english
+    m_button_last_step = new Button(m_step_2_panel, _L_CONTEXT("Back", "Navigation")); // Back for english
     m_button_last_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_last_step->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_last, this);
 
@@ -261,7 +263,7 @@ void ExtrusionCalibration::create()
     top_sizer->Add(FromDIP(24), 0);
     top_sizer->Add(sizer_main, 1, wxEXPAND);
     top_sizer->Add(FromDIP(24), 0);
-    SetSizer(top_sizer);
+    SetSizerAndFit(top_sizer);
 
     // set default nozzle
     m_comboBox_nozzle_dia->SetSelection(1);
@@ -271,7 +273,6 @@ void ExtrusionCalibration::create()
     set_step(1);
 
     Layout();
-    Fit();
 
     m_k_val->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& e) {
         input_value_finish();
@@ -600,8 +601,10 @@ void ExtrusionCalibration::update_combobox_filaments()
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle && obj) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
-        std::string printer_type = obj->printer_type;
-        std::set<std::string> printer_preset_list;
+        double nozzle_value = 0.4;
+        m_comboBox_nozzle_dia->GetValue().ToDouble(&nozzle_value);
+
+        std::vector<PresetWithVendorProfile> printer_profiles;
         for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
             // only use system printer preset
             if (!printer_it->is_system) continue;
@@ -611,49 +614,42 @@ void ExtrusionCalibration::update_combobox_filaments()
             ConfigOptionFloats* printer_nozzle_vals = nullptr;
             if (printer_nozzle_opt)
                 printer_nozzle_vals = dynamic_cast<ConfigOptionFloats*>(printer_nozzle_opt);
-            double nozzle_value = 0.4;
-            wxString nozzle_value_str = m_comboBox_nozzle_dia->GetValue();
-            try {
-                nozzle_value_str.ToDouble(&nozzle_value);
-            } catch(...) {
-                ;
-            }
             if (!model_id.empty() && model_id.compare(obj->printer_type) == 0
                 && printer_nozzle_vals
                 && abs(printer_nozzle_vals->get_at(0) - nozzle_value) < 1e-3) {
-                    printer_preset_list.insert(printer_it->name);
+                    printer_profiles.push_back(preset_bundle->printers.get_preset_with_vendor_profile(*printer_it));
                     BOOST_LOG_TRIVIAL(trace) << "extrusion_cali: printer_model = " << model_id;
             } else {
                 BOOST_LOG_TRIVIAL(error) << "extrusion_cali: printer_model = " << model_id;
             }
         }
 
+        // Unlike the AMS dialogs this one offers every matching preset by full name rather than one
+        // root preset per alias, so it filters the collection itself instead of calling
+        // PresetBundle::get_filament_presets_for_machine().
         for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {
-            ConfigOption* printer_opt = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings* printer_strs = dynamic_cast<ConfigOptionStrings*>(printer_opt);
-            for (auto printer_str : printer_strs->values) {
-                if (printer_preset_list.find(printer_str) != printer_preset_list.end()) {
-                    user_filaments.push_back(&(*filament_it));
+            const PresetWithVendorProfile filament = preset_bundle->filaments.get_preset_with_vendor_profile(*filament_it);
+            if (std::none_of(printer_profiles.begin(), printer_profiles.end(),
+                             [&filament](const PresetWithVendorProfile &printer) { return is_compatible_with_printer(filament, printer); }))
+                continue;
 
-                    // set default filament id
-                    filament_index++;
-                    if (filament_it->is_system
-                        && !ams_filament_id.empty()
-                        && filament_it->filament_id == ams_filament_id
-                        ) {
-                        curr_selection = filament_index;
-                    }
+            user_filaments.push_back(&(*filament_it));
 
-                    if (filament_it->name == obj->extrusion_cali_filament_name && !obj->extrusion_cali_filament_name.empty())
-                    {
-                        curr_selection = filament_index;
-                    }
-
-                    wxString filament_name = wxString::FromUTF8(filament_it->name);
-                    filament_items.Add(filament_name);
-                    break;
-                }
+            // set default filament id
+            filament_index++;
+            if (filament_it->is_system
+                && !ams_filament_id.empty()
+                && filament_it->filament_id == ams_filament_id
+                ) {
+                curr_selection = filament_index;
             }
+
+            if (filament_it->name == obj->extrusion_cali_filament_name && !obj->extrusion_cali_filament_name.empty())
+            {
+                curr_selection = filament_index;
+            }
+
+            filament_items.Add(wxString::FromUTF8(filament_it->name));
         }
         m_comboBox_filament->Set(filament_items);
         m_comboBox_filament->SetSelection(curr_selection);
@@ -712,12 +708,12 @@ void ExtrusionCalibration::post_select_event() {
 void ExtrusionCalibration::set_step(int step_index)
 {
     if (step_index == 2) {
-        wxString title_text = wxString::Format("%s - %s 2/2", _L("Dynamic flow Calibration"), _L("Step"));
+        wxString title_text = wxString::Format("%s - %s 2/2", _L("Dynamic flow calibration"), _L("Step"));
         SetTitle(title_text);
         m_step_1_panel->Hide();
         m_step_2_panel->Show();
     } else {
-        wxString title_text = wxString::Format("%s - %s 1/2", _L("Dynamic flow Calibration"), _L("Step"));
+        wxString title_text = wxString::Format("%s - %s 1/2", _L("Dynamic flow calibration"), _L("Step"));
         SetTitle(title_text);
         m_step_1_panel->Show();
         m_step_2_panel->Hide();

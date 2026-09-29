@@ -3,7 +3,7 @@
 	"name": "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "1SK0VAxn4wsqiNk7",
 	"instantiation": "true",
 	"printer_model": "Co Print ChromaSet",
 	"default_print_profile": "0.2mm Standard @Co Print ChromaSet 0.4",
@@ -29,48 +29,63 @@
 		"0.5"
 	],
 	"machine_max_speed_e": [
+		"100",
 		"100"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"10",
 		"10"
 	],
 	"machine_max_acceleration_e": [
+		"2500",
 		"2500"
 	],
 	"machine_max_acceleration_extruding": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_retracting": [
+		"2500",
 		"2500"
 	],
 	"machine_max_acceleration_travel": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_x": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_y": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_z": [
+		"100",
 		"100"
 	],
 	"machine_max_jerk_e": [
+		"2.5",
 		"2.5"
 	],
 	"machine_max_jerk_x": [
+		"8",
 		"8"
 	],
 	"machine_max_jerk_y": [
+		"8",
 		"8"
 	],
 	"machine_max_jerk_z": [
+		"0.2",
 		"0.2"
 	],
 	"z_hop": [
@@ -108,7 +123,7 @@
 	"machine_end_gcode": "end_print",
 	"change_filament_gcode": "FILAMENT_CHANGE LAYER_NUM=[layer_num] NEXT_EXTRUDER=[next_extruder]",
 	"default_filament_profile": [
-		"CoPrint Generic PLA"
+		"Generic PLA @CoPrint"
 	],
 	"extruder_clearance_radius": [
 		"65"

@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA+ @System",
 	"inherits": "SUNLU PLA+ @base",
 	"from": "system",
-	"setting_id": "OSNLS03",
+	"setting_id": "L85dCvjbjs3h7XiN",
 	"instantiation": "true",
 	"compatible_printers": []
 }

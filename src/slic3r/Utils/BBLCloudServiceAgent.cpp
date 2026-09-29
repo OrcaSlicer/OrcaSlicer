@@ -8,6 +8,9 @@
 #include <sstream>
 #include <boost/algorithm/string/replace.hpp>
 #include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
 namespace Slic3r {
 
 
@@ -433,7 +436,7 @@ std::string BBLCloudServiceAgent::request_setting_id(std::string name, std::map<
     return "";
 }
 
-int BBLCloudServiceAgent::put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code)
+int BBLCloudServiceAgent::put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();

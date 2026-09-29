@@ -3,7 +3,7 @@
 	"name": "D12 300 PRO M2 MONO DUAL 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "bTbd37YEZf43Pkw2",
 	"instantiation": "true",
 	"printer_model": "D12 300 PRO M2 MONO DUAL",
 	"gcode_flavor": "marlin2",
@@ -45,12 +45,15 @@
 	],
 	"enable_filament_ramming": "0",
 	"machine_max_acceleration_e": [
+		"6000",
 		"6000"
 	],
 	"machine_max_acceleration_extruding": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_retracting": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_travel": [
@@ -58,36 +61,47 @@
 		"500"
 	],
 	"machine_max_acceleration_x": [
+		"1200",
 		"1200"
 	],
 	"machine_max_acceleration_y": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_z": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_e": [
+		"50",
 		"50"
 	],
 	"machine_max_speed_x": [
+		"200",
 		"200"
 	],
 	"machine_max_speed_y": [
+		"200",
 		"200"
 	],
 	"machine_max_speed_z": [
+		"15",
 		"15"
 	],
 	"machine_max_jerk_e": [
+		"2.5",
 		"2.5"
 	],
 	"machine_max_jerk_x": [
+		"14",
 		"14"
 	],
 	"machine_max_jerk_y": [
+		"14",
 		"14"
 	],
 	"machine_max_jerk_z": [
+		"0.2",
 		"0.2"
 	],
 	"max_layer_height": [

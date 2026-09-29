@@ -380,17 +380,17 @@ void AuFile::on_input_enter(wxCommandEvent &evt)
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -606,7 +606,7 @@ AuFolderPanel::AuFolderPanel(wxWindow *parent, AuxiliaryFolderType type, wxWindo
     wxBoxSizer *sizer_main = new wxBoxSizer(wxVERTICAL);
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(5, 5);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
     wxBoxSizer *sizer_body = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *sizer_top  = new wxBoxSizer(wxHORIZONTAL);
 
@@ -863,17 +863,27 @@ void AuxiliaryPanel::init_tabpanel()
     m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF"));
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [](wxBookCtrlEvent &e) { /* Event handling */ });
 
-    m_designer_panel          = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
-    m_pictures_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
-    m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
-    m_assembly_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
-    m_others_panel            = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
-
-    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), "", true);
-    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), "", false);
-    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), "", false);
-    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), "", false);
-    m_tabpanel->AddPage(m_others_panel, _L("Others"), "", false);
+    add_build_step([this] {
+        m_designer_panel = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
+        m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
+    });
+    add_build_step([this] {
+        m_pictures_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
+        m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
+    });
+    add_build_step([this] {
+        m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
+        m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
+    });
+    add_build_step([this] {
+        m_assembly_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
+        m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
+    });
+    add_build_step([this] {
+        m_others_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
+        m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
+        Layout();
+    });
 }
 
 wxWindow *AuxiliaryPanel::create_side_tools()

@@ -3,7 +3,16 @@
 	"name": "Generic CoPE @System",
 	"inherits": "fdm_filament_cope",
 	"from": "system",
-	"setting_id": "OGFSC99_00",
+	"setting_id": "KlHtaJU2GM0uaRGM",
+	"filament_id": "OFjt9en1",
 	"instantiation": "true",
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	]
 }

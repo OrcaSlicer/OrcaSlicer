@@ -4,7 +4,7 @@
 	"renamed_from": "SUNLU PLA+ 2.0 @FF AD5M 0.25 nozzle",
 	"inherits": "SUNLU PLA+ 2.0 @base",
 	"from": "system",
-	"setting_id": "GFSNLS04_01",
+	"setting_id": "F4PiUlguBysVUHLr",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1.8"

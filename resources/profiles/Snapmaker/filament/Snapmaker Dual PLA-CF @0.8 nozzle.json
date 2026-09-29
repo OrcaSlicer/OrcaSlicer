@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA-CF @0.8 nozzle",
 	"inherits": "Snapmaker Dual PLA-CF @base",
 	"from": "system",
-	"setting_id": "154056642",
+	"setting_id": "a64GVqogvOT5t2Pp",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.8 nozzle)",

@@ -3,8 +3,8 @@
 	"name": "QIDI ASA @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "QIDI ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "JPCSXfcIngQGTuOz",
+	"filament_id": "OFTsHNQi",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"0"

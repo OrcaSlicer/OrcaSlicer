@@ -427,7 +427,10 @@ void DropDown::render(wxDC &dc)
             }
             pt.y += (rcContent.height - textSize.y) / 2;
             dc.SetFont(GetFont());
-            dc.SetTextForeground(text_color.colorForStates(states2));
+            // Dimmed items stay selectable, so they only borrow the disabled text tone rather
+            // than taking the disabled state itself.
+            const int text_states = (item.style & DD_ITEM_STYLE_DIMMED) ? (states2 & ~StateColor::Enabled) : states2;
+            dc.SetTextForeground(text_color.colorForStates(text_states));
             dc.DrawText(text, pt);
             if (group.IsEmpty() && !item.group_key.IsEmpty()) {
                 auto szBmp = arrow_bitmap.GetBmpSize();

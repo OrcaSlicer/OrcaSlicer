@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Elegoo ASA @Elegoo Giga",
-	"inherits": "Generic ASA @Elegoo",
+	"renamed_from": "Elegoo ASA @EOS Giga",
+	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB98",
+	"setting_id": "YEKtGrB8gsvKz8XQ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"30"

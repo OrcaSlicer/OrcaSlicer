@@ -3,7 +3,7 @@
 	"name": "Peopoly Magneto X 0.6 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "208TaseoGSvPkLuT",
 	"instantiation": "true",
 	"printer_model": "Peopoly Magneto X",
 	"nozzle_diameter": [

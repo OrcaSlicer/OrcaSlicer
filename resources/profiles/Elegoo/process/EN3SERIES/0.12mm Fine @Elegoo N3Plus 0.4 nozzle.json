@@ -1,0 +1,11 @@
+{
+	"type": "process",
+	"name": "0.12mm Fine @Elegoo N3Plus 0.4 nozzle",
+	"renamed_from": "0.08mm Extra Fine @Elegoo Neptune3Plus;0.12mm Fine @Elegoo Neptune3Plus",
+	"inherits": "0.20mm Standard @Elegoo N3Plus 0.4 nozzle",
+	"from": "system",
+	"setting_id": "7BlZuuOXdqTj6cV6",
+	"instantiation": "true",
+	"layer_height": "0.12",
+	"wall_loops": "3"
+}

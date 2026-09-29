@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PLA Silk",
 	"inherits": "Snapmaker J1 PLA Silk @base",
 	"from": "system",
-	"setting_id": "155396375",
+	"setting_id": "e4jJUefBCpPwXdxv",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

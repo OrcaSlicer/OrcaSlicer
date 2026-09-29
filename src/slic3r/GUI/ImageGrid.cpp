@@ -521,7 +521,7 @@ void ImageGrid::render(wxDC& dc)
         if (!m_status_msg.IsEmpty()) {
             auto   si = m_status_icon.GetBmpSize();
             auto st   = dc.GetMultiLineTextExtent(m_status_msg);
-            auto   rect = wxRect{0, 0, max(st.x, si.x), si.y + 26 + st.y}.CenterIn(wxRect({0, 0}, size));
+            auto   rect = wxRect{0, 0, std::max(st.x, si.x), si.y + 26 + st.y}.CenterIn(wxRect({0, 0}, size));
             dc.DrawBitmap(m_status_icon.bmp(), rect.x + (rect.width - si.x) / 2, rect.y);
             dc.SetTextForeground(wxColor(0x909090));
             dc.DrawText(m_status_msg, rect.x + (rect.width - st.x) / 2, rect.GetBottom() - st.y);
@@ -644,7 +644,7 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
         if (m_file_sys->GetFileType() == PrinterFileSystem::F_MODEL) {
             if (secondAction != _L("Play"))
                 thirdAction = secondAction;
-            secondAction = _L("Print");
+            secondAction = _L_CONTEXT("Print", "Verb");
         }
         // Draw buttons on hovered item
         wxRect rect{pt.x, pt.y + m_content_rect.GetBottom() - m_buttons_background.GetHeight(), m_content_rect.GetWidth(), m_buttons_background.GetHeight()};

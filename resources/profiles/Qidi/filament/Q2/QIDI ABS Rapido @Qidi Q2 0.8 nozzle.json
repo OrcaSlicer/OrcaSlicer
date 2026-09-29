@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido @Qidi Q2 0.8 nozzle",
 	"inherits": "QIDI ABS Rapido@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "XEhyfnES6xFCJtWb",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"

@@ -7,6 +7,7 @@
 #include <exception>
 
 #include "PrintConfig.hpp"
+#include "MultiNozzleUtils.hpp"
 
 namespace Slic3r
 {
@@ -31,6 +32,10 @@ namespace Slic3r
             Color color;
             std::string type;
             bool is_support;
+            // How this filament is used across the model. Orca's shipping grouping
+            // algorithm does not read it yet; defaulted so a default-built FilamentInfo
+            // is deterministic. The nozzle-centric engine consumes it later.
+            FilamentUsageType usage_type = FilamentUsageType::ModelOnly;
         };
 
         struct MachineFilamentInfo: public FilamentInfo {
@@ -80,6 +85,20 @@ namespace Slic3r
         void extract_unprintable_limit_indices(const std::vector<std::set<int>>& unprintable_elems, const std::vector<unsigned int>& used_filaments, std::unordered_map<int, std::vector<int>>& unplaceable_limits);
 
         bool check_printable(const std::vector<std::set<int>>& groups, const std::map<int, int>& unprintable);
+
+        // Nozzle-centric grouping helpers. The estimate helpers read a LayeredNozzleGroupResult's
+        // per-layer extruder/nozzle usage; the two builders support building the grouping context
+        // (extruder->nozzle inventory) and writing back a resolved map onto only the used-filament
+        // slots.
+        int get_estimate_extruder_change_count(const std::vector<std::vector<unsigned int>>& layer_filaments, const MultiNozzleUtils::LayeredNozzleGroupResult& extruder_nozzle_info);
+
+        int get_estimate_nozzle_change_count(const std::vector<std::vector<unsigned int>>& layer_filaments, const MultiNozzleUtils::LayeredNozzleGroupResult& extruder_nozzle_info);
+
+        std::pair<int, int> get_estimate_extruder_filament_change_count(const MultiNozzleUtils::LayeredNozzleGroupResult& extruder_nozzle_info);
+
+        std::map<int, std::vector<int>> build_extruder_nozzle_list(const std::vector<MultiNozzleUtils::NozzleInfo>& nozzle_list);
+
+        std::vector<int> update_used_filament_values(const std::vector<int>& old_values, const std::vector<int>& new_values, const std::vector<unsigned int>& used_filaments);
     }
 
 

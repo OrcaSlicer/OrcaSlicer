@@ -2,6 +2,8 @@
 	"type": "process",
 	"name": "0.30mm Strength @Elegoo CC 0.6 nozzle",
 	"inherits": "0.30mm Standard @Elegoo CC 0.6 nozzle",
+	"from": "system",
+	"setting_id": "b3rbevf3CUh8I05M",
 	"instantiation": "true",
 	"inner_wall_speed": "120",
 	"wall_sequence": "inner-outer-inner wall",

@@ -1,9 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Silk @FF G4",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
+	"setting_id": "8rggqgJ9kg9yLE28",
+	"filament_id": "OFgjgN35",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],

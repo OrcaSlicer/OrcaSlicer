@@ -274,5 +274,70 @@ namespace FilamentGroupUtils
         }
         return true;
     }
+
+    int get_estimate_extruder_change_count(const std::vector<std::vector<unsigned int>> &layer_filaments, const MultiNozzleUtils::LayeredNozzleGroupResult &extruder_nozzle_info)
+    {
+        int ret = 0;
+        for (size_t layer_id = 0; layer_id < layer_filaments.size(); ++layer_id) {
+            int extruder_count = extruder_nozzle_info.get_used_extruders(layer_id).size();
+            ret += (extruder_count - 1);
+        }
+        return ret;
+    }
+
+    int get_estimate_nozzle_change_count(const std::vector<std::vector<unsigned int>> &layer_filaments, const MultiNozzleUtils::LayeredNozzleGroupResult &extruder_nozzle_info)
+    {
+        int ret = 0;
+        for (size_t layer_id = 0; layer_id < layer_filaments.size(); ++layer_id) {
+            auto  extruder_list = extruder_nozzle_info.get_used_extruders(layer_id);
+            for (auto extruder_id : extruder_list) {
+                int nozzle_count = extruder_nozzle_info.get_used_nozzles_in_extruder(extruder_id, layer_id).size();
+                if (nozzle_count > 1) ret += (nozzle_count - 1);
+            }
+        }
+        return ret;
+    }
+
+    std::pair<int, int> get_estimate_extruder_filament_change_count(const MultiNozzleUtils::LayeredNozzleGroupResult &extruder_nozzle_info)
+    {
+        std::pair<int, int> ret{0,0};
+        int                 layer_nums = extruder_nozzle_info.get_layer_filament_sequences().size();
+        for (int layer_id = 0; layer_id < layer_nums; layer_id++) {
+            std::vector<int> extruders = extruder_nozzle_info.get_used_extruders(layer_id);
+            ret.first = extruders.size() - 1;
+
+            for (auto ext_id : extruders) {
+                int nozzles = extruder_nozzle_info.get_used_nozzles_in_extruder(ext_id, layer_id).size();
+                ret.second += nozzles;
+            }
+            ret.second  = std::max(0, ret.second - ret.first);
+        }
+        return ret;
+    }
+
+    std::map<int,std::vector<int>> build_extruder_nozzle_list(const std::vector<MultiNozzleUtils::NozzleInfo>& nozzle_list)
+    {
+        std::map<int, std::vector<int>> ret;
+        for (auto& nozzle : nozzle_list) {
+            ret[nozzle.extruder_id].emplace_back(nozzle.group_id);
+        }
+
+        for (auto& elem : ret)
+            std::sort(elem.second.begin(), elem.second.end());
+        return ret;
+    }
+
+    std::vector<int> update_used_filament_values(const std::vector<int>& old_values, const std::vector<int>& new_values, const std::vector<unsigned int>& used_filaments)
+    {
+        std::vector<int> res = old_values;
+        for (size_t i = 0; i < used_filaments.size(); ++i) {
+            // Orca: guard against filament ids beyond the map sizes (possible with
+            // mis-normalized per-filament arrays from CLI inputs); skip instead of UB.
+            if (used_filaments[i] >= res.size() || used_filaments[i] >= new_values.size())
+                continue;
+            res[used_filaments[i]] = new_values[used_filaments[i]];
+        }
+        return res;
+    }
 }
 }

@@ -3,7 +3,7 @@
 	"name": "Geeetech M1 0.6 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_041",
+	"setting_id": "IBQJHDOZJemko6a0",
 	"instantiation": "true",
 	"printer_model": "Geeetech M1",
 	"default_filament_profile": [

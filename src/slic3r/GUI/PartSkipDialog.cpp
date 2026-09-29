@@ -1,5 +1,6 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
@@ -147,7 +148,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_line->SetBackgroundColour(wxColor(238, 238, 238));
 
     m_list_view = new wxScrolledWindow(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxSize(267, -1), wxHSCROLL | wxVSCROLL);
-    m_list_view->SetScrollRate(5, 5);
+    m_list_view->SetScrollRate(5, FromDIP(30));
     m_list_view->SetMinSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetMaxSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetBackgroundColour(*wxWHITE);
@@ -270,7 +271,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_simplebook->AddPage(m_book_third_panel, _("dialog page"), false);
     m_sizer->Add(m_simplebook, 1, wxEXPAND | wxALL, 5);
 
-    SetSizer(m_sizer);
+    SetSizerAndFit(m_sizer);
     m_zoom_in_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnZoomIn, this);
     m_zoom_out_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnZoomOut, this);
     m_switch_drag_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnSwitchDrag, this);
@@ -281,7 +282,6 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_all_checkbox->Bind(wxEVT_TOGGLEBUTTON, &PartSkipDialog::OnAllCheckbox, this);
 
     Layout();
-    Fit();
     CentreOnParent();
 }
 
@@ -367,7 +367,7 @@ std::string PartSkipDialog::create_tmp_path()
     }
     std::string tmp_path = (parent_path / buf.str()).string();
 
-    if (!std::filesystem::exists(tmp_path + "Metadata/") && !fs::create_directories(tmp_path + "Metadata/")) { wxMessageBox("create file failed."); }
+    if (!std::filesystem::exists(tmp_path + "Metadata/") && !fs::create_directories(tmp_path + "Metadata/")) { wxMessageBox(_L("Failed to create the temporary folder.")); }
     return tmp_path;
 }
 

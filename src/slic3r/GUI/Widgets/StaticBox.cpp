@@ -7,6 +7,7 @@ BEGIN_EVENT_TABLE(StaticBox, wxWindow)
 
 // catch paint events
 //EVT_ERASE_BACKGROUND(StaticBox::eraseEvent)
+EVT_SIZE(StaticBox::sizeEvent)
 EVT_PAINT(StaticBox::paintEvent)
 
 END_EVENT_TABLE()
@@ -49,6 +50,13 @@ bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, cons
 void StaticBox::SetCornerRadius(double radius)
 {
     this->radius = radius;
+    Refresh();
+}
+
+// ORCA use when adding widgets to top to show it like LabeledStaticBox
+void StaticBox::SetTopMargin(int margin)
+{
+    this->top_margin = margin;
     Refresh();
 }
 
@@ -140,6 +148,12 @@ void StaticBox::eraseEvent(wxEraseEvent& evt)
 #endif
 }
 
+void StaticBox::sizeEvent(wxSizeEvent& evt)
+{
+    Refresh();
+    evt.Skip();
+}
+
 void StaticBox::paintEvent(wxPaintEvent& evt)
 {
     // depending on your system you may need to look at double-buffered dcs
@@ -191,22 +205,21 @@ void StaticBox::doRender(wxDC& dc)
     int states = state_handler.states();
     if (background_color2.count() == 0) {
         if ((border_width && border_color.count() > 0) || background_color.count() > 0) {
-            wxRect rc(0, 0, size.x, size.y);
+            int topM = top_margin > 0 ? top_margin : 0;
+            wxRect rc(0, topM, size.x, size.y - topM);
             if (border_width && border_color.count() > 0) {
-                if (dc.GetContentScaleFactor() == 1.0) {
-                    int d  = floor(border_width / 2.0);
-                    int d2 = floor(border_width - 1);
-                    rc.x += d;
-                    rc.width -= d2;
-                    rc.y += d;
-                    rc.height -= d2;
-                } else {
-                    int d  = 1;
-                    rc.x += d;
-                    rc.width -= d;
-                    rc.y += d;
-                    rc.height -= d;
-                }
+                const double scale = dc.GetContentScaleFactor();
+
+                // Snap rect edges to physical pixel boundaries so the 1px pen doesn't straddle a pixel boundary
+                auto snap = [&](int logical) -> int {
+                    return (int)(ceil(logical * scale) / scale);
+                };
+
+                int deflate = snap(border_width / 2.0);  // at 175%: snap(0.5) = snap→1/1.75 ≈ 1
+                rc.x      += deflate;
+                rc.y      += deflate;
+                rc.width  -= deflate * 2;
+                rc.height -= deflate * 2;
                 dc.SetPen(wxPen(border_color.colorForStates(states), border_width, border_style));
             } else {
                 dc.SetPen(wxPen(background_color.colorForStates(states)));
@@ -240,6 +253,6 @@ void StaticBox::doRender(wxDC& dc)
 
     if (badge.bmp().IsOk()) {
         auto s = badge.bmp().GetScaledSize();
-        dc.DrawBitmap(badge.bmp(), size.x - s.x, 0);
+        dc.DrawBitmap(badge.bmp(), size.x - s.x, top_margin > 0 ? top_margin : 0);
     }
 }

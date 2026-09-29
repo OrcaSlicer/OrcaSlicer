@@ -3,7 +3,7 @@
 	"name": "Arena PLA Matte @Arena X1C 0.2 nozzle",
 	"inherits": "Arena PLA Matte @base",
 	"from": "system",
-	"setting_id": "GFSA01_00",
+	"setting_id": "O9zpg6YuyCcpMus8",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

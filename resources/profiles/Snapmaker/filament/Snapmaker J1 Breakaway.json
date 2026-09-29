@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 Breakaway",
 	"inherits": "Snapmaker J1 Breakaway @base",
 	"from": "system",
-	"setting_id": "738160822",
+	"setting_id": "PKDfOM3QE8vuUcuw",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

@@ -4,85 +4,82 @@
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"instantiation": "false",
+	"activate_air_filtration": [
+		"0"
+	],
 	"cool_plate_temp": [
-		"100"
-	],
-	"eng_plate_temp": [
-		"100"
-	],
-	"hot_plate_temp": [
-		"100"
-	],
-	"textured_plate_temp": [
-		"100"
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
-		"100"
+		"0"
+	],
+	"eng_plate_temp": [
+		"90"
 	],
 	"eng_plate_temp_initial_layer": [
-		"100"
-	],
-	"hot_plate_temp_initial_layer": [
-		"100"
-	],
-	"textured_plate_temp_initial_layer": [
-		"100"
-	],
-	"slow_down_for_layer_cooling": [
-		"1"
-	],
-	"close_fan_the_first_x_layers": [
-		"3"
+		"90"
 	],
 	"fan_cooling_layer_time": [
 		"30"
 	],
-	"filament_max_volumetric_speed": [
-		"11"
+	"fan_max_speed": [
+		"80"
 	],
-	"filament_type": [
-		"ABS"
-	],
-	"filament_density": [
-		"1.04"
+	"fan_min_speed": [
+		"10"
 	],
 	"filament_cost": [
 		"20"
 	],
-	"nozzle_temperature_initial_layer": [
-		"180"
+	"filament_density": [
+		"1.04"
 	],
-	"reduce_fan_stop_start_freq": [
-		"1"
+	"filament_max_volumetric_speed": [
+		"16"
 	],
-	"fan_max_speed": [
-		"0"
+	"filament_type": [
+		"ABS"
 	],
-	"fan_min_speed": [
-		"0"
+	"hot_plate_temp": [
+		"90"
 	],
-	"overhang_fan_threshold": [
-		"25%"
-	],
-	"overhang_fan_speed": [
-		"30"
+	"hot_plate_temp_initial_layer": [
+		"90"
 	],
 	"nozzle_temperature": [
-		"245"
+		"270"
 	],
-	"temperature_vitrification": [
-		"110"
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"nozzle_temperature_range_high": [
+		"280"
 	],
 	"nozzle_temperature_range_low": [
 		"240"
 	],
-	"nozzle_temperature_range_high": [
-		"245"
+	"overhang_fan_speed": [
+		"80"
 	],
-	"slow_down_min_speed": [
-		"10"
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
 	],
 	"slow_down_layer_time": [
 		"3"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_vendor": [
+		"Generic"
 	]
 }

@@ -1,6 +1,7 @@
 #include "CalibrationWizard.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "MsgDialog.hpp"
 #include "CalibrationWizardPage.hpp"
 #include "../../libslic3r/calib.hpp"
@@ -80,7 +81,7 @@ CalibrationWizard::CalibrationWizard(wxWindow* parent, CalibMode mode, wxWindowI
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(5, 5);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
 
     wxBoxSizer* padding_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -127,6 +128,15 @@ CalibrationWizard::CalibrationWizard(wxWindow* parent, CalibMode mode, wxWindowI
 CalibrationWizard::~CalibrationWizard()
 {
     ;
+}
+
+void CalibrationWizard::add_page_step(CalibrationWizardPageStep*& step, std::function<CalibrationWizardPage*()> make)
+{
+    add_build_step([this, &step, make = std::move(make)] {
+        step = new CalibrationWizardPageStep(make());
+        m_all_pages_sizer->Add(step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+        step->page->Hide();
+    });
 }
 
 void CalibrationWizard::on_cali_job_finished(wxCommandEvent& event)
@@ -477,7 +487,7 @@ void CalibrationWizard::on_cali_go_home()
         if (go_home_dialog == nullptr)
             go_home_dialog = new SecondaryCheckDialog(this, wxID_ANY, _L("Confirm"));
 
-        go_home_dialog->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this, method](wxCommandEvent &e) {
+        go_home_dialog->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this](wxCommandEvent &e) {
             if (curr_obj) {
                 curr_obj->command_task_abort();
             } else {
@@ -519,33 +529,28 @@ void PressureAdvanceWizard::on_cali_job_finished(wxString evt_data)
 
 void PressureAdvanceWizard::create_pages()
 {
-    start_step  = new CalibrationWizardPageStep(new CalibrationPAStartPage(m_scrolledWindow));
-    preset_step = new CalibrationWizardPageStep(new CalibrationPresetPage(m_scrolledWindow, m_mode, false));
-    cali_step   = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode));
-    save_step   = new CalibrationWizardPageStep(new CalibrationPASavePage(m_scrolledWindow));
+    add_page_step(start_step, [this] { return new CalibrationPAStartPage(m_scrolledWindow); });
+    add_page_step(preset_step, [this] { return new CalibrationPresetPage(m_scrolledWindow, m_mode, false); });
+    add_page_step(cali_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode); });
+    add_page_step(save_step, [this] { return new CalibrationPASavePage(m_scrolledWindow); });
 
-    m_all_pages_sizer->Add(start_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(preset_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(cali_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+    add_build_step([this] {
+        m_page_steps.push_back(start_step);
+        m_page_steps.push_back(preset_step);
+        m_page_steps.push_back(cali_step);
+        m_page_steps.push_back(save_step);
 
+        for (int i = 0; i < m_page_steps.size() -1; i++) {
+            m_page_steps[i]->chain(m_page_steps[i+1]);
+        }
 
-    m_page_steps.push_back(start_step);
-    m_page_steps.push_back(preset_step);
-    m_page_steps.push_back(cali_step);
-    m_page_steps.push_back(save_step);
+        for (int i = 0; i < m_page_steps.size(); i++) {
+            m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &PressureAdvanceWizard::on_cali_action, this);
+        }
 
-    for (int i = 0; i < m_page_steps.size() -1; i++) {
-        m_page_steps[i]->chain(m_page_steps[i+1]);
-    }
-
-    for (int i = 0; i < m_page_steps.size(); i++) {
-        m_page_steps[i]->page->Hide();
-        m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &PressureAdvanceWizard::on_cali_action, this);
-    }
-
-    if (!m_page_steps.empty())
-        show_step(m_page_steps.front());
+        if (!m_page_steps.empty())
+            show_step(m_page_steps.front());
+    });
 }
 
 void PressureAdvanceWizard::on_cali_action(wxCommandEvent& evt)
@@ -761,6 +766,7 @@ void PressureAdvanceWizard::on_cali_start()
             calib_info.extruder_id       = preset_page->get_extruder_id(calib_info.ams_id);
             calib_info.extruder_type     = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
+            calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
             calib_info.select_ams         = std::to_string(selected_tray_id);
             Preset *preset               = selected_filaments.begin()->second;
             Preset * temp_filament_preset = new Preset(preset->type, preset->name + "_temp");
@@ -804,10 +810,7 @@ void PressureAdvanceWizard::on_cali_start()
             curr_obj->manual_pa_cali_method = pa_cali_method;
 
             if (curr_obj->get_printer_series() != PrinterSeries::SERIES_X1 && curr_obj->pa_calib_tab.size() >= MAX_PA_HISTORY_RESULTS_NUMS) {
-                MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold 16 history results per nozzle. "
-                    "You can delete the existing historical results and then start calibration. "
-                    "Or you can continue the calibration, but you cannot create new calibration historical results.\n"
-                    "Do you still want to continue the calibration?"), MAX_PA_HISTORY_RESULTS_NUMS), wxEmptyString, wxICON_WARNING | wxYES | wxCANCEL);
+                MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\nDo you still want to continue the calibration\?"), MAX_PA_HISTORY_RESULTS_NUMS), wxEmptyString, wxICON_WARNING | wxYES | wxCANCEL);
                 if (msg_dlg.ShowModal() != wxID_YES) {
                     return;
                 }
@@ -929,8 +932,7 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
 
     if (!same_pa_names.empty()) {
         same_pa_names.erase(same_pa_names.size() - 2);
-        wxString duplicate_name_info = wxString::Format(_L("There is already a historical calibration result with the same name: %s. Only one of the results with the same name "
-                                                  "is saved. Are you sure you want to override the historical result?"), same_pa_names);
+        wxString duplicate_name_info = wxString::Format(_L("There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result\?"), same_pa_names);
 
         if (curr_obj->is_multi_extruders())
             duplicate_name_info = wxString::Format(_L("Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
@@ -942,7 +944,7 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
     }
 
     if (curr_obj->get_printer_series() != PrinterSeries::SERIES_X1 && curr_obj->pa_calib_tab.size() >= MAX_PA_HISTORY_RESULTS_NUMS) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d history results per nozzle. This result will not be saved."), MAX_PA_HISTORY_RESULTS_NUMS),
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle. This result will not be saved."), MAX_PA_HISTORY_RESULTS_NUMS),
                               wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return false;
@@ -1055,59 +1057,46 @@ FlowRateWizard::FlowRateWizard(wxWindow* parent, wxWindowID id, const wxPoint& p
 
 void FlowRateWizard::create_pages()
 {
-    start_step = new CalibrationWizardPageStep(new CalibrationFlowRateStartPage(m_scrolledWindow));
-    preset_step = new CalibrationWizardPageStep(new CalibrationPresetPage(m_scrolledWindow, m_mode, false));
+    add_page_step(start_step, [this] { return new CalibrationFlowRateStartPage(m_scrolledWindow); });
+    add_page_step(preset_step, [this] { return new CalibrationPresetPage(m_scrolledWindow, m_mode, false); });
 
     // manual
-    cali_coarse_step = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_CALI));
-    coarse_save_step = new CalibrationWizardPageStep(new CalibrationFlowCoarseSavePage(m_scrolledWindow));
-    cali_fine_step = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_FINE_CALI));
-    fine_save_step = new CalibrationWizardPageStep(new CalibrationFlowFineSavePage(m_scrolledWindow));
+    add_page_step(cali_coarse_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_CALI); });
+    add_page_step(coarse_save_step, [this] { return new CalibrationFlowCoarseSavePage(m_scrolledWindow); });
+    add_page_step(cali_fine_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_FINE_CALI); });
+    add_page_step(fine_save_step, [this] { return new CalibrationFlowFineSavePage(m_scrolledWindow); });
 
     // auto
-    cali_step = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode));
-    save_step = new CalibrationWizardPageStep(new CalibrationFlowX1SavePage(m_scrolledWindow));
+    add_page_step(cali_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode); });
+    add_page_step(save_step, [this] { return new CalibrationFlowX1SavePage(m_scrolledWindow); });
 
-    m_all_pages_sizer->Add(start_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(preset_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(cali_coarse_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(coarse_save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(cali_fine_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(fine_save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+    add_build_step([this] {
+        m_page_steps.push_back(start_step);
+        m_page_steps.push_back(preset_step);
+        m_page_steps.push_back(cali_coarse_step);
+        m_page_steps.push_back(coarse_save_step);
+        m_page_steps.push_back(cali_fine_step);
+        m_page_steps.push_back(fine_save_step);
 
-    m_all_pages_sizer->Add(cali_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+        //m_page_steps.push_back(cali_step);
+        //m_page_steps.push_back(save_step);
 
-    m_page_steps.push_back(start_step);
-    m_page_steps.push_back(preset_step);
-    m_page_steps.push_back(cali_coarse_step);
-    m_page_steps.push_back(coarse_save_step);
-    m_page_steps.push_back(cali_fine_step);
-    m_page_steps.push_back(fine_save_step);
+        for (int i = 0; i < m_page_steps.size() - 1; i++) {
+            m_page_steps[i]->chain(m_page_steps[i + 1]);
+        }
 
-    //m_page_steps.push_back(cali_step);
-    //m_page_steps.push_back(save_step);
+        for (int i = 0; i < m_page_steps.size(); i++) {
+            m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
+        }
 
-    for (int i = 0; i < m_page_steps.size() - 1; i++) {
-        m_page_steps[i]->chain(m_page_steps[i + 1]);
-    }
+        cali_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
+        save_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
 
-    // hide all pages
-    cali_step->page->Hide();
-    save_step->page->Hide();
-    for (int i = 0; i < m_page_steps.size(); i++) {
-        m_page_steps[i]->page->Hide();
-        m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
-    }
+        if (!m_page_steps.empty())
+            show_step(m_page_steps.front());
 
-
-    cali_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
-    save_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
-
-    if (!m_page_steps.empty())
-        show_step(m_page_steps.front());
-
-    set_cali_method(CalibrationMethod::CALI_METHOD_MANUAL);
+        set_cali_method(CalibrationMethod::CALI_METHOD_MANUAL);
+    });
 }
 
 void FlowRateWizard::on_cali_action(wxCommandEvent& evt)
@@ -1293,6 +1282,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             calib_info.extruder_id = preset_page->get_extruder_id(calib_info.ams_id);
             calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
+            calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
             Preset* preset = selected_filaments.begin()->second;
             temp_filament_preset = new Preset(preset->type, preset->name + "_temp");
             temp_filament_preset->config = preset->config;
@@ -1708,6 +1698,7 @@ void MaxVolumetricSpeedWizard::on_cali_start()
         calib_info.extruder_id        = preset_page->get_extruder_id(calib_info.ams_id);
         calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
         calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
+        calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
         calib_info.filament_prest = selected_filaments.begin()->second;
         std::map<int, DynamicPrintConfig> filament_list = preset_page->get_filament_ams_list();
         calib_info.filament_color = filament_list[selected_filaments.begin()->first].opt_string("filament_colour", 0u);

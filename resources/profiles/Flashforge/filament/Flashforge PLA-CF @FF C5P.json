@@ -1,4 +1,17 @@
 {
+	"type": "filament",
+	"name": "Flashforge PLA-CF @FF C5P",
+	"inherits": "Generic PLA-CF @System",
+	"from": "system",
+	"setting_id": "xReo12oteZ4ECNJN",
+	"filament_id": "OF9cAwMK",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],
@@ -46,11 +59,6 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
-	"inherits": "Generic PLA-CF @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PLA-CF @FF C5P",
 	"pressure_advance": [
 		"0.0225"
 	],
@@ -65,6 +73,5 @@
 	],
 	"supertack_plate_temp_initial_layer": [
 		"40"
-	],
-	"version": "2.3.0.3"
+	]
 }

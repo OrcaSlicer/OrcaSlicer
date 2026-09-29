@@ -331,7 +331,9 @@ void Serial::set_baud_rate(unsigned baud_rate)
 			speed_t c_ispeed;
 			speed_t c_ospeed;
 		};
+#ifndef BOTHER
 #define BOTHER CBAUDEX
+#endif
 
 		termios2 ios;
 		handle_errno(::ioctl(handle, TCGETS2, &ios));

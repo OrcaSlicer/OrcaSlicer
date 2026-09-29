@@ -78,7 +78,7 @@ void AnimaIcon::Stop()
     m_timer->Stop();
 }
 
-void AnimaIcon::Enable()
+void AnimaIcon::ShowEnabledIcon()
 {
     if (m_bitmap) { m_bitmap->SetBitmap(m_image_enable); }
 }

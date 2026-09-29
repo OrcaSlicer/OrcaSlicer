@@ -5,7 +5,7 @@
 #include <libslic3r/MeshBoolean.hpp>
 #include <libslic3r/TriangleMeshSlicer.hpp>
 
-// Need the cylinder method for the the drainholes in hollowing step
+// Need the cylinder method for the drainholes in hollowing step
 #include <libslic3r/SLA/SupportTreeBuilder.hpp>
 
 #include <libslic3r/SLA/Concurrency.hpp>

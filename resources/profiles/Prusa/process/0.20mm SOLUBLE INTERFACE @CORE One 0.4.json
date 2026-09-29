@@ -3,6 +3,7 @@
 	"name": "0.20mm SOLUBLE INTERFACE @CORE One 0.4",
 	"inherits": "0.20mm SOLUBLE INTERFACE @MK4S 0.4",
 	"from": "system",
+	"setting_id": "hC9F5dv2WJ4pJMJx",
 	"instantiation": "true",
 	"overhang_3_4_speed": "50",
 	"compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",

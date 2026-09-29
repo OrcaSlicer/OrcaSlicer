@@ -343,12 +343,12 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(10,20));
     if (is_worker_running) { // apply or preview
         // draw progress bar
-        std::string progress_text = GUI::format("%1%", std::to_string(progress)) + "%%";
+        std::string progress_text = GUI::format("%1%", std::to_string(progress)) + "%";
         ImVec2 progress_size(bottom_left_width - space_size, 0.0f);
         ImGui::BBLProgressBar2(progress / 100., progress_size);
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
-        ImGui::TextColored(ImVec4(0.42f, 0.42f, 0.42f, 1.00f), progress_text.c_str());
+        ImGui::TextColored(ImVec4(0.42f, 0.42f, 0.42f, 1.00f), "%s", progress_text.c_str());
         ImGui::SameLine(bottom_left_width + slider_width +  m_imgui->scaled(1.0f));
     } else {
         ImGui::Dummy(ImVec2(bottom_left_width - space_size, -1));
@@ -367,7 +367,7 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
         apply_simplify();
     }
     else if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && is_worker_running) {
-        ImGui::SetTooltip("%s", _u8L("Can't apply when processing preview.").c_str());
+        ImGui::SetTooltip("%s", _u8L("Unable to apply when processing preview").c_str());
     }
     m_imgui->pop_confirm_button_style();
     m_imgui->disabled_end(); // state !settings

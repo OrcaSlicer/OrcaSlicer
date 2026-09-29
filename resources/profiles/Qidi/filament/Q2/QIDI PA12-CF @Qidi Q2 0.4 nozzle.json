@@ -3,7 +3,7 @@
 	"name": "QIDI PA12-CF @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI PA12-CF@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "v7C27U7IGURoq7xV",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.4 nozzle"

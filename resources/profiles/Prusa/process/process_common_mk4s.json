@@ -50,9 +50,11 @@
 	"resolution": "0",
 	"slice_closing_radius": "0.049",
 	"small_perimeter_speed": "170",
-	"solid_infill_filament": "1",
+	"internal_solid_filament_id": "0",
+	"top_surface_filament_id": "0",
+	"bottom_surface_filament_id": "0",
 	"sparse_infill_acceleration": "4000",
-	"sparse_infill_filament": "1",
+	"sparse_infill_filament_id": "0",
 	"sparse_infill_line_width": "0.45",
 	"sparse_infill_pattern": "crosshatch",
 	"sparse_infill_speed": "200",
@@ -85,7 +87,8 @@
 	"tree_support_branch_diameter_double_wall": "3",
 	"tree_support_tip_diameter": "0.8",
 	"tree_support_top_rate": "30%",
-	"wall_filament": "1",
+	"outer_wall_filament_id": "0",
+	"inner_wall_filament_id": "0",
 	"wall_generator": "arachne",
 	"wall_loops": "2"
 }

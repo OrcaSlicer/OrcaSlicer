@@ -42,6 +42,9 @@ namespace Slic3r {
 
 static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
 static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
+
+constexpr const char* CONFIG_ORCA_UPDATER_URL = "orca_updater_url";
+
 static const std::string MODELS_STR = "models";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
@@ -91,6 +94,11 @@ bool AppConfig::get_stealth_mode()
         return true;
     }
     return get_bool("stealth_mode");
+}
+
+bool AppConfig::get_hide_login_side_panel()
+{
+    return get_bool("hide_login_side_panel");
 }
 
 void AppConfig::reset()
@@ -197,6 +205,31 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
+    if (get("preview_dim_previous_layers").empty())
+        set_bool("preview_dim_previous_layers", false);
+
+    // ORCA: brightness of those dimmed layers, in percent. 0 = black, capped at 99 because
+    // 100 would render them unchanged, which is what disabling the option already does
+    if (get("preview_dim_previous_layers_brightness").empty())
+        set("preview_dim_previous_layers_brightness", "40");
+    else {
+        int brightness = 40;
+        try {
+            brightness = std::stoi(get("preview_dim_previous_layers_brightness"));
+        }
+        catch (...) {
+            brightness = 40;
+        }
+        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
+    }
+
+    // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
+    // multi material prints, Line Type for single material ones), "last" restores the view type the user
+    // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
+    if (get("preview_default_view_type").empty())
+        set("preview_default_view_type", "auto");
+
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
 
@@ -256,14 +289,66 @@ void AppConfig::set_defaults()
         set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
     }
 
+    if (get(SETTING_OPENGL_SCENE_CACHE).empty())
+        set_bool(SETTING_OPENGL_SCENE_CACHE, true);
+
+    if (get(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES).empty())
+        set_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, true);
+
+    // The getter already defaults, parses and clamps; write back what it resolves to.
+    set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
+
+    set(SETTING_SPEED_DIAL_RECENT_COUNT, std::to_string(get_speed_dial_recent_count()));
+
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
+
+    if (get(SETTING_OPENGL_REALISTIC_PREVIEW).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PREVIEW, false);
+
+    if (get(SETTING_OPENGL_SHADING_MODEL).empty())
+        set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
+
+    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
+        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+
+    if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
+        set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
+
+    if (get(SETTING_OPENGL_PHONG_SSAO).empty())
+        set_bool(SETTING_OPENGL_PHONG_SSAO, false);
 
     if (get("export_sources_full_pathnames").empty())
         set_bool("export_sources_full_pathnames", false);
 
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
+
+#ifdef SLIC3R_CAD
+    // Experimental parametric Design tab. Off by default: the tab is not created at all
+    // until this is turned on, so nothing it builds reaches an unsuspecting user.
+    if (get("enable_cad_feature").empty())
+        set_bool("enable_cad_feature", false);
+
+    // Auto-weld sketch endpoints within kSketchJoinTol when building closed loops.
+    // Default ON: it is what the ~90% case wants; OFF makes the kernel demand an exact
+    // joint. The GUI pushes it into SketchEngine via set_sketch_auto_close().
+    if (get("auto_close_sketch_loops").empty())
+        set_bool("auto_close_sketch_loops", true);
+
+    // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
+    // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
+    // verse read without being learned, which no abstract glyph achieves. Turning it off
+    // restores the conventional CAD representation for users who expect it (x0kd).
+    if (get("design_connector_face_glyph").empty())
+        set_bool("design_connector_face_glyph", true);
+#endif
 
 //#ifdef SUPPORT_SHOW_HINTS
     if (get("show_hints").empty())
@@ -283,6 +368,10 @@ void AppConfig::set_defaults()
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
+
+    // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
+    if (get("show_fila_switch_tips").empty())
+        set_bool("show_fila_switch_tips", true);
 
     if (get("show_plate_gridlines").empty())
         set_bool("show_plate_gridlines", true);
@@ -324,6 +413,9 @@ void AppConfig::set_defaults()
     if (get("developer_mode").empty())
         set_bool("developer_mode", false);
 
+    if (get("show_unsupported_presets").empty())
+        set_bool("show_unsupported_presets", false);
+
     if (get("enable_ssl_for_mqtt").empty())
         set_bool("enable_ssl_for_mqtt", true);
 
@@ -349,6 +441,9 @@ void AppConfig::set_defaults()
     // Orca
     if (get("stealth_mode").empty()) {
         set_bool("stealth_mode", false);
+    }
+    if (get("hide_login_side_panel").empty()) {
+        set_bool("hide_login_side_panel", false);
     }
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
@@ -553,9 +648,16 @@ void AppConfig::set_defaults()
     if (get("enable_step_mesh_setting").empty()) {
         set_bool("enable_step_mesh_setting", true);
     }
-    if (get("linear_defletion", "angle_defletion").empty()) {
-        set("linear_defletion", "0.003");
-        set("angle_defletion", "0.5");
+    // Migrate legacy misspelled keys (linear_defletion/angle_defletion) to the corrected spelling.
+    if (get("linear_deflection").empty() && !get("linear_defletion").empty())
+        set("linear_deflection", get("linear_defletion"));
+    if (get("angle_deflection").empty() && !get("angle_defletion").empty())
+        set("angle_deflection", get("angle_defletion"));
+    if (get("linear_deflection").empty()) {
+        set("linear_deflection", "0.003");
+    }
+    if (get("angle_deflection").empty()) {
+        set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
@@ -569,6 +671,17 @@ void AppConfig::set_defaults()
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
 #endif
+
+    if (get("use_printer_agents").empty())
+    {
+        // false = legacy behavior using print hosts
+        set_bool("use_printer_agents", false);
+    }
+
+    if (get("enable_ota").empty())
+    {
+        set_bool("enable_ota", false);
+    }
 
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
@@ -767,6 +880,10 @@ std::string AppConfig::load()
                                 preset_info.nozzle_volume_type  = NozzleVolumeType(cali_it.value()["nozzle_volume_type"].get<int>());
                             if (cali_it.value().contains("bed_type"))
                                 preset_info.bed_type = BedType(cali_it.value()["bed_type"].get<int>());
+                            if (cali_it.value().contains("nozzle_pos_id"))
+                                preset_info.nozzle_pos_id = cali_it.value()["nozzle_pos_id"].get<int>();
+                            if (cali_it.value().contains("nozzle_sn"))
+                                preset_info.nozzle_sn = cali_it.value()["nozzle_sn"].get<std::string>();
                             cali_info.selected_presets.push_back(preset_info);
                         }
                     }
@@ -787,6 +904,10 @@ std::string AppConfig::load()
                         local_machine.dev_ip = p["dev_ip"].get<std::string>();
                     if (p.contains("printer_type"))
                         local_machine.printer_type = p["printer_type"].get<std::string>();
+                    if (p.contains("printer_agent_id"))
+                        local_machine.printer_agent_id = p["printer_agent_id"].get<std::string>();
+                    if (p.contains("access_code"))
+                        local_machine.access_code = p["access_code"].get<std::string>();
                     m_local_machines[local_machine.dev_id] = local_machine;
                 }
             } else {
@@ -817,7 +938,7 @@ std::string AppConfig::load()
                 }
             }
         }
-    } catch(std::exception err) {
+    } catch(const std::exception &err) {
         BOOST_LOG_TRIVIAL(info) << format("parse app config \"%1%\", error: %2%", AppConfig::loading_path(), err.what());
 
         return err.what();
@@ -924,6 +1045,8 @@ void AppConfig::save()
             preset_json["extruder_id"]      = filament_preset.extruder_id;
             preset_json["nozzle_volume_type"]  = int(filament_preset.nozzle_volume_type);
             preset_json["bed_type"] = int(filament_preset.bed_type);
+            preset_json["nozzle_pos_id"]    = filament_preset.nozzle_pos_id;
+            preset_json["nozzle_sn"]        = filament_preset.nozzle_sn;
             preset_json["nozzle_diameter"]  = filament_preset.nozzle_diameter;
             preset_json["filament_id"]      = filament_preset.filament_id;
             preset_json["setting_id"]       = filament_preset.setting_id;
@@ -997,6 +1120,8 @@ void AppConfig::save()
         m_json["dev_name"]         = local_machine.second.dev_name;
         m_json["dev_ip"]           = local_machine.second.dev_ip;
         m_json["printer_type"]     = local_machine.second.printer_type;
+        m_json["printer_agent_id"] = local_machine.second.printer_agent_id;
+        m_json["access_code"]      = local_machine.second.access_code;
 
         j["local_machines"][local_machine.first] = m_json;
     }
@@ -1363,6 +1488,7 @@ void AppConfig::set_mouse_device(const std::string& name, double translation_spe
     it->second["invert_yaw"] = invert_yaw ? "1" : "0";
     it->second["invert_pitch"] = invert_pitch ? "1" : "0";
     it->second["invert_roll"] = invert_roll ? "1" : "0";
+    m_dirty = true;
 }
 
 std::vector<std::string> AppConfig::get_mouse_device_names() const
@@ -1562,6 +1688,38 @@ void AppConfig::set_network_plugin_version(const std::string& version)
     set(SETTING_NETWORK_PLUGIN_VERSION, version);
 }
 
+int AppConfig::get_plugin_pages_visible_count() const
+{
+    std::string value = get(SETTING_PLUGIN_PAGES_VISIBLE_COUNT);
+    if (value.empty())
+        return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+
+    int visible_count = PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+    try {
+        visible_count = std::stoi(value);
+    }
+    catch (...) {
+        return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+    }
+    return std::clamp(visible_count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
+}
+
+int AppConfig::get_speed_dial_recent_count() const
+{
+    std::string value = get(SETTING_SPEED_DIAL_RECENT_COUNT);
+    if (value.empty())
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+
+    int recent_count = SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    try {
+        recent_count = std::stoi(value);
+    }
+    catch (...) {
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    }
+    return std::clamp(recent_count, SPEED_DIAL_RECENT_COUNT_MIN, SPEED_DIAL_RECENT_COUNT_MAX);
+}
+
 std::vector<std::string> AppConfig::get_skipped_network_versions() const
 {
     std::vector<std::string> result;
@@ -1721,12 +1879,20 @@ std::string AppConfig::version_check_url() const
 
 std::string AppConfig::profile_update_url() const
 {
-    return PROFILE_UPDATE_URL;
+    std::string orca_updater_url = get(CONFIG_ORCA_UPDATER_URL);
+    if (orca_updater_url.empty())
+        return PROFILE_UPDATE_URL;
+    return orca_updater_url;
 }
 
 bool AppConfig::exists()
 {
     return boost::filesystem::exists(config_path());
+}
+
+std::string AppConfig::load_if_exists()
+{
+    return boost::filesystem::exists(loading_path()) ? load() : std::string();
 }
 
 }; // namespace Slic3r

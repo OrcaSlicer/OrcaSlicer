@@ -92,6 +92,7 @@ inline bool operator==(const ObjSmoothingGroup &v1, const ObjSmoothingGroup &v2)
 }
 #define OBJ_VERTEX_COLOR_ALPHA 6
 #define OBJ_VERTEX_LENGTH   7  // x, y, z, color_x,color_y,color_z,color_w
+#define OBJ_TEXCOORD_LENGTH 2  // u, v
 #define ONE_FACE_SIZE 4//ONE_FACE format: f 8/4/6 7/3/6 6/2/6 -1/-1/-1
 struct ObjData {
 	// Version of the data structure for load / store in the private binary format.
@@ -100,7 +101,7 @@ struct ObjData {
 	// x, y, z, color_x,color_y,color_z,color_w
 	std::vector<float>				coordinates;
     bool                            has_vertex_color{false};
-	// u, v, w
+	// u, v
 	std::vector<float>				textureCoordinates;
 	// x, y, z
 	std::vector<float>				normals;
@@ -122,6 +123,9 @@ struct MtlData
     // Version of the data structure for load / store in the private binary format.
     int version;
     std::unordered_map<std::string, std::shared_ptr<ObjNewMtl>> new_mtl_unmap;
+    // Material names in declaration order. new_mtl_unmap is unordered, but OBJ material
+    // indices are positional, so texture import needs the original order.
+    std::vector<std::string>                                    mtl_orders;
 };
 extern bool objparse(const char *path, ObjData &data);
 extern bool mtlparse(const char *path, MtlData &data);

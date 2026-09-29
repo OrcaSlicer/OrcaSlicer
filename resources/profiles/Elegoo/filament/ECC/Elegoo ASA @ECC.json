@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA @ECC",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "EASAECC",
+	"setting_id": "77YB8eSdq9C9iBp5",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"
@@ -15,6 +15,7 @@
 		"270"
 	],
 	"compatible_printers": [
+		"Elegoo Centauri Carbon 0.2 nozzle",
 		"Elegoo Centauri Carbon 0.4 nozzle",
 		"Elegoo Centauri Carbon 0.6 nozzle",
 		"Elegoo Centauri Carbon 0.8 nozzle"

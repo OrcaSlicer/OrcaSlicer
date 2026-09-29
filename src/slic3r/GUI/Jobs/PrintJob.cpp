@@ -1,4 +1,5 @@
 #include "PrintJob.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/MTUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -18,21 +19,21 @@
 namespace Slic3r {
 namespace GUI {
 
-static auto check_gcode_failed_str      = _u8L("Abnormal print file data. Please slice again.");
+static auto check_gcode_failed_str      = _u8L("Abnormal print file data: please slice again.");
 static auto     printjob_cancel_str         = _u8L("Task canceled.");
 static auto     timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
 static auto     failed_in_cloud_service_str = _u8L("Cloud service connection failed. Please try again.");
-static auto     file_is_not_exists_str      = _u8L("Print file not found. Please slice again.");
+static auto     file_is_not_exists_str      = _u8L("Print file not found; please slice again.");
 static auto file_over_size_str = _u8L("The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again.");
 static auto print_canceled_str    = _u8L("Task canceled.");
 static auto send_print_failed_str = _u8L("Failed to send the print job. Please try again.");
 static auto upload_ftp_failed_str = _u8L("Failed to upload file to ftp. Please try again.");
 
-static auto     desc_network_error          = _u8L("Check the current status of the bambu server by clicking on the link above.");
+static auto     desc_network_error          = _u8L("Check the current status of the Bambu Lab server by clicking on the link above.");
 static auto     desc_file_too_large         = _u8L("The size of the print file is too large. Please adjust the file size and try again.");
-static auto     desc_fail_not_exist         = _u8L("Print file not found, please slice it again and send it for printing.");
+static auto     desc_fail_not_exist         = _u8L("Print file not found; please slice it again and send it for printing.");
 
-static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file to FTP. Please check the network status and try again.");
+static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file via FTP. Please check the network status and try again.");
 
 static auto sending_over_lan_str        = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str      = _u8L("Sending print job through cloud service");
@@ -135,7 +136,6 @@ void PrintJob::process(Ctl &ctl)
 {
     /* display info */
     std::string msg;
-    wxString error_str;
     int curr_percent = 10;
     NetworkAgent* m_agent = wxGetApp().getAgent();
     AppConfig* config = wxGetApp().app_config;
@@ -152,6 +152,18 @@ void PrintJob::process(Ctl &ctl)
 
     int result = -1;
     std::string http_body;
+
+    const auto mark_lifecycle_started = [this]() {
+        if (m_lifecycle_started)
+            return;
+
+        LifecycleEventContext start_ctx;
+        start_ctx.name = m_project_name;
+        start_ctx.device_id = m_dev_id;
+        start_ctx.source = "print_job";
+        fire_lifecycle_event(LifecycleEvent::PrintJobStarted, start_ctx);
+        m_lifecycle_started = true;
+    };
 
     int total_plate_num = plate_data.plate_count;
     if (!plate_data.is_valid) {
@@ -174,7 +186,7 @@ void PrintJob::process(Ctl &ctl)
         }
     }
 
-    m_project_name = truncate_string(m_project_name, 100);
+    const std::string transport_project_name = truncate_string(m_project_name, 100);
     int curr_plate_idx = 0;
 
     if (m_print_type == "from_normal") {
@@ -262,6 +274,7 @@ void PrintJob::process(Ctl &ctl)
     params.task_vibration_cali  = this->task_vibration_cali;
     params.task_layer_inspect   = this->task_layer_inspect;
     params.task_record_timelapse= this->task_record_timelapse;
+    params.task_timelapse_use_internal = this->task_timelapse_use_internal;
     params.nozzle_mapping       = this->task_nozzle_mapping;
     params.ams_mapping          = this->task_ams_mapping;
     params.ams_mapping2         = this->task_ams_mapping2;
@@ -274,6 +287,7 @@ void PrintJob::process(Ctl &ctl)
     params.auto_bed_leveling    = this->auto_bed_leveling;
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
+    params.extruder_cali_manual_mode = this->extruder_cali_manual_mode;
     params.task_ext_change_assist = this->task_ext_change_assist;
     // Allow disabling the eMMC print path via AppConfig. Plugin 02.03.00.62's
     // eMMC tunnel code hangs indefinitely at the upload phase with some
@@ -371,11 +385,11 @@ void PrintJob::process(Ctl &ctl)
         }
     }
 
-    if (params.preset_name.empty() && m_print_type == "from_normal") { params.preset_name = wxString::Format("%s_plate_%d", m_project_name, curr_plate_idx).ToStdString(); }
-    if (params.project_name.empty()) {params.project_name = m_project_name;}
+    if (params.preset_name.empty() && m_print_type == "from_normal") { params.preset_name = wxString::Format("%s_plate_%d", transport_project_name, curr_plate_idx).ToStdString(); }
+    if (params.project_name.empty()) {params.project_name = transport_project_name;}
 
     if (m_is_calibration_task) {
-        params.project_name = m_project_name;
+        params.project_name = transport_project_name;
         params.origin_model_id = "";
     }
 
@@ -400,9 +414,7 @@ void PrintJob::process(Ctl &ctl)
         &is_try_lan_mode,
         &is_try_lan_mode_failed,
         &msg,
-        &error_str,
         &curr_percent,
-        &error_text,
         StagePercentPoint
     ](int stage, int code, std::string info) {
 
@@ -489,7 +501,7 @@ void PrintJob::process(Ctl &ctl)
     DeviceManager* dev = wxGetApp().getDeviceManager();
     MachineObject* obj = dev->get_selected_machine();
 
-    auto wait_fn = [this, curr_percent, &obj](int state, std::string job_info) {
+    auto wait_fn = [&ctl, &obj](int state, std::string job_info) {
             BOOST_LOG_TRIVIAL(info) << "print_job: get_job_info = " << job_info;
 
             if (!obj->is_support_wait_sending_finish) {
@@ -521,6 +533,11 @@ void PrintJob::process(Ctl &ctl)
                         BOOST_LOG_TRIVIAL(info) << "print_job: printer has enter printing status, s = " << obj->print_status;
                         return true;
                     }
+                    // Break the wait-for-print-start loop on user cancel.
+                    if (ctl.was_canceled()) {
+                        BOOST_LOG_TRIVIAL(info) << "print_job: user cancel the job " << obj->job_id_;
+                        return true;
+                    }
                     time_out++;
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(1000));
                 }
@@ -539,6 +556,7 @@ void PrintJob::process(Ctl &ctl)
     if (m_print_type == "from_sdcard_view") {
         BOOST_LOG_TRIVIAL(info) << "print_job: try to send with cloud, model is sdcard view";
         ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+        mark_lifecycle_started();
         result = m_agent->start_sdcard_print(params, update_fn, cancel_fn);
     } else if (params.connection_type != "lan") {
         if (params.dev_ip.empty())
@@ -562,6 +580,7 @@ void PrintJob::process(Ctl &ctl)
                 BOOST_LOG_TRIVIAL(info) << "print_job: use ftp send print only";
                 ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
                 is_try_lan_mode = true;
+                mark_lifecycle_started();
                 result = m_agent->start_local_print_with_record(params, update_fn, cancel_fn, wait_fn);
                 if (result < 0) {
                     error_text = wxString::Format(_L("Access code:%s IP address:%s"), params.password, params.dev_ip);
@@ -578,6 +597,7 @@ void PrintJob::process(Ctl &ctl)
                 // try to send local with record
                 BOOST_LOG_TRIVIAL(info) << "print_job: try to start local print with record";
                 ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+                mark_lifecycle_started();
                 result = m_agent->start_local_print_with_record(params, update_fn, cancel_fn, wait_fn);
                 if (result == 0) {
                     params.comments = "";
@@ -593,18 +613,21 @@ void PrintJob::process(Ctl &ctl)
                     // try to send with cloud
                     BOOST_LOG_TRIVIAL(warning) << "print_job: try to send with cloud";
                     ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+                    // Started was already emitted before the local attempt.
                     result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
                 }
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "print_job: send with cloud";
                 ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+                mark_lifecycle_started();
                 result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
             }
         }
     } else {
         if (this->could_emmc_print) {
             ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+            mark_lifecycle_started();
             result = m_agent->start_local_print(params, update_fn, cancel_fn);
         } else {
             switch(this->sdcard_state) {
@@ -615,6 +638,7 @@ void PrintJob::process(Ctl &ctl)
                     if(this->has_sdcard) {
                         // means the storage is abnormal but can be used option is enabled
                         ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                        mark_lifecycle_started();
                         result = m_agent->start_local_print(params, update_fn, cancel_fn);
                         break;
                     }
@@ -625,6 +649,7 @@ void PrintJob::process(Ctl &ctl)
                     return;
                 case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
                     ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+                    mark_lifecycle_started();
                     result = m_agent->start_local_print(params, update_fn, cancel_fn);
                     break;
                 default:
@@ -637,7 +662,11 @@ void PrintJob::process(Ctl &ctl)
     if (result < 0) {
         curr_percent = -1;
 
-        if (result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {
+        // The printer is still fetching its encryption flag (a transient state), so ask the
+        // user to retry rather than showing a generic error.
+        if (result == BAMBU_NETOWRK_ERR_PRINT_SP_ENC_FLAG_NOT_READY) {
+            msg_text = _u8L("Retrieving printer information, please try again later.");
+        } else if (result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {
             msg_text = file_is_not_exists_str;
         } else if (result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE || result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE) {
             msg_text = file_over_size_str;
@@ -678,6 +707,7 @@ void PrintJob::process(Ctl &ctl)
         }
         wxQueueEvent(m_plater, evt);
         m_job_finished = true;
+        m_lifecycle_success = true;
     }
 }
 
@@ -688,6 +718,19 @@ void PrintJob::finalize(bool canceled, std::exception_ptr &eptr) {
         eptr = nullptr;
     } catch (...) {
         eptr = std::current_exception();
+    }
+
+    if (m_lifecycle_started && !m_lifecycle_finished) {
+        LifecycleEventContext finish_ctx;
+        finish_ctx.name = m_project_name;
+        finish_ctx.device_id = m_dev_id;
+        finish_ctx.source = "print_job";
+        finish_ctx.code = canceled ? LifecycleEvtCode::Warn :
+            (eptr || !m_lifecycle_success ? LifecycleEvtCode::Error : LifecycleEvtCode::Ok);
+        finish_ctx.msg = canceled ? "cancelled" : (eptr ? "exception" :
+            (m_lifecycle_success ? "" : "failed"));
+        fire_lifecycle_event(LifecycleEvent::PrintJobFinished, finish_ctx);
+        m_lifecycle_finished = true;
     }
 
     if (canceled || eptr)

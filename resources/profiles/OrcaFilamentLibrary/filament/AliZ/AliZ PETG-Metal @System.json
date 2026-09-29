@@ -3,7 +3,7 @@
 	"name": "AliZ PETG-Metal @System",
 	"inherits": "AliZ PETG-Metal @base",
 	"from": "system",
-	"setting_id": "AliZGFSG50",
+	"setting_id": "IGZMIStlTq0zC1uf",
 	"instantiation": "true",
 	"compatible_printers": []
 }

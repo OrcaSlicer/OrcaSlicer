@@ -289,7 +289,7 @@ public:
 
     bool requires_uniform_scale() const;
 
-    // Returns the the object id if the selection is from a single object, otherwise is -1
+    // Returns the object id if the selection is from a single object, otherwise is -1
     int get_object_idx() const;
     // Returns the instance id if the selection is from a single object and from a single instance, otherwise is -1
     int get_instance_idx() const;

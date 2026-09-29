@@ -3,7 +3,7 @@
 	"name": "Arena ABS @Arena X1C 0.2 nozzle",
 	"inherits": "Arena ABS @base",
 	"from": "system",
-	"setting_id": "GFSB00_00",
+	"setting_id": "kFPuOcy1vVSJ2mta",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

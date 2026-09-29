@@ -351,19 +351,23 @@ void Node::convertToPolylines(Polylines &output, const coord_t line_overlap) con
 {
     Polylines result;
     result.emplace_back();
-    convertToPolylines(0, result);
+    // Orca: the layers are filled in parallel, so they would consume a shared generator in a
+    // different order every run, and a model would not slice the same way twice. Each tree seeds
+    // its own from where it is rooted; one constant seed would start them all on the same pick.
+    std::mt19937_64 rng { uint64_t(PointHash{}(m_p)) };
+    convertToPolylines(0, result, rng);
     removeJunctionOverlap(result, line_overlap);
     append(output, std::move(result));
 }
 
-void Node::convertToPolylines(size_t long_line_idx, Polylines &output) const
+void Node::convertToPolylines(size_t long_line_idx, Polylines &output, std::mt19937_64 &rng) const
 {
     if (m_children.empty()) {
         output[long_line_idx].points.push_back(m_p);
         return;
     }
-    size_t first_child_idx = rand() % m_children.size();
-    m_children[first_child_idx]->convertToPolylines(long_line_idx, output);
+    const size_t first_child_idx = rng() % m_children.size();
+    m_children[first_child_idx]->convertToPolylines(long_line_idx, output, rng);
     output[long_line_idx].points.push_back(m_p);
 
     for (size_t idx_offset = 1; idx_offset < m_children.size(); idx_offset++) {
@@ -371,7 +375,7 @@ void Node::convertToPolylines(size_t long_line_idx, Polylines &output) const
         const Node& child = *m_children[child_idx];
         output.emplace_back();
         size_t child_line_idx = output.size() - 1;
-        child.convertToPolylines(child_line_idx, output);
+        child.convertToPolylines(child_line_idx, output, rng);
         output[child_line_idx].points.emplace_back(m_p);
     }
 }

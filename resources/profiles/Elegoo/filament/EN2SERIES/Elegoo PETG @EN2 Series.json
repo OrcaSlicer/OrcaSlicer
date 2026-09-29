@@ -1,0 +1,43 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG @EN2 Series",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "nLsZ6NET1mvnoGGC",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.024"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"filament_max_volumetric_speed": [
+		"11"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 0.4 nozzle",
+		"Elegoo Neptune 0.6 nozzle",
+		"Elegoo Neptune 0.8 nozzle",
+		"Elegoo Neptune 2 0.4 nozzle",
+		"Elegoo Neptune 2 0.6 nozzle",
+		"Elegoo Neptune 2 0.8 nozzle",
+		"Elegoo Neptune 2S 0.4 nozzle",
+		"Elegoo Neptune 2S 0.6 nozzle",
+		"Elegoo Neptune 2S 0.8 nozzle",
+		"Elegoo Neptune 2D 0.4 nozzle",
+		"Elegoo Neptune 2D 0.6 nozzle",
+		"Elegoo Neptune 2D 0.8 nozzle",
+		"Elegoo Neptune X 0.4 nozzle",
+		"Elegoo Neptune X 0.6 nozzle",
+		"Elegoo Neptune X 0.8 nozzle",
+		"Elegoo Neptune 3 0.4 nozzle",
+		"Elegoo Neptune 3 0.6 nozzle",
+		"Elegoo Neptune 3 0.8 nozzle"
+	]
+}

@@ -3,7 +3,7 @@
 	"name": "0.32mm High Flow @MINIIS",
 	"inherits": "process_highflow_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "dYseXuv4xa703tvI",
 	"instantiation": "true",
 	"line_width": "0.68",
 	"inner_wall_line_width": "0.68",

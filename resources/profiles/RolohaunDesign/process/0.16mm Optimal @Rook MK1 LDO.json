@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @Rook MK1 LDO",
 	"inherits": "fdm_process_Rook MK1 LDO_common",
 	"from": "system",
-	"setting_id": "RKMK1_p003",
+	"setting_id": "wwBqYpuVeGfUCVI1",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

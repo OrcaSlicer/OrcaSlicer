@@ -1,0 +1,37 @@
+{
+    "type": "filament",
+    "name": "Generic HIPS @BBL A2L",
+    "inherits": "Generic HIPS @base",
+    "from": "system",
+    "setting_id": "GFSS98_19",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.4 nozzle",
+        "Bambu Lab A2L 0.6 nozzle",
+        "Bambu Lab A2L 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}

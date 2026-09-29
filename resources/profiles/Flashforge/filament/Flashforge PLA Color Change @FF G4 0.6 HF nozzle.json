@@ -1,9 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Color Change @FF G4 0.6 HF nozzle",
-	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "G2Et7kPHptMESzQ0",
+	"filament_id": "OFMkAW6r",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],

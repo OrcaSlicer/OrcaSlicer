@@ -1,0 +1,9 @@
+{
+	"type": "process",
+	"name": "0.32mm Optimal @Elegoo N3Plus 0.8 nozzle",
+	"inherits": "0.40mm Standard @Elegoo N3Plus 0.8 nozzle",
+	"from": "system",
+	"setting_id": "cWbafri96E6xdetF",
+	"instantiation": "true",
+	"layer_height": "0.32"
+}

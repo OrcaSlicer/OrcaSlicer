@@ -871,7 +871,7 @@ void Bonjour::priv::lookup_perform()
 
 	std::vector<LookupSocket*> sockets;
 
-	// resolve intefaces - from PR#6646
+	// resolve interfaces - from PR#6646
 	std::vector<boost::asio::ip::address> interfaces;
 	asio::ip::udp::resolver resolver(*io_service);
 	boost::system::error_code ec;

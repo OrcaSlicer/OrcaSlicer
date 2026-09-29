@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "QIDI ABS Rapido @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "qBCJHTf8UYAhtS9Z",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

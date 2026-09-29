@@ -15,6 +15,7 @@
 
 #include "FillBase.hpp"
 #include "FillConcentric.hpp"
+#include "FillSpiralInset.hpp"
 #include "FillHoneycomb.hpp"
 #include "Fill3DHoneycomb.hpp"
 #include "FillGyroid.hpp"
@@ -41,6 +42,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
 {
     switch (type) {
     case ipConcentric:          return new FillConcentric();
+    case ipSpiralInset:    return new FillSpiralInset();
     case ipHoneycomb:           return new FillHoneycomb();
     case ipLateralHoneycomb:         return new FillLateralHoneycomb();
     case ip3DHoneycomb:         return new Fill3DHoneycomb();
@@ -165,7 +167,11 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         // ORCA: special flag for flow rate calibration
         auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
                              this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
-        if (is_flow_calib) {
+        // Orca: a forced surface fill order must survive the G-code path planner, which would
+        // otherwise re-chain and possibly reverse the paths. The same applies to the flow rate
+        // calibration's special toolpath order.
+        const bool keep_fill_order = params.fill_order != SurfaceFillOrder::Default;
+        if (is_flow_calib || keep_fill_order) {
             eec->no_sort = true;
         }
         size_t idx   = eec->entities.size();
@@ -180,7 +186,7 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 params.extrusion_role,
                 flow_mm3_per_mm, float(flow_width), params.flow.height());
         }
-        if (!params.can_reverse || is_flow_calib) {
+        if (!params.can_reverse || is_flow_calib || keep_fill_order) {
             for (size_t i = idx; i < eec->entities.size(); i++)
                 eec->entities[i]->set_reverse();
         }
@@ -1025,7 +1031,7 @@ void mark_boundary_segments_touching_infill(
 #endif // INFILL_DEBUG_OUTPUT
 
 	EdgeGrid::Grid grid;
-    // Make sure that the the grid is big enough for queries against the thick segment.
+    // Make sure that the grid is big enough for queries against the thick segment.
 	grid.set_bbox(boundary_bbox.inflated(distance_colliding * 1.43));
 	// Inflate the bounding box by a thick line width.
 	grid.create(boundary, coord_t(std::max(clip_distance, distance_colliding) + scale_(10.)));
@@ -1853,12 +1859,12 @@ static inline void base_support_extend_infill_lines(Polylines &infill, BoundaryI
         const bool                   first           = graph.first(cp);
         int                          extend_next_idx = -1;
         int                          extend_prev_idx = -1;
-        coord_t                      dist_y_prev;
-        coord_t                      dist_y_next;
-        double                       arc_len_prev;
-        double                       arc_len_next;
+        coord_t                      dist_y_prev     = 0;
+        coord_t                      dist_y_next     = 0;
+        double                       arc_len_prev    = 0;
+        double                       arc_len_next    = 0;
 
-        if (! graph.next_vertical(cp)){
+        if (! graph.next_vertical(cp)) {
             size_t i = cp.point_idx;
             size_t j = next_idx_modulo(i, contour);
             while (j != cp.next_on_contour->point_idx) {
@@ -2461,9 +2467,11 @@ void Fill::connect_base_support(Polylines &&infill_ordered, const std::vector<co
 #endif // INFILL_DEBUG_OUTPUT
 
     const std::vector<SupportArcCost> arches = evaluate_support_arches(infill_ordered, graph, spacing, params);
-    static const double cost_low      = line_spacing * 1.3;
-    static const double cost_high     = line_spacing * 2.;
-    static const double cost_veryhigh = line_spacing * 3.;
+    // Must not be static: line_spacing varies per call (base vs interface fills differ),
+    // and a static here would fix these to whichever call ran first, order depending on thread count.
+    const double cost_low      = line_spacing * 1.3;
+    const double cost_high     = line_spacing * 2.;
+    const double cost_veryhigh = line_spacing * 3.;
 
     {
         std::vector<const SupportArcCost*> selected;

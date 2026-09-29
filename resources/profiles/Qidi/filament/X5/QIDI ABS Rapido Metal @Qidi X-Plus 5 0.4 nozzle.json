@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Rapido Metal @Qidi X-Plus 5 0.4 nozzle",
+	"inherits": "QIDI ABS Rapido Metal@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "XaJbATawtVrUsXpz",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

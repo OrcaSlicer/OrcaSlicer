@@ -3,8 +3,8 @@
 	"name": "Other TPU",
 	"inherits": "fdm_filament_tpu_other",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFU99",
+	"setting_id": "nqDc2q94Q2hwMi7B",
+	"filament_id": "OFwVVKEV",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3"

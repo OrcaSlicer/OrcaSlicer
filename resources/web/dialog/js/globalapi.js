@@ -336,4 +336,4 @@ function ExecuteDarkMode( DarkCssPath )
 	}	
 }
 
-SwitchDarkMode( "../css/dark.css" );
+// Dialog pages are themed by the injected --orca-* contract + theme.css; the legacy dark.css poll is fully retired.

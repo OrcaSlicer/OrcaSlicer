@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP014",
-	"setting_id": "GFSEP014_00",
 	"name": "Eolas Prints TPU Flex D53 @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "XIFP4KMuMtXF5bjQ",
+	"filament_id": "OFIegjmD",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <cctype>
 
 namespace Slic3r {
 
@@ -280,6 +281,83 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
     }
 
     return output.str();
+}
+
+std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& model_str)
+{
+    if (model_str.empty())
+        return {}; // Empty model is valid
+    
+    std::istringstream model_stream(model_str);
+    std::string line;
+    int line_number = 0;
+    
+    while (std::getline(model_stream, line)) {
+        ++line_number;
+        
+        // Trim whitespace
+        const auto first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos)
+            continue; // Skip empty lines
+        
+        const auto last = line.find_last_not_of(" \t\r\n");
+        line = line.substr(first, last - first + 1);
+        
+        // Only numbers, commas and dots are allowed (no letters or other characters)
+        for (char c : line) {
+            if (!std::isdigit(static_cast<unsigned char>(c)) && c != ',' && c != '.') {
+                return "Line " + std::to_string(line_number) +
+                       ": only numbers, commas and dots are allowed";
+            }
+        }
+
+        // Count commas to validate format (should be exactly 2 for 3 values)
+        int comma_count = 0;
+        for (char c : line) {
+            if (c == ',') comma_count++;
+        }
+        
+        if (comma_count != 2) {
+            return "Line " + std::to_string(line_number) + 
+                   ": must contain exactly 3 comma-separated values (PA, flow, acceleration)";
+        }
+        
+        // Parse and validate the values
+        try {
+            std::istringstream line_stream(line);
+            std::string value;
+            
+            // Parse PA
+            if (!std::getline(line_stream, value, ','))
+                return "Line " + std::to_string(line_number) + ": missing PA value";
+            double pa = std::stod(value);
+            
+            // Parse flow
+            if (!std::getline(line_stream, value, ','))
+                return "Line " + std::to_string(line_number) + ": missing flow value";
+            double flow = std::stod(value);
+            
+            // Parse acceleration
+            if (!std::getline(line_stream, value, ','))
+                return "Line " + std::to_string(line_number) + ": missing acceleration value";
+            double accel = std::stod(value);
+            
+            // Validate constraints
+            if (pa >= 2.0) {
+                return "Line " + std::to_string(line_number) + ": PA value must be less than 2";
+            }
+            if (flow <= pa) {
+                return "Line " + std::to_string(line_number) + ": flow value must be greater than PA value";
+            }
+            if (accel <= flow) {
+                return "Line " + std::to_string(line_number) + ": acceleration value must be greater than flow value";
+            }
+        } catch (const std::exception&) {
+            return "Line " + std::to_string(line_number) + ": invalid numeric value";
+        }
+    }
+    
+    return {}; // All validations passed
 }
 
 } // namespace Slic3r

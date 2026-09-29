@@ -3,11 +3,14 @@
 	"name": "Anycubic TPU @Anycubic Kobra S1 0.4 nozzle",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFU99",
+	"setting_id": "ias4IbNNwygyeow9",
+	"filament_id": "OFMsDGbs",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic TPU @Anycubic Kobra S1 0.4 nozzle"
+	],
+	"filament_vendor": [
+		"Anycubic"
 	],
 	"filament_flow_ratio": [
 		"1"
@@ -105,9 +108,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"31.925"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -176,9 +176,6 @@
 	],
 	"filament_toolchange_delay": [
 		"0"
-	],
-	"filament_unload_time": [
-		"24.75"
 	],
 	"filament_unloading_speed": [
 		"0"

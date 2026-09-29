@@ -90,7 +90,7 @@ void CalibrationCaliPage::on_subtask_abort(wxCommandEvent& event)
 
     if (abort_dlg == nullptr) {
         abort_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Cancel print"));
-        abort_dlg->Bind(EVT_SECONDARY_CHECK_CONFIRM, [this, obj](wxCommandEvent& e) {
+        abort_dlg->Bind(EVT_SECONDARY_CHECK_CONFIRM, [obj](wxCommandEvent& e) {
             if (obj) obj->command_task_abort();
             });
     }
@@ -192,8 +192,10 @@ void CalibrationCaliPage::update(MachineObject* obj)
             set_cali_img();
         }
 
+        // A calibration can run before the Device tab is ever opened, and only its status
+        // panel shows a print error.
         if (obj->print_error > 0) {
-            StatusPanel* status_panel = Slic3r::GUI::wxGetApp().mainframe->m_monitor->get_status_panel();
+            StatusPanel* status_panel = MonitorPanel::ensure()->get_status_panel();
             status_panel->obj = obj;
             status_panel->update_error_message();
         }
@@ -326,7 +328,7 @@ void CalibrationCaliPage::update_subtask(MachineObject* obj)
                     prepare_text = wxString::Format(_L("Cloud Slicing..."));
                 }
                 else {
-                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead."), std::to_string(obj->queue_number));
+                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead of you."), std::to_string(obj->queue_number));
                     show_percent = false;
                 }
             }

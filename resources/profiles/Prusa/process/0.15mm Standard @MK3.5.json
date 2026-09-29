@@ -3,7 +3,7 @@
 	"name": "0.15mm Standard @MK3.5",
 	"inherits": "process_detail_MK3.5",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "W63l7cZGACTBIb3p",
 	"instantiation": "true",
 	"line_width": "0.45",
 	"inner_wall_line_width": "0.45",

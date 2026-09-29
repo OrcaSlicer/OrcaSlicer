@@ -56,15 +56,22 @@ void SidePopup::Popup(wxWindow* focus)
     }
     if (focus) {
         wxPoint pos = focus->ClientToScreen(wxPoint(0, -6));
+        int anchor_h = focus->GetSize().y + 12;
 
 #ifdef __APPLE__
          pos.x = pos.x - FromDIP(20);
+         // Orca #12936: since the wxWidgets 3.3 upgrade the transient popup is dismissed the
+         // instant the cursor enters the gap between the button and the menu, making
+         // "Print -> Export" unselectable. Anchor the menu flush against the button (slight
+         // overlap) so there is no dead-zone for the cursor to cross.
+         pos.y = focus->ClientToScreen(wxPoint(0, 0)).y;
+         anchor_h = focus->GetSize().y - 2;
 #endif // __APPLE__
 
         if (pos.x + max_width > screenwidth)
-            Position({pos.x - (pos.x + max_width - screenwidth),pos.y}, {0, focus->GetSize().y + 12});
+            Position({pos.x - (pos.x + max_width - screenwidth), pos.y}, {0, anchor_h});
         else
-            Position(pos, {0, focus->GetSize().y + 12});
+            Position(pos, {0, anchor_h});
     }
     Slic3r::GUI::wxGetApp().set_side_menu_popup_status(true);
     PopupWindow::Popup();

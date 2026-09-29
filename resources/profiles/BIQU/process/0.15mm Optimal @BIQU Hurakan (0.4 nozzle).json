@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @BIQU Hurakan (0.4 nozzle)",
 	"inherits": "fdm_process_hurakan_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "Z5tWEqid41XII3U0",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

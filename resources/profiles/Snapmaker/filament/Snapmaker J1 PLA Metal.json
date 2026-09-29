@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PLA Metal",
 	"inherits": "Snapmaker J1 PLA Metal @base",
 	"from": "system",
-	"setting_id": "1744865289",
+	"setting_id": "vMgabwKr8G7tdFBe",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

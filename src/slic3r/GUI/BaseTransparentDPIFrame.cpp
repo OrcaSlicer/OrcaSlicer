@@ -30,6 +30,19 @@ BaseTransparentDPIFrame::BaseTransparentDPIFrame(
     // SetBackgroundStyle(wxBackgroundStyle::wxBG_STYLE_TRANSPARENT);
     SetTransparent(m_init_transparent);
     SetBackgroundColour(wxColour(23, 25, 22, 128));
+
+    // ORCA add border
+    Bind(wxEVT_PAINT, [this](wxPaintEvent& evt) {
+        wxPaintDC dc(this);
+        dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688")), FromDIP(2)));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
+    });
+
+    int  window_padding = 15;
+    auto imgsize        = 32;
+    auto imgright       = 10;
+
     //Adaptive Frame Width
     wxClientDC dc(parent);
     wxSize msg_sz = dc.GetMultiLineTextExtent(ok_text);
@@ -44,21 +57,16 @@ BaseTransparentDPIFrame::BaseTransparentDPIFrame(
 
     m_sizer_main           = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *text_sizer = new wxBoxSizer(wxHORIZONTAL);
-    text_sizer->AddSpacer(FromDIP(20));
-    auto image_sizer  = new wxBoxSizer(wxVERTICAL);
-    auto imgsize      = FromDIP(25);
-    auto completedimg = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("completed", this, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
-    image_sizer->Add(completedimg, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(0));
-    image_sizer->AddStretchSpacer();
-    text_sizer->Add(image_sizer);
-    text_sizer->AddSpacer(FromDIP(5));
+
+    auto completedimg = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("completed", this, imgsize), wxDefaultPosition, FromDIP(wxSize(imgsize, imgsize)), 0);
+
+    text_sizer->Add(completedimg, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(imgright));
     m_finish_text = new Label(this, win_text, LB_AUTO_WRAP);
-    m_finish_text->SetMinSize(wxSize(FromDIP(win_width - 64), -1));
-    m_finish_text->SetMaxSize(wxSize(FromDIP(win_width - 64), -1));
+    m_finish_text->SetMinSize(wxSize(FromDIP(win_width - (window_padding * 2 + imgright + imgsize)), -1));
+    m_finish_text->SetMaxSize(wxSize(FromDIP(win_width - (window_padding * 2 + imgright + imgsize)), -1));
     m_finish_text->SetForegroundColour(wxColour(255, 255, 255, 255));
-    text_sizer->Add(m_finish_text, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxALL, 0);
-    text_sizer->AddSpacer(FromDIP(20));
-    m_sizer_main->Add(text_sizer, FromDIP(0), wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxTOP, FromDIP(15));
+    text_sizer->Add(m_finish_text, 0, wxALIGN_CENTER_VERTICAL);
+    m_sizer_main->Add(text_sizer, 0, wxALL, FromDIP(15));
 
     wxBoxSizer *bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
@@ -66,22 +74,18 @@ BaseTransparentDPIFrame::BaseTransparentDPIFrame(
      bSizer_button->Add(m_checkbox, 0, wxALIGN_LEFT);*/
     bSizer_button->AddStretchSpacer(1);
     m_button_ok = new Button(this, ok_text);
-    m_button_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
-    m_button_ok->SetSize(wxSize(FromDIP(60), FromDIP(30)));
-    m_button_ok->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
-    bSizer_button->Add(m_button_ok, 0, wxALIGN_RIGHT | wxLEFT | wxTOP, FromDIP(10));
+    m_button_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+    bSizer_button->Add(m_button_ok, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(10));
 
     m_button_ok->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent &e) { deal_ok(); });
 
     m_button_cancel = new Button(this, cancel_text);
-    m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-    m_button_cancel->SetSize(wxSize(FromDIP(65), FromDIP(30)));
-    m_button_cancel->SetMinSize(wxSize(FromDIP(65), FromDIP(30)));
-    bSizer_button->Add(m_button_cancel, 0, wxALIGN_RIGHT | wxLEFT | wxTOP, FromDIP(10));
+    m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    bSizer_button->Add(m_button_cancel, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(10));
 
     m_button_cancel->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent &e) { deal_cancel(); });
 
-    m_sizer_main->Add(bSizer_button, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(20));
+    m_sizer_main->Add(bSizer_button, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(window_padding));
 
     Bind(wxEVT_CLOSE_WINDOW, [this](auto &e) {
         on_hide();

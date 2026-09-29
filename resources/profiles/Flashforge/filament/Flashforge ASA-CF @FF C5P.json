@@ -1,4 +1,17 @@
 {
+	"type": "filament",
+	"name": "Flashforge ASA-CF @FF C5P",
+	"inherits": "Generic ABS @System",
+	"from": "system",
+	"setting_id": "nMczAtoc5W0J2WkS",
+	"filament_id": "OFq0TY7C",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -43,17 +56,12 @@
 	"filament_type": [
 		"ASA-CF"
 	],
-	"from": "system",
 	"hot_plate_temp": [
 		"110"
 	],
 	"hot_plate_temp_initial_layer": [
 		"110"
 	],
-	"inherits": "Generic ABS @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge ASA-CF @FF C5P",
 	"nozzle_temperature": [
 		"270"
 	],
@@ -77,6 +85,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
-	],
-	"version": "2.3.0.3"
+	]
 }

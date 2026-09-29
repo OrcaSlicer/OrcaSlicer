@@ -2,6 +2,7 @@
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
+#include "FillCornerSmoothing.hpp"
 #include "FillPlanePath.hpp"
 
 namespace Slic3r {
@@ -77,20 +78,24 @@ void FillPlanePath::_fill_surface_single(
 
     //FIXME Vojtech: We are not sure whether the user expects the fill patterns on visible surfaces to be aligned across all the islands of a single layer.
     // One may align for this->centered() to align the patterns for Archimedean Chords and Octagram Spiral patterns.
-    const bool align = params.density < 0.995;
-
+    // Orca: the old implementation became obsolete when it became possible to change the density of the top and bottom surfaces
+    bool        align = params.extrusion_role == ExtrusionRole::erInternalInfill;
+    BoundingBox bounding_box;
     BoundingBox snug_bounding_box = get_extents(expolygon).inflated(SCALED_EPSILON);
 
     // Expand the bounding box to avoid artifacts at the edges
-    snug_bounding_box.offset(scale_(this->spacing)*params.multiline); 
+    snug_bounding_box.offset(scale_(this->spacing)*params.multiline);
 
-    // Rotated bounding box of the area to fill in with the pattern.
-    BoundingBox bounding_box = align ?
-        // Sparse infill needs to be aligned across layers. Align infill across layers using the object's bounding box.
-        this->bounding_box.rotated(-direction.first) :
-        // Solid infill does not need to be aligned across layers, generate the infill pattern
-        // around the clipping expolygon only.
-        snug_bounding_box;
+    // Sparse infill (or Internal where align == true) needs to be aligned across layers. Align infill across layers using the object's bounding box.
+    // Solid infill does not need to be aligned across layers, generate the infill pattern around the clipping expolygon only.
+    if (align)
+        bounding_box = this->bounding_box.rotated(-direction.first);
+    else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Surface)
+        bounding_box = snug_bounding_box;
+    else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model)
+        bounding_box = this->bounding_box.rotated(-direction.first);
+    else
+        bounding_box = extended_object_bounding_box();
 
     Point shift = this->centered() ? 
         bounding_box.center() :
@@ -110,12 +115,12 @@ void FillPlanePath::_fill_surface_single(
             // Filling in a bounding box over the whole object, clip generated polyline against the snug bounding box.
             snug_bounding_box.translate(-shift.x(), -shift.y());
             InfillPolylineClipper output(snug_bounding_box, distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, output);
+            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
             polyline.points = std::move(output.result());
         } else {
             // Filling in a snug bounding box, no need to clip.
             InfillPolylineOutput output(distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, output);
+            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
             polyline.points = std::move(output.result());
         }
     }
@@ -130,8 +135,12 @@ void FillPlanePath::_fill_surface_single(
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {
-                // ORCA: special flag for flow rate calibration
-                auto is_flow_calib = params.extrusion_role == erTopSolidInfill &&
+                // ORCA: special flag for flow rate calibration. The chords chained ahead of the
+                // inside-out center spiral collide with it in opposing directions, raising a
+                // tactile lip that the calibration reads. Only applies while the fill order is
+                // Default, so it can be overridden from the calibration objects.
+                auto is_flow_calib = params.fill_order == SurfaceFillOrder::Default &&
+                                     params.extrusion_role == erTopSolidInfill &&
                                      this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
                                      this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool() &&
                                      dynamic_cast<FillArchimedeanChords*>(this);
@@ -149,12 +158,26 @@ void FillPlanePath::_fill_surface_single(
 
                     // Chain the other polylines
                     polylines.erase(it);
-                    chained = chain_polylines(std::move(polylines));
+                    chained = chain_polylines(std::move(polylines), nullptr);
 
                     // Then add the center spiral back
                     chained.push_back(std::move(center_spiral));
+                } else if (params.fill_order != SurfaceFillOrder::Default) {
+                    // Orca: print the fragments in the order they appear along the generated
+                    // path, which runs from the center outwards. The Euclidean distance from
+                    // the center cannot be used for this: along the Octagram Spiral the radius
+                    // oscillates by far more than the ring spacing, so fragments of different
+                    // rings would interleave.
+                    restore_source_path_order(polyline, polylines);
+                    chained = std::move(polylines);
+                    if (params.fill_order == SurfaceFillOrder::Inward) {
+                        // The source path runs from the center outwards; flip everything for inward.
+                        std::reverse(chained.begin(), chained.end());
+                        for (Polyline &pl : chained)
+                            pl.reverse();
+                    }
                 } else {
-                    chained = chain_polylines(std::move(polylines));
+                    chained = chain_polylines(std::move(polylines), nullptr);
                 }
             } else
                 connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
@@ -266,12 +289,75 @@ static void generate_hilbert_curve(coord_t min_x, coord_t min_y, coord_t max_x, 
     }
 }
 
+// Rounds the corners of the generated path on its way to the infill output.
+template<typename Output>
+class SmoothingPolylineOutput
+{
+public:
+    SmoothingPolylineOutput(Output &output, const double smooth_factor, const double tolerance)
+        : m_output(output), m_smoother(smooth_factor, tolerance) {}
+
+    void reserve(size_t n) { m_output.reserve(n); }
+    void add_point(const Vec2d &pt) { auto emit = emitter(); m_smoother.push(pt, emit); }
+    // The smoother holds back the last point of the path until it knows there is no corner left to round.
+    void finish() { auto emit = emitter(); m_smoother.flush(emit); }
+
+private:
+    // The curves of two adjacent corners meet at the midpoint of the segment they share, where they
+    // may round to the very same output point. Drop those, they would be zero length extrusions.
+    auto emitter()
+    {
+        return [this](const Vec2d &pt) {
+            const Point snapped = m_output.scaled(pt);
+            if (m_has_last_snapped && snapped == m_last_snapped)
+                return;
+            m_last_snapped     = snapped;
+            m_has_last_snapped = true;
+            m_output.add_point(pt);
+        };
+    }
+
+    Output        &m_output;
+    CornerSmoother m_smoother;
+    Point          m_last_snapped { Point::Zero() };
+    bool           m_has_last_snapped { false };
+};
+
+// Runs the path generator against the concrete output type, optionally through the corner smoother.
+// The outputs do not share a virtual add_point(), so the type has to be resolved here.
+template<typename GenerateFn>
+static void generate_path(InfillPolylineOutput &output, const FillParams &params, const double resolution, GenerateFn generate)
+{
+    const double smooth_factor = sanitize_smooth_factor(params.smooth_factor);
+    auto run = [smooth_factor, resolution, &generate](auto &out) {
+        if (smooth_factor == 0.) {
+            generate(out);
+        } else {
+            SmoothingPolylineOutput<std::remove_reference_t<decltype(out)>> smoothing(out, smooth_factor, resolution);
+            generate(smoothing);
+            smoothing.finish();
+        }
+    };
+
+    if (output.clips())
+        run(static_cast<InfillPolylineClipper&>(output));
+    else
+        run(output);
+}
+
 void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double /* resolution */, InfillPolylineOutput &output)
 {
     if (output.clips())
         generate_hilbert_curve(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
     else
         generate_hilbert_curve(min_x, min_y, max_x, max_y, output);
+}
+
+void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+    const FillParams &params, InfillPolylineOutput &output)
+{
+    generate_path(output, params, resolution,
+        [min_x, min_y, max_x, max_y](auto &out) { generate_hilbert_curve(min_x, min_y, max_x, max_y, out); });
 }
 
 template<typename Output>
@@ -312,6 +398,13 @@ void FillOctagramSpiral::generate(coord_t min_x, coord_t min_y, coord_t max_x, c
         generate_octagram_spiral(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
     else
         generate_octagram_spiral(min_x, min_y, max_x, max_y, output);
+}
+
+void FillOctagramSpiral::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+    const FillParams &params, InfillPolylineOutput &output)
+{
+    generate_path(output, params, resolution,
+        [min_x, min_y, max_x, max_y](auto &out) { generate_octagram_spiral(min_x, min_y, max_x, max_y, out); });
 }
 
 } // namespace Slic3r

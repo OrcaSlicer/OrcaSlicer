@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "CoLiDo X16 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "ciVF4ZFTo8Kjqvv1",
 	"instantiation": "true",
 	"printer_model": "CoLiDo X16",
 	"adaptive_bed_mesh_margin": "0",
@@ -23,7 +23,7 @@
 	"cooling_tube_length": "5",
 	"cooling_tube_retraction": "91.5",
 	"default_filament_profile": [
-		"CoLiDo Generic PLA @CoLiDo X16"
+		"Generic PLA @CoLiDo X16"
 	],
 	"default_print_profile": "0.20mm Standard @CoLiDo X16",
 	"deretraction_speed": [
@@ -57,12 +57,15 @@
 	"machine_end_gcode": "G1 E-1.0 F2100 ; retract\nG92 E0.0\nG1{if max_layer_z < max_print_height} Z{z_offset+min(max_layer_z+30, max_print_height)}{endif} E-3.0 F720 ; move print head up & retract filament\nG4 ; wait\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y0 F3000 ; park print head\nM84 ; disable motors",
 	"machine_load_filament_time": "0",
 	"machine_max_acceleration_e": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_retracting": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_travel": [
@@ -70,36 +73,47 @@
 		"0"
 	],
 	"machine_max_acceleration_x": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_y": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_z": [
+		"500",
 		"500"
 	],
 	"machine_max_jerk_e": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"8",
 		"8"
 	],
 	"machine_max_jerk_y": [
+		"8",
 		"8"
 	],
 	"machine_max_jerk_z": [
+		"0.4",
 		"0.4"
 	],
 	"machine_max_speed_e": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_x": [
+		"300",
 		"300"
 	],
 	"machine_max_speed_y": [
+		"300",
 		"300"
 	],
 	"machine_max_speed_z": [
+		"10",
 		"10"
 	],
 	"machine_min_extruding_rate": [
@@ -189,7 +203,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",
