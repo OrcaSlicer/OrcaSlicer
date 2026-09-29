@@ -1,5 +1,4 @@
-#ifndef slic3r_GUI_SourceFileWatcher_hpp_
-#define slic3r_GUI_SourceFileWatcher_hpp_
+#pragma once
 
 #include <wx/event.h>
 #include <wx/fswatcher.h>
@@ -135,5 +134,3 @@ private:
 };
 
 }} // namespace Slic3r::GUI
-
-#endif // slic3r_GUI_SourceFileWatcher_hpp_

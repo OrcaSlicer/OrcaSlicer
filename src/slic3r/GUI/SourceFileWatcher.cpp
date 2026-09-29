@@ -204,9 +204,6 @@ void SourceFileWatcher::on_timer(wxTimerEvent&)
     }
     for (const auto& [file, stamp] : ready)
         m_pending_stamps.erase(file);
-    // Anything left in `changed` that isn't in `ready` is still settling; keep polling for it
-    // regardless of whether the settled subset below ends up committed, failed, or re-armed.
-    const bool still_pending = ready.size() != changed.size();
 
     std::set<std::string> changed_files;
     for (const auto& [file, stamp] : ready)
@@ -226,25 +223,23 @@ void SourceFileWatcher::on_timer(wxTimerEvent&)
     if (!committed.empty())
         commit_source_stamps(committed);
     if (!failed.empty())
-        record_failed_attempt(failed); // arms its own (possibly long) backoff timer
+        record_failed_attempt(failed); // arms its own (possibly long) backoff timer; overridden below
 
-    if (still_pending)
-        // A straggler from `changed` is still settling regardless of this batch's outcome.
-        // poll_interval_ms is always shorter than any backoff delay above, so this safely
-        // overrides it: changed_source_files() re-filters a failed file by its recorded stamp, so
-        // waking sooner can't cause it to be retried before its own backoff is actually due.
-        m_debounce_timer.Start(poll_interval_ms, wxTIMER_ONE_SHOT);
-    else if (failed.empty())
-        // m_on_changed just re-armed the watch for every file that committed (forget_watched_files()
-        // followed by update_source_file_watches() -- needed so a rename-into-place isn't skipped as
-        // "unchanged path set", but it means every successful reload tears down and rebuilds the
-        // underlying OS watch, not just a renamed file's). A write landing in that window can be
-        // missed: the backend's own teardown/rebuild bookkeeping (e.g. inotify's IN_IGNORED for the
-        // removed watch descriptors) is asynchronous, so nothing guarantees an event during it is
-        // still delivered. One extra tick catches it instead of relying on unrelated directory
-        // activity to ever wake the timer again -- changed_source_files() is a no-op if nothing
-        // else changed, since the committed stamps above are already the current baseline.
-        m_debounce_timer.Start(poll_interval_ms, wxTIMER_ONE_SHOT);
+    // m_on_changed always re-arms the watch for every tracked file before returning here --
+    // Plater's forget_watched_files() followed by update_source_file_watches() runs
+    // unconditionally after every call, regardless of whether anything in this batch actually
+    // succeeded -- tearing down and rebuilding the underlying OS watch, not just a changed
+    // file's. A write landing in that window can be missed: the backend's own teardown/rebuild
+    // bookkeeping (e.g. inotify's IN_IGNORED for the removed watch descriptors) is asynchronous,
+    // so nothing guarantees an event during it is still delivered. This tick catches that
+    // regardless of whether anything here also failed, or another candidate from the same
+    // `changed` batch is still settling: poll_interval_ms is always shorter than any backoff
+    // delay just armed above, so it safely
+    // overrides that too -- changed_source_files() re-filters a failed file by its recorded
+    // stamp, so waking sooner can't cause it to be retried before its own backoff is actually
+    // due -- and it's a no-op if nothing else changed, since the committed stamps above are
+    // already the current baseline.
+    m_debounce_timer.Start(poll_interval_ms, wxTIMER_ONE_SHOT);
 }
 
 std::map<std::string, SourceStamp> SourceFileWatcher::changed_source_files() const

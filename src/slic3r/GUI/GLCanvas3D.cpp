@@ -11164,13 +11164,23 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             }
         }
         else if (warning == EWarning::ObjectClashed) {
-            auto str = get_object_clashed_text();
-            if(state){
-                if (!str.empty())
+            // get_object_clashed_text()'s buffer is cleared by construct_error_string() on every
+            // refresh, so by the time state is false it no longer holds what was actually pushed --
+            // closing with that (now empty) text would never match, the same problem the
+            // SingleExtruderMixedFilament case above works around by closing by type. That trick
+            // doesn't apply here: PlaterError is shared with unrelated notifications (e.g. the
+            // auto-reload failure toast), so closing by type alone would close those too instead.
+            // Remember the text that was actually pushed, and close with that.
+            static std::string last_pushed_text;
+            if (state) {
+                auto str = get_object_clashed_text();
+                if (!str.empty()) {
                     notification_manager.push_plater_error_notification(str);
-            }
-            else{
-                notification_manager.close_plater_error_notification(str);
+                    last_pushed_text = str;
+                }
+            } else if (!last_pushed_text.empty()) {
+                notification_manager.close_plater_error_notification(last_pushed_text);
+                last_pushed_text.clear();
             }
         }
         else {

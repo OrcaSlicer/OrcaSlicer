@@ -12219,20 +12219,21 @@ bool Plater::priv::reload_from_disk(bool interactive, std::vector<std::pair<int,
 
     if (!fail_list.empty()) {
         ok = false;
-        if (interactive) {
+        // Shared message text for both branches below, differing only in per-line indent (the
+        // dialog needs none, the notification's is indented to stand out in the toast).
+        auto build_fail_message = [&fail_list](const wxString& line_prefix) {
             wxString message = _L("Unable to reload:") + "\n";
-            for (const wxString& s : fail_list) {
-                message += s + "\n";
-            }
-            MessageDialog dlg(q, message, _L("Error during reload"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+            for (const wxString& s : fail_list)
+                message += line_prefix + s + "\n";
+            return message;
+        };
+        if (interactive) {
+            MessageDialog dlg(q, build_fail_message(""), _L("Error during reload"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
             dlg.ShowModal();
         } else {
-            wxString message = _L("Unable to reload:") + "\n";
-            for (const wxString& s : fail_list) {
+            for (const wxString& s : fail_list)
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": unable to reload: " << s.ToUTF8().data();
-                message += "  " + s + "\n";
-            }
-            notification_manager->push_plater_error_notification(into_u8(message));
+            notification_manager->push_plater_error_notification(into_u8(build_fail_message("  ")));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": pushed a PlaterError notification for the failed reload";
         }
     }
