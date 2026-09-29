@@ -1226,6 +1226,9 @@ void GCodeProcessor::run_post_process()
     // Process inline placeholders (print_time_total_sec, print_time_day, print_time_hour, print_time_minute, print_time_sec and used_filament_length)
     auto process_inline_placeholders = [&](std::string& gcode_line) {
         bool processed = false;
+        // Every inline placeholder contains '@', so a line without one has nothing to replace.
+        if (gcode_line.find('@') == std::string::npos)
+            return processed;
 
         const std::string& print_time_total_placeholder = reserved_tag(ETags::Print_Time_Total_Sec_Placeholder);
         const std::string& print_time_day_placeholder = reserved_tag(ETags::Print_Time_Day_Placeholder);
