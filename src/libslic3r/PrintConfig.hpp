@@ -263,6 +263,10 @@ enum SupportMaterialStyle {
     smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
+enum RibSupportStyle {
+    rssSimple, rssSimulated
+};
+
 enum LongRectrationLevel
 {
     Disabled=0,
@@ -672,6 +676,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RibSupportStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
 // BBS
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportType)
@@ -1163,7 +1168,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloatsNullable,      support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
+    ((ConfigOptionEnum<RibSupportStyle>, rib_support_style))
     ((ConfigOptionFloat,               rib_support_contact_height))
+    ((ConfigOptionFloat,               rib_support_contact_start_height))
     ((ConfigOptionFloatOrPercent,      rib_support_contact_width))
     ((ConfigOptionFloatOrPercent,      rib_support_thickness))
     ((ConfigOptionFloat,               rib_support_contact_spacing))

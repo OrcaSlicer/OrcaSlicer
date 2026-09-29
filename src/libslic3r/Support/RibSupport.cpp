@@ -2,6 +2,7 @@
 #include "SupportCommon.hpp"
 
 #include "../Fill/Fill.hpp"
+#include "../AABBTreeLines.hpp"
 #include "../Flow.hpp"
 #include "../Geometry/ConvexHull.hpp"
 #include "../Layer.hpp"
@@ -15,6 +16,7 @@
 #include <boost/log/trivial.hpp>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -108,6 +110,7 @@ struct TracedRib {
     RibDiagnostics diagnostics;
     size_t planned_contact_bands = 0;
     size_t accepted_contact_bands = 0;
+    size_t suppressed_contact_bands = 0;
     std::vector<Vec2d> boundary; // One actual outer-contour position per layer, from the bed upward.
     std::vector<bool> wall_present;
     std::vector<Vec2d> body_start;
@@ -121,6 +124,14 @@ struct TracedRib {
 };
 
 Point scaled_point(const Vec2d &p) { return Point::new_scale(p.x(), p.y()); }
+
+Polygon rib_bed_shape(const PrintObject &object)
+{
+    Polygon bed = get_bed_shape_with_excluded_area(object.print()->config());
+    if (!object.instances().empty())
+        bed.translate(-object.instances().front().shift_without_plate_offset());
+    return bed;
+}
 
 constexpr double min_rib_contact_alignment = 0.86602540378443864676; // cos(30 degrees).
 
@@ -301,12 +312,14 @@ bool projected_outer_contour(const Layer &layer, const Vec2d &origin, const Vec2
     return found;
 }
 
-Polygon foot_area(const Vec2d &start, const Vec2d &tip, const Vec2d &normal, double thickness, double width)
+Polygon foot_area(const Vec2d &start, const Vec2d &tip, const Vec2d &normal, double thickness, double width,
+                  double expansion)
 {
-    const double half_width = 0.5 * thickness + 1.6;
+    const double envelope = expansion;
+    const double half_width = 0.5 * thickness + envelope;
     const Vec2d tangent(-normal.y(), normal.x());
     const Vec2d inner = start - 0.5 * width * normal;
-    const Vec2d outer = tip + 0.5 * width * normal;
+    const Vec2d outer = tip + envelope * normal;
     return Polygon{scaled_point(inner - half_width * tangent),
                    scaled_point(outer - half_width * tangent),
                    scaled_point(outer + half_width * tangent),
@@ -372,7 +385,7 @@ Polygon rib_rectangle(const Vec2d &inner, const Vec2d &outer, const Vec2d &norma
 }
 
 Polygon rib_contact_polygon(const Vec2d &front, const Vec2d &base, const Vec2d &normal, const Vec2d &contact_normal,
-                            double contact_width, double thickness, double line_width)
+                             double contact_width, double thickness, double line_width)
 {
     const Vec2d tangent(-contact_normal.y(), contact_normal.x());
     const Vec2d side = 0.5 * (thickness - line_width) * Vec2d(-normal.y(), normal.x());
@@ -387,11 +400,48 @@ Polygon rib_contact_polygon(const Vec2d &front, const Vec2d &base, const Vec2d &
     return Geometry::convex_hull(std::move(points));
 }
 
+ExPolygons build_rib_contact_section(const Layer &layer, const Polygon &bed, const TracedRib &rib,
+                                     size_t layer_id, const Vec2d &contact_normal,
+                                     double contact_width, double thickness, double line_width)
+{
+    const Vec2d base = rib.body_start[layer_id] + 0.5 * line_width * rib.seed.normal;
+    const Vec2d front = rib.boundary[layer_id] + 0.5 * line_width * contact_normal;
+    const Polygon neck = rib_contact_polygon(front, base, rib.seed.normal, contact_normal,
+                                             contact_width, thickness, line_width);
+    return intersection_ex(diff_ex(neck, offset_ex(layer.lslices, float(scale_(0.5 * line_width)))),
+                           offset_ex(bed, -float(scale_(0.5 * line_width))));
+}
+
 struct ProjectionClip {
     ExPolygons model;
     ExPolygons bed;
     bool ready = false;
 };
+
+enum class ProjectionStop { bed, no_downward, absorbed, outside, clipped };
+
+struct ProjectionResult {
+    size_t layers = 0;
+    ProjectionStop stop = ProjectionStop::bed;
+};
+
+struct ContactProjectionRay {
+    Vec2d normal;
+    double slope;
+};
+
+std::optional<ContactProjectionRay> contact_projection_ray(const Vec3d &surface_normal, double angle)
+{
+    const double outward = surface_normal.head<2>().norm();
+    if (outward <= EPSILON)
+        return std::nullopt;
+    const double radians = angle * M_PI / 180.;
+    const double radial = outward * std::cos(radians) + surface_normal.z() * std::sin(radians);
+    const double downward = outward * std::sin(radians) - surface_normal.z() * std::cos(radians);
+    if (downward <= 1e-12)
+        return std::nullopt;
+    return ContactProjectionRay{surface_normal.head<2>() / outward, radial / downward};
+}
 
 ExPolygons rib_body_area(const Layer &layer, const TracedRib &rib, size_t layer_id,
                          double thickness, double gap)
@@ -400,24 +450,42 @@ ExPolygons rib_body_area(const Layer &layer, const TracedRib &rib, size_t layer_
                    offset_ex(layer.lslices, float(scale_(gap))));
 }
 
-void backfill_contact_projection(const PrintObject &object, const TracedRib &rib, size_t bottom,
-                                 const Polygon &bed, double thickness,
-                                 double contact_width, double gap, const Vec3d &surface_normal,
-                                 const std::vector<ExPolygons> &body_centers, std::vector<ExPolygons> &contacts,
-                                 std::vector<ProjectionClip> &clips)
+void build_rib_body_section(const PrintObject &object, const TracedRib &rib, size_t layer_id,
+                            const Polygon &bed, double thickness, double gap,
+                            ExPolygons &body, ExPolygons &body_center)
 {
-    const Vec2d normal = surface_normal.head<2>().normalized();
+    const Layer &layer = *object.get_layer(int(layer_id));
+    const double width = support_material_flow(&object, float(layer.height)).width();
+    body = intersection_ex(rib_body_area(layer, rib, layer_id, thickness, gap), ExPolygons{ExPolygon(bed)});
+    if (layer_id == 0) {
+        ExPolygons foot = diff_ex(intersection_ex(
+            Polygons{foot_area(rib.body_start.front(), rib.tips.front(), rib.seed.normal, thickness, width,
+                               object.config().raft_first_layer_expansion.value)},
+            offset_ex(bed, -float(scale_(0.5 * width)))),
+            offset_ex(layer.lslices, float(scale_(gap + 0.5 * width))));
+        expolygons_append(body, std::move(foot));
+        body = union_ex(body);
+    }
+    body_center = offset_ex(body, -float(scale_(0.5 * width)));
+}
+
+ProjectionResult backfill_contact_projection(const PrintObject &object, const TracedRib &rib, size_t bottom,
+                                             const Polygon &bed, double thickness,
+                                             double contact_width, double gap, const Vec3d &surface_normal,
+                                             const std::vector<ExPolygons> &body_centers, std::vector<ExPolygons> &contacts,
+                                             std::vector<ProjectionClip> &clips,
+                                             std::vector<ExPolygons> *projection_copy = nullptr)
+{
+    ProjectionResult result;
     const Vec2d &body_normal = rib.seed.normal;
-    // Rotate B toward -Z in the contact plane, independently of body direction A.
-    const double angle = object.config().rib_support_contact_projection_angle.value * M_PI / 180.;
-    const double outward = surface_normal.head<2>().norm();
-    const double radial = outward * std::cos(angle) + surface_normal.z() * std::sin(angle);
-    const double downward = outward * std::sin(angle) - surface_normal.z() * std::cos(angle);
-    // A horizontal or upward ray does not intersect any lower layer. Keep the
-    // contact geometry on its own layer instead of inventing a downward ramp.
-    if (downward <= 1e-12)
-        return;
-    const double slope = radial / downward;
+    const auto ray = contact_projection_ray(surface_normal,
+        object.config().rib_support_contact_projection_angle.value);
+    if (!ray) {
+        result.stop = ProjectionStop::no_downward;
+        return result;
+    }
+    const Vec2d &normal = ray->normal;
+    const double slope = ray->slope;
     // Project just the front segment (a point for zero length). Its endpoints
     // connect directly to the current lower layer's inner body corners.
     const Layer &contact_layer = *object.get_layer(int(bottom));
@@ -444,14 +512,18 @@ void backfill_contact_projection(const PrintObject &object, const TracedRib &rib
         const Point a = scaled_point(front - side), b = scaled_point(front + side);
         if (std::any_of(body_centers[i].begin(), body_centers[i].end(), [&a, &b](const ExPolygon &body) {
             return a == b ? body.contains(a) : body.contains(Line(a, b));
-        }))
+        })) {
+            result.stop = ProjectionStop::absorbed;
             break;
+        }
         const Vec2d body_side = 0.5 * (thickness - width) * Vec2d(-body_normal.y(), body_normal.x());
         const double outer_limit = std::max(base.dot(normal),
                                            (rib.tips[i] - 0.5 * width * body_normal).dot(normal)) +
                                    std::abs(body_side.dot(normal));
-        if (front.dot(normal) > outer_limit + EPSILON)
+        if (front.dot(normal) > outer_limit + EPSILON) {
+            result.stop = ProjectionStop::outside;
             break;
+        }
         ProjectionClip &clip = clips[i];
         if (!clip.ready) {
             clip.model = offset_ex(layer.lslices, float(scale_(clearance + 0.5 * width)));
@@ -463,7 +535,7 @@ void backfill_contact_projection(const PrintObject &object, const TracedRib &rib
         // Allow the original neck up to its short body overlap; beyond that,
         // every projection center must fit the actual lower body center area.
         const Polygon neck = rib_contact_polygon(initial_front, base, body_normal, normal,
-                                                 contact_width, thickness, width);
+                                                   contact_width, thickness, width);
         const Vec2d tangent(-body_normal.y(), body_normal.x());
         double inner = std::numeric_limits<double>::infinity();
         double side_min = std::numeric_limits<double>::infinity();
@@ -484,12 +556,20 @@ void backfill_contact_projection(const PrintObject &object, const TracedRib &rib
         ExPolygons projection = intersection_ex(diff_ex(rib_contact_polygon(front, base, body_normal, normal,
             projected_length, thickness, width), clip.model), clip.bed);
         projection = intersection_ex(projection, allowed);
-        if (projection.empty())
+        if (projection.empty()) {
+            result.stop = ProjectionStop::clipped;
             break;
-        if (diff_ex(projection, body_centers[i]).empty())
+        }
+        if (diff_ex(projection, body_centers[i]).empty()) {
+            result.stop = ProjectionStop::absorbed;
             break;
+        }
+        if (projection_copy != nullptr)
+            expolygons_append((*projection_copy)[i], projection);
         expolygons_append(contacts[i], std::move(projection));
+        ++result.layers;
     }
+    return result;
 }
 
 bool closed_outline(const ExPolygons &area, const ExPolygons &outer_centerlines,
@@ -581,7 +661,8 @@ void diagnose_paint_lookup(const std::vector<PaintedSegment> &segments, const Ve
 
 bool painted_contact_width(const Layer &layer, const PaintedLayer &painted,
                            const Vec2d &point, const Vec2d &normal, double contact_width, double line_width,
-                           Vec3d *surface_normal = nullptr, RibDiagnostics *diagnostics = nullptr)
+                           Vec3d *surface_normal = nullptr, RibDiagnostics *diagnostics = nullptr,
+                           bool check_top_section = true)
 {
     auto reject = [&](RibReject reason, double value = 0) {
         if (diagnostics != nullptr)
@@ -600,7 +681,8 @@ bool painted_contact_width(const Layer &layer, const PaintedLayer &painted,
             return reject(RibReject::contact_contour, -1);
         if ((wall - edge).norm() > line_width)
             return reject(RibReject::contact_contour, (wall - edge).norm());
-        for (size_t section = 0; section < painted.sections.size(); ++section) {
+        const size_t section_count = check_top_section ? painted.sections.size() : painted.sections.size() - 1;
+        for (size_t section = 0; section < section_count; ++section) {
             const PaintedSegment *surface = painted_contact(painted.sections[section], wall, normal, line_width);
             if (surface == nullptr) {
                 if (diagnostics != nullptr)
@@ -620,6 +702,101 @@ bool painted_contact_width(const Layer &layer, const PaintedLayer &painted,
     return true;
 }
 
+bool validate_rib_contact(const Layer &layer, const PaintedLayer &painted, const Polygons *blockers,
+                          bool wall_present, const Vec2d &wall, const Vec2d &rib_normal,
+                          double contact_width, double line_width, Vec3d &surface_normal,
+                          RibDiagnostics &diagnostics, bool check_top_section = true)
+{
+    if (!wall_present)
+        return diagnostics.reject(RibReject::missing_wall, layer.print_z);
+    const PaintedSegment *surface = painted_contact(painted.sections[0], wall, rib_normal, line_width);
+    if (surface == nullptr) {
+        diagnose_paint_lookup(painted.sections[0], wall, rib_normal, layer.print_z, diagnostics);
+        return diagnostics.reject(RibReject::missing_paint, layer.print_z);
+    }
+    if (blockers != nullptr && contains(*blockers, scaled_point(wall)))
+        return diagnostics.reject(RibReject::blocked_contact, layer.print_z);
+    if (!painted_contact_width(layer, painted, wall, surface->normal, contact_width,
+                               line_width, &surface_normal, &diagnostics, check_top_section))
+        return false;
+    const Vec2d contact_normal = surface_normal.head<2>().normalized();
+    if (!rib_contact_aligned(rib_normal, contact_normal)) {
+        const double alignment = rib_normal.dot(contact_normal);
+        return diagnostics.reject(RibReject::contact_turn, layer.print_z,
+            std::acos(std::clamp(alignment, -1., 1.)) * 180 / M_PI);
+    }
+    return true;
+}
+
+bool finalize_rib_geometry(const PrintObject &object, TracedRib &rib,
+                           std::vector<ExPolygons> &bodies, const std::vector<ExPolygons> &body_centers,
+                           std::vector<ExPolygons> &contacts)
+{
+    const size_t count = bodies.size();
+    rib.areas.resize(count);
+    rib.centers.resize(count);
+    for (size_t i = 0; i < count; ++i) {
+        const double width = support_material_flow(&object, float(object.get_layer(int(i))->height)).width();
+        contacts[i] = union_ex(contacts[i]);
+        rib.centers[i] = body_centers[i];
+        expolygons_append(rib.centers[i], contacts[i]);
+        rib.centers[i] = union_ex(rib.centers[i]);
+        expolygons_append(bodies[i], offset_ex(contacts[i], float(scale_(0.5 * width)),
+                                              jtRound, double(scale_(0.005))));
+        ExPolygons area = union_ex(bodies[i]);
+        if (area.size() != 1 || !area.front().holes.empty() || rib.centers[i].size() != 1 ||
+            !rib.centers[i].front().holes.empty() || !rib.centers[i].front().contour.is_valid())
+            return rib.diagnostics.reject(RibReject::topology, object.get_layer(int(i))->print_z);
+        if (offset_ex(area, -float(scale_(width - EPSILON))).empty())
+            return rib.diagnostics.reject(RibReject::thin_body, object.get_layer(int(i))->print_z);
+        rib.areas[i] = std::move(area.front());
+    }
+    return true;
+}
+
+struct RibContactBand {
+    size_t begin;
+    size_t end;
+};
+
+std::vector<RibContactBand> periodic_rib_contact_bands(const PrintObject &object, const TracedRib &rib)
+{
+    const PrintObjectConfig &config = object.config();
+    const double bed_z = object.get_layer(0)->print_z - object.get_layer(0)->height;
+    const double first_top = bed_z + config.rib_support_contact_start_height.value;
+    const double seed_top = object.get_layer(int(rib.seed.top_layer))->print_z;
+    const double height = config.rib_support_contact_height.value;
+    const double spacing = config.rib_support_contact_spacing.value;
+    const size_t count = rib.seed.top_layer + 1;
+    std::vector<RibContactBand> result;
+    size_t layer_id = 0;
+    for (size_t band_id = 0;; ++band_id) {
+        const double top = first_top + double(band_id) * spacing;
+        if (top >= seed_top - 1e-9)
+            break;
+        const double bottom = top - height;
+        while (layer_id < count && object.get_layer(int(layer_id))->print_z <= bottom + 1e-9)
+            ++layer_id;
+        const size_t begin = layer_id;
+        while (layer_id < count && object.get_layer(int(layer_id))->print_z <= top + 1e-9)
+            ++layer_id;
+        if (begin < layer_id)
+            result.push_back({begin, layer_id});
+    }
+    return result;
+}
+
+RibContactBand seed_rib_contact_band(const PrintObject &object, const TracedRib &rib)
+{
+    const size_t end = rib.seed.top_layer + 1;
+    const double top = object.get_layer(int(rib.seed.top_layer))->print_z;
+    const double bottom = top - object.config().rib_support_contact_height.value;
+    size_t begin = 0;
+    while (begin < end && object.get_layer(int(begin))->print_z <= bottom + 1e-9)
+        ++begin;
+    return {begin, end};
+}
+
 bool generate_rib_geometry(const PrintObject &object, TracedRib &rib, const Polygon &bed,
                            const std::vector<PaintedLayer> &painted,
                            const std::vector<Polygons> &blockers)
@@ -633,119 +810,97 @@ bool generate_rib_geometry(const PrintObject &object, TracedRib &rib, const Poly
     std::vector<ProjectionClip> clips(count);
     rib.contacts.assign(count, false);
     rib.contact_normals.assign(count, Vec3d::Zero());
-    size_t band_begin = 0, band_end = 0;
-    bool band_allowed = false;
-    Vec3d band_normal = Vec3d::Zero();
-    auto in_band = [&object, &config, &rib](size_t i) {
-        const double dz = object.get_layer(int(rib.seed.top_layer))->print_z - object.get_layer(int(i))->print_z;
-        const double period = config.rib_support_contact_spacing.value;
-        const double phase = std::fmod(dz, period);
-        return phase < config.rib_support_contact_height.value || period - phase < 1e-4;
-    };
+    for (size_t i = 0; i < count; ++i)
+        build_rib_body_section(object, rib, i, bed, thickness, gap, bodies[i], body_centers[i]);
 
-    for (size_t i = 0; i < count; ++i) {
-        const Layer &layer = *object.get_layer(int(i));
-        const double width = support_material_flow(&object, float(layer.height)).width();
-        bodies[i] = intersection_ex(rib_body_area(layer, rib, i, thickness, gap), ExPolygons{ExPolygon(bed)});
-        if (i == 0) {
-            ExPolygons foot = diff_ex(intersection_ex(
-                Polygons{foot_area(rib.body_start.front(), rib.tips.front(), rib.seed.normal, thickness, width)},
-                offset_ex(bed, -float(scale_(0.5 * width)))),
-                offset_ex(layer.lslices, float(scale_(gap + 0.5 * width))));
-            expolygons_append(bodies[i], std::move(foot));
-            bodies[i] = union_ex(bodies[i]);
+    // 0: invalid painted band, 1: complete band, -1: fatal contact geometry.
+    auto prepare_band = [&](const RibContactBand &band, std::vector<ExPolygons> &sections,
+                            Vec3d &band_normal) {
+        ++rib.planned_contact_bands;
+        for (size_t i = band.begin; i < band.end; ++i) {
+            const Layer &layer = *object.get_layer(int(i));
+            const double line_width = support_material_flow(&object, float(layer.height)).width();
+            const Polygons *layer_blockers = i < blockers.size() ? &blockers[i] : nullptr;
+            if (!validate_rib_contact(layer, painted[i], layer_blockers, rib.wall_present[i],
+                                      rib.boundary[i], rib.seed.normal, contact_width, line_width,
+                                      rib.contact_normals[i], rib.diagnostics,
+                                      i != rib.seed.top_layer))
+                return 0;
         }
-        body_centers[i] = offset_ex(bodies[i], -float(scale_(0.5 * width)));
-
-        // Validate only the band encountered by this geometry traversal. The
-        // short look-ahead preserves the all-or-none painted-contact rule.
-        if (i == band_end) {
-            band_begin = i;
-            band_end = i + 1;
-            band_allowed = in_band(i);
-            if (band_allowed) {
-                ++rib.planned_contact_bands;
-                while (band_end < count && in_band(band_end))
-                    ++band_end;
-                for (size_t j = i; j < band_end; ++j) {
-                    const Layer &contact_layer = *object.get_layer(int(j));
-                    const double contact_line_width = support_material_flow(&object, float(contact_layer.height)).width();
-                    const PaintedSegment *surface = nullptr;
-                    if (!rib.wall_present[j]) {
-                        rib.diagnostics.reject(RibReject::missing_wall, contact_layer.print_z);
-                        band_allowed = false;
-                    } else {
-                        surface = painted_contact(painted[j].sections[0], rib.boundary[j], rib.seed.normal, contact_line_width);
-                        if (surface == nullptr) {
-                            diagnose_paint_lookup(painted[j].sections[0], rib.boundary[j], rib.seed.normal,
-                                                  contact_layer.print_z, rib.diagnostics);
-                            rib.diagnostics.reject(RibReject::missing_paint, contact_layer.print_z);
-                            band_allowed = false;
-                        } else if (j < blockers.size() && contains(blockers[j], scaled_point(rib.boundary[j]))) {
-                            rib.diagnostics.reject(RibReject::blocked_contact, contact_layer.print_z);
-                            band_allowed = false;
-                        } else if (!painted_contact_width(contact_layer, painted[j], rib.boundary[j], surface->normal,
-                                                          contact_width, contact_line_width, &rib.contact_normals[j],
-                                                          &rib.diagnostics)) {
-                            band_allowed = false;
-                        } else if (!rib_contact_aligned(rib.seed.normal, rib.contact_normals[j].head<2>().normalized())) {
-                            const double alignment = rib.seed.normal.dot(rib.contact_normals[j].head<2>().normalized());
-                            rib.diagnostics.reject(RibReject::contact_turn, contact_layer.print_z,
-                                std::acos(std::clamp(alignment, -1., 1.)) * 180 / M_PI);
-                            band_allowed = false;
-                        }
-                    }
-                    if (!band_allowed)
-                        break;
-                }
-                if (band_allowed) {
-                    ++rib.accepted_contact_bands;
-                    band_normal = rib.contact_normals[i];
-                }
+        sections.resize(band.end - band.begin);
+        for (size_t i = band.begin; i < band.end; ++i) {
+            const Layer &layer = *object.get_layer(int(i));
+            const double line_width = support_material_flow(&object, float(layer.height)).width();
+            const Vec2d contact_normal = rib.contact_normals[i].head<2>().normalized();
+            sections[i - band.begin] = build_rib_contact_section(
+                layer, bed, rib, i, contact_normal, contact_width, thickness, line_width);
+            if (sections[i - band.begin].empty()) {
+                rib.diagnostics.reject(RibReject::empty_neck, layer.print_z);
+                return -1;
             }
         }
-        if (!band_allowed)
-            continue;
-        rib.contacts[i] = true;
-        const Vec2d contact_normal = rib.contact_normals[i].head<2>().normalized();
-        const Vec2d base = rib.body_start[i] + 0.5 * width * rib.seed.normal;
-        const Polygon neck = rib_contact_polygon(rib.boundary[i] + 0.5 * width * contact_normal,
-                                                 base, rib.seed.normal, contact_normal, contact_width, thickness, width);
-        const ExPolygons section = intersection_ex(diff_ex(neck,
-            offset_ex(layer.lslices, float(scale_(0.5 * width)))), offset_ex(bed, -float(scale_(0.5 * width))));
-        if (section.empty())
-            return rib.diagnostics.reject(RibReject::empty_neck, layer.print_z);
-        expolygons_append(contacts[i], section);
-        if (i == band_begin && i > 0) {
-            backfill_contact_projection(object, rib, i, bed, thickness, contact_width, gap, band_normal,
-                                        body_centers, contacts, clips);
+        band_normal = rib.contact_normals[band.begin];
+        return 1;
+    };
+    auto append_band = [&](const RibContactBand &band, std::vector<ExPolygons> &sections,
+                           std::vector<ExPolygons> *copy) {
+        ++rib.accepted_contact_bands;
+        for (size_t i = band.begin; i < band.end; ++i) {
+            rib.contacts[i] = true;
+            if (copy != nullptr)
+                (*copy)[i].insert((*copy)[i].end(), sections[i - band.begin].begin(),
+                                  sections[i - band.begin].end());
+            expolygons_append(contacts[i], std::move(sections[i - band.begin]));
         }
-        // Resume at i + 1 after the nested i - 1 traversal finishes. No path
-        // exists yet in any of the lower layers modified by that traversal.
+    };
+
+    // The seed contact is independent of the periodic bed-anchored schedule.
+    // Build it first so its actual downward projection can suppress redundant
+    // periodic contacts below it without regenerating either band.
+    const RibContactBand seed_band = seed_rib_contact_band(object, rib);
+    std::vector<ExPolygons> seed_sections;
+    Vec3d seed_normal = Vec3d::Zero();
+    const int seed_status = prepare_band(seed_band, seed_sections, seed_normal);
+    if (seed_status < 0)
+        return false;
+    if (seed_status == 0)
+        return rib.diagnostics.reject(RibReject::top_band,
+                                      object.get_layer(int(rib.seed.top_layer))->print_z);
+    std::vector<ExPolygons> seed_reach(count);
+    append_band(seed_band, seed_sections, &seed_reach);
+    if (seed_band.begin > 0)
+        backfill_contact_projection(object, rib, seed_band.begin, bed, thickness, contact_width, gap,
+                                    seed_normal, body_centers, contacts, clips, &seed_reach);
+
+    const std::vector<RibContactBand> periodic_bands = periodic_rib_contact_bands(object, rib);
+    for (auto band_it = periodic_bands.rbegin(); band_it != periodic_bands.rend(); ++band_it) {
+        std::vector<ExPolygons> sections;
+        Vec3d band_normal = Vec3d::Zero();
+        const int status = prepare_band(*band_it, sections, band_normal);
+        if (status < 0)
+            return false;
+        if (status == 0)
+            continue;
+        const size_t top_layer = band_it->end - 1;
+        const Layer &layer = *object.get_layer(int(top_layer));
+        const double line_width = support_material_flow(&object, float(layer.height)).width();
+        const bool reaches_seed = !seed_reach[top_layer].empty() && !intersection_ex(
+            offset_ex(sections.back(), float(scale_(0.5 * line_width))),
+            offset_ex(seed_reach[top_layer], float(scale_(0.5 * line_width)))).empty();
+        if (reaches_seed) {
+            --rib.planned_contact_bands;
+            ++rib.suppressed_contact_bands;
+            continue;
+        }
+        append_band(*band_it, sections, nullptr);
+        if (band_it->begin > 0)
+            backfill_contact_projection(object, rib, band_it->begin, bed, thickness, contact_width, gap,
+                                        band_normal, body_centers, contacts, clips);
     }
     if (!rib.contacts.back())
         return rib.diagnostics.reject(RibReject::top_band, object.get_layer(int(rib.seed.top_layer))->print_z);
 
-    rib.areas.resize(count);
-    rib.centers.resize(count);
-    for (size_t i = 0; i < count; ++i) {
-        const double width = support_material_flow(&object, float(object.get_layer(int(i))->height)).width();
-        contacts[i] = union_ex(contacts[i]);
-        rib.centers[i] = body_centers[i];
-        expolygons_append(rib.centers[i], contacts[i]);
-        rib.centers[i] = union_ex(rib.centers[i]);
-        // For round joins the last argument is a SCALED arc tolerance, not a
-        // miter ratio. Bound envelope error to 5 microns instead of 3 scaled units.
-        expolygons_append(bodies[i], offset_ex(contacts[i], float(scale_(0.5 * width)), jtRound, double(scale_(0.005))));
-        ExPolygons area = union_ex(bodies[i]);
-        if (area.size() != 1 || !area.front().holes.empty() || rib.centers[i].size() != 1 ||
-            !rib.centers[i].front().holes.empty() || !rib.centers[i].front().contour.is_valid())
-            return rib.diagnostics.reject(RibReject::topology, object.get_layer(int(i))->print_z);
-        if (offset_ex(area, -float(scale_(width - EPSILON))).empty())
-            return rib.diagnostics.reject(RibReject::thin_body, object.get_layer(int(i))->print_z);
-        rib.areas[i] = std::move(area.front());
-    }
-    return true;
+    return finalize_rib_geometry(object, rib, bodies, body_centers, contacts);
 }
 
 bool generate_rib_toolpaths(const PrintObject &object, TracedRib &rib)
@@ -775,7 +930,8 @@ void generate_rib_foot_toolpaths(const PrintObject &object, const std::vector<Tr
     ExPolygons areas, centers;
     for (const TracedRib &rib : ribs) {
         areas.push_back(rib.areas.front());
-        expolygons_append(centers, rib.centers.front());
+        if (!rib.centers.empty())
+            expolygons_append(centers, rib.centers.front());
     }
     areas = union_ex(areas);
     const Layer &layer = *object.get_layer(0);
@@ -823,12 +979,14 @@ bool has_contact_normal(const PaintedLayer &painted)
 
 // Join coplanar painted cuts before scanning their XY angular intervals.
 // Mesh triangulation must not split one usable interval into facet fragments.
-std::vector<PaintedSegment> painted_runs(const PaintedLayer &painted)
+std::vector<PaintedSegment> simulated_candidate_runs(const PaintedLayer &painted)
 {
     std::vector<PaintedSegment> segments;
     if (!has_contact_normal(painted))
         return segments;
-    for (PaintedSegment segment : painted.sections[2]) {
+    // RibCandidate XY is defined at the model slice height. Keep candidate
+    // discovery on the same section as layer.lslices and final wall lookup.
+    for (PaintedSegment segment : painted.sections[0]) {
         const Vec2d tangent(-segment.normal.y(), segment.normal.x());
         if (segment.a.dot(tangent) > segment.b.dot(tangent))
             std::swap(segment.a, segment.b);
@@ -974,25 +1132,22 @@ bool rib_seed_contact(const PrintObject &object, const PaintedLayer &painted,
     Vec2d wall = point;
     if (!projected_outer_contour(layer, point, direction, 2 * width, wall) || (wall - point).norm() > width)
         return diagnostics.reject(RibReject::top_wall, layer.print_z);
-    if (layer_id < blockers.size() && contains(blockers[layer_id], scaled_point(wall)))
-        return diagnostics.reject(RibReject::blocked_contact, layer.print_z);
     const PrintRegion *region = rib_wall_region(layer, wall, run.normal, width);
     if (region == nullptr)
         return diagnostics.reject(RibReject::seed_region, layer.print_z);
     dimensions = rib_support_dimensions(object, *region);
-    if (!painted_contact_width(layer, painted, wall, run.normal, dimensions.contact_width,
-                               width, &normal, &diagnostics))
-        return false;
-    if (!rib_contact_aligned(direction, normal.head<2>().normalized()))
-        return diagnostics.reject(RibReject::contact_turn, layer.print_z);
-    return true;
+    const Polygons *layer_blockers = layer_id < blockers.size() ? &blockers[layer_id] : nullptr;
+    return validate_rib_contact(layer, painted, layer_blockers, true, wall, direction,
+                                dimensions.contact_width, width, normal, diagnostics, false);
 }
 
-bool find_rib_seed(const PrintObject &object, const std::vector<PaintedLayer> &painted,
-                   const std::vector<Polygons> &blockers, const std::vector<PaintedSegment> &runs,
-                   size_t layer_id, const Vec2d &origin, const Vec2d &desired, double risk,
-                   const std::vector<RibPlan> &plans, const std::vector<RibCandidate> &rejected,
-                   RibDiagnostics &diagnostics, RibCandidate &result)
+bool select_simulated_rib_candidate(const PrintObject &object, const std::vector<PaintedLayer> &painted,
+                                    const std::vector<Polygons> &blockers,
+                                    const std::vector<PaintedSegment> &runs,
+                                    size_t layer_id, const Vec2d &origin, const Vec2d &desired, double risk,
+                                    const std::vector<RibPlan> &plans,
+                                    const std::vector<RibCandidate> &rejected,
+                                    RibDiagnostics &diagnostics, RibCandidate &result)
 {
     struct Site { Vec2d point; Vec2d direction; const PaintedSegment *run; double alignment; double position_error; };
     std::vector<Site> sites;
@@ -1164,7 +1319,7 @@ bool rib_supersedes(const PrintObject &object, const TracedRib &higher, const Tr
 }
 
 bool overlaps_rib(const TracedRib &candidate, const std::vector<TracedRib> &existing,
-                  size_t &overlap_layer, const std::vector<size_t> &superseded = {})
+                   size_t &overlap_layer, const std::vector<size_t> &superseded = {})
 {
     for (size_t rib_id = 0; rib_id < existing.size(); ++rib_id) {
         if (std::find(superseded.begin(), superseded.end(), rib_id) != superseded.end())
@@ -1188,12 +1343,695 @@ bool overlaps_rib(const TracedRib &candidate, const std::vector<TracedRib> &exis
     return false;
 }
 
+struct RibPlacement {
+    std::vector<size_t> superseded;
+    std::optional<size_t> overlap_layer;
+};
+
+RibPlacement evaluate_rib_placement(const PrintObject &object, const TracedRib &candidate,
+                                    const std::vector<TracedRib> &existing)
+{
+    RibPlacement result;
+    for (size_t i = 0; i < existing.size(); ++i)
+        if (rib_supersedes(object, candidate, existing[i]))
+            result.superseded.push_back(i);
+    size_t overlap_layer = 0;
+    if (overlaps_rib(candidate, existing, overlap_layer, result.superseded))
+        result.overlap_layer = overlap_layer;
+    return result;
+}
+
 void cache_rib_bounds(TracedRib &rib)
 {
     rib.area_bounds.clear();
     rib.area_bounds.reserve(rib.areas.size());
     for (const ExPolygon &area : rib.areas)
         rib.area_bounds.push_back(get_extents(area));
+}
+
+bool realize_rib_candidate(const PrintObject &object, const RibCandidate &candidate,
+                           const Polygon &bed, const std::vector<PaintedLayer> &painted,
+                           const std::vector<Polygons> &blockers, double line_width,
+                           TracedRib &rib)
+{
+    rib = TracedRib{};
+    rib.seed = candidate;
+    if (!trace_rib(object, bed, candidate, object.config().rib_support_depth.value,
+                   object.config().support_object_xy_distance.value,
+                   candidate.dimensions.thickness, line_width, rib) ||
+        !generate_rib_geometry(object, rib, bed, painted, blockers))
+        return false;
+    cache_rib_bounds(rib);
+    return true;
+}
+
+struct SimpleRibSpan {
+    size_t run;
+    double begin;
+    double end;
+};
+
+struct SimpleRibAnchor {
+    double position;
+    double score;
+};
+
+struct SimpleRibContour {
+    std::vector<Linef> edges;
+    std::vector<Vec2d> normals;
+    std::vector<double> offsets;
+    double length = 0.;
+};
+
+struct SimpleRibRunLocation {
+    size_t contour;
+    double begin;
+    double end;
+    double contact_span;
+};
+
+struct SimpleCandidateLayer {
+    std::vector<SimpleRibContour> contours;
+    std::vector<PaintedSegment> runs;
+    std::vector<SimpleRibRunLocation> run_locations;
+    std::vector<SimpleRibSpan> seed_ranges;
+    std::vector<std::vector<SimpleRibAnchor>> anchors;
+    size_t painted_cuts = 0;
+    size_t matched_intervals = 0;
+    size_t joined_intervals = 0;
+    size_t short_contact_intervals = 0;
+    double longest_painted_cut = 0.;
+    double painted_extent = 0.;
+    double best_contact_line = 0.;
+    double best_required_contact = 0.;
+    double best_contact_slack = -std::numeric_limits<double>::infinity();
+};
+
+struct SimpleRibFeature {
+    Vec2d point;
+    Vec2d normal;
+    double score;
+};
+
+// Paint grants permission, but candidate coordinates must live on the actual
+// sliced outer contour rather than on a facet cut spanning a convex envelope.
+SimpleCandidateLayer build_simple_candidate_space(const PrintObject &object, const Layer &layer,
+                                                  const std::vector<PaintedSegment> &painted_cuts,
+                                                  double tolerance)
+{
+    SimpleCandidateLayer result;
+    result.painted_cuts = painted_cuts.size();
+    if (painted_cuts.empty())
+        return result;
+    std::vector<Linef> edges;
+    std::vector<Vec2d> normals;
+    std::vector<SimpleRibRunLocation> edge_locations;
+    for (const ExPolygon &slice : layer.lslices) {
+        const size_t contour_id = result.contours.size();
+        SimpleRibContour &outline = result.contours.emplace_back();
+        const Points &contour = slice.contour.points;
+        const double orientation = slice.contour.area() >= 0 ? 1. : -1.;
+        for (size_t i = 0; i < contour.size(); ++i) {
+            const Vec2d a = unscale(contour[i]);
+            const Vec2d b = unscale(contour[(i + 1) % contour.size()]);
+            const Vec2d edge = b - a;
+            if (edge.squaredNorm() <= EPSILON * EPSILON)
+                continue;
+            edges.emplace_back(a, b);
+            const Vec2d normal = orientation * Vec2d(edge.y(), -edge.x()).normalized();
+            normals.push_back(normal);
+            edge_locations.push_back({contour_id, outline.length, outline.length + edge.norm()});
+            outline.edges.emplace_back(a, b);
+            outline.normals.push_back(normal);
+            outline.offsets.push_back(outline.length);
+            outline.length += edge.norm();
+        }
+    }
+    struct EdgeInterval {
+        double begin;
+        double end;
+        Vec3d surface_normal;
+    };
+    std::vector<std::vector<EdgeInterval>> allowed(edges.size());
+    const auto edge_tree = AABBTreeLines::build_aabb_tree_over_indexed_lines(edges);
+    Vec2d painted_min = Vec2d::Constant(std::numeric_limits<double>::infinity());
+    Vec2d painted_max = Vec2d::Constant(-std::numeric_limits<double>::infinity());
+    auto clip = [](double value, double change, double low, double high, double &begin, double &end) {
+        if (std::abs(change) <= EPSILON)
+            return value >= low && value <= high;
+        double first = (low - value) / change;
+        double last = (high - value) / change;
+        if (first > last)
+            std::swap(first, last);
+        begin = std::max(begin, first);
+        end = std::min(end, last);
+        return end > begin + 1e-9;
+    };
+    for (const PaintedSegment &run : painted_cuts) {
+        painted_min = painted_min.cwiseMin(run.a).cwiseMin(run.b);
+        painted_max = painted_max.cwiseMax(run.a).cwiseMax(run.b);
+        const Vec2d direction = run.b - run.a;
+        const double length_squared = direction.squaredNorm();
+        result.longest_painted_cut = std::max(result.longest_painted_cut, std::sqrt(length_squared));
+        if (length_squared <= EPSILON * EPSILON)
+            continue;
+        AABBTreeIndirect::Tree<2, double>::BoundingBox query;
+        query.extend(run.a);
+        query.extend(run.b);
+        query.min() -= Vec2d::Constant(tolerance);
+        query.max() += Vec2d::Constant(tolerance);
+        AABBTreeIndirect::traverse(edge_tree, AABBTreeIndirect::intersecting(query), [&](const auto &node) {
+                if (normals[node.idx].dot(run.normal) < min_rib_contact_alignment)
+                    return true;
+                const Vec2d &a = edges[node.idx].a;
+                const Vec2d &b = edges[node.idx].b;
+                const Vec2d edge = b - a;
+                double edge_begin = 0., edge_end = 1.;
+                if (clip((a - run.a).dot(run.normal), edge.dot(run.normal),
+                         -tolerance, tolerance, edge_begin, edge_end) &&
+                    clip((a - run.a).dot(direction) / length_squared,
+                         edge.dot(direction) / length_squared, 0., 1., edge_begin, edge_end))
+                    allowed[node.idx].push_back({edge_begin, edge_end, run.surface_normal});
+                return true;
+            });
+    }
+    result.painted_extent = (painted_max - painted_min).norm();
+    for (size_t i = 0; i < edges.size(); ++i) {
+        auto &intervals = allowed[i];
+        std::sort(intervals.begin(), intervals.end(), [](const EdgeInterval &a, const EdgeInterval &b) {
+            return a.begin < b.begin;
+        });
+        for (size_t j = 0; j < intervals.size();) {
+            const double begin = intervals[j].begin;
+            double end = intervals[j].end;
+            const Vec3d surface_normal = intervals[j].surface_normal;
+            while (++j < intervals.size() && intervals[j].begin <= end + 1e-5)
+                end = std::max(end, intervals[j].end);
+            if ((end - begin) * edges[i].length() <= EPSILON)
+                continue;
+            ++result.matched_intervals;
+            const Vec2d edge = edges[i].b - edges[i].a;
+            const Vec2d midpoint = edges[i].a + 0.5 * (begin + end) * edge;
+            const PrintRegion *region = rib_wall_region(layer, midpoint, normals[i], tolerance);
+            const RibSupportDimensions dimensions = rib_support_dimensions(object,
+                region != nullptr ? *region : object.printing_region(0));
+            result.runs.push_back({edges[i].a + begin * edge, edges[i].a + end * edge,
+                                   normals[i], surface_normal});
+            result.run_locations.push_back({edge_locations[i].contour,
+                edge_locations[i].begin + begin * edge.norm(),
+                edge_locations[i].begin + end * edge.norm(), dimensions.contact_width + tolerance});
+        }
+    }
+    // The contact may slide across consecutive painted edges of one island.
+    // Split at a turn that moves the straight contact beyond half a line width.
+    constexpr double joined_gap = 1e-3;
+    for (size_t contour_id = 0; contour_id < result.contours.size(); ++contour_id) {
+        std::vector<size_t> runs;
+        for (size_t i = 0; i < result.run_locations.size(); ++i)
+            if (result.run_locations[i].contour == contour_id)
+                runs.push_back(i);
+        if (runs.empty())
+            continue;
+        const double perimeter = result.contours[contour_id].length;
+        for (size_t pos = 0; pos < runs.size(); ++pos) {
+            const size_t run_id = runs[pos];
+            const SimpleRibRunLocation &location = result.run_locations[run_id];
+            const double max_turn = std::min(M_PI / 12.,
+                std::asin(std::min(1., tolerance / location.contact_span)));
+            const double joined_normal_dot = std::cos(max_turn);
+            double line_begin = location.begin, line_end = location.end;
+            size_t current = pos;
+            double shift = 0.;
+            for (size_t step = 1; step < runs.size(); ++step) {
+                const size_t previous = (current + runs.size() - 1) % runs.size();
+                if (previous > current)
+                    shift -= perimeter;
+                const SimpleRibRunLocation &other = result.run_locations[runs[previous]];
+                if (std::abs(other.end + shift - line_begin) > joined_gap ||
+                    result.runs[runs[previous]].normal.dot(result.runs[runs[current]].normal) < joined_normal_dot ||
+                    result.runs[runs[previous]].normal.dot(result.runs[run_id].normal) < joined_normal_dot)
+                    break;
+                line_begin = other.begin + shift;
+                current = previous;
+            }
+            current = pos;
+            shift = 0.;
+            for (size_t step = 1; step < runs.size(); ++step) {
+                const size_t next = (current + 1) % runs.size();
+                if (next < current)
+                    shift += perimeter;
+                const SimpleRibRunLocation &other = result.run_locations[runs[next]];
+                if (std::abs(other.begin + shift - line_end) > joined_gap ||
+                    result.runs[runs[next]].normal.dot(result.runs[runs[current]].normal) < joined_normal_dot ||
+                    result.runs[runs[next]].normal.dot(result.runs[run_id].normal) < joined_normal_dot)
+                    break;
+                line_end = other.end + shift;
+                current = next;
+            }
+            result.joined_intervals += line_begin < location.begin - 1e-9 ||
+                                       line_end > location.end + 1e-9;
+            const double line_length = line_end - line_begin;
+            const double slack = line_length - location.contact_span;
+            if (slack > result.best_contact_slack) {
+                result.best_contact_slack = slack;
+                result.best_contact_line = line_length;
+                result.best_required_contact = location.contact_span;
+            }
+            const double half_contact = 0.5 * location.contact_span;
+            const double begin = std::max(location.begin, line_begin + half_contact);
+            const double end = std::min(location.end, line_end - half_contact);
+            if (end <= begin + 1e-9) {
+                ++result.short_contact_intervals;
+                continue;
+            }
+            const double length = location.end - location.begin;
+            result.seed_ranges.push_back({run_id, (begin - location.begin) / length,
+                                          (end - location.begin) / length});
+        }
+    }
+    return result;
+}
+
+// Paint only grants permission to attach. Rank sites using the complete model
+// contour, so a paint boundary or a triangulated facet cannot become a corner.
+std::vector<SimpleRibFeature> simple_rib_features(const Layer &layer, double width, double spacing)
+{
+    std::vector<SimpleRibFeature> features;
+    for (const ExPolygon &slice : layer.lslices) {
+        const Polygon &contour = slice.contour;
+        const double perimeter = unscale<double>(contour.length());
+        const double context = std::max(2 * width, std::min(0.5 * spacing, 0.05 * perimeter));
+        Polygon oriented = contour;
+        if (oriented.area() < 0)
+            std::reverse(oriented.points.begin(), oriented.points.end());
+        for (const Polygon &smoothed : oriented.simplify(scale_(std::max(width, 0.25 * context)))) {
+            const Points &points = smoothed.points;
+            if (points.size() < 3)
+                continue;
+            const double orientation = smoothed.area() >= 0 ? 1. : -1.;
+            for (size_t i = 0; i < points.size(); ++i) {
+                const Vec2d before = unscale(points[(i + points.size() - 1) % points.size()]);
+                const Vec2d at = unscale(points[i]);
+                const Vec2d after = unscale(points[(i + 1) % points.size()]);
+                const Vec2d incoming = at - before, outgoing = after - at;
+                const double first = incoming.norm(), second = outgoing.norm();
+                if (first <= EPSILON || second <= EPSILON)
+                    continue;
+                const double cross = orientation * (incoming.x() * outgoing.y() - incoming.y() * outgoing.x());
+                const double turn = std::atan2(cross, incoming.dot(outgoing));
+                if (turn >= M_PI / 6.) {
+                    const double size = std::min(1., std::min(first, second) / context);
+                    const double score = 1.3 + size * turn / (M_PI / 2.);
+                    features.push_back({at, orientation * Vec2d(incoming.y(), -incoming.x()) / first, score});
+                    features.push_back({at, orientation * Vec2d(outgoing.y(), -outgoing.x()) / second, score});
+                }
+                if (second >= context)
+                    features.push_back({0.5 * (at + after),
+                                        orientation * Vec2d(outgoing.y(), -outgoing.x()) / second,
+                                        1. + std::min(1., second / (4 * context))});
+            }
+        }
+    }
+    return features;
+}
+
+void prepare_simple_rib_anchors(SimpleCandidateLayer &layer, const Layer &model_layer,
+                                double width, double spacing)
+{
+    if (!layer.anchors.empty())
+        return;
+    layer.anchors.resize(layer.runs.size());
+    const double tolerance = std::max(width, 0.05 * spacing);
+    std::vector<Linef> runs;
+    runs.reserve(layer.runs.size());
+    for (const PaintedSegment &run : layer.runs)
+        runs.emplace_back(run.a, run.b);
+    const auto run_tree = AABBTreeLines::build_aabb_tree_over_indexed_lines(runs);
+    for (const SimpleRibFeature &feature : simple_rib_features(model_layer, width, spacing)) {
+        AABBTreeIndirect::Tree<2, double>::BoundingBox query;
+        query.extend(feature.point - Vec2d::Constant(tolerance));
+        query.extend(feature.point + Vec2d::Constant(tolerance));
+        AABBTreeIndirect::traverse(run_tree, AABBTreeIndirect::intersecting(query), [&](const auto &node) {
+            const size_t i = node.idx;
+            const PaintedSegment &run = layer.runs[i];
+            if (feature.normal.dot(run.normal) < min_rib_contact_alignment)
+                return true;
+            const Vec2d edge = run.b - run.a;
+            if (edge.squaredNorm() <= EPSILON * EPSILON)
+                return true;
+            const double position = (feature.point - run.a).dot(edge) / edge.squaredNorm();
+            if (position < 0. || position > 1.)
+                return true;
+            const double distance = (feature.point - run.a - position * edge).norm();
+            if (distance <= tolerance)
+                layer.anchors[i].push_back({position, feature.score - 0.2 * distance / tolerance});
+            return true;
+        });
+    }
+}
+
+struct SimpleRibSite {
+    Vec2d point;
+    size_t layer;
+    size_t run;
+};
+
+SimpleRibSite select_simple_rib_site(const SimpleCandidateLayer &layer, size_t layer_id, double width, double spacing)
+{
+    SimpleRibSite best{Vec2d::Zero(), layer_id, 0};
+    double best_score = -1;
+    for (const SimpleRibSpan &span : layer.seed_ranges) {
+        const PaintedSegment &run = layer.runs[span.run];
+        const Vec2d edge = run.b - run.a;
+        const double length = edge.norm();
+        const double remaining = (span.end - span.begin) * length;
+        // The fallback midpoint belongs to the remaining paint interval, but
+        // an unpainted model corner never gains priority from that boundary.
+        const double fallback = 0.25 + 0.25 * std::min(1., remaining / spacing);
+        if (fallback > best_score) {
+            best = {run.a + 0.5 * (span.begin + span.end) * edge, layer_id, span.run};
+            best_score = fallback;
+        }
+        for (const SimpleRibAnchor &anchor : layer.anchors[span.run]) {
+            if (anchor.position < span.begin || anchor.position > span.end || anchor.score <= best_score)
+                continue;
+            const double inset = std::min(width / length, 0.5 * (span.end - span.begin));
+            const double position = std::clamp(anchor.position, span.begin + inset, span.end - inset);
+            best = {run.a + position * edge, layer_id, span.run};
+            best_score = anchor.score;
+        }
+    }
+    return best;
+}
+
+// Subtract the unavailable range connected to the wall intersection. Nearby
+// edges on another island or across a fold do not belong to this range.
+std::optional<Vec2d> subtract_simple_rib_contour_range(SimpleCandidateLayer &layer, const Vec2d &center,
+                                                        const Vec2d &facing, double radius, double max_anchor_distance,
+                                                        std::optional<size_t> required_contour = std::nullopt)
+{
+    size_t contour_id = 0, edge_id = 0;
+    double fraction = 0., nearest_squared = std::min(radius * radius,
+                                                    max_anchor_distance * max_anchor_distance);
+    bool found = false;
+    for (size_t c = 0; c < layer.contours.size(); ++c) {
+        if (required_contour && c != *required_contour)
+            continue;
+        const SimpleRibContour &contour = layer.contours[c];
+        for (size_t e = 0; e < contour.edges.size(); ++e) {
+            if (contour.normals[e].dot(facing) <= 0.)
+                continue;
+            const Vec2d edge = contour.edges[e].b - contour.edges[e].a;
+            const double t = std::clamp((center - contour.edges[e].a).dot(edge) / edge.squaredNorm(), 0., 1.);
+            const double distance_squared = (center - contour.edges[e].a - t * edge).squaredNorm();
+            if (distance_squared < nearest_squared) {
+                contour_id = c;
+                edge_id = e;
+                fraction = t;
+                nearest_squared = distance_squared;
+                found = true;
+            }
+        }
+    }
+    if (!found)
+        return std::nullopt;
+
+    const SimpleRibContour &contour = layer.contours[contour_id];
+    const Vec2d edge = contour.edges[edge_id].b - contour.edges[edge_id].a;
+    const Vec2d intersection = contour.edges[edge_id].a + fraction * edge;
+    const double reach = std::sqrt(radius * radius - nearest_squared);
+    const double position = contour.offsets[edge_id] + fraction * contour.edges[edge_id].length();
+    auto boundary = [&](int direction) {
+        size_t edge = edge_id;
+        double offset = position;
+        double remaining = reach;
+        for (size_t visited = 0; visited < contour.edges.size(); ++visited) {
+            if (contour.normals[edge].dot(facing) <= 0.)
+                break;
+            const double edge_begin = contour.offsets[edge];
+            const double edge_end = edge_begin + contour.edges[edge].length();
+            const double available = direction > 0 ? edge_end - offset : offset - edge_begin;
+            const double step = std::min(remaining, available);
+            offset += direction * step;
+            remaining -= step;
+            if (remaining <= 1e-9)
+                break;
+            edge = direction > 0 ? (edge + 1) % contour.edges.size() :
+                                   (edge + contour.edges.size() - 1) % contour.edges.size();
+            offset = direction > 0 ? contour.offsets[edge] :
+                                     contour.offsets[edge] + contour.edges[edge].length();
+        }
+        return position + direction * (reach - remaining);
+    };
+    const double unavailable_begin = boundary(-1);
+    const double unavailable_end = boundary(1);
+    std::vector<SimpleRibSpan> remaining;
+    remaining.reserve(layer.seed_ranges.size());
+    for (const SimpleRibSpan &span : layer.seed_ranges) {
+        const SimpleRibRunLocation &location = layer.run_locations[span.run];
+        if (location.contour != contour_id) {
+            remaining.push_back(span);
+            continue;
+        }
+        const double length = location.end - location.begin;
+        std::vector<std::pair<double, double>> pieces{{location.begin + span.begin * length,
+                                                        location.begin + span.end * length}};
+        for (int wrap = -1; wrap <= 1; ++wrap) {
+            const double begin = unavailable_begin + wrap * contour.length;
+            const double end = unavailable_end + wrap * contour.length;
+            std::vector<std::pair<double, double>> next;
+            for (const auto &piece : pieces) {
+                if (begin > piece.first + 1e-9)
+                    next.emplace_back(piece.first, std::min(begin, piece.second));
+                if (end < piece.second - 1e-9)
+                    next.emplace_back(std::max(end, piece.first), piece.second);
+            }
+            pieces = std::move(next);
+            if (pieces.empty())
+                break;
+        }
+        for (const auto &piece : pieces)
+            remaining.push_back({span.run, (piece.first - location.begin) / length,
+                                 (piece.second - location.begin) / length});
+    }
+    layer.seed_ranges = std::move(remaining);
+    return intersection;
+}
+
+void subtract_simple_rib_projection(const PrintObject &object, std::vector<SimpleCandidateLayer> &layers,
+                                    const RibCandidate &seed, size_t seed_run,
+                                    double top_depth, double expansion_slope, double radius, double width)
+{
+    // The seed already lies on the sliced contour. Remove its local interval
+    // before projecting to lower layers, even if no lower wall is found.
+    subtract_simple_rib_contour_range(layers[seed.top_layer], seed.point, seed.normal, radius, 1e-4,
+                                      layers[seed.top_layer].run_locations[seed_run].contour);
+
+    // Keep the last wall position when the ray has no intersection, as the rib
+    // geometry does. Snap each fallback to a nearby contour before continuing.
+    Vec2d wall = seed.point;
+    const double top_z = object.get_layer(int(seed.top_layer))->print_z;
+    for (size_t remaining = seed.top_layer; remaining > 1; --remaining) {
+        const size_t i = remaining - 1;
+        const Layer &model_layer = *object.get_layer(int(i));
+        const double distance = top_depth + (top_z - model_layer.print_z) * expansion_slope;
+        const bool found_wall = projected_outer_contour(model_layer, seed.point, seed.normal, distance, wall);
+        if (found_wall) {
+            if (!layers[i].seed_ranges.empty())
+                subtract_simple_rib_contour_range(layers[i], wall, seed.normal, radius, 1e-4);
+        } else if (const auto fallback = subtract_simple_rib_contour_range(layers[i], wall, seed.normal, radius, width)) {
+            wall = *fallback;
+        }
+    }
+}
+
+void emit_rib_support(PrintObject &object, const std::vector<TracedRib> &ribs)
+{
+    size_t support_id = 0;
+    for (size_t layer_id = 0; layer_id < object.layer_count(); ++layer_id) {
+        const Layer &layer = *object.get_layer(int(layer_id));
+        Polylines paths;
+        Polygons feet;
+        if (layer_id == 0) {
+            generate_rib_foot_toolpaths(object, ribs, paths, feet);
+        } else {
+            for (const TracedRib &rib : ribs) {
+                if (layer_id > rib.seed.top_layer)
+                    continue;
+                paths.insert(paths.end(), rib.outlines[layer_id].begin(), rib.outlines[layer_id].end());
+            }
+        }
+        if (paths.empty() && feet.empty())
+            continue;
+        SupportLayer *support_layer = object.add_support_layer(int(support_id++), 0, layer.height, layer.print_z);
+        support_layer->support_fills.no_sort = true;
+        const Flow flow = support_material_flow(&object, float(layer.height));
+        // Keep a closed oriented path: generic ExtrusionLoop emission relocates its seam to the last nozzle position.
+        extrusion_entities_append_paths(support_layer->support_fills.entities, std::move(paths), erSupportMaterial,
+                                        flow.mm3_per_mm(), flow.width(), flow.height(), false);
+        if (!feet.empty()) {
+            std::unique_ptr<Fill> filler(Fill::new_from_type(ipRectilinear));
+            filler->set_bounding_box(get_extents(feet));
+            filler->spacing = flow.spacing();
+            filler->layer_id = 0;
+            const SupportParameters support_params(object);
+            fill_expolygons_with_sheath_generate_paths(support_layer->support_fills.entities, feet,
+                filler.get(), 1.f, erSupportMaterial, flow, support_params, false, false);
+        }
+        support_layer->support_islands = union_ex(
+            support_layer->support_fills.polygons_covered_by_width(float(SCALED_EPSILON)));
+    }
+}
+
+std::vector<RibCandidate> select_simple_rib_candidates(const PrintObject &object,
+                                                       const std::vector<PaintedLayer> &painted)
+{
+    const PrintObjectConfig &config = object.config();
+    const double width = support_material_flow(&object).width();
+    const double placement_distance = config.rib_support_max_spacing.value;
+
+    std::vector<SimpleCandidateLayer> layers(painted.size());
+    double painted_top_z = 0.;
+    size_t painted_top_layer = 0;
+    for (size_t i = 1; i < painted.size(); ++i) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        if (!painted[i].sections[0].empty()) {
+            painted_top_z = object.get_layer(int(i))->print_z;
+            painted_top_layer = i;
+        }
+        // lslices are sampled at slice_z; compare paint at the same height.
+        // A cut infinitesimally below print_z may collapse against a top edge.
+        // Match every painted facet cut separately. The contour intervals below
+        // are sorted and united, regardless of triangle order or tiny normal differences.
+        layers[i] = build_simple_candidate_space(
+            object, *object.get_layer(int(i)), painted[i].sections[0], width);
+    }
+
+    std::vector<RibCandidate> candidates;
+    size_t highest = layers.size() - 1;
+    while (highest > 0) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        while (highest > 0 && layers[highest].seed_ranges.empty())
+            --highest;
+        if (highest == 0)
+            break;
+        SimpleCandidateLayer &layer = layers[highest];
+        prepare_simple_rib_anchors(layer, *object.get_layer(int(highest)), width, placement_distance);
+        const SimpleRibSite site = select_simple_rib_site(layer, highest, width, placement_distance);
+        const PaintedSegment &run = layer.runs[site.run];
+        const Vec3d &surface_normal = run.surface_normal;
+        const double horizontal = surface_normal.head<2>().norm();
+        if (horizontal <= EPSILON) {
+            layer.seed_ranges.erase(std::remove_if(layer.seed_ranges.begin(), layer.seed_ranges.end(),
+                [&site](const SimpleRibSpan &span) { return span.run == site.run; }), layer.seed_ranges.end());
+            continue;
+        }
+        const Vec2d contact_normal = surface_normal.head<2>() / horizontal;
+        const Layer &model_layer = *object.get_layer(int(highest));
+        const PrintRegion *region = rib_wall_region(model_layer, site.point, run.normal, width);
+        const RibSupportDimensions dimensions = rib_support_dimensions(object,
+            region != nullptr ? *region : object.printing_region(0));
+        const double lean = -surface_normal.z() / horizontal *
+                            std::max(0., contact_normal.dot(run.normal));
+        const double weight = 1 - std::clamp(std::atan(lean) / (M_PI / 6.), 0., 1.);
+        const RibCandidate candidate{site.point, run.normal, contact_normal, highest, dimensions,
+            config.rib_support_expansion_factor.value * weight * weight};
+        candidates.push_back(candidate);
+        subtract_simple_rib_projection(object, layers, candidate, site.run,
+                                       config.rib_support_depth.value, candidate.expansion_slope,
+                                       placement_distance, width);
+    }
+
+    const double candidate_top_z = candidates.empty() ? 0. :
+        object.get_layer(int(candidates.front().top_layer))->print_z;
+    BOOST_LOG_TRIVIAL(info) << "Rib support object=" << object.model_object()->name
+        << " stage=simple-candidates candidates=" << candidates.size()
+        << " painted_top_z=" << painted_top_z << " candidate_top_z=" << candidate_top_z
+        << " top_paint_sections=" << painted[painted_top_layer].sections[0].size()
+        << " top_painted_cuts=" << layers[painted_top_layer].painted_cuts
+        << " top_matched_intervals=" << layers[painted_top_layer].matched_intervals
+        << " top_joined_intervals=" << layers[painted_top_layer].joined_intervals
+        << " top_short_contact_intervals=" << layers[painted_top_layer].short_contact_intervals
+        << " top_initial_seed_intervals=" << (layers[painted_top_layer].matched_intervals -
+                                               layers[painted_top_layer].short_contact_intervals)
+        << " top_slice_z=" << object.get_layer(int(painted_top_layer))->slice_z
+        << " top_longest_painted_cut_mm=" << layers[painted_top_layer].longest_painted_cut
+        << " top_painted_extent_mm=" << layers[painted_top_layer].painted_extent
+        << " top_best_contact_line_mm=" << layers[painted_top_layer].best_contact_line
+        << " top_required_contact_mm=" << layers[painted_top_layer].best_required_contact
+        << " top_best_contact_slack_mm=" << (layers[painted_top_layer].matched_intervals > 0 ?
+                                             layers[painted_top_layer].best_contact_slack : 0.);
+    return candidates;
+}
+
+void generate_simple_rib_support(PrintObject &object, const std::vector<PaintedLayer> &painted,
+                                 const std::vector<Polygons> &blockers, const Polygon &bed,
+                                 double line_width)
+{
+    const std::vector<RibCandidate> candidates = select_simple_rib_candidates(object, painted);
+    std::vector<TracedRib> ribs;
+    ribs.reserve(candidates.size());
+    RibDiagnostics diagnostics;
+    size_t rejected_geometry = 0;
+    size_t superseded_count = 0;
+    for (const RibCandidate &candidate : candidates) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        TracedRib rib;
+        const bool generated = realize_rib_candidate(
+            object, candidate, bed, painted, blockers, line_width, rib);
+        diagnostics.merge(rib.diagnostics);
+        if (!generated) {
+            ++rejected_geometry;
+            continue;
+        }
+        const RibPlacement placement = evaluate_rib_placement(object, rib, ribs);
+        if (placement.overlap_layer) {
+            diagnostics.reject(RibReject::overlap,
+                object.get_layer(int(*placement.overlap_layer))->print_z);
+            ++rejected_geometry;
+            continue;
+        }
+        for (auto it = placement.superseded.rbegin(); it != placement.superseded.rend(); ++it) {
+            ribs.erase(ribs.begin() + *it);
+            ++superseded_count;
+        }
+        ribs.push_back(std::move(rib));
+    }
+    for (size_t i = 0; i < ribs.size();) {
+        if (!generate_rib_toolpaths(object, ribs[i])) {
+            diagnostics.reject(RibReject::no_outline,
+                ribs[i].diagnostics.failures[size_t(RibReject::no_outline)].first_z);
+            ribs.erase(ribs.begin() + i);
+            ++rejected_geometry;
+        } else {
+            ++i;
+        }
+    }
+    size_t lower_contacts_accepted = 0;
+    size_t suppressed_contact_bands = 0;
+    for (const TracedRib &rib : ribs) {
+        lower_contacts_accepted += std::count(rib.contacts.begin(), rib.contacts.end(), true) - 1;
+        suppressed_contact_bands += rib.suppressed_contact_bands;
+    }
+    const double candidate_top_z = candidates.empty() ? 0. :
+        object.get_layer(int(candidates.front().top_layer))->print_z;
+    double emitted_top_z = 0.;
+    for (const TracedRib &rib : ribs)
+        emitted_top_z = std::max(emitted_top_z, object.get_layer(int(rib.seed.top_layer))->print_z);
+    BOOST_LOG_TRIVIAL(info) << "Rib support object=" << object.model_object()->name
+        << " stage=simple candidates=" << candidates.size() << " ribs=" << ribs.size()
+        << " candidate_top_z=" << candidate_top_z
+        << " emitted_top_z=" << emitted_top_z
+        << " lower_contacts_accepted=" << lower_contacts_accepted
+        << " suppressed_seed_projection=" << suppressed_contact_bands
+        << " superseded=" << superseded_count
+        << " rejected_geometry=" << rejected_geometry;
+    diagnostics.log("simple-geometry", object);
+    if (!ribs.empty())
+        emit_rib_support(object, ribs);
 }
 
 } // namespace
@@ -1204,16 +2042,21 @@ void generate_rib_support(PrintObject &object)
         BOOST_LOG_TRIVIAL(info) << "Rib support skipped: insufficient layers or raft";
         return;
     }
-    RibDiagnostics diagnostics;
-
     const PrintObjectConfig &config = object.config();
-    const auto painted = painted_sides(object);
-    const auto blockers = object.slice_support_blockers();
     const Layer &first = *object.get_layer(0);
     if (first.lslices.empty()) {
         BOOST_LOG_TRIVIAL(info) << "Rib support skipped: empty first-layer footprint";
         return;
     }
+    const auto painted = painted_sides(object);
+    const auto blockers = object.slice_support_blockers();
+    const double line_width = support_material_flow(&object).width();
+    const Polygon bed = rib_bed_shape(object);
+    if (config.rib_support_style.value == rssSimple) {
+        generate_simple_rib_support(object, painted, blockers, bed, line_width);
+        return;
+    }
+    RibDiagnostics diagnostics;
 
     // The original footprint stays fixed while each printed prefix gets its
     // own centroid and directional demand. Ribs change capacity, not mass.
@@ -1247,15 +2090,11 @@ void generate_rib_support(PrintObject &object)
     }
     if (base_edges.empty())
         return;
-    const double line_width = support_material_flow(&object).width();
-    const Vec3d plate_origin = object.print()->get_plate_origin();
-    Polygon bed = get_bed_shape_with_excluded_area(object.print()->config());
-    bed.translate(Point(scale_(plate_origin.x()), scale_(plate_origin.y())) - object.instances().front().shift);
     std::vector<std::vector<PaintedSegment>> runs(painted.size());
     for (size_t i = 1; i < painted.size(); ++i) {
         if (object.print()->canceled())
             throw CanceledException();
-        runs[i] = painted_runs(painted[i]);
+        runs[i] = simulated_candidate_runs(painted[i]);
         for (PaintedSegment &run : runs[i]) {
             run.face_center = 0.5 * (run.a + run.b);
             run.face_span = (run.b - run.a).norm();
@@ -1436,9 +2275,9 @@ void generate_rib_support(PrintObject &object)
                 if (best == residual.size())
                     break;
                 RibCandidate seed;
-                if (!find_rib_seed(object, painted, blockers, runs[layer_id], layer_id,
-                                   states[layer_id].center, residual[best].direction, states[layer_id].risk,
-                                   plans, rejected, diagnostics, seed)) {
+                if (!select_simulated_rib_candidate(object, painted, blockers, runs[layer_id], layer_id,
+                        states[layer_id].center, residual[best].direction, states[layer_id].risk,
+                        plans, rejected, diagnostics, seed)) {
                     unavailable[best] = true;
                     residual[best].blocked = true;
                     continue;
@@ -1457,24 +2296,16 @@ void generate_rib_support(PrintObject &object)
             const RibPlan &plan = plans[plan_id];
             ++geometry_attempts;
             TracedRib rib;
-            rib.seed = plan.seed;
-            const bool geometry_ok = trace_rib(object, bed, rib.seed, config.rib_support_depth.value,
-                                                config.support_object_xy_distance.value,
-                                                rib.seed.dimensions.thickness, line_width, rib) &&
-                                     generate_rib_geometry(object, rib, bed, painted, blockers);
-            if (geometry_ok)
-                cache_rib_bounds(rib);
-            std::vector<size_t> superseded;
-            if (geometry_ok)
-                for (size_t i = 0; i < ribs.size(); ++i)
-                    if (rib_supersedes(object, rib, ribs[i]))
-                        superseded.push_back(i);
-            size_t overlap_layer = 0;
-            const bool overlapping = geometry_ok && overlaps_rib(rib, ribs, overlap_layer, superseded);
+            const bool geometry_ok = realize_rib_candidate(
+                object, plan.seed, bed, painted, blockers, line_width, rib);
+            const RibPlacement placement = geometry_ok ?
+                evaluate_rib_placement(object, rib, ribs) : RibPlacement{};
+            const bool overlapping = placement.overlap_layer.has_value();
             if (!geometry_ok || overlapping) {
                 diagnostics.merge(rib.diagnostics);
                 if (overlapping)
-                    diagnostics.reject(RibReject::overlap, object.get_layer(int(overlap_layer))->print_z);
+                    diagnostics.reject(RibReject::overlap,
+                        object.get_layer(int(*placement.overlap_layer))->print_z);
                 // The final top may fail while the original contact remains
                 // printable. Keep the highest printable earlier top and let
                 // the next upward sweep fill the demand it no longer covers.
@@ -1483,15 +2314,10 @@ void generate_rib_support(PrintObject &object)
                     auto valid_top = [&](const RibCandidate &candidate) {
                         ++geometry_attempts;
                         TracedRib shorter;
-                        shorter.seed = candidate;
-                        size_t overlap_layer = 0;
-                        if (!trace_rib(object, bed, candidate, config.rib_support_depth.value,
-                                       config.support_object_xy_distance.value, candidate.dimensions.thickness,
-                                       line_width, shorter) ||
-                            !generate_rib_geometry(object, shorter, bed, painted, blockers))
+                        if (!realize_rib_candidate(
+                                object, candidate, bed, painted, blockers, line_width, shorter))
                             return false;
-                        cache_rib_bounds(shorter);
-                        return !overlaps_rib(shorter, ribs, overlap_layer);
+                        return !evaluate_rib_placement(object, shorter, ribs).overlap_layer;
                     };
                     if (valid_top(plan.tops.front())) {
                         // Most extension failures form an upper invalid range.
@@ -1532,7 +2358,7 @@ void generate_rib_support(PrintObject &object)
                 continue;
             }
             diagnostics.merge(rib.diagnostics);
-            for (auto it = superseded.rbegin(); it != superseded.rend(); ++it) {
+            for (auto it = placement.superseded.rbegin(); it != placement.superseded.rend(); ++it) {
                 ribs.erase(ribs.begin() + *it);
                 accepted_plan_indices.erase(accepted_plan_indices.begin() + *it);
                 ++superseded_count;
@@ -1584,44 +2410,12 @@ void generate_rib_support(PrintObject &object)
         BOOST_LOG_TRIVIAL(info) << "Rib support object=" << object.model_object()->name << " selected=" << i << " seed=(" << rib.seed.point.x() << ','
             << rib.seed.point.y() << ',' << object.get_layer(int(rib.seed.top_layer))->print_z << ") A="
             << std::atan2(rib.seed.normal.y(), rib.seed.normal.x()) * 180 / M_PI << " bands="
-            << rib.accepted_contact_bands << '/' << rib.planned_contact_bands;
+            << rib.accepted_contact_bands << '/' << rib.planned_contact_bands
+            << " suppressed_seed_projection=" << rib.suppressed_contact_bands;
         rib.diagnostics.log("selected-rib", object);
     }
 
-    size_t support_id = 0;
-    for (size_t layer_id = 0; layer_id < object.layer_count(); ++layer_id) {
-        const Layer &layer = *object.get_layer(int(layer_id));
-        Polylines paths;
-        Polygons feet;
-        if (layer_id == 0) {
-            generate_rib_foot_toolpaths(object, ribs, paths, feet);
-        } else {
-            for (const TracedRib &rib : ribs) {
-                if (layer_id > rib.seed.top_layer)
-                    continue;
-                paths.insert(paths.end(), rib.outlines[layer_id].begin(), rib.outlines[layer_id].end());
-            }
-        }
-        if (paths.empty() && feet.empty())
-            continue;
-        SupportLayer *support_layer = object.add_support_layer(int(support_id++), 0, layer.height, layer.print_z);
-        support_layer->support_fills.no_sort = true;
-        const Flow flow = support_material_flow(&object, float(layer.height));
-        // Keep a closed oriented path: generic ExtrusionLoop emission relocates its seam to the last nozzle position.
-        extrusion_entities_append_paths(support_layer->support_fills.entities, std::move(paths), erSupportMaterial,
-                                        flow.mm3_per_mm(), flow.width(), flow.height(), false);
-        if (!feet.empty()) {
-            std::unique_ptr<Fill> filler(Fill::new_from_type(ipRectilinear));
-            filler->set_bounding_box(get_extents(feet));
-            filler->spacing = flow.spacing();
-            filler->layer_id = 0;
-            const SupportParameters support_params(object);
-            fill_expolygons_with_sheath_generate_paths(support_layer->support_fills.entities, feet,
-                filler.get(), 1.f, erSupportMaterial, flow, support_params, false, false);
-        }
-        support_layer->support_islands = union_ex(
-            support_layer->support_fills.polygons_covered_by_width(float(SCALED_EPSILON)));
-    }
+    emit_rib_support(object, ribs);
 }
 
 } // namespace Slic3r

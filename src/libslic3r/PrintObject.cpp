@@ -1335,7 +1335,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "support_bottom_interface_spacing" //BBS
             || opt_key == "support_base_pattern"
             || opt_key == "support_style"
+            || opt_key == "rib_support_style"
             || opt_key == "rib_support_contact_height"
+            || opt_key == "rib_support_contact_start_height"
             || opt_key == "rib_support_contact_width"
             || opt_key == "rib_support_thickness"
             || opt_key == "rib_support_contact_spacing"

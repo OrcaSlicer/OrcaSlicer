@@ -73,17 +73,22 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                          const indexed_triangle_set *custom_mesh = nullptr, double lean_y = 0,
                          bool paint_all_sides = false, bool measure_projection_bounds = false, bool half_painted_face = false,
                          bool zaa_enabled = false, double zaa_min_z = 0,
-                         double painted_max_z = std::numeric_limits<double>::infinity())
+                         double painted_max_z = std::numeric_limits<double>::infinity(),
+                          const char *rib_style = "simulated",
+                          double painted_min_z = -std::numeric_limits<double>::infinity(),
+                          double object_gap = 0.6, double first_layer_expansion = 2.)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "enable_support", 1 }, { "support_type", "rib" },
+        { "enable_support", 1 }, { "support_type", "rib" }, { "rib_support_style", rib_style },
         { "rib_support_max_spacing", max_spacing },
         { "rib_support_depth", 8.0 },
         { "rib_support_expansion_factor", expansion_factor },
         { "outer_wall_line_width", outer_width },
-        { "support_object_xy_distance", 0.6 }, { "support_line_width", 0.4 },
-        { "rib_support_contact_height", 0.6 }, { "rib_support_contact_spacing", contact_spacing },
+        { "support_object_xy_distance", object_gap }, { "support_line_width", 0.4 },
+        { "raft_first_layer_expansion", first_layer_expansion },
+        { "rib_support_contact_height", 0.6 }, { "rib_support_contact_start_height", 0.0 },
+        { "rib_support_contact_spacing", contact_spacing },
         { "tree_support_wall_count", wall_count }, { "rib_support_contact_projection_angle", projection_angle },
         { "layer_height", 0.2 },
         { "initial_layer_print_height", 0.2 },
@@ -111,7 +116,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             if (n.x() > 0.5f || (paint_all_sides && n.head<2>().norm() > 0.5f)) {
                 const float facet_mid_z = (mesh.vertices[f(0)].z() + mesh.vertices[f(1)].z() +
                                            mesh.vertices[f(2)].z()) / 3.f;
-                if (facet_mid_z > painted_max_z)
+                if (facet_mid_z < painted_min_z || facet_mid_z > painted_max_z)
                     continue;
                 // A cube's side has two triangles; one is half the same plane.
                 if (half_painted_face && painted_one_face_facet)
@@ -333,6 +338,128 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             }
     }
     return result;
+}
+
+TEST_CASE("Rib style defaults to the existing simulated planner", "[SupportMaterial]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE(config.opt_enum<RibSupportStyle>("rib_support_style") == rssSimulated);
+    config.set_deserialize("rib_support_style", "simple");
+    REQUIRE(config.opt_enum<RibSupportStyle>("rib_support_style") == rssSimple);
+}
+
+TEST_CASE("Simple ribs require painting and emit closed sheets from selected sites", "[SupportMaterial]")
+{
+    auto slice_simple = [](bool paint) {
+        return slice_ribs(20, paint, 0, 1.2, 0.4, 1, 30,
+                          false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                          false, false, false, false, 0,
+                          std::numeric_limits<double>::infinity(), "simple");
+    };
+    REQUIRE(slice_simple(false).first_layer_paths == 0);
+    const RibRun painted = slice_simple(true);
+    REQUIRE(painted.first_layer_paths > 0);
+    REQUIRE(painted.top_body_paths > 0);
+    REQUIRE(painted.contact_layers > 0);
+    REQUIRE(painted.open_paths == 0);
+}
+
+TEST_CASE("Simple rib contacts fit on the painted island edge", "[SupportMaterial]")
+{
+    const indexed_triangle_set mesh = its_make_cube(6, 1, 30);
+    auto slice_simple = [&](double contact_width) {
+        return slice_ribs(20, true, 0, 2, contact_width, 1, 30,
+                          false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                          false, false, false, false, 0,
+                          std::numeric_limits<double>::infinity(), "simple");
+    };
+    REQUIRE(slice_simple(1.2).first_layer_paths == 0);
+    REQUIRE(slice_simple(0.2).first_layer_paths > 0);
+}
+
+TEST_CASE("Simple ribs reach the highest painted layer on an upward-leaning side", "[SupportMaterial]")
+{
+    const double height = 20.;
+    const RibRun result = slice_ribs(20, true, -0.2, 1.2, 0.2, 1, 30,
+                                     false, false, 0.4, 8, 0, height, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "simple");
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(height, 0.001));
+}
+
+TEST_CASE("Simple ribs start in the top layer when only that layer is painted", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh;
+    for (float z : {0.f, 19.8f, 19.98f, 20.f}) {
+        mesh.vertices.emplace_back(6.f, 60.f, z);
+        mesh.vertices.emplace_back(6.f, 0.f, z);
+        mesh.vertices.emplace_back(0.f, 0.f, z);
+        mesh.vertices.emplace_back(0.f, 60.f, z);
+    }
+    mesh.indices.emplace_back(0, 1, 2);
+    mesh.indices.emplace_back(0, 2, 3);
+    mesh.indices.emplace_back(12, 14, 13);
+    mesh.indices.emplace_back(12, 15, 14);
+    for (int band = 0; band < 3; ++band)
+        for (int side = 0; side < 4; ++side) {
+            const int a = 4 * band + side;
+            const int b = 4 * band + (side + 1) % 4;
+            mesh.indices.emplace_back(a, b + 4, b);
+            mesh.indices.emplace_back(a, a + 4, b + 4);
+        }
+
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.4, 1, 30,
+                                      false, false, 0.4, 8, 0, 20, 6, &mesh, 0,
+                                      false, false, false, false, 0,
+                                      19.98, "simple", 19.8);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(20., 0.001));
+    REQUIRE(result.contact_layers == 1);
+    REQUIRE(result.projection_layers > 0);
+}
+
+TEST_CASE("Simple ribs unite overlapping first-layer feet", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh = its_make_cube(6, 1.2, 30);
+    indexed_triangle_set other = its_make_cube(6, 1.2, 30);
+    its_transform(other, identity3f().translate(Vec3f{0.f, 1.5f, 0.f}));
+    its_merge(mesh, other);
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.4, 1, 30,
+                                      false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                                      false, false, false, false, 0,
+                                      std::numeric_limits<double>::infinity(), "simple");
+    REQUIRE(result.top_body_paths >= 2);
+    REQUIRE(result.first_layer_closed_paths == 1);
+}
+
+TEST_CASE("Simple rib feet use first-layer expansion and contacts follow their projection angle", "[SupportMaterial]")
+{
+    auto slice_simple = [](double expansion) {
+        return slice_ribs(20, true, 0, 1.2, 0.4, 1, 60,
+                          false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                          false, false, false, false, 0,
+                          std::numeric_limits<double>::infinity(), "simple",
+                          -std::numeric_limits<double>::infinity(), 0.6, expansion);
+    };
+    const RibRun compact = slice_simple(0.);
+    const RibRun expanded = slice_simple(2.);
+    REQUIRE(expanded.first_layer_paths > 0);
+    REQUIRE(expanded.foot_long_span > compact.foot_long_span + 1.8);
+    REQUIRE(expanded.projection_layers > 0);
+    REQUIRE_THAT(expanded.min_projection_gap, Catch::Matchers::WithinAbs(0.2 / std::tan(M_PI / 3), 0.005));
+}
+
+TEST_CASE("Simple rib unavailable ranges stay on their island contour", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh = its_make_cube(6, 6, 30);
+    indexed_triangle_set other = its_make_cube(6, 6, 30);
+    its_transform(other, identity3f().translate(Vec3f{0.f, 10.f, 0.f}));
+    its_merge(mesh, other);
+    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "simple");
+    REQUIRE(result.top_body_paths >= 2);
 }
 
 TEST_CASE("Rib support does not create contacts without painted sides", "[SupportMaterial]")

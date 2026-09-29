@@ -369,6 +369,12 @@ static t_config_enum_values s_keys_map_SupportMaterialStyle {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialStyle)
 
+static t_config_enum_values s_keys_map_RibSupportStyle {
+    { "simulated", rssSimulated },
+    { "simple", rssSimple }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(RibSupportStyle)
+
 static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "auto",           smipAuto },
     { "rectilinear",    smipRectilinear },
@@ -7121,6 +7127,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));
 
+    def = this->add("rib_support_style", coEnum);
+    def->label = L("Style");
+    def->category = L("Support");
+    def->tooltip = L("Simple selects candidates directly from the remaining painted side regions. Simulated uses the directional printed-prefix planner. Both styles use the same contact validation, rib geometry, collision checks and toolpath generation after candidate selection.");
+    def->enum_keys_map = &ConfigOptionEnum<RibSupportStyle>::get_enum_values();
+    def->enum_values = { "simple", "simulated" };
+    def->enum_labels = { L("Simple"), L("Simulated") };
+    // Rib type is available in Simple UI mode, so its style must be available there too.
+    def->mode = comSimple;
+    // Missing keys in older rib projects retain their existing geometry.
+    def->set_default_value(new ConfigOptionEnum<RibSupportStyle>(rssSimulated));
+
     def = this->add("rib_support_contact_height", coFloat);
     def->label = L("Rib contact height");
     def->category = L("Support");
@@ -7130,6 +7148,16 @@ void PrintConfigDef::init_fff_params()
     def->max = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.6));
+
+    def = this->add("rib_support_contact_start_height", coFloat);
+    def->label = L("Rib contact start height");
+    def->category = L("Support");
+    def->tooltip = L("Height above the build plate of the top of the first periodic rib contact band. Later bands use the rib contact spacing. The default zero-height band is below the printable volume and is naturally clipped by the build plate.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("rib_support_contact_width", coFloatOrPercent);
     def->label = L("Rib contact length");
@@ -7146,7 +7174,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("rib_support_thickness", coFloatOrPercent);
     def->label = L("Rib thickness");
     def->category = L("Support");
-    def->tooltip = L("Geometric thickness of the rib body, in millimeters or as a percentage of the painted region's outer-wall line width. Support wall loops controls the number of closed outlines, with at least one loop. Loops that do not fit are omitted. Must fit two extrusion lines.");
+    def->tooltip = L("Geometric thickness of the rib body, in millimeters or as a percentage of the painted region's outer-wall line width. Support wall count controls the closed loops generated inside every accepted rib.");
     def->sidetext = L("mm or %");
     def->ratio_over = "outer_wall_line_width";
     def->min = 0.1;
@@ -7158,7 +7186,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("rib_support_contact_spacing", coFloat);
     def->label = L("Rib contact spacing");
     def->category = L("Support");
-    def->tooltip = L("Vertical distance between side contact bands. Contacts are only placed on painted faces.");
+    def->tooltip = L("Vertical distance between periodic side contact bands. Their top heights are shared by all ribs and measured upward from the rib contact start height. The seed contact remains at the top of each rib.");
     def->sidetext = L("mm");
     def->min = 1;
     def->max = 100;
@@ -7168,7 +7196,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("rib_support_contact_projection_angle", coFloat);
     def->label = L("Rib contact projection angle");
     def->category = L("Support");
-    def->tooltip = L("Angle rotated downward from the outward surface normal at each contact band's lowest layer, from 0 to 90 degrees. On a vertical wall, 0 is horizontal and creates no lower-layer projection; 90 projects vertically. Inclined walls use their actual surface normal. The specified direction is not limited by extrusion overlap or clamped to vertical. Horizontal or upward directions do not intersect lower layers. The projection is clipped against the model and build plate and stops when absorbed into the rib body, removed by clipping, or at the build plate.");
+    def->tooltip = L("Angle rotated downward from the local outward surface normal at each contact band's lowest layer, from 0 to 90 degrees. Both rib styles follow that ray directly; a horizontal or upward ray has no lower-layer projection.");
     def->sidetext = u8"°";
     def->min = 0;
     def->max = 90;
@@ -7188,15 +7216,15 @@ void PrintConfigDef::init_fff_params()
     def = this->add("rib_support_expansion_factor", coFloat);
     def->label = L("Rib expansion factor");
     def->category = L("Support");
-    def->tooltip = L("Multiplier for outward rib expansion toward the build plate. The expansion slope is this factor times height divided by the square root of the model's first-layer area, increased by the printed volume's XY center offset from the base center. Only horizontal or downward-facing surface normals contribute to the average around the seed; upward-facing normals are ignored. The average outward tilt reduces this slope with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees outward, and zero at 30 degrees or more. This weight stays constant over the whole rib. This is a geometric estimate, not a force simulation. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
+    def->tooltip = L("Multiplier for outward rib expansion toward the build plate. Simple currently uses a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("rib_support_max_spacing", coFloat);
-    def->label = L("Rib placement distance scale");
+    def->label = L("Rib placement distance");
     def->category = L("Support");
-    def->tooltip = L("Minimum preferred distance between ribs facing the same painted surface, limited to half the usable painted span. Also scales the estimated capacity penalty for long contact necks. Rib count follows remaining directional demand.");
+    def->tooltip = L("Simple subtracts unavailable ranges along the selected island contour near a seed and its downward wall intersections. This distance limits how far each subtraction travels. Simulated uses it as preferred spacing and to scale the capacity penalty for long contact necks.");
     def->sidetext = L("mm");
     def->min = 2;
     def->max = 100;
