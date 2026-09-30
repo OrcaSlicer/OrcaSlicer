@@ -20,23 +20,23 @@
 /* faint up-triangle hint on hover, only while the column is not the active sort */
 .hdr .sort-th:hover .sort-tri {
   display: block;
-  border-bottom: 5px solid var(--muted);
+  border-bottom: 5px solid var(--dimmed-color);
 }
 
 /* active column wins over the hover hint (same specificity, declared later) */
 .hdr .sort-th[data-sort="asc"] .sort-tri {
   display: block;
-  border-bottom: 5px solid var(--text);
+  border-bottom: 5px solid var(--main-color-fixed);
   border-top: 0;
 }
 
 .hdr .sort-th[data-sort="desc"] .sort-tri {
   display: block;
-  border-top: 5px solid var(--text);
+  border-top: 5px solid var(--main-color-fixed);
   border-bottom: 0;
 }
 
 .hdr .sort-th[data-sort="asc"],
 .hdr .sort-th[data-sort="desc"] {
-  color: var(--text);
+  color: var(--main-color-fixed);
 }

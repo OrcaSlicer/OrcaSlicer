@@ -274,8 +274,8 @@
         >
           Re-Calculate
       </div>
-        <div class="ComboBox">
-          <div class="arrow-icon"></div>
+        <div class="ComboBox" id="extruders_combo">
+          <div class="icon16"></div>
           <select
             id="extruders"
             onchange="handleExtruderSelect(document.getElementById('extruders').value)"
@@ -510,7 +510,7 @@
 
         updateFlushMultiplier(m_curr_extruder_id)
 
-        const selectElement = document.getElementById('extruders');
+        const selectElement = document.getElementById('extruders_combo');
         if (m_number_of_extruders > 1) {
           selectElement.style.display = 'inline-block';
         } else {

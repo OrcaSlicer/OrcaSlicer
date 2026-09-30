@@ -306,34 +306,3 @@ function CheckCssLinkExist( LinkPath )
 	
 	return nTotal;
 }
-
-
-/*------Dark Mode------*/
-
-function SwitchDarkMode( DarkCssPath )
-{		
-	ExecuteDarkMode( DarkCssPath );
-    setInterval("ExecuteDarkMode('"+DarkCssPath+"')",1000);	
-}
-
-function ExecuteDarkMode( DarkCssPath )
-{
-    let nMode=0;
-	let bDarkMode=navigator.userAgent.match(  RegExp('dark','i') );	
-	if( bDarkMode!=null )
-		nMode=1;
-	
-	let nNow=CheckCssLinkExist(DarkCssPath);
-	if( nMode==0 )
-	{
-		if(nNow>0)
-			RemoveCssLink(DarkCssPath);
-	}
-	else
-	{
-		if(nNow==0)
-			AddCssLink(DarkCssPath);
-	}	
-}
-
-SwitchDarkMode( "../css/dark.css" );

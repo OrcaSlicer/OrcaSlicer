@@ -1,221 +1,1331 @@
+/* 
+TODO
+branch tree
+@media usages
+disable user selection
+
+STYLE VARIABLE
+popup shadow rgba
+
+TODO CONTROLS
+Color Swatch
+Jumbo sized controls (TabCtrl for Guide)
+MultiSwitch
+SwitchButton
+RadioGroup
+SpinInput
+Collapsable Section with Header
+Slider
+TextInput with Sidetext feature
+StaticBox
+LabeledStaticBox
+StaticLine
+Loading Indicator
+ListItem , ListHeader
+InfoBox
+Headings H1,H2,H3,H4,H5,H6
+ThumbnailBox
+ContextMenu Nesting popups / checked items / radio items
+ResizeSplitter > 3 dots
+
+REQUIRES JS HELPERS
+Create gui helper document for automizing binding and controlling events. And split document for related control types. this will work like "include" logic on cpp
+ComboBox > Fix styling (Requires helper functions)
+
+EXAMPLE STRUCTURES FOR PREMADE LAYOUTS
+Main Window
+Modal Popup
+Dialog Buttons (Bottom frame)
+
+KNOWN ISSUES
+TabCtrl tabs changes its positions because of font width change
+*/
+
 /*----ORCA UNIFIED STYLING FOR ALL CONTROLS----*/
 
-/*////////////////////////////*/
-/*         VARIABLES          */
-/*////////////////////////////*/
+/*//////////////////////////////////////*/
+/*/// VARIABLES ////////////////////////*/
+/*//////////////////////////////////////*/
 
 /*/// CONTROL VALUES ///*/
 :root {
-	--dialog-button-sizer-height : 62px; /*----32 + 15 * 2----*/
-	--dialog-button-gap          : 15px;
+  --window-padding            : 15px;
+  --statusbar-height          : 28px;
+  --dialog-button-sizer-height: 62px; /*----32 + 15 * 2----*/
+  --dialog-button-gap         : 15px;
+  --scrollbar-width           : 10px;
 }
 
 /*/// COLORS ///*/
 :root { 
-	--main-color			: #009688;
-	--main-color-hover		: #26A69A;
-	--main-color-fixed		: #009688;
-	--bg-color				: #FFFFFF;
-	--bg-color-secondary	: #F4F4F4;
-	--bg-color-alt			: #F0F0F0;
-	--fg-color-text			: #262E30;
-	--fg-color-label		: #363636;
-	--fg-color-disabled		: #ACACAC;
-	--focus-bg-item			: #BFE1DE;
-	--focus-bg-box			: #E5F0EE;
-	--border-color			: #DBDBDB;
-	--icon-color			: #7C8282;
-	--button-fg-light		: #FEFEFE;
-	--button-fg-text		: #262E30;
-	--button-fg-disabled	: #6B6B6B;
-	--button-bg-normal		: #DFDFDF;
-	--button-bg-hover		: #D4D4D4;
-	--button-bg-disabled	: var(--button-bg-normal);
-	--button-bg-alert		: #E14747;
+  --main-color            : #009688;
+  --main-color-hover      : #26A69A;
+  --main-color-fixed      : #009688;   /*Use on thin elements like text, lines for better dark mode support*/
+  --main-color-fixed-hover: #26A69A;   /*Required to support hover events on dark mode for main-color-fixed*/
+  --main-color-brightest  : #00FFD4;   /*Brightest version of main color. Only used on focus border of confirm styled buttons */
+  --bg-color              : #FFFFFF;
+  --bg-color-secondary    : #F4F4F4;
+  --bg-color-alt          : #F0F0F0;
+  --disabled-bg           : #F0F0F1;   /*Disabled control background (combobox, checkbox, input...)*/
+  --checked-bg            : #00968840; /*main color with 25% opacity. checked menu item bg on combox, active tab control bg...*/
+  --focus-bg              : #00968819; /*main color with 10% opacity. focused control background*/
+  --fg-color-text         : #262E30;   /*More attention-grabbing color that mostly used for values of controls*/
+  --fg-color-label        : #575757;   /*Less attention-grabbing color that mostly used for labels of controls*/
+  --fg-color-disabled     : #ACACAC;   /*Dimmed text color*/
+  --fg-light-fixed        : #FEFEFE;   /*Fixed bright color for text/icons with colored background*/
+  --focus-bg-item         : #BFE1DE;   /*deprecated*/
+  --focus-bg-box          : #E5F0EE;   /*deprecated*/
+  --border-color          : #DBDBDB;
+  --border-dimmed         : #E8E8E8;
+  --icon-color            : #7C8282;
+  --dimmed-color          : var(--icon-color);
+
+  --button-fg-light       : var(--fg-light-fixed);
+  --button-fg-text        : #262E30;
+  --button-fg-disabled    : #6B6B6B;
+  --button-bg-normal      : #DFDFDF;
+  --button-bg-hover       : #D4D4D4;
+  --button-bg-disabled    : var(--button-bg-normal);
+  --button-bg-alert       : #E14747;
+
+  /* Complement colors for main color */
+  --tone-green            : #137333;
+  --tone-green-12         : #1373331F; /*12% opacity*/
+  --tone-orange           : #CC8B3B;
+  --tone-orange-12        : #CC8B3B1F; /*12% opacity*/
+  --tone-red              : #b42318;
+  --tone-red-12           : #b423181F; /*12% opacity*/
+  --tone-blue             : #377EC0;
+  --tone-blue-12          : #345BA91F; /*12% opacity*/
+  --tone-teal             : #009688;
+  --tone-teal-12          : #0096881F; /*12% opacity*/
+  --tone-neutral          : #44505c;
+  --tone-neutral-12       : #44505c1F; /*12% opacity*/
+  --tone-inactive         : #7C8282;
+  --tone-inactive-12      : #7C82821F; /*12% opacity*/
+
+  /*WIP gold, purple */
+
+  --gradient-green        : linear-gradient(180deg, #45ba53 0%, #2fa744 100%);
+  --gradient-orange       : linear-gradient(180deg, #e3a13d 0%, #c77a16 100%);
+
+  --shadow-opacity        : rgba(0,0,0, 0.12);
+  --menu-shadow           : 0 8px  16px var(--shadow-opacity);
+  --popup-shadow          : 0 12px 24px var(--shadow-opacity);
 }
   
 @media (prefers-color-scheme: dark) { 
 :root {
-	--main-color			: #00675B;
-	--main-color-hover		: #008172;
-	--main-color-fixed		: #009688;
-	--bg-color				: #2D2D31;
-	--bg-color-secondary	: #36363B;
-	--bg-color-alt			: #242428;
-	--fg-color-text			: #EFEFF0;
-	--fg-color-label		: #B2B3B5;
-	--fg-color-disabled		: #65656A;
-	--focus-bg-item			: #223C3C;
-	--focus-bg-box			: #283232;
-	--border-color			: #4A4A51;
-	--icon-color			: #949494;
-	--button-fg-light		: #FEFEFE;
-	--button-fg-text		: #EFEFF0;
-	--button-fg-disabled	: #818183;
-	--button-bg-normal		: #3E3E45;
-	--button-bg-hover		: #4D4D54;
-	--button-bg-disabled	: var(--button-bg-normal);
-	--button-bg-alert		: #E14747;
+  --main-color            : #00675B;
+  --main-color-hover      : #008172;
+  --main-color-fixed      : #009688;   /*Use on thin elements like text, lines for better dark mode support*/
+  --main-color-fixed-hover: #26A69A;   /*Required to support hover events on dark mode for main-color-fixed*/
+  --main-color-brightest  : #22bfb0;   /*Brightest version of main color. Only used on focus border of confirm styled buttons */
+  --bg-color              : #2D2D31;
+  --bg-color-secondary    : #36363B;
+  --bg-color-alt          : #242428;
+  --disabled-bg           : #333337;   /*Disabled control background (combobox, checkbox, input...)*/
+  --checked-bg            : #00675B40; /*main color with 25% opacity. checked menu item bg on combox, active tab control bg...*/
+  --focus-bg              : #00675B19; /*main color with 10% opacity. focused control background*/
+  --fg-color-text         : #EFEFF0;   /*More attention-grabbing color that mostly used for values of controls*/
+  --fg-color-label        : #B2B3B5;   /*Less attention-grabbing color that mostly used for labels of controls*/
+  --fg-color-disabled     : #65656A;   /*Dimmed text color*/
+  --fg-light-fixed        : #FEFEFE;   /*Fixed bright color for text/icons with colored background*/
+  --focus-bg-item         : #223C3C;   /*deprecated - replaced with checked-bg*/
+  --focus-bg-box          : #283232;   /*deprecated - replaced with focus-bg*/
+  --border-color          : #4A4A51;
+  --border-dimmed         : #404046;
+  --icon-color            : #949494;
+  --dimmed-color          : var(--icon-color);
+
+  --button-fg-light       : var(--fg-light-fixed);
+  --button-fg-text        : #EFEFF0;
+  --button-fg-disabled    : #818183;
+  --button-bg-normal      : #3E3E45;
+  --button-bg-hover       : #4D4D54;
+  --button-bg-disabled    : var(--button-bg-normal);
+  --button-bg-alert       : #E14747;
+
+  /* Complement colors for main color */
+  --tone-green            : #72C166;
+  --tone-green-12         : #72C1661F; /*12% opacity*/
+  --tone-orange           : #D49E5C;
+  --tone-orange-12        : #D49E5C1F; /*12% opacity*/
+  --tone-red              : #CD3C4A;
+  --tone-red-12           : #CD3C4A1F; /*12% opacity*/
+  --tone-blue             : #6590CC;
+  --tone-blue-12          : #6590CC1F; /*12% opacity*/
+  --tone-teal             : #009688;
+  --tone-teal-12          : #0096881F; /*12% opacity*/
+  --tone-neutral          : #97a7b8;
+  --tone-neutral-12       : #97a7b81F; /*12% opacity*/
+  --tone-inactive         : #949494;
+  --tone-inactive-12      : #9494941F; /*12% opacity*/
+
+  /*WIP gold, purple */
+
+  --gradient-green        : linear-gradient(180deg, #45ba53 0%, #2fa744 100%);
+  --gradient-orange       : linear-gradient(180deg, #e3a13d 0%, #c77a16 100%);
+
+  --shadow-opacity        : rgba(0,0,0, 0.24); /*dark mode requires more opaque shadow*/
+  --menu-shadow           : 0 8px  16px var(--shadow-opacity);
+  --popup-shadow          : 0 12px 24px var(--shadow-opacity);
 }
 }
 
-/*////////////////////////////*/
-/*           ICONS            */
-/*////////////////////////////*/
+/*//////////////////////////////////////*/
+/*/// ICONS ////////////////////////////*/
+/*//////////////////////////////////////*/
+/*
+STRUCTURE
+  <div class="icon16"></div>
+CSS
+  MonoFont
+STATES
+*/
 
 .icon16 {
-	-webkit-mask-image: var(--icon-url);
-	mask-image: var(--icon-url);
-	width:  16px;
-  	height: 16px;
-	background-color: var(--icon-color);
-	pointer-events: none;
+  --icon-fill: var(--icon-color); 
+  -webkit-mask-image: var(--icon-url);
+  mask-image: var(--icon-url);
+  width:  16px;
+  height: 16px;
+  background-color: var(--icon-fill);
+  pointer-events: none;
 }
 
 :root {
 --icon-filter:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><polygon points=".5 .5 5.5 7.5 5.5 13.5 9.5 15.5 9.5 7.5 14.5 .5 .5 .5"/><line x1="8.64" y1="4.5" x2="10.19" y2="2.34"/></g></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><polygon points=".5 .5 5.5 7.5 5.5 13.5 9.5 15.5 9.5 7.5 14.5 .5 .5 .5"/><line x1="8.64" y1="4.5" x2="10.19" y2="2.34"/></g></svg>');
 --icon-search:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5,2A4.505,4.505,0,0,0,2,6.5a.5.5,0,0,0,1,0A3.5,3.5,0,0,1,6.5,3a.5.5,0,0,0,0-1Z"/><path d="M14.854,14.146l-3.423-3.422a6.518,6.518,0,1,0-.707.707l3.422,3.423a.5.5,0,0,0,.708-.708ZM1,6.5A5.5,5.5,0,1,1,6.5,12,5.507,5.507,0,0,1,1,6.5Z"/></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5,2A4.505,4.505,0,0,0,2,6.5a.5.5,0,0,0,1,0A3.5,3.5,0,0,1,6.5,3a.5.5,0,0,0,0-1Z"/><path d="M14.854,14.146l-3.423-3.422a6.518,6.518,0,1,0-.707.707l3.422,3.423a.5.5,0,0,0,.708-.708ZM1,6.5A5.5,5.5,0,1,1,6.5,12,5.507,5.507,0,0,1,1,6.5Z"/></svg>');
 --icon-input-clear:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><path d="M.76,7.32L4.91,2.82c.19-.21.46-.32.74-.32h8.86c.55,0,1,.45,1,1v9c0,.55-.45,1-1,1H5.64c-.28,0-.55-.12-.74-.32L.76,8.68c-.35-.38-.35-.97,0-1.35Z"/><line x1="12.5" y1="5.5" x2="7.5" y2="10.5"/><line x1="12.5" y1="10.5" x2="7.5" y2="5.5"/></g></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><path d="M.76,7.32L4.91,2.82c.19-.21.46-.32.74-.32h8.86c.55,0,1,.45,1,1v9c0,.55-.45,1-1,1H5.64c-.28,0-.55-.12-.74-.32L.76,8.68c-.35-.38-.35-.97,0-1.35Z"/><line x1="12.5" y1="5.5" x2="7.5" y2="10.5"/><line x1="12.5" y1="10.5" x2="7.5" y2="5.5"/></g></svg>');
 --icon-combo-arrow:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><polyline points="11.5 6.5 6.5 9.5 1.5 6.5" style="fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round"/></svg>'); 
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><polyline points="11.5 6.5 6.5 9.5 1.5 6.5" style="fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round"/></svg>'); 
 --icon-sidebar:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M14.5,15.5H1.5c-.55,0-1-.45-1-1V1.5C.5.95.95.5,1.5.5h13c.55,0,1,.45,1,1v13c0,.55-.45,1-1,1ZM6.5.5v15M2.5,3.5h2M2.5,6.5h2M2.5,9.5h2M2.5,12.5h2" style="fill:none;stroke:currentColor;stroke-linecap:square"/></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M14.5,15.5H1.5c-.55,0-1-.45-1-1V1.5C.5.95.95.5,1.5.5h13c.55,0,1,.45,1,1v13c0,.55-.45,1-1,1ZM6.5.5v15M2.5,3.5h2M2.5,6.5h2M2.5,9.5h2M2.5,12.5h2" style="fill:none;stroke:currentColor;stroke-linecap:square"/></svg>');
 --icon-layout-list:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M.5,3.5h6M.5.5h6M.5,6.5h6M.5,9.5h6M.5,12.5h6M.5,15.5h6M9.5,3.5h6M9.5.5h6M9.5,6.5h6M9.5,9.5h6M9.5,12.5h6M9.5,15.5h6" style="fill:none; stroke:currentColor; stroke-linecap:square"/></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M.5,3.5h6M.5.5h6M.5,6.5h6M.5,9.5h6M.5,12.5h6M.5,15.5h6M9.5,3.5h6M9.5.5h6M9.5,6.5h6M9.5,9.5h6M9.5,12.5h6M9.5,15.5h6" style="fill:none; stroke:currentColor; stroke-linecap:square"/></svg>');
 --icon-layout-compact:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M2.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM2.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM2.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67Z" style="fill:none; stroke:currentColor"/></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M2.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM2.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM2.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67Z" style="fill:none; stroke:currentColor"/></svg>');
 --icon-layout-cover:
-	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M5.5,6.5H1.5c-.55,0-1-.45-1-1V1.5C.5.95.95.5,1.5.5h4c.55,0,1,.45,1,1v4c0,.55-.45,1-1,1ZM15.5,5.5V1.5c0-.55-.45-1-1-1h-4c-.55,0-1,.45-1,1v4c0,.55.45,1,1,1h4c.55,0,1-.45,1-1ZM5.5,15.5H1.5c-.55,0-1-.45-1-1v-4c0-.55.45-1,1-1h4c.55,0,1,.45,1,1v4c0,.55-.45,1-1,1ZM15.5,14.5v-4c0-.55-.45-1-1-1h-4c-.55,0-1,.45-1,1v4c0,.55.45,1,1,1h4c.55,0,1-.45,1-1Z" style="fill:none; stroke:currentColor"/></svg>');
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M5.5,6.5H1.5c-.55,0-1-.45-1-1V1.5C.5.95.95.5,1.5.5h4c.55,0,1,.45,1,1v4c0,.55-.45,1-1,1ZM15.5,5.5V1.5c0-.55-.45-1-1-1h-4c-.55,0-1,.45-1,1v4c0,.55.45,1,1,1h4c.55,0,1-.45,1-1ZM5.5,15.5H1.5c-.55,0-1-.45-1-1v-4c0-.55.45-1,1-1h4c.55,0,1,.45,1,1v4c0,.55-.45,1-1,1ZM15.5,14.5v-4c0-.55-.45-1-1-1h-4c-.55,0-1,.45-1,1v4c0,.55.45,1,1,1h4c.55,0,1-.45,1-1Z" style="fill:none; stroke:currentColor"/></svg>');
+--icon-download:
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round" d="M11.5,6.5l-3.29,3.29c-.39.39-1.02.39-1.41,0l-3.29-3.29M7.5,2.5v7M2.5,11.5v1h10v-1" /></svg>');
+--icon-exclamation-mark:
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path style="fill:currentColor;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round" d="M7.5,8.37s1-1.87,1-4.87c0-.55-.45-1-1-1h0c-.55,0-1,.45-1,1h0c0,3,1,4.88,1,4.88ZM8.5,11.5c0,.55-.45,1-1,1s-1-.45-1-1,.45-1,1-1,1,.45,1,1Z"/></svg>');
+--icon-expand-arrow:
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path style="fill:currentColor" d="M11.15,8.48l-5.32,3.04c-.37.21-.84-.06-.84-.48v-6.08c0-.43.46-.7.84-.48l5.32,3.04c.37.21.37.75,0,.97Z"/></svg>');
+--icon-status-dot:
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle style="fill:currentColor" cx="8" cy="8" r="4"/></svg>');
+--icon-run-script:
+  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round" d="M12.5,7.5L2.5,12.5V2.5l10,5Z"/></svg>');
 }
 
-/*////////////////////////////*/
-/*       UI COMPONENTS        */
-/*////////////////////////////*/
+/*//////////////////////////////////////*/
+/*/// COMMON STYLES ////////////////////*/
+/*//////////////////////////////////////*/
 
-/*/// BUTTONS ///*/
+/*--------------------------------------*/
+/*--- Master Styles --------------------*/
+/*--------------------------------------*/
+
+/* Stylize focus border on supported tags */
+a:focus-visible,
+input:focus-visible,
+button:focus-visible {
+  outline: 1px solid var(--main-color);
+  outline-offset: -1px;
+}
+
+/* Add support for hidden tag for all controls */
+*[hidden] {
+  display: none !important;
+}
+
+/*--------------------------------------*/
+/*--- Text Styles ----------------------*/
+/*--------------------------------------*/
+
+.error-text   {color: var(--tone-red)    !important}
+.warning-text {color: var(--tone-orange) !important}
+.dimmed-text  {color: var(--dimmed-color)!important}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono-font {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/*--------------------------------------*/
+/*--- Layout Styles --------------------*/
+/*--------------------------------------*/
+
+/* Container has to use width: 100% */
+.StretchSpacer      {flex: 1} /* Shorthand for flex-grow: 1, flex-shrink: 1, flex-basis: 0% */
+
+.ExpandHorizontally {width : 100%}
+.ExpandVertically   {height: 100%}
+
+/*//////////////////////////////////////*/
+/*/// UI COMPONENTS ////////////////////*/
+/*//////////////////////////////////////*/
+
+/*--------------------------------------*/
+/*--- TextArea -------------------------*/
+/*--------------------------------------*/
+/*
+DESCRIPTION
+  Used for multiline text edit
+
+STRUCTURE
+  <textarea 
+    class          = "TextArea thin-scroll"
+    aria-label     = "Description"
+    title          = "Tooltip"
+    spellcheck     = "false"
+    autocomplete   = "off"
+    autocapitalize = "off"
+  ></textarea>
+
+CONTROLLING
+  STATE > DISABLED
+    JS  > el.disabled = true/false (styling follows automatically)
+    DOM > <textarea disabled></textarea>
+  EVENT > VALUE
+    JS  > el.value = "New value";
+*/
+
+.TextArea {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  /* common.css applies `user-select: none` to *, so without this the user could type into the
+    editor but not select, drag or copy what they had typed. (What blocks typing is the global
+    onkeydown guard in common.js — see the keydown handler in index.js.) */
+  -webkit-user-select: text;
+  user-select: text;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--fg-color-label);
+  font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+}
+
+.TextArea:focus {
+  outline: none;
+  border-color: var(--main-color);
+}
+
+.TextArea[disabled],
+.TextArea[disabled]:hover{
+  background: var(--disabled-bg);
+  color: var(--fg-color-disabled);
+}
+
+/*--------------------------------------*/
+/*--- GlassBox -------------------------*/
+/*--------------------------------------*/
+/*
+DESCRIPTION
+  Used for status badges
+
+STRUCTURE
+  <div 
+    class      = "GlassBox"
+    aria-label = "Description"
+    title      = "Tooltip"
+  >
+    Label
+  </div>
+
+CONTROLLING
+  EVENT 
+    JS  > el.innerHTML = "New value";
+*/
+.GlassBox {
+  display: inline-block;
+  box-sizing: border-box;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--glassbox-fg);
+  background: var(--glassbox-bg);
+  border: 1px solid var(--glassbox-bg);
+  box-shadow: inset 0 -1px 4px 1px var(--glassbox-bg);
+  pointer-events: none;
+  user-select: none;
+}
+
+.glassbox-green    {--glassbox-fg: var(--tone-green)   ; --glassbox-bg: var(--tone-green-12)   }
+.glassbox-orange   {--glassbox-fg: var(--tone-orange)  ; --glassbox-bg: var(--tone-orange-12)  }
+.glassbox-red      {--glassbox-fg: var(--tone-red)     ; --glassbox-bg: var(--tone-red-12)     }
+.glassbox-blue     {--glassbox-fg: var(--tone-blue)    ; --glassbox-bg: var(--tone-blue-12)    }
+.glassbox-teal     {--glassbox-fg: var(--tone-teal)    ; --glassbox-bg: var(--tone-teal-12)    }
+.glassbox-neutral  {--glassbox-fg: var(--tone-neutral) ; --glassbox-bg: var(--tone-neutral-12) }
+.glassbox-inactive {--glassbox-fg: var(--tone-inactive); --glassbox-bg: var(--tone-inactive-12)}
+
+/*--------------------------------------*/
+/*--- DataTable ------------------------*/
+/*--------------------------------------*/
+/*
+DESCRIPTION
+  Used for data tables
+
+STRUCTURE
+  <table class="DataTable" aria-label="Description">
+    <thead>
+      <tr>
+        <th>Title1</th>
+        <th>Title2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td></tr>
+      <tr><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+OPTIONS
+  (WIP) dt-highlight-rows
+  (WIP) dt-highlight-columns
+*/
+
+.DataTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 15px;
+  outline: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.DataTable th,
+.DataTable td {
+  padding: 8px 10px;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.DataTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-color-secondary);
+  color: var(--dimmed-color);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.DataTable th {line-height: 1  }
+.DataTable td {line-height: 1.4}
+
+.DataTable th:last-child,
+.DataTable td:last-child {
+  border-right: none;
+}
+
+.DataTable tr:last-of-type td{
+  border-bottom: none;
+}
+
+/*--------------------------------------*/
+/*--- Button ---------------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE (REGULAR BUTTON)
+  <button 
+    type       = "button" 
+    class      = "ButtonTypeChoice ButtonStyleConfirm"
+    aria-label = "Description"
+    title      = "Tooltip"
+  >
+    Label
+  </button>
+
+STRUCTURE (ICONIZED BUTTON)
+  <button 
+    type       = "button" 
+    class      = "ButtonTypeIcon ButtonStyleClear">
+    aria-label = "Description"
+    title      = "Tooltip"
+    <div class="icon16"></div>
+  </button>
+
+TYPES
+                        Shape        Height Width       Font
+  ButtonTypeCompact   : pill-shaped  18px   min 58px    11px  inline actions in dense rows
+  ButtonTypeWindow    : pill-shaped  24px   min 58px    13px  controller side actions (e.g. "All")
+  ButtonTypeChoice    : semi-rounded 32px   min 74px    15px  primary dialog buttons (Save/Cancel)
+  ButtonTypeParameter : semi-rounded 26px   fixed 120px 15px  toolbar buttons (e.g. Refresh), Button next to parameter inputs
+  ButtonTypeExpanded  : semi-rounded 32px   100% width  15px  full-width stacked buttons
+  ButtonTypeIcon      : semi-rounded 22px   22px        -     16px icon and 3px padding
+
+STYLES
+  ButtonStyleConfirm  : main color, for the primary/confirming action
+  ButtonStyleRegular  : neutral gray, for secondary actions
+  ButtonStyleAlert    : gray, red on hover , destructive actions
+  ButtonStyleClear    : transparent, tinted on hover, icon buttons inside a row
+
+FX (OPTIONAL)
+  ButtonFxBrighten    : brightens on hover — buttons with a custom (e.g. gradient) bg
+  ButtonFxDimDisabled : desaturates when [disabled] — pairs with ButtonFxBrighten
+
+CONTROLLING
+  STATE > DISABLED
+    JS  > el.disabled = true/false (styling follows automatically)
+    DOM > <button type="button" disabled></button>
+  EVENT 
+    JS  > el.addEventListener("click",()=>SendMessage("refresh"));
+    DOM > <button type="button" onClick='SendMessage("refresh")'></button>
+*/
+
+/*---- ensure default properties stylized for button tag----*/
+.ButtonTypeCompact,
+.ButtonTypeWindow,
+.ButtonTypeChoice,
+.ButtonTypeParameter,
+.ButtonTypeExpanded,
+.ButtonTypeIcon {
+  border: none;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  white-space: nowrap;
+  margin: 0;
+  user-select: none;
+}
+
 /*----Values slightly different since renderer is different----*/
-/*----Currently no support for focus border----*/
-.ButtonTypeCompact   { font-size: 11px; padding: 0px 8px ; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
-.ButtonTypeWindow    { font-size: 13px; padding: 0px 11px; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
-.ButtonTypeChoice    { font-size: 15px; padding: 0px 13px; border-radius: 4px ; line-height: 31px; height: 32px; text-align: center}
-.ButtonTypeParameter { font-size: 15px; padding: 0px 12px; border-radius: 4px ; line-height: 25px; height: 26px; text-align: center}
-.ButtonTypeExpanded  { font-size: 15px; padding: 0px 12px; border-radius: 4px ; line-height: 31px; height: 32px; text-align: center}
+.ButtonTypeCompact   { font-size: 11px; padding: 0px 8px ; border-radius: 12px; line-height: 16px; height: 18px; text-align: center}
+.ButtonTypeWindow    { font-size: 13px; padding: 0px 11px; border-radius: 12px; line-height: 22px; height: 24px; text-align: center}
+.ButtonTypeChoice    { font-size: 15px; padding: 0px 13px; border-radius: 4px ; line-height: 30px; height: 32px; text-align: center}
+.ButtonTypeParameter { font-size: 15px; padding: 0px 12px; border-radius: 4px ; line-height: 24px; height: 26px; text-align: center}
+.ButtonTypeExpanded  { font-size: 15px; padding: 0px 12px; border-radius: 4px ; line-height: 30px; height: 32px; text-align: center}
+.ButtonTypeIcon      {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+}
 
 .ButtonTypeWindow,
 .ButtonTypeCompact {
-	min-width: 36px; /*----58 - 11*2(padding)----*/
+  min-width: 58px;
 }
 
 .ButtonTypeWindow.ButtonStyleConfirm { /*---- Commonly used as "All" button before "Clear All" button----*/
-	margin-right:10px;
+  margin-right:10px;
 }
 
 .ButtonTypeChoice {
-	min-width: 74px; /*----100 - 13*2(padding)----*/
-	margin-left:var(--dialog-button-gap);
+  min-width: 100px;
+  margin-left:var(--dialog-button-gap);
 }
 
 .ButtonTypeExpanded {
-	width: 100%;
+  width: 100%;
 }
 
-.ButtonTypeExpanded {
-	width: 120px;
+.ButtonTypeParameter {
+  width: 120px;
 }
 
-.ButtonStyleConfirm        { background: var(--main-color        ); color: var(--button-fg-light   )}
-.ButtonStyleConfirm:hover  { background: var(--main-color-hover  ); color: var(--button-fg-light   )}
-.ButtonStyleRegular        { background: var(--button-bg-normal  ); color: var(--button-fg-text    )}
-.ButtonStyleRegular:hover  { background: var(--button-bg-hover   ); color: var(--button-fg-text    )}
-.ButtonStyleAlert          { background: var(--button-bg-normal  ); color: var(--button-fg-text    )}
-.ButtonStyleAlert:hover    { background: var(--button-bg-alert   ); color: var(--button-fg-light   )}
-.ButtonStyleDisabled       { background: var(--button-bg-disabled); color: var(--button-fg-disabled)}
+.ButtonStyleConfirm:focus-visible {
+  outline: 1px solid var(--main-color-brightest); /* make focus border visible with using different color */
+}
 
-/*/// COMBOBOX ///*/
+.ButtonStyleConfirm       {background: var(--main-color      ); color: var(--button-fg-light)}
+.ButtonStyleConfirm:hover {background: var(--main-color-hover)}
+.ButtonStyleRegular       {background: var(--button-bg-normal); color: var(--button-fg-text )}
+.ButtonStyleRegular:hover {background: var(--button-bg-hover )}
+.ButtonStyleAlert         {background: var(--button-bg-normal); color: var(--button-fg-text )}
+.ButtonStyleAlert:hover   {background: var(--button-bg-alert ); color: var(--button-fg-light)}
+.ButtonStyleClear         {background: transparent            ; color: var(--button-fg-text )}
+.ButtonStyleClear:hover   {background: var(--tone-neutral-12 )}
+
+/* Support disabled attribute for all types*/
+.ButtonStyleConfirm[disabled],
+.ButtonStyleRegular[disabled],
+.ButtonStyleAlert[disabled]{ 
+  background: var(--button-bg-disabled) !important; /* important also overrides :hover, :focus, :active*/
+  color: var(--button-fg-disabled) !important;
+}
+
+/* Use it when button uses a custom background color*/
+.ButtonFxBrighten:hover        {filter: brightness(1.05)}
+.ButtonFxDimDisabled[disabled] {filter: saturate(0%)}
+/*WIP ButtonFxGradient use white / dark shadow from top*/
+
+/*--------------------------------------*/
+/*--- SplitButton ----------------------*/
+/*--------------------------------------*/
+/*
+DESCRIPTION
+  Used for buttons requires selective actions
+
+STRUCTURE
+  <div class="SplitButton">
+    <button 
+      type           = "button" 
+      class          = "ButtonStyleConfirm SplitButtonArrowButton"
+      aria-label     = "Description"
+      title          = "Tooltip"
+      aria-haspopup  = "menu"
+      aria-expanded  = "false"
+      aria-controls  = "UniqueMenuID"
+    >
+      <div class="icon16"></div>
+    </button>
+    <button 
+      type           = "button" 
+      class          = "ButtonStyleConfirm SplitButtonActionButton"
+      aria-label     = "Description"
+      title          = "Tooltip"
+    >
+      <!-- SelectedMenuItemTitle -->
+    </button>
+    <div id="UniqueMenuID" role="menu" class="SplitButtonMenu" hidden>
+      <!-- (TIP) Optionally use title and aria-label attributes per item for tooltips and screen reader features-->
+      <button type="button" role="menuitem" class="SplitButtonMenuItem">MenuItem1</button>
+      <button type="button" role="menuitem" class="SplitButtonMenuItem">MenuItem1</button>
+    </div>
+  </div>
+
+OPTIONS
+  SplitButtonMenu > sbtn-regular > Use it for grey colored dropdown menu with combined ButtonStyleRegular on SplitButtonArrowButton and SplitButtonActionButton
+
+CONTROLLING
+  STATE > DISABLED
+    (TIP) SplitButtonActionButton and any SplitButtonMenuItem can be disabled individually
+    (TIP) Dont disable SplitButton alone because its container (non-form element) not disables focus / pointer events automatically
+    JS  > el.disabled = true/false (styling follows automatically)
+    DOM > <button type="button" disabled></button>
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
+    (NOTE) select / option tags makes control fully automized but it uses native styling! so custom functions required
+*/
+
+/*---- ensure default properties stylized for button tag----*/
+.SplitButtonArrowButton,
+.SplitButtonActionButton,
+.SplitButtonMenuItem {
+  border: none;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  white-space: nowrap;
+  margin: 0;
+  user-select: none;
+}
+
+.SplitButton {
+  --split-button-arrow-btn-width: 30px;  /* 16 + 7*2 */
+  --split-button-btn-width      : 150px; /* customize this variable when needed */
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 1px;
+}
+
+.SplitButtonArrowButton > .icon16 {
+  position: absolute;
+  left: 9px;
+  top:  50%;
+  transform: translateY(-50%);
+  --icon-url : var(--icon-combo-arrow);
+}
+
+.SplitButtonArrowButton.ButtonStyleConfirm > .icon16 {
+  --icon-fill: var(--fg-light-fixed);
+}
+
+.SplitButtonArrowButton,
+.SplitButtonActionButton { 
+  height: 26px;
+  padding: 0 12px;
+}
+
+.SplitButtonArrowButton  { 
+  border-radius: 4px 0 0 4px ;
+  flex: 0 0 var(--split-button-arrow-btn-width);
+}
+
+.SplitButtonActionButton {
+  border-radius: 0 4px 4px 0;
+  text-align: center;
+  min-width: var(--split-button-btn-width);
+  position: relative;
+}
+
+.SplitButtonActionButton,
+.SplitButtonMenuItem {
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.SplitButtonMenu {
+  position: absolute;
+  left: calc(var(--split-button-arrow-btn-width) + 1px);
+  right: 0;
+  top: calc(100% + 2px);
+  z-index: 20;
+  border-radius: 4px;
+  background: var(--main-color);
+  box-shadow: var(--menu-shadow);
+  overflow: hidden;
+}
+
+.SplitButtonArrowButton[aria-expanded="false"] ~ .SplitButtonMenu {
+  display: none !important;
+}
+
+.SplitButtonMenuItem {
+  display: block;
+  width: 100%;
+  border-radius: 0;
+  padding: 4px 10px;
+  background: inherit;
+  color: var(--button-fg-light);
+  text-align: left;
+  /* truncate */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.SplitButtonMenuItem:hover {
+  background: var(--main-color-hover);
+}
+
+.SplitButtonMenu.sbtn-regular {
+  background: var(--button-bg-normal);
+}
+.SplitButtonMenu.sbtn-regular > .SplitButtonMenuItem {
+  color: var(--button-fg-text);
+}
+.SplitButtonMenu.sbtn-regular > .SplitButtonMenuItem:hover {
+  background: var(--button-bg-hover);
+}
+
+.SplitButtonArrowButton[disabled],
+.SplitButtonActionButton[disabled],
+.SplitButtonMenuItem[disabled] {
+  background: var(--button-bg-disabled) !important; /* important also overrides :hover, :focus, :active*/
+  color: var(--button-fg-disabled) !important;
+}
+
+/*--------------------------------------*/
+/*--- ComboBox -------------------------*/
+/*--------------------------------------*/
 /*
 STRUCTURE
-	<div class="ComboBox NoLabel">
-		<div class="arrow-icon"></div>
-		<select id="filter-tags">
-			<option value="0" disabled selected hidden></option>
-			<option value="1">Checked</option>
-			<option value="2">Unchecked</option>
-		</select>
-	</div>
+  <div 
+    class      = "ComboBox"
+    title      = "Tooltip"
+  >
+    <div class="icon16"></div>
+    <select id="UniqueID" aria-label="Description">
+      <option value="0" disabled selected hidden></option>
+      <option value="1">Checked</option>
+      <option value="2">Unchecked</option>
+    </select>
+  </div>
+
 OPTIONS
-	NoLabel : Hides label and just shows arrow icon
+  NoLabel : Hides label and just shows arrow icon
+
+CONTROLLING
+  STATE > DISABLED
+    JS  > (ComboBox > select).disabled = true/false (styling follows automatically)
+    DOM > <div class="ComboBox"><select disabled></select></div>
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
 */
 .ComboBox {
-	position: relative;
-    background: inherit;
+  position: relative;
+  background: inherit;
 }
 
 .ComboBox > select {
-    width: 120px;
-    background: inherit;
-    border: 1px solid var(--border-color);
-    border-radius: 0;
-	appearance: none;
-    -webkit-appearance: none; /* Hide arrow */
-	font-size: 14px;
-    color: var(--fg-color-text);
-    padding: 4px 4px 4px 24px;
+  width: 120px;
+  background: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 0;
+  appearance: none;
+  -webkit-appearance: none; /* Hide arrow */
+  font-size: 14px;
+  color: var(--fg-color-text);
+  padding: 4px 4px 4px 24px;
 }
 
-.ComboBox > .arrow-icon {
-    position: absolute;
-    width:  16px;
-    height: 16px;
-    left: 7px;
-    top:  50%;
-    transform: translateY(-50%);
-	mask-image: var(--icon-combo-arrow);
-	-webkit-mask-image: var(--icon-combo-arrow);
-	background-color: var(--icon-color);
-    pointer-events: none;
+.ComboBox > .icon16 {
+  position: absolute;
+  left: 7px;
+  top:  50%;
+  transform: translateY(-50%);
+  --icon-url : var(--icon-combo-arrow);
 }
 
 .ComboBox > select:focus {
-    outline: none;
-    background-color: var(--focus-bg-box);
-    border-color: var(--main-color);;
+  outline: none;
+  background-color: var(--focus-bg);
+  border-color: var(--main-color);
 }
     
 .ComboBox > select:hover {
-    border-color: var(--main-color);;
+  border-color: var(--main-color);
 }
 
 .ComboBox.NoLabel > select {
-    width: 28px;
-	height: 28px;
-    padding: 4px;
-    color: transparent;
-	font-size: unset;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  color: transparent;
+  font-size: unset;
 }
 
 .ComboBox option {
-    background: var(--bg-color);
+  background: var(--bg-color);
 }
 
 .ComboBox option:checked {
-    background: var(--focus-bg-item);
+  background: var(--checked-bg);
 }
 
-/*/// SCROLL BARS ///*/
+.ComboBox:has(select:disabled) {
+  background: var(--button-bg-disabled) !important;
+  color: var(--button-fg-disabled) !important;
+}
+
+/*--------------------------------------*/
+/*--- CheckBox -------------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE (ONLY CHECKBOX)
+  <input 
+    type  = "checkbox"
+    class = "CheckBoxCtrl"
+    title      = "Tooltip"
+    aria-label = "Description"
+  />
+
+STRUCTURE (WITH LABEL)
+  <label 
+    class = "CheckBoxContainer"
+    title = "Tooltip"
+  >
+    <input 
+      type       = "checkbox"
+      class      = "CheckBoxCtrl"
+      aria-label = "Description"
+    />
+    <span class="CheckBoxLabel">
+      Label
+    </span>
+  </label>
+
+CONTROLLING
+  STATE > DISABLED 
+    JS  > CheckBoxCtrl.disabled = true/false (styling follows automatically)
+    DOM > <input type="checkbox" disabled></input>
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
+*/
+.CheckBoxContainer {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.CheckBoxLabel {
+  padding: 3px 5px;
+  line-height: 1.2em;
+  color: var(--fg-color-text);
+}
+
+.CheckBoxCtrl {
+  -webkit-appearance: none;
+  appearance: none;
+  margin:0;
+  width: 1.1em;
+  height: 1.1em;
+  border: 0.1em solid var(--border-color);
+  border-radius: 0.15em;
+  display: inline-flex;
+  place-content: center;
+  background-color: var(--bg-color);
+  box-sizing: border-box;
+}
+
+.CheckBoxCtrl::before {
+  content: "";
+  width: 0.9em;
+  height: 0.9em;
+  transform: scale(0);
+  box-shadow: inset 1em 1em var(--fg-light-fixed);
+}
+
+.CheckBoxCtrl:is(:checked, :indeterminate) {
+  border-color:    var(--main-color);
+  background-color:var(--main-color);
+}
+
+.CheckBoxCtrl:is(:checked, :indeterminate):hover {
+  border-color:    var(--main-color-hover);
+  background-color:var(--main-color-hover);
+}
+
+.CheckBoxCtrl:checked::before {
+  transform: scale(1);
+  clip-path: polygon(7% 37%, 0 45%, 33% 78%, 100% 30%, 95% 21%, 33% 64%);
+}
+
+.CheckBoxCtrl:indeterminate::before {
+  transform: scale(1);
+  clip-path: polygon(7% 44%, 93% 44%, 93% 56%, 7% 56%);
+}
+
+.CheckBoxContainer.disabled {cursor: not-allowed}
+.CheckBoxContainer.loading  {cursor: wait       }
+
+.CheckBoxContainer.loading .CheckBoxCtrl {
+  transform: scale(1.2);
+  border-radius: 50%;
+  border-width: 1px;
+  border-color: var(--dimmed-color);
+  border-top-color: var(--main-color-fixed);
+  background: transparent;
+  animation: checkbox-spin 0.8s linear infinite;
+}
+
+.CheckBoxContainer.loading .CheckBoxCtrl::after {
+  content: none;
+}
+
+@keyframes checkbox-spin {to {transform: rotate(360deg)}}
+
+.CheckBoxCtrl[disabled],
+.CheckBoxCtrl:disabled {
+  border-color:    var(--border-color);
+  background-color:var(--disabled-bg);
+}
+
+.CheckBoxCtrl[disabled]+.CheckBoxLabel,
+.CheckBoxCtrl:disabled +.CheckBoxLabel {
+  color: var(--fg-color-disabled);
+}
+
+/*--------------------------------------*/
+/*--- TabCtrl --------------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE
+  <div class = "TabCtrl"  role = "tablist" aria-label = "Description of this menu">
+    <button type="button" role="tab" aria-controls="page1" aria-selected="true"  id="Tab1" class="TabCtrlTab active" tabindex="0">
+      Tab 1
+    </button>
+    <button type="button" role="tab" aria-controls="page2" aria-selected="false" id="Tab2" class="TabCtrlTab"       tabindex="-1">
+      Tab 2
+    </button>
+  </div>
+  <div>
+    <section id="page1" role="tabpanel" aria-labelledby="Tab1"></section>
+    <section id="page2" role="tabpanel" aria-labelledby="Tab2"></section>
+  </div>
+
+CONTROLLING
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
+
+*/
+.TabCtrl {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.TabCtrlTab {
+  flex: 0 1 0;
+  padding: 3px 5px;
+  margin: 0 4px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--dimmed-color);
+  font-size: 15px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.TabCtrlTab.active {
+  font-weight: 600;
+  border-bottom-color: var(--main-color-fixed);
+  color: var(--fg-color-label);
+}
+
+.TabCtrlTab:hover,
+.TabCtrlTab:focus-visible {
+  color: var(--fg-color-label);
+}
+
+/*--------------------------------------*/
+/*--- SideTabCtrl ----------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE AS OPTION
+  <div class = "SideTabCtrl thin-scroll" role = "listbox" aria-label = "Description of this menu"  tabindex="0">
+    <button type="button" role="option" aria-selected="true"  tabindex="0"  id="Opt1" class="SideTabBtn selected">
+      <span class="SideTabLabel">Tab Title      </span>
+      <span class="SideTabDesc" >Tab Description</span>
+    </button>
+    <button type="button" role="option" aria-selected="false" tabindex="-1" id="Opt2" class="SideTabBtn">
+      <span class="SideTabLabel">Tab Title      </span>
+      <span class="SideTabDesc" >Tab Description</span>
+    </button>
+  </div>
+
+STRUCTURE AS PAGE CONTROLLER
+  <div class = "SideTabCtrl thin-scroll" role = "tablist" aria-label = "Description of this menu">
+    <button type="button" role="tab" aria-controls="page1" aria-selected="true"  tabindex="0" id="Tab1" class="SideTabBtn selected" >
+      <span class="SideTabLabel">Tab Title      </span>
+      <span class="SideTabDesc" >Tab Description</span>
+    </button>
+    <button type="button" role="tab" aria-controls="page2" aria-selected="false" tabindex="-1" id="Tab2" class="SideTabBtn">
+      <span class="SideTabLabel">Tab Title      </span>
+      <span class="SideTabDesc" >Tab Description</span>
+    </button>
+  </div>
+  <div class="SideTabPanels">
+    <section id="page1" role="tabpanel" aria-labelledby="Tab1" tabindex="0"       ></section>
+    <section id="page2" role="tabpanel" aria-labelledby="Tab2" tabindex="0" hidden></section>
+  </div>
+
+OPTIONS
+  (WIP) stab-nav-arrow
+
+CONTROLLING
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
+*/
+.SideTabCtrl {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  padding-right: 6px;
+  width: 220px;
+}
+
+.SideTabBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.SideTabBtn.selected {
+  border: 1px solid var(--main-color);
+  background: var(--checked-bg);
+}
+
+.SideTabBtn:hover {
+  border-color: var(--main-color-hover);
+}
+
+.SideTabLabel,
+.SideTabDesc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SideTabLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg-color-label);
+}
+
+.SideTabDesc {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--dimmed-color);
+}
+
+/*--------------------------------------*/
+/*--- NoticePopup  ---------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE
+  <div id="NoticeMask">
+    <div id="NoticeBody">
+      <div id="NoticeBar" class="trans" tid="t18">error</div>
+      <div id="NoticeContent">
+        <div id="NoticeText" class="trans" tid="t37">At least one printer must be selected.</div>
+        <div id="NoticeBtns">
+          <div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t21" onClick="ChooseDefaultFilament()">Yes</div>
+          <div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t22" onClick="ShowNotice(0)">No</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+OPTIONS
+  NoticeBar.notice-error > makes titlebar red for critical errors
+  NoticeBar.notice-warn  > makes titlebar orange for warnings
+  (WIP) notice-ok > just show ok button
+
+CONTROLLING
+  NoticeBar.textContent  = "Title";
+	NoticeText.textContent = "Message";
+	ShowNotice(1);
+  
+  function ShowNotice(nShow) {
+    $("#NoticeMask").toggleClass("visible", nShow != 0);
+  }
+*/
+
+#NoticeMask {
+	background-color: rgba(0,0,0, 0.24);
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+#NoticeMask.visible {
+  display: flex;
+}
+
+#NoticeBody {
+	width: 400px;
+	border-radius: 8px;
+	border: 1px solid var(--border-color);
+	background-color: var(--bg-color);
+	color: var(--fg-color-text);
+  box-shadow: var(--popup-shadow);
+  overflow: hidden;
+}
+
+#NoticeBar {
+	background-color: var(--main-color);
+	height: 32px;
+	line-height: 32px;
+  font-size: 14px;
+	color: #fff;
+	text-align: center;
+}
+
+#NoticeBar.notice-error {
+	background-color: var(--button-bg-alert);
+}
+
+#NoticeBar.notice-warn {
+	background-color: var(--tone-orange);
+}
+
+#NoticeContent {
+	padding: 1em;	
+}
+
+#NoticeText {
+  font-size:   14px;
+  line-height: 24px;
+  margin-bottom: 0.5em;
+}
+
+#NoticeBtns {
+  margin-top: 1em;
+	display: flex;
+	justify-content:flex-end;
+  gap: var(--dialog-button-gap);
+}
+
+#NoticeBtns > .ButtonTypeChoice {
+	margin: 0;
+}
+
+/*--------------------------------------*/
+/*--- ContextMenu ----------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE AS OPTION
+  <div id="UniqueID" role="menu" class="ContextMenu" hidden>
+    <button type="button" role="menuitem" class="ContextMenuItem">Menu item</button>
+    <button type="button" role="menuitem" class="ContextMenuItem">Menu item</button>
+  </div>
+
+STATES
+  ContextMenuItem{disabled] > disables item
+  ContextMenuItem.alert     > shows red background color while hover as warning
+
+OPTIONS
+  (WIP) ctx-iconized
+  
+CONTROLLING
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
+*/
+.ContextMenu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  box-shadow: var(--menu-shadow);
+}
+
+.ContextMenu[hidden],
+.ContextMenuItem[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.ContextMenuItem {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 15px;
+  color: var(--fg-color-text);
+  font: inherit;
+  border-radius: 4px;
+}
+
+.ContextMenuItem:hover {
+  background: var(--button-bg-normal);
+}
+
+.ContextMenuItem.alert:hover {
+  background: var(--button-bg-alert);
+  color: var(--button-fg-light);
+}
+
+.ContextMenuItem.disabled,
+.ContextMenuItem[disabled] {
+  pointer-events: none;
+  background: var(--button-bg-disabled);
+  color: var(--button-fg-disabled);
+}
+
+/*--------------------------------------*/
+/*--- ResizeSplitter -------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE
+  <div class="ResizeSplitter" role="separator" aria-orientation="horizontal" aria-label="Resize the plugin list" 
+    title="Drag to resize; double-click to reset">
+  </div>
+
+STATES
+  (WIP) Vertical
+  (WIP) Horizontal
+
+CONTROLLING
+  EVENT 
+    (WIP) Create gui helper document for automizing binding and controlling events 
+*/
+
+/* 9px of grab area for a 2px divider: the strip also supplies the gap between the panes. */
+.ResizeSplitter {
+  flex: 0 0 auto;
+  position: relative;
+  height: 9px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.ResizeSplitter::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: transparent;
+  transition: background-color 0.12s ease;
+}
+
+.ResizeSplitter:hover::after {
+  background: var(--main-color);
+}
+
+.ResizeSplitter.dragging::after {
+  background: var(--main-color-hover);
+}
+
+.ResizeSplitter.dragging {
+  cursor: ns-resize;
+}
+
+/*--------------------------------------*/
+/*--- HyperLink ------------------------*/
+/*--------------------------------------*/
+/*
+STRUCTURE
+    <a href="#" class="HyperLink title="Click to open link">Wiki Guide</a>
+*/
+
+.HyperLink {
+  color: var(--main-color-fixed);
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
+
+.HyperLink:hover {
+  color: var(--main-color-fixed-hover);
+}
+
+/*--------------------------------------*/
+/*--- ScrollBar ------------------------*/
+/*--------------------------------------*/
 .thin-scroll::-webkit-scrollbar {
-	width: 10px;
-	height: 10px;
-	background:  var(--bg-color-alt);
+  width:  var(--scrollbar-width);
+  height: var(--scrollbar-width);
+  background:  var(--bg-color-alt);
 }
 
 .thin-scroll::-webkit-scrollbar-thumb {
-	background:  var(--button-bg-normal);
-	border-radius: 5px;
+  background:  var(--button-bg-normal);
+  border-radius: calc(var(--scrollbar-width) / 2);  /*50% not works in here*/
 }
 
 .thin-scroll::-webkit-scrollbar-thumb:hover {
-	background: var(--button-bg-hover);
+  background: var(--button-bg-hover);
 }
