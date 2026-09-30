@@ -951,7 +951,7 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
 
     const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, true);
+        100.0f, 100.0f, false, -1.0f, true);
     REQUIRE_FALSE(variable_speed_points.empty());
     for (const ProcessedPoint &point : variable_speed_points)
         CHECK_THAT(point.overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
@@ -986,7 +986,7 @@ TEST_CASE("Variable speed overhang metadata retains shallow pockets between spee
     const ConfigOptionPercents overlaps({75, 50, 0});
     const ConfigOptionFloatsOrPercents speeds({FloatOrPercent{100, false}, FloatOrPercent{100, false}, FloatOrPercent{20, false}});
     const auto baseline = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false);
-    const auto points = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false, true);
+    const auto points = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false, -1.0f, true);
     REQUIRE(points.size() == baseline.size());
     REQUIRE(std::any_of(points.begin(), points.end(), [](const auto &point) { return point.speed < 99.f; }));
     bool checked_shallow_pocket = false;
@@ -1026,7 +1026,7 @@ TEST_CASE("Overhang geometry is independent of curled edge slowdown", "[Extrusio
     path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
     const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, curled_slowdown, true);
+        100.0f, 100.0f, curled_slowdown, -1.0f, true);
     REQUIRE(points.size() >= 2);
     CHECK((points.front().speed < 99.0f) == curled_slowdown);
     CHECK((points.front().overlap < 0.99f) == curled_slowdown);
@@ -1072,7 +1072,7 @@ TEST_CASE("Overhang estimation restores the immediate support layer after skippe
         CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(0.0, 1e-3));
         const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
             ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-            100.0f, 100.0f, true, true);
+            100.0f, 100.0f, true, -1.0f, true);
         REQUIRE(points.size() >= 2);
         CHECK(points.front().speed < 99.0f);
         CHECK(points.front().overlap < 0.99f);
@@ -2292,7 +2292,7 @@ TEST_CASE("Overhang metadata does not spread a corner overhang along a supported
 
     const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, true);
+        100.0f, 100.0f, false, -1.0f, true);
     REQUIRE_FALSE(variable_speed_points.empty());
     for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
         CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
@@ -2333,7 +2333,7 @@ TEST_CASE("Perimeter overhang metadata preserves unsupported width above a nearb
     // Orca: Variable-speed output uses the same geometric estimate for each emitted span.
     const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, true);
+        100.0f, 100.0f, false, -1.0f, true);
     REQUIRE(points.size() >= 2);
     for (size_t i = 0; i + 1 < points.size(); ++i)
         CHECK_THAT(points[i].overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
@@ -2374,7 +2374,7 @@ TEST_CASE("Overhang metadata keeps area-based support for bridges near an outer 
 
     const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, true);
+        100.0f, 100.0f, false, -1.0f, true);
     REQUIRE_FALSE(variable_speed_points.empty());
     for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
         CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-3));
