@@ -88,7 +88,6 @@
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\nM201 X{interpolate_table(extruded_weight_total, (0,4000), (1400,2500), (20000,2500))} Y{interpolate_table(extruded_weight_total, (0,4000), (1400,2500), (20000,2500))}\n",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n{if ! spiral_mode}M74 W[extruded_weight_total]{endif}\n",
 	"machine_pause_gcode": "M400 U1\n",
-	"machine_filament_overrides": "1",
 	"retract_lift_above": [
 		"0"
 	],

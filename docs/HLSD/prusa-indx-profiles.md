@@ -35,11 +35,10 @@ as a linear extrusion-speed override. Prusa's separate `filament_flush_volume`
 override is not available in these profiles. The source's `EXCLUDE_E_START` and
 `EXCLUDE_E_END` internal markers become comments rather than printer commands.
 
-Filament-start G-code restores pressure advance with `M572` and the INDX `M573 R`
-command after station purging disables pressure advance. Orca's separate automatic
-pressure-advance emission is disabled by the INDX machine override. Dock-fan control
-retains the source's material and layer conditions; shutdown parks the tool and
-turns off the used heaters and dock fan.
+Pressure-advance restoration and automatic pressure-advance emission use the
+selected filament preset's settings. These profiles do not impose machine-owned
+filament overrides. Dock-fan control retains the source's material and layer
+conditions; shutdown parks the tool and turns off the used heaters and dock fan.
 
 ## Configuration boundaries
 
