@@ -25,6 +25,7 @@ struct Probe : OrcaPrinterAgent {
     using OrcaPrinterAgent::lan_connection_target;
     using OrcaPrinterAgent::build_filament_mapping;
     using OrcaPrinterAgent::build_gcode_file_payload;
+    using OrcaPrinterAgent::prepare_outgoing_request;
 };
 }
 
@@ -69,6 +70,91 @@ TEST_CASE("OrcaPrinterAgent stamps the get_capabilities nozzle diameter onto pus
     agent.deliver_to_sink("dev-1", R"({"print":{"command":"push_status","nozzle_diameter":0.6}})", /*local=*/false);
     CHECK(last_payload.find("\"nozzle_diameter\":0.6") != std::string::npos);
     CHECK(last_payload.find("N/A") == std::string::npos);
+}
+
+TEST_CASE("OrcaPrinterAgent owns connector capabilities and fails closed for AMS commands", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("orca-caps", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"fms": true, "filament_slots": true, "filament_mapping": true},
+            "supported_commands": ["print.ams_get_rfid"],
+            "capabilities": {
+                "protocol": {
+                    "features": {"filament_mapping": true},
+                    "supported_commands": ["print.ams_change_filament"]
+                }
+            }
+        }
+    })", false);
+
+    CHECK(agent.supports_feature("orca-caps", "filament_mapping"));
+    CHECK(agent.supports_command("orca-caps", "print.ams_filament_setting"));
+    CHECK(agent.supports_command("orca-caps", "print.ams_change_filament"));
+    CHECK(agent.supports_command("orca-caps", "print.ams_get_rfid"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_control"));
+
+    agent.deliver_to_sink("orca-caps", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"fms": false, "filament_slots": false, "filament_mapping": false},
+            "supported_commands": ["print.ams_control"],
+            "capabilities": {"protocol": {"features": {}, "supported_commands": []}}
+        }
+    })", false);
+
+    CHECK_FALSE(agent.supports_feature("orca-caps", "filament_mapping"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_filament_setting"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_change_filament"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_control"));
+    CHECK_FALSE(agent.supports_command("orca-caps", "print.ams_calibrate"));
+    CHECK(agent.supports_command("orca-caps", "print.gcode_file"));
+}
+
+TEST_CASE("OrcaPrinterAgent clears cached capabilities when a device is unbound", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("orca-forget", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"filament_slots": true},
+            "supported_commands": [],
+            "capabilities": {"protocol": {"features": {}, "supported_commands": []}}
+        }
+    })", false);
+    REQUIRE(agent.supports_command("orca-forget", "print.ams_filament_setting"));
+
+    agent.unbind("orca-forget");
+    CHECK_FALSE(agent.supports_command("orca-forget", "print.ams_filament_setting"));
+}
+
+TEST_CASE("OrcaPrinterAgent removes setting_id from AMS metadata and gates the request", "[OrcaPrinterAgent]") {
+    Probe agent("/tmp");
+    agent.deliver_to_sink("orca-ams-write", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"fms": false, "filament_slots": true},
+            "supported_commands": [],
+            "capabilities": {"protocol": {"features": {"filament_slots": true}, "supported_commands": []}}
+        }
+    })", false);
+
+    const std::string request = R"({"print":{"command":"ams_filament_setting","sequence_id":"9","tray_info_idx":"GFL99","setting_id":"preset-setting"}})";
+    std::string command;
+    std::string prepared;
+    CHECK(agent.prepare_outgoing_request("orca-ams-write", request, command, prepared) == BAMBU_NETWORK_SUCCESS);
+    CHECK(command == "print.ams_filament_setting");
+    const nlohmann::json parsed = nlohmann::json::parse(prepared);
+    CHECK_FALSE(parsed["print"].contains("setting_id"));
+    CHECK(parsed["print"]["tray_info_idx"] == "GFL99");
+
+    agent.deliver_to_sink("orca-ams-write", R"({
+        "info": {
+            "command": "get_capabilities",
+            "supported_features": {"filament_slots": false},
+            "capabilities": {"protocol": {"features": {"filament_slots": false}}}
+        }
+    })", false);
+    CHECK(agent.prepare_outgoing_request("orca-ams-write", request, command, prepared) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
 }
 
 TEST_CASE("OrcaPrinterAgent::parse_lan_endpoint", "[OrcaPrinterAgent]") {

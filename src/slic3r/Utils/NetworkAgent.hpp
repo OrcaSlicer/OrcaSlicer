@@ -153,6 +153,10 @@ public:
     int set_on_local_message_fn(OnMessageFn fn);
     int set_server_callback(OnServerErrFn fn);
     int send_message(std::string dev_id, std::string json_str, int qos, int flag);
+    bool owns_agent(const std::string& expected_agent_id) const;
+    bool supports_command(const std::string& expected_agent_id, const std::string& dev_id, const std::string& command) const;
+    bool supports_feature(const std::string& expected_agent_id, const std::string& dev_id, const std::string& feature) const;
+    bool uses_filament_mapping(const std::string& expected_agent_id) const;
     int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode);
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode);
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode);

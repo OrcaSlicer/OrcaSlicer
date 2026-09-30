@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "libslic3r/ProjectTask.hpp"
+#include "DeviceManager.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -68,6 +69,36 @@ inline bool has_any_mapped_target(const std::vector<FilamentInfo>& result)
             return true;
     }
     return false;
+}
+
+
+// Refusal reason for a printer agent that serializes lane selection into
+// print.gcode_file's per-print filament_mapping field.
+enum class MappingSendError {
+    none,        // no refusal; ams_mapping2 is normalized for send
+    unsupported, // a mapping is engaged but the connector did not advertise it
+    incomplete,  // a used filament has no target while others do
+};
+
+// Applies the send-time mapping policy and normalizes ams_mapping2 in place.
+// Agents that do not speak filament_mapping keep their legacy payload untouched.
+inline MappingSendError prepare_filament_mapping_for_send(MachineObject* obj,
+                                                          std::string& ams_mapping2,
+                                                          const std::vector<FilamentInfo>& mapping_result)
+{
+    if (!obj || !obj->printer_uses_filament_mapping())
+        return MappingSendError::none;
+
+    // A device with no AMS units has one source, the external spool:
+    // auto-mapping force-selects it, which is not a lane choice. Drop it before
+    // the capability gate so it cannot refuse a print nobody mapped.
+    drop_forced_external_selection(obj->HasAms(), ams_mapping2);
+
+    if (!obj->printer_supports_feature("filament_mapping") && has_engaged_filament_mapping(ams_mapping2))
+        return MappingSendError::unsupported;
+    if (has_any_mapped_target(mapping_result) && has_used_filament_without_target(mapping_result))
+        return MappingSendError::incomplete;
+    return MappingSendError::none;
 }
 
 } // namespace GUI

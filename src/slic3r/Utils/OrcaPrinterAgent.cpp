@@ -44,19 +44,43 @@ namespace {
 
 namespace fs = boost::filesystem;
 
-// Per-device filament_mapping capability, mirrored from the get_capabilities
-// reply in merge_capabilities and read by start_sdcard_print so the field is
-// refused defensively when the connector never advertised it.
-std::mutex                             g_filament_mapping_mutex;
-std::unordered_map<std::string, bool>  g_filament_mapping_cache;
-
-// True only when the connector's get_capabilities reply advertised
-// filament_mapping for this device. Unknown is not support.
-bool filament_mapping_advertised(const std::string& dev_id)
+struct OrcaDeviceCapabilities
 {
-    std::lock_guard<std::mutex> l(g_filament_mapping_mutex);
-    const auto it = g_filament_mapping_cache.find(dev_id);
-    return it != g_filament_mapping_cache.end() && it->second;
+    bool fms = false;
+    bool filament_slots = false;
+    bool filament_mapping = false;
+    std::set<std::string> supported_commands;
+};
+
+std::mutex g_capabilities_mutex;
+std::unordered_map<std::string, OrcaDeviceCapabilities> g_capabilities;
+
+OrcaDeviceCapabilities capabilities_for(const std::string& dev_id)
+{
+    std::lock_guard<std::mutex> lock(g_capabilities_mutex);
+    const auto it = g_capabilities.find(dev_id);
+    return it == g_capabilities.end() ? OrcaDeviceCapabilities{} : it->second;
+}
+
+bool command_supported(const OrcaDeviceCapabilities& capabilities, const std::string& command)
+{
+    if (command == "print.ams_filament_setting")
+        return capabilities.filament_slots;
+
+    static const std::set<std::string> macro_backed_commands = {
+        "print.ams_change_filament",
+        "print.ams_control",
+        "print.ams_user_setting",
+        "print.ams_get_rfid",
+        "print.auto_stop_ams_dry",
+    };
+    if (macro_backed_commands.count(command) != 0)
+        return capabilities.fms && capabilities.supported_commands.count(command) != 0;
+
+    if (command.rfind("print.ams_", 0) == 0)
+        return capabilities.supported_commands.count(command) != 0;
+
+    return true;
 }
 
 // params.filename is normally the exported .3mf archive; the sliced G-code sits
@@ -463,6 +487,14 @@ OrcaPrinterAgent::~OrcaPrinterAgent()
     ++m_lan_generation; // fence any late worker callback
     ++m_cloud_generation;
 
+    std::string lan_dev_id;
+    std::string cloud_dev_id;
+    {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        lan_dev_id = m_lan_dev_id;
+        cloud_dev_id = selected_machine;
+    }
+
     // Drop the cloud status callback before anything else: it holds `this`, and the
     // cloud agent outlives the printer agent (NetworkAgent::set_printer_agent swaps
     // the printer agent while m_cloud_agents persist).
@@ -498,6 +530,8 @@ OrcaPrinterAgent::~OrcaPrinterAgent()
         std::lock_guard<std::mutex> l(state_mutex);
         lan_mqtt_connection.reset();
     }
+    forget_device_capabilities(lan_dev_id);
+    forget_device_capabilities(cloud_dev_id);
 }
 
 OrcaCloudServiceAgent* OrcaPrinterAgent::get_orca_cloud_agent()
@@ -605,31 +639,50 @@ std::string OrcaPrinterAgent::merge_capabilities(const std::string& dev_id, cons
             nozzle_diameter_cache[dev_id] = nozzle_dia;
         }
 
-        // Per-device filament_mapping capability. Both feature maps carry it;
-        // either being true means the connector advertised it.
-        bool mapping_advertised = false;
-        {
-            const auto top_features = info_it->find("supported_features");
-            if (top_features != info_it->end() && top_features->is_object()) {
-                const auto it = top_features->find("filament_mapping");
-                if (it != top_features->end() && it->is_boolean())
-                    mapping_advertised = it->get<bool>();
+        // Connector capabilities are retained per device for command dispatch
+        // and GUI capability queries. A fresh reply replaces stale support.
+        OrcaDeviceCapabilities device_capabilities;
+        auto parse_features = [&device_capabilities](const nlohmann::json& features) {
+            if (!features.is_object())
+                return;
+            auto read_bool = [&features](const char* key, bool& output) {
+                const auto it = features.find(key);
+                if (it != features.end() && it->is_boolean())
+                    output = it->get<bool>();
+            };
+            read_bool("fms", device_capabilities.fms);
+            read_bool("filament_slots", device_capabilities.filament_slots);
+            read_bool("filament_mapping", device_capabilities.filament_mapping);
+        };
+        auto parse_commands = [&device_capabilities](const nlohmann::json& commands) {
+            if (!commands.is_array())
+                return;
+            for (const auto& item : commands) {
+                if (item.is_string())
+                    device_capabilities.supported_commands.insert(item.get<std::string>());
             }
-            if (!mapping_advertised && caps_it != info_it->end() && caps_it->is_object()) {
-                const auto protocol_it = caps_it->find("protocol");
-                if (protocol_it != caps_it->end() && protocol_it->is_object()) {
-                    const auto features_it = protocol_it->find("features");
-                    if (features_it != protocol_it->end() && features_it->is_object()) {
-                        const auto it = features_it->find("filament_mapping");
-                        if (it != features_it->end() && it->is_boolean())
-                            mapping_advertised = it->get<bool>();
-                    }
-                }
+        };
+
+        const auto top_features = info_it->find("supported_features");
+        if (top_features != info_it->end())
+            parse_features(*top_features);
+        const auto top_commands = info_it->find("supported_commands");
+        if (top_commands != info_it->end())
+            parse_commands(*top_commands);
+        if (caps_it != info_it->end() && caps_it->is_object()) {
+            const auto protocol_it = caps_it->find("protocol");
+            if (protocol_it != caps_it->end() && protocol_it->is_object()) {
+                const auto protocol_features = protocol_it->find("features");
+                if (protocol_features != protocol_it->end())
+                    parse_features(*protocol_features);
+                const auto protocol_commands = protocol_it->find("supported_commands");
+                if (protocol_commands != protocol_it->end())
+                    parse_commands(*protocol_commands);
             }
         }
         {
-            std::lock_guard<std::mutex> l(g_filament_mapping_mutex);
-            g_filament_mapping_cache[dev_id] = mapping_advertised;
+            std::lock_guard<std::mutex> lock(g_capabilities_mutex);
+            g_capabilities[dev_id] = std::move(device_capabilities);
         }
         // The capabilities reply itself is forwarded unchanged.
     }
@@ -655,6 +708,14 @@ std::string OrcaPrinterAgent::merge_capabilities(const std::string& dev_id, cons
     // ----------------------------------------------------------------------
 
     return modified ? envelope.dump() : payload;
+}
+
+void OrcaPrinterAgent::forget_device_capabilities(const std::string& dev_id)
+{
+    if (dev_id.empty())
+        return;
+    std::lock_guard<std::mutex> lock(g_capabilities_mutex);
+    g_capabilities.erase(dev_id);
 }
 
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
@@ -743,6 +804,56 @@ void OrcaPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud
 
 int OrcaPrinterAgent::send_message(std::string dev_id, std::string json_str, int /*qos*/, int /*flag*/)
 { return route_send(/*is_lan=*/false, dev_id, json_str); }
+
+bool OrcaPrinterAgent::supports_command(const std::string& dev_id, const std::string& command) const
+{
+    return command_supported(capabilities_for(dev_id), command);
+}
+
+bool OrcaPrinterAgent::supports_feature(const std::string& dev_id, const std::string& feature) const
+{
+    const OrcaDeviceCapabilities capabilities = capabilities_for(dev_id);
+    if (feature == "fms")
+        return capabilities.fms;
+    if (feature == "filament_slots")
+        return capabilities.filament_slots;
+    if (feature == "filament_mapping")
+        return capabilities.filament_mapping;
+    return false;
+}
+
+int OrcaPrinterAgent::prepare_outgoing_request(const std::string& dev_id, const std::string& payload,
+                                               std::string& command, std::string& prepared) const
+{
+    command = "<unparsed>";
+    prepared = payload;
+    nlohmann::json envelope = nlohmann::json::parse(payload, nullptr, false);
+    if (envelope.is_discarded() || !envelope.is_object())
+        return BAMBU_NETWORK_SUCCESS;
+
+    nlohmann::json* print = nullptr;
+    for (const char* namespace_name : {"pushing", "info", "print", "system", "camera", "xcam", "upgrade", "event", "files"}) {
+        const auto namespace_it = envelope.find(namespace_name);
+        if (namespace_it == envelope.end() || !namespace_it->is_object())
+            continue;
+        const auto command_it = namespace_it->find("command");
+        if (command_it == namespace_it->end() || !command_it->is_string())
+            continue;
+        command = std::string(namespace_name) + "." + command_it->get<std::string>();
+        if (std::string(namespace_name) == "print")
+            print = &*namespace_it;
+        break;
+    }
+
+    if (!supports_command(dev_id, command))
+        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+
+    if (command == "print.ams_filament_setting" && print && print->contains("setting_id")) {
+        print->erase("setting_id");
+        prepared = envelope.dump();
+    }
+    return BAMBU_NETWORK_SUCCESS;
+}
 
 int OrcaPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int tray_id, int sequence_id, bool lan_mode)
 {
@@ -1054,6 +1165,7 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
         BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: connect_printer rejected unparsable LAN endpoint dev_ip=" << params.host;
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
+    forget_device_capabilities(params.dev_id);
     disconnect_printer();
     const uint64_t gen = ++m_lan_generation;
 
@@ -1110,6 +1222,7 @@ int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
                 on_connected(params.dev_id, conn, gen);
                 dispatch_local_connect(ConnectStatusOk, params.dev_id, "0");
             } else if (!connected && !initial) {
+                forget_device_capabilities(params.dev_id);
                 dispatch_local_connect(ConnectStatusLost, params.dev_id, "connection_lost");
             }
         });
@@ -1161,6 +1274,7 @@ int OrcaPrinterAgent::disconnect_printer()
         }
         current_connection = m_current_connection;
     }
+    forget_device_capabilities(prev_dev);
     BOOST_LOG_TRIVIAL(info) << "Orca diagnostic: LAN disconnect generation=" << m_lan_generation.load() << " previous_dev_id=" << prev_dev
                             << " had_connection=" << (doomed ? "yes" : "no")
                             << " connected=" << (doomed && doomed->is_connected() ? "yes" : "no")
@@ -1185,31 +1299,21 @@ int OrcaPrinterAgent::send_message_to_printer(std::string dev_id, std::string js
 
 int OrcaPrinterAgent::route_send(bool is_lan, const std::string& dev_id, const std::string& json_str)
 {
-    std::string command = "<unparsed>";
-    try {
-        const nlohmann::json envelope = nlohmann::json::parse(json_str);
-        for (const char* namespace_name : {"pushing", "info", "print", "system", "camera", "xcam", "upgrade", "event", "files"}) {
-            const auto namespace_it = envelope.find(namespace_name);
-            if (namespace_it != envelope.end() && namespace_it->is_object()) {
-                const auto command_it = namespace_it->find("command");
-                if (command_it != namespace_it->end() && command_it->is_string()) {
-                    command = std::string(namespace_name) + "." + command_it->get<std::string>();
-                    break;
-                }
-            }
-        }
-    } catch (const std::exception&) {
-        // Preserve the transport's existing behavior for malformed payloads;
-        // the printer will report the protocol error asynchronously.
-    }
+    std::string command;
+    std::string prepared;
+    const int prepare_rc = prepare_outgoing_request(dev_id, json_str, command, prepared);
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::route_send is_lan=" << is_lan << " dev_id=" << dev_id << " command=" << command
                             << " payload_bytes=" << json_str.size();
     if (dev_id.empty())
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+    if (prepare_rc != BAMBU_NETWORK_SUCCESS) {
+        BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: refusing unsupported command " << command << " for dev_id=" << dev_id;
+        return prepare_rc;
+    }
     OrcaMqttConnection* conn = get_appropriate_mqtt_connection(is_lan);
     if (!conn)
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-    const bool queued = conn->send_request(dev_id, json_str);
+    const bool queued = conn->send_request(dev_id, prepared);
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::route_send command=" << command << " queued=" << queued << " is_lan=" << is_lan
                             << " dev_id=" << dev_id;
     return queued ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_SERVER_FAILED;
@@ -1339,18 +1443,19 @@ int OrcaPrinterAgent::set_user_selected_machine(std::string dev_id)
         }
         current_connection = m_current_connection;
     }
+    // Fence in-flight cloud callbacks before discarding their capability state.
+    const uint64_t gen = ++m_cloud_generation;
     BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent::set_user_selected_machine: previous=" << previous << " new=" << dev_id
                             << " cloud=" << (cloud ? "set" : "<null>") << " transport=" << connection_type_name(previous_connection) << "->"
                             << connection_type_name(current_connection);
+    if (previous != dev_id || previous_connection != current_connection) {
+        forget_device_capabilities(previous);
+        forget_device_capabilities(dev_id);
+    }
     if (!cloud) {
         BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent::set_user_selected_machine: no Orca cloud agent";
         return BAMBU_NETWORK_SUCCESS;
     }
-
-    // Bump ONCE at the top for any change (select or deselect) so a deselect also
-    // fences an in-flight configure thread started by the previous selection. This is
-    // the CLOUD epoch only — a cloud selection must not fence a live LAN session.
-    const uint64_t gen = ++m_cloud_generation;
 
     auto* conn = cloud->get_mqtt_connection();
     if (!previous.empty()) {
@@ -1381,8 +1486,12 @@ int OrcaPrinterAgent::set_user_selected_machine(std::string dev_id)
             return; // superseded before we ran: do not raise a socket nobody owns
 
         auto state_handler = [this](bool connected, bool initial) {
-            if (!connected || initial)
+            if (initial)
                 return;
+            if (!connected) {
+                forget_device_capabilities(get_user_selected_machine());
+                return;
+            }
             auto* current_cloud = get_orca_cloud_agent();
             OrcaMqttConnection* current_conn = current_cloud ? current_cloud->get_mqtt_connection() : nullptr;
             const std::string selected = get_user_selected_machine();
@@ -1395,6 +1504,12 @@ int OrcaPrinterAgent::set_user_selected_machine(std::string dev_id)
             on_connected(dev_id, cloud->get_mqtt_connection(), gen);
         }
     });
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+int OrcaPrinterAgent::unbind(std::string dev_id)
+{
+    forget_device_capabilities(dev_id);
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -1712,7 +1827,7 @@ int OrcaPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn up
     // plugin). Never start a mapped print with the map silently dropped.
     const nlohmann::json filament_mapping = build_filament_mapping(params.ams_mapping2);
     if (!filament_mapping.empty()) {
-        if (!filament_mapping_advertised(params.dev_id)) {
+        if (!supports_feature(params.dev_id, "filament_mapping")) {
             BOOST_LOG_TRIVIAL(warning) << "OrcaPrinterAgent: refusing mapped print, connector does not advertise filament_mapping";
             return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
         }

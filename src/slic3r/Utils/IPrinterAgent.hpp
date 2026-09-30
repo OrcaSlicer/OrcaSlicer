@@ -109,6 +109,16 @@ public:
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
 
+    // Capability queries are per-device because one agent may own many printers.
+    // Legacy agents keep their existing behavior unless they override these.
+    virtual bool supports_command(const std::string& /*dev_id*/, const std::string& /*command*/) const { return true; }
+    virtual bool supports_feature(const std::string& /*dev_id*/, const std::string& /*feature*/) const { return false; }
+
+    // Whether this agent serializes AMS lane selection into print.gcode_file's
+    // per-print filament_mapping field. A dialect question, not a capability one:
+    // the no-AMS external-spool normalization runs before capabilities are known.
+    virtual bool uses_filament_mapping() const { return false; }
+
     // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
     // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
     // publish funnel turns into a dialog.

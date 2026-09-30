@@ -3,6 +3,8 @@
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
+#include <slic3r/GUI/DeviceCore/DevFilaSystem.h>
+#include <slic3r/GUI/FilamentMappingUtils.hpp>
 #include <libslic3r/AppConfig.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
@@ -20,6 +22,8 @@
 #include <utility>
 
 using namespace Slic3r;
+using Slic3r::GUI::MappingSendError;
+using Slic3r::GUI::prepare_filament_mapping_for_send;
 using json = nlohmann::json;
 
 namespace {
@@ -50,6 +54,30 @@ public:
     }
 
     AgentInfo get_agent_info() override { return m_info; }
+
+    // This test double represents a legacy agent, not OrcaPrinterAgent behavior.
+    bool supports_command(const std::string&, const std::string&) const override { return true; }
+
+    // It models whichever agent is registered under its id: only the Orca agent
+    // serializes per-print filament_mapping.
+    bool uses_filament_mapping() const override { return m_info.id == "orca"; }
+
+    using OrcaPrinterAgent::deliver_to_sink;
+
+    int send_message(std::string, std::string json_str, int, int) override
+    {
+        last_message = std::move(json_str);
+        return send_result;
+    }
+
+    int send_message_to_printer(std::string, std::string json_str, int, int) override
+    {
+        last_message = std::move(json_str);
+        return send_result;
+    }
+
+    std::string last_message;
+    int send_result = 0;
 
 private:
     AgentInfo m_info;
@@ -163,120 +191,135 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
 }
 
-TEST_CASE("Orca capability reply populates connector-scope features and commands", "[DeviceManager][integration]")
+TEST_CASE("Network agent rejects capability queries for a different device owner", "[DeviceManager][integration]")
 {
-    ScopedAppConfig app_config;
-    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("orca"));
-    DeviceManager manager(&network, false, &app_config.config);
+    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("bbl"));
 
-    BBLocalMachine orca_machine;
-    orca_machine.dev_id       = "orca-device";
-    orca_machine.dev_name     = "Orca device";
-    orca_machine.dev_ip       = "192.0.2.21";
-    orca_machine.printer_type = "C11";
-    MachineObject* orca_obj = manager.insert_local_device(orca_machine, "lan", "free", "", "access-code");
-    REQUIRE(orca_obj != nullptr);
-    orca_obj->printer_agent_id = "orca";
+    CHECK(network.owns_agent("bbl"));
+    CHECK_FALSE(network.owns_agent("orca"));
+    CHECK(network.supports_command("bbl", "device", "print.ams_control"));
+    CHECK_FALSE(network.supports_command("orca", "device", "print.ams_control"));
+    CHECK_FALSE(network.supports_feature("orca", "device", "filament_mapping"));
 
-    orca_obj->parse_new_info2(json::parse(R"({
-        "command": "get_capabilities",
-        "supported_features": {"fms": true, "filament_slots": true, "filament_mapping": true},
-        "supported_commands": ["print.push_status", "print.ams_get_rfid"],
-        "capabilities": {
-            "flags": {},
-            "protocol": {
-                "features": {"filament_mapping": true},
-                "supported_commands": ["print.ams_change_filament"]
-            }
-        }
-    })"));
-    CHECK(orca_obj->is_support_fms);
-    CHECK(orca_obj->is_support_filament_slots);
-    CHECK(orca_obj->is_support_filament_mapping);
-    CHECK(orca_obj->supported_commands.count("print.push_status") == 1);
-    CHECK(orca_obj->supported_commands.count("print.ams_get_rfid") == 1);
-    CHECK(orca_obj->supported_commands.count("print.ams_change_filament") == 1);
+    // The mapping dialect is queried the same way: a legacy owner never inherits
+    // Orca's, and a non-owner is never queried at all.
+    CHECK_FALSE(network.uses_filament_mapping("bbl"));
+    CHECK_FALSE(network.uses_filament_mapping("orca"));
 
-    // Absent or false reads as unsupported, and a later reply without commands clears the set.
-    orca_obj->parse_new_info2(json::parse(R"({
-        "command": "get_capabilities",
-        "supported_features": {"fms": false, "filament_slots": false, "filament_mapping": false},
-        "capabilities": {"flags": {}}
-    })"));
-    CHECK_FALSE(orca_obj->is_support_fms);
-    CHECK_FALSE(orca_obj->is_support_filament_slots);
-    CHECK_FALSE(orca_obj->is_support_filament_mapping);
-    CHECK(orca_obj->supported_commands.empty());
-
-    // A reply without capabilities.flags must still parse the Orca features and
-    // commands (fail-closed: don't retain stale "supported" values).
-    orca_obj->parse_new_info2(json::parse(R"({
-        "command": "get_capabilities",
-        "supported_features": {"filament_mapping": true},
-        "capabilities": {
-            "protocol": {"supported_commands": ["print.ams_get_rfid"]}
-        }
-    })"));
-    CHECK(orca_obj->is_support_filament_mapping);
-    CHECK_FALSE(orca_obj->is_support_filament_slots);
-    CHECK(orca_obj->supported_commands.count("print.ams_get_rfid") == 1);
-
-    // A non-Orca agent id leaves the connector-scope fields untouched.
-    BBLocalMachine bbl_machine;
-    bbl_machine.dev_id       = "bbl-device";
-    bbl_machine.dev_name     = "Bambu device";
-    bbl_machine.dev_ip       = "192.0.2.22";
-    bbl_machine.printer_type = "C11";
-    MachineObject* bbl_obj = manager.insert_local_device(bbl_machine, "lan", "free", "", "access-code");
-    REQUIRE(bbl_obj != nullptr);
-    bbl_obj->printer_agent_id = "bbl";
-
-    bbl_obj->parse_new_info2(json::parse(R"({
-        "command": "get_capabilities",
-        "supported_features": {"fms": true, "filament_slots": true, "filament_mapping": true},
-        "supported_commands": ["print.push_status"],
-        "capabilities": {
-            "flags": {},
-            "protocol": {
-                "features": {"fms": true, "filament_slots": true, "filament_mapping": true},
-                "supported_commands": ["print.ams_get_rfid"]
-            }
-        }
-    })"));
-    CHECK_FALSE(bbl_obj->is_support_fms);
-    CHECK_FALSE(bbl_obj->is_support_filament_slots);
-    CHECK_FALSE(bbl_obj->is_support_filament_mapping);
-    CHECK(bbl_obj->supported_commands.empty());
+    NetworkAgent orca_network(nullptr, std::make_shared<TestPrinterAgent>("orca"));
+    CHECK(orca_network.uses_filament_mapping("orca"));
+    CHECK_FALSE(orca_network.uses_filament_mapping("bbl"));
 }
 
-TEST_CASE("Orca per-command AMS gate requires fms and the advertised command", "[DeviceManager][integration]")
+// Send-time mapping policy belongs to the printer agent's dialect, not to an
+// agent id: the Orca dialect gets the no-AMS normalization plus both refusals.
+TEST_CASE("Per-print mapping send policy follows the owning agent's dialect", "[DeviceManager][integration]")
+{
+    auto orca_agent = std::make_shared<TestPrinterAgent>("orca");
+    NetworkAgent network(nullptr, orca_agent);
+    MachineObject obj(nullptr, &network, "test", "orca-mapping-policy", "127.0.0.1");
+    obj.printer_agent_id = "orca";
+
+    // No AMS: the auto-selected external spool is dropped before the capability
+    // gate, so it cannot refuse a print nobody mapped.
+    std::string external_only = R"([{"ams_id":255,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&obj, external_only, {}) == MappingSendError::none);
+    CHECK(external_only.empty());
+
+    // An AMS makes that a real target, but nothing advertised the capability yet.
+    obj.GetFilaSystem()->GetAmsList()["0"] = new DevAms("0", 0, DevAms::AMS);
+    std::string mapped = R"([{"ams_id":0,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&obj, mapped, {}) == MappingSendError::unsupported);
+    CHECK(mapped == R"([{"ams_id":0,"slot_id":0}])"); // the refusal leaves it intact
+
+    // Once the connector advertises the capability the mapping passes the gate.
+    orca_agent->deliver_to_sink(obj.get_dev_id(),
+                        R"({"info":{"command":"get_capabilities","supported_features":{"filament_mapping":true}}})",
+                        false);
+    CHECK(obj.printer_supports_feature("filament_mapping"));
+    CHECK(prepare_filament_mapping_for_send(&obj, mapped, {}) == MappingSendError::none);
+
+    // An unrecorded owner still sends through the active agent, so it takes
+    // that agent's dialect too rather than falling back to the legacy payload.
+    MachineObject unowned(nullptr, &network, "test", "orca-unowned", "127.0.0.1");
+    CHECK(unowned.printer_agent_id.empty());
+    CHECK(unowned.printer_uses_filament_mapping());
+    std::string unowned_external = R"([{"ams_id":255,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&unowned, unowned_external, {}) == MappingSendError::none);
+    CHECK(unowned_external.empty()); // the Orca normalization ran
+
+    // A partially mapped print is refused even while the capability holds.
+    FilamentInfo mapped_entry;
+    mapped_entry.ams_id = "0";
+    mapped_entry.slot_id = "0";
+    FilamentInfo unmapped_entry;
+    CHECK(prepare_filament_mapping_for_send(&obj, mapped, {mapped_entry, unmapped_entry}) ==
+          MappingSendError::incomplete);
+}
+
+// The legacy payload is the thing being protected: no normalization, no refusal.
+TEST_CASE("A legacy printer agent keeps its mapping payload untouched", "[DeviceManager][integration]")
+{
+    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("bbl"));
+    MachineObject obj(nullptr, &network, "test", "bbl-mapping-policy", "127.0.0.1");
+    obj.printer_agent_id = "bbl";
+
+    FilamentInfo mapped_entry;
+    mapped_entry.ams_id = "0";
+    mapped_entry.slot_id = "0";
+    FilamentInfo unmapped_entry;
+
+    std::string external_only = R"([{"ams_id":255,"slot_id":0}])";
+    CHECK(prepare_filament_mapping_for_send(&obj, external_only, {mapped_entry, unmapped_entry}) ==
+          MappingSendError::none);
+    CHECK(external_only == R"([{"ams_id":255,"slot_id":0}])");
+}
+
+TEST_CASE("AMS metadata retains setting_id for legacy printer agents", "[DeviceManager][integration]")
 {
     ScopedAppConfig app_config;
-    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("orca"));
+    auto printer_agent = std::make_shared<TestPrinterAgent>("bbl");
+    NetworkAgent network(nullptr, printer_agent);
     DeviceManager manager(&network, false, &app_config.config);
 
     BBLocalMachine machine;
-    machine.dev_id       = "orca-gate";
-    machine.dev_name     = "Orca gate";
-    machine.dev_ip       = "192.0.2.30";
+    machine.dev_id       = "bbl-setting-id";
+    machine.dev_name     = "Bambu setting id";
+    machine.dev_ip       = "192.0.2.32";
     machine.printer_type = "C11";
     MachineObject* obj = manager.insert_local_device(machine, "lan", "free", "", "access-code");
     REQUIRE(obj != nullptr);
-    obj->printer_agent_id = "orca";
 
-    // fms off: no macro-backed AMS command is allowed even if listed.
-    obj->is_support_fms = false;
-    obj->supported_commands.insert("print.ams_control");
-    CHECK_FALSE(obj->orca_ams_command_supported("print.ams_control"));
+    REQUIRE(obj->command_ams_filament_settings(0, 1, "GFL99", "preset-setting", "00FF00FF", "PLA", 190, 220) == 0);
+    const json payload = json::parse(printer_agent->last_message);
+    CHECK(payload["print"]["setting_id"] == "preset-setting");
+}
 
-    // fms on: only the commands actually advertised are allowed.
-    obj->is_support_fms = true;
-    CHECK(obj->orca_ams_command_supported("print.ams_control"));
-    CHECK_FALSE(obj->orca_ams_command_supported("print.ams_get_rfid"));
+TEST_CASE("AMS user settings do not update local state when publishing fails", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto printer_agent = std::make_shared<TestPrinterAgent>("bbl");
+    NetworkAgent network(nullptr, printer_agent);
+    DeviceManager manager(&network, false, &app_config.config);
 
-    // Bambu keeps the legacy permissive path.
-    obj->printer_agent_id = "bbl";
-    CHECK(obj->orca_ams_command_supported("print.anything"));
+    BBLocalMachine machine;
+    machine.dev_id       = "bbl-ams-setting-failure";
+    machine.dev_name     = "Bambu AMS settings";
+    machine.dev_ip       = "192.0.2.33";
+    machine.printer_type = "C11";
+    MachineObject* obj = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(obj != nullptr);
+
+    auto& settings = obj->GetFilaSystem()->GetAmsSystemSetting();
+    settings.SetDetectOnInsertEnabled(false);
+    settings.SetDetectOnPowerupEnabled(false);
+    settings.SetDetectRemainEnabled(false);
+    printer_agent->send_result = -1;
+
+    CHECK(obj->command_ams_user_settings(true, true, true) != 0);
+    CHECK(settings.IsDetectOnInsertEnabled() == false);
+    CHECK(settings.IsDetectOnPowerupEnabled() == false);
+    CHECK(settings.IsDetectRemainEnabled() == false);
 }
 
 // The AMS dialogs resolve their filament list from the connected device's model. OrcaSonar's

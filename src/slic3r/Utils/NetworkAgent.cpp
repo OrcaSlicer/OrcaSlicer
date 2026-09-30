@@ -806,6 +806,36 @@ int NetworkAgent::send_message(std::string dev_id, std::string json_str, int qos
     return -1;
 }
 
+bool NetworkAgent::owns_agent(const std::string& expected_agent_id) const
+{
+    if (!m_printer_agent)
+        return false;
+    return expected_agent_id.empty() || m_printer_agent->get_agent_info().id == expected_agent_id;
+}
+
+bool NetworkAgent::supports_command(const std::string& expected_agent_id, const std::string& dev_id,
+                                   const std::string& command) const
+{
+    if (!owns_agent(expected_agent_id))
+        return false;
+    return m_printer_agent->supports_command(dev_id, command);
+}
+
+bool NetworkAgent::supports_feature(const std::string& expected_agent_id, const std::string& dev_id,
+                                   const std::string& feature) const
+{
+    if (!owns_agent(expected_agent_id))
+        return false;
+    return m_printer_agent->supports_feature(dev_id, feature);
+}
+
+bool NetworkAgent::uses_filament_mapping(const std::string& expected_agent_id) const
+{
+    if (!owns_agent(expected_agent_id))
+        return false;
+    return m_printer_agent->uses_filament_mapping();
+}
+
 int NetworkAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
     if (m_printer_agent)
