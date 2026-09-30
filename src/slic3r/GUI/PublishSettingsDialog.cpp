@@ -1225,7 +1225,7 @@ size_t PublishSettingsDialog::category_index_for(
     }
 
     category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    category.scroll->SetScrollRate(0, 10);
+    category.scroll->SetScrollRate(0, FromDIP(20));
     category.scroll->SetBackgroundColour(GetBackgroundColour());
     category.list_sizer = new wxBoxSizer(wxVERTICAL);
     category.scroll->SetSizer(category.list_sizer);

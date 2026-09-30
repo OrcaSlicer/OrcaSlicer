@@ -26,9 +26,9 @@ endif()
 
 cmake_minimum_required(VERSION 3.2)
 if (APPLE)
-    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 11.3
+    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 12.0 (the lowest Xcode 27 accepts)
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.3" CACHE STRING "Minimum OS X deployment version" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum OS X deployment version" FORCE)
     endif ()
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 
@@ -37,6 +37,14 @@ endif ()
 if(POLICY CMP0135) # DOWNLOAD_EXTRACT_TIMESTAMP
     cmake_policy(SET CMP0135 NEW)
 endif()
+
+# project() reads this, so set it first. scripts/flatpak/make_deps_tar.sh packs deps/
+# without cmake/, so the file is missing in a Flatpak build.
+set(_rules_override "${CMAKE_CURRENT_LIST_DIR}/../cmake/modules/ClangClShowIncludes.cmake")
+if (EXISTS "${_rules_override}")
+    set(CMAKE_USER_MAKE_RULES_OVERRIDE "${_rules_override}")
+endif ()
+unset(_rules_override)
 
 project(OrcaSlicer-deps)
 
@@ -226,6 +234,7 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
             -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
             -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
+            -DCMAKE_USER_MAKE_RULES_OVERRIDE:STRING=${CMAKE_USER_MAKE_RULES_OVERRIDE}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
             -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
             -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
@@ -276,6 +285,7 @@ else()
             -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
             -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
             -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
+            -DCMAKE_USER_MAKE_RULES_OVERRIDE:STRING=${CMAKE_USER_MAKE_RULES_OVERRIDE}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"

@@ -21,8 +21,9 @@ MultiMachineItem::MultiMachineItem(wxWindow* parent, MachineObject* obj)
     Bind(wxEVT_MOTION, &MultiMachineItem::OnMove, this);
     Bind(EVT_MULTI_DEVICE_VIEW, [obj](auto& e) {
         wxGetApp().mainframe->jump_to_monitor(obj->get_dev_id());
-        if (wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()) {
-            wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()->jump_to_play();
+        MonitorPanel* monitor = MonitorPanel::if_built();
+        if (monitor && monitor->get_status_panel()->get_media_play_ctrl()) {
+            monitor->get_status_panel()->get_media_play_ctrl()->jump_to_play();
         }
     });
     wxGetApp().UpdateDarkUIWin(this);
@@ -397,7 +398,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
 
     m_machine_list = new wxScrolledWindow(m_main_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_machine_list->SetBackgroundColour(*wxWHITE);
-    m_machine_list->SetScrollRate(0, 5);
+    m_machine_list->SetScrollRate(0, FromDIP(DEVICE_ITEM_MAX_HEIGHT));
     m_machine_list->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_machine_list->SetMaxSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), 10 * FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
 

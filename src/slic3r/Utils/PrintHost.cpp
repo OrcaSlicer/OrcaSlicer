@@ -6,6 +6,7 @@
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
 
 #include <wx/string.h>
 #include <wx/app.h>
@@ -115,10 +116,67 @@ std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
     return webui_url;
 }
 
+namespace {
+
+// Moonraker (Klipper's API server) reports a raised exception as { "error": { "code", "message", "traceback" } }
+// under every host type that connects to it, often with the cause only in the traceback. Returns the reason to show,
+// or empty for any other body.
+std::string moonraker_error_reason(const std::string &body)
+{
+    const auto root = nlohmann::json::parse(body, nullptr, false);
+    const auto err  = root.find("error");
+    if (err == root.end())
+        return {};
+    const auto message   = err->find("message");
+    const auto traceback = err->find("traceback");
+    if (message == err->end() || traceback == err->end() || !message->is_string() || !traceback->is_string())
+        return {};
+
+    const auto &msg = message->get_ref<const std::string &>();
+    const auto &tb  = traceback->get_ref<const std::string &>();
+    if (msg.empty())
+        return {};
+    const auto end = tb.find_last_not_of(" \t\r\n");
+    if (end == std::string::npos)
+        return msg;
+
+    // Chained exceptions each start a new traceback; the one that failed the request is the last.
+    const auto header = tb.rfind("Traceback (most recent call last):", end);
+
+    // Tornado renders a raised HTTPError as "HTTP <code>: <reason>[ (<detail>)]", and the detail may span lines.
+    const auto code = err->find("code");
+    if (code != err->end() && code->is_number_integer()) {
+        const std::string marker = "HTTP " + std::to_string(code->get<int>()) + ": ";
+        const auto        pos    = tb.rfind(marker, end);
+        if (pos != std::string::npos && (header == std::string::npos || pos > header) && pos + marker.size() <= end) {
+            const std::string reason = tb.substr(pos + marker.size(), end + 1 - pos - marker.size());
+            // An HTTPError whose detail equals its reason, like HTTPError(401, "Unauthorized"), renders the phrase twice.
+            return reason == msg + " (" + msg + ")" ? msg : reason;
+        }
+    }
+
+    // Any other exception's type and message are everything from the first unindented line after its frames.
+    auto begin = (header == std::string::npos) ? std::string::npos : tb.find('\n', header);
+    while (begin != std::string::npos && begin < end) {
+        ++begin;
+        if (tb[begin] != ' ' && tb[begin] != '\r' && tb[begin] != '\n')
+            break;
+        begin = tb.find('\n', begin);
+    }
+    if (begin == std::string::npos || begin > end) {
+        const auto nl = tb.rfind('\n', end);
+        begin         = (nl == std::string::npos) ? 0 : nl + 1;
+    }
+    return msg + " (" + tb.substr(begin, end + 1 - begin) + ")";
+}
+
+} // namespace
+
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {
-        auto wxbody = wxString::FromUTF8(body.data());
+        const std::string reason = moonraker_error_reason(body);
+        auto wxbody = wxString::FromUTF8(reason.empty() ? body : reason);
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
         if (error.find("curl:Timeout was reached") != std::string::npos) {

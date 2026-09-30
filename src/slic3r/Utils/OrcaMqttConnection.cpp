@@ -568,7 +568,8 @@ void OrcaMqttConnection::connect_and_read() {
         ws_read(*connection, buffer, connack_error);
         if (connack_error)
             throw boost::system::system_error(connack_error, "read Orca MQTT CONNACK");
-
+        // Beast leaves this expiry armed after the synchronous CONNACK read above;
+        // disable it before starting the long-lived async WebSocket session.
         expires_never(*connection);
         const std::string connack = boost::beast::buffers_to_string(buffer.data());
         // rc: 0 accepted, 1..5 refusal, -1 malformed/not a CONNACK.

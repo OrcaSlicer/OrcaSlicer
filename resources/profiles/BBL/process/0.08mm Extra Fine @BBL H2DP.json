@@ -5,12 +5,33 @@
 	"from": "system",
 	"setting_id": "GP043",
 	"instantiation": "true",
+	"bridge_speed": [
+		"50",
+		"50",
+		"50",
+		"50",
+		"50"
+	],
 	"default_acceleration": [
 		"4000",
 		"4000",
 		"4000",
 		"4000",
 		"4000"
+	],
+	"enable_overhang_speed": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"enable_height_slowdown": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
 	],
 	"gap_infill_speed": [
 		"50",
@@ -40,12 +61,33 @@
 		"120",
 		"120"
 	],
+	"initial_layer_travel_acceleration": [
+		"6000",
+		"6000",
+		"6000",
+		"6000",
+		"6000"
+	],
+	"initial_layer_acceleration": [
+		"500",
+		"500",
+		"500",
+		"500",
+		"500"
+	],
 	"initial_layer_infill_speed": [
 		"70",
 		"70",
 		"70",
 		"70",
 		"70"
+	],
+	"inner_wall_acceleration": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
 	],
 	"outer_wall_speed": [
 		"60",
@@ -82,61 +124,6 @@
 		"10",
 		"10"
 	],
-	"prime_tower_width": "60",
-	"prime_tower_brim_width": "-1",
-	"sparse_infill_pattern": "gyroid",
-	"sparse_infill_speed": [
-		"100",
-		"100",
-		"100",
-		"100",
-		"100"
-	],
-	"top_surface_speed": [
-		"120",
-		"120",
-		"120",
-		"120",
-		"120"
-	],
-	"compatible_printers": [
-		"Bambu Lab H2D Pro 0.4 nozzle"
-	],
-	"bridge_speed": [
-		"50",
-		"50",
-		"50",
-		"50",
-		"50"
-	],
-	"enable_overhang_speed": [
-		"1",
-		"1",
-		"1",
-		"1",
-		"1"
-	],
-	"initial_layer_acceleration": [
-		"500",
-		"500",
-		"500",
-		"500",
-		"500"
-	],
-	"initial_layer_travel_acceleration": [
-		"6000",
-		"6000",
-		"6000",
-		"6000",
-		"6000"
-	],
-	"inner_wall_acceleration": [
-		"0",
-		"0",
-		"0",
-		"0",
-		"0"
-	],
 	"overhang_4_4_speed": [
 		"10",
 		"10",
@@ -144,6 +131,8 @@
 		"10",
 		"10"
 	],
+	"prime_tower_width": "60",
+	"prime_tower_brim_width": "-1",
 	"print_extruder_id": [
 		"1",
 		"1",
@@ -157,6 +146,70 @@
 		"Direct Drive Standard",
 		"Direct Drive High Flow",
 		"Direct Drive TPU High Flow"
+	],
+	"sparse_infill_pattern": "gyroid",
+	"sparse_infill_speed": [
+		"100",
+		"100",
+		"100",
+		"100",
+		"100"
+	],
+	"support_interface_speed": [
+		"80",
+		"80",
+		"80",
+		"80",
+		"80"
+	],
+	"support_speed": [
+		"150",
+		"150",
+		"150",
+		"150",
+		"150"
+	],
+	"slowdown_start_height": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"slowdown_start_speed": [
+		"1000",
+		"1000",
+		"1000",
+		"1000",
+		"1000"
+	],
+	"slowdown_start_acc": [
+		"100000",
+		"100000",
+		"100000",
+		"100000",
+		"100000"
+	],
+	"slowdown_end_height": [
+		"400",
+		"400",
+		"400",
+		"400",
+		"400"
+	],
+	"slowdown_end_speed": [
+		"1000",
+		"1000",
+		"1000",
+		"1000",
+		"1000"
+	],
+	"slowdown_end_acc": [
+		"100000",
+		"100000",
+		"100000",
+		"100000",
+		"100000"
 	],
 	"small_perimeter_speed": [
 		"50%",
@@ -179,26 +232,12 @@
 		"100%",
 		"100%"
 	],
-	"support_interface_speed": [
-		"80",
-		"80",
-		"80",
-		"80",
-		"80"
-	],
-	"support_speed": [
-		"150",
-		"150",
-		"150",
-		"150",
-		"150"
-	],
-	"top_surface_acceleration": [
-		"2000",
-		"2000",
-		"2000",
-		"2000",
-		"2000"
+	"top_surface_speed": [
+		"120",
+		"120",
+		"120",
+		"120",
+		"120"
 	],
 	"travel_acceleration": [
 		"10000",
@@ -207,6 +246,13 @@
 		"10000",
 		"10000"
 	],
+	"travel_short_distance_acceleration": [
+		"250",
+		"250",
+		"250",
+		"250",
+		"250"
+	],
 	"travel_speed": [
 		"500",
 		"500",
@@ -214,11 +260,35 @@
 		"500",
 		"500"
 	],
+	"top_surface_acceleration": [
+		"2000",
+		"2000",
+		"2000",
+		"2000",
+		"2000"
+	],
+	"top_solid_infill_flow_ratio": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
 	"travel_speed_z": [
 		"0",
 		"0",
 		"0",
 		"0",
 		"0"
+	],
+	"vertical_shell_speed": [
+		"80%",
+		"80%",
+		"80%",
+		"80%",
+		"80%"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D Pro 0.4 nozzle"
 	]
 }

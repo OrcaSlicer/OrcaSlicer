@@ -32,7 +32,7 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
 
 
     m_scrollwindow = new wxScrolledWindow(this, wxID_ANY);
-    m_scrollwindow->SetScrollRate(0, FromDIP(10));
+    m_scrollwindow->SetScrollRate(0, FromDIP(20));
     m_scrollwindow->SetBackgroundColour(*wxWHITE);
     m_scrollwindow->SetMinSize(wxSize(FromDIP(480), wxDefaultCoord));
     m_scrollwindow->SetMaxSize(wxSize(FromDIP(480), wxDefaultCoord));

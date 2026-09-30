@@ -71,6 +71,7 @@ class Page: public std::enable_shared_from_this<Page>// : public wxScrolledWindo
 	// BBS: new layout
 	wxStaticText*	m_page_title;
     bool            m_show = true;
+    bool            m_visibility_applied = false;
 public:
 	//BBS: GUI refactor
     Page(wxWindow* parent, const wxString& title, int iconID, wxPanel* tab_owner);
@@ -94,6 +95,12 @@ public:
 	void		reload_config();
     void        update_visibility(ConfigOptionMode mode, bool update_contolls_visibility);
     void        activate(ConfigOptionMode mode, std::function<void()> throw_if_canceled);
+    // Whether an option group has no controls yet.
+    bool        build_pending() const;
+    // Builds the next option group that has no controls yet; true while some remain.
+    bool        build_step(ConfigOptionMode mode);
+    // Whether the controls have not been shown or hidden for a mode since they were built.
+    bool        visibility_pending() const { return !m_visibility_applied; }
     void        clear();
     void        msw_rescale();
     void        sys_color_changed();
@@ -121,6 +128,8 @@ public:
     std::map<std::string, std::string> m_opt_id_map;
 
 protected:
+    size_t      next_group_to_build() const;
+    bool        activate_group(size_t i, ConfigOptionMode mode, std::function<void()> throw_if_canceled);
 	// Color of TreeCtrlItem. The wxColour will be updated only if the new wxColour pointer differs from the currently rendered one.
 	const wxColour*		m_item_color;
 };
@@ -437,6 +446,10 @@ public:
 	// BBS: new layout
 	void set_expanded(bool value);
 	void restore_last_select_item();
+	// page_build_pending() says whether the selected page has groups without controls or controls
+	// not yet shown for the mode, and page_build_step() does the next of those.
+	bool page_build_pending() const;
+	bool page_build_step();
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();

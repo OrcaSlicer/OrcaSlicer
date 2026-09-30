@@ -854,13 +854,18 @@ void GUI_App::post_init()
         slow_bootup = true;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", slow bootup, won't render gl here.";
     }
-    if (!switch_to_3d) {
+    // Starting on Home, the GL resources load at idle so Home paints first and Prepare is never
+    // shown.
+    const bool gl_at_idle = !starts_on_prepare() && is_editor();
+    if (!switch_to_3d && gl_at_idle) {
+        plater_->select_view_3D("3D");
+    } else if (!switch_to_3d) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
 #ifndef __linux__
         mainframe->Freeze();
 #endif
         plater_->canvas3D()->enable_render(false);
-        mainframe->select_tab(TAB_ID_PREPARE);
+        mainframe->select_prepare_for_gl_init();
         plater_->select_view_3D("3D");
         //BBS init the opengl resource here
         if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
@@ -897,9 +902,7 @@ void GUI_App::post_init()
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished rendering a first frame for test";
             }
         }
-        if (is_editor())
-            mainframe->select_tab(TAB_ID_HOME);
-        if (app_config->get("default_page") == "1")
+        if (starts_on_prepare())
             mainframe->select_tab(TAB_ID_PREPARE);
 #ifndef __linux__
         mainframe->Thaw();
@@ -909,6 +912,7 @@ void GUI_App::post_init()
 
     plater_->trigger_restore_project(1);
     //#endif
+    mainframe->prebuild_pages_when_idle();
 
     //BBS: remove GCodeViewer as seperate APP logic
     /*if (this->init_params->start_as_gcodeviewer) {
@@ -1923,9 +1927,9 @@ bool GUI_App::hot_reload_network_plugin()
         m_device_manager->add_user_subscribe();
     }
 
-    if (mainframe && mainframe->m_monitor) {
-        mainframe->m_monitor->update_network_version_footer();
-        mainframe->m_monitor->set_default();
+    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+        monitor->update_network_version_footer();
+        monitor->set_default();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reset monitor panel";
     }
 
@@ -3405,14 +3409,20 @@ bool GUI_App::on_init_inner()
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
-    // hide settings tabs after first Layout
+    // The first render can happen as soon as the frame is shown, before the queued
+    // new_project() sets the same view.
+    plater_->get_camera().select_view("topfront");
+    plater_->get_camera().requires_zoom_to_bed = true;
     if (is_editor()) {
-        mainframe->select_tab(TAB_ID_HOME);
+        if (starts_on_prepare()) {
+            mainframe->select_tab(TAB_ID_PREPARE);
+        } else {
+            mainframe->select_tab(TAB_ID_HOME);
+        }
     }
 
     sidebar().obj_list()->init();
     //sidebar().aux_list()->init_auxiliary();
-    mainframe->m_project->init_auxiliary();
 
 //     update_mode(); // !!! do that later
     SetTopWindow(mainframe);
@@ -4122,13 +4132,13 @@ void GUI_App::select_machine(const std::string& agent_id)
 
     // Use MonitorPanel::select_machine() to trigger full selection flow
     // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
-    if (mainframe && mainframe->m_monitor) {
-        mainframe->m_monitor->select_machine(dev_id);
+    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+        monitor->select_machine(dev_id);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
-    } else {
-        // Fallback if MonitorPanel not available
-        m_device_manager->set_selected_machine(dev_id);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": fallback set_selected_machine dev_id=" << dev_id;
+    } else if (m_device_manager->set_selected_machine(dev_id)) {
+        // The Device tab's own state is set when the tab is built.
+        MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": set_selected_machine dev_id=" << dev_id;
     }
 }
 
@@ -4652,6 +4662,7 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
 
     //BBS: trigger restore project logic here, and skip confirm
     plater_->trigger_restore_project(1);
+    mainframe->prebuild_pages_when_idle();
 
     // #ys_FIXME_delete_after_testing  Do we still need this  ?
 //     CallAfter([]() {
@@ -4993,7 +5004,8 @@ void GUI_App::get_login_info(const std::string& provider/* = ORCA_CLOUD_PROVIDER
             wxString    strJS      = wxString::Format("window.postMessage(%s)", from_u8(logout_cmd));
             GUI::wxGetApp().run_script(strJS);
         }
-        mainframe->m_webview->SetLoginPanelVisibility(true);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SetLoginPanelVisibility(true);
     }
 }
 
@@ -5127,9 +5139,9 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 "homepage_bambu_login_or_register",
             };
             if (app_config->get_stealth_mode() && stealth_blocked_info_commands.count(command_str)) {
-                CallAfter([this] {
-                    if (mainframe && mainframe->m_webview)
-                        mainframe->m_webview->SendCloudProvidersInfo();
+                CallAfter([] {
+                    if (WebViewPanel* home = WebViewPanel::if_built())
+                        home->SendCloudProvidersInfo();
                 });
                 return "";
             }
@@ -5143,8 +5155,8 @@ std::string GUI_App::handle_web_request(std::string cmd)
                     if (dlg.ShowModal() == wxID_OK) {
                         app_config->set_bool("stealth_mode", false);
                         app_config->save();
-                        if (mainframe && mainframe->m_webview)
-                            mainframe->m_webview->SendCloudProvidersInfo();
+                        if (WebViewPanel* home = WebViewPanel::if_built())
+                            home->SendCloudProvidersInfo();
                         // Continue with login
                         if (command_str == "homepage_login_or_register")
                             this->request_login(true);
@@ -5225,8 +5237,8 @@ std::string GUI_App::handle_web_request(std::string cmd)
             }
             else if (command_str.compare("get_recent_projects") == 0) {
                 if (mainframe) {
-                    if (mainframe->m_webview) {
-                        mainframe->m_webview->SendRecentList(INT_MAX);
+                    if (WebViewPanel* home = WebViewPanel::if_built()) {
+                        home->SendRecentList(INT_MAX);
                     }
                 }
             }
@@ -7759,8 +7771,8 @@ void GUI_App::on_stealth_mode_enter()
     BOOST_LOG_TRIVIAL(info) << "logout: on_stealth_mode_enter";
     request_user_logout(ORCA_CLOUD_PROVIDER);
     request_user_logout(BBL_CLOUD_PROVIDER);
-    if (mainframe && mainframe->m_webview) {
-        mainframe->m_webview->SendCloudProvidersInfo();
+    if (WebViewPanel* home = WebViewPanel::if_built()) {
+        home->SendCloudProvidersInfo();
     }
 }
 
@@ -8170,6 +8182,26 @@ ConfigOptionMode GUI_App::get_saved_mode()
     return saved_mode_from_string(app_config->get("user_mode"));
 }
 
+bool GUI_App::starts_on_prepare() const
+{
+    return app_config->get("default_page") == "1";
+}
+
+int GUI_App::input_idle_ms() const
+{
+    return int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_input).count());
+}
+
+// Every wxCommandEvent claims the user-input category, so only real mouse and key events count,
+// plus main window resizes, since a border drag produces no mouse events.
+int GUI_App::FilterEvent(wxEvent& event)
+{
+    if ((!event.IsCommandEvent() && (event.GetEventCategory() & wxEVT_CATEGORY_USER_INPUT)) ||
+        (event.GetEventType() == wxEVT_SIZE && event.GetEventObject() == mainframe))
+        m_last_input = std::chrono::steady_clock::now();
+    return Event_Skip;
+}
+
 ConfigOptionMode GUI_App::get_mode()
 {
     return app_config->get_bool("developer_mode") ? comDevelop : get_saved_mode();
@@ -8221,9 +8253,10 @@ void GUI_App::update_mode()
         mainframe->m_param_panel->update_mode();
     if (mainframe->m_param_dialog)
         mainframe->m_param_dialog->panel()->update_mode();
-    if (mainframe->m_printer_view)
-        mainframe->m_printer_view->update_mode();
-    mainframe->m_webview->update_mode();
+    if (PrinterWebView* view = PrinterWebView::if_built())
+        view->update_mode();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->update_mode();
 
 #ifdef _MSW_DARK_MODE
     if (!wxGetApp().tabs_as_menu())
@@ -8241,9 +8274,10 @@ void GUI_App::update_mode()
 }
 
 void GUI_App::update_internal_development() {
-    mainframe->m_webview->update_mode();
-    if (mainframe->m_printer_view)
-        mainframe->m_printer_view->update_mode();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->update_mode();
+    if (PrinterWebView* view = PrinterWebView::if_built())
+        view->update_mode();
 }
 
 void GUI_App::show_ip_address_enter_dialog(wxString title)
