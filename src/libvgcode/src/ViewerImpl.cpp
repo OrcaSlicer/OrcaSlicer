@@ -920,6 +920,7 @@ void ViewerImpl::reset()
     for (std::vector<float>& times : m_layer_start_times)
         std::vector<float>().swap(times);
     std::vector<uint32_t>().swap(m_layer_first_vertex);
+    m_layers_in_vertex_order = false;
     std::vector<float>().swap(m_colors_scratch);
     m_valid_lines_bitset.clear();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -1106,6 +1107,8 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         }
         for (size_t i = m_layer_first_vertex.size() - 1; i > 0; --i)
             m_layer_first_vertex[i - 1] = std::min(m_layer_first_vertex[i - 1], m_layer_first_vertex[i]);
+        m_layers_in_vertex_order = std::is_sorted(m_vertices.begin(), m_vertices.end(),
+            [](const PathVertex& a, const PathVertex& b) { return a.layer_id < b.layer_id; });
 
         // the running time at each layer's first vertex, summed in vertex order so that
         // get_estimated_time_at() matches a full accumulation exactly
@@ -1939,6 +1942,11 @@ void ViewerImpl::update_view_full_range()
         }
 
         auto last_it = first_it;
+        // ORCA: skip straight to the layer above the range rather than walking there
+        if (m_layers_in_vertex_order && layers_range[1] + 1 < m_layer_first_vertex.size())
+            last_it = std::max(first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1] + 1]);
+        else if (m_layers_in_vertex_order)
+            last_it = m_vertices.end();
         while (last_it != m_vertices.end() && last_it->layer_id <= layers_range[1]) {
             ++last_it;
         }
@@ -1978,12 +1986,14 @@ void ViewerImpl::update_view_full_range()
 
         if (m_settings.top_layer_only_view_range) {
             const Interval& full_range = m_view_range.get_full();
-            auto top_first_it = m_vertices.begin() + full_range[0];
-            bool shortened = false;
-            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings))) {
+            const auto range_first_it = m_vertices.begin() + full_range[0];
+            auto top_first_it = range_first_it;
+            // ORCA: skip straight to the top layer rather than walking there
+            if (m_layers_in_vertex_order)
+                top_first_it = std::max(top_first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1]]);
+            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings)))
                 ++top_first_it;
-                shortened = true;
-            }
+            const bool shortened = top_first_it != range_first_it;
             if (shortened)
                 --top_first_it;
 

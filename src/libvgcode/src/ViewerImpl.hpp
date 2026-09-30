@@ -265,6 +265,11 @@ private:
     //
     std::vector<uint32_t> m_layer_first_vertex;
     //
+    // ORCA: whether the layer ids never decrease along the vertices, so that each layer's vertices
+    // follow m_layer_first_vertex. Not so for a print by object, whose layers start over per object.
+    //
+    bool m_layers_in_vertex_order{ false };
+    //
     // Scratch buffer for update_colors_texture(), kept alive across slider steps
     //
     std::vector<float> m_colors_scratch;
