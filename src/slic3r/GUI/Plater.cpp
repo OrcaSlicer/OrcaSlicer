@@ -10697,6 +10697,12 @@ void Plater::priv::maybe_auto_slice_after_reload(const std::set<int>& touched_ob
     if (affected_plates.empty())
         return;
 
+    if (m_slice_all && (background_process.running() || m_is_slicing || m_slice_after_reload_starting)) {
+        // Cancelling would abort the user's whole multi-plate "Slice all", not just one plate.
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Slice all is running, not auto-slicing the reloaded plate(s)";
+        return;
+    }
+
     // Merge, so plates still queued from an earlier reload aren't dropped.
     for (int plate_idx : affected_plates)
         if (std::find(plates_pending_slice_after_reload.begin(), plates_pending_slice_after_reload.end(), plate_idx) ==
@@ -12297,13 +12303,6 @@ void Plater::priv::reload_from_disk()
             fail_list.push_back(from_u8(path) + ": " + from_u8(ex.what()));
             continue;
         }
-
-        // The slicing thread reads the live ModelObject's volumes directly (PrintObject keeps a
-        // pointer to it, not a copy), and the volumes are about to be replaced below. Cancel any
-        // running slice first -- a single plate or "Slice all" alike -- and wait for it to stop.
-        // Nothing else in this function or update() does that: update() only schedules the
-        // background process to be re-applied later.
-        background_process.stop();
 
 #if ENABLE_RELOAD_FROM_DISK_REWORK
         for (auto [obj_idx, vol_idx] : selected_volumes) {

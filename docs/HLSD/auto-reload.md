@@ -243,20 +243,6 @@ path never replaces, only the volumes inside it) — but nothing recomputes thei
 position either, so a reload that changes the host mesh's shape can leave them spatially
 wrong instead of outright gone. Not covered by anything here.
 
-## A running slice is cancelled before the model changes
-
-The slicing thread reads the live `ModelObject`'s volumes directly — a `PrintObject`
-keeps a pointer to it, not a copy — and a reload replaces those volumes. So
-`reload_from_disk()` cancels any running slice, a single plate or "Slice all" alike, and
-waits for it to stop just before it starts replacing volumes (after the file has been read
-and any confirmation answered, so a declined or failed reload cancels nothing). Nothing
-downstream does this: the `update()` at the end of a reload only schedules the background
-process to be re-applied later, which is too late for a slice already reading the model.
-This applies to the manual "Reload from disk" menu items as well, which had the same
-exposure. Cancelling costs the interrupted slice's progress, and it is not resumed unless
-`auto_slice_after_reload` is on, in which case the affected plate(s) are sliced again as
-described below.
-
 ## Auto-slice targets the affected plate, not the current one
 
 With `auto_slice_after_reload` on, `on_source_files_changed()` queues a slice for
@@ -265,12 +251,13 @@ for what "touched" means here) — found via `PartPlateList::find_instance()` ov
 touched object's instances, not the plate that happens to be on-screen (a reload can
 affect an off-screen plate) and not every plate in the project (auto-arrange can spread
 one object's instances across plates, but most reloads touch just one). If a slice is
-already running, it has been cancelled by the reload itself (see "A running slice is
-cancelled before the model changes" below), and the queue starts once that cancellation
-completes; slicing directly would have `MainFrame::get_enable_slice_status()` see a slice
-as still in progress and silently skip the request. This holds for a running "Slice all"
-too: the whole multi-plate job is cancelled, and only the plate(s) containing the reloaded
-object are sliced afterwards. Plates queued by a later reload are merged into the queue, and a plate that
+already running, it's cancelled and the queue starts once cancellation completes;
+slicing directly would have `MainFrame::get_enable_slice_status()` see a slice as still
+in progress and silently skip the request. A running "Slice all" is the exception:
+cancelling it would abort the whole multi-plate job, so the auto-slice is skipped
+instead. The reload itself still changes the model, and what the slicing machinery then
+does with a running job is the same as after a manual "Reload from disk"; the reloaded
+plate is not sliced again automatically in that case. Plates queued by a later reload are merged into the queue, and a plate that
 can't be sliced is skipped so it can't stall the ones behind it. Each queued plate is
 selected, its slice result invalidated directly (`reload_from_disk()`'s own `update()`
 only *schedules* that invalidation via a debounce timer, which races a slice-enable
