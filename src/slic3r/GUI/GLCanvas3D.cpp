@@ -5819,7 +5819,13 @@ void GLCanvas3D::update_sequential_clearance()
     polygons.reserve(instances_count);
     std::vector<SequentialClearanceInstance> convex_and_bounding_boxes;
     convex_and_bounding_boxes.reserve(instances_count);
+    std::map<ObjectID, int> print_order;
+    for (const PrintObject* print_object : fff_print()->objects())
+        for (const PrintInstance& instance : print_object->instances())
+            print_order.emplace(instance.model_instance->id(), instance.model_instance->arrange_order);
+
     for (size_t i = 0; i < instance_transforms.size(); ++i) {
+        const size_t first_instance = convex_and_bounding_boxes.size();
         const auto& instances = instance_transforms[i];
         double rotation_z0 = instances.front()->get_rotation().z();
         int index = 0;
@@ -5839,13 +5845,15 @@ void GLCanvas3D::update_sequential_clearance()
             Polygon convex_hull(std::move(inst_pts));
             BoundingBox bouding_box = convex_hull.bounding_box();
             BoundingBox plate_bb = plate->get_bounding_box_crd();
+            const ObjectID instance_id = m_model->objects[i]->instances[index]->id();
             double instance_height = m_model->objects[i]->get_instance_max_z(index++);
             //skip the object for not current plate
             if (!plate_bb.overlap(bouding_box))
                 continue;
-            convex_and_bounding_boxes.push_back({instance_height, bouding_box, convex_hull});
+            convex_and_bounding_boxes.push_back({instance_height, bouding_box, convex_hull, instance_id});
             polygons.emplace_back(std::move(convex_hull));
         }
+        sort_sequential_clearance_instances(convex_and_bounding_boxes.begin() + first_instance, convex_and_bounding_boxes.end(), print_order);
     }
 
     const auto& config = fff_print()->config();

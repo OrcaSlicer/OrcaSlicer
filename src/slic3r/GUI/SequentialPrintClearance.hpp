@@ -1,7 +1,13 @@
 #pragma once
 
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include "libslic3r/Polygon.hpp"
+
+#include <algorithm>
+#include <map>
+#include <utility>
+#include <vector>
 
 namespace Slic3r::GUI {
 
@@ -10,10 +16,28 @@ struct SequentialClearanceInstance
     double      instance_height;
     BoundingBox bounding_box;
     Polygon     hull_polygon;
+    ObjectID    instance_id;
 };
 
-// Keep model print order, as in Print::sequential_print_clearance_valid(). Sorting by
-// X for overlapping Y ranges and by Y otherwise is not a strict weak ordering.
+// PrintApply may group rotated copies in a different order from ModelObject::instances.
+// Reorder one object's instances only when validation has assigned all of them an order.
+inline void sort_sequential_clearance_instances(
+    std::vector<SequentialClearanceInstance>::iterator first, std::vector<SequentialClearanceInstance>::iterator last,
+    const std::map<ObjectID, int>& print_order)
+{
+    if (!std::all_of(first, last, [&print_order](const SequentialClearanceInstance& instance) {
+            const auto order = print_order.find(instance.instance_id);
+            return order != print_order.end() && order->second > 0;
+        }))
+        return;
+
+    std::stable_sort(first, last, [&print_order](const SequentialClearanceInstance& lhs, const SequentialClearanceInstance& rhs) {
+        return print_order.at(lhs.instance_id) < print_order.at(rhs.instance_id);
+    });
+}
+
+// Input follows object-list order with validated print order within each object.
+// Sorting by X for overlapping Y ranges and by Y otherwise is not a strict weak ordering.
 inline std::vector<std::pair<Polygon, float>> sequential_clearance_height_polygons(
     const std::vector<SequentialClearanceInstance>& instances, double printable_height, double height_to_lid, double height_to_rod)
 {
