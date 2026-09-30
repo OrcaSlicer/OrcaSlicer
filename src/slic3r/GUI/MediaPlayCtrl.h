@@ -89,6 +89,7 @@ private:
     int m_remote_proto = 0;
     bool m_device_busy = false;
     bool m_disable_lan = false;
+    bool m_remote_forbidden = false; // cloud refused to issue a liveview ticket (403), use LAN liveview instead
     wxString m_url;
 
     std::deque<wxString> m_tasks;
