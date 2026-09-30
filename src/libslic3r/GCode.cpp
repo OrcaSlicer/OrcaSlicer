@@ -4357,36 +4357,73 @@ size_t GCode::get_nozzle_config_index(int filament_id) const
     return get_extruder_id(filament_id);
 }
 
-// A layer on its way through process_layers(): its index in the layers to print, or size_t(-1) for the empty layer
-// the pressure equalizer needs at the end, and the overhang distances computed for it ahead of the generator.
+namespace {
 struct PrecomputedLayer
 {
-    size_t                                    index{size_t(-1)};
-    std::vector<PrecomputedOverhangDistances> overhang_distances;
+    size_t                                    index{size_t(-1)}; // size_t(-1) for the empty layer after the last
+    std::vector<PrecomputedOverhangLayer>     overhang_layers;
 };
+} // namespace
 
-// Whether any object of the print can slow down or cool for overhangs, the only case the overhang distances serve.
-static bool needs_overhang_distances(const Print &print)
+template<typename BoolsOption> static bool any_enabled(const BoolsOption &option)
 {
-    const auto &fan = print.config().enable_overhang_bridge_fan.values;
-    if (std::any_of(fan.begin(), fan.end(), [](unsigned char enabled) { return enabled != 0; }))
-        return true;
-    for (const PrintObject *object : print.objects())
-        for (size_t region_id = 0; region_id < object->num_printing_regions(); ++region_id) {
-            const auto &speed = object->printing_region(region_id).config().enable_overhang_speed.values;
-            if (std::any_of(speed.begin(), speed.end(), [](unsigned char enabled) { return enabled != 0; }))
-                return true;
-        }
-    return false;
+    return std::any_of(option.values.begin(), option.values.end(), [](unsigned char enabled) { return enabled != 0; });
 }
 
-static std::vector<PrecomputedOverhangDistances> precompute_overhang_distances(const std::vector<GCode::LayerToPrint> &layers)
+// Whether process_layer() prepares the overhang estimator for `layer`.
+template<typename OverhangSpeed>
+static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan, OverhangSpeed overhang_speed)
 {
-    std::vector<PrecomputedOverhangDistances> out;
+    const LayerRegionPtrs &regions = layer.regions();
+    return std::any_of(regions.begin(), regions.end(), [overhang_fan, &overhang_speed](const LayerRegion *region) {
+        return region->has_extrusions() && (overhang_fan || overhang_speed(*region));
+    });
+}
+
+std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan)
+{
+    // Any filament may print the layer, so a region's overhang speed counts if it is enabled for any.
+    auto overhang_speed = [](const LayerRegion &region) { return any_enabled(region.region().config().enable_overhang_speed); };
+    std::vector<PrecomputedOverhangLayer> out;
     for (const GCode::LayerToPrint &layer : layers)
-        if (layer.object_layer != nullptr && layer.object_layer->lower_layer != nullptr)
-            out.push_back(precompute_overhang_distances(layer.original_object, *layer.object_layer));
+        if (layer.object_layer != nullptr && layer.object_layer->lower_layer != nullptr &&
+            prepares_overhang_estimator(*layer.object_layer, overhang_fan, overhang_speed)) {
+            const LayerRegionPtrs &regions = layer.object_layer->regions();
+            const bool curled_lines = std::any_of(regions.begin(), regions.end(), [](const LayerRegion *region) {
+                return any_enabled(region->region().config().slowdown_for_curled_perimeters);
+            });
+            out.push_back(precompute_overhang_layer(layer.original_object, *layer.object_layer, curled_lines));
+        }
     return out;
+}
+
+// Hands out the index of each layer to process_layers(), then computes the layers' overhang data in parallel.
+template<typename LayersAt>
+static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bool nop_layer, bool overhang_fan, LayersAt layers_at)
+{
+    return tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
+               [&next_index, layer_count, nop_layer](tbb::flow_control &fc) -> PrecomputedLayer {
+                   if (next_index < layer_count)
+                       return {next_index++};
+                   // The pressure equalizer returns one layer back, so it gets an empty layer after the last.
+                   if (next_index == layer_count + (nop_layer ? 1 : 0))
+                       fc.stop();
+                   else
+                       ++next_index;
+                   return {};
+               }) &
+           tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
+               [layers_at, overhang_fan](PrecomputedLayer layer) -> PrecomputedLayer {
+                   if (layer.index != size_t(-1))
+                       layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan);
+                   return layer;
+               });
+}
+
+// Whether the overhang fan can switch on for any filament.
+static bool overhang_fan_enabled(const PrintConfig &config, bool cooling_markers)
+{
+    return cooling_markers && any_enabled(config.enable_overhang_bridge_fan);
 }
 
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
@@ -4401,23 +4438,9 @@ void GCode::process_layers(
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
-    const auto source = tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &layers_to_print, &layer_to_print_idx](tbb::flow_control& fc) -> PrecomputedLayer {
-            if (layer_to_print_idx < layers_to_print.size())
-                return {layer_to_print_idx++};
-            // Pressure equalizer need insert empty input. Because it returns one layer back.
-            if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0))
-                fc.stop();
-            else
-                ++layer_to_print_idx;
-            return {};
-        });
-    const auto precompute = tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
-        [&layers_to_print, overhang = needs_overhang_distances(print)](PrecomputedLayer layer) -> PrecomputedLayer {
-            if (overhang && layer.index != size_t(-1))
-                layer.overhang_distances = precompute_overhang_distances(layers_to_print[layer.index].second);
-            return layer;
-        });
+    const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
+        overhang_fan_enabled(print.config(), m_enable_cooling_markers),
+        [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
@@ -4430,10 +4453,8 @@ void GCode::process_layers(
             //BBS
             check_placeholder_parser_failed();
             print.throw_if_canceled();
-            m_extrusion_quality_estimator.set_precomputed_distances(precomputed.overhang_distances);
-            LayerResult result = this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
-            m_extrusion_quality_estimator.set_precomputed_distances({});
-            return result;
+            m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
+            return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -4491,13 +4512,15 @@ void GCode::process_layers(
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-    	tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & cooling & fan_mover & output);
+    	tbb::parallel_pipeline(12, source & generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
-        tbb::parallel_pipeline(12, source & precompute & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, source & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-    	tbb::parallel_pipeline(12, source & precompute & generator & cooling & fan_mover & pa_processor_filter & output);
+    	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
+    // The estimator's precomputed data points into this print's layers.
+    m_extrusion_quality_estimator.set_precomputed_layers({});
 
 }
 
@@ -4515,23 +4538,9 @@ void GCode::process_layers(
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
-    const auto source = tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &layers_to_print, &layer_to_print_idx](tbb::flow_control& fc) -> PrecomputedLayer {
-            if (layer_to_print_idx < layers_to_print.size())
-                return {layer_to_print_idx++};
-            // Pressure equalizer need insert empty input. Because it returns one layer back.
-            if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0))
-                fc.stop();
-            else
-                ++layer_to_print_idx;
-            return {};
-        });
-    const auto precompute = tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
-        [&layers_to_print, overhang = needs_overhang_distances(print)](PrecomputedLayer layer) -> PrecomputedLayer {
-            if (overhang && layer.index != size_t(-1))
-                layer.overhang_distances = precompute_overhang_distances({layers_to_print[layer.index]});
-            return layer;
-        });
+    const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
+        overhang_fan_enabled(print.config(), m_enable_cooling_markers),
+        [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
@@ -4541,10 +4550,8 @@ void GCode::process_layers(
             //BBS
             check_placeholder_parser_failed();
             print.throw_if_canceled();
-            m_extrusion_quality_estimator.set_precomputed_distances(precomputed.overhang_distances);
-            LayerResult result = this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
-            m_extrusion_quality_estimator.set_precomputed_distances({});
-            return result;
+            m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
+            return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -4599,13 +4606,15 @@ void GCode::process_layers(
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-    	tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & cooling & fan_mover & output);
+    	tbb::parallel_pipeline(12, source & generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
-        tbb::parallel_pipeline(12, source & precompute & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, source & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-    	tbb::parallel_pipeline(12, source & precompute & generator & cooling & fan_mover & pa_processor_filter & output);
+    	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
+    // The estimator's precomputed data points into this print's layers.
+    m_extrusion_quality_estimator.set_precomputed_layers({});
 }
 
 std::string GCode::placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override)
@@ -5965,25 +5974,13 @@ LayerResult GCode::process_layer(
         return next_extruder;
     };
     
-    for (const auto &layer_to_print : layers) {
-        if (layer_to_print.object_layer) {
-            const auto& regions = layer_to_print.object_layer->regions();
-            const bool has_extrusions = std::any_of(regions.begin(), regions.end(), [](const LayerRegion* r) {
-                return r->has_extrusions();
-            });
-            const bool enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
-                return r->has_extrusions() && r->region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id()));
-            });
-            const bool enable_overhang_fan = m_enable_cooling_markers && has_extrusions &&
-                std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
-                            m_config.enable_overhang_bridge_fan.values.end(),
-                            [](unsigned char value) { return value != 0; });
-            if (enable_overhang_speed || enable_overhang_fan) {
-                m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
-                                                                    layer_to_print.object_layer);
-            }
-        }
-    }
+    const bool overhang_fan   = overhang_fan_enabled(m_config, m_enable_cooling_markers);
+    auto       overhang_speed = [this](const LayerRegion &region) {
+        return bool(region.region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id())));
+    };
+    for (const auto &layer_to_print : layers)
+        if (layer_to_print.object_layer && prepares_overhang_estimator(*layer_to_print.object_layer, overhang_fan, overhang_speed))
+            m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object, layer_to_print.object_layer);
 
     // Group extrusions by an extruder, then by an object, an island and a region.
     std::map<unsigned int, std::vector<ObjectByExtruder>> by_extruder;
