@@ -44,6 +44,7 @@
 #include <memory>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 #include <variant>
 
 namespace {
@@ -371,6 +372,7 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
     }
     ConnectionSettings connection;
     uint64_t gen;
+    std::thread previous_connect_thread;
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         init_device_info(params);
@@ -381,11 +383,15 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
         connection.use_ssl  = device_info.use_ssl;
         connection.ca_file  = device_info.ca_file;
         if (connect_thread.joinable()) {
-            connect_thread.detach();
+            previous_connect_thread = std::move(connect_thread);
         }
     }
 
-    // Stop existing status stream and clear state
+    // Join the previous connection worker before stopping the stream: it may be
+    // just about to start that stream after completing its HTTP setup.
+    if (previous_connect_thread.joinable()) {
+        previous_connect_thread.join();
+    }
     stop_status_stream();
     {
         std::lock_guard<std::mutex> lock(cmd_mutex);
@@ -413,15 +419,21 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
 
 int MoonrakerPrinterAgent::disconnect_printer()
 {
+    std::thread previous_connect_thread;
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         device_info = MoonrakerDeviceInfo{};
         ++connect_generation;  // Invalidate any in-flight connection
         if (connect_thread.joinable()) {
-            connect_thread.detach();
+            previous_connect_thread = std::move(connect_thread);
         }
     }
 
+    // The connection worker may have started a stream immediately before it was
+    // invalidated, so join it before the final stream shutdown.
+    if (previous_connect_thread.joinable()) {
+        previous_connect_thread.join();
+    }
     stop_status_stream();
     {
         std::lock_guard<std::mutex> lock(cmd_mutex);
