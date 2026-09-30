@@ -547,16 +547,31 @@ def main():
 
     def phase_c():
         print("\n[C] Two overwrites landing close together -- must settle on the final size, not the first")
-        tail.mark(); time.sleep(1.0)
-        write_cube_stl(basic_stl, 33)
-        time.sleep(0.1)  # well under the 500ms debounce: both should coalesce into one reload
-        write_cube_stl(basic_stl, 37)
-        ok = tail.wait_for(RELOAD_MARK, args.timeout)
-        record("C1 reload after the pair of writes", ok, "" if ok else "no reload line within %gs" % args.timeout)
-        if ok:
+        # The point is two writes inside one debounce window. If this script itself is stalled
+        # between them (a loaded machine), they're not, and a reload of the first is correct
+        # behavior -- so measure the gap and try again rather than blame the watcher.
+        for attempt, (first, second) in enumerate([(33, 37), (34, 38), (35, 39)], start=1):
+            tail.mark(); time.sleep(1.0)
+            write_cube_stl(basic_stl, first)
+            t_first = time.monotonic()
+            time.sleep(0.1)  # well under the 500ms debounce: both should coalesce into one reload
+            t_second = time.monotonic()
+            write_cube_stl(basic_stl, second)
+            gap = t_second - t_first
+            ok = tail.wait_for(RELOAD_MARK, args.timeout)
+            if not ok:
+                record("C1 reload after the pair of writes", False, "no reload line within %gs" % args.timeout)
+                return
             size = tail.wait_for_size(basic_stl, args.timeout)
-            record("C2 final geometry is the second write (37 mm, not 33)",
-                   size is not None and all(abs(v - 37) < 0.05 for v in size))
+            settled = size is not None and all(abs(v - second) < 0.05 for v in size)
+            if settled or gap < 0.4 or attempt == 3:
+                record("C1 reload after the pair of writes", True)
+                record("C2 final geometry is the second write (%d mm, not %d)" % (second, first), settled,
+                       "" if settled else "reloaded %s with the writes %.2fs apart" % (size, gap))
+                return
+            print("  (writes landed %.2fs apart, more than the debounce window -- trying again)" % gap)
+            tail.wait_for_after_last(RELOAD_MARK, RELOAD_MARK, 1.0)  # let the late reload settle
+            time.sleep(args.quiet_window / 2)
 
     def phase_d():
         print("\n[D] Clone + paint: overwrite clone.stl, decline the paint-loss prompt")
