@@ -11,11 +11,11 @@ goes from one to the other. Only internal sparse infill is graded; the Gyroid
 Z-buckling optimization does not apply to it.
 
 The design has two parts: a radial field built once per object, and a pattern
-warped around the center of each body so that its cell size follows the field.
+warped around the center of each lobe of a body so that its cell size follows the field.
 
 ## Radial field
 
-`TpmsRadialField` gives every point of an object the center of its body and a
+`TpmsRadialField` gives every point of an object the center of its lobe and a
 radial coordinate: 0 at the center, 1 at the surface along the ray from the
 center. `PrintObject::prepare_tpms_radial_field()` builds it in
 `bridge_over_infill()`, next to the adaptive cubic octree, because the anchoring
@@ -31,23 +31,40 @@ capped at about a million nodes, with cells no smaller than 0.5 mm.
 
 - Bodies are the connected inside nodes. Each is graded on its own, so separate
   parts of one object each get their own sparse center.
-- The center of a body is its deepest node, by an exact Euclidean distance
-  transform (Felzenszwalb and Huttenlocher, one pass per axis). Where the depth
-  ties along a line or a plane, as in a tall box, the node nearest to the middle
-  of the deepest nodes is taken, so the center is in the middle of the height
-  and not a column.
-- The reach of a body is the distance from its center to the first exit along
+- A body is split into lobes around the local maxima of the depth, by an exact
+  Euclidean distance transform (Felzenszwalb and Huttenlocher, one pass per
+  axis). Two maxima are in separate lobes when the depth along the segment
+  between them drops below 0.8 of the shallower one, like at the neck between
+  two united spheres; maxima shallower than 0.3 of the deepest one are ignored.
+  Where the depth ties along a line or a plane, as in a tall box, the lobe's
+  center is the node nearest to the middle of the tied nodes, so the center is
+  in the middle of the height and not a column.
+- A point belongs to the lobe it is nearest to relative to their depths, so the
+  side between two lobes is nearer to the smaller one. Near that side, within a
+  tenth of that relative distance, the patterns of both lobes morph into each
+  other, so the lines stay continuous.
+- The reach of a lobe is the distance from its center to the first exit along
   24 x 48 latitude-longitude directions, smoothed twice over neighbouring
-  directions in log space. The radial coordinate of a point is its distance to
-  the center over the reach in its direction. Behind a gap, as across the hole
+  directions in log space. Towards a neighbouring lobe it stops at twice the
+  distance to the side between them, so that side is graded half way, as deep
+  as a neck is, rather than as sparse as the center or as dense as the surface.
+  The radial coordinate of a point is its distance to the center over the reach
+  in its direction. Behind a gap, as across the hole
   of a ring, the radial coordinate is above 1 and the infill keeps the surface
   density.
 - Every outside node belongs to its nearest body, so points near a surface find
   their body without a search.
 
-A distance to the nearest surface would be the obvious field, but it makes a
-column of equal depth along the axis of a tall object, and a smooth map can
-only grade it weakly (see below).
+A distance to the nearest surface would be the obvious field, but no smooth map
+follows it. By the divergence theorem, the mean scale of a map over a body is
+fixed by its values on the surface: a map that keeps the full density along the
+whole surface, as the distance would ask under the top and bottom, has the mean
+density of the uniform infill, the sparser core being paid for by lines crowding
+along the walls. The layers of a plate at different depths would also need
+different line spacings in the same directions, which no continuous map allows
+without shearing across the plate. Following the distance needs changes of the
+topology of the lattice (see below). The radial coordinate instead grades what a
+single map can: towards one point.
 
 ## Warped pattern
 
@@ -55,7 +72,7 @@ The pattern is evaluated on warped coordinates:
 
     TPMS(f_surface * m(t) * (p - center))
 
-where `m` scales the pattern around the center of the body: its frequency is
+where `m` scales the pattern around the center of the lobe: its frequency is
 `m + t * m'` along the ray and `m` across it. `m(t)` is the mean of the target
 scale over the ball of radius `t`, `3 / t^3 * integral of s^2 * target(s) ds`, so
 the mean of the three, and with it the density, follows the gradient. The cells
@@ -69,9 +86,12 @@ with the gradient of the frequency times the distance from the origin. Fitting a
 smooth map to a varying isotropic scale in the least-squares sense (a Poisson
 problem per axis) cannot grade strongly: its divergence is the target scale plus
 a harmonic function pinned by the surface, which keeps the scale in the core
-near two thirds of the surface one. Blending a dense and a sparse lattice
-grades exactly, but leaves the core with the few lines of the sparse lattice
-instead of growing cells.
+near two thirds of the surface one. Blending lattices of different densities
+changes the topology and follows a distance exactly, but mixes two lattices
+wherever it blends, which distorts the pattern, and leaves the core with the few
+lines of the sparsest lattice. Filling bands of equal distance with the regular
+pattern at their density keeps it intact, but cuts its lines at every band, and
+the bands are narrower than the sparse cells.
 
 The target scale at depth `d = 1 - t`, with `S` the surface and `I` the interior
 frequency, both from each pattern's own density calibration:
@@ -100,6 +120,11 @@ the layer.
   densities, as the voids at the center are that large.
 - The adaptive options invalidate `posPrepareInfill`, which rebuilds the field
   and the anchoring infill.
-- Elongated or branched bodies have one center, so their far ends are graded as
-  the outer part of the body, and the warp shears where the reach changes
-  quickly with the direction.
+- An elongated body without a neck has one center, so its far ends are graded
+  as the outer part of the body, and the warp shears where the reach changes
+  quickly with the direction. A concave body, like an L, may be split into lobes
+  where its maxima cannot see each other in a straight line.
+- Across a ray, the scale is the mean of the gradient from the center, so the
+  layers right under the top and above the bottom are sparser than the surface
+  density in their middle, and a plate is graded from its middle outwards rather
+  than through its thickness.

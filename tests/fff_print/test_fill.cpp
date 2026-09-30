@@ -2090,6 +2090,40 @@ TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle heigh
     CHECK(middle < 0.7 * low);
 }
 
+TEST_CASE("Adaptive TPMS infill is sparse at the center of both of two united spheres", "[Fill]")
+{
+    // Two spheres of 20 mm, their centers 32 mm apart at 20 mm high: centered on the origin, they are at x = -16 and 16.
+    TriangleMesh spheres = make_sphere(20., 2. * PI / 90.);
+    spheres.translate(-16.f, 0.f, 20.f);
+    TriangleMesh second = make_sphere(20., 2. * PI / 90.);
+    second.translate(16.f, 0.f, 20.f);
+    spheres.merge(second);
+    auto slice = [&spheres](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({TriangleMesh(spheres)}, print,
+                                            {{"sparse_infill_pattern", "gyroid"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"tpms_adaptive", adaptive},
+                                             {"tpms_interior_density", "5%"},
+                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("0", uniform);
+    slice("1", adaptive);
+    // Within 5 mm of either center: at most 5% + 20% * 7.1 / 20 = 12.1% dense, where one center for both
+    // would leave the other sphere at more than 60% of the uniform density.
+    for (const double x : {-16., 16.}) {
+        CAPTURE(x);
+        Polygons core = centered_square(5.);
+        for (Polygon &square : core)
+            square.translate(Point::new_scale(x, 0.));
+        const double core_uniform = sparse_infill_length(uniform, 18., 22., core);
+        REQUIRE(core_uniform > 0.);
+        CHECK(sparse_infill_length(adaptive, 18., 22., core) < 0.45 * core_uniform);
+    }
+}
+
 TEST_CASE("Adaptive TPMS gradients keep the surface density deeper in the order quadratic, linear, exponential", "[Fill]")
 {
     // With a denser surface, t^2 <= t and the geometric interpolation is below the linear one at every depth.

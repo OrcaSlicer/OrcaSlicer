@@ -19,9 +19,18 @@ namespace {
 constexpr double MaxNodes    = double(1 << 20);
 constexpr double MinCellSize = 0.5;
 
-// Directions of the reach of a body, on a latitude-longitude grid.
+// Directions of the reach of a lobe, on a latitude-longitude grid.
 constexpr int Polar   = 24;
 constexpr int Azimuth = 48;
+
+// Two deepest points are in separate lobes when the depth between them drops below this ratio of the shallower one.
+constexpr double NeckRatio = 0.8;
+// Lobes shallower than this ratio of the deepest one of their body are graded as part of it.
+constexpr double MinLobeRatio = 0.3;
+// A lobe reaches twice as far as the side towards its neighbour, so that the side is half way to the surface.
+constexpr double LobeReach = 2.;
+// Width of the morph between the patterns of two lobes, in their distance to the center over its depth.
+constexpr double LobeMorph = 0.1;
 
 constexpr float  InfF = std::numeric_limits<float>::infinity();
 constexpr double InfD = std::numeric_limits<double>::infinity();
@@ -193,8 +202,23 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     };
     const std::array<std::ptrdiff_t, 6> steps{1, -1, std::ptrdiff_t(sy), -std::ptrdiff_t(sy), std::ptrdiff_t(sz), -std::ptrdiff_t(sz)};
 
-    // Bodies are the connected inside nodes, none of which is on the border. The center of a body is its
-    // deepest node; where the depth ties, the one nearest to the middle of the deepest nodes.
+    auto node_of = [this, sy, sz](const Vec3d &pt) -> std::ptrdiff_t {
+        const Vec3d f = (pt - m_origin) / m_cell;
+        const long  x = std::lround(f.x()), y = std::lround(f.y()), z = std::lround(f.z());
+        if (x < 0 || y < 0 || z < 0 || x >= m_size.x() || y >= m_size.y() || z >= m_size.z())
+            return -1;
+        return std::ptrdiff_t(size_t(z) * sz + size_t(y) * sy + size_t(x));
+    };
+    std::array<std::ptrdiff_t, 26> neighbours;
+    for (int dz = -1, k = 0; dz <= 1; ++dz)
+        for (int dy = -1; dy <= 1; ++dy)
+            for (int dx = -1; dx <= 1; ++dx)
+                if (dx != 0 || dy != 0 || dz != 0)
+                    neighbours[k++] = std::ptrdiff_t(dz) * std::ptrdiff_t(sz) + std::ptrdiff_t(dy) * std::ptrdiff_t(sy) + dx;
+
+    // Bodies are the connected inside nodes, none of which is on the border. The deepest nodes of a body are the
+    // centers of its lobes, unless the depth between them stays above NeckRatio; where the depth ties, the center
+    // is the node nearest to the middle of the tied nodes.
     m_body.assign(depth.size(), -1);
     std::vector<size_t> body_nodes;
     for (size_t seed = 0; seed < depth.size(); ++seed) {
@@ -212,63 +236,93 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
                     body_nodes.push_back(j);
                 }
         }
-        const float deep = sqr(std::max(0.f, std::sqrt(max_depth) - 1.f));
-        Vec3d       middle(0., 0., 0.);
-        size_t      count = 0;
+
+        std::vector<size_t> peaks;
         for (size_t i : body_nodes)
-            if (depth[i] >= deep) {
+            if (depth[i] >= sqr(MinLobeRatio) * max_depth &&
+                std::all_of(neighbours.begin(), neighbours.end(), [&](std::ptrdiff_t n) { return depth[i + n] <= depth[i]; }))
+                peaks.push_back(i);
+        std::sort(peaks.begin(), peaks.end(), [&depth](size_t a, size_t b) { return depth[a] > depth[b] || (depth[a] == depth[b] && a < b); });
+        auto necked = [&](size_t a, size_t b) {
+            const Vec3d  pa = position(a), pb = position(b);
+            const double limit = sqr(NeckRatio) * std::min(depth[a], depth[b]);
+            const int    samples = int(std::ceil((pb - pa).norm() / (0.5 * m_cell)));
+            for (int s = 1; s < samples; ++s)
+                if (depth[node_of(pa + (pb - pa) * (double(s) / samples))] < limit)
+                    return true;
+            return false;
+        };
+        std::vector<std::vector<size_t>> ties;
+        for (size_t i : peaks) {
+            auto lobe = std::find_if(ties.begin(), ties.end(), [&](const std::vector<size_t> &t) { return !necked(t.front(), i); });
+            if (lobe == ties.end())
+                ties.push_back({i});
+            else if (std::sqrt(depth[i]) >= std::sqrt(depth[lobe->front()]) - 1.f)
+                lobe->push_back(i);
+        }
+        m_bodies.push_back({m_lobes.size(), ties.size()});
+        for (const std::vector<size_t> &tied : ties) {
+            Vec3d middle(0., 0., 0.);
+            for (size_t i : tied)
                 middle += position(i);
-                ++count;
-            }
-        middle /= double(count);
-        Vec3d center = position(body_nodes.front());
-        for (size_t i : body_nodes)
-            if (depth[i] >= deep && (position(i) - middle).squaredNorm() < (center - middle).squaredNorm())
-                center = position(i);
-        m_bodies.push_back({center, {}});
+            middle /= double(tied.size());
+            Vec3d center = position(tied.front());
+            for (size_t i : tied)
+                if ((position(i) - middle).squaredNorm() < (center - middle).squaredNorm())
+                    center = position(i);
+            m_lobes.push_back({center, (std::sqrt(double(depth[tied.front()])) - 0.5) * m_cell, {}});
+        }
     }
     throw_if_canceled();
 
-    // The reach of a body is the first exit along each direction from its center, smoothed over the directions.
-    auto node_of = [this, sy, sz](const Vec3d &pt) -> std::ptrdiff_t {
-        const Vec3d f = (pt - m_origin) / m_cell;
-        const long  x = std::lround(f.x()), y = std::lround(f.y()), z = std::lround(f.z());
-        if (x < 0 || y < 0 || z < 0 || x >= m_size.x() || y >= m_size.y() || z >= m_size.z())
-            return -1;
-        return std::ptrdiff_t(size_t(z) * sz + size_t(y) * sy + size_t(x));
-    };
+    // The reach of a lobe is the first exit along each direction from its center, smoothed over the directions.
+    // It is shortened towards a neighbouring lobe, from where the point is nearer to the other lobe relative to their depths.
     tbb::parallel_for(tbb::blocked_range<size_t>(0, m_bodies.size()), [&](const tbb::blocked_range<size_t> &range) {
         for (size_t id = range.begin(); id < range.end(); ++id) {
-            Body               &body = m_bodies[id];
-            const double        step = 0.5 * m_cell;
-            std::vector<double> log_reach(Polar * Azimuth);
-            for (int i = 0; i < Polar; ++i)
-                for (int j = 0; j < Azimuth; ++j) {
-                    const double polar   = (i + 0.5) * PI / Polar;
-                    const double azimuth = j * 2. * PI / Azimuth;
-                    const Vec3d  dir(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
-                    double       r = 0.;
-                    for (;;) {
-                        const std::ptrdiff_t n = node_of(body.center + (r + step) * dir);
-                        if (n < 0 || depth[n] == 0.f || m_body[n] != int(id))
-                            break;
-                        r += step;
-                    }
-                    log_reach[i * Azimuth + j] = std::log(r + 0.5 * step);
-                }
-            for (int pass = 0; pass < 2; ++pass) {
-                std::vector<double> smoothed(log_reach.size(), 0.);
+            const Body &body = m_bodies[id];
+            for (size_t l = body.first_lobe; l < body.first_lobe + body.lobes; ++l) {
+                Lobe               &lobe = m_lobes[l];
+                const double        step = 0.5 * m_cell;
+                std::vector<double> log_reach(Polar * Azimuth);
+                auto                nearest_lobe = [&](const Vec3d &pt) {
+                    size_t nearest = l;
+                    for (size_t k = body.first_lobe; k < body.first_lobe + body.lobes; ++k)
+                        if ((pt - m_lobes[k].center).norm() / m_lobes[k].depth < (pt - m_lobes[nearest].center).norm() / m_lobes[nearest].depth)
+                            nearest = k;
+                    return nearest;
+                };
                 for (int i = 0; i < Polar; ++i)
                     for (int j = 0; j < Azimuth; ++j) {
-                        for (int di = -1; di <= 1; ++di)
-                            for (int dj = -1; dj <= 1; ++dj)
-                                smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, Polar - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
-                        smoothed[i * Azimuth + j] /= 9.;
+                        const double polar   = (i + 0.5) * PI / Polar;
+                        const double azimuth = j * 2. * PI / Azimuth;
+                        const Vec3d  dir(std::sin(polar) * std::cos(azimuth), std::sin(polar) * std::sin(azimuth), std::cos(polar));
+                        double       r     = 0.;
+                        double       limit = InfD;
+                        for (;;) {
+                            const Vec3d          pt = lobe.center + (r + step) * dir;
+                            const std::ptrdiff_t n  = node_of(pt);
+                            if (n < 0 || depth[n] == 0.f || m_body[n] != int(id) || r + step >= limit)
+                                break;
+                            if (limit == InfD && body.lobes > 1 && nearest_lobe(pt) != l)
+                                limit = LobeReach * (r + step);
+                            r += step;
+                        }
+                        log_reach[i * Azimuth + j] = std::log(std::min(r + 0.5 * step, limit));
                     }
-                log_reach = std::move(smoothed);
+                for (int pass = 0; pass < 2; ++pass) {
+                    std::vector<double> smoothed(log_reach.size(), 0.);
+                    for (int i = 0; i < Polar; ++i)
+                        for (int j = 0; j < Azimuth; ++j) {
+                            for (int di = -1; di <= 1; ++di)
+                                for (int dj = -1; dj <= 1; ++dj)
+                                    smoothed[i * Azimuth + j] += log_reach[std::clamp(i + di, 0, Polar - 1) * Azimuth + (j + dj + Azimuth) % Azimuth];
+                            smoothed[i * Azimuth + j] /= 9.;
+                        }
+                    log_reach = std::move(smoothed);
+                }
+                lobe.reach.resize(log_reach.size());
+                std::transform(log_reach.begin(), log_reach.end(), lobe.reach.begin(), [](double v) { return float(std::exp(v)); });
             }
-            body.reach.resize(log_reach.size());
-            std::transform(log_reach.begin(), log_reach.end(), body.reach.begin(), [](double v) { return float(std::exp(v)); });
         }
         throw_if_canceled();
     });
@@ -291,19 +345,12 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     }
 }
 
-std::pair<Vec3d, double> TpmsRadialField::radial(const Vec3d &pt) const
+double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
 {
-    if (m_bodies.empty())
-        return {pt, 1.};
-    size_t node = 0;
-    for (int axis = 2; axis >= 0; --axis)
-        node = node * m_size[axis] + size_t(std::clamp<long>(std::lround((pt[axis] - m_origin[axis]) / m_cell), 0, m_size[axis] - 1));
-    const Body  &body = m_bodies[m_body[node]];
-    const Vec3d  d    = pt - body.center;
-    const double r    = d.norm();
+    const Vec3d  d = pt - lobe.center;
+    const double r = d.norm();
     if (r < EPSILON)
-        return {body.center, 0.};
-
+        return 0.;
     const double polar   = std::clamp(std::acos(std::clamp(d.z() / r, -1., 1.)) / PI * Polar - 0.5, 0., double(Polar - 1));
     const int    i       = std::min(int(polar), Polar - 2);
     const double fi      = polar - i;
@@ -313,9 +360,46 @@ std::pair<Vec3d, double> TpmsRadialField::radial(const Vec3d &pt) const
     const int    j0    = int(azimuth) % Azimuth;
     const int    j1    = (j0 + 1) % Azimuth;
     const double fj    = azimuth - std::floor(azimuth);
-    auto         at    = [&body](int i, int j) { return double(body.reach[i * Azimuth + j]); };
+    auto         at    = [&lobe](int i, int j) { return double(lobe.reach[i * Azimuth + j]); };
     const double reach = (at(i, j0) * (1. - fj) + at(i, j1) * fj) * (1. - fi) + (at(i + 1, j0) * (1. - fj) + at(i + 1, j1) * fj) * fi;
-    return {body.center, r / reach};
+    return r / reach;
+}
+
+size_t TpmsRadialField::radial(const Vec3d &pt, std::array<Radial, 2> &out) const
+{
+    if (m_bodies.empty()) {
+        out[0] = {pt, 1., 1.f};
+        return 1;
+    }
+    size_t node = 0;
+    for (int axis = 2; axis >= 0; --axis)
+        node = node * m_size[axis] + size_t(std::clamp<long>(std::lround((pt[axis] - m_origin[axis]) / m_cell), 0, m_size[axis] - 1));
+    const Body &body = m_bodies[m_body[node]];
+    if (body.lobes == 1) {
+        const Lobe &lobe = m_lobes[body.first_lobe];
+        out[0]           = {lobe.center, radial(lobe, pt), 1.f};
+        return 1;
+    }
+
+    // The two lobes nearest relative to their depth; morph between them near the side where they are as near.
+    size_t first = body.first_lobe, second = body.first_lobe + 1;
+    auto   distance = [this, &pt](size_t l) { return (pt - m_lobes[l].center).norm() / m_lobes[l].depth; };
+    if (distance(second) < distance(first))
+        std::swap(first, second);
+    for (size_t l = body.first_lobe + 2; l < body.first_lobe + body.lobes; ++l)
+        if (distance(l) < distance(first)) {
+            second = first;
+            first  = l;
+        } else if (distance(l) < distance(second))
+            second = l;
+    const double u      = std::clamp(0.5 - (distance(second) - distance(first)) / LobeMorph, 0., 1.);
+    const double s      = u * u * (3. - 2. * u);
+    const float  weight = float(s / (0.5 + s));
+    out[0]              = {m_lobes[first].center, radial(m_lobes[first], pt), 1.f - weight};
+    if (weight == 0.f)
+        return 1;
+    out[1] = {m_lobes[second].center, radial(m_lobes[second], pt), weight};
+    return 2;
 }
 
 } // namespace Slic3r
@@ -344,17 +428,24 @@ struct AdaptiveTpmsField
         , cos_angle(std::cos(angle)), sin_angle(std::sin(angle))
     {}
 
-    // The pattern is scaled around the center of the body. The radial field is in the object frame, the fill is rotated by -angle.
+    // The pattern is scaled around the center of the lobe, morphing into the pattern of a neighbouring lobe near the
+    // side between them. The radial field is in the object frame, the fill is rotated by -angle.
     float get_scalar(const Coord &p) const
     {
-        const Point  pt        = to_Point(p);
-        const double x         = unscaled(pt.x());
-        const double y         = unscaled(pt.y());
-        const auto [center, t] = radial_field.radial(Vec3d(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z));
-        const double frequency = tpms.surface_frequency * scale(t);
-        const double cx        = cos_angle * center.x() + sin_angle * center.y();
-        const double cy        = cos_angle * center.y() - sin_angle * center.x();
-        return tpms.equation(float(frequency * (x - cx)), float(frequency * (y - cy)), float(frequency * (z - center.z())));
+        const Point                            pt = to_Point(p);
+        const double                           x  = unscaled(pt.x());
+        const double                           y  = unscaled(pt.y());
+        std::array<TpmsRadialField::Radial, 2> radials;
+        const size_t count = radial_field.radial(Vec3d(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z), radials);
+        float        value = 0.f;
+        for (size_t i = 0; i < count; ++i) {
+            const auto  &[center, t, weight] = radials[i];
+            const double frequency           = tpms.surface_frequency * scale(t);
+            const double cx                  = cos_angle * center.x() + sin_angle * center.y();
+            const double cy                  = cos_angle * center.y() - sin_angle * center.x();
+            value += weight * tpms.equation(float(frequency * (x - cx)), float(frequency * (y - cy)), float(frequency * (z - center.z())));
+        }
+        return value;
     }
 
     inline coord_t to_coord(long x) const { return x * rsize; }
