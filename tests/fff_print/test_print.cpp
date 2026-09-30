@@ -26,6 +26,8 @@
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include <set>
+#include <sstream>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -559,6 +561,28 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
     const std::string gcode((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
     REQUIRE_FALSE(gcode.empty());
+}
+
+TEST_CASE("Object label comments number objects from zero", "[Print][export_gcode]")
+{
+    const bool bbl            = GENERATE(false, true);
+    const bool exclude_object = GENERATE(false, true);
+    Print print;
+    Model model;
+    Slic3r::Test::place_two_cubes_apart(20, {
+        { "gcode_flavor",        "marlin" },
+        { "gcode_label_objects", true },
+        { "exclude_object",      exclude_object },
+    }, print, model);
+    print.is_BBL_printer() = bbl;
+
+    std::set<size_t> ids;
+    std::istringstream in(Slic3r::Test::gcode(print));
+    for (std::string line; std::getline(in, line);)
+        if (line.rfind("; printing object ", 0) == 0)
+            ids.insert(std::stoull(line.substr(line.find(" id:") + 4)));
+
+    CHECK(ids == std::set<size_t>{ 0, 1 });
 }
 
 TEST_CASE("Sequential printing follows model order", "[Print]")
