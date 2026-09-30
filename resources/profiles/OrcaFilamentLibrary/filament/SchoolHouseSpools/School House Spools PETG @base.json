@@ -3,7 +3,7 @@
 	"name": "School House Spools PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFSHS01",
+	"filament_id": "OFnaCGQ9",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"
