@@ -29,6 +29,7 @@
 #include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/core/null_deleter.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/nowide/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <algorithm>
 #include <fstream>
@@ -605,6 +606,14 @@ int slice_all_printers(const std::string &vendor, const std::string &outdir)
 
 int main(int argc, char* argv[])
 {
+    // Keep filesystem paths UTF-8, as in the application, including custom preset filenames.
+    try {
+        boost::nowide::nowide_filesystem();
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error initializing UTF-8 filesystem paths: " << e.what() << "\n";
+        return 1;
+    }
+
     po::options_description desc("Orca Profile Validator\nUsage");
     // clang-format off
     desc.add_options()("help,h", "help")
