@@ -235,6 +235,9 @@ public:
 
     // ORCA: utility function to find the vendor for a given preset name
     static std::string find_preset_vendor(const std::string& preset_name, Preset::Type type);
+    // Keys a project keeps when its presets are loaded: those listed in its escaped
+    // "different_settings_to_system" entry for the preset, plus the preset bookkeeping keys.
+    static std::set<std::string> project_different_keys(const std::string &different_settings);
 
     PresetBundle();
     PresetBundle(const PresetBundle &rhs);
@@ -274,6 +277,10 @@ public:
                                     const std::string &source_file,
                                     ForwardCompatibilitySubstitutionRule compatibility_rule,
                                     std::string &error, bool allow_source_manifest = true);
+    // Resolve a system preset by name. The vendor tree is read from data_dir()/system when installed
+    // there, as the GUI reads it, and from the bundled profiles otherwise.
+    bool resolve_system_preset(DynamicPrintConfig &config, Preset::Type type, const std::string &name,
+                               ForwardCompatibilitySubstitutionRule compatibility_rule, std::string &error);
 
     // Load selections (current print, current filaments, current printer) from config.ini
     // This is done just once on application start up.
@@ -808,13 +815,14 @@ private:
     // Vendor trees loaded by resolve_preset_config's manifest path, so every preset
     // resolved through this bundle shares one load per source root and vendor. The
     // filament library is one such tree, shared by every vendor under its root.
-    std::map<std::tuple<std::string, std::string, ForwardCompatibilitySubstitutionRule>, std::unique_ptr<PresetBundle>>
+    // A tree read from its preset cache is kept apart: its presets carry no source file.
+    std::map<std::tuple<std::string, std::string, ForwardCompatibilitySubstitutionRule, bool>, std::unique_ptr<PresetBundle>>
         m_source_vendor_bundles;
 
     const PresetBundle *load_source_vendor(const boost::filesystem::path &root_dir,
                                            const std::string &vendor_id,
                                            ForwardCompatibilitySubstitutionRule compatibility_rule,
-                                           std::string &error);
+                                           std::string &error, bool allow_cache = false);
 
     // Orca: validation only - flag any printer with two or more compatible
     // filament presets sharing one filament_id (ambiguous AMS subtype match).

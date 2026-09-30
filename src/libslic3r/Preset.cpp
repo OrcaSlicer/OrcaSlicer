@@ -976,6 +976,37 @@ void Preset::get_extruder_names_and_keysets(Type type, std::string& extruder_id_
     }
 }
 
+DynamicPrintConfig Preset::load_external_config(Type type, const DynamicPrintConfig &default_config, const DynamicPrintConfig &project_config,
+                                                const std::set<std::string> &different_settings_list,
+                                                const std::function<DynamicPrintConfig *(const std::string &inherits)> &find_base,
+                                                t_config_option_keys *keys)
+{
+    // Load the preset over a default preset, so that the missing fields are filled in from the default preset.
+    DynamicPrintConfig cfg(default_config);
+    // SoftFever: ignore print connection info from project
+    auto        cfg_keys = cfg.keys();
+    cfg_keys.erase(std::remove_if(cfg_keys.begin(), cfg_keys.end(),
+                              [](std::string &val) {
+                                return val == "print_host" || val == "print_host_webui" || val == "printhost_apikey" ||
+                                       val == "printhost_cafile" || val == "printhost_user" || val == "printhost_password" || val == "printhost_port";
+                              }),
+               cfg_keys.end());
+    cfg.apply_only(project_config, cfg_keys, true);
+
+    //add different settings check logic, replace the old system preset's default value with new system preset's default values
+    if (!different_settings_list.empty()) {
+        if (DynamicPrintConfig *base_config = find_base(Preset::inherits(cfg))) {
+            std::string extruder_id_name, extruder_variant_name;
+            std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
+            Preset::get_extruder_names_and_keysets(type, extruder_id_name, extruder_variant_name, &key_set1, &key_set2);
+            cfg.update_non_diff_values_to_base_config(*base_config, cfg_keys, different_settings_list, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+        }
+    }
+    if (keys)
+        *keys = std::move(cfg_keys);
+    return cfg;
+}
+
 bool Preset::has_lidar(PresetBundle *preset_bundle)
 {
     bool has_lidar = false;
@@ -2640,20 +2671,6 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
     const Semver                file_version,
     const std::string           filament_id)
 {
-    // Load the preset over a default preset, so that the missing fields are filled in from the default preset.
-    DynamicPrintConfig cfg(this->default_preset_for(combined_config).config);
-    // SoftFever: ignore print connection info from project
-    auto        keys = cfg.keys();
-    keys.erase(std::remove_if(keys.begin(), keys.end(),
-                              [](std::string &val) {
-                                return val == "print_host" || val == "print_host_webui" || val == "printhost_apikey" ||
-                                       val == "printhost_cafile" || val == "printhost_user" || val == "printhost_password" || val == "printhost_port";
-                              }),
-               keys.end());
-    cfg.apply_only(combined_config, keys, true);
-    std::string                 &inherits = Preset::inherits(cfg);
-
-    //add different settings check logic, replace the old system preset's default value with new system preset's default values
     std::deque<Preset>::iterator it       = this->find_preset_internal(original_name);
     bool                         found    = it != m_presets.end() && it->name == original_name;
     if (! found) {
@@ -2662,24 +2679,25 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         found = it != m_presets.end();
     }
 
-    std::string extruder_id_name, extruder_variant_name;
-    std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
-    Preset::get_extruder_names_and_keysets(m_type, extruder_id_name, extruder_variant_name, &key_set1, &key_set2);
-
-    if (!inherits.empty() && (different_settings_list.size() > 0)) {
-        auto iter = this->find_preset_internal(inherits);
-        if (iter == m_presets.end() || iter->name != inherits)
-            iter = this->find_preset_renamed(inherits);
-        if (iter != m_presets.end()) {
-            //std::vector<std::string> dirty_options = cfg.diff(iter->config);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": change preset %1% inherit %2% 's value to %3% 's values")%original_name %inherits %path;
-            cfg.update_non_diff_values_to_base_config(iter->config, keys, different_settings_list, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
-        }
-    }
-    else if (found && it->is_system && (different_settings_list.size() > 0)) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": change preset %1% 's value to %2% 's values")%original_name %path;
-        cfg.update_non_diff_values_to_base_config(it->config, keys, different_settings_list, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
-    }
+    t_config_option_keys keys;
+    DynamicPrintConfig cfg = Preset::load_external_config(m_type, this->default_preset_for(combined_config).config, combined_config, different_settings_list,
+        [this, &original_name, &path, found, it](const std::string &inherits) -> DynamicPrintConfig * {
+            if (!inherits.empty()) {
+                auto iter = this->find_preset_internal(inherits);
+                if (iter == m_presets.end() || iter->name != inherits)
+                    iter = this->find_preset_renamed(inherits);
+                if (iter == m_presets.end())
+                    return nullptr;
+                BOOST_LOG_TRIVIAL(info) << "load_external_preset" << boost::format(": change preset %1% inherit %2% 's value to %3% 's values")%original_name %inherits %path;
+                return &iter->config;
+            }
+            if (found && it->is_system) {
+                BOOST_LOG_TRIVIAL(info) << "load_external_preset" << boost::format(": change preset %1% 's value to %2% 's values")%original_name %path;
+                return &it->config;
+            }
+            return nullptr;
+        }, &keys);
+    std::string                 &inherits = Preset::inherits(cfg);
 
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, type %1% , path %2%, name %3%, original_name %4%, inherits %5%")%Preset::get_type_string(m_type) %path %name %original_name %inherits;
