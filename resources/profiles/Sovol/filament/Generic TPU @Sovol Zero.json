@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFgbpcy9",
-	"setting_id": "MlY6WQ41FE8zDPSV",
 	"name": "Generic TPU @Sovol Zero",
 	"renamed_from": "Sovol Zero TPU",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "MlY6WQ41FE8zDPSV",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

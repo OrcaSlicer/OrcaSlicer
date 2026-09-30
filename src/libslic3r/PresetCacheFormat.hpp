@@ -109,7 +109,7 @@ void skip_config(cereal::BinaryInputArchive& ar, const CacheDictionary& dict);
 
 // One preset as its JSON subfile states it: the config diff, the names of the
 // preset it inherits and the presets it includes, and the parse metadata —
-// everything the parse phase of load_vendor_configs_from_json extracts and
+// everything PresetBundle::parse_vendor_json extracts and
 // nothing it derives. Inheritance and includes are resolved when the entry is
 // installed, against whatever filament library is loaded then, so a cache
 // carries no other vendor's values and no other vendor's update can make it

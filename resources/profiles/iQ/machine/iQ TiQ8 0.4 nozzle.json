@@ -34,6 +34,8 @@
 	"machine_end_gcode": "G1 X10 F3000 ; home X axis\nG1 Y10 F3000 ; home Y axis\nM104 S0 T0 ; turn off extruder\nM104 S0 T1 ; turn off extruder\nM104 S0 T2 ; turn off extruder\nM140 S0 ; turn off bed\n{if nozzle_temperature_initial_layer[current_extruder]>350}M140 S80{endif} ; Keep bed hot for easy part removal from PEI sheet\nM106 S0 ; turn off fan\nM806 S0 ; turn of housing fan\nM84 ; disable motor\n",
 	"machine_max_speed_z": [
 		"15",
+		"12",
+		"15",
 		"12"
 	],
 	"machine_pause_gcode": "M10710 S0",
@@ -133,9 +135,13 @@
 	],
 	"machine_max_acceleration_x": [
 		"1500",
+		"1500",
+		"1500",
 		"1500"
 	],
 	"machine_max_acceleration_y": [
+		"1500",
+		"1500",
 		"1500",
 		"1500"
 	],

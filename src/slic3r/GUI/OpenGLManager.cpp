@@ -286,7 +286,7 @@ bool OpenGLManager::init_gl(bool popup_error)
 
         bool valid_version = s_gl_info.is_version_greater_or_equal_to(2, 0);
         if (!valid_version) {
-            BOOST_LOG_TRIVIAL(error) << "Found opengl version <= 3.2"<< std::endl;
+            BOOST_LOG_TRIVIAL(error) << "Found opengl version < 2.0"<< std::endl;
             // Complain about the OpenGL version.
             if (popup_error) {
                 wxString message = from_u8((boost::format(

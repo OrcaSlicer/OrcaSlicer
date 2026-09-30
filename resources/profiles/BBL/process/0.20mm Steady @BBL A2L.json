@@ -86,7 +86,7 @@
 	],
 	"print_extruder_variant": [
 		"Direct Drive Standard",
-		"Direct Drive TPU285"
+		"Direct Drive High Flow"
 	],
 	"slowdown_end_acc": [
 		"2000",
