@@ -233,6 +233,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "use_relative_e_distances",
         "accel_to_decel_enable",
         "accel_to_decel_factor",
+        "minimum_cruise_ratio_enable",
+        "minimum_cruise_ratio",
         "wipe_on_loops",
         "wipe_inward",
         "wipe_inward_distance",

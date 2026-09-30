@@ -72,12 +72,12 @@ class Print;
 
         struct Mode
         {
-            float time;
+            double time;
             float prepare_time;
             std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> custom_gcode_times;
 
             void reset() {
-                time = 0.0f;
+                time = 0.0;
                 prepare_time = 0.0f;
                 custom_gcode_times.clear();
                 custom_gcode_times.shrink_to_fit();
@@ -614,6 +614,12 @@ class Print;
             float acceleration{ 0.0f }; // mm/s^2
             float max_entry_speed{ 0.0f }; // mm/s
             float safe_feedrate{ 0.0f }; // mm/s
+            float junction_deviation{ 0.0f };
+            float max_mcr_entry_speed_sqr{ 0.0f };
+            float mcr_delta_v2{ 0.0f };
+            // Peak cruise speed squared in effect when this block was planned. Only set on a block
+            // that can accelerate; the delayed blocks after it are seeded from its value.
+            float peak_cruise_v2{ 0.0f };
             Flags flags;
             FeedrateProfile feedrate_profile;
             Trapezoid trapezoid;
@@ -693,6 +699,12 @@ class Print;
             // hard limit for the travel acceleration, to which the firmware will clamp.
             float max_travel_acceleration; // mm/s^2
             float extrude_factor_override_percentage;
+            bool klipper{ false };
+            bool klipper_modern{ false };
+            float minimum_cruise_ratio{ 0.5f };
+            float requested_accel_to_decel{ -1.0f };
+            float klipper_junction_flush{ 1.0f };
+            bool klipper_queue_priming{ true };
             // We accumulate total print time in doubles to reduce the loss of precision
             // while adding big floating numbers with small float numbers.
             double time; // s
@@ -728,6 +740,8 @@ class Print;
 
             // Merge adjacent buffer entries that target the same move type.
             static AdditionalBuffer merge_adjacent_additional_time_blocks(const AdditionalBuffer& buffer);
+
+            size_t plan_klipper(bool lazy);
 
             // additional_time is attributed to the first block matching target_move_type
             // (EMoveType::Noop matches any block, i.e. the first processed block).
@@ -1261,7 +1275,7 @@ class Print;
         void process_buffer(const std::string& buffer);
         void finalize(bool post_process);
 
-        float get_time(PrintEstimatedStatistics::ETimeMode mode) const;
+        double get_time(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_prepare_time(PrintEstimatedStatistics::ETimeMode mode) const;
         std::string get_time_dhm(PrintEstimatedStatistics::ETimeMode mode) const;
         std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> get_custom_gcode_times(PrintEstimatedStatistics::ETimeMode mode, bool include_remaining) const;
