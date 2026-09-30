@@ -80,7 +80,7 @@ struct AdaptiveTpms
 };
 
 // Infill lines in the fill frame, the object frame rotated by -angle; z is the print_z of the layer.
-Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &field, const BoundingBox &bbox,
+Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &field, BoundingBox bbox,
                              coordf_t z, coordf_t layer_height, coordf_t spacing, float angle);
 
 } // namespace Slic3r

@@ -37,6 +37,7 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Fill/FillGyroid.hpp"
+#include "libslic3r/Fill/FillTpmsAdaptive.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -2182,6 +2183,65 @@ TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]"
     const SparseInfillShape expected = shape_for("0");
     REQUIRE(expected.path_count > 0);
     CHECK(shape_for("1").sequence == expected.sequence);
+}
+
+TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger region of the same object", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK);
+    CAPTURE(pattern);
+    // An 80 x 80 x 40 mm box around both regions, which share its radial field.
+    const ExPolygons box{ExPolygon(Points{Point::new_scale(60., 20.), Point::new_scale(140., 20.), Point::new_scale(140., 100.),
+                                          Point::new_scale(60., 100.)})};
+    std::vector<TpmsRadialField::Slice> slices;
+    for (int i = 0; i < 200; ++i)
+        slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
+    const TpmsRadialField field(slices, get_extents(box), [] {});
+
+    auto circle = [](double radius) {
+        Polygon contour = make_circle_num_segments(scale_(radius), 120);
+        contour.translate(Point::new_scale(100., 60.));
+        return ExPolygon(std::move(contour));
+    };
+    const ExPolygon region = circle(20.);
+    const ExPolygon larger = circle(30.);
+    auto fill = [pattern, &field](const ExPolygon &expolygon, double z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing           = 0.45;
+        filler->angle             = float(M_PI / 7.);
+        filler->z                 = z;
+        filler->tpms_radial_field = &field;
+
+        FillParams params;
+        params.density                = 0.2f;
+        params.tpms_adaptive          = true;
+        params.tpms_interior_density  = 0.05f;
+        params.tpms_adaptive_gradient = TpmsAdaptiveGradient::Linear;
+        params.layer_height           = 0.2;
+        params.dont_adjust            = true;
+        Surface surface(stInternal, expolygon);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary of the region, where both are clipped and connected the same way.
+    const Polygons inner = shrink(to_polygons(region), scale_(1.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+    // Marching squares simplifies rings that start elsewhere in each region. At 15.325 mm TPMS-FK has a saddle,
+    // whose lines connect one way or the other with the sampling grid.
+    const double tolerance = SPARSE_INFILL_RESOLUTION + 0.01;
+    for (const double z : {5.1, 12.3, 15.325, 20.1, 27.9, 34.7}) {
+        CAPTURE(z);
+        const Polylines paths = fill(region, z);
+        REQUIRE_FALSE(paths.empty());
+        const Polylines reference = fill(larger, z);
+        CHECK(farthest(reference, paths) < tolerance);
+        CHECK(farthest(paths, reference) < tolerance);
+    }
 }
 
 TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")

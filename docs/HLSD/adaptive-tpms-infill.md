@@ -105,7 +105,9 @@ frequency, both from each pattern's own density calibration:
 With a denser surface, quadratic keeps the surface density deepest and
 exponential drops fastest. A denser interior works the same way.
 
-The zero level is extracted with marching squares like the regular TPMS-FK.
+The zero level is extracted with marching squares like the regular TPMS-FK, on
+a sampling grid fixed in the fill frame like the optimized Gyroid, so that every
+region of a layer connects its lines the same way at the saddles of the pattern.
 Loops narrower than two lines (shorter than `2 * PI * spacing`) are dropped, as
 they would print as blobs. The fill works in a frame rotated by the infill
 angle, so the radial field is looked up at the point rotated back into the
