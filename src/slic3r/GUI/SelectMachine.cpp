@@ -3537,27 +3537,26 @@ void SelectMachineDialog::on_send_print()
 
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
 
-    // A device with no AMS unit has one source, the external spool: OrcaSlicer's
-    // auto-mapping force-selects it, which is not a lane choice. Bambu unchanged.
-    if (obj_->printer_agent_id == ORCA_PRINTER_AGENT_ID)
-        drop_forced_external_selection(obj_->HasAms(), ams_mapping_array2);
-
-    // OrcaSonar: a mapped print requires the connector to advertise
-    // filament_mapping. Refuse rather than start with the map silently dropped;
-    // Bambu keeps its behavior.
-    if (obj_->printer_agent_id == ORCA_PRINTER_AGENT_ID) {
-        if (!obj_->is_support_filament_mapping && has_engaged_filament_mapping(ams_mapping_array2)) {
-            BOOST_LOG_TRIVIAL(warning) << "print_job: connector does not advertise filament_mapping; refusing mapped print";
-            m_status_bar->set_status_text(_L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."));
-            Enable_Send_Button(true);
-            return;
-        }
-        if (has_any_mapped_target(m_ams_mapping_result) && has_used_filament_without_target(m_ams_mapping_result)) {
-            BOOST_LOG_TRIVIAL(warning) << "print_job: a used filament has no AMS target; refusing print";
-            m_status_bar->set_status_text(_L("A filament used by this print has no AMS mapping. Assign it before printing."));
-            Enable_Send_Button(true);
-            return;
-        }
+    // The policy lives in FilamentMappingUtils.hpp; this dialog only differs
+    // from the multi-device page in how it reports a refusal.
+    switch (prepare_filament_mapping_for_send(obj_, ams_mapping_array2, m_ams_mapping_result)) {
+    case MappingSendError::unsupported:
+        BOOST_LOG_TRIVIAL(warning) << "print_job: connector does not advertise filament_mapping; refusing mapped print";
+        m_status_bar->set_status_text(_L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."));
+        Enable_Send_Button(true);
+        return;
+    case MappingSendError::incomplete:
+        BOOST_LOG_TRIVIAL(warning) << "print_job: a used filament has no AMS target; refusing print";
+        m_status_bar->set_status_text(_L("A filament used by this print has no AMS mapping. Assign it before printing."));
+        Enable_Send_Button(true);
+        return;
+    case MappingSendError::none:
+        break;
+    default:
+        // A refusal added without a handler here must not silently send.
+        BOOST_LOG_TRIVIAL(warning) << "print_job: unrecognized mapping refusal; refusing print";
+        Enable_Send_Button(true);
+        return;
     }
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {

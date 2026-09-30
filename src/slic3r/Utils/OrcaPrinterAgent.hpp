@@ -39,6 +39,9 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
+    bool supports_command(const std::string& dev_id, const std::string& command) const override;
+    bool supports_feature(const std::string& dev_id, const std::string& feature) const override;
+    bool uses_filament_mapping() const override { return true; }
     int connect_printer(const PrinterConnectionParams& params) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
@@ -53,6 +56,7 @@ public:
     // Machine Selection
     std::string get_user_selected_machine() override;
     int set_user_selected_machine(std::string dev_id) override;
+    int unbind(std::string dev_id) override;
 
     /**
      * Get agent information.
@@ -129,6 +133,9 @@ protected:
     // once parse_json reads the Orca dialect natively. See the definition for the
     // per-rule detail. Returns the payload unchanged when no rule applies.
     std::string merge_capabilities(const std::string& dev_id, const std::string& payload);
+    void forget_device_capabilities(const std::string& dev_id);
+    int prepare_outgoing_request(const std::string& dev_id, const std::string& payload,
+                                 std::string& command, std::string& prepared) const;
 
     // Report the asynchronous LAN connection state using the same callback contract as
     // the other printer agents. The transport result cannot be returned by

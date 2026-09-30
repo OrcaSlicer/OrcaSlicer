@@ -653,13 +653,6 @@ public:
     bool is_support_partskip{false};
     bool is_support_refresh_nozzle{false};
 
-    // OrcaSonar connector-scope capabilities (printer_agent_id == "orca"). Parsed from the
-    // get_capabilities reply; never consulted on Bambu paths.
-    bool                  is_support_fms{false};
-    bool                  is_support_filament_slots{false};
-    bool                  is_support_filament_mapping{false};
-    std::set<std::string> supported_commands;
-
       // refine printer function options
     bool is_support_spaghetti_detection{false};
     bool is_support_purgechutepileup_detection{false};
@@ -801,10 +794,9 @@ public:
     int command_refresh_nozzle();
     int command_set_chamber(int temp);
     int check_resume_condition();
-    // OrcaSonar: true when a macro-backed AMS command may be sent. Bambu paths
-    // always allow; an Orca device must have advertised the command (unknown
-    // capability is not support).
-    bool orca_ams_command_supported(const char* command) const;
+    bool printer_supports_command(const char* command) const;
+    bool printer_supports_feature(const char* feature) const;
+    bool printer_uses_filament_mapping() const;
     // The per-tray flow-dynamics K/N records are a Bambu firmware feature. Other
     // agents have no printer-side calibration to read or write, so the AMS UI must
     // not offer K/N for them.
