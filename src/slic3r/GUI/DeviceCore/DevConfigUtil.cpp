@@ -1,5 +1,7 @@
 #include "DevConfigUtil.h"
 
+#include "slic3r/GUI/DeviceManager.hpp"
+
 #include <wx/dir.h>
 #include <boost/filesystem/operations.hpp>
 #include "../I18N.hpp"
@@ -40,6 +42,19 @@ static void _toolhead_translation_markers()
 }
 
 std::string DevPrinterConfigUtil::m_resource_file_path = "";
+
+bool DevPrinterConfigUtil::is_printer_model_compatible(const std::string& source_model, MachineObject& machine)
+{
+    const std::string& target_model = machine.printer_type;
+    if (is_optional_printer_model_id(source_model) || is_optional_printer_model_id(target_model))
+        return true;
+
+    if (source_model == target_model)
+        return true;
+
+    const auto compatible_machine = machine.get_compatible_machine();
+    return std::find(compatible_machine.begin(), compatible_machine.end(), source_model) != compatible_machine.end();
+}
 
 
 std::map<std::string, std::string> DevPrinterConfigUtil::get_all_model_id_with_name()

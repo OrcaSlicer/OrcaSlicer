@@ -2,15 +2,21 @@
 #define __NETWORK_Agent_HPP__
 
 #include "bambu_networking.hpp"
+
 #include "libslic3r/ProjectTask.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "IPrinterAgent.hpp"
+
 #include <map>
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace Slic3r {
+
+class IPrinterAgent;
 
 // Forward declaration
 class BBLNetworkPlugin;
@@ -50,6 +56,7 @@ public:
     // Sub-agent accessors
     std::shared_ptr<ICloudServiceAgent> get_cloud_agent(const std::string& provider = ORCA_CLOUD_PROVIDER) const;
     std::shared_ptr<IPrinterAgent> get_printer_agent() const { return m_printer_agent; }
+    std::uint64_t get_user_machine_list_generation() const { return m_user_machine_list_generation.load(); }
 
     // Shared agent management
     void add_cloud_agent(const std::string& provider, std::shared_ptr<ICloudServiceAgent> agent);
@@ -109,6 +116,7 @@ public:
     int query_bind_status(std::vector<std::string> query_list, unsigned int* http_code, std::string* http_body, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int modify_printer_name(std::string dev_id, std::string dev_name, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_camera_url(std::string dev_id, std::function<void(std::string)> callback, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    std::unique_ptr<ICameraSignalingChannel> create_camera_signaling_channel(const std::string& dev_id, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int start_publish(PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out, const std::string& provider = ORCA_CLOUD_PROVIDER);
     int get_model_publish_url(std::string* url, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -142,9 +150,21 @@ public:
     int set_on_local_message_fn(OnMessageFn fn);
     int set_server_callback(OnServerErrFn fn);
     int send_message(std::string dev_id, std::string json_str, int qos, int flag);
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode);
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode);
+    int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode);
+    int command_start_camera(std::string dev_id);
+    int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode);
+    int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode);
+    int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode);
+    int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode);
+    int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode);
+    int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                              bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode);
+    int connect_printer(const PrinterConnectionParams& params);
     int disconnect_printer();
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag);
+    std::string default_lan_username() const;
     int check_cert();
     void install_device_cert(std::string dev_id, bool lan_only);
     bool start_discovery(bool start, bool sending);
@@ -164,7 +184,9 @@ public:
     int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
     int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
     FilamentSyncMode get_filament_sync_mode() const;
-    bool fetch_filament_info(std::string dev_id);
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull);
+    CameraStreamMode get_camera_stream_mode() const;
+    std::string get_local_camera_stream_url() const;
     std::string to_orca_filament_id(const std::string& printer_filament_id) const;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const;
     int request_bind_ticket(std::string* ticket);
@@ -195,6 +217,7 @@ private:
     std::map<std::string, std::shared_ptr<ICloudServiceAgent>> m_cloud_agents;
     std::shared_ptr<IPrinterAgent> m_printer_agent;
     std::string m_printer_agent_id;
+    std::atomic<std::uint64_t> m_user_machine_list_generation{0};
 };
 
 }
