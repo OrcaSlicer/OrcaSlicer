@@ -9943,7 +9943,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                 flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
-                        const size_t arc_start = gcode.size();
                         m_writer.extrude_arc_to_xy(gcode,
                             this->point_to_gcode(arc.end_point),
                             center_offset,
@@ -9952,7 +9951,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                             flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                         // Bind the metadata to the arc even when ordinary comments are disabled.
                         if (has_overhang_arc_profile) {
-                            assert(gcode.size() > arc_start && gcode.back() == '\n');
+                            assert(!gcode.empty() && gcode.back() == '\n');
                             gcode.insert(gcode.size() - 1,
                                 ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc_Apply));
                         }
