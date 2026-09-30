@@ -35,17 +35,16 @@ struct SourceStamp
 // resolved paths to watch and a callback to run once a change is confirmed.
 //
 // A change is reported once its file goes quiet: every fs event naming a tracked file restarts
-// the debounce timer, so a file written in place over several chunks (OpenSCAD, Blender, most
-// scripts) is reported after its last write, not in the middle. Any other event -- unrelated
-// activity in a watched directory, or a backend that only names the directory -- starts the timer
-// if it isn't running but never extends it, so unrelated noise can't starve the check. On Windows,
-// where change notifications can lag behind cached writes, a file still held open for writing by
-// another process is also held back when the timer fires. A write that never goes quiet is
-// reported anyway once max_settle (30s) has passed since the first sign of activity. See
-// docs/HLSD/auto-reload.md.
+// the debounce timer, so a file written in place over several chunks is reported after its last
+// write, not in the middle. Any other event -- unrelated activity in a watched directory, or a
+// backend that only names the directory -- starts the timer if it isn't running but never extends
+// it, so unrelated noise can't starve the check. On Windows, where change notifications can lag
+// behind cached writes, a file still held open for writing by another process is also held back
+// when the timer fires. A write that never goes quiet is reported anyway once max_settle (30s)
+// has passed since the first sign of activity. See docs/HLSD/auto-reload.md.
 //
-// Two watches cover each other's blind spot: most exporters write a temp file and rename it into
-// place (only visible as a directory-listing change), while an in-place overwrite produces no
+// Two watches cover each other's blind spot: an exporter that writes a temp file and renames it
+// into place is only visible as a directory-listing change, while an in-place overwrite produces no
 // directory event at all and needs a watch on the file itself. Whatever wakes it, the timer
 // resamples every tracked file's own stamp against the baseline recorded in set_watched_files()
 // -- the event's path only decides whether to extend the wait. Per-file watches are skipped on

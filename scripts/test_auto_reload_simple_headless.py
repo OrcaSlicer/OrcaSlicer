@@ -370,7 +370,7 @@ def cube_stl_text(size):
 
 def write_cube_stl_slowly(path, size, chunks=20, pause=0.1):
     """Overwrites `path` in place in `chunks` flushed pieces, `pause` seconds apart, holding the file
-    open throughout -- the way OpenSCAD, Blender and most scripts write an export."""
+    open throughout -- the way a script that opens the output file and writes it directly does."""
     data = cube_stl_text(size)
     step = -(-len(data) // chunks)
     with open(path, "w") as f:

@@ -28,7 +28,7 @@ change" below for why there's nothing to report back.
 A change is reported once the file has gone quiet, so both common ways of writing an
 export are covered: a temp file written elsewhere and `rename()`'d into place (atomic
 from the reader's point of view), and an in-place overwrite written in several chunks
-over real time (OpenSCAD, Blender and most scripts write their exports this way). The
+over real time (what a script that opens the output file and writes it directly does). The
 wait is bounded: a file that keeps being written for 30 seconds is reported as it
 stands, so a runaway writer can't hold back reloads indefinitely. See "Waiting for a
 write to finish" below.
@@ -45,9 +45,9 @@ the watcher; the watcher itself never touches `Model`.
 
 Detecting a change needs two OS-level watches, because neither alone covers both
 common export patterns: a directory watch (added for each tracked file's parent
-directory) catches a rename-into-place — the temp-file-then-rename pattern most
-exporters use — which only shows up as a directory-listing change; a per-file watch
-catches an in-place overwrite, which produces no directory event at all. Per-file
+directory) catches a rename-into-place — the temp-file-then-rename pattern — which only
+shows up as a directory-listing change; a per-file watch catches an in-place overwrite,
+which produces no directory event at all. Per-file
 watches are skipped on Windows: wx's MSW backend rejects them outright, and
 `ReadDirectoryChangesW`'s directory watch already reports in-place writes, so nothing
 is lost by skipping them there.
