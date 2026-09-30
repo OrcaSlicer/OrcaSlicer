@@ -10,6 +10,7 @@
 #include <wx/event.h>
 
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/SlicingAdmission.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Format/SL1.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
@@ -255,6 +256,7 @@ private:
 	std::mutex 		 			m_mutex;
 	std::condition_variable		m_condition;
 	State 						m_state = STATE_INITIAL;
+	SlicingAdmissionToken       m_live_slicing_admission;
 
 	// For executing tasks from the background thread on UI thread synchronously (waiting for result) using wxWidgets CallAfter().
 	// When the background proces is canceled, the UITask has to be invalidated as well, so that it will not be

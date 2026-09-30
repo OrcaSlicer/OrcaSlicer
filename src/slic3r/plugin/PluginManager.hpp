@@ -28,6 +28,7 @@
 namespace Slic3r {
 
 class OrcaCloudServiceAgent;
+class IsolatedSlicingJob;
 
 // One discovered plugin package: one .py/.whl file -> one descriptor + one Python module +
 // N materialized capabilities.
@@ -148,6 +149,12 @@ public:
     // no user is logged in yet.
     std::string get_storage_dir(const std::string& plugin_key) const;
 
+    // Native-only lifetime registration for opaque isolated slicing jobs. The registry keeps
+    // weak ownership during normal use and takes strong snapshots only while synchronously
+    // draining a plugin or the whole host.
+    bool register_isolated_slicing_job(
+        const std::string& plugin_key, const std::shared_ptr<IsolatedSlicingJob>& job);
+
     std::vector<std::shared_ptr<PluginCapabilityInterface>> get_plugin_capabilities(
         const std::string& plugin_key = "",                            // "" => all plugins
         PluginCapabilityType type     = PluginCapabilityType::Unknown, // Unknown => all types
@@ -257,6 +264,14 @@ private:
     void run_on_capability_unload_callbacks(const PluginCapabilityId& id);
     void clear_callbacks();
 
+    void allow_isolated_slicing_jobs_for_plugin(const std::string& plugin_key);
+    std::vector<std::shared_ptr<IsolatedSlicingJob>> block_isolated_slicing_jobs_for_plugin(
+        const std::string& plugin_key);
+    void drain_isolated_slicing_jobs(
+        const std::vector<std::shared_ptr<IsolatedSlicingJob>>& jobs) noexcept;
+    void drain_all_isolated_slicing_jobs() noexcept;
+    void reset_isolated_slicing_job_registry() noexcept;
+
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
     void mark_plugin_install_state_disabled(const std::string& plugin_key);
@@ -303,6 +318,11 @@ private:
 
     std::string m_cloud_user_id;
     std::atomic<bool> m_shutting_down{false};
+
+    mutable std::mutex m_isolated_jobs_mutex;
+    std::map<std::string, std::vector<std::weak_ptr<IsolatedSlicingJob>>> m_isolated_jobs;
+    std::unordered_set<std::string> m_isolated_jobs_blocked_plugins;
+    bool m_isolated_jobs_global_blocked = false;
 };
 
 // Resolve each configured capability reference to a loaded capability of type T and run `execute`.

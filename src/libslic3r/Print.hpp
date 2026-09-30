@@ -990,6 +990,7 @@ public:
     void                auto_assign_extruders(ModelObject* model_object) const;
 
     const PrintConfig&          config() const { return m_config; }
+    const AutoBrimData&         auto_brim_data() const { assert(m_auto_brim_data); return *m_auto_brim_data; }
     const PrintObjectConfig&    default_object_config() const { return m_default_object_config; }
     const PrintRegionConfig& default_region_config() const { return m_default_region_config; }
     ConstPrintObjectPtrsAdaptor objects() const { return ConstPrintObjectPtrsAdaptor(&m_objects); }
@@ -1320,6 +1321,7 @@ private:
     }
 
     PrintConfig                             m_config;
+    std::shared_ptr<const AutoBrimData>      m_auto_brim_data;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;

@@ -679,7 +679,7 @@ std::string GCodeWriter::toolchange_prefix() const
     // Orca: the manual-filament-change tag must stay ahead of the flavor selection so
     // MMU manual-change handling keeps working.
     if (config.manual_filament_change)
-        return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Manual_Tool_Change) + "T";
+        return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Manual_Tool_Change, m_is_bbl_printers) + "T";
     return FLAVOR_IS(gcfMakerWare) ? "M135 T" :
            FLAVOR_IS(gcfSailfish)  ? "M108 T" : "T";
 }

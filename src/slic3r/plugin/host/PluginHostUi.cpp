@@ -76,17 +76,19 @@ CallablePtr make_holder(py::object obj)
 
 // Adapt a Python callable to a GUI message handler that acquires the GIL and
 // swallows/logs exceptions (a raising handler must not escape into wx events).
-GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message)
+GUI::WebDialog::MessageHandler make_message_adapter(
+    py::object on_message,
+    const PluginHostUi::DeferredCallbackAuditContext& context)
 {
     CallablePtr holder = make_holder(std::move(on_message));
     if (!holder)
         return nullptr;
-    return [holder](const json& data) {
+    return [holder, context](const json& data) {
         PythonGILState gil;
         if (!gil)
             return;
         try {
-            holder->fn(json_to_py(data));
+            PluginHostUi::invoke_deferred_callback(context, [&]() { holder->fn(json_to_py(data)); });
         } catch (py::error_already_set& e) {
             BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_message handler raised: " << e.what();
             PyErr_Clear();
@@ -94,17 +96,19 @@ GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message)
     };
 }
 
-GUI::WebDialog::SubmitHandler make_submit_adapter(py::object on_submit)
+GUI::WebDialog::SubmitHandler make_submit_adapter(
+    py::object on_submit,
+    const PluginHostUi::DeferredCallbackAuditContext& context)
 {
     CallablePtr holder = make_holder(std::move(on_submit));
     if (!holder)
         return nullptr;
-    return [holder](const json& data) {
+    return [holder, context](const json& data) {
         PythonGILState gil;
         if (!gil)
             return;
         try {
-            holder->fn(json_to_py(data));
+            PluginHostUi::invoke_deferred_callback(context, [&]() { holder->fn(json_to_py(data)); });
         } catch (py::error_already_set& e) {
             BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_submit handler raised: " << e.what();
             PyErr_Clear();
@@ -114,22 +118,43 @@ GUI::WebDialog::SubmitHandler make_submit_adapter(py::object on_submit)
 
 // The plugin's on_close: fired only on a user/JS-initiated close (not forced teardown), while the
 // window is alive. Empty if the plugin passed None.
-std::function<void()> make_close_adapter(const CallablePtr& holder)
+GUI::WebDialog::CloseHandler make_close_adapter(
+    py::object on_close,
+    const PluginHostUi::DeferredCallbackAuditContext& context)
 {
+    CallablePtr holder = make_holder(std::move(on_close));
     if (!holder)
         return nullptr;
-    return [holder]() {
+    return [holder, context]() {
         PythonGILState gil;
         if (!gil)
             return;
         try {
-            holder->fn();
+            PluginHostUi::invoke_deferred_callback(context, [&]() { holder->fn(); });
         } catch (py::error_already_set& e) {
             BOOST_LOG_TRIVIAL(error) << "orca.host.ui on_close handler raised: " << e.what();
             PyErr_Clear();
         }
     };
 }
+
+} // namespace
+
+PluginHostUi::DeferredCallbackAuditContext PluginHostUi::capture_deferred_callback_audit_context()
+{
+    PluginAuditManager& audit = PluginAuditManager::instance();
+    return DeferredCallbackAuditContext(audit.current_plugin(), audit.current_capability());
+}
+
+void PluginHostUi::invoke_deferred_callback(
+    const DeferredCallbackAuditContext& context,
+    const std::function<void()>& callback)
+{
+    ScopedPluginAuditContext audit_context(context.m_plugin_key, context.m_capability_name);
+    callback();
+}
+
+namespace {
 
 // --------------------------------------------------------------------------
 // Registry of live plugin UI resources. Keyed by an opaque id; tracks the
@@ -330,10 +355,11 @@ struct UiProgressHandle
 py::object ui_create_window(const std::string& html, const std::string& title, int width, int height,
                             py::object on_message, py::object on_close, long style, py::object on_submit)
 {
-    auto              msg_adapter    = make_message_adapter(std::move(on_message));
-    auto              submit_adapter = make_submit_adapter(std::move(on_submit));
-    CallablePtr       close_holder   = make_holder(std::move(on_close));
-    const std::string plugin_key     = PluginAuditManager::instance().current_plugin();
+    const auto        callback_context = PluginHostUi::capture_deferred_callback_audit_context();
+    auto              msg_adapter      = make_message_adapter(std::move(on_message), callback_context);
+    auto              submit_adapter   = make_submit_adapter(std::move(on_submit), callback_context);
+    auto              close_adapter    = make_close_adapter(std::move(on_close), callback_context);
+    const std::string plugin_key       = callback_context.plugin_key();
     const int         w              = width > 0 ? width : 820;
     const int         h              = height > 0 ? height : 600;
 
@@ -367,18 +393,19 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
     GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, w, h,
                                msg_adapter = std::move(msg_adapter),
                                submit_adapter = std::move(submit_adapter),
-                               close_holder = std::move(close_holder), modal]() mutable {
+                               close_adapter = std::move(close_adapter), modal]() mutable {
         // Torn down (plugin unload / app shutdown) before the window materialized.
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
-        GUI::WebDialog::CloseHandler on_close = make_close_adapter(close_holder);
+        // Plugin's on_close: fired only on a user/JS-initiated close (not forced
+        // teardown), while the dialog is alive. Empty if the plugin passed None.
         // Registry cleanup: GIL-free, runs from the dialog destructor on every path.
         auto on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
 
         auto* dlg = new GUI::WebDialog(ui_parent(), wxString::FromUTF8(title), html,
-                                       wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
-                                       std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE);
+                                             wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
+                                             std::move(close_adapter), std::move(on_destroyed), PLUGIN_WX_STYLE);
         UiRegistry::instance().bind(new_id, dlg, plugin_key);
         if (modal) {
             dlg->ShowModal();
@@ -410,9 +437,10 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
     if (std::find(std::begin(DOCK_POSITIONS), std::end(DOCK_POSITIONS), dock) == std::end(DOCK_POSITIONS))
         throw std::invalid_argument("orca.host.ui.create_dock_panel dock must be \"left\", \"right\", \"bottom\" or \"float\"");
 
-    auto              msg_adapter  = make_message_adapter(std::move(on_message));
-    CallablePtr       close_holder = make_holder(std::move(on_close));
-    const std::string plugin_key   = PluginAuditManager::instance().current_plugin();
+    const auto        callback_context = PluginHostUi::capture_deferred_callback_audit_context();
+    auto              msg_adapter      = make_message_adapter(std::move(on_message), callback_context);
+    auto              close_adapter    = make_close_adapter(std::move(on_close), callback_context);
+    const std::string plugin_key       = callback_context.plugin_key();
     const int         w            = width > 0 ? width : 320;
     const int         h            = height > 0 ? height : 480;
 
@@ -425,7 +453,7 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
 
     GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, dock, w, h,
                                msg_adapter = std::move(msg_adapter),
-                               close_holder = std::move(close_holder)]() mutable {
+                               close_adapter = std::move(close_adapter)]() mutable {
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
@@ -436,7 +464,7 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
         }
 
         auto  on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
-        auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter), make_close_adapter(close_holder),
+        auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter), std::move(close_adapter),
                                          std::move(on_destroyed));
         UiRegistry::instance().bind(new_id, panel, plugin_key);
         plater->add_dock_pane(panel, GUI::plugin_pane_name(plugin_key, title), wxString::FromUTF8(title), dock,
@@ -557,14 +585,15 @@ void progress_close(int id)
 void plater_notification(NotificationManager::NotificationLevel notification_level, const std::string& text,
                          const std::string& hypertext, py::object on_click)
 {
-    const std::string plugin_key = PluginAuditManager::instance().current_plugin();
-    CallablePtr        holder    = make_holder(std::move(on_click));
+    const auto        callback_context = PluginHostUi::capture_deferred_callback_audit_context();
+    const std::string plugin_key       = callback_context.plugin_key();
+    CallablePtr        holder           = make_holder(std::move(on_click));
     if (holder)
         UiRegistry::instance().bind_callback(holder, plugin_key);
 
     std::function<bool(wxEvtHandler*)> callback;
     if (holder) {
-        callback = [holder](wxEvtHandler*) -> bool {
+        callback = [holder, callback_context](wxEvtHandler*) -> bool {
             if (!holder->active.load(std::memory_order_acquire))
                 return false;
 
@@ -572,8 +601,12 @@ void plater_notification(NotificationManager::NotificationLevel notification_lev
             if (!gil)
                 return false;
             try {
-                py::object result = holder->fn();
-                return result.is_none() || result.cast<bool>();
+                bool keep_open = false;
+                PluginHostUi::invoke_deferred_callback(callback_context, [&]() {
+                    py::object result = holder->fn();
+                    keep_open = result.is_none() || result.cast<bool>();
+                });
+                return keep_open;
             } catch (py::error_already_set& e) {
                 BOOST_LOG_TRIVIAL(error) << "orca.host.ui notification callback raised: " << e.what();
                 PyErr_Clear();

@@ -44,10 +44,8 @@ FullPrintConfig make_config(double load_time, double unload_time, double tool_ch
 
 void run_processor(GCodeProcessor& proc, const FullPrintConfig& config, const char* gcode)
 {
-    // reserved_tag() selects between two tag tables based on this shared static, and
-    // other tests in the binary mutate it -- pin it so our "; FEATURE:" role tags are
-    // parsed deterministically regardless of test execution order.
-    GCodeProcessor::s_IsBBLPrinter = true;
+    // The fixture uses BBL "; FEATURE:" role tags.
+    proc.set_is_bbl_printer(true);
     ScopedTemporaryFile temp(".gcode");
     {
         std::ofstream os(temp.string());

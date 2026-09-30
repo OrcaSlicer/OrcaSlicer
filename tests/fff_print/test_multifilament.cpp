@@ -69,8 +69,7 @@ static std::vector<double> wait_park_xs(const std::string& gcode)
 // GCodeProcessor pass over it. MoveVertex::time is the duration of one move and gcode_id is the
 // line it came from (already rebased past the M73 insertions), so the running sum before the first
 // move of a line is the elapsed time at that line. The file carries its own config footer, so
-// process_file configures the processor -- including the shared s_IsBBLPrinter static that other
-// tests in this binary mutate -- from the settings the export itself used.
+// process_file configures the processor's tag dialect from the settings the export itself used.
 static std::vector<double> elapsed_time_by_line(const std::string& gcode)
 {
     ScopedTemporaryFile temp_gcode(".gcode");

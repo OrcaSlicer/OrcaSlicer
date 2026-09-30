@@ -1,6 +1,7 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/SlicingAdmission.hpp"
 #include "libslic3r_version.h"
 
 #include <cstddef>
@@ -14640,6 +14641,12 @@ void Plater::priv::set_bed_shape(const Pointfs       &shape,
                                  const std::string   &custom_model,
                                  bool                 force_as_custom)
 {
+    SlicingAdmissionToken scale_change_admission = try_acquire_slicing_admission(SlicingAdmissionMode::ScaleChanging);
+    if (!scale_change_admission) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": bed shape change rejected while isolated slicing is active";
+        return;
+    }
+
     //Orca: reduce resolution for large bed printer
     BoundingBoxf bed_size = get_extents(shape);
     if (bed_size.size().maxCoeff() <= LARGE_BED_THRESHOLD)
@@ -17387,11 +17394,10 @@ void Plater::load_gcode(const wxString& filename)
     wxBusyCursor wait;
 
     // process gcode
-    GCodeProcessor processor;
+    GCodeProcessor processor(wxGetApp().preset_bundle->is_bbl_vendor());
     processor.init_filament_maps_and_nozzle_type_when_import_only_gcode();
     try
     {
-        GCodeProcessor::s_IsBBLPrinter = wxGetApp().preset_bundle->is_bbl_vendor();
         processor.process_file(filename.ToUTF8().data());
     }
     catch (const std::exception& ex)
@@ -21169,6 +21175,11 @@ PrinterTechnology Plater::printer_technology() const
 }
 
 const DynamicPrintConfig * Plater::config() const { return p->config; }
+
+std::vector<std::vector<DynamicPrintConfig>> Plater::extruder_filament_info_for_slicing()
+{
+    return p->get_extruder_filament_info();
+}
 
 bool Plater::set_printer_technology(PrinterTechnology printer_technology)
 {

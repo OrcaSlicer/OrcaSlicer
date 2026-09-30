@@ -2083,6 +2083,16 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     check_model_ids_equal(m_model, model);
 #endif /* _DEBUG */
 
+    if (apply_status != APPLY_STATUS_UNCHANGED || !m_auto_brim_data) {
+        AutoBrimData auto_brim_data = Model::make_auto_brim_data(
+            m_full_print_config, m_config, int(m_config.filament_diameter.size()));
+        // Automatic brim uses the applied config's bed. Other brim modes keep the legacy GUI/CLI
+        // bed snapshot so moving this state into Print does not change their clipping behavior.
+        if (!this->has_auto_brim())
+            auto_brim_data.print_speed.bed_poly = Model::getBedPolygon();
+        m_auto_brim_data = std::make_shared<const AutoBrimData>(std::move(auto_brim_data));
+    }
+
 	//BBS: add timestamp logic
 	if (apply_status != APPLY_STATUS_UNCHANGED)
 		m_modified_count++;

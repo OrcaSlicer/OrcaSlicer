@@ -19,6 +19,16 @@ using namespace Slic3r::Test;
 
 namespace {
 
+const std::string& reserved_tag(GCodeProcessor::ETags tag)
+{
+    // The production API is intentionally instance-local so concurrent jobs do
+    // not share printer-vendor state. These tests exercise the default
+    // compatible tag set, which is the equivalent of the former static helper
+    // after the test print's printer dialect is selected.
+    static const GCodeProcessor processor(false);
+    return processor.reserved_tag(tag);
+}
+
 DynamicPrintConfig wipe_config(const char *wall_generator, bool wipe_inward,
                                const char *wipe_inward_distance = "50%",
                                const char *seam_gap = "10%", bool wipe_on_loops = false,
@@ -66,8 +76,8 @@ struct WipeTrajectory {
 
 std::vector<WipeTrajectory> wipe_trajectories(const std::string &gcode)
 {
-    const std::string &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
-    const std::string &end_tag   = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
+    const std::string &start_tag = reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    const std::string &end_tag   = reserved_tag(GCodeProcessor::ETags::Wipe_End);
     std::vector<WipeTrajectory> trajectories;
     bool in_wipe = false;
 
@@ -139,8 +149,8 @@ TEST_CASE("Wipe retraction preserves fractional speed with inward wipe disabled"
         {"wipe_distance", "2"},
     });
     const std::string output = slice({make_cube(10., 10., 1.)}, config);
-    const auto &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
-    const auto &end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
+    const auto &start_tag = reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    const auto &end_tag = reserved_tag(GCodeProcessor::ETags::Wipe_End);
     double before_wipe = 0.;
     double during_wipe = 0.;
     bool in_wipe = false;
@@ -197,9 +207,9 @@ TEST_CASE("Inward wipe respects the minimum travel for retraction and Z hop", "[
     config.set_key_value("z_hop_types", new ConfigOptionEnumsGeneric{zhtNormal});
     config.set_key_value("retract_lift_enforce", new ConfigOptionEnumsGeneric{rletAllSurfaces});
     const std::string output = slice({make_cube(10., 10., 1.)}, config);
-    const auto &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
-    const auto &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
-    const auto &end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End);
+    const auto &role_tag = reserved_tag(GCodeProcessor::ETags::Role);
+    const auto &start_tag = reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    const auto &end_tag = reserved_tag(GCodeProcessor::ETags::Wipe_End);
     ExtrusionRole role = erNone;
     bool after_outer_wall = false;
     bool in_wipe = false;
@@ -526,8 +536,8 @@ TEST_CASE("Wipe on loops preserves the corner move with inward wipe disabled", "
     config.set_deserialize_strict({{"nozzle_diameter", nozzle_diameter}, {"seam_position", "nearest"},
                                    {"gcode_comments", comments}});
     const std::string output = slice({make_cube(10., 10., 1.)}, config);
-    const auto &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
-    const auto &wipe_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+    const auto &role_tag = reserved_tag(GCodeProcessor::ETags::Role);
+    const auto &wipe_tag = reserved_tag(GCodeProcessor::ETags::Wipe_Start);
     ExtrusionRole role = erNone;
     std::vector<Vec2d> loop;
     bool after_extrusion = false;
@@ -593,8 +603,8 @@ TEST_CASE("Inward wipe remains valid after wipe on loops moves the nozzle", "[Wi
     for (const std::string *output : {&loop_move, &combined}) {
         INFO("wipe_inward: " << (output == &combined));
         std::map<double, std::vector<Vec2d>> loop_moves_by_layer;
-        const auto &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
-        const auto &wipe_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start);
+        const auto &role_tag = reserved_tag(GCodeProcessor::ETags::Role);
+        const auto &wipe_tag = reserved_tag(GCodeProcessor::ETags::Wipe_Start);
         ExtrusionRole role = erNone;
         bool after_extrusion = false;
         GCodeReader parser;

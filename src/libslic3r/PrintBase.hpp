@@ -99,10 +99,7 @@ public:
     };
 
 protected:
-    //FIXME last timestamp is shared between Print & SLAPrint,
-    // and if multiple Print or SLAPrint instances are executed in parallel, modification of g_last_timestamp
-    // is not synchronized!
-    static size_t g_last_timestamp;
+    static std::atomic<TimeStamp> g_last_timestamp;
 };
 
 // To be instantiated over PrintStep or PrintObjectStep enums.
@@ -170,7 +167,7 @@ public:
             return false;
         PrintStateBase::StateWithWarnings &state = m_state[step];
         state.state = STARTED;
-        state.timestamp = ++ g_last_timestamp;
+        state.timestamp = g_last_timestamp.fetch_add(1, std::memory_order_relaxed) + 1;
         state.mark_warnings_non_current();
         m_step_active = static_cast<int>(step);
         return true;
@@ -190,7 +187,7 @@ public:
         assert(m_step_active == static_cast<int>(step));
         PrintStateBase::StateWithWarnings &state = m_state[step];
         state.state = DONE;
-        state.timestamp = ++ g_last_timestamp;
+        state.timestamp = g_last_timestamp.fetch_add(1, std::memory_order_relaxed) + 1;
         m_step_active = -1;
         // Remove all non-current warnings.
     	auto it = std::remove_if(state.warnings.begin(), state.warnings.end(), [](const auto &w) { return ! w.current; });
@@ -217,7 +214,7 @@ public:
 #endif
             PrintStateBase::StateWithWarnings &state = m_state[step];
             state.state = INVALID;
-            state.timestamp = ++ g_last_timestamp;
+            state.timestamp = g_last_timestamp.fetch_add(1, std::memory_order_relaxed) + 1;
             // Raise the mutex, so that the following cancel() callback could cancel
             // the background processing.
             // Internally the cancel() callback shall unlock the PrintBase::m_status_mutex to let
@@ -239,7 +236,7 @@ public:
             if (state.state != INVALID) {
                 invalidated = true;
                 state.state = INVALID;
-                state.timestamp = ++ g_last_timestamp;
+                state.timestamp = g_last_timestamp.fetch_add(1, std::memory_order_relaxed) + 1;
             }
         }
         if (invalidated) {
@@ -274,7 +271,7 @@ public:
             if (state.state != INVALID) {
                 invalidated = true;
                 state.state = INVALID;
-                state.timestamp = ++ g_last_timestamp;
+                state.timestamp = g_last_timestamp.fetch_add(1, std::memory_order_relaxed) + 1;
             }
         }
         if (invalidated) {

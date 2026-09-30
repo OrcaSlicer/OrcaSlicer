@@ -452,6 +452,8 @@ set(lisbslic3r_sources
     SlicesToTriangleMesh.hpp
     SlicingAdaptive.cpp
     SlicingAdaptive.hpp
+    SlicingAdmission.cpp
+    SlicingAdmission.hpp
     Slicing.cpp
     Slicing.hpp
     Support/SupportCommon.cpp

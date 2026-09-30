@@ -347,6 +347,11 @@ void host_bindings::register_slicing(py::module_& host)
            "Serialized value of the resolved (full) print config for this slice, or None.")
         .def("canceled", [](const Print& p) { return p.canceled(); },
              "True once cancellation was requested (prefer ctx.cancelled()).");
+
+    // Unlike the raw in-pipeline graph above, this is an opaque owner of copied
+    // inputs, an independent Print and copied result values.
+    host_bindings::register_isolated_slicing(host);
+    host_bindings::register_persistent_mutation(host);
 }
 
 } // namespace Slic3r

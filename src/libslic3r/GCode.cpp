@@ -620,7 +620,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 }
 
                 // add tag for processor
-                gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start) + "\n";
+                gcode += ";" + gcodegen.m_processor.reserved_tag(GCodeProcessor::ETags::Wipe_Start) + "\n";
                 //BBS: don't need to enable cooling makers when this is the last wipe. Because no more cooling layer will clean this "_WIPE"
                 //Softfever:
                 std::string cooling_mark = "";
@@ -639,7 +639,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     );
                 }
                 // add tag for processor
-                gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End) + "\n";
+                gcode += ";" + gcodegen.m_processor.reserved_tag(GCodeProcessor::ETags::Wipe_End) + "\n";
                 gcodegen.set_last_pos(wipe_path.points.back());
             }
 
@@ -980,7 +980,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr,
                                                        const std::string &tcr_gcode) const
     {
-        const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height);
+        const std::string tag = ";" + gcodegen.m_processor.reserved_tag(GCodeProcessor::ETags::Height);
         if (! m_sparse_layers_combined || std::abs(gcodegen.m_last_height - tcr.layer_height) <= EPSILON ||
             tcr_gcode.find(tag) != std::string::npos)
             return {};
@@ -2395,9 +2395,9 @@ namespace DoExport {
         static const unsigned int MAX_TAGS_COUNT = 5;
         std::vector<std::pair<std::string, std::string>> ret;
 
-        auto check = [&ret, is_bbl_printer = print.is_BBL_printer()](const std::string& source, const std::string& gcode) {
+        auto check = [&ret, &print](const std::string& source, const std::string& gcode) {
             std::vector<std::string> tags;
-            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags, is_bbl_printer)) {
+            if (GCodeProcessor::contains_reserved_tags(gcode, MAX_TAGS_COUNT, tags, print.is_BBL_printer())) {
                 if (!tags.empty()) {
                     size_t i = 0;
                     while (ret.size() < MAX_TAGS_COUNT && i < tags.size()) {
@@ -2489,7 +2489,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     BOOST_LOG_TRIVIAL(info) << boost::format("Will export G-code to %1% soon")%path;
 
-    GCodeProcessor::s_IsBBLPrinter = print->is_BBL_printer();
+    m_processor.set_is_bbl_printer(print->is_BBL_printer());
     m_writer.set_is_bbl_machine(print->is_BBL_printer());
     print->set_started(psGCodeExport);
 
@@ -3566,12 +3566,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("hold_chamber_temp_for_flat_print", new ConfigOptionBool(hold_chamber_temp_for_flat_print));
     }
 
-    this->placeholder_parser().set("print_time_total_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder)));
-    this->placeholder_parser().set("print_time_day", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder)));
-    this->placeholder_parser().set("print_time_hour", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder)));
-    this->placeholder_parser().set("print_time_minute", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder)));
-    this->placeholder_parser().set("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
-    this->placeholder_parser().set("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
+    this->placeholder_parser().set("print_time_total_sec", new ConfigOptionString(m_processor.reserved_tag(GCodeProcessor::ETags::Print_Time_Total_Sec_Placeholder)));
+    this->placeholder_parser().set("print_time_day", new ConfigOptionString(m_processor.reserved_tag(GCodeProcessor::ETags::Print_Time_Day_Placeholder)));
+    this->placeholder_parser().set("print_time_hour", new ConfigOptionString(m_processor.reserved_tag(GCodeProcessor::ETags::Print_Time_Hour_Placeholder)));
+    this->placeholder_parser().set("print_time_minute", new ConfigOptionString(m_processor.reserved_tag(GCodeProcessor::ETags::Print_Time_Minute_Placeholder)));
+    this->placeholder_parser().set("print_time_sec", new ConfigOptionString(m_processor.reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
+    this->placeholder_parser().set("used_filament_length", new ConfigOptionString(m_processor.reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
 
     // Sync variant-mapped params into placeholder_parser before processing start gcode
     update_placeholder_parser_with_variant_params();
@@ -3592,9 +3592,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Write information on the generator.
         file.write_format("; generated by %s on %s\n", Slic3r::header_slic3r_generated().c_str(), Slic3r::Utils::local_timestamp().c_str());
         if (is_bbl_printers)
-            file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder).c_str());
+            file.write_format(";%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder).c_str());
         //BBS: total layer number
-        file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Total_Layer_Number_Placeholder).c_str());
+        file.write_format(";%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::Total_Layer_Number_Placeholder).c_str());
         //Orca: extra check for bbl printer
         if (is_bbl_printers) {
             if (print.calib_params().mode == CalibMode::Calib_None) { // Don't support skipping in cali mode
@@ -3715,7 +3715,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         file.write(set_object_info(&print));
 
     // adds tags for time estimators
-    file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::First_Line_M73_Placeholder).c_str());
+    file.write_format(";%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::First_Line_M73_Placeholder).c_str());
 
     // Emit machine envelope limits for the Marlin firmware.
     this->print_machine_envelope(file, print);
@@ -3736,7 +3736,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     // adds tag for processor
-    file.write_format(";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(erCustom).c_str());
+    file.write_format(";%s%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(erCustom).c_str());
 
     // Orca: set chamber temperature at the beginning of gcode file
     if (activate_chamber_temp_control && max_chamber_temp > 0){
@@ -3876,7 +3876,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // SoftFever: calib
     if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
         std::string gcode;
-        gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+        gcode += ";" + m_processor.reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
         if ((NOZZLE_CONFIG(outer_wall_acceleration) > 0 && NOZZLE_CONFIG(outer_wall_acceleration) > 0)) {
             gcode += m_writer.set_print_acceleration((unsigned int)floor(NOZZLE_CONFIG(outer_wall_acceleration) + 0.5));
         }
@@ -4106,7 +4106,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     // adds tag for processor
-    file.write_format(";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(erCustom).c_str());
+    file.write_format(";%s%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(erCustom).c_str());
 
     // Mark the start of the machine end g-code so the usage-block builder closes its open blocks here and
     // ignores filament changes inside the end g-code. Same enable_pre_heating gate as the start marker →
@@ -4169,7 +4169,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     // adds tags for time estimators
-    file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Last_Line_M73_Placeholder).c_str());
+    file.write_format(";%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::Last_Line_M73_Placeholder).c_str());
     file.write_format("; EXECUTABLE_BLOCK_END\n\n");
 
     print.throw_if_canceled();
@@ -4218,7 +4218,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         file.write_format("; total layers count = %i\n", m_layer_count);
         file.write_format(
             ";%s\n",
-            GCodeProcessor::reserved_tag(
+            m_processor.reserved_tag(
                 GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder)
             .c_str());
       file.write("\n");
@@ -4934,7 +4934,7 @@ namespace ProcessLayer
                 assert(m600_extruder_before_layer >= 0);
                 // Color Change or Tool Change as Color Change.
                 // add tag for processor
-                gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Color_Change) + ",T" + std::to_string(m600_extruder_before_layer) + "," + custom_gcode->color + "\n";
+                gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Color_Change, gcodegen.is_BBL_Printer()) + ",T" + std::to_string(m600_extruder_before_layer) + "," + custom_gcode->color + "\n";
 
                 if (!single_filament_print && m600_extruder_before_layer >= 0 && first_extruder_id != (unsigned)m600_extruder_before_layer
                     // && !MMU1
@@ -4960,7 +4960,7 @@ namespace ProcessLayer
                 if (gcode_type == CustomGCode::PausePrint) // Pause print
                 {
                     // add tag for processor
-                    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Pause_Print) + "\n";
+                    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Pause_Print, gcodegen.is_BBL_Printer()) + "\n";
                     //! FIXME_in_fw show message during print pause
                     //if (!pause_print_msg.empty())
                     //    gcode += "M117 " + pause_print_msg + "\n";
@@ -4968,7 +4968,7 @@ namespace ProcessLayer
                 }
                 else {
                     // add tag for processor
-                    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Custom_Code) + "\n";
+                    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Custom_Code, gcodegen.is_BBL_Printer()) + "\n";
                     if (gcode_type == CustomGCode::Template)    // Template Custom Gcode
                         gcode += gcodegen.placeholder_parser_process("template_custom_gcode", config.template_custom_gcode, current_extruder_id);
                     else                                        // custom Gcode
@@ -5626,14 +5626,14 @@ LayerResult GCode::process_layer(
     assert(is_decimal_separator_point()); // for the sprintfs
 
     // add tag for processor
-    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+    gcode += ";" + m_processor.reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
     // export layer z
     char buf[80];
     sprintf(buf, print.is_BBL_printer() ? "; Z_HEIGHT: %g\n" : ";Z:%g\n", print_z);
     gcode += buf;
     // export layer height
     float height = first_layer ? static_cast<float>(print_z) : static_cast<float>(print_z) - m_last_layer_z;
-    sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height).c_str(), height);
+    sprintf(buf, ";%s%g\n", m_processor.reserved_tag(GCodeProcessor::ETags::Height).c_str(), height);
     gcode += buf;
     // update caches
     m_last_layer_z = static_cast<float>(print_z);
@@ -8450,19 +8450,19 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     if (path.role() != m_last_processor_extrusion_role) {
         m_last_processor_extrusion_role = path.role();
-        sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
+        sprintf(buf, ";%s%s\n", m_processor.reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
     }
 
     if (last_was_wipe_tower || m_last_width != path.width) {
         m_last_width = path.width;
-        sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width).c_str(), m_last_width);
+        sprintf(buf, ";%s%g\n", m_processor.reserved_tag(GCodeProcessor::ETags::Width).c_str(), m_last_width);
         gcode += buf;
     }
 
     if (last_was_wipe_tower || std::abs(m_last_height - effective_height) > EPSILON) {
         m_last_height = effective_height;
-        sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height).c_str(), m_last_height);
+        sprintf(buf, ";%s%g\n", m_processor.reserved_tag(GCodeProcessor::ETags::Height).c_str(), m_last_height);
         gcode += buf;
     }
     
@@ -8480,7 +8480,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         bool isOverhangPerimeter = (path.role() == erOverhangPerimeter);
         if (m_multi_flow_segment_path_average_mm3_per_mm > 0) {
             sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                    GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                    m_processor.reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                     pa_config_index,
                     m_multi_flow_segment_path_average_mm3_per_mm,
                     acceleration_i,
@@ -8493,7 +8493,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                     // is a zero mm3_mm path to force de-retraction to happen and we dont want
                                     // to issue a zero flow PA change command for this
             sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                    GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                    m_processor.reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                     pa_config_index,
                     _mm3_per_mm,
                     acceleration_i,
@@ -8609,7 +8609,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         gcode += buf;
                     }
                     sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                            GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                            m_processor.reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                             pa_config_index,
                             _mm3_per_mm,
                             acceleration_i,
@@ -8624,7 +8624,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         gcode += buf;
                     }
                     sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                            GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                            m_processor.reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                             pa_config_index,
                             _mm3_per_mm,
                             acceleration_i,
@@ -8838,7 +8838,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             gcode += buf;
                         }
                         sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                                m_processor.reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                                 pa_config_index,
                                 _mm3_per_mm,
                                 acceleration_i,
@@ -8853,7 +8853,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             gcode += buf;
                         }
                         sprintf(buf, ";%sT%u MM3MM:%g ACCEL:%u BR:%d RC:%d OV:%d\n",
-                                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
+                                m_processor.reserved_tag(GCodeProcessor::ETags::PA_Change).c_str(),
                                 pa_config_index,
                                 _mm3_per_mm,
                                 acceleration_i,

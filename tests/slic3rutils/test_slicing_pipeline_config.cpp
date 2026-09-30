@@ -8,6 +8,7 @@
 
 #include "fff_print/test_helpers.hpp"
 #include "plugin_test_utils.hpp"
+#include "python_test_support.hpp"
 
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
@@ -37,7 +38,11 @@ struct ScopedPluginManager
 {
     bool initialized = false;
 
-    ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
+    ScopedPluginManager()
+    {
+        release_test_python_interpreter();
+        initialized = PluginManager::instance().initialize();
+    }
     ~ScopedPluginManager()
     {
         PluginManager::instance().shutdown();

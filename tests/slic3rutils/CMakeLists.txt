@@ -1,6 +1,7 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
+    python_test_support.cpp
     test_bambu_filament_ids.cpp
     test_creality_cfs_match.cpp
     test_dev_mapping.cpp
@@ -14,9 +15,13 @@ add_executable(${_TEST_NAME}_tests
     test_staged_build.cpp
     test_network_versions.cpp
     test_action_source.cpp
+    test_background_slicing_admission.cpp
+    test_isolated_slicing_job.cpp
+    test_persistent_preset_mutation.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
     test_precise_seam_plugin.cpp
+    test_plugin_ui_audit_context.cpp
     test_plugin_capability_config.cpp
     test_plugin_config.cpp
     test_plugin_capabilities_in_use.cpp

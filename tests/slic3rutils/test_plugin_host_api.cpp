@@ -14,7 +14,9 @@
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include <wx/uri.h>
 
@@ -115,6 +117,38 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     CHECK(printers.attr("selected_preset_name")().cast<std::string>() == bundle.printers.get_selected_preset_name());
     CHECK(printers.attr("edited_preset")().attr("name").cast<std::string>() == printer_preset.name);
     CHECK(printers.attr("find_preset")(printer_preset.name).attr("name").cast<std::string>() == printer_preset.name);
+}
+
+TEST_CASE("Plugin host API advertises copied semantic feature contracts", "[PluginHost][Python]")
+{
+    py::object host = import_orca_module().attr("host");
+    REQUIRE(has_attr(host, "feature_contracts"));
+
+    py::list contracts = host.attr("feature_contracts")();
+    REQUIRE(py::len(contracts) == 4);
+
+    const std::vector<std::string> expected {
+        "filament_slot_transaction",
+        "isolated_fff_simulation",
+        "printer_preset_transaction",
+        "process_preset_transaction",
+    };
+    for (size_t index = 0; index < expected.size(); ++index) {
+        py::object contract = contracts[index];
+        CHECK(contract.attr("feature_id").cast<std::string>() == expected[index]);
+        CHECK(contract.attr("major_version").cast<uint32_t>() == 1);
+        CHECK(contract.attr("minor_version").cast<uint32_t>() == 0);
+    }
+}
+
+TEST_CASE("Plugin host production API excludes acceptance-only Filament observation", "[PluginHost][Python]")
+{
+    py::object host = import_orca_module().attr("host");
+    REQUIRE(has_attr(host, "FilamentSlotPresetMutationTransaction"));
+    CHECK_FALSE(has_attr(host, "FilamentSlotMutationSnapshot"));
+    CHECK_FALSE(has_attr(host, "_TestFilamentSlotMappingSnapshot"));
+    CHECK_FALSE(has_attr(host, "_test_capture_filament_slot_mapping_snapshot"));
+    CHECK_FALSE(has_attr(host.attr("FilamentSlotPresetMutationTransaction"), "snapshot"));
 }
 
 TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initialization", "[PluginHost][Python]")

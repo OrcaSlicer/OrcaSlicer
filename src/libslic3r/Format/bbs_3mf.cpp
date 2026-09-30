@@ -8497,7 +8497,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // reconstruct here from the (sorted) objects_and_instances list. identify_id is unchanged.
                 // BambuLab printers keep the raw object name.
                 const GCodeFlavor slice_gcode_flavor    = config.opt_enum<GCodeFlavor>("gcode_flavor");
-                const bool        use_gcode_object_name  = !GCodeProcessor::s_IsBBLPrinter &&
+                const auto*       printer_model          = config.opt<ConfigOptionString>("printer_model");
+                const bool        is_bbl_printer         = printer_model != nullptr && boost::starts_with(printer_model->value, "Bambu Lab");
+                const bool        use_gcode_object_name  = !is_bbl_printer &&
                     (slice_gcode_flavor == gcfKlipper || slice_gcode_flavor == gcfMarlinLegacy ||
                      slice_gcode_flavor == gcfMarlinFirmware || slice_gcode_flavor == gcfRepRapFirmware);
                 int gcode_object_index = -1;
