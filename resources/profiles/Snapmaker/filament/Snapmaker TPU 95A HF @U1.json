@@ -8,8 +8,7 @@
 	"filament_id": "OFXSvqOX",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Snapmaker U1 (0.4 nozzle)",
-		"Snapmaker U1 (0.4 High Flow nozzle)"
+		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"

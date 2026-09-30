@@ -8,8 +8,7 @@
 	"filament_id": "OFJrvXth",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Snapmaker U1 (0.4 nozzle)",
-		"Snapmaker U1 (0.4 High Flow nozzle)"
+		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"compatible_prints": [
 		"0.25 Benchy @Snapmaker U1 (0.4 nozzle)"

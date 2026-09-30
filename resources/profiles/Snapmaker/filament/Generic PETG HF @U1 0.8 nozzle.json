@@ -7,8 +7,7 @@
 	"setting_id": "1LYZ0KG5kQtaOOKt",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Snapmaker U1 (0.8 nozzle)",
-		"Snapmaker U1 (0.8 High Flow nozzle)"
+		"Snapmaker U1 (0.8 nozzle)"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",

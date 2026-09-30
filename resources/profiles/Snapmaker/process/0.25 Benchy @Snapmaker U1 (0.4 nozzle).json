@@ -7,8 +7,7 @@
 	"setting_id": "deA4Xg6QxFTKOYZy",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Snapmaker U1 (0.4 nozzle)",
-		"Snapmaker U1 (0.4 High Flow nozzle)"
+		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"elefant_foot_compensation": "0.15",
 	"top_shell_layers": "3",

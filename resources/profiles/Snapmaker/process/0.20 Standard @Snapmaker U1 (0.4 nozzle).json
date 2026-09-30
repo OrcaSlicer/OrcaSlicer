@@ -8,8 +8,7 @@
 	"instantiation": "true",
 	"description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
 	"compatible_printers": [
-		"Snapmaker U1 (0.4 nozzle)",
-		"Snapmaker U1 (0.4 High Flow nozzle)"
+		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"ooze_prevention": "1",
 	"prime_tower_width": "30",

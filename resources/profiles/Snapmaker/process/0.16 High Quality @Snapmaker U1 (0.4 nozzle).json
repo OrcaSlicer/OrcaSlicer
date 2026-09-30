@@ -89,8 +89,7 @@
 		"150"
 	],
 	"compatible_printers": [
-		"Snapmaker U1 (0.4 nozzle)",
-		"Snapmaker U1 (0.4 High Flow nozzle)"
+		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"ooze_prevention": "1",
 	"prime_tower_width": "30",

@@ -1,6 +1,6 @@
 {
 	"name": "Snapmaker",
-	"version": "02.04.00.22",
+	"version": "02.04.00.23",
 	"force_update": "0",
 	"description": "Snapmaker configurations",
 	"machine_model_list": [
@@ -2357,22 +2357,6 @@
 		{
 			"name": "Snapmaker Artisan (0.8 nozzle)",
 			"sub_path": "machine/Snapmaker Artisan (0.8 nozzle).json"
-		},
-		{
-			"name": "Snapmaker U1 (0.2 High Flow nozzle)",
-			"sub_path": "machine/Snapmaker U1 (0.2 High Flow nozzle).json"
-		},
-		{
-			"name": "Snapmaker U1 (0.4 High Flow nozzle)",
-			"sub_path": "machine/Snapmaker U1 (0.4 High Flow nozzle).json"
-		},
-		{
-			"name": "Snapmaker U1 (0.6 High Flow nozzle)",
-			"sub_path": "machine/Snapmaker U1 (0.6 High Flow nozzle).json"
-		},
-		{
-			"name": "Snapmaker U1 (0.8 High Flow nozzle)",
-			"sub_path": "machine/Snapmaker U1 (0.8 High Flow nozzle).json"
 		},
 		{
 			"name": "Snapmaker A250 Dual BKit (0.2 nozzle)",

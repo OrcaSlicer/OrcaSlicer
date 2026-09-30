@@ -7,8 +7,7 @@
 	"setting_id": "WxtuvwWxy73Gi0IK",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Snapmaker U1 (0.8 nozzle)",
-		"Snapmaker U1 (0.8 High Flow nozzle)"
+		"Snapmaker U1 (0.8 nozzle)"
 	],
 	"additional_cooling_fan_speed": [
 		"70"

@@ -542,6 +542,25 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
     CHECK(per_layer.find(";Layer:399 ") != std::string::npos);
 }
 
+TEST_CASE("End G-code flow metadata follows the filament tool mapping", "[Print][NozzleFlow]")
+{
+    DynamicPrintConfig config = multifilament_config(4);
+    config.set_deserialize_strict({
+        { "nozzle_diameter", "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", false },
+        { "filament_diameter", "1.75,1.75,1.75,1.75" },
+        { "filament_type", "PLA;PLA;PLA;PLA" },
+        { "filament_map", "4,2,1,3" },
+        { "filament_map_mode", "Manual" },
+        { "machine_end_gcode", "; filament_volume_type = {filament_volume_types}" },
+    });
+    config.set_key_value("extruder_variant_list", new ConfigOptionStrings(std::vector<std::string>(4, "Direct Drive Standard,Direct Drive High Flow")));
+    config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = { nvtStandard, nvtHighFlow, nvtStandard, nvtHighFlow };
+    config.set_num_extruders(4);
+    const std::string gcode = slice({ cube(2) }, config);
+    CHECK(gcode.find("; filament_volume_type = high_flow,high_flow,standard,standard\n") != std::string::npos);
+}
+
 TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export_gcode]")
 {
     Print print;

@@ -11,8 +11,7 @@
 		"Direct Drive High Flow"
 	],
 	"compatible_printers": [
-		"Snapmaker U1 (0.6 nozzle)",
-		"Snapmaker U1 (0.6 High Flow nozzle)"
+		"Snapmaker U1 (0.6 nozzle)"
 	],
 	"additional_cooling_fan_speed": [
 		"70"
