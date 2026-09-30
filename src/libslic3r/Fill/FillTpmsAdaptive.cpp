@@ -465,9 +465,13 @@ template<> struct _RasterTraits<AdaptiveTpmsField>
 
 namespace Slic3r {
 
-Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &field, const BoundingBox &bbox,
+Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &field, BoundingBox bbox,
                              coordf_t z, coordf_t layer_height, coordf_t spacing, float angle)
 {
+    // A cell of margin for the rings closed along the raster border, and a fixed sampling grid for every region.
+    const coord_t cell = scaled(marchsq::AdaptiveTpmsField::gsizef);
+    bbox.offset(cell);
+    bbox.merge(align_to_grid(bbox.min, Point(cell, cell)));
     const marchsq::AdaptiveTpmsField raster(tpms, field, bbox, z - 0.5 * layer_height, angle);
     const std::vector<marchsq::Ring> rings = marchsq::execute_with_policy(ex_tbb, raster, 0.f, {raster.gsize, raster.gsize});
 
