@@ -1313,6 +1313,7 @@ static float encode_color_dimmed(const Color& color, float brightness) {
 
 void ViewerImpl::update_colors_texture()
 {
+    m_settings.update_colors_texture = false;
 #if !defined(ENABLE_OPENGL_ES)
     if (m_colors_buf_id == 0)
         return;
@@ -1411,6 +1412,9 @@ void ViewerImpl::apply_pending_updates()
 
     if (m_settings.update_colors)
         update_colors();
+    // ORCA: once per frame, however many of the slider ranges moved since the last one
+    if (m_settings.update_colors_texture)
+        update_colors_texture();
 }
 
 void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
@@ -1479,8 +1483,7 @@ void ViewerImpl::set_layers_view_range(Interval::value_type min, Interval::value
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
-    //m_settings.update_colors = true;
-    update_colors_texture();
+    m_settings.update_colors_texture = true;
 }
 
 void ViewerImpl::toggle_top_layer_only_view_range()
@@ -1489,8 +1492,7 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
-    //m_settings.update_colors = true;
-    update_colors_texture();
+    m_settings.update_colors_texture = true;
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
@@ -1619,8 +1621,7 @@ void ViewerImpl::set_view_visible_range(Interval::value_type min, Interval::valu
     update_view_full_range();
     m_view_range.set_visible(min, max);
     update_enabled_entities();
-    //m_settings.update_colors = true;
-    update_colors_texture();
+    m_settings.update_colors_texture = true;
 }
 
 float ViewerImpl::get_estimated_time_at(size_t id) const
