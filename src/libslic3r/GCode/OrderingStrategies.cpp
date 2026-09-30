@@ -137,8 +137,8 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
 
     // For many islands, the same scan with the edges binned in a uniform grid over their boxes, so each edge is only tested against the edges sharing a
     // cell with it - two edges whose boxes overlap always do. It returns the same crossing as the all-pairs scan
-    // (smallest i, then smallest j), so the result is unchanged; with thousands of islands on a layer the all-pairs
-    // scan, repeated after every reversal, never finished. Rebuilding the grid costs more than it saves on small inputs.
+    // (smallest i, then smallest j), so the result is unchanged. The all-pairs scan is quadratic in the edge count and
+    // runs again after every reversal; rebuilding the grid costs more than it saves below the threshold.
     constexpr size_t grid_min_size = 500;
     BoundingBox extent;
     for (size_t idx : path)
@@ -190,9 +190,9 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
     // Cap iterations to prevent infinite loops on collinear/overlapping segments.
     int max_iters = static_cast<int>(pn * pn);
     bool improved = false;
-    // Reversing between two segments that only touch or overlap along a line need not remove the intersection, and on
-    // islands laid out on a regular grid (a tiled texture, an array of parts) the loop cycled through the same orderings
-    // until the pn * pn cap - effectively forever. Stop as soon as an ordering repeats: until then this is the same loop.
+    // Reversing between two segments that only touch or overlap along a line need not remove the intersection, so on
+    // islands laid out on a regular grid (a tiled texture, an array of parts) the loop can cycle through the same
+    // orderings until the pn * pn cap. Stop as soon as an ordering repeats; up to that point this is the same loop.
     std::unordered_set<uint64_t> seen_paths;
     const auto path_hash = [&path]() {
         uint64_t h = 1469598103934665603ull; // FNV-1a

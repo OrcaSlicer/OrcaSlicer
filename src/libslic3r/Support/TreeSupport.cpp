@@ -854,8 +854,8 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 if (is_auto(stype) && config_detect_sharp_tails)
                 {
                     // BBS detect sharp tail
-                    // Each island is tested only against the lower islands whose box meets its own: overlaps() tries every
-                    // pair, which on a layer cut through a fine relief (thousands of islands above thousands) never ends.
+                    // Each island is tested only against the lower islands whose box meets its own; overlaps() tries
+                    // every pair, which is quadratic in the island counts of the two layers.
                     std::vector<BoundingBox> lower_bboxes;
                     lower_bboxes.reserve(lower_polys.size());
                     for (const ExPolygon &lower : lower_polys)
@@ -870,9 +870,9 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                         for (size_t i = 0; i < lower_polys.size(); ++i)
                             if (lower_bboxes[i].overlap(bbox))
                                 lower_nearby.emplace_back(lower_polys[i]);
-                        // As overlaps(expanded, lower_nearby), with each lower island cut to the island's box first: below
-                        // a fine relief the lower layer is a few islands with thousands of holes, whose whole boundary
-                        // was otherwise intersected again for every island above.
+                        // As overlaps(expanded, lower_nearby), with each lower island cut to the island's box first:
+                        // below a fine relief the lower layer is a few islands with thousands of holes, and the whole
+                        // of that boundary would otherwise be intersected once per island above.
                         const auto overlaps_nearby = [&]() {
                             for (const ExPolygon &a : expanded) {
                                 if (a.empty())

@@ -22,7 +22,9 @@ public:
     MultiPoint(MultiPoint &&other) noexcept : points(std::move(other.points)) {}
     MultiPoint(std::initializer_list<Point> list) : points(list) {}
     explicit MultiPoint(const Points &_points) : points(_points) {}
-    // Without it, the derived classes' move constructors passing std::move(points) here copied them.
+    // Without it, the derived classes' move constructors passing std::move(points) here copied them, which
+    // also means a moved-from Polygon or Polyline is now really empty where it used to silently keep its
+    // points: a use-after-move anywhere in the tree that happened to work before now sees nothing.
     explicit MultiPoint(Points &&_points) noexcept : points(std::move(_points)) {}
     MultiPoint& operator=(const MultiPoint &other) { points = other.points; return *this; }
     MultiPoint& operator=(MultiPoint &&other) noexcept { points = std::move(other.points); return *this; }

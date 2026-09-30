@@ -2754,10 +2754,10 @@ void PerimeterGenerator::process_arachne()
                     // Get searching thresholds. For an external perimeter we take the external perimeter spacing/2 plus the internal perimeter spacing/2 and expand by the factor
                     // rounding errors. When precise wall is enabled, the external perimeter full spacing is used.
                     coord_t threshold_external = (apply_precise_outer_wall)
-                        // Precise outer wall ⇒ use “full external spacing”
+                        // Precise outer wall: use the full external spacing
                         ? ( this->ext_perimeter_flow.scaled_spacing()
                             + this->perimeter_flow.scaled_spacing()/2.0 )
-                        // Normal ⇒ half ext spacing + half int spacing
+                        // Normal: half ext spacing plus half int spacing
                         : ( this->ext_perimeter_flow.scaled_spacing()/2.0
                             + this->perimeter_flow.scaled_spacing()/2.0 );
                 
