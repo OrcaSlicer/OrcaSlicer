@@ -31,6 +31,8 @@ while it renders:
    to load. If slicing fails, the report holds Prepare alone.
 4. Preview: renders the scene in the Preview view, with the slicing progress notification
    hidden.
+5. Layers: renders the Preview view again while the layer slider moves, which is what
+   makes dragging it feel slow on large prints.
 
 The dialog then shows the report, with a button to copy it. A scene cut short, because its
 view was hidden, is left out of the report.
@@ -62,6 +64,13 @@ The camera path makes two turns around the target while the view rises three tim
 25 degrees below the plate to 85 degrees above it and the zoom goes twice between 0.6 and
 1.4 times the base zoom. The camera stays at the default distance, so the perspective is
 the same in every run. The camera the scene started with is restored at its end.
+
+The Layers scene holds the camera at the start of that path and moves the top of the layer
+slider instead, from the last layer down to the first and back up in each pass. It goes
+through `IMSlider::SetHigherValue()`, as a drag does, so every frame applies a new layer
+range to the toolpaths and the objects before drawing them, including a new shadow map when
+the shadows are static. Its warm-up frames lead into the start of the path, so the slider
+moves in every frame. The slider position it started from is restored at its end.
 
 ## The report
 

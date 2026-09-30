@@ -19,7 +19,8 @@ struct FrameTimeStats
 FrameTimeStats frame_time_stats(std::vector<double> frame_ms);
 
 // Loads the OrcaSliced Combo into a new project and turns the camera around it in Prepare, then in
-// Preview once sliced, then reports the frame times and render timings of both.
+// Preview once sliced, then moves the layer slider through the layers, and reports the frame times and
+// render timings of the three scenes.
 void run_scene_benchmark();
 
 } // namespace GUI

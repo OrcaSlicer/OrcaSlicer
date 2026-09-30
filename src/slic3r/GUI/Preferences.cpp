@@ -2092,7 +2092,7 @@ void PreferencesDialog::create_items()
 
     if (wxGetApp().is_editor()) {
         auto item_benchmark = create_item_button(_L("3D scene benchmark"), _L("Run") + " " + dots, "",
-            _L("Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview."),
+            _L("Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."),
             [this]() {
                 EndModal(wxID_OK);
                 wxGetApp().CallAfter([] { run_scene_benchmark(); });

@@ -7992,8 +7992,13 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float margin = 10.0f * get_scale();
     const ImVec2 display_size = ImGui::GetIO().DisplaySize;
-    ImGui::SetNextWindowPos(ImVec2(display_size.x - margin, margin), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImVec2 pos(display_size.x - margin, margin);
+    // The Preview legend takes the top-right corner.
+    if (const ImGuiWindow* legend = ImGui::FindWindowByName("Legend"); m_canvas_type == ECanvasType::CanvasPreview && legend != nullptr && legend->Active)
+        pos = ImVec2(legend->Pos.x - margin, legend->Pos.y);
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.35f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * get_scale());
     imgui.begin(
         std::string("###fps_overlay"),
         ImGuiWindowFlags_AlwaysAutoResize |
@@ -8005,6 +8010,7 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGuiWindowFlags_NoInputs);
     if (show_fps) {
         imgui.text(std::string("FPS: ") + std::to_string(fps));
+        ImGui::SameLine();
         // The subset of those frames that redrew the scene rather than reusing the cached one.
         imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
     }
@@ -8033,6 +8039,7 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGui::EndTable();
     }
     imgui.end();
+    ImGui::PopStyleVar();
 }
 
 void GLCanvas3D::_render_fxaa_pass(unsigned int width, unsigned int height)

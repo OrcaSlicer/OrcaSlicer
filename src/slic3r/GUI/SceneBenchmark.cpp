@@ -8,6 +8,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Factories.hpp"
 #include "I18N.hpp"
+#include "IMSlider.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NotificationManager.hpp"
@@ -87,7 +88,7 @@ protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
 private:
-    enum class Stage { Loading, Prepare, Slicing, Preview, Done };
+    enum class Stage { Loading, Prepare, Slicing, Preview, Layers, Done };
 
     void on_timer(wxTimerEvent& evt);
     void on_idle(wxIdleEvent& evt);
@@ -97,6 +98,7 @@ private:
     void stop_scene();
     void start_slicing();
     void set_camera(size_t pass_frame);
+    void set_top_layer(size_t pass_frame);
     void set_status(const wxString& status);
     void finish(const wxString& error = wxString());
     void show_report(const wxString& error);
@@ -115,6 +117,8 @@ private:
     double                                m_zoom{ 1.0 };
     size_t                                m_frame{ 0 };
     std::chrono::steady_clock::time_point m_last_frame;
+    // The layer slider's top before the Layers scene moved it, -1 outside that scene.
+    int                                   m_saved_top_layer{ -1 };
     int                                   m_swap_interval{ wxGLCanvas::DefaultSwapInterval };
     bool                                  m_restore_swap_interval{ false };
     std::vector<SceneResult>              m_results;
@@ -245,7 +249,11 @@ void SceneBenchmarkDialog::on_idle(wxIdleEvent& evt)
     FrameProfiler& profiler = m_canvas->get_frame_profiler();
     if (m_frame == WARMUP_FRAMES + PASS_FRAMES)
         profiler.start_averaging();
-    set_camera(m_frame < WARMUP_FRAMES ? 0 : (m_frame - WARMUP_FRAMES) % PASS_FRAMES);
+    if (m_stage == Stage::Layers)
+        // The warm-up ends where the path starts, so the slider moves in every frame.
+        set_top_layer(m_frame < WARMUP_FRAMES ? PASS_FRAMES - WARMUP_FRAMES + m_frame : (m_frame - WARMUP_FRAMES) % PASS_FRAMES);
+    else
+        set_camera(m_frame < WARMUP_FRAMES ? 0 : (m_frame - WARMUP_FRAMES) % PASS_FRAMES);
     m_canvas->render();
     if (m_frame == 0)
         on_first_frame();
@@ -253,11 +261,14 @@ void SceneBenchmarkDialog::on_idle(wxIdleEvent& evt)
     if (++m_frame == SCENE_FRAMES) {
         m_results.back().sections = profiler.finish_averaging(true);
         end_scene();
+        // The next scene starts right away, with no timer to bring the next idle event.
+        if (m_canvas != nullptr)
+            evt.RequestMore();
         return;
     }
-    const int percent = int(50 * m_frame / SCENE_FRAMES);
+    const int scene = m_stage == Stage::Prepare ? 0 : m_stage == Stage::Preview ? 1 : 2;
     if (m_frame % 30 == 0)
-        m_progress->SetValue(m_stage == Stage::Prepare ? percent : 50 + percent);
+        m_progress->SetValue(int(100 * (scene * SCENE_FRAMES + m_frame) / (3 * SCENE_FRAMES)));
     evt.RequestMore();
 }
 
@@ -290,18 +301,27 @@ void SceneBenchmarkDialog::begin_scene(GLCanvas3D* canvas, Stage stage)
     m_saved_camera          = wxGetApp().plater()->get_camera();
     m_frame                 = 0;
     m_restore_swap_interval = false;
-    m_results.push_back({stage == Stage::Prepare ? "Prepare" : "Preview", {}, {}});
+    m_results.push_back({stage == Stage::Prepare ? "Prepare" : stage == Stage::Preview ? "Preview" : "Layers", {}, {}});
     m_results.back().frame_ms.reserve(PASS_FRAMES);
-    set_status(stage == Stage::Prepare ? _L("Turning the camera in Prepare") : _L("Turning the camera in Preview"));
+    set_status(stage == Stage::Prepare ? _L("Turning the camera in Prepare") :
+               stage == Stage::Preview ? _L("Turning the camera in Preview") :
+                                         _L("Moving through the layers in Preview"));
+    if (stage == Stage::Layers) {
+        m_saved_top_layer = canvas->get_gcode_viewer().get_layers_slider()->GetHigherValue();
+        set_camera(0);
+    }
     canvas->set_benchmarking(true);
 }
 
 void SceneBenchmarkDialog::end_scene()
 {
-    const Stage stage = m_stage;
+    const Stage  stage  = m_stage;
+    GLCanvas3D*  canvas = m_canvas;
     stop_scene();
     if (stage == Stage::Prepare)
         start_slicing();
+    else if (stage == Stage::Preview)
+        begin_scene(canvas, Stage::Layers);
     else
         finish();
 }
@@ -317,6 +337,10 @@ void SceneBenchmarkDialog::stop_scene()
         profiler.finish_averaging(false);
     if (m_restore_swap_interval && m_canvas->make_current_for_postinit())
         m_canvas->get_wxglcanvas()->SetSwapInterval(m_swap_interval);
+    if (m_saved_top_layer >= 0) {
+        m_canvas->get_gcode_viewer().get_layers_slider()->SetHigherValue(m_saved_top_layer);
+        m_saved_top_layer = -1;
+    }
     m_canvas->set_benchmarking(false);
     m_canvas->set_as_dirty();
     wxGetApp().plater()->get_camera() = m_saved_camera;
@@ -327,7 +351,7 @@ void SceneBenchmarkDialog::start_slicing()
 {
     m_stage = Stage::Slicing;
     set_status(_L("Slicing"));
-    m_progress->SetValue(50);
+    m_progress->SetValue(33);
     Plater* plater = wxGetApp().plater();
     plater->reslice();
     plater->select_view_3D("Preview", false);
@@ -347,6 +371,15 @@ void SceneBenchmarkDialog::set_camera(size_t pass_frame)
     Camera&      camera = wxGetApp().plater()->get_camera();
     camera.look_at(m_target + Camera::DefaultDistance * dir, m_target, Vec3d::UnitZ());
     camera.set_zoom(m_zoom * (1.0 + 0.4 * std::sin(4.0 * PI * t)));
+}
+
+void SceneBenchmarkDialog::set_top_layer(size_t pass_frame)
+{
+    // Down to the first layer and back up, as dragging the top of the layer slider does.
+    IMSlider*    slider = m_canvas->get_gcode_viewer().get_layers_slider();
+    const double t      = double(pass_frame) / double(PASS_FRAMES);
+    const int    span   = slider->GetMaxValue() - slider->GetMinValue();
+    slider->SetHigherValue(slider->GetMinValue() + int(std::lround(span * std::abs(1.0 - 2.0 * t))));
 }
 
 void SceneBenchmarkDialog::set_status(const wxString& status)
@@ -492,7 +525,8 @@ void run_scene_benchmark()
 
     MessageDialog confirm(wxGetApp().mainframe,
                           _L("The benchmark replaces the current project with the OrcaSliced Combo and slices it. It turns the camera "
-                             "around the model in Prepare and in Preview, timing every frame, then shows the results.") + "\n\n" +
+                             "around the model in Prepare and in Preview, then moves the layer slider through the sliced layers, timing "
+                             "every frame, and shows the results.") + "\n\n" +
                           _L("It uses the current graphics settings and usually takes less than a minute. The main window stays "
                              "locked until it finishes."),
                           _L("Benchmark 3D Scene"), wxICON_INFORMATION | wxOK | wxCANCEL);
