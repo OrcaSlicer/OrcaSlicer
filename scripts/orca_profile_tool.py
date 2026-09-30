@@ -1300,7 +1300,7 @@ def check_obsolete_keys(profiles_dir, vendor):
         return 0
 
     for file_path in _vendor_json_files(vendor_path):
-        rel = file_path.relative_to(profiles_path)
+        rel = file_path.relative_to(profiles_path).as_posix()
         try:
             data = load_json(file_path)
         except (ValueError, OSError) as e:
