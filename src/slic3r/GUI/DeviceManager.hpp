@@ -307,7 +307,7 @@ public:
     bool  ams_support_virtual_tray { true };
     time_t ams_user_setting_start = 0;
     time_t ams_switch_filament_start = 0;
-    AmsStatusMain ams_status_main;
+    AmsStatusMain ams_status_main = AmsStatusMain::AMS_STATUS_MAIN_IDLE;
     int   ams_status_sub;
     int   ams_version = 0;
 
