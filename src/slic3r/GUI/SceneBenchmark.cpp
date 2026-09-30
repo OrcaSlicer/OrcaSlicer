@@ -464,7 +464,17 @@ std::string SceneBenchmarkDialog::report() const
             << ", in Preview " << on_off(config.get_bool(SETTING_OPENGL_REALISTIC_PREVIEW)) << '\n';
     else
         out << "off\n";
-    out << "Scene:      OrcaSliced Combo, " << PASS_FRAMES << " frames per pass\n\n";
+    // The Preview scenes depend on the toolpaths, which depend on the presets it was sliced with.
+    const PresetBundle& presets = *wxGetApp().preset_bundle;
+    auto preset_name = [](const PresetCollection& collection) {
+        return collection.get_selected_preset_name() + (collection.get_edited_preset().is_dirty ? " (modified)" : "");
+    };
+    out << "Presets:    " << preset_name(presets.printers) << ", " << preset_name(presets.prints) << '\n'
+        << "Scene:      OrcaSliced Combo, " << PASS_FRAMES << " frames per pass\n";
+    const GCodeViewer& gcode_viewer = wxGetApp().plater()->get_preview_canvas3D()->get_gcode_viewer();
+    if (gcode_viewer.has_data())
+        out << "Toolpaths:  " << gcode_viewer.get_vertices_count() << " vertices, " << gcode_viewer.get_layers_count() << " layers\n";
+    out << '\n';
 
     std::vector<FrameTimeStats> stats;
     for (const SceneResult& result : m_results)

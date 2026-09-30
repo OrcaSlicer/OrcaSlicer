@@ -327,6 +327,8 @@ public:
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
+    size_t get_vertices_count() const { return m_viewer.get_vertices_count(); }
+    size_t get_layers_count() const { return m_viewer.get_layers_count(); }
     // ORCA: realistic view. Changes whenever the toolpaths casting shadows do.
     size_t shadow_casters_signature() const;
 

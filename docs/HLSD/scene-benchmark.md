@@ -82,6 +82,9 @@ The report is plain English text, so it reads the same in every language:
 - The version and build commit, the GPU and OpenGL version, the viewport size and camera
   type, and the graphics settings that change the cost of a frame: MSAA samples as read
   from the framebuffer, FXAA, the scene cache, VSync and the realistic view options.
+- The printer and process presets the model was sliced with, marked when they have
+  unsaved changes, and the toolpath vertices and layers they produced, since the Preview
+  scenes cost more with more toolpaths.
 - For each scene, the average FPS and the average, median, 95th percentile, 99th
   percentile and maximum frame time. Percentiles are nearest-rank, so each is a measured
   frame (`frame_time_stats()`).
