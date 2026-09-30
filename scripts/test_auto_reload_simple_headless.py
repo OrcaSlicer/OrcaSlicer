@@ -14,7 +14,9 @@ one dialog). Phases J and K cover in-place writers: a slow multi-chunk write is 
 after it finishes, and a file that never goes quiet is still reloaded by the 30s backstop.
 Phase L covers a reload landing while a slice is running: a slow-to-slice prism is replaced by a
 quick cube mid-slice; the slow slice must be cancelled before the reload replaces the model's
-volumes, and the plate sliced again afterwards.
+volumes, and the plate sliced again afterwards. Phase M blocks the app's main thread for a few
+seconds (through a test hook) while a writer keeps going, and checks the still-changing file is
+not reported early.
 
 Two categories of scenario are deliberately NOT covered here, not just under-instrumented:
   - A missing source file (the "Please select a file" wxFileDialog) or a load failure (the
@@ -649,6 +651,39 @@ def main():
             record("J3 model is the finished 28 mm cube",
                    bool(sizes) and all(abs(v - 28) < 0.05 for v in sizes[-1]))
 
+    def phase_m():
+        print("\n[M] Main thread busy while a file is being written -- must not reload until the writer stops")
+        # A long UI task (a project backup, say) blocks the event loop for longer than the debounce
+        # window. The timer, armed by the first write, expires during that stall while later writes'
+        # events are still unread; on resuming, the loop must not report the still-changing file.
+        # The app blocks itself on the first fs event that follows this hook file appearing.
+        stall = 2.5
+        hook = os.path.join(hooks_dir, "stall_main_thread")
+        os.makedirs(hooks_dir, exist_ok=True)
+        stop = threading.Event()
+        stats = {}
+        tail.mark(); time.sleep(1.0)
+        with open(hook, "w") as f:
+            f.write(str(stall))
+        writer = threading.Thread(target=rewrite_cube_stl_continuously, args=(basic_stl, 24, stop),
+                                  kwargs={"stats": stats}, daemon=True)
+        writer.start()
+        try:
+            stalled = tail.wait_for("stalling the main thread", args.timeout)
+            record("M1 the app stalled its main thread", stalled)
+            # Keep writing for a while after the stall ends; anything reported now is premature.
+            early = tail.wait_for(RELOAD_MARK, stall + 3.0)
+            record("M2 no reload while the writer is still going", not early,
+                   "" if not early else "reloaded during the stall or right after it (the writer's longest pause was %.2fs)"
+                                        % stats.get("max_gap", 0.0))
+        finally:
+            stop.set()
+            writer.join(timeout=2)
+        # Once the writer stops, the file is reported.
+        ok = early or tail.wait_for(RELOAD_MARK, args.timeout)
+        record("M3 reloaded once the writer stopped", ok)
+        time.sleep(2.0)
+
     def phase_k():
         print("\n[K] A file that never goes quiet (~40s of rewrites) -- reloaded by the 30s backstop")
         # An early reload is only a watcher failure if the writer really never paused. If the
@@ -756,14 +791,14 @@ def main():
         record("I1 no reload when auto-reload is off", quiet, "" if quiet else "a reload happened anyway")
 
     STATE_GROUPS = [
-        ((True, True, False), ["A", "B", "C", "D", "E", "F", "J", "K"]),
+        ((True, True, False), ["A", "B", "C", "D", "E", "F", "J", "M", "K"]),
         ((True, True, True), ["G", "L"]),
         ((True, False, False), ["H"]),
         ((False, True, False), ["I"]),
     ]
     PHASE_FUNCS = {
         "A": phase_a, "B": phase_b, "C": phase_c, "D": phase_d, "E": phase_e,
-        "F": phase_f, "G": phase_g, "H": phase_h, "L": phase_l, "I": phase_i, "J": phase_j, "K": phase_k,
+        "F": phase_f, "G": phase_g, "H": phase_h, "L": phase_l, "I": phase_i, "J": phase_j, "K": phase_k, "M": phase_m,
     }
 
     if args.only:

@@ -1,12 +1,16 @@
 #include "SourceFileWatcher.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/log/trivial.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 #include <system_error>
+#include <thread>
 
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
@@ -31,6 +35,30 @@ namespace {
     // Backstop for a tracked file that never goes quiet: once this long has passed since the
     // first sign of activity, it's reported as it stands rather than held back any longer.
     constexpr auto max_settle = std::chrono::seconds(30);
+
+    // TEST-ONLY hook for the headless verification script: never exposed via Preferences, and
+    // inert unless ORCA_TEST_HOOKS_DIR is explicitly exported, so it can't fire in a real user's
+    // session. If <ORCA_TEST_HOOKS_DIR>/stall_main_thread holds a number of seconds, consume the
+    // file and block the calling (main) thread that long, so a script can hold the event loop
+    // busy while a writer keeps going -- what a project backup or any long UI task does.
+    void stall_main_thread_for_test_if_requested()
+    {
+        const char* hooks_dir = std::getenv("ORCA_TEST_HOOKS_DIR");
+        if (hooks_dir == nullptr)
+            return;
+        const fs::path hook = fs::path(hooks_dir) / "stall_main_thread";
+        double seconds = 0.;
+        {
+            std::ifstream ifs(hook.string());
+            if (!(ifs >> seconds) || seconds <= 0.)
+                return;
+        }
+        boost::system::error_code ec;
+        fs::remove(hook, ec);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": stalling the main thread for " << seconds
+                                << "s via ORCA_TEST_HOOKS_DIR";
+        std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
+    }
 
     SourceStamp get_source_stamp(const std::string& path)
     {
@@ -211,6 +239,8 @@ void SourceFileWatcher::on_fs_event(wxFileSystemWatcherEvent& evt)
         m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
     else if (!m_debounce_timer.IsRunning())
         m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
+
+    stall_main_thread_for_test_if_requested();
 }
 
 void SourceFileWatcher::on_timer(wxTimerEvent&)
