@@ -558,5 +558,5 @@
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
 	],
-	"machine_end_gcode": "PRINT_END\n\n; U1 nozzle flow metadata, one value per logical filament\n; filament_volume_type = {filament_volume_types}\n"
+	"machine_end_gcode": "PRINT_END\n"
 }
