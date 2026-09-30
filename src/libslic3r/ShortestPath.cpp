@@ -18,7 +18,7 @@
 namespace Slic3r {
 
 // Orca: Some support entities may contain empty nested paths, which cannot be reordered safely.
-static bool extrusion_entity_has_endpoints(const ExtrusionEntity *entity)
+bool extrusion_entity_has_endpoints(const ExtrusionEntity *entity)
 {
     auto paths_have_endpoints = [](const ExtrusionPaths &paths) {
         return !paths.empty() &&

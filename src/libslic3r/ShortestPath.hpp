@@ -24,6 +24,9 @@ std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<Extrus
 void                                 reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const std::vector<std::pair<size_t, bool>> &chain);
 void                                 chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point &start_near);
 void                                 chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near = nullptr);
+// Orca: An entity that cannot provide valid endpoints (e.g. a support collection with empty nested paths)
+// cannot be chained, chain_and_reorder_extrusion_entities() erases such entities without deleting them.
+bool                                 extrusion_entity_has_endpoints(const ExtrusionEntity *entity);
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near = nullptr);
 void                                 reorder_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, std::vector<std::pair<size_t, bool>> &chain);

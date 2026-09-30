@@ -89,6 +89,12 @@ ExtrusionEntityCollection ExtrusionEntityCollection::chained_path_from(const Ext
 	// Return a filtered copy of the collection.
     ExtrusionEntityCollection out;
     out.entities = filter_by_extrusion_role(extrusion_entities, role);
+    // Drop entities without valid endpoints before cloning:
+    // chain_and_reorder_extrusion_entities() erases them without deleting,
+    // so cloning them first would leak the clones.
+    out.entities.erase(std::remove_if(out.entities.begin(), out.entities.end(),
+        [](const ExtrusionEntity *entity) { return ! extrusion_entity_has_endpoints(entity); }),
+        out.entities.end());
 	// Clone the extrusion entities.
 	for (auto &ptr : out.entities)
 		ptr = ptr->clone();
