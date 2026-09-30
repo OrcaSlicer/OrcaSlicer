@@ -656,32 +656,40 @@ def main():
         # A long UI task (a project backup, say) blocks the event loop for longer than the debounce
         # window. The timer, armed by the first write, expires during that stall while later writes'
         # events are still unread; on resuming, the loop must not report the still-changing file.
-        # The app blocks itself on the first fs event that follows this hook file appearing.
+        # The app blocks itself on the first fs event that follows the hook file appearing. As in
+        # phase K, an early reload only counts against the watcher if the writer never paused: a
+        # writer that itself stalled past the debounce window let the file go quiet, so try again.
         stall = 2.5
         hook = os.path.join(hooks_dir, "stall_main_thread")
         os.makedirs(hooks_dir, exist_ok=True)
-        stop = threading.Event()
-        stats = {}
-        tail.mark(); time.sleep(1.0)
-        with open(hook, "w") as f:
-            f.write(str(stall))
-        writer = threading.Thread(target=rewrite_cube_stl_continuously, args=(basic_stl, 24, stop),
-                                  kwargs={"stats": stats}, daemon=True)
-        writer.start()
-        try:
-            stalled = tail.wait_for("stalling the main thread", args.timeout)
+        for attempt, size in enumerate((24, 25, 27), start=1):
+            stop = threading.Event()
+            stats = {}
+            tail.mark(); time.sleep(1.0)
+            with open(hook, "w") as f:
+                f.write(str(stall))
+            writer = threading.Thread(target=rewrite_cube_stl_continuously, args=(basic_stl, size, stop),
+                                      kwargs={"stats": stats}, daemon=True)
+            writer.start()
+            try:
+                stalled = tail.wait_for("stalling the main thread", args.timeout)
+                # Keep writing for a while after the stall ends; anything reported now is premature.
+                early = tail.wait_for(RELOAD_MARK, stall + 3.0)
+            finally:
+                stop.set()
+                writer.join(timeout=2)
+            max_gap = stats.get("max_gap", 0.0)
+            if early and max_gap >= 0.4 and attempt < 3:
+                print("  (the writer stalled %.1fs, longer than the debounce window -- trying again)" % max_gap)
+                time.sleep(2.0 + args.quiet_window / 2)
+                continue
             record("M1 the app stalled its main thread", stalled)
-            # Keep writing for a while after the stall ends; anything reported now is premature.
-            early = tail.wait_for(RELOAD_MARK, stall + 3.0)
             record("M2 no reload while the writer is still going", not early,
-                   "" if not early else "reloaded during the stall or right after it (the writer's longest pause was %.2fs)"
-                                        % stats.get("max_gap", 0.0))
-        finally:
-            stop.set()
-            writer.join(timeout=2)
-        # Once the writer stops, the file is reported.
-        ok = early or tail.wait_for(RELOAD_MARK, args.timeout)
-        record("M3 reloaded once the writer stopped", ok)
+                   "" if not early else "reloaded during the stall or right after it (the writer's longest pause was %.2fs)" % max_gap)
+            # Once the writer stops, the file is reported.
+            ok = early or tail.wait_for(RELOAD_MARK, args.timeout)
+            record("M3 reloaded once the writer stopped", ok)
+            break
         time.sleep(2.0)
 
     def phase_k():
