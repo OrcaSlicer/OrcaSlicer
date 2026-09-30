@@ -1,6 +1,7 @@
 #include "GLGizmoSVG.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
@@ -446,7 +447,7 @@ void GLGizmoSVG::on_render_input_window(float x, float y, float bottom_limit)
 {
     set_volume_by_selection();
 
-    double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
+    double screen_scale = safe_display_scale_factor(wxGetApp().plater());
 
     // Orca
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
