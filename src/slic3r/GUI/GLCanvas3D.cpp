@@ -6398,6 +6398,9 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
         camera.set_scene_box(plate_build_volume);
     }
 
+    // Orca: saved rather than read from the plater's camera, as the CLI renders thumbnails without a plater
+    GLint prev_viewport[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_VIEWPORT, prev_viewport));
     camera.set_viewport(0, 0, thumbnail_data.width, thumbnail_data.height);
     camera.apply_viewport();
 
@@ -6547,7 +6550,7 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
     BOOST_LOG_TRIVIAL(info) << boost::format("render_thumbnail: finished");
 
     // Puts the canvas viewport back in place of the thumbnail one set above.
-    wxGetApp().plater()->get_camera().apply_viewport();
+    glsafe(::glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]));
 }
 
 void GLCanvas3D::render_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
