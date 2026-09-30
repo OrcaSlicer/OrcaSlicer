@@ -717,3 +717,15 @@ TEST_CASE("get_index_for_extruder scales the variant column by the requested str
     REQUIRE(col0_stride2 == 0);
     REQUIRE(col1_stride2 == 2);
 }
+
+// A per-variant filament option read with a single value gives it to every filament variant. A project
+// exported by an older CLI holds a single value for an option no loaded preset defined, such as
+// filament_ironing_flow.
+TEST_CASE("A per-variant filament option read with a single value gives it to every filament variant", "[Config]")
+{
+    // filament 1 defines Standard and High Flow, filament 2 Standard
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values = {1, 1, 2};
+    config.load_from_ini_string("pressure_advance = 0.021", ForwardCompatibilitySubstitutionRule::Disable);
+    REQUIRE(config.option<ConfigOptionFloats>("pressure_advance")->values == std::vector<double>({0.021, 0.021, 0.021}));
+}

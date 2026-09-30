@@ -445,7 +445,10 @@ public:
     static std::string                      remove_suffix_modified(const std::string& name);
     static void                             normalize(DynamicPrintConfig &config);
     // Report configuration fields, which are misplaced into a wrong group, remove them from the config.
-    static std::string                      remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config);
+    // `added`, when given, is the diff applied over a copy of default_config, and only
+    // its keys are checked, since no other key can be missing from default_config.
+    static std::string                      remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config,
+                                                                const DynamicPrintConfig *added = nullptr);
 
     // BBS: move constructor to public
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
@@ -801,6 +804,8 @@ public:
     // Return number of presets including the "- default -" preset.
     size_t          size() const                { return m_presets.size(); }
     bool            has_defaults_only() const   { return m_presets.size() <= m_num_default_presets; }
+    // How many presets this collection refused or repaired while loading.
+    int             error_count() const         { return m_errors; }
 
     // For Print / Filament presets, disable those, which are not compatible with the printer.
     template<typename PreferedCondition>
@@ -874,8 +879,10 @@ protected:
     // This is a temporary state, which shall be fixed immediately by the following step.
     bool            select_preset_by_name_strict(const std::string &name);
 
-    // Merge one vendor's presets with the other vendor's presets, report duplicates.
-    std::vector<std::string> merge_presets(PresetCollection &&other, const VendorMap &new_vendors);
+    // Move the presets of `others` into this collection in one pass. A name this
+    // collection or an earlier one of `others` already has is left out, and reported
+    // in the list of the collection that repeats it.
+    std::vector<std::vector<std::string>> merge_presets(const std::vector<PresetCollection*> &others, const VendorMap &new_vendors);
 
     // Update m_map_alias_to_profile_name from loaded system profiles.
 	void 			update_map_alias_to_profile_name();
@@ -890,6 +897,43 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    // One preset file read and flattened against the presets already in this
+    // collection, before anything the collection shares has been touched.
+    struct UserPresetLoad
+    {
+        Preset      preset;
+        // Joins the collection. A file that threw partway still joins it, without
+        // the steps that did not run.
+        bool        install { false };
+        // The whole of the load ran, so the preset is ready to be aliased.
+        bool        complete { false };
+        // A filament preset that named no compatible printer and was given one from
+        // its name, which commit writes back to its file.
+        bool        save_compatible_printers { false };
+        // Unreadable, so commit removes it and its .info file.
+        bool        discard_file { false };
+        // The .info file read beside the preset, which commit logs.
+        std::string info_file;
+        // Counted and logged by commit, in the order the directory listed the files.
+        std::vector<std::string>   errors;
+        PresetsConfigSubstitutions substitutions;
+    };
+
+    // Read and flatten one preset file. It reads only, and resolves against the presets
+    // loaded before this pass, never another file of the same pass, so the files of a
+    // pass are independent of each other.
+    UserPresetLoad  resolve_user_preset(const boost::filesystem::path &file, const std::string &canonical_name,
+                                        const PresetOrigin &load_origin, ForwardCompatibilitySubstitutionRule substitution_rule,
+                                        const std::string &extruder_id_name, const std::string &extruder_variant_name,
+                                        std::set<std::string> *key_set1, std::set<std::string> *key_set2) const;
+
+    // Install one resolved preset. The collection, its alias maps, the error count
+    // and the preset files on disk are touched here and only here.
+    void            commit_user_preset(UserPresetLoad &&loaded, std::deque<Preset> &presets_loaded,
+                                       PresetsConfigSubstitutions &substitutions,
+                                       const std::function<void(Preset&)> &preset_loaded_fn,
+                                       bool read_only);
+
     std::string canonical_preset_name(const std::string &name, const PresetOrigin &load_origin = PresetOrigin()) const;
 
     // Comparator that sorts "Generic " prefixed presets before others, then alphabetically within each group.
@@ -900,6 +944,10 @@ private:
             return a_generic; // generics first
         return a.name < b.name;
     }
+
+    // Append a preset without keeping the collection sorted, for a caller installing
+    // many at once; find_preset() is unusable until sort_presets() runs.
+    Preset& append_preset(std::string &&path, const std::string &name, DynamicPrintConfig &&config);
 
     // Sort presets: filament presets use generic-first ordering, others sort alphabetically.
     void sort_presets() {

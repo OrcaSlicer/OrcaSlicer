@@ -510,7 +510,7 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
         out_buf->append(text, size);
     }, (void*) &html_source, MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH | MD_FLAG_WIKILINKS, 0);
     html_source.append("</body></html>");
-    m_vebview_release_note->LoadURL("file://" + (boost::filesystem::path (resources_dir()) / "web/guide/0/index.html").string());
+    m_vebview_release_note->LoadURL(file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/0/index.html"));
 
     SetMinSize(GetSize());
     SetMaxSize(GetSize());

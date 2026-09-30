@@ -3476,6 +3476,14 @@ int CLI::run(int argc, char **argv)
         }
         new_variant_counts = old_variant_counts;
         //filament_variant_count = old_variant_counts;
+        //ORCA: lay the per-variant options out one value per variant of the current filaments before each
+        //      loaded filament replaces its own variants, including an option only a loaded filament
+        //      defines, which otherwise starts as a single default value and never reaches the others.
+        for (const DynamicPrintConfig &config : load_filaments_config)
+            for (const std::string &opt_key : filament_options_with_variant)
+                if (opt_key != "filament_extruder_variant" && config.has(opt_key))
+                    m_print_config.option(opt_key, true);
+        normalize_filament_values_to_variants(m_print_config);
         for (int index = 0; index < load_filaments_config.size(); index++) {
             DynamicPrintConfig&  config = load_filaments_config[index];
             int filament_index = load_filaments_index[index];
@@ -3645,6 +3653,25 @@ int CLI::run(int argc, char **argv)
                         opt_vec_dst->set_at(opt_vec_src, filament_index - 1, 0);
                     }
                 }
+            }
+
+            //ORCA: a per-variant option the loaded filament does not define keeps the values of the
+            //      variants the filament already had, and a variant new to it takes its first one's.
+            const int old_start = old_start_indice[filament_index - 1];
+            std::vector<int> kept_variant_indice = new_variant_indice;
+            for (int &i : kept_variant_indice)
+                if (i < 0)
+                    i = old_start;
+            for (const std::string &opt_key : filament_options_with_variant) {
+                if (config.has(opt_key))
+                    continue;
+                auto *opt_vec_dst = dynamic_cast<ConfigOptionVectorBase *>(m_print_config.option(opt_key));
+                if (opt_vec_dst == nullptr || opt_vec_dst->size() < size_t(old_start + old_variant_count))
+                    continue;
+                // set_with_restore_2() pads its source in place
+                std::unique_ptr<ConfigOption> old_values(opt_vec_dst->clone());
+                opt_vec_dst->set_with_restore_2(static_cast<ConfigOptionVectorBase *>(old_values.get()), kept_variant_indice, old_start,
+                                                old_variant_count, true);
             }
 
             //update the old index
@@ -4081,6 +4108,9 @@ int CLI::run(int argc, char **argv)
     if (printer_technology == ptFFF) {
         fff_print_config.apply(m_print_config, true);
         m_print_config.apply(fff_print_config, true);
+        //ORCA: an option no preset or project defines has just come in as its single default value, and a
+        //      command line override may hold one value per filament.
+        normalize_filament_values_to_variants(m_print_config);
     } else {
         boost::nowide::cerr << "invalid printer_technology " << std::endl;
         record_exit_reson(outfile_dir, CLI_INVALID_PRINTER_TECH, 0, cli_errors[CLI_INVALID_PRINTER_TECH], sliced_info);

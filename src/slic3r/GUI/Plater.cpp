@@ -286,6 +286,30 @@ static void set_config_values(DynamicPrintConfig *config, const std::string &key
     }
 }
 
+// Orca: a calibration print sets pressure advance explicitly to 0 on each extruder variant that
+// has it disabled, so the value stored in the printer does not skew the result. Variants with
+// pressure advance enabled keep their own value.
+static void zero_pressure_advance_where_disabled(DynamicPrintConfig *filament_config)
+{
+    auto enable_pa   = filament_config->option<ConfigOptionBools>("enable_pressure_advance");
+    auto pa          = filament_config->option<ConfigOptionFloats>("pressure_advance");
+    auto adaptive_pa = filament_config->option<ConfigOptionBools>("adaptive_pressure_advance");
+    if (!enable_pa || !pa || !adaptive_pa || pa->empty() || adaptive_pa->empty())
+        return;
+    // All variant keys share the variant count; widen a short one rather than index past it.
+    if (pa->size() < enable_pa->size())
+        pa->resize(enable_pa->size());
+    if (adaptive_pa->size() < enable_pa->size())
+        adaptive_pa->resize(enable_pa->size());
+    for (size_t variant = 0; variant < enable_pa->size(); ++variant) {
+        if (enable_pa->get_at(variant))
+            continue;
+        enable_pa->values[variant]   = true;
+        pa->values[variant]          = 0.0;
+        adaptive_pa->values[variant] = false;
+    }
+}
+
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 {
     std::string name = into_u8(wxs_name);
@@ -3672,7 +3696,7 @@ void Sidebar::update_all_preset_comboboxes()
         wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
         wxString apikey;
         if(url.empty())
-            url = wxString::Format("file://%s/web/orca/missing_connection.html", from_u8(resources_dir()));
+            url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/orca/missing_connection.html");
         else {
             const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
             if (cfg.has("printhost_apikey") && (host_type != htSimplyPrint))
@@ -17064,11 +17088,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_jerk", 0);
     }
 
-    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
-        set_config_values<bool, ConfigOptionBools>(filament_config, "enable_pressure_advance", true);
-        set_config_values<double, ConfigOptionFloatsNullable>(filament_config, "pressure_advance", 0.0);
-        set_config_values<bool, ConfigOptionBools>(filament_config, "adaptive_pressure_advance", false);
-    }
+    zero_pressure_advance_where_disabled(filament_config);
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{false});
@@ -17130,11 +17150,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_jerk", 0);
     }
 
-    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
-        set_config_values<bool, ConfigOptionBools>(filament_config, "enable_pressure_advance", true);
-        set_config_values<double, ConfigOptionFloatsNullable>(filament_config, "pressure_advance", 0.0);
-        set_config_values<bool, ConfigOptionBools>(filament_config, "adaptive_pressure_advance", false);
-    }
+    zero_pressure_advance_where_disabled(filament_config);
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{false});
@@ -17196,11 +17212,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_jerk", 0);
     }
 
-    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
-        set_config_values<bool, ConfigOptionBools>(filament_config, "enable_pressure_advance", true);
-        set_config_values<double, ConfigOptionFloatsNullable>(filament_config, "pressure_advance", 0.0);
-        set_config_values<bool, ConfigOptionBools>(filament_config, "adaptive_pressure_advance", false);
-    }
+    zero_pressure_advance_where_disabled(filament_config);
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{true});

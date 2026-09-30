@@ -1512,11 +1512,33 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                     size_t n = mz_zip_reader_get_extra(&archive, stat.m_file_index, extra.data(), extra.size());
                     dest_file = decode(extra.substr(0, n), stat.m_filename);
                 }
+                if (!is_path_within_root(dest_file, plugin_folder)) {
+                    BOOST_LOG_TRIVIAL(error) << "[install_plugin] entry " << dest_file << " resolves outside " << plugin_folder.string();
+                    close_zip_reader(&archive);
+                    if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                    return InstallStatusUnzipFailed;
+                }
                 auto dest_path = plugin_folder / dest_file;
-                boost::filesystem::create_directories(dest_path.parent_path());
                 std::string dest_zip_file = encode_path(dest_path.string().c_str());
+#ifndef WIN32
+                // Validate a symlink's target before anything at the destination is replaced.
+                const bool is_link = S_ISLNK(stat.m_external_attr >> 16);
+                std::string link;
+                if (is_link) {
+                    link.assign(stat.m_uncomp_size, 0);
+                    if (!mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, link.data(), stat.m_uncomp_size, 0) ||
+                        !is_symlink_target_within_root(dest_file, link, plugin_folder)) {
+                        BOOST_LOG_TRIVIAL(error) << "[install_plugin] link " << dest_file << " -> " << link << " is unreadable or resolves outside " << plugin_folder.string();
+                        close_zip_reader(&archive);
+                        if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                        return InstallStatusUnzipFailed;
+                    }
+                }
+#endif
                 try {
-                    if (fs::exists(dest_path)) {
+                    boost::filesystem::create_directories(dest_path.parent_path());
+                    // symlink_status so that an existing symlink, dangling or not, is replaced rather than written through.
+                    if (fs::exists(fs::symlink_status(dest_path))) {
                         boost::system::error_code ec;
                         fs::remove(dest_path, ec);
                         if (ec) {
@@ -1544,9 +1566,8 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                     }
                     mz_bool res = 0;
 #ifndef WIN32
-                    if (S_ISLNK(stat.m_external_attr >> 16)) {
-                        std::string link(stat.m_uncomp_size + 1, 0);
-                        res = mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, link.data(), stat.m_uncomp_size, 0);
+                    if (is_link) {
+                        res = 1;
                         try {
                             boost::filesystem::create_symlink(link, dest_path);
                         } catch (const std::exception &e) {

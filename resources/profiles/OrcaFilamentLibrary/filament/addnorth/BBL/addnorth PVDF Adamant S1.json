@@ -111,6 +111,7 @@
 		"1"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"eng_plate_temp": [
@@ -316,6 +317,7 @@
 		"2"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [

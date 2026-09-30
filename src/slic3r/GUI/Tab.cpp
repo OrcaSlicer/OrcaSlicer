@@ -4415,15 +4415,15 @@ void TabFilament::build()
         optgroup->append_single_option_line("pellet_flow_coefficient", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("filament_flow_ratio", "material_flow_ratio_and_pressure_advance#flow-ratio", 0);
 
-        optgroup->append_single_option_line("enable_pressure_advance", "material_flow_ratio_and_pressure_advance#pressure-advance");
-        optgroup->append_single_option_line("pressure_advance", "material_flow_ratio_and_pressure_advance#pressure-advance");
+        optgroup->append_single_option_line("enable_pressure_advance", "material_flow_ratio_and_pressure_advance#pressure-advance", 0);
+        optgroup->append_single_option_line("pressure_advance", "material_flow_ratio_and_pressure_advance#pressure-advance", 0);
 
         // Orca: adaptive pressure advance and calibration model
-        optgroup->append_single_option_line("adaptive_pressure_advance", "material_flow_ratio_and_pressure_advance#enable-adaptive-pressure-advance-beta");
-        optgroup->append_single_option_line("adaptive_pressure_advance_overhangs", "material_flow_ratio_and_pressure_advance#enable-adaptive-pressure-advance-for-overhangs-beta");
-        optgroup->append_single_option_line("adaptive_pressure_advance_bridges", "material_flow_ratio_and_pressure_advance#pressure-advance-for-bridges");
+        optgroup->append_single_option_line("adaptive_pressure_advance", "material_flow_ratio_and_pressure_advance#enable-adaptive-pressure-advance-beta", 0);
+        optgroup->append_single_option_line("adaptive_pressure_advance_overhangs", "material_flow_ratio_and_pressure_advance#enable-adaptive-pressure-advance-for-overhangs-beta", 0);
+        optgroup->append_single_option_line("adaptive_pressure_advance_bridges", "material_flow_ratio_and_pressure_advance#pressure-advance-for-bridges", 0);
 
-        Option option = optgroup->get_option("adaptive_pressure_advance_model");
+        Option option = optgroup->get_option("adaptive_pressure_advance_model", 0);
         option.opt.full_width = true;
         option.opt.is_code = true;
         option.opt.height = 15;
@@ -4432,7 +4432,7 @@ void TabFilament::build()
             DynamicPrintConfig& filament_config = m_preset_bundle->filaments.get_edited_preset().config;
 
             update_dirty();
-            if (opt_key == "adaptive_pressure_advance_model")
+            if (opt_key.substr(0, opt_key.find('#')) == "adaptive_pressure_advance_model")
                 m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config);
 
             on_value_change(opt_key, value);
@@ -4829,8 +4829,11 @@ void TabFilament::toggle_options()
     }
     if (m_active_page->title() == L("Filament"))
     {
-        bool pa = m_config->opt_bool("enable_pressure_advance", 0);
-        toggle_option("pressure_advance", pa);
+        const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
+        const unsigned int variant_idx = (unsigned int) std::max(selection, 0);
+
+        bool pa = m_config->opt_bool("enable_pressure_advance", variant_idx);
+        toggle_option("pressure_advance", pa, 0);
 
         //Orca: Enable the plates that should be visible when multi bed support is enabled or a BBL printer is selected; otherwise, enable only the plate visible for the selected bed type.
         DynamicConfig& proj_cfg               = m_preset_bundle->project_config;
@@ -4858,12 +4861,12 @@ void TabFilament::toggle_options()
         // Orca: adaptive pressure advance and calibration model
         // If PA is not enabled, disable adaptive pressure advance and hide the model section
         // If adaptive PA is not enabled, hide the adaptive PA model section
-        toggle_option("adaptive_pressure_advance", pa);
-        toggle_option("adaptive_pressure_advance_overhangs", pa);
-        bool has_adaptive_pa = m_config->opt_bool("adaptive_pressure_advance", 0);
-        toggle_line("adaptive_pressure_advance_overhangs", has_adaptive_pa && pa);
-        toggle_line("adaptive_pressure_advance_model", has_adaptive_pa && pa);
-        toggle_line("adaptive_pressure_advance_bridges", has_adaptive_pa && pa);
+        toggle_option("adaptive_pressure_advance", pa, 0);
+        toggle_option("adaptive_pressure_advance_overhangs", pa, 0);
+        bool has_adaptive_pa = m_config->opt_bool("adaptive_pressure_advance", variant_idx);
+        toggle_line("adaptive_pressure_advance_overhangs", has_adaptive_pa && pa, 0);
+        toggle_line("adaptive_pressure_advance_model", has_adaptive_pa && pa, 0);
+        toggle_line("adaptive_pressure_advance_bridges", has_adaptive_pa && pa, 0);
 
         bool is_pellet_printer = printer_cfg.opt_bool("pellet_modded_printer");
         toggle_line("pellet_flow_coefficient", is_pellet_printer);
@@ -4871,8 +4874,6 @@ void TabFilament::toggle_options()
 
         toggle_line("activate_chamber_temp_control", printer_cfg.opt_bool("support_chamber_temp_control"));
 
-        const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
-        const unsigned int variant_idx = (unsigned int) std::max(selection, 0);
         std::string volumetric_speed_cos = m_config->opt_string("volumetric_speed_coefficients", variant_idx);
         bool enable_fit = volumetric_speed_cos != "0 0 0 0 0 0";
         toggle_option("filament_adaptive_volumetric_speed", enable_fit, 256 + variant_idx);
@@ -5205,7 +5206,6 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("adaptive_bed_mesh_margin", "printer_basic_information_adaptive_bed_mesh#mesh-margin");
 
         optgroup = page->new_optgroup(L("Accessory"), "param_accessory");
-        optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type", 0);
         optgroup->append_single_option_line("nozzle_hrc", "printer_basic_information_accessory#nozzle-hrc");
         optgroup->append_single_option_line("auxiliary_fan", "printer_basic_information_accessory#auxiliary-part-cooling-fan");
         optgroup->append_single_option_line("fan_direction");
@@ -5720,6 +5720,7 @@ if (is_marlin_flavor)
 
         auto optgroup = page->new_optgroup(L("Basic information"), L"param_information", -1, true);
             optgroup->append_single_option_line("nozzle_diameter", "printer_extruder_basic_information#nozzle-diameter", extruder_idx);
+            optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type", extruder_idx);
             //optgroup->append_single_option_line("nozzle_volume_type", "", extruder_idx);
 
             optgroup->append_single_option_line("nozzle_volume", "printer_extruder_basic_information#nozzle-volume", extruder_idx);
@@ -5731,7 +5732,7 @@ if (is_marlin_flavor)
             optgroup->m_on_change = [this, extruder_idx](const t_config_option_key& opt_key, boost::any value)
             {
                 bool is_SEMM = m_config->opt_bool("single_extruder_multi_material");
-                if (is_SEMM && m_extruders_count > 1 && opt_key.find_first_of("nozzle_diameter") != std::string::npos)
+                if (is_SEMM && m_extruders_count > 1 && boost::starts_with(opt_key, "nozzle_diameter"))
                 {
                     SuppressBackgroundProcessingUpdate sbpu;
                     const double new_nd = boost::any_cast<double>(value);

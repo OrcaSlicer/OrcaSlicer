@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <optional>
 #include <array>
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 #include <unordered_set>
 
@@ -622,36 +623,180 @@ public:
     // default_filament_profile must resolve to a system filament.
     bool check_printer_default_materials() const;
 
-    // Merge one vendor's presets with the other vendor's presets, report duplicates.
-    // Public so per-vendor-cache consumers (e.g. the setup wizard) can assemble a
-    // bundle out of several per-vendor caches loaded into separate PresetBundle instances.
-    std::vector<std::string>    merge_presets(PresetBundle &&other);
+    // One vendor to load, and the directory it is installed in.
+    struct VendorSource
+    {
+        std::string             name;
+        boost::filesystem::path dir;
+    };
+
+    // Load `vendors` into this bundle, the Orca filament library directly and every
+    // other vendor in parallel into a bundle of its own that inherits from it, merged
+    // in the order given. A vendor that cannot be loaded has its error added to the
+    // returned text, or thrown in validation mode, and its name to `failed`; it is
+    // left out, except for the library, which keeps what it installed before the
+    // failure. Once `cancel` is set, no further vendor starts loading.
+    std::pair<PresetsConfigSubstitutions, std::string> load_vendors(const std::vector<VendorSource>& vendors,
+        ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache,
+        const std::atomic<bool>* cancel = nullptr, std::vector<std::string>* failed = nullptr);
 
 private:
-    // Load one vendor from the preset cache installed in `dir`, judged against
-    // the vendor profile there. False, with this bundle left clean, when there
-    // is no usable cache and the vendor has to be parsed. This is how
-    // load_vendor_configs_from_json reads a cache.
-    bool load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle);
+    // Move the presets and vendor profiles of `others` into this bundle, in one pass
+    // over each collection. A preset whose name this bundle or an earlier one of
+    // `others` already has is left out and listed under the bundle that repeats it.
+    std::vector<std::vector<std::string>> merge_presets(const std::vector<PresetBundle*> &others);
 
-    // Load one source-form preset entry into this bundle: resolve `inherits`
-    // and `include`, flatten, validate and register the preset. Returns the
-    // reason loading failed, empty on success. See the definition for the
-    // sharing contract between the JSON parse and the cache load.
-    // retain_configs / retain_includes, when non-null, name the only presets
-    // registered into config_maps / include_maps (a config copy each). The
-    // cache load passes the names its entries inherit / include — the only
-    // ones ever looked up again; the JSON parse retains all, not knowing what
-    // later subfiles name.
-    std::string load_vendor_preset(const CachedPreset& entry,
-        const std::string& path, const std::string& vendor_name,
-        const PresetBundle* base_bundle,
-        LoadConfigBundleAttributes flags,
-        ConfigSubstitutionContext& substitution_context, PresetsConfigSubstitutions& substitutions,
-        std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, DynamicPrintConfig>& include_maps,
-        std::map<std::string, std::string>& filament_id_maps,
-        PresetCollection* presets_collection, size_t& count, bool is_from_lib,
-        const std::set<std::string>* retain_configs = nullptr, const std::set<std::string>* retain_includes = nullptr);
+    // What parsing one entry's JSON sub-file reported. Its errors and warnings are
+    // logged when the entry installs, so they come out in listing order with the
+    // entry's install errors, as parsing and installing one entry at a time leaves them.
+    struct EntryParse
+    {
+        ConfigSubstitutions      substitutions;
+        // Counted in the bundle's error count.
+        std::vector<std::string> errors;
+        std::vector<std::string> warnings;
+    };
+
+    // An EntryParse for each entry of the VendorCacheData list of the same name.
+    struct VendorParse
+    {
+        std::vector<EntryParse> process_entries;
+        std::vector<EntryParse> filament_entries;
+        std::vector<EntryParse> machine_entries;
+    };
+
+    // One vendor read from its cache or its JSONs by read_vendor, for
+    // install_vendor_read to install.
+    struct VendorRead
+    {
+        std::string                          dir;
+        std::string                          vendor_name;
+        LoadConfigBundleAttributes           flags;
+        ForwardCompatibilitySubstitutionRule compatibility_rule;
+        // The errors this bundle had counted before the read, which the cache stamp leaves out.
+        int                                  errors_at_entry { 0 };
+        // A whole-vendor load, which can read a cache and write one.
+        bool                                 cacheable { false };
+        // Read from the cache at cache_path, which install can still reject.
+        bool                                 from_cache { false };
+        std::string                          cache_path;
+        // Only the vendor profile was asked for.
+        bool                                 vendor_only { false };
+        VendorCacheData                      data;
+        // What each entry's JSON parse reported, and whether and with which version
+        // the cache is written once the entries install.
+        VendorParse                          parsed;
+        bool                                 will_cache { false };
+        std::string                          version;
+        // The sub-file the parse stopped at, its kind, why, and the errors it reported.
+        std::string                          reason;
+        std::string                          failed_subfile;
+        const char*                          failed_kind { nullptr };
+        std::vector<std::string>             failed_errors;
+    };
+
+    // Read a vendor into this bundle's vendor profiles and `data`, from its cache
+    // when one covers it, else from its JSONs; nothing is installed. Throws
+    // ConfigurationError when the vendor's own JSON cannot be parsed.
+    VendorRead read_vendor(const std::string& dir, const std::string& vendor_name, LoadConfigBundleAttributes flags,
+                           ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache);
+
+    // Parse the vendor's JSONs into `read`, up to the first sub-file that fails.
+    void parse_vendor_json(VendorRead& read);
+
+    // Install what read_vendor read, against base_bundle's filament library. A cache
+    // that cannot be installed is replaced by a parse of the JSONs. Throws
+    // ConfigurationError at the first entry that cannot be installed, or after
+    // installing the entries before a sub-file that could not be parsed.
+    std::pair<PresetsConfigSubstitutions, size_t> install_vendor_read(VendorRead&& read, const PresetBundle* base_bundle);
+
+    // Install a cache's entries. False, with this bundle left clean, when one of them
+    // cannot be installed.
+    bool install_vendor_cache(const std::string& cache_path, const std::string& vendor_name, VendorCacheData&& data,
+                              const PresetBundle* base_bundle);
+
+    // Log and count errors reported by a resolve or a parse.
+    void log_errors(const std::vector<std::string>& errors);
+
+    // The state of installing one collection of one vendor, which
+    // resolve_vendor_preset reads through a const reference and only
+    // commit_vendor_preset writes.
+    struct VendorInstall
+    {
+        // The directory holding <vendor_name>/, whose sub-paths the entries name.
+        std::string                path;
+        std::string                vendor_name;
+        const VendorProfile*       vendor_profile;
+        const PresetBundle*        base_bundle;
+        LoadConfigBundleAttributes flags;
+        PresetCollection*          presets;
+        // The Orca filament library, which keeps every config for other vendors to
+        // resolve against.
+        bool                       is_from_lib;
+        PresetsConfigSubstitutions* substitutions;
+        // The names some entry inherits / includes, the only ones whose configs /
+        // include diffs are looked up again.
+        std::set<std::string>      inherited;
+        std::set<std::string>      included;
+        std::map<std::string, DynamicPrintConfig> config_maps;
+        std::map<std::string, DynamicPrintConfig> include_maps;
+        std::map<std::string, std::string>        filament_id_maps;
+        std::unordered_set<std::string>           installed_names;
+        size_t                     count { 0 };
+    };
+
+    // Install a vendor's source-form entries, parsed from its JSON or read from its
+    // cache: processes, then filaments, then printers. Both loads go through here,
+    // so a cache-loaded bundle cannot come out different from a JSON-loaded one.
+    // `parsed` is given for entries parsed just now. `complete` says the entries
+    // are the vendor's whole lists; only then are the filament library's configs
+    // and filament ids left in m_config_maps and m_filament_id_maps. Returns the
+    // number of presets installed, and throws ConfigurationError at the first
+    // entry that cannot be installed.
+    size_t install_vendor(const std::string& path, const std::string& vendor_name, const PresetBundle* base_bundle,
+                          LoadConfigBundleAttributes flags, const VendorCacheData& entries,
+                          VendorParse* parsed, bool complete, PresetsConfigSubstitutions& substitutions);
+
+    // Install one collection's entries in the order they are listed.
+    void install_vendor_entries(VendorInstall& install, const std::vector<CachedPreset>& entries,
+                                std::vector<EntryParse>* parsed);
+
+    // One entry flattened against the preset it inherits, before anything this
+    // bundle shares has been touched.
+    struct PresetInstall
+    {
+        DynamicPrintConfig       config;
+        std::string              file_path;
+        // Empty when the preset is its own alias.
+        std::string              alias;
+        std::string              filament_id;
+        std::vector<std::string> renamed_from;
+        // Reported by commit, so resolving entries together leaves the log and
+        // the error count as one entry at a time produces them.
+        std::vector<std::string> errors;
+        // What a base states for the presets that include it, when it is retained.
+        std::optional<DynamicPrintConfig> included;
+        // The config kept for the entries that inherit this one, or for other
+        // vendors when this is the filament library.
+        std::optional<DynamicPrintConfig> retained;
+        // Not instantiated, so it contributes a config and no preset.
+        bool                     config_only { false };
+        // Non-empty when the entry is rejected, and says why.
+        std::string              reason;
+    };
+
+    // Flatten one entry against the config it inherits, from this collection's
+    // config_maps or base_bundle's filament library, with the include diffs it
+    // names layered in. It looks up nothing but the names the entry inherits and
+    // includes, and writes nothing.
+    PresetInstall resolve_vendor_preset(const CachedPreset& entry, const VendorInstall& install) const;
+
+    // Install a resolved entry. The collections, the maps in `install` and the
+    // error count are touched here and only here, one entry at a time.
+    // Presets are appended, so a repeated name is caught with `installed_names`,
+    // and the collection is sorted once every entry is in.
+    std::string commit_vendor_preset(const CachedPreset& entry, PresetInstall&& resolved,
+                                     ConfigSubstitutions&& substitutions, VendorInstall& install);
 
     // Clear every collection's m_printer_hold_alias, which reset() leaves alone.
     void clear_printer_hold_aliases();
