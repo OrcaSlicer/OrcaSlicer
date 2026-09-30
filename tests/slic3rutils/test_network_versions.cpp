@@ -95,16 +95,17 @@ TEST_CASE_METHOD(PluginFolderFixture, "Managed builds fold into the series; cust
     REQUIRE(count_version(versions, "02.08.01.52-dev")  == 1);
 
     // Newest series first, its customs nested under it (suffix sort: "" < ".52-dev" < "_custom"),
-    // then older series, legacy last.
+    // then older series (02.07.01 exists as its own whitelisted row), legacy last.
     REQUIRE(versions[0].version == "02.08.01");
     REQUIRE(versions[1].version == "02.08.01.52-dev");
     REQUIRE(versions[2].version == "02.08.01_custom");
-    REQUIRE(versions[3].version == "02.03.00");
+    REQUIRE(versions[3].version == "02.07.01");
+    REQUIRE(versions[4].version == "02.03.00");
     REQUIRE(versions.back().version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
 
     // An older whitelisted series is a flat row of its own, and never holds "(Latest)".
-    REQUIRE(versions[3].suffix.empty());
-    REQUIRE_FALSE(versions[3].is_latest);
+    REQUIRE(versions[4].suffix.empty());
+    REQUIRE_FALSE(versions[4].is_latest);
 
     // Customs sort/render nested under their series (non-empty suffix, base = the series).
     REQUIRE(versions[1].base_version == "02.08.01");
@@ -184,7 +185,10 @@ TEST_CASE("Only whitelisted series pass the load gate", "[NetworkVersions]")
     // Unknown series, legacy siblings, and malformed values.
     REQUIRE_FALSE(is_supported_network_version("02.09.00.10"));
     std::string legacy = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
-    std::string legacy_sibling = legacy.substr(0, 9) + (legacy.substr(9) == "99" ? "98" : "99");
+    // A sibling build of the legacy series, using a suffix that is neither ".99"
+    // (the OSS convention is_supported_network_version() allows by design) nor
+    // legacy's own suffix.
+    std::string legacy_sibling = legacy.substr(0, 9) + (legacy.substr(9) == "98" ? "97" : "98");
     REQUIRE_FALSE(is_supported_network_version(legacy_sibling));
     REQUIRE_FALSE(is_supported_network_version(""));
     REQUIRE_FALSE(is_supported_network_version("02.08"));
