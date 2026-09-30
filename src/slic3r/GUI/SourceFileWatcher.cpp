@@ -26,7 +26,7 @@ namespace {
     constexpr std::int64_t source_file_missing_mtime = std::numeric_limits<std::int64_t>::min();
 
     // How long a tracked file has to stay quiet (no fs event naming it) before it's reported.
-    constexpr int debounce_ms = 300;
+    constexpr int debounce_ms = 500;
 
     // Backstop for a tracked file that never goes quiet: once this long has passed since the
     // first sign of activity, it's reported as it stands rather than held back any longer.

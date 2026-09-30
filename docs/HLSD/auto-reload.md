@@ -60,19 +60,35 @@ The watch set is also rebuilt once a project has finished loading, because the
 object-list refresh during loading runs before the project folder is known, so a
 bare recorded filename can't be resolved yet at that point.
 
-If a directory never delivers events at all (seen once with a very large, busy
-directory), nothing wakes the check and the reload never happens; the manual "Reload
-from disk" menu item remains the fallback.
-
 ## Waiting for a write to finish
 
-Every filesystem event wakes a 300ms debounce timer (`on_fs_event()`), but what it does
+A filesystem event never reports a change by itself. It only starts, or restarts, a
+one-shot 500ms debounce timer, and the file is looked at only when that timer expires:
+that is when `changed_source_files()` compares the tracked files' `(mtime, size)` stamps
+(see "Detecting and committing a change" below) and the reload callback runs. The timer
+does two jobs:
+
+- **It coalesces a burst into one check.** A single export usually produces many events:
+  one per write for an in-place writer (a rename-into-place, by contrast, is a single
+  event, though the temp file's own creation and writes can add more in the same
+  directory), plus any unrelated activity there. Without the timer each of them would
+  cause a check, and possibly a reload.
+- **It waits for the writer to go quiet.** A file that is still being written is
+  incomplete, and reloading it would read a truncated mesh or fail with a parse error. The
+  timer expires only after 500ms with no event for the file, which is taken to mean the
+  writer has finished.
+
+An event is a hint that something may have changed, not proof of it: the stamp
+comparison at expiry is what decides whether a file actually changed, so a burst of
+events that leaves a file's stamp as it was causes no reload.
+
+Every filesystem event wakes the debounce timer (`on_fs_event()`), but what it does
 to a timer that is already pending depends on which file the event names:
 
 - **An event naming a tracked file** (its path, or a rename's new path; creates,
   deletes, renames and modifications only, not reads) restarts the timer. An in-place
   writer produces an event per write, so the check only runs once the file has gone
-  300ms without one.
+  500ms without one.
 - **Any other event** starts the timer if it isn't already running, but never extends
   it. On Windows there is no per-file watch, so *every* event in a watched directory
   reaches `on_fs_event()` through the single directory watch. Restarting on those too
@@ -100,7 +116,7 @@ restarting the timer and the Windows open-for-writing check is skipped, so the p
 tick reports the file as it stands. The next event starts a fresh 30-second window, so a
 file written continuously is reloaded at most every 30 seconds.
 
-A writer that pauses for more than 300ms mid-file without holding the file open (closing
+A writer that pauses for more than 500ms mid-file without holding the file open (closing
 and reopening it between chunks) is still read while incomplete. The file's next write
 is a new change, so the finished file is reloaded once it settles.
 
@@ -130,19 +146,7 @@ result even if it had one.
 
 ## What gets reloaded
 
-The watcher's callback receives the exact set of files that changed.
-`Plater::priv::reload_source_files()` selects only the `ModelVolume`s whose resolved
-source is in that set, so with several objects loaded, editing one CAD file reimports
-only that object, not everything else on the plate. This is narrower than
-`reload_all_from_disk()` (still used by the "Reload all" menu item and the canvas
-shortcut), which selects every object regardless of which one changed — appropriate
-there because the user asked for it explicitly, not appropriate for something that
-runs on every detected file change. One instance's `GLVolume` is enough to select a
-volume for this: `reload_from_disk()` edits the shared `ModelObject`/`ModelVolume`
-directly, so the change reaches every instance regardless of which one's `GLVolume`
-triggered the selection. A cloned volume (the Clone tool deep-copies a `ModelVolume`,
-source path included, into an independent object) matches the changed-files set on
-its own and reloads independently, keeping its own transform.
+The watcher selects the parts whose source file changed and reloads them. If an object has several instances on the plate, they all share one mesh, so reloading it updates every copy, and selecting any one copy is enough. An object made with the Clone tool is different: it has its own independent copy of the part, with the same recorded source file, so it is reloaded separately and keeps its own transform.
 
 `reload_source_files()`'s `touched_objects` output (used below, for auto-slice) is
 best-effort: it collects every object whose volume matched a changed file, not only
@@ -192,8 +196,7 @@ it's the one kind whose presence `reload_from_disk()` can always know for certai
 confirmation here is genuinely informing the user of a consequence, not guessing at
 their intent. If any volume a reload is about to touch is painted, one confirmation
 dialog lists them and asks to continue, gated by `auto_reload_confirm_paint_loss` — **on
-by default**, since losing paint with no warning is exactly the kind of surprise that
-would make someone stop trusting the whole feature. The check that triggers the dialog
+by default**, since losing paint with no warning might make someone stop trusting the whole feature. The check that triggers the dialog
 (`is_any_painted()`) runs before the `keep_painting` remap decision further down, so the
 dialog can't tell whether that experimental option would actually end up preserving the
 paint on the new mesh; its wording says the reload *might* discard the paint, not that it
@@ -220,17 +223,11 @@ that env var is exported — nothing a real user's session sets.
 
 No other kind of local edit is tracked or asked about — a Cut, Simplify, Fix/Repair or
 Smooth result is silently discarded by a reload exactly like an unpainted import would
-be, with no way to opt back in per-volume. That was a deliberate choice, not an
-oversight: any protection for those would only ever last for the current session (there
-is nowhere in the `.3mf` format to record "this mesh no longer matches its source" —
-implementing that would be a project-file format change, not a small addition), so
-after closing and reopening the project, the protection would silently stop applying to
-the exact same edit that was protected a moment earlier. That inconsistency — sometimes
-protected, sometimes not, with no way to tell which without checking whether the
-project was ever saved — was judged worse than no protection at all. **If you use Cut,
-Simplify, Fix/Repair or Smooth on an object and care about the result surviving, treat
-it as incompatible with `auto_reload_on_source_change`**: either don't enable
-auto-reload for that project, or re-apply the tool after every reload.
+be, with no way to opt back in per-volume. That was a deliberate scoping choice, not an
+oversight, and not because it can't be done: see "Possible further development" below.
+Until then, **if you use Cut, Simplify, Fix/Repair or Smooth on an object and care about
+the result surviving, treat it as incompatible with `auto_reload_on_source_change`**:
+either don't enable auto-reload for that project, or re-apply the tool after every reload.
 
 Text/SVG embossing and SLA hollowing/support points are a different problem again: they
 aren't removed by a reload (embossing is a separate `ModelVolume` that doesn't match the
@@ -238,6 +235,20 @@ reloaded file; hollowing and support points live on the `ModelObject`, which the
 path never replaces, only the volumes inside it) — but nothing recomputes their
 position either, so a reload that changes the host mesh's shape can leave them spatially
 wrong instead of outright gone. Not covered by anything here.
+
+## A running slice is cancelled before the model changes
+
+The slicing thread reads the live `ModelObject`'s volumes directly — a `PrintObject`
+keeps a pointer to it, not a copy — and a reload replaces those volumes. So
+`reload_from_disk()` cancels any running slice, a single plate or "Slice all" alike, and
+waits for it to stop just before it starts replacing volumes (after the file has been read
+and any confirmation answered, so a declined or failed reload cancels nothing). Nothing
+downstream does this: the `update()` at the end of a reload only schedules the background
+process to be re-applied later, which is too late for a slice already reading the model.
+This applies to the manual "Reload from disk" menu items as well, which had the same
+exposure. Cancelling costs the interrupted slice's progress, and it is not resumed unless
+`auto_slice_after_reload` is on, in which case the affected plate(s) are sliced again as
+described below.
 
 ## Auto-slice targets the affected plate, not the current one
 
@@ -247,11 +258,12 @@ for what "touched" means here) — found via `PartPlateList::find_instance()` ov
 touched object's instances, not the plate that happens to be on-screen (a reload can
 affect an off-screen plate) and not every plate in the project (auto-arrange can spread
 one object's instances across plates, but most reloads touch just one). If a slice is
-already running, it's cancelled and the queue starts once cancellation completes;
-slicing directly would have `MainFrame::get_enable_slice_status()` see a slice as still
-in progress and silently skip the request. A running "Slice all" is the exception:
-cancelling it would abort the whole multi-plate job, so the auto-slice is skipped
-instead. Plates queued by a later reload are merged into the queue, and a plate that
+already running, it has been cancelled by the reload itself (see "A running slice is
+cancelled before the model changes" below), and the queue starts once that cancellation
+completes; slicing directly would have `MainFrame::get_enable_slice_status()` see a slice
+as still in progress and silently skip the request. This holds for a running "Slice all"
+too: the whole multi-plate job is cancelled, and only the plate(s) containing the reloaded
+object are sliced afterwards. Plates queued by a later reload are merged into the queue, and a plate that
 can't be sliced is skipped so it can't stall the ones behind it. Each queued plate is
 selected, its slice result invalidated directly (`reload_from_disk()`'s own `update()`
 only *schedules* that invalidation via a debounce timer, which races a slice-enable
@@ -267,6 +279,35 @@ Each slice jumps to Preview once it starts, the same as a manually clicked "Slic
 opting into both `auto_reload_on_source_change` and `auto_slice_after_reload` makes
 the export itself the deliberate request to see a sliced result, no less than clicking
 "Slice" would be.
+
+## Possible further development: detecting locally modified meshes
+
+Nothing today records that a volume's mesh has diverged from its source file, so a reload
+can't warn before discarding a Cut, Simplify, Fix/Repair or Smooth result the way it does
+for paint. The `.3mf` *standard* has no place for that, but OrcaSlicer's own project config
+does: it already stores per-volume metadata beyond the standard (`source_file`,
+`source_object_id`, `source_volume_id`, `source_offset_{x,y,z}`, `source_in_inches` in
+`bbs_3mf.cpp`), and readers ignore keys they don't know. So this is a small addition to
+`ModelVolume::Source` and its serialization, not a project-file format change.
+
+The approach would be a mesh fingerprint: a hash of the mesh (or its vertex and triangle
+counts) stored in `Source` whenever a volume is imported or reloaded, and compared against
+the current mesh at reload time. A mismatch means the mesh was modified locally, and the
+reload could ask first, like the paint-loss confirmation. Because the fingerprint is saved
+in the project file, the protection would survive closing and reopening the project, which
+was the objection to any session-only scheme.
+
+Limits of the approach:
+
+- It says that the mesh *changed*, not *which* tool changed it: every one of those tools
+  changes the mesh, and only a mismatch is observable.
+- A project saved before the field existed has no fingerprint, and would have to be treated
+  as unmodified, so its first reload is unprotected.
+- The fingerprint has to be refreshed on every import and reload, including the reload that
+  the user just confirmed.
+
+Not implemented; recorded here so the choice of not protecting these edits isn't mistaken
+for an impossibility.
 
 ## Implementation and verification
 
@@ -291,6 +332,6 @@ the export itself the deliberate request to see a sliced result, no less than cl
   (`scripts/testdata/auto_reload_simple_test_template.3mf`, which has one painted clone):
   in-place, rename-into-place and back-to-back writes, the paint-loss decline/accept on
   clones sharing a source, unrelated directory noise, a slow multi-chunk write, a writer
-  that never goes quiet, and each Preferences option gating what it claims to. It
+  that never goes quiet, a re-export landing while an earlier reload's slice is still running, and each Preferences option gating what it claims to. It
   answers the paint-loss dialog through `ORCA_TEST_HOOKS_DIR`; a missing or corrupt
   source would raise a dialog it can't answer, so it never writes one.

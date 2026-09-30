@@ -12,6 +12,8 @@ decline only drops the declined volume, not an unrelated sibling that happens to
 file (the scenario this script exists to catch: a painted clone and an unpainted one, same source,
 one dialog). Phases J and K cover in-place writers: a slow multi-chunk write is reloaded once,
 after it finishes, and a file that never goes quiet is still reloaded by the 30s backstop.
+Phase L covers a reload landing while a slice is running: the slice must be cancelled before the
+reload replaces the model's volumes, and the plate sliced again afterwards.
 
 Two categories of scenario are deliberately NOT covered here, not just under-instrumented:
   - A missing source file (the "Please select a file" wxFileDialog) or a load failure (the
@@ -41,10 +43,12 @@ Use --only to run just one or more phases, e.g. --only D,E.
 import argparse
 import glob
 import json
+import math
 import os
 import platform
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import threading
@@ -57,10 +61,15 @@ DEFAULT_TEMPLATE = os.path.join(SCRIPT_DIR, "testdata", "auto_reload_simple_test
 
 RELOAD_MARK          = "source file(s) changed on disk, reloading"
 SLICE_START_MARK     = "will start print::process"
+SLICE_DONE_MARK      = "thread_proc: send SlicingProcessCompletedEvent to main"
+SLICE_CANCELLED_MARK = "cancel event, status"
+VOLUMES_REPLACED_MARK = "reload_from_disk: reloaded "
 PAINT_DECLINED_MARK  = "skipping reload, declined in the paint-loss prompt"
 WATCHING_RE          = re.compile(r"watching (\d+) source file\(s\) for changes")
 # "reload_from_disk: reloaded /path/to/file.stl, bounding box size = 12 x 12 x 12 mm"
 SIZE_RE              = re.compile(r"reloaded (\S.*?), bounding box size = ([\d.eE+-]+) x ([\d.eE+-]+) x ([\d.eE+-]+) mm")
+
+HEAVY_SIZE = 100  # mm; tall enough that slicing it takes seconds (see write_heavy_prism_stl)
 
 PREF_RELOAD  = "auto_reload_on_source_change"
 PREF_CONFIRM = "auto_reload_confirm_paint_loss"
@@ -193,6 +202,11 @@ class LogTail:
             if time.monotonic() > deadline:
                 return False
             time.sleep(0.25)
+
+    def seen(self, marker):
+        """Whether `marker` has appeared since the last mark(), reading whatever is new first."""
+        self._read()
+        return marker in self.buf
 
     def wait_for_match(self, pattern, timeout):
         deadline = time.monotonic() + timeout
@@ -374,6 +388,36 @@ def write_cube_stl(path, size, atomic=False):
             f.write(data)
 
 
+def write_heavy_prism_stl(path, size, points=700):
+    """Atomically replaces `path` with a binary STL prism, `size` mm tall, whose outline is a wavy
+    circle with `points` vertices. Unlike a cube, every layer of it has a long, jagged contour to
+    build perimeters and infill for, which makes slicing take seconds -- long enough to land a
+    second write while the slice is still running. The triangle count stays small, so loading the
+    file is not itself slow."""
+    r0 = size / 2.0
+    ring = []
+    for i in range(points):
+        t = 2.0 * math.pi * i / points
+        r = r0 * (1.0 + 0.05 * math.sin(37 * t) + 0.02 * math.sin(211 * t))
+        ring.append((r0 + r * math.cos(t), r0 + r * math.sin(t)))
+    h = float(size)
+    centre = (r0, r0)
+    tris = []
+    for i in range(points):
+        a, b = ring[i], ring[(i + 1) % points]
+        tris.append(((centre[0], centre[1], 0.0), (b[0], b[1], 0.0), (a[0], a[1], 0.0)))      # bottom
+        tris.append(((centre[0], centre[1], h), (a[0], a[1], h), (b[0], b[1], h)))            # top
+        tris.append(((a[0], a[1], 0.0), (b[0], b[1], 0.0), (b[0], b[1], h)))                  # side
+        tris.append(((a[0], a[1], 0.0), (b[0], b[1], h), (a[0], a[1], h)))
+    out = bytearray(80) + struct.pack("<I", len(tris))
+    for a, b, c in tris:
+        out += struct.pack("<12fH", 0, 0, 0, *a, *b, *c, 0)
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(out)
+    os.replace(tmp, path)
+
+
 def directory_noise(dir_path, stop_event, interval=0.2):
     i = 0
     while not stop_event.is_set():
@@ -489,7 +533,7 @@ def main():
         print("\n[C] Two overwrites landing close together -- must settle on the final size, not the first")
         tail.mark(); time.sleep(1.0)
         write_cube_stl(basic_stl, 33)
-        time.sleep(0.1)  # well under the 300ms debounce: both should coalesce into one reload
+        time.sleep(0.1)  # well under the 500ms debounce: both should coalesce into one reload
         write_cube_stl(basic_stl, 37)
         ok = tail.wait_for(RELOAD_MARK, args.timeout)
         record("C1 reload after the pair of writes", ok, "" if ok else "no reload line within %gs" % args.timeout)
@@ -553,7 +597,7 @@ def main():
     def phase_j():
         print("\n[J] Slow in-place write (-> 28 mm over ~2s) -- reloaded once, after the last chunk")
         tail.mark(); time.sleep(1.0)
-        # Each 0.1s pause is under the 300ms debounce, but the whole write is far longer: only the
+        # Each 0.1s pause is under the 500ms debounce, but the whole write is far longer: only the
         # restart on events naming basic.stl (or, on Windows, the open-for-writing check) keeps it
         # from being read half-written. A torn read shows up as a second reload line or, if the
         # partial file doesn't parse, as the "Error during reload" dialog blocking every check below.
@@ -579,7 +623,7 @@ def main():
             elapsed = time.monotonic() - started
             record("K1 reload while the writer is still running", ok, "" if ok else "no reload line within 38s")
             if ok:
-                record("K2 not before the backstop (after ~30s, not ~0.3s)", elapsed > 25.0,
+                record("K2 not before the backstop (after ~30s, not ~0.5s)", elapsed > 25.0,
                        "" if elapsed > 25.0 else "after %.1fs" % elapsed)
         finally:
             stop.set()
@@ -596,6 +640,49 @@ def main():
         if ok:
             sliced = tail.wait_for(SLICE_START_MARK, args.timeout)
             record("G2 slice started automatically", sliced)
+
+    def phase_l():
+        print("\n[L] Re-export while a slice is running: the slice is cancelled, the reload completes, the plate is re-sliced")
+        tail.mark(); time.sleep(1.0)
+        write_heavy_prism_stl(basic_stl, HEAVY_SIZE)
+        ok = tail.wait_for(RELOAD_MARK, args.timeout) and tail.wait_for(SLICE_START_MARK, args.timeout)
+        record("L1 a heavy export reloads and starts a slice", ok)
+        if not ok:
+            return
+        # The second export goes in right away: the slice started a moment ago and this mesh takes
+        # seconds to slice.
+        tail.mark()
+        write_heavy_prism_stl(basic_stl, HEAVY_SIZE - 10)
+        reloaded = tail.wait_for(RELOAD_MARK, args.timeout)
+        record("L2 second export reloads", reloaded)
+        if not reloaded:
+            return
+        # The log is chronological, so whether the first slice was still running when the second
+        # reload began is settled by what came before the reload line, not by timing.
+        before_reload = tail.buf[:tail.buf.index(RELOAD_MARK)]
+        running = SLICE_DONE_MARK not in before_reload
+        record("L3 the first slice was still running when the second reload began", running,
+               "" if running else "it had already finished -- the mesh is too light to test this")
+        cancelled = tail.wait_for(SLICE_CANCELLED_MARK, args.timeout)
+        record("L4 the running slice was cancelled", cancelled)
+        sized = tail.wait_for_size(basic_stl, args.timeout)
+        want = HEAVY_SIZE - 10
+        record("L5 the reload used the second export (%d mm)" % want, sized is not None and abs(sized[2] - want) < 0.5,
+               "" if sized else "no bounding-box log line")
+        # The slicing thread reads the live model, so it has to have stopped before the reload
+        # replaced the volumes -- not cancelled afterwards by the auto-slice that follows.
+        stopped = tail.buf.find(SLICE_DONE_MARK)
+        replaced = tail.buf.find(VOLUMES_REPLACED_MARK)
+        record("L6 the slice stopped before the volumes were replaced", 0 <= stopped < replaced,
+               "" if 0 <= stopped < replaced else "slice stop at %d, volumes replaced at %d in the log" % (stopped, replaced))
+        restarted = tail.wait_for(SLICE_START_MARK, args.timeout)
+        record("L7 the reloaded plate is sliced again", restarted)
+        # The cancelled slice reports its own completion, so only count one seen after this restart.
+        tail.mark()
+        done = tail.wait_for(SLICE_DONE_MARK, 4 * args.timeout)
+        record("L8 the new slice runs to completion", done)
+        alive = app.proc.poll() is None
+        record("L9 the app is still running", alive, "" if alive else "exit code %s" % app.proc.returncode)
 
     def phase_h():
         print("\n[H] With the paint-loss confirmation off: clone.stl reloads silently, paint or not")
@@ -620,13 +707,13 @@ def main():
 
     STATE_GROUPS = [
         ((True, True, False), ["A", "B", "C", "D", "E", "F", "J", "K"]),
-        ((True, True, True), ["G"]),
+        ((True, True, True), ["G", "L"]),
         ((True, False, False), ["H"]),
         ((False, True, False), ["I"]),
     ]
     PHASE_FUNCS = {
         "A": phase_a, "B": phase_b, "C": phase_c, "D": phase_d, "E": phase_e,
-        "F": phase_f, "G": phase_g, "H": phase_h, "I": phase_i, "J": phase_j, "K": phase_k,
+        "F": phase_f, "G": phase_g, "H": phase_h, "L": phase_l, "I": phase_i, "J": phase_j, "K": phase_k,
     }
 
     if args.only:
