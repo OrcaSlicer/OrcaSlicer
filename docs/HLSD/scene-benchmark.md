@@ -48,6 +48,9 @@ Each scene renders 30 warm-up frames, then the camera path twice, 360 frames eac
   `FrameProfiler::start_averaging()` flags every frame begun afterwards, and
   `finish_averaging()` waits for the flagged frames still on the GPU and returns the mean
   CPU and GPU time of each section per profiled frame.
+- A section's GPU time is taken between a timestamp before its commands and one after
+  them. The first is only sent along with those commands, so when the GPU finishes a
+  section before the CPU has issued the next one, the wait counts in neither.
 
 The dialog renders one frame per idle event by calling `GLCanvas3D::render()`, which
 redraws the whole scene. While `GLCanvas3D::set_benchmarking()` is on, the canvas does not

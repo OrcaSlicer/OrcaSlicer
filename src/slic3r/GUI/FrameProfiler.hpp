@@ -9,8 +9,9 @@ namespace Slic3r {
 namespace GUI {
 
 // CPU and GPU time spent in the named sections of a frame, shown under the FPS overlay and averaged
-// by the scene benchmark. A section runs from the previous mark to the one naming it. GPU times are
-// read back a few frames late, so profiling never waits on the GPU.
+// by the scene benchmark. A section runs from the previous mark to the one naming it; its GPU time
+// leaves out any wait for the CPU to send its commands. GPU times are read back a few frames late,
+// so profiling never waits on the GPU.
 class FrameProfiler
 {
 public:
@@ -40,7 +41,8 @@ private:
 
     struct Frame
     {
-        std::array<unsigned int, MAX_SECTIONS + 1> queries{};
+        // A begin and an end timestamp per section.
+        std::array<unsigned int, 2 * MAX_SECTIONS> queries{};
         std::array<const char*, MAX_SECTIONS> names{};
         std::array<double, MAX_SECTIONS> cpu_ms{};
         size_t count{ 0 };

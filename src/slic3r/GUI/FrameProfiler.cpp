@@ -40,9 +40,12 @@ void FrameProfiler::mark(const char* name)
 
     Frame& frame = *m_recording;
     const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-    glsafe(::glQueryCounter(frame.queries[frame.count + 1], GL_TIMESTAMP));
+    glsafe(::glQueryCounter(frame.queries[2 * frame.count + 1], GL_TIMESTAMP));
     // Else the GPU time would include the CPU time spent until the driver flushes on its own.
     glsafe(::glFlush());
+    // Sent with the next section's commands, so the time the GPU waits for them is not billed to it.
+    if (frame.count + 1 < MAX_SECTIONS)
+        glsafe(::glQueryCounter(frame.queries[2 * frame.count + 2], GL_TIMESTAMP));
     frame.names[frame.count] = name;
     frame.cpu_ms[frame.count] = std::chrono::duration<double, std::milli>(now - m_last_mark).count();
     ++frame.count;
@@ -71,13 +74,13 @@ void FrameProfiler::collect(bool wait)
 
         if (!wait) {
             GLint available = 0;
-            glsafe(::glGetQueryObjectiv(frame.queries[frame.count], GL_QUERY_RESULT_AVAILABLE, &available));
+            glsafe(::glGetQueryObjectiv(frame.queries[2 * frame.count - 1], GL_QUERY_RESULT_AVAILABLE, &available));
             if (available == 0)
                 break;
         }
 
-        std::array<GLuint64, MAX_SECTIONS + 1> stamps{};
-        for (size_t j = 0; j <= frame.count; ++j)
+        std::array<GLuint64, 2 * MAX_SECTIONS> stamps{};
+        for (size_t j = 0; j < 2 * frame.count; ++j)
             glsafe(::glGetQueryObjectui64v(frame.queries[j], GL_QUERY_RESULT, &stamps[j]));
         frame.pending = false;
 
@@ -87,7 +90,7 @@ void FrameProfiler::collect(bool wait)
         std::vector<Section> sections;
         sections.reserve(frame.count);
         for (size_t j = 0; j < frame.count; ++j) {
-            Section section{ frame.names[j], frame.cpu_ms[j], stamps[j + 1] > stamps[j] ? double(stamps[j + 1] - stamps[j]) * 1e-6 : 0.0 };
+            Section section{ frame.names[j], frame.cpu_ms[j], stamps[2 * j + 1] > stamps[2 * j] ? double(stamps[2 * j + 1] - stamps[2 * j]) * 1e-6 : 0.0 };
             if (averaged) {
                 auto sum = std::find_if(m_sums.begin(), m_sums.end(), [&section](const Section& s) { return std::strcmp(s.name, section.name) == 0; });
                 if (sum == m_sums.end())
