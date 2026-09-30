@@ -30,6 +30,8 @@
 
 namespace Slic3r {
 
+class SlicingErrors;
+
 class GCode;
 class Layer;
 class ModelObject;
@@ -468,6 +470,10 @@ public:
     std::vector<Polygons>       slice_support_volumes(const ModelVolumeType model_volume_type) const;
     std::vector<Polygons>       slice_support_blockers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_BLOCKER); }
     std::vector<Polygons>       slice_support_enforcers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_ENFORCER); }
+    // Shared slicing path; multiple volumes are united per layer.
+    std::vector<Polygons>       slice_modifier_volumes(const std::vector<const ModelVolume*> &volumes) const;
+    // Keep Precise Seam volumes separate so their individual priority is preserved.
+    std::vector<Polygons>       slice_single_volume(const ModelVolume* volume) const { return this->slice_modifier_volumes({volume}); }
 
     // Helpers to project custom facets on slices
     void project_and_append_custom_facets(bool seam, EnforcerBlockerType type, std::vector<Polygons>& expolys, std::vector<std::pair<Vec3f,Vec3f>>* vertical_points=nullptr) const;
@@ -828,6 +834,7 @@ struct PrintStatistics
     double                          total_wipe_tower_cost;
     double                          total_wipe_tower_filament;
     unsigned int                    initial_tool;
+    unsigned int                    initial_no_support_tool;
     std::map<size_t, double>        filament_stats;
 
     // Config with the filled in print statistics.
@@ -846,6 +853,7 @@ struct PrintStatistics
         total_wipe_tower_cost  = 0.;
         total_wipe_tower_filament = 0.;
         initial_tool           = 0;
+        initial_no_support_tool = 0;
         filament_stats.clear();
     }
     static const std::string FilamentUsedG;
@@ -967,6 +975,8 @@ public:
 
     // Returns an empty string if valid, otherwise returns an error message.
     StringObjectException validate(std::vector<StringObjectException> *warnings = nullptr, Polygons* collison_polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr) const override;
+    // The per-object messages of a SlicingErrors, each prefixed with its object's name.
+    std::string slicing_errors_message(const SlicingErrors &errors) const;
     double              skirt_first_layer_height() const;
     Flow                brim_flow() const;
     Flow                skirt_flow() const;

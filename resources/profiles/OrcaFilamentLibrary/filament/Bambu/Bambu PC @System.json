@@ -11,5 +11,13 @@
 	"slow_down_layer_time": [
 		"12"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_max_volumetric_speed": [
+		"12",
+		"12",
+		"30",
+		"12",
+		"12",
+		"20"
+	]
 }

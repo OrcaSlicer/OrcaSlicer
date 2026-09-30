@@ -1,0 +1,53 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @Prusa CORE One MMU3",
+	"inherits": "Generic TPU @Prusa CORE One",
+	"from": "system",
+	"setting_id": "pYEUfg7uqu2LGw2n",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One MMU3 0.4 nozzle",
+		"Prusa CORE One MMU3 0.25 nozzle",
+		"Prusa CORE One MMU3 0.3 nozzle",
+		"Prusa CORE One MMU3 0.6 nozzle"
+	],
+	"filament_cooling_final_speed": [
+		"3.4"
+	],
+	"filament_cooling_initial_speed": [
+		"2.2"
+	],
+	"filament_cooling_moves": [
+		"4"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_loading_speed": [
+		"28"
+	],
+	"filament_loading_speed_start": [
+		"3"
+	],
+	"filament_ramming_parameters": [
+		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
+	],
+	"filament_stamping_distance": [
+		"0"
+	],
+	"filament_stamping_loading_speed": [
+		"0"
+	],
+	"filament_start_gcode": [
+		"M900 K0 ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+	],
+	"filament_unloading_speed": [
+		"90"
+	],
+	"filament_unloading_speed_start": [
+		"100"
+	],
+	"idle_temperature": [
+		"150"
+	]
+}

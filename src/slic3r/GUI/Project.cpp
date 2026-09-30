@@ -44,10 +44,11 @@ const std::vector<std::string> license_list = {
 
 ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style) : wxPanel(parent, id, pos, size, style)
 {
-    m_project_home_url = wxString::Format("file://%s/web/model/index.html", from_u8(resources_dir()));
+    SetBackgroundColour(*wxWHITE);
+    m_project_home_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/model/index.html");
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
-        m_project_home_url = wxString::Format("file://%s/web/model/index.html?lang=%s", from_u8(resources_dir()), strlang);
+        m_project_home_url += "?lang=" + strlang;
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -67,6 +68,7 @@ ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
     m_auxiliary = new AuxiliaryPanel(this);
     m_auxiliary->Hide();
     main_sizer->Add(m_auxiliary, wxSizerFlags().Expand().Proportion(1));
+    add_build_steps_of(*m_auxiliary);
     Bind(EVT_AUXILIARY_DONE, [this](wxCommandEvent& e) { update_model_data();});
 
     SetSizer(main_sizer);
@@ -291,10 +293,8 @@ void ProjectPanel::OnScriptMessage(wxWebViewEvent& evt)
             if (!accessory_path.empty()) {
                 std::string decode_path = wxGetApp().url_decode(accessory_path.ToStdString());
                 fs::path path(decode_path);
-
-                if (fs::exists(path)) {
-                    wxLaunchDefaultApplication(path.wstring(), 0);
-                }
+                if (!desktop_open_project_attachment(this, path))
+                    BOOST_LOG_TRIVIAL(warning) << "open_3mf_accessory: not opening " << decode_path;
             }
         }
         else if (strCmd == "request_3mf_info") {

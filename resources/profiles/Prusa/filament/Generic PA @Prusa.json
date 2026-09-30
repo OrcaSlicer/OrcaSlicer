@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Prusa",
-	"inherits": "Generic PA @Prusa base",
 	"renamed_from": "Prusa Generic PA",
+	"inherits": "Generic PA @Prusa base",
 	"from": "system",
 	"setting_id": "zTnz1NYXoXxIHhRv",
 	"instantiation": "true",

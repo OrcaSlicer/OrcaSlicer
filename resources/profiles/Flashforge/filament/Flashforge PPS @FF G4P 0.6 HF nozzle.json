@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Flashforge PPS @FF G4P 0.6 HF nozzle",
-	"inherits": "FusRock PET-CF @G3U 0.6 Nozzle",
 	"renamed_from": "FlashForge PPS @FF G4P 0.6 HF nozzle;FlashForge PPS FF G4P 0.6 HF nozzle",
+	"inherits": "FusRock PET-CF @G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "Uu82gm86ESeidnRT",
 	"filament_id": "OFlgMgNM",

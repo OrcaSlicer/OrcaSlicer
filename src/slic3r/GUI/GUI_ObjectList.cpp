@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
 //#include "GUI_ObjectLayers.hpp"
@@ -10,6 +11,7 @@
 #include "BitmapComboBox.hpp"
 #include "MainFrame.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 
 #include "OptionsGroup.hpp"
 #include "Tab.hpp"
@@ -1159,17 +1161,39 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
     if (m_objects_model->GetItemType(item) & itObject) {
         std::string name = m_objects_model->GetName(item).ToUTF8().data();
         if (obj->name != name) {
+            const std::string previous_name = obj->name;
             obj->name = name;
             // if object has just one volume, rename this volume too
             if (obj->volumes.size() == 1)
                 obj->volumes[0]->name = obj->name;
             Slic3r::save_object_mesh(*obj);
+
+            LifecycleEventContext ctx;
+            ctx.name = name;
+            ctx.previous_name = previous_name;
+            ctx.id = std::to_string(obj->id().id);
+            ctx.index = obj_idx;
+            ctx.source = "object";
+            fire_lifecycle_event(LifecycleEvent::ObjectRenamed, ctx);
         }
         return;
     }
 
     if (volume_id < 0) return;
-    obj->volumes[volume_id]->name = m_objects_model->GetName(item).ToUTF8().data();
+    std::string name = m_objects_model->GetName(item).ToUTF8().data();
+    if (obj->volumes[volume_id]->name == name)
+        return;
+
+    const std::string previous_name = obj->volumes[volume_id]->name;
+    obj->volumes[volume_id]->name = name;
+
+    LifecycleEventContext ctx;
+    ctx.name = name;
+    ctx.previous_name = previous_name;
+    ctx.id = std::to_string(obj->volumes[volume_id]->id().id);
+    ctx.index = volume_id;
+    ctx.source = "volume";
+    fire_lifecycle_event(LifecycleEvent::ObjectRenamed, ctx);
 }
 
 void ObjectList::update_name_in_list(int obj_idx, int vol_idx) const
@@ -1920,6 +1944,12 @@ bool ObjectList::can_drop(const wxDataViewItem& item, int& src_obj_id, int& src_
 
         if (dragged_item_v_type == item_v_type && dragged_item_v_type != ModelVolumeType::MODEL_PART)
             return true;
+
+        // Use tree item types: hidden cut connectors make tree indices differ from volumes indices.
+        if (is_precise_seam(dragged_item_v_type) && is_precise_seam(item_v_type))
+            // Allow reordering only within the strong or weak modifier group.
+            return is_precise_seam_strong(dragged_item_v_type) == is_precise_seam_strong(item_v_type);
+
         if ((dragged_item_v_type != item_v_type) ||   // we can't reorder volumes outside of types
             item_v_type >= ModelVolumeType::SUPPORT_BLOCKER)        // support blockers/enforcers can't change its place
             return false;
@@ -2009,10 +2039,43 @@ void ObjectList::OnDrop(wxDataViewEvent &event)
         int to_volume_id   = m_objects_model->GetVolumeIdByItem(item);
         int delta          = to_volume_id < from_volume_id ? -1 : 1;
 
-        auto &volumes = (*m_objects)[m_dragged_data.obj_idx()]->volumes;
+        const int obj_idx = m_dragged_data.obj_idx();
+        // Object-indexed UI maps may be stale after another object is removed or reordered.
+        if (obj_idx < 0 || size_t(obj_idx) >= m_objects->size()) {
+            event.Veto();
+            m_dragged_data.clear();
+            return;
+        }
+        const ModelObject *object = (*m_objects)[obj_idx];
+        auto &volumes = (*m_objects)[obj_idx]->volumes;
+        std::vector<size_t> visible_volume_indices;
+        visible_volume_indices.reserve(volumes.size());
+        for (size_t idx = 0; idx < volumes.size(); ++idx)
+            // Match add_volumes_to_object_in_list: only connectors of cut objects are hidden.
+            if (!(object->is_cut() && volumes[idx]->is_cut_connector()))
+                visible_volume_indices.push_back(idx);
 
-        int cnt = 0;
-        for (int id = from_volume_id; cnt < abs(from_volume_id - to_volume_id); id += delta, cnt++) std::swap(volumes[id], volumes[id + delta]);
+        // Validate the entire move before any swap; these checks must also protect Release builds.
+        if (from_volume_id < 0 || to_volume_id < 0 ||
+            size_t(from_volume_id) >= visible_volume_indices.size() || size_t(to_volume_id) >= visible_volume_indices.size()) {
+            event.Veto();
+            m_dragged_data.clear();
+            return;
+        }
+
+        // Move through visible slots only, keeping hidden cut connectors at their original indices.
+        // The local mapping stays valid because no hidden volume changes slots during the move.
+        for (int id = from_volume_id; id != to_volume_id; id += delta) {
+            const size_t current_idx = visible_volume_indices[id];
+            const size_t next_idx = visible_volume_indices[id + delta];
+            std::swap(volumes[current_idx], volumes[next_idx]);
+        }
+
+        // Later selection/filament handlers use this cache; repair it for the moved object too.
+        auto &ui_to_model = m_objects_model->get_ui_and_3d_volume_map()[obj_idx];
+        ui_to_model.clear();
+        for (size_t idx = 0; idx < visible_volume_indices.size(); ++idx)
+            ui_to_model[int(idx)] = int(visible_volume_indices[idx]);
 
         select_item(m_objects_model->ReorganizeChildren(from_volume_id, to_volume_id, m_objects_model->GetParent(item)));
 
@@ -3519,7 +3582,14 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
             obj->delete_connectors();
 
             if (obj->volumes.empty() || !obj->has_solid_mesh()) {
+                const std::string deleted_obj_name = obj->name;
                 model.delete_object(idx);
+                {
+                    Slic3r::LifecycleEventContext ctx;
+                    ctx.name = deleted_obj_name;
+                    ctx.code = Slic3r::LifecycleEvtCode::Ok;
+                    Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectDeleted, ctx);
+                }
                 m_objects_model->Delete(m_objects_model->GetItemById(idx));
                 continue;
             }
@@ -3824,7 +3894,8 @@ wxDataViewItem ObjectList::add_settings_item(wxDataViewItem parent_item, const D
     const bool is_layer_settings = m_objects_model->GetItemType(parent_item) == itLayer;
     if (!is_object_settings) {
         ModelVolumeType volume_type = m_objects_model->GetVolumeType(parent_item);
-        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER)
+        // Precise Seam is non-printing helper geometry — no per-volume settings
+        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER || is_precise_seam(volume_type))
             return ret;
     }
 
@@ -4087,6 +4158,13 @@ void ObjectList::add_object_to_list(size_t obj_idx, bool call_selection_changed,
     std::string warning_bitmap = get_warning_icon_name(model_object->mesh().stats());
     const auto item = m_objects_model->AddObject(model_object, warning_bitmap, model_object->is_cut());
     Expand(m_objects_model->GetParent(item));
+
+    {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.name = model_object->name;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectAdded, ctx);
+    }
 
     if (!do_info_update)
         return;
@@ -5674,7 +5752,6 @@ void ObjectList::change_part_type()
   return;
 }
 #endif
-
 ModelVolumeType ObjectList::get_selected_volume_type()
 {
     ModelVolume* volume = get_selected_model_volume();
@@ -5683,13 +5760,49 @@ ModelVolumeType ObjectList::get_selected_volume_type()
     return ModelVolumeType::INVALID;
 }
 
-void ObjectList::set_volume_type(ModelVolumeType new_type)
+// ---------------- Helpers for Precise Seam group-aware type changes ----------------
+// Used by set_volume_type() and the "Precise Seam Type" subtype submenu handler.
+
+// Detects whether a type change crosses a Precise Seam "group boundary" that requires
+// manual repositioning inside ModelObject::volumes[]:
+//   - between any non-PS type and any PS subtype, or
+//   - between strong PS (CENTER/LEFT/RIGHT) and weak PS (ENFORCED/BLOCKED/NEUTRAL).
+// sort_volumes() is stable and groups strong PS before weak PS. When a volume crosses
+// a group, moving it to the end of volumes[] lets the subsequent stable sort place it
+// at the end of its new group. Without this, a strong→weak transition would leave the
+// volume stuck in the strong segment and break the modifier-application order.
+static bool precise_seam_group_changed(ModelVolumeType old_type, ModelVolumeType new_type)
+{
+    const bool old_is_ps = is_precise_seam(old_type);
+    const bool new_is_ps = is_precise_seam(new_type);
+    if (old_is_ps != new_is_ps)
+        return true;                 // non-PS ↔ PS transition
+    if (!old_is_ps)
+        return false;                // both non-PS — regular enum ordering is enough
+    return is_precise_seam_strong(old_type) != is_precise_seam_strong(new_type);
+}
+
+// Moves a volume to the end of ModelObject::volumes[]. Combined with stable sort_volumes(),
+// this places it at the end of its new group while preserving relative order of others.
+static void move_volume_to_end(ModelObject* obj, ModelVolume* volume)
+{
+    if (obj == nullptr || volume == nullptr)
+        return;
+    auto it = std::find(obj->volumes.begin(), obj->volumes.end(), volume);
+    if (it != obj->volumes.end()) {
+        obj->volumes.erase(it);
+        obj->volumes.push_back(volume);
+    }
+}
+
+void ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype)
 {
     struct VolumeSelection {
         int          object_idx;
         ModelVolume* volume;
     };
 
+    // --- Collect selected volumes from the object tree, falling back to the 3D canvas ---
     std::vector<VolumeSelection> volumes;
     auto add_volume = [&volumes](int obj_idx, ModelVolume* volume) {
         if (volume == nullptr)
@@ -5754,25 +5867,49 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
     // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
     // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
     // in MenuFactory::append_menu_item_change_type, see #13120).
+    // The same rationale applies to any Precise Seam subtype.
     // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
     // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
-    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER
+        || is_precise_seam(new_type)) {
         const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
             [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
         if (has_text_or_svg) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__
-                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER on SVG/text volume; "
+                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER or Precise Seam on SVG/text volume; "
                 << "UI guard should have prevented this -- possible regression in the Change Type menu";
             return;
         }
     }
 
+    // --- Subtype preservation for the generic "Precise Seam" entry ---
+    // The Change Type submenu uses PRECISE_SEAM_CENTER as the single "Precise Seam" entry
+    // and calls with preserve_ps_subtype=true: volumes that are already Precise Seam keep
+    // their subtype (LEFT/RIGHT/etc.); only non-PS volumes get converted to the default
+    // CENTER subtype.
+    //
+    // The "Precise Seam Type" subtype submenu calls with preserve_ps_subtype=false: the
+    // user explicitly picked CENTER and all selected PS volumes must be set to CENTER
+    // verbatim (otherwise CENTER would become unreachable for mixed-subtype selections,
+    // since preservation would keep every volume at its current subtype and any_diff would
+    // be false — the reason for this two-parameter split).
+    auto effective_new_type = [new_type, preserve_ps_subtype](const ModelVolume* v) -> ModelVolumeType {
+        if (preserve_ps_subtype && new_type == ModelVolumeType::PRECISE_SEAM_CENTER && v->is_precise_seam())
+            return v->type();
+        return new_type;
+    };
+
+    // --- Any-change check using the effective target type ---
     const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
-        [new_type](const VolumeSelection& sel) { return sel.volume->type() != new_type; });
+        [&effective_new_type](const VolumeSelection& sel) {
+            return sel.volume->type() != effective_new_type(sel.volume);
+        });
 
     if (!any_diff)
         return;
 
+    // --- Last-solid-part guard (pre-existing behavior) ---
+    // When converting away from MODEL_PART, ensure at least one solid part remains per object.
     if (new_type != ModelVolumeType::MODEL_PART) {
         std::map<int, int> total_part_cnt;
         std::map<int, int> selected_part_cnt;
@@ -5800,14 +5937,36 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
 
     take_snapshot(_u8L("Change part type"));
 
+    // --- Apply type changes with Precise Seam group-aware repositioning ---
+    // Note: `changed_volumes` / `touched_objects` track every processed volume, including
+    // subtype-preservation no-ops. Tracking no-ops is intentional — it ensures such
+    // volumes remain selected after the post-apply rebuild. Without that, a cross-object
+    // mixed selection like [Part, PS_LEFT] clicking "Change type → Precise Seam" would
+    // silently deselect the preserved PS_LEFT: only the Part's object would enter
+    // touched_objects, and the final SetSelections(new_selection) would drop PS_LEFT.
     std::set<const ModelVolume*> changed_volumes;
     std::set<int>                touched_objects;
     for (const auto& sel : volumes) {
-        sel.volume->set_type(new_type);
+        const ModelVolumeType target   = effective_new_type(sel.volume);
+        const ModelVolumeType old_type = sel.volume->type();
+
+        // Record the volume for reselection before the no-op short-circuit (see comment above).
         changed_volumes.insert(sel.volume);
         touched_objects.insert(sel.object_idx);
+
+        if (old_type == target)
+            continue; // subtype-preservation no-op — nothing to write/move
+
+        sel.volume->set_type(target);
+
+        // If the change crosses a PS group boundary, move the volume to the end of volumes[]
+        // so the stable sort in reorder_volumes_and_get_selection() places it at the end of
+        // its new group (see precise_seam_group_changed() for details).
+        if (precise_seam_group_changed(old_type, target))
+            move_volume_to_end((*m_objects)[sel.object_idx], sel.volume);
     }
 
+    // --- Rebuild selection to follow the changed volumes ---
     wxDataViewItemArray new_selection;
     for (int obj_idx : touched_objects) {
         wxDataViewItemArray sel_items = reorder_volumes_and_get_selection(obj_idx, [&changed_volumes](const ModelVolume* volume) {

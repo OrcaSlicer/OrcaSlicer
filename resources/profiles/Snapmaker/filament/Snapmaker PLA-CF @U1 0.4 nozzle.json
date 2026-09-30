@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA-CF @U1 0.4 nozzle",
+	"renamed_from": "Snapmaker PLA-CF @U1",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"renamed_from": "Snapmaker PLA-CF @U1",
 	"setting_id": "2INwruC3ZVkBTdUT",
 	"filament_id": "OFhQf8ou",
 	"instantiation": "true",

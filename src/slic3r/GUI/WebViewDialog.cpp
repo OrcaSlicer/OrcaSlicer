@@ -36,10 +36,10 @@ namespace GUI {
 WebViewPanel::WebViewPanel(wxWindow *parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
  {
-    wxString url = wxString::Format("file://%s/web/homepage/index.html", from_u8(resources_dir()));
+    wxString url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/homepage/index.html");
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
-        url = wxString::Format("file://%s/web/homepage/index.html?lang=%s", from_u8(resources_dir()), strlang);
+        url += "?lang=" + strlang;
 
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
     
@@ -219,6 +219,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     Bind(wxEVT_CLOSE_WINDOW, &WebViewPanel::OnClose, this);
 
     m_LoginUpdateTimer = nullptr;
+    update_mode();
  }
 
 WebViewPanel::~WebViewPanel()
@@ -416,8 +417,7 @@ void WebViewPanel::OnClose(wxCloseEvent& evt)
 
 void WebViewPanel::OnFreshLoginStatus(wxTimerEvent &event)
 {
-    auto mainframe = Slic3r::GUI::wxGetApp().mainframe;
-    if (mainframe && mainframe->m_webview == this) {
+    if (WebViewPanel::if_built() == this) {
         auto* app_config = Slic3r::GUI::wxGetApp().app_config;
         if (app_config && app_config->get_stealth_mode()) return;
         Slic3r::GUI::wxGetApp().get_login_info(ORCA_CLOUD_PROVIDER);

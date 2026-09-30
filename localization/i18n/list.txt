@@ -213,6 +213,7 @@ src/slic3r/Utils/Process.cpp
 src/libslic3r/GCode.cpp
 src/libslic3r/GCodeWriter.cpp
 src/libslic3r/GCode/ToolOrdering.cpp
+src/libslic3r/GCode/SeamPlacer.cpp
 src/libslic3r/ExtrusionEntity.cpp
 src/libslic3r/Flow.cpp
 src/libslic3r/Format/AMF.cpp

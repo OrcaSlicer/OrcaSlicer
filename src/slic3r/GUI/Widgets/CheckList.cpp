@@ -62,7 +62,7 @@ CheckList::CheckList(
 
     s_sizer       = new wxBoxSizer(wxVERTICAL);
     m_scroll_area = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, scroll_style);
-    m_scroll_area->SetScrollRate(0, 10);
+    m_scroll_area->SetScrollRate(0, FromDIP(20));
     m_scroll_area->SetSizer(s_sizer);
     m_scroll_area->SetBackgroundColour(parent->GetBackgroundColour());
     m_scroll_area->Bind(wxEVT_RIGHT_DOWN, &CheckList::ShowMenu, this);

@@ -625,6 +625,12 @@ void Bed3D::update_model_offset()
     shift(2) = -0.03;
     Vec3d* model_offset_ptr = const_cast<Vec3d*>(&m_model_offset);
     *model_offset_ptr = shift;
+    //BBS: TODO: hack for current stl for BBL printer
+    if (std::string::npos != m_model_filename.find("bbl-3dp-"))
+    {
+        (*model_offset_ptr)(0) -= m_bed_shape[2].x() / 2.0f;
+        (*model_offset_ptr)(1) -= m_bed_shape[2].y() / 2.0f;
+    }
     (*model_offset_ptr)(2) = -0.41 + GROUND_Z;
 
     // update extended bounding box

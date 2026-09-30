@@ -87,6 +87,8 @@ public:
 
     static PrintHost* get_print_host(DynamicPrintConfig *config);
     static std::string get_print_host_webui(DynamicPrintConfig *config);
+    // Reads the "err" field of a JSON reply, 0 when absent. Returns -1 when the body is not valid JSON.
+    static int get_err_code_from_body(const std::string &body);
 
     //Support for cloud webui login
     virtual bool is_cloud() const { return false; }
@@ -149,6 +151,10 @@ public:
 
     void enqueue(PrintHostJob job);
     void cancel(size_t id);
+
+    // Uploads the job, firing UploadStarted and a matching UploadFinished. An exception thrown by
+    // the upload is reported through error_fn and makes the upload fail.
+    static bool upload_job(PrintHostJob &job, PrintHost::ProgressFn progress_fn, PrintHost::ErrorFn error_fn, PrintHost::InfoFn info_fn);
 
 private:
     struct priv;

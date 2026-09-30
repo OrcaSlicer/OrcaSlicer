@@ -3521,7 +3521,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_mate,        false, true);
 
     m_form->FitInside();
-    m_form->SetScrollRate(0, 10);   // vertical only, like Prepare's sidebar: never scroll labels out
+    m_form->SetScrollRate(0, FromDIP(20));   // vertical only, like Prepare's sidebar: never scroll labels out
     m_form->SetMinSize(wxSize(264, -1));
 
     // Right column: a small view toolbar over the live 3D viewport that mirrors
@@ -4862,12 +4862,12 @@ void DesignPanel::on_import_mesh()
     try {
         shape = GeometryEngine::mesh_to_brep(mesh.its, MESH_IMPORT_TOLERANCE,
                                              MESH_IMPORT_MERGE_ANGLE_DEG, stats);
-    } catch (const std::exception& e) {
-        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
-        return;
-    } catch (const Standard_Failure& e) {   // OCCT throws outside std::exception
+    } catch (const Standard_Failure& e) {   // on OCCT >= 8 Standard_Failure derives from std::exception — must precede that handler
         fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(
                  e.GetMessageString() ? e.GetMessageString() : "OCCT error"));
+        return;
+    } catch (const std::exception& e) {
+        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
         return;
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }

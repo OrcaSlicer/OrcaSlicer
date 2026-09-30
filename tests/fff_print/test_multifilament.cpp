@@ -715,3 +715,181 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+// A filament can define several variants (Standard, High Flow). Each filament prints with its
+// variant of the extruder's variant string, or with its own first variant when it defines none, on a
+// printer listing a single variant as on one listing several.
+TEST_CASE("Each filament prints with its variant of the extruder's variant string", "[MultiFilament]")
+{
+    auto [variant_list, nozzle_volume_type, filament, temperature, resolved] = GENERATE(table<std::string, NozzleVolumeType, int, int, std::string>({
+        { "Direct Drive Standard",                        nvtStandard, 1, 211, "211,223" },
+        { "Direct Drive Standard",                        nvtStandard, 2, 223, "211,223" },
+        { "Direct Drive High Flow",                       nvtHighFlow, 1, 239, "239,223" },
+        { "Direct Drive High Flow",                       nvtHighFlow, 2, 223, "239,223" }, // filament 2 defines no High Flow variant
+        { "Direct Drive Standard,Direct Drive High Flow", nvtHighFlow, 1, 239, "239,223" },
+        { "Direct Drive Standard,Direct Drive High Flow", nvtHighFlow, 2, 223, "239,223" },
+    }));
+    DYNAMIC_SECTION(variant_list << " printer, " << get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "extruder_variant_list",            variant_list },
+            // filament 1 defines Standard (211) and High Flow (239), filament 2 Standard (223)
+            { "filament_extruder_variant",        "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",              "1,1,2" },
+            { "nozzle_temperature",               "211,239,223" },
+            { "nozzle_temperature_initial_layer", "211,239,223" },
+            { "sparse_infill_filament_id",        filament },
+            { "internal_solid_filament_id",       filament },
+            { "top_surface_filament_id",          filament },
+            { "bottom_surface_filament_id",       filament },
+            { "outer_wall_filament_id",           filament },
+            { "inner_wall_filament_id",           filament },
+            { "enable_prime_tower",               0 },
+            { "skirt_loops",                      0 },
+            { "brim_type",                        "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",              "; start temperature {nozzle_temperature_initial_layer[initial_extruder]}" },
+        });
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        std::set<int> temperatures;
+        std::istringstream stream(gcode);
+        for (std::string line; std::getline(stream, line);) {
+            if (line.rfind("M104 ", 0) != 0 && line.rfind("M109 ", 0) != 0)
+                continue;
+            const size_t s = line.find(" S");
+            if (s != std::string::npos && std::stoi(line.substr(s + 2)) > 0)
+                temperatures.insert(std::stoi(line.substr(s + 2)));
+        }
+        CHECK(temperatures == std::set<int>{ temperature });
+        CHECK(gcode.find("; start temperature " + std::to_string(temperature) + "\n") != std::string::npos);
+        // The config the slice ran with holds one value per filament, as the readers that index
+        // it by filament (the wipe tower, the filament compatibility check) expect.
+        CHECK(gcode.find("; nozzle_temperature = " + resolved + "\n") != std::string::npos);
+    }
+}
+
+// An adaptive pressure advance model predicting the same pressure advance at every flow and acceleration.
+static std::string constant_pressure_advance_model(const std::string &pa)
+{
+    return pa + ",1,1000\n" + pa + ",500,1000\n" + pa + ",1,100000\n" + pa + ",500,100000";
+}
+
+// The pressure advance values a Klipper G-code sets.
+static std::set<std::string> pressure_advance_values(const std::string &gcode)
+{
+    const std::string token = "SET_PRESSURE_ADVANCE ADVANCE=";
+    std::set<std::string> values;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);)
+        if (line.rfind(token, 0) == 0)
+            values.insert(line.substr(token.size(), line.find(';') - token.size()));
+    return values;
+}
+
+// Pressure advance, and the adaptive pressure advance model, are tuned per extruder variant like the
+// other filament variant settings.
+TEST_CASE("Each filament sets the pressure advance of its extruder variant", "[MultiFilament]")
+{
+    auto [nozzle_volume_type, filament, pressure_advance, adaptive_pressure_advance] = GENERATE(table<NozzleVolumeType, int, std::string, std::string>({
+        { nvtStandard, 1, "0.021", "0.012" },
+        { nvtHighFlow, 1, "0.037", "0.034" },
+        { nvtHighFlow, 2, "0.043", "0.056" }, // filament 2 defines no High Flow variant
+    }));
+    const bool adaptive = GENERATE(false, true);
+    DYNAMIC_SECTION(get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament << (adaptive ? ", adaptive" : "")) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "gcode_flavor",               "klipper" },
+            { "extruder_variant_list",      "Direct Drive Standard,Direct Drive High Flow" },
+            // filament 1 defines Standard (0.021) and High Flow (0.037), filament 2 Standard (0.043)
+            { "filament_extruder_variant",  "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",        "1,1,2" },
+            { "enable_pressure_advance",    "1,1,1" },
+            { "pressure_advance",           "0.021,0.037,0.043" },
+            { "adaptive_pressure_advance",  adaptive ? "1,1,1" : "0,0,0" },
+            { "sparse_infill_filament_id",  filament },
+            { "internal_solid_filament_id", filament },
+            { "top_surface_filament_id",    filament },
+            { "bottom_surface_filament_id", filament },
+            { "outer_wall_filament_id",     filament },
+            { "inner_wall_filament_id",     filament },
+            { "enable_prime_tower",         0 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",        "; start pressure advance {pressure_advance[initial_extruder]}" },
+        });
+        config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = {
+            constant_pressure_advance_model("0.012"), constant_pressure_advance_model("0.034"), constant_pressure_advance_model("0.056") };
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        // The toolchange sets the variant's pressure advance; with adaptive pressure advance, the
+        // prediction of the variant's model then replaces it.
+        std::set<std::string> expected{ pressure_advance };
+        if (adaptive)
+            expected.insert(adaptive_pressure_advance);
+        CHECK(pressure_advance_values(gcode) == expected);
+        CHECK(gcode.find("; start pressure advance " + pressure_advance + "\n") != std::string::npos);
+    }
+}
+
+// On a printer with two extruders, a filament takes the pressure advance of the variant of the extruder
+// it is mapped to, whichever filament and extruder that is.
+TEST_CASE("Each filament sets the pressure advance of its extruder variant on a two-extruder printer", "[MultiFilament]")
+{
+    auto [filament, extruder, pressure_advance, adaptive_pressure_advance] = GENERATE(table<int, int, std::string, std::string>({
+        { 1, 1, "0.021", "0.012" },
+        { 1, 2, "0.037", "0.034" },
+        { 2, 1, "0.043", "0.056" },
+        { 2, 2, "0.049", "0.078" },
+    }));
+    const bool adaptive = GENERATE(false, true);
+    DYNAMIC_SECTION("filament " << filament << " on extruder " << extruder << (adaptive ? ", adaptive" : "")) {
+        // the other filament goes on the other extruder
+        const std::string filament_map = filament == 1 ? std::to_string(extruder) + "," + std::to_string(3 - extruder) :
+                                                         std::to_string(3 - extruder) + "," + std::to_string(extruder);
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "gcode_flavor",                   "klipper" },
+            { "single_extruder_multi_material", 0 },
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "extruder_printable_height",      "0,0" },
+            // extruder 1 has a Standard nozzle, extruder 2 a High Flow one
+            { "printer_extruder_id",            "1,2" },
+            { "printer_extruder_variant",       "Direct Drive Standard;Direct Drive High Flow" },
+            { "extruder_variant_list",          "Direct Drive Standard;Direct Drive High Flow" },
+            { "filament_map",                   filament_map },
+            // both filaments define Standard and High Flow
+            { "filament_extruder_variant",      "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard;Direct Drive High Flow" },
+            { "filament_self_index",            "1,1,2,2" },
+            { "enable_pressure_advance",        "1,1,1,1" },
+            { "pressure_advance",               "0.021,0.037,0.043,0.049" },
+            { "adaptive_pressure_advance",      adaptive ? "1,1,1,1" : "0,0,0,0" },
+            { "sparse_infill_filament_id",      filament },
+            { "internal_solid_filament_id",     filament },
+            { "top_surface_filament_id",        filament },
+            { "bottom_surface_filament_id",     filament },
+            { "outer_wall_filament_id",         filament },
+            { "inner_wall_filament_id",         filament },
+            { "enable_prime_tower",             0 },
+            { "skirt_loops",                    0 },
+            { "brim_type",                      "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",            "; start pressure advance {pressure_advance[initial_extruder]}" },
+        });
+        config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = {
+            constant_pressure_advance_model("0.012"), constant_pressure_advance_model("0.034"),
+            constant_pressure_advance_model("0.056"), constant_pressure_advance_model("0.078") };
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = { etDirectDrive, etDirectDrive };
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nvtStandard, nvtHighFlow };
+        // keep the mapping above rather than grouping the filaments automatically
+        config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = fmmManual;
+        const std::string gcode = slice({ cube(20) }, config);
+
+        std::set<std::string> expected{ pressure_advance };
+        if (adaptive)
+            expected.insert(adaptive_pressure_advance);
+        CHECK(pressure_advance_values(gcode) == expected);
+        CHECK(gcode.find("; start pressure advance " + pressure_advance + "\n") != std::string::npos);
+    }
+}
