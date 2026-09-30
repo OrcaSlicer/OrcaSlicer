@@ -1913,7 +1913,8 @@ int CLI::run(int argc, char **argv)
                         old_printable_width = static_cast<int>(old_printable_bbox.size().x());
                         old_printable_depth = static_cast<int>(old_printable_bbox.size().y());
                     }
-                    old_printable_height = (int)(config.opt_float("printable_height"));
+                    if (config.option<ConfigOptionFloat>("printable_height"))
+                        old_printable_height = (int)(config.opt_float("printable_height"));
 
                     if (config.option<ConfigOptionFloat>("extruder_clearance_height_to_rod"))
                         old_height_to_rod = config.opt_float("extruder_clearance_height_to_rod");
@@ -2116,9 +2117,14 @@ int CLI::run(int argc, char **argv)
 
     // One resolver for the whole run, so presets from the same vendor tree share its load.
     std::unique_ptr<PresetBundle> system_preset_resolver;
-    auto resolve_preset = [&ensure_cli_preset_bundle, &system_preset_resolver](const std::string &file, DynamicPrintConfig &config,
-                                                                               std::string &config_type, const std::string &config_from,
-                                                                               bool probe_type, std::string &error) {
+    auto ensure_system_preset_resolver = [&system_preset_resolver]() -> PresetBundle & {
+        if (!system_preset_resolver)
+            system_preset_resolver = std::make_unique<PresetBundle>();
+        return *system_preset_resolver;
+    };
+    auto resolve_preset = [&ensure_cli_preset_bundle, &ensure_system_preset_resolver](const std::string &file, DynamicPrintConfig &config,
+                                                                                      std::string &config_type, const std::string &config_from,
+                                                                                      bool probe_type, std::string &error) {
         const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
         if (!probe_type && (inherits == nullptr || inherits->value.empty()))
             return true;
@@ -2126,9 +2132,7 @@ int CLI::run(int argc, char **argv)
         PresetBundle                 *bundle = nullptr;
         bool                          allow_source_manifest = false;
         if (config_from == "system") {
-            if (!system_preset_resolver)
-                system_preset_resolver = std::make_unique<PresetBundle>();
-            bundle                = system_preset_resolver.get();
+            bundle                = &ensure_system_preset_resolver();
             allow_source_manifest = true;
         } else {
             bundle = ensure_cli_preset_bundle(error);
@@ -3119,6 +3123,44 @@ int CLI::run(int argc, char **argv)
         }
         return 0;
     };
+
+    // Load the project's printer and process settings as the GUI loads its presets: over the default preset,
+    // with every key the project does not list as changed, including keys saved before an option existed,
+    // taken from its current system preset.
+    auto load_project_preset = [this, &ensure_system_preset_resolver, &current_different_settings, filament_count](const std::string &system_name, Preset::Type type) {
+        if (system_name.empty())
+            return;
+        // Preset bookkeeping the CLI keeps in its own groups, e.g. inherits_group and print_compatible_printers.
+        static const std::set<std::string> bookkeeping_keys = {"inherits", "compatible_printers", "compatible_prints", "compatible_printers_condition",
+                                                               "compatible_prints_condition", "print_settings_id", "printer_settings_id"};
+        const size_t       index = type == Preset::TYPE_PRINTER ? filament_count + 1 : 0;
+        PresetBundle      &resolver = ensure_system_preset_resolver();
+        DynamicPrintConfig system_config;
+        t_config_option_keys keys;
+        const DynamicPrintConfig config = Preset::load_external_config(type,
+            type == Preset::TYPE_PRINTER ? resolver.printers.default_preset_for(m_print_config).config : resolver.prints.default_preset().config,
+            m_print_config, PresetBundle::project_different_keys(index < current_different_settings.size() ? current_different_settings[index] : std::string()),
+            [&](const std::string &) -> DynamicPrintConfig * {
+                std::string error;
+                if (resolver.resolve_system_preset(system_config, type, system_name, config_substitution_rule, error))
+                    return &system_config;
+                BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: system preset '%1%' not resolved (%2%); the project keeps its values") % system_name % error;
+                return nullptr;
+            }, &keys);
+        for (const std::string &key : keys) {
+            const ConfigOption *opt = config.option(key);
+            const ConfigOption *old = m_print_config.option(key);
+            if (bookkeeping_keys.count(key) != 0 || opt == nullptr || (old != nullptr && *old == *opt))
+                continue;
+            BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% from '%2%': %3% -> %4%") % key % system_name % (old ? old->serialize() : std::string("(missing)")) % opt->serialize();
+            m_print_config.set_key_value(key, opt->clone());
+        }
+    };
+    // The --uptodate path refreshes the project from its own system configs.
+    if (new_printer_name.empty() && load_machine_config.empty())
+        load_project_preset(current_printer_system_name, Preset::TYPE_PRINTER);
+    if (new_process_name.empty() && load_process_config.empty())
+        load_project_preset(current_process_system_name, Preset::TYPE_PRINT);
 
     std::vector<std::string>& different_settings = m_print_config.option<ConfigOptionStrings>("different_settings_to_system", true)->values;
     std::vector<std::string>& inherits_group = m_print_config.option<ConfigOptionStrings>("inherits_group", true)->values;

@@ -13,6 +13,7 @@
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
+#include "libslic3r/Fill/FillGyroid.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -1254,6 +1255,61 @@ TEST_CASE("Multiline infill of an object matches the infill of a larger object w
         const Polylines reference = fill(larger, layer_id);
         CHECK(farthest(reference, walls) < 0.01);
         CHECK(farthest(walls, reference) < 0.01);
+    }
+}
+
+TEST_CASE("Gyroid infill of an object matches the infill of a larger object with the same center", "[Fill]")
+{
+    const bool   optimized = GENERATE(false, true);
+    const int    multiline = GENERATE(1, 2);
+    const float  density   = GENERATE(0.05f, 0.2f);
+    const double spacing   = 0.45;
+    CAPTURE(optimized, multiline, density);
+
+    auto circle = [](double radius) {
+        Polygon contour = make_circle_num_segments(scale_(radius), 120);
+        contour.translate(Point::new_scale(100., 60.));
+        return ExPolygon(std::move(contour));
+    };
+    const ExPolygon object = circle(20.);
+    const ExPolygon larger = circle(30.);
+    auto fill = [optimized, multiline, density, spacing](const ExPolygon &region, double z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(ipGyroid));
+        filler->spacing = spacing;
+        filler->angle   = float(M_PI / 7.);
+        filler->z       = z;
+
+        FillParams params;
+        params.density          = density;
+        params.multiline        = multiline;
+        params.gyroid_optimized = optimized;
+        params.dont_adjust      = true;
+        Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary of the object, where both are clipped and connected the same way.
+    const Polygons inner = shrink(to_polygons(object), scale_(1.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+
+    // Marching squares simplifies rings that start elsewhere in each object.
+    const double tolerance = optimized ? SPARSE_INFILL_RESOLUTION + 0.01 : 0.01;
+    // Half a z period of the waves, through both switches between horizontal and vertical waves.
+    const double wave_distance = spacing * multiline / (density * FillGyroid::DensityAdjust);
+    for (int step = 0; step <= 8; ++step) {
+        const double z = wave_distance * M_PI * step / 8.;
+        CAPTURE(z);
+        const Polylines paths = fill(object, z);
+        REQUIRE_FALSE(paths.empty());
+        const Polylines reference = fill(larger, z);
+        CHECK(farthest(reference, paths) < tolerance);
+        CHECK(farthest(paths, reference) < tolerance);
     }
 }
 

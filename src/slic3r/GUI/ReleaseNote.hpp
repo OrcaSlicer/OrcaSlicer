@@ -315,12 +315,16 @@ public:
     Button* m_button_manual_setup{ nullptr };
     Label* m_tips_ip{ nullptr };
     Label* m_tips_access_code{ nullptr };
+    Label* m_tips_cafile{ nullptr };
+    Label* m_cafile_hint{ nullptr };
     Label* m_tips_sn{nullptr};
     Label* m_tips_modelID{nullptr};
     Label* m_test_right_msg{ nullptr };
     Label* m_test_wrong_msg{ nullptr };
     TextInput* m_input_ip{ nullptr };
     TextInput* m_input_access_code{ nullptr };
+    wxTextCtrl* m_input_cafile{ nullptr };
+    Button* m_button_cafile{ nullptr };
     TextInput* m_input_printer_name{ nullptr };
     TextInput* m_input_sn{ nullptr };
     ComboBox*  m_input_modelID{ nullptr };

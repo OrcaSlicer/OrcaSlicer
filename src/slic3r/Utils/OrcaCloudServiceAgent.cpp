@@ -83,6 +83,7 @@ constexpr const char* ORCA_UNSUBSCRIBE_PLUGINS = "/api/v1/plugins/subscriptions"
 constexpr const char* ORCA_PLUGINS_MINE        = "/api/v1/plugins/mine";
 constexpr const char* ORCA_PLUGINS_BASE        = "/api/v1/plugins";
 constexpr const char* ORCA_PLUGIN_DOWNLOAD_URL = "/api/v1/plugins/download";
+constexpr const char* ORCA_CLOUD_PRINTER       = "/api/v1/printers";
 
 constexpr const char* ORCA_CLOUD_LOGIN_PATH = "/orcaslicer-login";
 
@@ -2623,11 +2624,51 @@ int OrcaCloudServiceAgent::check_user_task_report(int* task_id, bool* printable)
 
 int OrcaCloudServiceAgent::get_user_print_info(unsigned int* http_code, std::string* http_body)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_user_print_info (stub)";
+    std::string response;
+    unsigned int code = 0;
+    int result = http_get(ORCA_CLOUD_PRINTER, &response, &code);
+
     if (http_code)
-        *http_code = 200;
-    if (http_body)
-        *http_body = "{}";
+        *http_code = code;
+
+    if (result != 0 || code != 200)
+        return result != 0 ? result : BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
+
+    try {
+        auto resp_json = nlohmann::json::parse(response);
+        nlohmann::json devices = nlohmann::json::array();
+
+        for (const auto& printer : resp_json.value("data", nlohmann::json::array())) {
+            const std::string role = printer.value("access_role", "");
+            if (role.empty() || role == "viewer")
+                continue;
+
+            nlohmann::json device;
+            device["dev_id"]   = printer.value("id", "");
+            device["dev_name"] = printer.value("name", "");
+            if (printer.contains("model") && printer["model"].is_string())
+                device["dev_model_name"] = printer["model"].get<std::string>();
+
+            bool online = false;
+            if (printer.contains("status_snapshot") && printer["status_snapshot"].is_object()) {
+                const auto& status = printer["status_snapshot"].value("status", nlohmann::json::object());
+                online = status.value("connection", nlohmann::json::object()).value("state", "") == "online";
+                if (status.contains("job") && status["job"].is_object())
+                    device["task_status"] = status["job"].value("state", "");
+            }
+            device["dev_online"] = online;
+            devices.push_back(std::move(device));
+        }
+
+        if (http_body) {
+            nlohmann::json out;
+            out["devices"] = std::move(devices);
+            *http_body = out.dump();
+        }
+    } catch (const std::exception&) {
+        return BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
+    }
+
     return BAMBU_NETWORK_SUCCESS;
 }
 

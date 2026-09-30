@@ -24,7 +24,7 @@ endif()
 # On macOS/Linux OCCT links statically, so an unreferenced toolkit costs build time and no
 # shipped bytes. The Windows figure is a real DLL cost and has NOT been measured -- an
 # earlier "3.77 MiB, Windows only" note here covered only two of the three toolkits and is
-# not a number to quote. See docs/cad_dependency_weight.md.
+# not a number to quote. See docs/HLSD/design-tab.md.
 
 if (IN_GIT_REPO)
     set(OCCT_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OCCT-prefix/src/dep_OCCT)

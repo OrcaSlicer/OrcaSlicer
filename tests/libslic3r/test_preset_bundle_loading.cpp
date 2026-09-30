@@ -5571,6 +5571,35 @@ struct ScopedDataDir
     ~ScopedDataDir() { set_data_dir(previous); }
 };
 
+// resources_dir() is process-wide too; system preset lookups scan its profiles directory.
+struct ScopedResourcesDir
+{
+    std::string previous = resources_dir();
+    explicit ScopedResourcesDir(const fs::path &dir) { set_resources_dir(dir.string()); }
+    ~ScopedResourcesDir() { set_resources_dir(previous); }
+};
+
+// An "Acme" vendor under root whose "Acme Printer" inherits extruder_clearance_dist_to_rod from an
+// abstract base, with the printer in a nested sub_path so the name cannot be derived from the file.
+void write_acme_printer_vendor(const fs::path &root, double dist_to_rod)
+{
+    const fs::path machine_dir = root / "Acme" / "machine";
+    fs::create_directories(machine_dir / "nested");
+    std::ofstream((root / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme",)"
+        << R"("machine_model_list":[{"name":"Acme One","sub_path":"machine/model.json"}],"machine_list":[)"
+        << R"({"name":"fdm_acme_common","sub_path":"machine/base.json"},)"
+        << R"({"name":"Acme Printer","sub_path":"machine/nested/printer.json"}]})";
+    std::ofstream((machine_dir / "model.json").string())
+        << R"({"type":"machine_model","name":"Acme One","nozzle_diameter":"0.4"})";
+    std::ofstream((machine_dir / "base.json").string())
+        << R"({"type":"machine","name":"fdm_acme_common","from":"system","instantiation":"false",)"
+        << R"("extruder_clearance_dist_to_rod":")" << dist_to_rod << R"("})";
+    std::ofstream((machine_dir / "nested" / "printer.json").string())
+        << R"({"type":"machine","name":"Acme Printer","from":"system","instantiation":"true","inherits":"fdm_acme_common",)"
+        << R"("printer_model":"Acme One","printer_variant":"0.4"})";
+}
+
 std::string read_file(const fs::path &file)
 {
     std::ifstream in(file.string(), std::ios::binary);
@@ -5683,4 +5712,231 @@ TEST_CASE("A project saved with pressure advance per filament applies it to ever
     check_double_vector(petg.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.043 });
     check_double_vector(pla.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.95, 0.96 });
     check_double_vector(petg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.97 });
+}
+
+TEST_CASE("A system preset resolves by name from the bundled profiles", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(temp_dir.path() / "resources" / "profiles", 33.);
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error.empty());
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A system preset resolves from the data directory copy of its vendor", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(temp_dir.path() / "resources" / "profiles", 33.);
+    write_acme_printer_vendor(temp_dir.path() / "data" / PRESET_SYSTEM_DIR, 35.);
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(35., 1e-6));
+}
+
+TEST_CASE("A system preset resolves from a vendor shipped as its preset cache alone", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    const fs::path     profiles = temp_dir.path() / "resources" / "profiles";
+    write_acme_printer_vendor(profiles, 33.);
+
+    PresetBundle writer;
+    writer.set_generate_vendor_caches(true);
+    writer.load_vendor_configs_from_json(profiles.string(), "Acme", PresetBundle::LoadSystem,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
+    REQUIRE(fs::exists(profiles / "Acme.opc"));
+    // Release builds ship the cache and drop the profile JSONs, manifest included.
+    fs::remove(profiles / "Acme.json");
+    fs::remove_all(profiles / "Acme");
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A system preset no vendor lists is not resolved", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(temp_dir.path() / "resources" / "profiles", 33.);
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Unknown Printer",
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_FALSE(error.empty());
+}
+
+namespace {
+
+// A default preset config for type, built the way PresetBundle builds its default presets.
+DynamicPrintConfig external_default_config(Preset::Type type)
+{
+    DynamicPrintConfig config;
+    config.apply_only(static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()),
+                      type == Preset::TYPE_PRINTER ? Preset::printer_options() : Preset::print_options());
+    Preset::inherits(config);
+    return config;
+}
+
+// A find_base callback that counts its calls and returns base.
+auto base_finder(DynamicPrintConfig *base, int &calls)
+{
+    return [base, &calls](const std::string &) {
+        ++calls;
+        return base;
+    };
+}
+
+} // namespace
+
+TEST_CASE("A key missing from a project takes the default preset value when there is no base", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    defaults.set("wall_loops", 7, true);
+    const DynamicPrintConfig project;
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"sparse_infill_density"},
+                                                                   base_finder(nullptr, calls));
+    CHECK(calls == 1);
+    CHECK(config.opt_int("wall_loops") == 7);
+}
+
+TEST_CASE("A key missing from a project takes its base preset value", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    defaults.set("wall_loops", 7, true);
+    DynamicPrintConfig base = defaults;
+    base.set("wall_loops", 5, true);
+    const DynamicPrintConfig project;
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"sparse_infill_density"},
+                                                                   base_finder(&base, calls));
+    CHECK(config.opt_int("wall_loops") == 5);
+}
+
+TEST_CASE("A project key listed as different keeps the project value", "[Preset][ExternalPreset]")
+{
+    const DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    DynamicPrintConfig       base     = defaults;
+    base.set("wall_loops", 5, true);
+    DynamicPrintConfig project;
+    project.set("wall_loops", 4, true);
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"wall_loops"},
+                                                                   base_finder(&base, calls));
+    CHECK(config.opt_int("wall_loops") == 4);
+}
+
+TEST_CASE("A project key not listed as different is refreshed to the base value", "[Preset][ExternalPreset]")
+{
+    const DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    DynamicPrintConfig       base     = defaults;
+    base.set("wall_loops", 5, true);
+    DynamicPrintConfig project;
+    project.set("wall_loops", 4, true);
+    project.set("inherits", "Base Process", true);
+    std::string inherits;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"sparse_infill_density"},
+                                                                   [&base, &inherits](const std::string &name) {
+                                                                       inherits = name;
+                                                                       return &base;
+                                                                   });
+    CHECK(inherits == "Base Process");
+    CHECK(config.opt_int("wall_loops") == 5);
+}
+
+TEST_CASE("An empty different settings list keeps the project values without a base", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    defaults.set("top_shell_layers", 7, true);
+    DynamicPrintConfig base = defaults;
+    base.set("wall_loops", 5, true);
+    base.set("top_shell_layers", 9, true);
+    DynamicPrintConfig project;
+    project.set("wall_loops", 4, true);
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {}, base_finder(&base, calls));
+    CHECK(calls == 0);
+    CHECK(config.opt_int("wall_loops") == 4);
+    CHECK(config.opt_int("top_shell_layers") == 7);
+}
+
+TEST_CASE("Print-host keys are never taken from a project", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINTER);
+    defaults.set("print_host", "", true);
+    defaults.set("printhost_apikey", "", true);
+    DynamicPrintConfig project;
+    project.set("print_host", "http://project-host", true);
+    project.set("printhost_apikey", "project-key", true);
+    project.set("printer_notes", "project notes", true);
+    t_config_option_keys keys;
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINTER, defaults, project, {"printer_notes"},
+                                                                   base_finder(nullptr, calls), &keys);
+    CHECK(config.opt_string("print_host").empty());
+    CHECK(config.opt_string("printhost_apikey").empty());
+    CHECK(config.opt_string("printer_notes") == "project notes");
+    CHECK_FALSE(contains_key(keys, "print_host"));
+    CHECK_FALSE(contains_key(keys, "printhost_apikey"));
+    CHECK(contains_key(keys, "printer_notes"));
+}
+
+TEST_CASE("A per-variant project value maps onto its base preset's variant layout", "[Preset][ExternalPreset]")
+{
+    const DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    DynamicPrintConfig       base     = defaults;
+    base.set_key_value("print_extruder_id", new ConfigOptionInts({1, 1}));
+    base.set_key_value("print_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow"}));
+    base.set_key_value("outer_wall_speed", new ConfigOptionFloats({200., 300.}));
+    base.set_key_value("inner_wall_speed", new ConfigOptionFloats({250., 350.}));
+    // A project saved before its printer had a High Flow variant.
+    DynamicPrintConfig project;
+    project.set_key_value("print_extruder_id", new ConfigOptionInts({1}));
+    project.set_key_value("print_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard"}));
+    project.set_key_value("outer_wall_speed", new ConfigOptionFloats({100.}));
+    project.set_key_value("inner_wall_speed", new ConfigOptionFloats({150.}));
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"outer_wall_speed"},
+                                                                   base_finder(&base, calls));
+    CHECK(config.option<ConfigOptionStrings>("print_extruder_variant")->values ==
+          std::vector<std::string>{"Direct Drive Standard", "Direct Drive High Flow"});
+    // The listed key keeps the project's Standard value and takes High Flow from the base.
+    check_double_vector(config.option<ConfigOptionFloats>("outer_wall_speed")->values, {100., 300.});
+    check_double_vector(config.option<ConfigOptionFloats>("inner_wall_speed")->values, {250., 350.});
+}
+
+TEST_CASE("A project's different settings always keep the preset bookkeeping keys", "[Preset][ExternalPreset]")
+{
+    const std::set<std::string> keys = PresetBundle::project_different_keys(escape_strings_cstyle({"wall_loops", "top_shell_layers"}));
+    for (const char *key : {"wall_loops", "top_shell_layers", "inherits", "print_settings_id", "filament_settings_id", "printer_settings_id"})
+        CHECK(keys.count(key) == 1);
+    CHECK(PresetBundle::project_different_keys(std::string()).count("inherits") == 1);
 }
