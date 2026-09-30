@@ -1779,7 +1779,7 @@ void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
     auto str_ip = m_input_ip->GetTextCtrl()->GetValue();
     auto str_access_code = m_input_access_code->GetTextCtrl()->GetValue();
     // ORCA enabling / disabling buttons with conditions enough to change its style
-    m_button_ok->Enable(isIp(str_ip.ToStdString()) &&
+    m_button_ok->Enable(isValidEndpoint(str_ip.ToStdString()) &&
                         (str_access_code.IsEmpty() || str_access_code.Length() >= 8));
 
     Layout();
@@ -2142,7 +2142,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
 
     // ORCA enabling / disabling buttons with conditions enough to change its style
     bool valid_access_code_length = str_access_code.IsEmpty() || str_access_code.Length() >= 8;
-    bool enable_btns = isIp(str_ip.ToStdString()) && valid_access_code_length && invalid_access_code;
+    bool enable_btns = isValidEndpoint(str_ip.ToStdString()) && valid_access_code_length && invalid_access_code;
     m_button_manual_setup->Enable(enable_btns);
     m_button_ok->Enable(enable_btns);
 
