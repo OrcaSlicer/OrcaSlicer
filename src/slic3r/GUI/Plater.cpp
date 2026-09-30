@@ -3916,7 +3916,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
                     // Defensive: profiles restrict E3D to 0.4 / 0.6; keep it out elsewhere.
                     if (cur_volume_type == NozzleVolumeType::nvtE3DHighFlow && diameter != "0.4" && diameter != "0.6")
                         continue;
-                    if (cur_volume_type == NozzleVolumeType::nvtHighFlow && ((diameter == "0.2" && printer_model != "Snapmaker U1") ||
+                    if (cur_volume_type == NozzleVolumeType::nvtHighFlow && (diameter == "0.2" ||
                         is_skip_high_flow_printer(printer_model)))
                         continue;
                     // The client data is the enum value, not the label position: E3D High Flow is 5

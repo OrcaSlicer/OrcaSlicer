@@ -4142,15 +4142,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 file.writeln(this->placeholder_parser_process("filament_end_gcode", end_gcode, extruder_id, &config));
             }
         }
-        // Flow metadata follows each logical filament's physical tool, including mixed-flow toolchangers.
-        std::string filament_volume_types;
-        for (size_t filament_id = 0; filament_id < m_config.filament_type.values.size(); ++filament_id) {
-            if (filament_id > 0)
-                filament_volume_types += ',';
-            const auto volume_type = m_config.nozzle_volume_type.get_at(get_extruder_id(filament_id));
-            filament_volume_types += volume_type == NozzleVolumeType::nvtHighFlow ? "high_flow" : "standard";
-        }
-        config.set_key_value("filament_volume_types", new ConfigOptionString(std::move(filament_volume_types)));
         file.writeln(this->placeholder_parser_process("machine_end_gcode", print.config().machine_end_gcode, m_writer.filament()->id(), &config));
     }
     file.write(m_writer.update_progress(m_layer_count, m_layer_count, true)); // 100%

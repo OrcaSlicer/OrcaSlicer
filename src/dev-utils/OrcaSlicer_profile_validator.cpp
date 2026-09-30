@@ -295,22 +295,19 @@ void install_slice_context_log_sink()
 // Size the filament slots for the current selection and build the config every slice uses.
 DynamicPrintConfig slice_config(PresetBundle &bundle)
 {
-    // Selecting a preset directly bypasses the GUI's reset of the physical nozzle selections.
-    bundle.reset_default_nozzle_volume_type();
     // Grow to a 2nd filament so the cube can change colour; never shrink a multi-nozzle printer
     // below its nozzle count, or full_config()'s flush-volume matrix no longer matches validate().
     const size_t nozzles = bundle.printers.get_selected_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size();
     bundle.set_num_filaments((unsigned int) std::max<size_t>(2, nozzles));
 
-    // Mirror the app's manual filament->nozzle assignment for BBL and U1 multi-tool printers: put each
+    // Mirror the app's manual filament->nozzle assignment for a multi-nozzle BBL printer: put each
     // filament on its own nozzle and pin the map (fmmManual) so full_config() collapses every filament to
     // the variant of the nozzle it actually prints from, and the engine keeps that assignment instead of
     // auto-remapping it during process(). Without this the synthetic 2nd filament keeps nozzle 1's variant
     // while the auto map moves it to nozzle 2 - harmless, but on the one printer whose nozzles differ in
-    // type (Direct Drive + Bowden) the mismatched lookup spams [error] lines. Other
+    // type (Direct Drive + Bowden) the mismatched lookup spams [error] lines. Single-nozzle and non-BBL
     // printers keep the default map (their toolchange rides the AMS/tool-changer path unchanged).
-    const bool pin_filament_map = nozzles > 1 &&
-        (bundle.is_bbl_vendor() || bundle.printers.get_selected_preset().config.opt_string("printer_model") == "Snapmaker U1");
+    const bool pin_filament_map = bundle.is_bbl_vendor() && nozzles > 1;
     if (pin_filament_map) {
         auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
         for (size_t i = 0; i < fmap.size(); ++i)
