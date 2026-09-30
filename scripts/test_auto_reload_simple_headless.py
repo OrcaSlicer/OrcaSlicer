@@ -12,8 +12,9 @@ decline only drops the declined volume, not an unrelated sibling that happens to
 file (the scenario this script exists to catch: a painted clone and an unpainted one, same source,
 one dialog). Phases J and K cover in-place writers: a slow multi-chunk write is reloaded once,
 after it finishes, and a file that never goes quiet is still reloaded by the 30s backstop.
-Phase L covers a reload landing while a slice is running: the slice must be cancelled before the
-reload replaces the model's volumes, and the plate sliced again afterwards.
+Phase L covers a reload landing while a slice is running: a slow-to-slice prism is replaced by a
+quick cube mid-slice; the slow slice must be cancelled before the reload replaces the model's
+volumes, and the plate sliced again afterwards.
 
 Two categories of scenario are deliberately NOT covered here, not just under-instrumented:
   - A missing source file (the "Please select a file" wxFileDialog) or a load failure (the
@@ -69,6 +70,7 @@ WATCHING_RE          = re.compile(r"watching (\d+) source file\(s\) for changes"
 # "reload_from_disk: reloaded /path/to/file.stl, bounding box size = 12 x 12 x 12 mm"
 SIZE_RE              = re.compile(r"reloaded (\S.*?), bounding box size = ([\d.eE+-]+) x ([\d.eE+-]+) x ([\d.eE+-]+) mm")
 
+LIGHT_SIZE = 30   # mm; the quick cube phase L swaps in
 HEAVY_SIZE = 100  # mm; tall enough that slicing it takes seconds (see write_heavy_prism_stl)
 
 PREF_RELOAD  = "auto_reload_on_source_change"
@@ -198,6 +200,20 @@ class LogTail:
         while True:
             self._read()
             if marker in self.buf:
+                return True
+            if time.monotonic() > deadline:
+                return False
+            time.sleep(0.25)
+
+    def wait_for_after_last(self, marker, after, timeout):
+        """Waits for `marker` to appear after the most recent `after` in the log since the last
+        mark(). Unlike mark()-then-wait_for(), a `marker` already logged by the time this is
+        called still counts."""
+        deadline = time.monotonic() + timeout
+        while True:
+            self._read()
+            start = self.buf.rfind(after)
+            if start >= 0 and self.buf.find(marker, start) >= 0:
                 return True
             if time.monotonic() > deadline:
                 return False
@@ -642,32 +658,32 @@ def main():
             record("G2 slice started automatically", sliced)
 
     def phase_l():
-        print("\n[L] Re-export while a slice is running: the slice is cancelled, the reload completes, the plate is re-sliced")
+        print("\n[L] Replace the model with a quick one while a slow slice is running: the slice is cancelled, the plate is re-sliced")
         tail.mark(); time.sleep(1.0)
         write_heavy_prism_stl(basic_stl, HEAVY_SIZE)
         ok = tail.wait_for(RELOAD_MARK, args.timeout) and tail.wait_for(SLICE_START_MARK, args.timeout)
         record("L1 a heavy export reloads and starts a slice", ok)
         if not ok:
             return
-        # The second export goes in right away: the slice started a moment ago and this mesh takes
-        # seconds to slice.
+        # Right away, while that slice is (seconds from) running: replace the model with a cube that
+        # slices in a fraction of a second. If the slow slice weren't cancelled, it would be what
+        # the plate ends up showing.
         tail.mark()
-        write_heavy_prism_stl(basic_stl, HEAVY_SIZE - 10)
+        write_cube_stl(basic_stl, LIGHT_SIZE, atomic=True)
         reloaded = tail.wait_for(RELOAD_MARK, args.timeout)
-        record("L2 second export reloads", reloaded)
+        record("L2 the cube export reloads", reloaded)
         if not reloaded:
             return
         # The log is chronological, so whether the first slice was still running when the second
         # reload began is settled by what came before the reload line, not by timing.
         before_reload = tail.buf[:tail.buf.index(RELOAD_MARK)]
         running = SLICE_DONE_MARK not in before_reload
-        record("L3 the first slice was still running when the second reload began", running,
-               "" if running else "it had already finished -- the mesh is too light to test this")
+        record("L3 the heavy slice was still running when the cube reload began", running,
+               "" if running else "it had already finished -- the heavy mesh is too light to test this")
         cancelled = tail.wait_for(SLICE_CANCELLED_MARK, args.timeout)
         record("L4 the running slice was cancelled", cancelled)
         sized = tail.wait_for_size(basic_stl, args.timeout)
-        want = HEAVY_SIZE - 10
-        record("L5 the reload used the second export (%d mm)" % want, sized is not None and abs(sized[2] - want) < 0.5,
+        record("L5 the reload used the cube (%d mm)" % LIGHT_SIZE, sized is not None and abs(sized[0] - LIGHT_SIZE) < 0.5,
                "" if sized else "no bounding-box log line")
         # The slicing thread reads the live model, so it has to have stopped before the reload
         # replaced the volumes -- not cancelled afterwards by the auto-slice that follows.
@@ -677,9 +693,8 @@ def main():
                "" if 0 <= stopped < replaced else "slice stop at %d, volumes replaced at %d in the log" % (stopped, replaced))
         restarted = tail.wait_for(SLICE_START_MARK, args.timeout)
         record("L7 the reloaded plate is sliced again", restarted)
-        # The cancelled slice reports its own completion, so only count one seen after this restart.
-        tail.mark()
-        done = tail.wait_for(SLICE_DONE_MARK, 4 * args.timeout)
+        # The cancelled slice reports its own completion, so only count one after the restart.
+        done = tail.wait_for_after_last(SLICE_DONE_MARK, SLICE_START_MARK, args.timeout)
         record("L8 the new slice runs to completion", done)
         alive = app.proc.poll() is None
         record("L9 the app is still running", alive, "" if alive else "exit code %s" % app.proc.returncode)
