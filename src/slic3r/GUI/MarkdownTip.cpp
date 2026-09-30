@@ -98,10 +98,7 @@ void MarkdownTip::LoadStyle()
         ph /= "tooltip/styled.html";
         _data_dir = false;
     }
-    auto url = ph.string();
-    std::replace(url.begin(), url.end(), '\\', '/');
-    url = "file:///" + url;
-    _tipView->LoadURL(from_u8(url));
+    _tipView->LoadURL(file_url_from_path(ph));
     _lastTip.clear();
 }
 

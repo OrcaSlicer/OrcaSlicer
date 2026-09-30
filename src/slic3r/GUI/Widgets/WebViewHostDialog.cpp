@@ -192,7 +192,7 @@ bool WebViewHostDialog::create_webview(const std::string& resource_path,
 
 wxString WebViewHostDialog::build_resource_url(const std::string& resource_path) const
 {
-    wxString target_url = from_u8((boost::filesystem::path(resources_dir()) / resource_path).make_preferred().string());
+    wxString target_url = file_url_from_path(boost::filesystem::path(resources_dir()) / resource_path);
 
     if (append_language_to_url()) {
         const wxString lang = wxGetApp().current_language_code_safe();
@@ -202,7 +202,7 @@ wxString WebViewHostDialog::build_resource_url(const std::string& resource_path)
         }
     }
 
-    return wxString("file://") + target_url;
+    return target_url;
 }
 
 void WebViewHostDialog::load_url(const wxString& url)

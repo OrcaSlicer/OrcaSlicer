@@ -738,7 +738,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
 
         if (obj && obj->is_online() && !obj->can_abort() && !obj->is_in_upgrading() && it->second->get_state_selected() == 1 && it->second->state_printable <= 2) {
 
-            if (!it->second->is_blocking_printing(obj)) {
+            if (!wxGetApp().is_blocking_printing(obj)) {
                 PrintParams params = request_params(obj);
                 print_params.push_back(params);
             }

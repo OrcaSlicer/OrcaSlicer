@@ -51,7 +51,7 @@ void DeviceItem::sync_state()
             state_printable = 6;
         }
 
-        if (is_blocking_printing(obj_)) {
+        if (wxGetApp().is_blocking_printing(obj_)) {
             state_printable = 5;
         }
 
@@ -102,27 +102,6 @@ void DeviceItem::unselected()
     if (state_selected != 2) {
         state_selected = 0;
     }
-}
-
-bool DeviceItem::is_blocking_printing(MachineObject* obj_)
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    auto target_model = obj_->printer_type;
-    std::string source_model = "";
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-
-    if (source_model != target_model) {
-        std::vector<std::string> compatible_machine = obj_->get_compatible_machine();
-        vector<std::string>::iterator it = find(compatible_machine.begin(), compatible_machine.end(), source_model);
-        if (it == compatible_machine.end()) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 void DeviceItem::update_item(const DeviceItem* item)

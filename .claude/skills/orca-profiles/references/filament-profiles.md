@@ -244,10 +244,10 @@ preset for a 0.2 nozzle, explicitly revisit flow limits; do not infer a pressure
 required direction of change, from diameter alone.
 
 On a printer with extruder variants, a filament tunes these per variant too:
-`filament_max_volumetric_speed`, `filament_flow_ratio`, `nozzle_temperature` and the retraction
-overrides carry one value per variant of `filament_extruder_variant` (Standard, High Flow, …). The
+`filament_max_volumetric_speed`, `filament_flow_ratio`, `nozzle_temperature`, pressure advance and the
+retraction overrides carry one value per variant of `filament_extruder_variant` (Standard, High Flow, …). The
 exact key set is [`filament_options_with_variant`](extruder-variants.md#the-four-key-sets);
-`slow_down_min_speed` and `pressure_advance` are not in it. Keep every such array at exactly that width, even where the
+`slow_down_min_speed` and `fan_max_speed` are not in it. Keep every such array at exactly that width, even where the
 setting does not differ per variant, and measure the High Flow variant rather than copying Standard
 ([extruder-variants.md](extruder-variants.md#filament)).
 

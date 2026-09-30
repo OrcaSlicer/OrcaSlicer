@@ -181,7 +181,6 @@ public:
     void reset_timeout();
     void update_user_printer();
     void update_show_status();
-    bool is_blocking_printing(MachineObject* obj_);
     void prepare(int print_plate_idx);
     void check_focus(wxWindow* window);
     void check_fcous_state(wxWindow* window);
