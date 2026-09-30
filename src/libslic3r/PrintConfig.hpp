@@ -232,6 +232,13 @@ enum class SurfaceFillOrder {
     Count,
 };
 
+// Orca: how the adaptive TPMS density changes from the object surface to its deepest point.
+enum class TpmsAdaptiveGradient {
+    Linear,
+    Quadratic,
+    Exponential,
+};
+
 //BBS
 enum class PrintSequence {
     ByLayer,
@@ -713,6 +720,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TpmsAdaptiveGradient)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1369,6 +1377,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
     ((ConfigOptionBool,                 gyroid_optimized))
+    ((ConfigOptionBool,                 tpms_adaptive))
+    ((ConfigOptionPercent,              tpms_interior_density))
+    ((ConfigOptionEnum<TpmsAdaptiveGradient>, tpms_adaptive_gradient))
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
     ((ConfigOptionEnum<InfillPattern>, ironing_pattern))

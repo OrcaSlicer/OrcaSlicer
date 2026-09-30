@@ -1118,6 +1118,31 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
     return has_lightning_infill ? FillLightning::build_generator(std::as_const(*this), [this]() -> void { this->throw_if_canceled(); }) : FillLightning::GeneratorPtr();
 }
 
+TpmsDepthFieldPtr PrintObject::prepare_tpms_depth_field() const
+{
+    bool has_adaptive_tpms = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
+        if (const PrintRegionConfig &config = this->printing_region(region_id).config();
+            config.sparse_infill_density > 0 && config.tpms_adaptive &&
+            (config.sparse_infill_pattern == ipTpmsD || config.sparse_infill_pattern == ipTpmsFK)) {
+            has_adaptive_tpms = true;
+            break;
+        }
+    if (!has_adaptive_tpms || m_layers.empty())
+        return nullptr;
+
+    std::vector<TpmsDepthField::Slice> slices;
+    slices.reserve(m_layers.size());
+    BoundingBox bbox;
+    for (const Layer *layer : m_layers) {
+        slices.push_back({layer->bottom_z(), layer->print_z, &layer->lslices});
+        bbox.merge(get_extents(layer->lslices));
+    }
+    if (!bbox.defined)
+        return nullptr;
+    return std::make_unique<TpmsDepthField>(slices, bbox, [this]() { m_print->throw_if_canceled(); });
+}
+
 void PrintObject::clear_layers()
 {
     if (!m_shared_object) {
@@ -1437,6 +1462,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "tpms_adaptive"
+                   || opt_key == "tpms_interior_density"
+                   || opt_key == "tpms_adaptive_gradient"
                    // Orca: Body centering now also determines bridge anchors during preparation.
                    // Invalidating preparation also invalidates infill, including top/bottom surfaces.
                    || opt_key == "center_of_surface_pattern"
@@ -2929,6 +2957,7 @@ void PrintObject::bridge_over_infill()
         }
 
         this->m_adaptive_fill_octrees = this->prepare_adaptive_infill_data(surfaces_w_bottom_z);
+        this->m_tpms_depth_field      = this->prepare_tpms_depth_field();
 
         std::vector<size_t> layers_to_generate_infill;
         for (const auto &pair : surfaces_by_layer) {

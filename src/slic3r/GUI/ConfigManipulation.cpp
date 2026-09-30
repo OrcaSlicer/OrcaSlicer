@@ -790,6 +790,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid);
 
+    // The sparse infill density is the surface density of the adaptive TPMS infill.
+    bool have_tpms_infill = have_infill && (pattern == ipTpmsD || pattern == ipTpmsFK);
+    toggle_line("tpms_adaptive", have_tpms_infill);
+    bool have_tpms_adaptive = have_tpms_infill && config->opt_bool("tpms_adaptive");
+    toggle_line("tpms_interior_density", have_tpms_adaptive);
+    toggle_line("tpms_adaptive_gradient", have_tpms_adaptive);
+
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
         toggle_field("fill_multiline", have_multiline_infill_pattern);
