@@ -59,6 +59,16 @@ void write_preset_with_inherits(const DynamicPrintConfig &default_config, const 
     config.save_to_json(file.string(), name, "User", "1.0.0");
 }
 
+// A user preset file stating nothing but the preset it inherits, so every value it
+// ends up with came from resolving that parent.
+void write_minimal_child(const fs::path &file, const std::string &name, const std::string &inherits)
+{
+    fs::create_directories(file.parent_path());
+    std::ofstream(file.string())
+        << R"({"type":"process","name":")" << name << R"(","from":"User","version":"1.0.0","inherits":")"
+        << inherits << R"("})";
+}
+
 // Add an in-memory preset (no file) with the given inherits value (empty => root preset).
 Preset &add_inmemory_preset(PresetCollection &coll, const std::string &name, const std::string &inherits = {})
 {
@@ -259,6 +269,162 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
 
     CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
     CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
+}
+
+TEST_CASE("A directory of user presets loads with each one resolved against its parent", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.config.option<ConfigOptionFloat>("layer_height", true)->value = 0.24;
+    parent.is_system = true;
+
+    constexpr int children = 400;
+    for (int i = 0; i < children; ++ i)
+        write_minimal_child(temp_dir.path() / PRESET_PRINT_NAME / ("Child " + std::to_string(i) + ".json"),
+                            "Child " + std::to_string(i), "Parent Process");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.size() == size_t(children) + 2); // the children, the default preset and the parent
+    CHECK(coll.error_count() == 0);
+    for (int i = 0; i < children; ++ i) {
+        const Preset *child = coll.find_preset("Child " + std::to_string(i));
+        REQUIRE(child != nullptr);
+        CHECK(child->inherits() == "Parent Process");
+        CHECK(child->alias == "Child " + std::to_string(i));
+        CHECK(child->loaded);
+        REQUIRE(child->config.option<ConfigOptionFloat>("layer_height") != nullptr);
+        CHECK_THAT(child->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-9));
+    }
+}
+
+TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+
+    auto seed_directory = [&]() {
+        for (int i = 0; i < 200; ++ i)
+            write_minimal_child(temp_dir.path() / PRESET_PRINT_NAME / ("Child " + std::to_string(i) + ".json"),
+                                "Child " + std::to_string(i), "Parent Process");
+    };
+
+    std::vector<std::vector<std::string>> names_per_run;
+    for (int run = 0; run < 3; ++ run) {
+        RenameTestCollection coll;
+        Preset &parent = add_inmemory_preset(coll, "Parent Process");
+        parent.is_system = true;
+        if (run == 0)
+            seed_directory();
+
+        PresetsConfigSubstitutions substitutions;
+        coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                          ForwardCompatibilitySubstitutionRule::Disable);
+
+        std::vector<std::string> names;
+        for (auto it = coll.begin(); it != coll.end(); ++ it)
+            names.push_back(it->name + "|" + it->alias + "|" + it->inherits());
+        names_per_run.push_back(std::move(names));
+    }
+
+    REQUIRE(names_per_run[0].size() > 200);
+    CHECK(names_per_run[1] == names_per_run[0]);
+    CHECK(names_per_run[2] == names_per_run[0]);
+}
+
+TEST_CASE("An unreadable user preset is counted and removed while the rest still load", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+    const fs::path       dir = temp_dir.path() / PRESET_PRINT_NAME;
+
+    for (int i = 0; i < 20; ++ i)
+        write_preset_with_inherits(coll.default_preset().config, dir / ("Good " + std::to_string(i) + ".json"),
+                                   "Good " + std::to_string(i), std::string());
+    fs::create_directories(dir);
+    std::ofstream((dir / "Broken.json").string()) << "{not-json";
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Broken") == nullptr);
+    CHECK_FALSE(fs::exists(dir / "Broken.json"));
+    for (int i = 0; i < 20; ++ i)
+        CHECK(coll.find_preset("Good " + std::to_string(i)) != nullptr);
+}
+
+TEST_CASE("A user filament naming no compatible printer gets the one after its @, in memory and on disk", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+    const fs::path     file = temp_dir.path() / PRESET_FILAMENT_NAME / "My PLA @Test Printer.json";
+    REQUIRE(bundle.filaments.default_preset().config.option<ConfigOptionStrings>("compatible_printers")->values.empty());
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const std::vector<std::string> expected { "Test Printer" };
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->config.option<ConfigOptionStrings>("compatible_printers")->values == expected);
+
+    DynamicPrintConfig                 saved;
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    saved.load_from_json(file.string(), ForwardCompatibilitySubstitutionRule::EnableSilent, key_values, reason);
+    REQUIRE(reason.empty());
+    REQUIRE(saved.option<ConfigOptionStrings>("compatible_printers") != nullptr);
+    CHECK(saved.option<ConfigOptionStrings>("compatible_printers")->values == expected);
+}
+
+TEST_CASE("A user preset's setting id equal to its base id is dropped in memory, not in the .info written back", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+    const fs::path     file = temp_dir.path() / PRESET_FILAMENT_NAME / "My PLA @Test Printer.json";
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+    fs::path info = file;
+    info.replace_extension(".info");
+    std::ofstream(info.string()) << "sync_info = \nuser_id = \nsetting_id = PFUS1\nbase_id = PFUS1\nupdated_time = 0\n";
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->setting_id.empty());
+    CHECK(preset->base_id == "PFUS1");
+    Preset reloaded(Preset::TYPE_FILAMENT, "My PLA @Test Printer");
+    reloaded.load_info(info.string());
+    CHECK(reloaded.setting_id == "PFUS1");
+}
+
+TEST_CASE("A user preset that is not loaded still reports its substituted values", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+    const fs::path       dir = temp_dir.path() / PRESET_PRINT_NAME;
+    fs::create_directories(dir);
+    std::ofstream((dir / "Orphan.json").string())
+        << R"({"type":"process","name":"Orphan","from":"User","version":"1.0.0","inherits":"No Such Parent",)"
+        << R"("wall_generator":"no_such_generator"})";
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Enable);
+
+    CHECK(coll.find_preset("Orphan") == nullptr);
+    CHECK(coll.error_count() == 1);
+    REQUIRE(substitutions.size() == 1);
+    CHECK(substitutions.front().preset_name == "Orphan");
 }
 
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")

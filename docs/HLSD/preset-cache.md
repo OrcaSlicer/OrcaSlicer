@@ -28,8 +28,8 @@ Per-vendor granularity is what makes the system practical:
 - A vendor whose profile is bumped invalidates only its own cache. The other 60-odd
   vendors keep theirs — even when the bumped vendor is the shared Orca filament
   library everyone else inherits from.
-- The setup wizard, which loads vendors one at a time, gets the same speedup as
-  startup without a second code path.
+- The setup wizard loads its vendors through the same routine as startup, so it
+  gets the same speedup without a second code path.
 - A vendor with no cache, or a broken one, costs only that vendor a parse.
 
 A cache holds *system* presets only. User presets, project settings and modified
@@ -162,14 +162,19 @@ cache nothing can invalidate is worse than no cache.
 
 Vendors load in a fixed order, because filament inheritance crosses exactly one
 boundary: any vendor's filament may inherit from the shared Orca filament library,
-and nothing else reaches across vendors — an `include` is always vendor-local. The
-library therefore goes first, alone; every other vendor follows in parallel, resolving
-against it; and the results are merged in a stable order:
+and nothing else reaches across vendors — an `include` is always vendor-local. Only
+installing a vendor's presets crosses it; reading the vendor, from its cache or its
+JSONs, needs nothing from the library. So every other vendor is read while the library
+loads, each is installed against it as soon as both are done, and the results are
+merged in a stable order:
 
 ```mermaid
 flowchart LR
-    lib["1 · OrcaFilamentLibrary<br/>loaded first, synchronously"] --> par["2 · every other vendor in parallel,<br/>each into its own bundle, filaments<br/>resolving against the loaded library"] --> merge["3 · bundles merged into one,<br/>sequentially, in stable vendor order"]
+    lib["1 · OrcaFilamentLibrary loaded;<br/>meanwhile every other vendor read<br/>from its cache or its JSONs"] --> par["2 · every other vendor installed<br/>in parallel, each into its own bundle,<br/>filaments resolving against the library"] --> merge["3 · bundles merged into one,<br/>in one pass per collection,<br/>in stable vendor order"]
 ```
+
+`PresetBundle::load_vendors` runs these steps for startup and for the setup wizard,
+which hand it the vendors to load and the directory each is installed in.
 
 Whether a vendor comes from its cache or from a parse changes nothing in that
 order — both produce the same bundle, so cached and parsed vendors mix freely in
@@ -211,17 +216,28 @@ shipped cache answered first, so the profile in `<data_dir>/system/` was never p
 and its cache was never written back.
 
 Serving from a cache is not a memory-image restore. The entries are deserialized and
-then installed one by one — inheritance resolved against the presets installed before
-them and the currently loaded filament library, includes layered in, configs flattened
-onto the collection defaults, validated and registered — by the same function the JSON
-path calls straight after parsing a sub-file. An `include` layers what the included
-base states, between the parent and the preset's own keys: the base's diff against the
+then installed by `install_vendor`, the routine the JSON path hands the vendor's entries
+to once it has parsed the sub-files: inheritance resolved against the presets installed
+before them and the currently loaded filament library, includes layered in, configs
+flattened onto the collection defaults, validated and registered. An `include` layers
+what the included base states, between the parent and the preset's own keys: the base's
+diff against the
 default, taken when the base itself was installed and before the per-variant padding
 `inherits` sees, so only what a template sets reaches the presets including it. The two
 paths share everything below the parse, which is what makes a cache-loaded bundle
 indistinguishable from a JSON-loaded one by construction rather than by test coverage.
 Installation also rebuilds each preset's file path from the local data directory, so a
 shipped cache never carries the generating machine's paths.
+
+Installing an entry is split in two. `resolve_vendor_preset` flattens it, reading only
+what is registered under the names it inherits and includes, and `commit_vendor_preset`
+registers it, the only step that writes anything shared. Entries resolve across threads
+in runs and commit in the order the vendor lists them. A run ends before an entry that
+inherits or includes one already in it, since that one's commit registers what the
+entry resolves against, so no entry in a run reads what another in it registers. An
+entry's parse messages are held until it commits. The bundle, the log's parse and
+install messages and the error count therefore come out as parsing and installing one
+entry at a time would leave them, whatever the listing order.
 
 App upgrades work because a cache normally survives one. Only a deliberate
 `CACHE_VERSION` bump makes an installed cache unreadable, and that is handled at
@@ -254,17 +270,20 @@ the wizard caches the *derived JSON*, not another form of the inputs:
 open, the wizard computes the current stamps (one version peek per vendor) and, when
 they match, serves the catalog from the file — no bundle built, no preset installed.
 Caching bundle inputs instead was tried and measured: rebuilding the bundle from
-per-vendor caches costs ~2 s of preset installation whatever feeds it, so only
-skipping the rebuild entirely wins.
+per-vendor caches costs over a second of preset installation whatever feeds it, so
+only skipping the rebuild entirely wins.
 
 Any change to the set — a vendor added, removed or updated, or its cache-only
 `.opc` replaced by a newer one — changes the stamps and retires the whole file;
-the wizard then rebuilds the bundle vendor by vendor (per-vendor caches serving where
-they cover) and writes the catalog back. Selections, region and per-open decorations
-are applied downstream of the cache either way, so a served catalog is
-indistinguishable from a rebuilt one. Nothing ships this file and the updater never
-touches it; it is a locally written artifact, re-derived whenever stale, written
-through a temp file and rename so half a cache is never readable.
+the wizard then rebuilds the bundle with `PresetBundle::load_vendors`, the load
+startup uses (per-vendor caches serving where they cover), and writes the catalog
+back. When a vendor fails to load, the filament library included, that open falls
+back to the wizard's own scan of the vendor JSONs, as when no bundle can be built,
+and writes nothing. Selections, region and per-open decorations are applied
+downstream of the cache either way, so a served catalog is indistinguishable from a
+rebuilt one. Nothing ships this file and the updater never touches it; it is a
+locally written artifact, re-derived whenever stale, written through a temp file and
+rename so half a cache is never readable.
 
 The cache lives under `<data_dir>/cache/`, not beside the vendors: everything that
 scans `<data_dir>/system/` treats any `.opc` there as a vendor, so a non-vendor
@@ -378,6 +397,13 @@ enumerates only `*.json` will find no vendors at all in a packaged build.
   the `CachedPreset` field list — written and read by `visit_entry` in
   `PresetCacheFormat.cpp`, one list for the save, the load and the name peek alike — or
   the cache's own layout or stamps, requires bumping `CACHE_VERSION` by hand.
+- **Adding a kind of reference between presets**, as `inherits` and `include` are:
+  parse the names into `CachedPreset` (a field change, so `CACHE_VERSION` is bumped),
+  have `install_vendor_entries` end a run before an entry that names one already in it
+  and retain what the names point at, look them up only in `resolve_vendor_preset`, and
+  register what they point at only in `commit_vendor_preset`. The listing-order test in
+  `test_vendor_cache.cpp` fails for a kind the runs do not check once its fixture uses
+  it.
 - **The dictionary indexes with a `uint16`**, so `print_config_def` may hold at most
   65535 options and one cache at most 65535 distinct enum value names.
   `CacheDictionary::save` throws past that, which surfaces when CI generates the

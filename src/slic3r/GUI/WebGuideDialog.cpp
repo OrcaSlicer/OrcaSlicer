@@ -1405,23 +1405,26 @@ bool GuideFrame::BuildProfileDataFromVendors()
         // is served from the shipped profiles. Each is stamped by name and
         // version alone: a profile change requires a version bump, so those two
         // determine content wherever the vendor's copy sits.
-        struct VendorSource { std::string name; boost::filesystem::path dir; std::string version; };
-        std::vector<VendorSource> ordered;
-        auto add_vendor = [&ordered](const std::string& name, const boost::filesystem::path& dir) {
+        std::vector<PresetBundle::VendorSource> ordered;
+        json stamps = json::array();
+        auto add_vendor = [&ordered, &stamps](const std::string& name, const boost::filesystem::path& dir) {
             // The version a load from `dir` would serve: the profile's where one
             // exists (a cache is only served while it covers the profile beside
             // it), the cache's own stamp where the cache is the whole vendor.
             // A profile without a version (blacklist.json) carries no presets
             // and is passed over.
             const boost::filesystem::path profile = dir / (name + ".json");
+            std::string version;
             if (boost::filesystem::exists(profile)) {
                 const Semver v = get_version_from_json(profile.string());
-                if (v.valid())
-                    ordered.push_back({name, dir, v.to_string()});
+                if (! v.valid())
+                    return;
+                version = v.to_string();
             } else {
-                ordered.push_back({name, dir,
-                    VendorCacheFile::peek_version((dir / (name + ".opc")).string(), name)});
+                version = VendorCacheFile::peek_version((dir / (name + ".opc")).string(), name);
             }
+            ordered.push_back({name, dir});
+            stamps.push_back({name, version});
         };
         const std::string filament_library(PresetBundle::ORCA_FILAMENT_LIBRARY);
         if (auto it = vendor_sources.find(filament_library); it != vendor_sources.end())
@@ -1431,9 +1434,6 @@ bool GuideFrame::BuildProfileDataFromVendors()
                 add_vendor(name, dir);
         if (ordered.empty())
             return false;
-        json stamps = json::array();
-        for (const VendorSource& v : ordered)
-            stamps.push_back({v.name, v.version});
 
         // What this function derives is a pure function of that stamped set, so
         // the derived JSON is cached whole: a fresh cache makes an open one
@@ -1461,26 +1461,18 @@ bool GuideFrame::BuildProfileDataFromVendors()
         }
 
         // Each vendor comes from its preset cache where one covers it, which is
-        // what makes this worth doing instead of the scan below; loading into a
-        // bundle per vendor keeps the install order the startup path has.
-        PresetBundle bundle;
-        auto load_vendor = [](PresetBundle& into, const std::string& vendor,
-                              const boost::filesystem::path& dir, const PresetBundle* base) {
-            into.load_vendor_configs_from_json(dir.string(), vendor, PresetBundle::LoadSystem,
-                                               ForwardCompatibilitySubstitutionRule::EnableSilent, base);
-        };
-        for (const VendorSource& v : ordered) {
-            if (*m_cancel_token)
-                return false;   // as in the scan below: a vendor without a cache is parsed, and that takes time
-            if (v.name == filament_library) {
-                load_vendor(bundle, v.name, v.dir, nullptr);
-            } else {
-                PresetBundle tmp;
-                load_vendor(tmp, v.name, v.dir, &bundle);
-                bundle.merge_presets(std::move(tmp));
-            }
-        }
-        if (bundle.vendors.empty())
+        // what makes this worth doing instead of the scan below.
+        PresetBundle             bundle;
+        std::vector<std::string> failed;
+        const std::string errors = bundle.load_vendors(ordered, ForwardCompatibilitySubstitutionRule::EnableSilent,
+                                                       /*allow_cache=*/true, m_cancel_token.get(), &failed).second;
+        if (*m_cancel_token || bundle.vendors.empty())
+            return false;
+        if (! errors.empty())
+            BOOST_LOG_TRIVIAL(warning) << "GuideFrame: loading the vendors reported: " << errors;
+        // A vendor that failed to load sends this open to the scan below, which lists
+        // what it can read of every vendor.
+        if (! failed.empty())
             return false;
         if (! BuildProfileJson(bundle, /*require_all_resource_vendors=*/false))
             return false;
