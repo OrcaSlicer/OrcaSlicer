@@ -446,7 +446,7 @@ void AMSrefresh::paintEvent(wxPaintEvent &evt)
     wxSize    size = GetSize();
     wxPaintDC dc(this);
 
-    auto colour = StateColor::darkModeColorFor(AMS_CONTROL_GRAY700);
+    auto colour = StateColor::darkModeColorFor(wxColour("#363636")); // ORCA
     if (!wxWindow::IsEnabled()) { colour = StateColor::darkModeColorFor(AMS_CONTROL_GRAY500); }
 
     auto pot = wxPoint((size.x - m_bitmap_selected.GetBmpSize().x) / 2, (size.y - m_bitmap_selected.GetBmpSize().y) / 2);

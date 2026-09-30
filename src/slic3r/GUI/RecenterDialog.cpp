@@ -9,7 +9,7 @@
 #define BORDER FromDIP(25)
 #define DRAW_PANEL_SIZE wxSize(FromDIP(475), FromDIP(100))
 
-const wxColour text_color(107, 107, 107);
+//const wxColour text_color(107, 107, 107);
 
 namespace Slic3r { namespace GUI {
 RecenterDialog::RecenterDialog(wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
@@ -17,6 +17,7 @@ RecenterDialog::RecenterDialog(wxWindow* parent, wxWindowID id, const wxString& 
 {
     hint1 = _L("Please home all axes (click ");
     hint2 = _L(") to locate the toolhead's position. This prevents device moving beyond the printable boundary and causing equipment wear.");
+    text_color = StateColor::darkModeColorFor(wxColour("#363636")); // ORCA use readable color for dark mode
 
     init_bitmap();
 
