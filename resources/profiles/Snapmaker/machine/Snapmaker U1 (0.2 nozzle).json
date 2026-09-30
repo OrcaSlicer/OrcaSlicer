@@ -43,7 +43,7 @@
 		"0",
 		"0"
 	],
-	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n",
+	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n\n; U1 nozzle flow metadata, in logical filament order\n; filament_volume_type = {(nozzle_volume_type[filament_map[0]-1] == 1 ? \"high_flow\" : \"standard\")}{if size(filament_type) > 1},{(nozzle_volume_type[filament_map[1]-1] == 1 ? \"high_flow\" : \"standard\")}{endif}{if size(filament_type) > 2},{(nozzle_volume_type[filament_map[2]-1] == 1 ? \"high_flow\" : \"standard\")}{endif}{if size(filament_type) > 3},{(nozzle_volume_type[filament_map[3]-1] == 1 ? \"high_flow\" : \"standard\")}{endif}\n",
 	"machine_max_jerk_z": [
 		"3",
 		"0.4",
