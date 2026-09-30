@@ -142,10 +142,10 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
     bbox.offset(scale_((params.multiline + 1) * spacing));
     Polylines polylines;
-    if (params.tpms_adaptive && this->tpms_depth_field != nullptr) {
-        polylines = make_adaptive_tpms({fischer_koch, params.density, params.tpms_interior_density, 2. * PI / period(params.density),
-                                        2. * PI / period(params.tpms_interior_density), params.tpms_adaptive_gradient},
-                                       *this->tpms_depth_field, bbox, this->z, params.layer_height, spacing, infill_angle);
+    if (params.tpms_adaptive && this->tpms_radial_field != nullptr) {
+        polylines = make_adaptive_tpms({fischer_koch, 2. * PI / period(params.density), 2. * PI / period(params.tpms_interior_density),
+                                        params.tpms_adaptive_gradient},
+                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, spacing, infill_angle);
     } else {
         marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, period(params.density));
         // Get simplified lines using coarse tolerance of 0.1mm (this is infill).

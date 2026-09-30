@@ -443,7 +443,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         if (density == 0.)
             return -1;
         // Orca: the adaptive TPMS infill is as sparse as its interior density.
-        if (config.tpms_adaptive && (pattern == ipTpmsD || pattern == ipTpmsFK))
+        if (config.tpms_adaptive && is_tpms_adaptive_pattern(pattern))
             density = std::min(density, float(config.tpms_interior_density));
 
         //BBS: rough estimation and need to be optimized

@@ -33,7 +33,7 @@ namespace Slic3r { class ExtrusionEntityCollection; }
 namespace Slic3r {
 
 class Surface;
-class TpmsDepthField;
+class TpmsRadialField;
 enum InfillPattern : int;
 
 namespace FillAdaptive {
@@ -162,7 +162,7 @@ public:
     FillAdaptive::Octree* adapt_fill_octree = nullptr;
 
     // Depth inside the object for the adaptive TPMS infill
-    const TpmsDepthField* tpms_depth_field = nullptr;
+    const TpmsRadialField* tpms_radial_field = nullptr;
 
     // PrintConfig and PrintObjectConfig are used by infills that use Arachne (Concentric and FillEnsuring).
     // Orca: also used by gap fill function.

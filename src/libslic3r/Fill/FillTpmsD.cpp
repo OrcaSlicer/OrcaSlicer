@@ -121,14 +121,13 @@ void FillTpmsD::_fill_surface_single(
         expolygon.rotate(-infill_angle);
 
     Polylines polylines;
-    if (params.tpms_adaptive && this->tpms_depth_field != nullptr) {
+    if (params.tpms_adaptive && this->tpms_radial_field != nullptr) {
         // Radians per mm of the regular pattern at a density.
         auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
         BoundingBox bbox = expolygon.contour.bounding_box();
         bbox.offset(scale_((params.multiline + 1) * this->spacing));
-        polylines = make_adaptive_tpms({schwarz_d, params.density, params.tpms_interior_density, frequency(params.density),
-                                        frequency(params.tpms_interior_density), params.tpms_adaptive_gradient},
-                                       *this->tpms_depth_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
+        polylines = make_adaptive_tpms({schwarz_d, frequency(params.density), frequency(params.tpms_interior_density), params.tpms_adaptive_gradient},
+                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
     } else {
         BoundingBox bb = expolygon.contour.bounding_box();
         // Density adjusted to have a good %of weight.
