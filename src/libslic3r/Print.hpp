@@ -12,6 +12,7 @@
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
+#include "Fill/FillTpmsAdaptive.hpp"
 
 #include "BoundingBox.hpp"
 #include "ExtrusionEntityCollection.hpp"
@@ -401,6 +402,7 @@ public:
     double                      max_z() const         { return m_max_z; }
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
+    const TpmsDepthField*        tpms_depth_field() const { return m_tpms_depth_field.get(); }
 
     // BBS
     void generate_support_preview();
@@ -586,6 +588,7 @@ private:
     FillAdaptive::RegionOctrees prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
+    TpmsDepthFieldPtr prepare_tpms_depth_field() const;
 
     // BBS
     SupportNecessaryType is_support_necessary();
@@ -619,6 +622,7 @@ private:
     FillAdaptive::RegionOctrees             m_adaptive_fill_octrees;
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
+    TpmsDepthFieldPtr m_tpms_depth_field;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
