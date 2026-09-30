@@ -270,10 +270,6 @@ private:
     //
     bool m_layers_in_vertex_order{ false };
     //
-    // Scratch buffer for update_colors_texture(), kept alive across slider steps
-    //
-    std::vector<float> m_colors_scratch;
-    //
     // Detected travel moves times
     //
     std::array<float, TIME_MODES_COUNT> m_travels_time{ 0.0f, 0.0f };
@@ -391,8 +387,19 @@ private:
     int m_uni_segments_exposure_id{ -1 };
     int m_uni_segments_saturation_id{ -1 };
     int m_uni_segments_light_top_dir_id{ -1 };
+    // ORCA: the layers greyed or dimmed around the one the sliders show, in the segments and options shaders.
+    struct LayerColorsUniforms
+    {
+        int lit_layers{ -1 };
+        int grey_below_layer{ -1 };
+        int dim_brightness{ -1 };
+        int kept_vertex{ -1 };
+
+        void init(unsigned int shader_id);
+    };
+    LayerColorsUniforms m_uni_segments_layer_colors;
     //
-    // Caches for OpenGL uniforms id for options shader 
+    // Caches for OpenGL uniforms id for options shader
     //
     int m_uni_options_view_matrix_id{ -1 };
     int m_uni_options_projection_matrix_id{ -1 };
@@ -401,6 +408,7 @@ private:
     int m_uni_options_colors_tex_id{ -1 };
     int m_uni_options_segment_index_tex_id{ -1 };
     int m_uni_options_clipping_plane_id{ -1 };
+    LayerColorsUniforms m_uni_options_layer_colors;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     //
     // Caches for OpenGL uniforms id for cog marker shader 
@@ -424,8 +432,8 @@ private:
     {
     public:
         void init(size_t vertices_count);
-        void set_positions(const std::vector<Vec3>& positions);
-        void set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles);
+        void set_positions(const std::vector<Vec4>& positions);
+        void set_heights_widths_angles(const std::vector<Vec4>& heights_widths_angles);
         void set_colors(const std::vector<float>& colors);
         void set_enabled_segments(const std::vector<uint32_t>& enabled_segments);
         void set_enabled_options(const std::vector<uint32_t>& enabled_options);
@@ -561,6 +569,8 @@ private:
     void update_heights_widths();
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    // ORCA: the program using uni must be current.
+    void set_layer_colors(const LayerColorsUniforms& uni) const;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     void render_cog_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
     void render_tool_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);

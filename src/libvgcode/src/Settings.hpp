@@ -31,8 +31,6 @@ struct Settings
 		bool update_view_full_range{ true };
 		bool update_enabled_entities{ true };
 		bool update_colors{ true };
-		// ORCA: the slider ranges changed, so the greyed and dimmed layers did, but not the vertex colors
-		bool update_colors_texture{ false };
 
 		//
 		// Visibility maps
