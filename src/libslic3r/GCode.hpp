@@ -281,6 +281,8 @@ public:
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
     std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
+    // Sets the pressure advance of the filament's extruder variant, if enabled for it.
+    std::string     set_filament_pressure_advance(unsigned int filament_id);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 

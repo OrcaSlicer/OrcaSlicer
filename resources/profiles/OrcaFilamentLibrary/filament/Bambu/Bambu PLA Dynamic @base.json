@@ -11,6 +11,14 @@
 	"filament_density": [
 		"1.26"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_vendor": [
 		"Bambu Lab"
 	]

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @DeltaMaker",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "DeltaMaker Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "uWHBbbhFzvWq0qUP",
 	"filament_id": "OFgbpcy9",

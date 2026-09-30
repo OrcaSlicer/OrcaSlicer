@@ -11,6 +11,9 @@
 	"filament_density": [
 		"1.24"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_max_volumetric_speed": [
 		"6"
 	],

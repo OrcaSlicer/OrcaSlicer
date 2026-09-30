@@ -297,8 +297,20 @@ public:
             std::fill(used_states.begin(), used_states.end(), false);
         }
 
-        // Update used states based on the bitstream. It just iterated over the bitstream from the bitstream_start_idx till the end.
-        void update_used_states(size_t bitstream_start_idx);
+        // Update used states from the triangle trees stored between bitstream_start_idx and the end of the bitstream.
+        // Returns false and leaves used states untouched if a tree is truncated or malformed.
+        bool update_used_states(size_t bitstream_start_idx);
+
+        // Read the 4-bit code at bit index ibit (LSB first) and advance ibit past it.
+        // Returns false without advancing when fewer than 4 bits remain.
+        bool read_nibble(int &ibit, int &nibble) const {
+            if (ibit < 0 || static_cast<size_t>(ibit) + 4 > bitstream.size())
+                return false;
+            nibble = 0;
+            for (int i = 0; i < 4; ++i)
+                nibble |= static_cast<int>(bitstream[ibit++]) << i;
+            return true;
+        }
 
     private:
         friend class cereal::access;

@@ -85,7 +85,9 @@ public:
     Points convex_points(double angle_threshold = 0.) const;
     Points concave_points(double angle_threshold = 0.) const;
     // Projection of a point onto the polygon.
-    Point point_projection(const Point &point) const;
+    // Optional index: start of the closest edge, or the vertex itself for an endpoint.
+    // Empty polygons return the query point and std::numeric_limits<size_t>::max() as the index.
+    Point point_projection(const Point &point, size_t *edge_index = nullptr) const;
     std::vector<float> parameter_by_length() const;
     
     //BBS

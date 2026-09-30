@@ -15,3 +15,11 @@ set_tests_properties(cli_strict_mode PROPERTIES
     LABELS "CLI;RequiresApp"
     SKIP_RETURN_CODE 77
     TIMEOUT 900)
+
+add_test(NAME cli_project_missing_keys
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_cli_project_missing_keys.sh $<TARGET_FILE:OrcaSlicer> ${ORCA_CLI_TEST_PYTHON}
+        ${CMAKE_SOURCE_DIR}/resources/profiles/BBL)
+set_tests_properties(cli_project_missing_keys PROPERTIES
+    LABELS "CLI;RequiresApp"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 900)
