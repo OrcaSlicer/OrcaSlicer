@@ -48,6 +48,7 @@
 	"wipe": [
 		"0"
 	],
+	"machine_filament_overrides": "1",
 	"default_filament_profile": [
 		"Prusament PLA @CORE One"
 	],

@@ -73,5 +73,55 @@
 	"default_bed_type": "Textured PEI Plate",
 	"support_multi_bed_types": "1",
 	"purge_in_prime_tower": "0",
-	"manual_filament_change": "0"
+	"manual_filament_change": "0",
+	"machine_filament_overrides": "1",
+	"machine_enable_pressure_advance": [
+		"0"
+	],
+	"machine_filament_cooling_final_speed": [
+		"0"
+	],
+	"machine_filament_cooling_initial_speed": [
+		"0"
+	],
+	"machine_filament_cooling_moves": [
+		"0"
+	],
+	"machine_filament_end_gcode": [
+		"; Filament-specific end gcode"
+	],
+	"machine_filament_loading_speed": [
+		"0"
+	],
+	"machine_filament_loading_speed_start": [
+		"0"
+	],
+	"machine_filament_minimal_purge_on_wipe_tower": [
+		"10"
+	],
+	"machine_filament_multitool_ramming": [
+		"1"
+	],
+	"machine_filament_multitool_ramming_flow": [
+		"30"
+	],
+	"machine_filament_multitool_ramming_volume": [
+		"18"
+	],
+	"machine_filament_stamping_distance": [
+		"0"
+	],
+	"machine_filament_stamping_loading_speed": [
+		"0"
+	],
+	"machine_filament_unloading_speed": [
+		"0"
+	],
+	"machine_filament_unloading_speed_start": [
+		"0"
+	],
+	"machine_filament_start_gcode": [
+		"M572 S{pressure_advance[filament_extruder_id]} ; Pressure advance\nM573 R"
+	],
+	"machine_filament_ramming_parameters": []
 }
