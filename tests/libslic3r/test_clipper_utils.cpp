@@ -1,7 +1,9 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <numeric>
 #include <iostream>
+#include <utility>
 #include <boost/filesystem.hpp>
 
 #include "libslic3r/ClipperUtils.hpp"
@@ -292,7 +294,38 @@ TEST_CASE("Top level expolygons of an even-odd union", "[ClipperUtils]") {
     REQUIRE(top_level_expolygons(reference).size() == 1);
 }
 
-TEST_CASE("Tiled diff and intersection cover the same area as the plain calls", "[ClipperUtils]") {
+// Rings flattened to x,y,x,y... and sorted, with each ring rotated to start at its lowest point: two
+// encodings of the same geometry compare equal however the pieces came back or wherever a ring started.
+static std::vector<std::vector<coord_t>> canonical_rings(const ExPolygons &expolygons)
+{
+    std::vector<std::vector<coord_t>> rings;
+    const auto add = [&rings](const Polygon &poly) {
+        if (poly.points.empty())
+            return;
+        Points pts = poly.points;
+        std::rotate(pts.begin(),
+                    std::min_element(pts.begin(), pts.end(), [](const Point &a, const Point &b) {
+                        return std::make_pair(a.x(), a.y()) < std::make_pair(b.x(), b.y());
+                    }),
+                    pts.end());
+        std::vector<coord_t> flat;
+        flat.reserve(pts.size() * 2);
+        for (const Point &p : pts) {
+            flat.emplace_back(p.x());
+            flat.emplace_back(p.y());
+        }
+        rings.emplace_back(std::move(flat));
+    };
+    for (const ExPolygon &expoly : expolygons) {
+        add(expoly.contour);
+        for (const Polygon &hole : expoly.holes)
+            add(hole);
+    }
+    std::sort(rings.begin(), rings.end());
+    return rings;
+}
+
+TEST_CASE("Tiled diff and intersection return the same polygons as the plain calls", "[ClipperUtils]") {
     // A grid of disjoint framed squares, enough of them to be split into several tiles.
     const int  n    = 40;
     const coord_t cell = scaled<coord_t>(2.), side = scaled<coord_t>(1.5), frame = scaled<coord_t>(0.3);
@@ -319,19 +352,19 @@ TEST_CASE("Tiled diff and intersection cover the same area as the plain calls", 
     }
     polygons_append(clip, to_polygons(big));
 
-    const auto xor_area = [](const ExPolygons &a, const ExPolygons &b) { return area(diff_ex(a, b)) + area(diff_ex(b, a)); };
     const ApplySafetyOffset safety = GENERATE(ApplySafetyOffset::No, ApplySafetyOffset::Yes);
-    const double tolerance = double(scaled<coord_t>(0.001)) * double(span);
+
+    // The point of the fixture: below 128 pieces the helpers fall back to a single tile and the tiled
+    // path under test is never taken.
+    REQUIRE(ClipperUtils::tile_expolygons(subject, 32).size() > 1);
 
     const ExPolygons diff_plain = diff_ex(subject, clip, safety);
     const ExPolygons diff_tiled = diff_ex_by_piece(subject, clip, safety);
     REQUIRE(area(diff_plain) > 0.);
-    CHECK_THAT(area(diff_tiled), Catch::Matchers::WithinRel(area(diff_plain), 1e-9));
-    CHECK(xor_area(diff_tiled, diff_plain) < tolerance);
+    CHECK(canonical_rings(diff_tiled) == canonical_rings(diff_plain));
 
     const ExPolygons intersection_plain = intersection_ex(subject, clip, safety);
     const ExPolygons intersection_tiled = intersection_ex_by_piece(subject, clip, safety);
     REQUIRE(area(intersection_plain) > 0.);
-    CHECK_THAT(area(intersection_tiled), Catch::Matchers::WithinRel(area(intersection_plain), 1e-9));
-    CHECK(xor_area(intersection_tiled, intersection_plain) < tolerance);
+    CHECK(canonical_rings(intersection_tiled) == canonical_rings(intersection_plain));
 }
