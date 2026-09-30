@@ -297,10 +297,7 @@ void MonitorPanel::select_machine(std::string machine_sn)
 
 void MonitorPanel::on_timer(wxTimerEvent& event)
 {
-    // MediaPlayCtrl may yield the event loop while it joins its camera worker
-    // during window teardown. Do not let a queued monitor refresh touch panels
-    // that are already being destroyed.
-    if (!wxGetApp().is_closing() && update_flag) {
+    if (update_flag) {
         update_all();
         //Layout();
     }
