@@ -11958,6 +11958,21 @@ PRINT_CONFIG_CACHE_INITIALIZE((
     SLAMaterialConfig, SLAPrintConfig, SLAPrintObjectConfig, SLAPrinterConfig, SLAFullPrintConfig))
 static int print_config_static_initialized = print_config_static_initializer();
 
+// The same set() calls ConfigBase::apply_only() makes, without looking every key up by name. Out of line so the
+// option list is expanded for this once, not in every file that includes PrintConfig.hpp.
+#define PRINT_CONFIG_APPLY_TO_DEFINITION(r, data, CLASS_NAME) \
+    bool CLASS_NAME::apply_to(ConfigBase &target) const \
+    { \
+        auto *dst = dynamic_cast<CLASS_NAME*>(&target); \
+        if (dst == nullptr) \
+            return false; \
+        visit_option_pairs(*dst, *this, [](const char*, ConfigOption &a, const ConfigOption &b) { a.set(&b); return true; }); \
+        return true; \
+    }
+BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_APPLY_TO_DEFINITION, _, (PrintObjectConfig)(PrintRegionConfig)(MachineEnvelopeConfig)(GCodeConfig)
+    (SLAMaterialConfig)(SLAPrintConfig)(SLAPrintObjectConfig)(SLAPrinterConfig))
+#undef PRINT_CONFIG_APPLY_TO_DEFINITION
+
 //BBS: remove unused command currently
 CLIActionsConfigDef::CLIActionsConfigDef()
 {
