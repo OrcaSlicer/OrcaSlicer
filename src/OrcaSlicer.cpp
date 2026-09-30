@@ -2779,6 +2779,37 @@ int CLI::run(int argc, char **argv)
         fetch_compatible_values = true;
     }
 
+    // Refresh every project filament no loaded filament replaces from its current system preset, as the GUI
+    // does when it loads the project; the filament merge below keeps the keys the project lists as changed.
+    // Entries stay in slot order, which the merge's variant bookkeeping relies on.
+    std::vector<bool> load_filaments_refresh(load_filaments_config.size(), false);
+    if (is_bbl_3mf && new_printer_name.empty()) {
+        const ConfigOptionStrings *project_filament_ids = m_print_config.option<ConfigOptionStrings>("filament_ids");
+        for (size_t index = 0; index < current_filaments_system_name.size(); index++) {
+            const int slot = static_cast<int>(index) + 1;
+            if (std::find(load_filaments_index.begin(), load_filaments_index.end(), slot) != load_filaments_index.end())
+                continue;
+            std::string system_name = current_filaments_system_name[index];
+            if (system_name.empty())
+                continue;
+            PresetBundle::convert_filament_preset_name(current_printer_name, system_name);
+            DynamicPrintConfig config;
+            std::string        error;
+            if (!ensure_system_preset_resolver().resolve_system_preset(config, Preset::TYPE_FILAMENT, system_name, config_substitution_rule, error)) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("CLI: system filament preset '%1%' not resolved (%2%); filament %3% keeps its values") % system_name % error % slot;
+                continue;
+            }
+            const size_t at = std::upper_bound(load_filaments_index.begin(), load_filaments_index.end(), slot) - load_filaments_index.begin();
+            load_filaments_id.insert(load_filaments_id.begin() + at,
+                project_filament_ids != nullptr && index < project_filament_ids->size() ? project_filament_ids->values[index] : std::string());
+            load_filaments_name.insert(load_filaments_name.begin() + at, system_name);
+            load_filaments_config.insert(load_filaments_config.begin() + at, std::move(config));
+            load_filaments_index.insert(load_filaments_index.begin() + at, slot);
+            load_filaments_inherit.insert(load_filaments_inherit.begin() + at, system_name);
+            load_filaments_refresh.insert(load_filaments_refresh.begin() + at, true);
+        }
+    }
+
     //fetch upward_compatible_machine
     if (fetch_upward_values) {
         if (!current_printer_system_name.empty()) {
@@ -3469,7 +3500,7 @@ int CLI::run(int argc, char **argv)
     }
 
     //set the filament settings into print config
-    if ((load_filament_count > 0) || (up_config_to_date))
+    if ((load_filament_count > 0) || (up_config_to_date) || !load_filaments_config.empty())
     {
         //std::vector<int> filament_variant_count(filament_count, 1);
         std::vector<int> old_start_indice(filament_count, 0);
@@ -3528,6 +3559,8 @@ int CLI::run(int argc, char **argv)
         for (int index = 0; index < load_filaments_config.size(); index++) {
             DynamicPrintConfig&  config = load_filaments_config[index];
             int filament_index = load_filaments_index[index];
+            // A filament given with --load-filaments replaces the slot; a refreshed one keeps the project's changed keys.
+            const bool loaded = load_filament_count > 0 && !load_filaments_refresh[index];
             std::vector<std::string> different_keys;
 
             //ORCA: diff before load_default_gcodes_to_config, the way the process and machine
@@ -3537,12 +3570,12 @@ int CLI::run(int argc, char **argv)
             //      compared" to "compared as empty against the parent" and land in the column
             //      as an override the user never made.
             std::string filament_different_settings;
-            if (load_filament_count > 0)
+            if (loaded)
                 filament_different_settings = cli_different_settings(config, load_filaments_inherit[index], Preset::TYPE_FILAMENT);
 
             load_default_gcodes_to_config(config, Preset::TYPE_FILAMENT);
 
-            if (load_filament_count > 0) {
+            if (loaded) {
                 ConfigOptionStrings *opt_filament_settings = static_cast<ConfigOptionStrings *> (m_print_config.option("filament_settings_id", true));
                 std::string& filament_name = load_filaments_name[index];
                 ConfigOptionString* filament_name_setting = new ConfigOptionString(filament_name);
@@ -3614,7 +3647,7 @@ int CLI::run(int argc, char **argv)
                     flush_and_exit(CLI_CONFIG_FILE_ERROR);
                 }
 
-                if ((load_filament_count == 0) && !different_keys_set.empty())
+                if (!loaded && !different_keys_set.empty())
                 {
                     std::set<std::string>::iterator iter = different_keys_set.find(opt_key);
                     if ( iter != different_keys_set.end()) {

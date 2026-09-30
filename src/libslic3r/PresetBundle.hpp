@@ -238,6 +238,9 @@ public:
     // Keys a project keeps when its presets are loaded: those listed in its escaped
     // "different_settings_to_system" entry for the preset, plus the preset bookkeeping keys.
     static std::set<std::string> project_different_keys(const std::string &different_settings);
+    // A project filament saved under a name the current presets split per nozzle (e.g. H2D 0.6) is loaded from
+    // the preset that now holds its values.
+    static void convert_filament_preset_name(const std::string& machine_name, std::string& filament_name);
 
     PresetBundle();
     PresetBundle(const PresetBundle &rhs);

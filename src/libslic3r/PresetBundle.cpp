@@ -5251,7 +5251,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
 
 
 //convert the old filament preset to new one after split
-static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
+void PresetBundle::convert_filament_preset_name(const std::string& machine_name, std::string& filament_name)
 {
     auto machine_iter = filament_preset_convert.find(machine_name);
     if (machine_iter != filament_preset_convert.end())
