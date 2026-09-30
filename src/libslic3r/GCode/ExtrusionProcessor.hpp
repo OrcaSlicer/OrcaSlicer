@@ -662,7 +662,7 @@ public:
         if (prev == nullptr) {
             prev_layer_boundaries[object]  = nullptr;
             prev_curled_extrusions[object] = nullptr;
-        } else if (precomputed != nullptr && precomputed->layer == layer && layer->lower_layer == prev) {
+        } else if (precomputed != nullptr && precomputed->layer == layer) {
             prev_layer_boundaries[object]  = precomputed->lower_boundaries;
             prev_curled_extrusions[object] = precomputed->lower_curled_lines;
         } else {
