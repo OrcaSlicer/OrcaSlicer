@@ -1118,20 +1118,19 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
     return has_lightning_infill ? FillLightning::build_generator(std::as_const(*this), [this]() -> void { this->throw_if_canceled(); }) : FillLightning::GeneratorPtr();
 }
 
-TpmsDepthFieldPtr PrintObject::prepare_tpms_depth_field() const
+TpmsRadialFieldPtr PrintObject::prepare_tpms_radial_field() const
 {
     bool has_adaptive_tpms = false;
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
         if (const PrintRegionConfig &config = this->printing_region(region_id).config();
-            config.sparse_infill_density > 0 && config.tpms_adaptive &&
-            (config.sparse_infill_pattern == ipTpmsD || config.sparse_infill_pattern == ipTpmsFK)) {
+            config.sparse_infill_density > 0 && config.tpms_adaptive && is_tpms_adaptive_pattern(config.sparse_infill_pattern)) {
             has_adaptive_tpms = true;
             break;
         }
     if (!has_adaptive_tpms || m_layers.empty())
         return nullptr;
 
-    std::vector<TpmsDepthField::Slice> slices;
+    std::vector<TpmsRadialField::Slice> slices;
     slices.reserve(m_layers.size());
     BoundingBox bbox;
     for (const Layer *layer : m_layers) {
@@ -1140,7 +1139,7 @@ TpmsDepthFieldPtr PrintObject::prepare_tpms_depth_field() const
     }
     if (!bbox.defined)
         return nullptr;
-    return std::make_unique<TpmsDepthField>(slices, bbox, [this]() { m_print->throw_if_canceled(); });
+    return std::make_unique<TpmsRadialField>(slices, bbox, [this]() { m_print->throw_if_canceled(); });
 }
 
 void PrintObject::clear_layers()
@@ -2957,7 +2956,7 @@ void PrintObject::bridge_over_infill()
         }
 
         this->m_adaptive_fill_octrees = this->prepare_adaptive_infill_data(surfaces_w_bottom_z);
-        this->m_tpms_depth_field      = this->prepare_tpms_depth_field();
+        this->m_tpms_radial_field     = this->prepare_tpms_radial_field();
 
         std::vector<size_t> layers_to_generate_infill;
         for (const auto &pair : surfaces_by_layer) {

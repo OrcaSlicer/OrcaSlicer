@@ -3517,16 +3517,16 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("tpms_adaptive", coBool);
     def->label      = L("Adaptive density");
     def->category   = L("Strength");
-    def->tooltip    = L("Grades the TPMS infill with the depth inside the object. The sparse infill density is used "
-                        "at the surface of the object, including its top and bottom, and the density changes towards "
-                        "the interior density at the deepest point of the object.");
+    def->tooltip    = L("Grades the Gyroid and TPMS infill inside the object: its cells grow from the surface of the "
+                        "object, including its top and bottom, towards its center. The sparse infill density is used at "
+                        "the surface and the interior density at the center.");
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def             = this->add("tpms_interior_density", coPercent);
     def->label      = L("Interior density");
     def->category   = L("Strength");
-    def->tooltip    = L("Density of the adaptive TPMS infill at the deepest point of the object.");
+    def->tooltip    = L("Density of the adaptive infill at the center of the object.");
     def->sidetext   = "%";
     def->min        = 1;
     def->max        = 100;
@@ -3536,12 +3536,12 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("tpms_adaptive_gradient", coEnum);
     def->label      = L("Adaptive gradient");
     def->category   = L("Strength");
-    def->tooltip    = L("How the density changes from the surface to the interior of the object.\n"
-                        "Linear: the density changes at a constant rate with the depth.\n"
+    def->tooltip    = L("How the density changes from the surface to the center of the object.\n"
+                        "Linear: the density changes at a constant rate.\n"
                         "Quadratic: the density stays close to the sparse infill density near the surface and "
-                        "changes faster towards the interior.\n"
+                        "changes faster towards the center.\n"
                         "Exponential: the density changes quickly just below the surface and levels off towards "
-                        "the interior.");
+                        "the center.");
     def->enum_keys_map = &ConfigOptionEnum<TpmsAdaptiveGradient>::get_enum_values();
     def->enum_values.push_back("linear");
     def->enum_values.push_back("quadratic");

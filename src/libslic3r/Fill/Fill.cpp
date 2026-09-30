@@ -970,17 +970,17 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
 
-                // Pass through gyroid_optimized only when the effective pattern is Gyroid,
-                // so non-Gyroid fills do not differ in SurfaceFillParams by an irrelevant flag
-                // (which would unnecessarily split fill batching).
-                // Stored on SurfaceFillParams; copied to FillParams during conversion.
-                params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
-
                 // Orca: only the TPMS sparse infill is graded; reset otherwise, as params is reused.
-                params.tpms_adaptive = (params.pattern == ipTpmsD || params.pattern == ipTpmsFK) &&
-                                       params.extrusion_role == erInternalInfill && region_config.tpms_adaptive;
+                params.tpms_adaptive = is_tpms_adaptive_pattern(params.pattern) && params.extrusion_role == erInternalInfill &&
+                                       region_config.tpms_adaptive;
                 params.tpms_interior_density  = params.tpms_adaptive ? float(region_config.tpms_interior_density) : 0.f;
                 params.tpms_adaptive_gradient = params.tpms_adaptive ? region_config.tpms_adaptive_gradient.value : TpmsAdaptiveGradient::Linear;
+
+                // Pass through gyroid_optimized only when the effective pattern is Gyroid,
+                // so non-Gyroid fills do not differ in SurfaceFillParams by an irrelevant flag
+                // (which would unnecessarily split fill batching). Adaptive density replaces it.
+                // Stored on SurfaceFillParams; copied to FillParams during conversion.
+                params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized && !params.tpms_adaptive;
 
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
@@ -1334,7 +1334,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         f->angle 	= surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
         f->adapt_fill_octree   = (surface_fill.params.pattern == ipSupportCubic) ? support_fill_octree : adaptive_fill_octree;
-        f->tpms_depth_field    = this->object()->tpms_depth_field();
+        f->tpms_radial_field   = this->object()->tpms_radial_field();
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
 		if (surface_fill.params.pattern == ipConcentricInternal) {
@@ -1555,7 +1555,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         f->angle    = surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
         f->adapt_fill_octree   = (surface_fill.params.pattern == ipSupportCubic) ? support_fill_octree : adaptive_fill_octree;
-        f->tpms_depth_field    = this->object()->tpms_depth_field();
+        f->tpms_radial_field   = this->object()->tpms_radial_field();
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
 

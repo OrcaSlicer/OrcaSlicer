@@ -148,6 +148,9 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     }
 }
 
+// Orca: Infill patterns graded by the "tpms_adaptive" option.
+inline bool is_tpms_adaptive_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
+
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
 // than one line per infill wall; a single line makes them plain crossing lines with nothing to round.

@@ -378,7 +378,7 @@ public:
     double                      max_z() const         { return m_max_z; }
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
-    const TpmsDepthField*        tpms_depth_field() const { return m_tpms_depth_field.get(); }
+    const TpmsRadialField*       tpms_radial_field() const { return m_tpms_radial_field.get(); }
 
     // BBS
     void generate_support_preview();
@@ -566,7 +566,7 @@ private:
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, float>>& surfaces_w_bottom_z) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
-    TpmsDepthFieldPtr prepare_tpms_depth_field() const;
+    TpmsRadialFieldPtr prepare_tpms_radial_field() const;
 
     // BBS
     SupportNecessaryType is_support_necessary();
@@ -599,7 +599,7 @@ private:
 
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> m_adaptive_fill_octrees;
     FillLightning::GeneratorPtr m_lightning_generator;
-    TpmsDepthFieldPtr m_tpms_depth_field;
+    TpmsRadialFieldPtr m_tpms_radial_field;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
