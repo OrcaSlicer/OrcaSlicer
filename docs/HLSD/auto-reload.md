@@ -118,7 +118,14 @@ file written continuously is reloaded at most every 30 seconds.
 
 A writer that pauses for more than 500ms mid-file without holding the file open (closing
 and reopening it between chunks) is still read while incomplete. The file's next write
-is a new change, so the finished file is reloaded once it settles.
+is a new change, so the finished file is reloaded once it settles. A stall of the writer
+counts as a pause: a loaded machine can hold an exporter up for longer than the quiet
+period just as it can any other process. If the partial file fails to parse, the user
+sees the usual reload error dialog, the same as for a manual "Reload from disk" of a
+corrupt file. The quiet period is a heuristic, not a guarantee, and no length of it
+would make it one. The reliable arrangement is for the exporter to write atomically, to
+a temporary file that it renames into place, which this design handles without any
+timing assumption.
 
 ## Detecting and committing a change
 
@@ -332,6 +339,20 @@ for an impossibility.
   (`scripts/testdata/auto_reload_simple_test_template.3mf`, which has one painted clone):
   in-place, rename-into-place and back-to-back writes, the paint-loss decline/accept on
   clones sharing a source, unrelated directory noise, a slow multi-chunk write, a writer
-  that never goes quiet, a re-export landing while an earlier reload's slice is still running, and each Preferences option gating what it claims to. It
-  answers the paint-loss dialog through `ORCA_TEST_HOOKS_DIR`; a missing or corrupt
-  source would raise a dialog it can't answer, so it never writes one.
+  that never goes quiet, a main thread that is busy while a file is being written, a
+  re-export landing while an earlier reload's slice is still running, and each Preferences
+  option gating what it claims to.
+
+  It answers the paint-loss dialog through `ORCA_TEST_HOOKS_DIR`; a missing or corrupt
+  source would raise a dialog it can't answer, so it never writes one. The same env var
+  enables a second hook, in `SourceFileWatcher`: a `stall_main_thread` file holding a number
+  of seconds makes the app block its main thread that long right after it arms the debounce
+  timer, which is how the busy-main-thread phase holds the event loop up. Both hooks are
+  inert unless the env var is exported.
+
+  The phases that depend on a writer's timing (two writes inside one debounce window, a
+  writer that never goes quiet, a busy main thread) measure the writer's own longest pause.
+  A reload that comes early only counts against the watcher if the writer never paused for
+  0.4s or more; otherwise the test's own writer let the file go quiet, so the phase runs
+  again (up to three attempts). Without that, a stall of the test process on a loaded
+  machine would show up as a watcher failure.
