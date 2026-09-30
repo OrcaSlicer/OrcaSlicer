@@ -4357,6 +4357,38 @@ size_t GCode::get_nozzle_config_index(int filament_id) const
     return get_extruder_id(filament_id);
 }
 
+// A layer on its way through process_layers(): its index in the layers to print, or size_t(-1) for the empty layer
+// the pressure equalizer needs at the end, and the overhang distances computed for it ahead of the generator.
+struct PrecomputedLayer
+{
+    size_t                                    index{size_t(-1)};
+    std::vector<PrecomputedOverhangDistances> overhang_distances;
+};
+
+// Whether any object of the print can slow down or cool for overhangs, the only case the overhang distances serve.
+static bool needs_overhang_distances(const Print &print)
+{
+    const auto &fan = print.config().enable_overhang_bridge_fan.values;
+    if (std::any_of(fan.begin(), fan.end(), [](unsigned char enabled) { return enabled != 0; }))
+        return true;
+    for (const PrintObject *object : print.objects())
+        for (size_t region_id = 0; region_id < object->num_printing_regions(); ++region_id) {
+            const auto &speed = object->printing_region(region_id).config().enable_overhang_speed.values;
+            if (std::any_of(speed.begin(), speed.end(), [](unsigned char enabled) { return enabled != 0; }))
+                return true;
+        }
+    return false;
+}
+
+static std::vector<PrecomputedOverhangDistances> precompute_overhang_distances(const std::vector<GCode::LayerToPrint> &layers)
+{
+    std::vector<PrecomputedOverhangDistances> out;
+    for (const GCode::LayerToPrint &layer : layers)
+        if (layer.object_layer != nullptr && layer.object_layer->lower_layer != nullptr)
+            out.push_back(precompute_overhang_distances(layer.original_object, *layer.object_layer));
+    return out;
+}
+
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
 // and export G-code into file.
@@ -4369,29 +4401,39 @@ void GCode::process_layers(
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
-    const auto generator = tbb::make_filter<void, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print, &layer_to_print_idx](tbb::flow_control& fc) -> LayerResult {
-            if (layer_to_print_idx >= layers_to_print.size()) {
-                if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0)) {
-                    fc.stop();
-                    return {};
-                } else {
-                    // Pressure equalizer need insert empty input. Because it returns one layer back.
-                    // Insert NOP (no operation) layer;
-                    ++layer_to_print_idx;
-                    return LayerResult::make_nop_layer_result();
-                }
-            } else {
-                const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[layer_to_print_idx++];
-                const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
-                print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(layer_to_print_idx)));
-                if (m_wipe_tower && layer_tools.has_wipe_tower)
-                    m_wipe_tower->next_layer();
-                //BBS
-                check_placeholder_parser_failed();
-                print.throw_if_canceled();
-                return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
-            }
+    const auto source = tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
+        [this, &layers_to_print, &layer_to_print_idx](tbb::flow_control& fc) -> PrecomputedLayer {
+            if (layer_to_print_idx < layers_to_print.size())
+                return {layer_to_print_idx++};
+            // Pressure equalizer need insert empty input. Because it returns one layer back.
+            if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0))
+                fc.stop();
+            else
+                ++layer_to_print_idx;
+            return {};
+        });
+    const auto precompute = tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
+        [&layers_to_print, overhang = needs_overhang_distances(print)](PrecomputedLayer layer) -> PrecomputedLayer {
+            if (overhang && layer.index != size_t(-1))
+                layer.overhang_distances = precompute_overhang_distances(layers_to_print[layer.index].second);
+            return layer;
+        });
+    const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
+        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
+            if (precomputed.index == size_t(-1))
+                return LayerResult::make_nop_layer_result();
+            const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
+            const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
+            print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
+            if (m_wipe_tower && layer_tools.has_wipe_tower)
+                m_wipe_tower->next_layer();
+            //BBS
+            check_placeholder_parser_failed();
+            print.throw_if_canceled();
+            m_extrusion_quality_estimator.set_precomputed_distances(precomputed.overhang_distances);
+            LayerResult result = this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
+            m_extrusion_quality_estimator.set_precomputed_distances({});
+            return result;
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -4449,13 +4491,13 @@ void GCode::process_layers(
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-    	tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
+    	tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, source & precompute & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-    	tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+    	tbb::parallel_pipeline(12, source & precompute & generator & cooling & fan_mover & pa_processor_filter & output);
 
 }
 
@@ -4473,26 +4515,36 @@ void GCode::process_layers(
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
-    const auto generator = tbb::make_filter<void, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &layers_to_print, &layer_to_print_idx, single_object_idx, prime_extruder](tbb::flow_control& fc) -> LayerResult {
-            if (layer_to_print_idx >= layers_to_print.size()) {
-                if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0)) {
-                    fc.stop();
-                    return {};
-                } else {
-                    // Pressure equalizer need insert empty input. Because it returns one layer back.
-                    // Insert NOP (no operation) layer;
-                    ++layer_to_print_idx;
-                    return LayerResult::make_nop_layer_result();
-                }
-            } else {
-                LayerToPrint &layer = layers_to_print[layer_to_print_idx ++];
-                print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(layer_to_print_idx)));
-                //BBS
-                check_placeholder_parser_failed();
-                print.throw_if_canceled();
-                return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
-            }
+    const auto source = tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
+        [this, &layers_to_print, &layer_to_print_idx](tbb::flow_control& fc) -> PrecomputedLayer {
+            if (layer_to_print_idx < layers_to_print.size())
+                return {layer_to_print_idx++};
+            // Pressure equalizer need insert empty input. Because it returns one layer back.
+            if (layer_to_print_idx == layers_to_print.size() + (m_pressure_equalizer ? 1 : 0))
+                fc.stop();
+            else
+                ++layer_to_print_idx;
+            return {};
+        });
+    const auto precompute = tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
+        [&layers_to_print, overhang = needs_overhang_distances(print)](PrecomputedLayer layer) -> PrecomputedLayer {
+            if (overhang && layer.index != size_t(-1))
+                layer.overhang_distances = precompute_overhang_distances({layers_to_print[layer.index]});
+            return layer;
+        });
+    const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
+        [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
+            if (precomputed.index == size_t(-1))
+                return LayerResult::make_nop_layer_result();
+            LayerToPrint &layer = layers_to_print[precomputed.index];
+            print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
+            //BBS
+            check_placeholder_parser_failed();
+            print.throw_if_canceled();
+            m_extrusion_quality_estimator.set_precomputed_distances(precomputed.overhang_distances);
+            LayerResult result = this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
+            m_extrusion_quality_estimator.set_precomputed_distances({});
+            return result;
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -4547,13 +4599,13 @@ void GCode::process_layers(
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-    	tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
+    	tbb::parallel_pipeline(12, source & precompute & generator & spiral_mode & cooling & fan_mover & output);
     else if	(m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, source & precompute & generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-    	tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+    	tbb::parallel_pipeline(12, source & precompute & generator & cooling & fan_mover & pa_processor_filter & output);
 }
 
 std::string GCode::placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override)
