@@ -174,7 +174,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                     // Only touch Device UI when it's empty or still holds what a previous Browse
                     // wrote for the old Hostname -- a value the user set by hand is left alone.
                     const std::string current_webui = m_config->opt_string("print_host_webui");
-                    const std::string webui_from_old_host = old_host.empty() ? std::string() : "http://" + old_host + ":4408";
+                    const std::string webui_from_old_host = old_host.empty() ? std::string() : old_host + ":4408";
                     const bool webui_is_ours_or_empty = current_webui.empty() || current_webui == webui_from_old_host;
                     if (dialog.selected_is_k2_family()) {
                         if (webui_is_ours_or_empty) {
