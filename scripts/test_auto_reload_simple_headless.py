@@ -378,17 +378,24 @@ def write_cube_stl_slowly(path, size, chunks=20, pause=0.1):
             time.sleep(pause)
 
 
-def rewrite_cube_stl_continuously(path, size, stop_event, pause=0.1):
+def rewrite_cube_stl_continuously(path, size, stop_event, pause=0.1, stats=None):
     """Keeps rewriting `path` in place with the same complete cube until `stop_event` is set, holding
     the file open throughout. The content is valid whenever it's read, but the file never goes
-    quiet."""
+    quiet. If `stats` is given, its "max_gap" is the longest time between two consecutive rewrites --
+    a stall of the writer itself (a loaded machine) is what could otherwise be mistaken for the file
+    going quiet."""
     data = cube_stl_text(size)
+    last = time.monotonic()
     with open(path, "w") as f:
         while not stop_event.is_set():
             f.seek(0)
             f.write(data)
             f.truncate()
             f.flush()
+            now = time.monotonic()
+            if stats is not None:
+                stats["max_gap"] = max(stats.get("max_gap", 0.0), now - last)
+            last = now
             stop_event.wait(pause)
 
 
@@ -644,21 +651,34 @@ def main():
 
     def phase_k():
         print("\n[K] A file that never goes quiet (~40s of rewrites) -- reloaded by the 30s backstop")
-        stop = threading.Event()
-        tail.mark(); time.sleep(1.0)
-        started = time.monotonic()
-        writer = threading.Thread(target=rewrite_cube_stl_continuously, args=(basic_stl, 26, stop), daemon=True)
-        writer.start()
-        try:
-            ok = tail.wait_for(RELOAD_MARK, 38.0)
-            elapsed = time.monotonic() - started
+        # An early reload is only a watcher failure if the writer really never paused. If the
+        # writer itself stalled for longer than the debounce (a loaded machine), the file did go
+        # quiet and reloading it was correct -- so try again rather than blame the watcher.
+        for attempt, size in enumerate((26, 27, 28), start=1):
+            stop = threading.Event()
+            stats = {}
+            tail.mark(); time.sleep(1.0)
+            started = time.monotonic()
+            writer = threading.Thread(target=rewrite_cube_stl_continuously, args=(basic_stl, size, stop),
+                                      kwargs={"stats": stats}, daemon=True)
+            writer.start()
+            try:
+                ok = tail.wait_for(RELOAD_MARK, 38.0)
+                elapsed = time.monotonic() - started
+            finally:
+                stop.set()
+                writer.join(timeout=2)
+            max_gap = stats.get("max_gap", 0.0)
+            early = ok and elapsed <= 25.0
+            if early and max_gap >= 0.4 and attempt < 3:
+                print("  (the writer stalled %.1fs, longer than the debounce window -- trying again)" % max_gap)
+                time.sleep(2.0 + args.quiet_window / 2)
+                continue
             record("K1 reload while the writer is still running", ok, "" if ok else "no reload line within 38s")
             if ok:
-                record("K2 not before the backstop (after ~30s, not ~0.5s)", elapsed > 25.0,
-                       "" if elapsed > 25.0 else "after %.1fs" % elapsed)
-        finally:
-            stop.set()
-            writer.join(timeout=2)
+                record("K2 not before the backstop (after ~30s, not ~0.5s)", not early,
+                       "" if not early else "after %.1fs, the writer's longest pause was %.2fs" % (elapsed, max_gap))
+            break
         # The writer's last rewrite is a change of its own; let its reload finish before moving on.
         time.sleep(2.0)
 
