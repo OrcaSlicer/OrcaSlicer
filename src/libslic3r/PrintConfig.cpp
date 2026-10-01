@@ -8802,10 +8802,14 @@ void PrintConfigDef::init_fff_params()
     // Derived provenance participates in config equality, so regions with an explicit
     // default-valued override cannot merge with regions inheriting filament settings.
     for (const char *key : {"object_flow_ratio_override_mask", "region_flow_ratio_override_mask"}) {
-        def = this->add(key, coInt);
+        const bool per_nozzle = std::string_view(key) == "region_flow_ratio_override_mask";
+        def = this->add(key, per_nozzle ? coInts : coInt);
         def->mode = comDevelop;
         def->cli = ConfigOptionDef::nocli;
-        def->set_default_value(new ConfigOptionInt(0));
+        if (per_nozzle)
+            def->set_default_value(new ConfigOptionInts{0});
+        else
+            def->set_default_value(new ConfigOptionInt(0));
     }
 
     // Declare retract values for filament profile, overriding the printer's extruder profile.
