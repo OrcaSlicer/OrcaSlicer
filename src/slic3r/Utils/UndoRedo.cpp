@@ -1025,6 +1025,8 @@ void StackImpl::load_snapshot(size_t timestamp, Slic3r::Model& model, Slic3r::GU
 		std::vector<std::string> previous_gcode_paths;
 		plate_list.get_sliced_result(previous_slice_result, previous_gcode_paths);
 
+		// The plates are dereferenced by the slicing thread, which the caller
+		// (Plater::priv::undo_redo_to) has stopped before loading the snapshot.
 		plate_list.reset(false);
 		this->load_mutable_object<Slic3r::GUI::PartPlateList>(plate_list.id(), plate_list);
 		plate_list.rebuild_plates_after_deserialize(previous_slice_result, previous_gcode_paths);

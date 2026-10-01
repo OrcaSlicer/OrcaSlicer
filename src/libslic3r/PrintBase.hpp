@@ -99,10 +99,9 @@ public:
     };
 
 protected:
-    //FIXME last timestamp is shared between Print & SLAPrint,
-    // and if multiple Print or SLAPrint instances are executed in parallel, modification of g_last_timestamp
-    // is not synchronized!
-    static size_t g_last_timestamp;
+    // The last timestamp is shared between all the Print & SLAPrint instances, and Orca keeps one Print
+    // per PartPlate, so it is incremented under different state mutexes: it has to be atomic.
+    static std::atomic<size_t> g_last_timestamp;
 };
 
 // To be instantiated over PrintStep or PrintObjectStep enums.
@@ -473,11 +472,12 @@ public:
     };
     typedef std::function<void(const SlicingStatus&)>  status_callback_type;
     // Default status console print out in the form of percent => message.
-    void                    set_status_default() { m_status_callback = nullptr; }
+    void                    set_status_default() { this->set_status_callback(nullptr); }
     // No status output or callback whatsoever, useful mostly for automatic tests.
-    void                    set_status_silent() { m_status_callback = [](const SlicingStatus&){}; }
-    // Register a custom status callback.
-    void                    set_status_callback(status_callback_type cb) { m_status_callback = cb; }
+    void                    set_status_silent() { this->set_status_callback([](const SlicingStatus&){}); }
+    // Register a custom status callback. Called from the UI thread while the worker thread may be
+    // invoking the previous callback, therefore guarded by m_status_callback_mutex.
+    void                    set_status_callback(status_callback_type cb);
     // Calls a registered callback to update the status, or print out the default message.
     void                    set_status(int percent, const std::string &message, unsigned int flags = SlicingStatus::DEFAULT, int warning_step = -1) const;
 
@@ -563,7 +563,10 @@ protected:
     std::string m_plate_name;
 
     // Callback to be evoked regularly to update state of the UI thread.
+    // Guarded by m_status_callback_mutex, always invoke the copy returned by status_callback().
     status_callback_type                    m_status_callback;
+    mutable std::mutex                      m_status_callback_mutex;
+    status_callback_type                    status_callback() const;
 
 private:
     std::atomic<CancelStatus>               m_cancel_status;

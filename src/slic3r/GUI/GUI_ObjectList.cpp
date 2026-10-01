@@ -6693,6 +6693,11 @@ void ObjectList::OnEditingStarted(wxDataViewEvent &event)
 
 void ObjectList::OnEditingDone(wxDataViewEvent &event)
 {
+    // ~wxDataViewCtrl ends the in-place editing, so this handler runs while ~Plater is already tearing
+    // the Plater down. Nothing below may touch the Plater or the plates any more.
+    if (wxGetApp().is_closing())
+        return;
+
     if (event.GetColumn() != colName)
         return;
 
