@@ -4329,9 +4329,27 @@ struct FeatureFilamentOverrideMask
 
 static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides, std::vector<int>& variant_index)
 {
-    for (const auto &override : flow_ratio_overrides)
-        if (out.has(override.key) && in.has(override.key))
-            out.region_flow_ratio_override_mask.value |= flow_ratio_override_bit(override.key);
+    for (const auto &override : flow_ratio_overrides) {
+        const ConfigOption *option = in.option(override.key);
+        if (!out.has(override.key) || option == nullptr)
+            continue;
+        const int bit = flow_ratio_override_bit(override.key);
+        if (std::string_view(override.key) == "top_solid_infill_flow_ratio") {
+            // Track explicit values per nozzle; a nil local slot still inherits the filament override.
+            ConfigOptionFloatsNullable explicit_flow(
+                std::max(out.top_solid_infill_flow_ratio.size(), variant_index.size()), ConfigOptionFloatsNullable::nil_value());
+            if (variant_index.empty())
+                explicit_flow.set(option);
+            else
+                set_variant_override(explicit_flow, *static_cast<const ConfigOptionVectorBase *>(option), variant_index);
+            for (size_t i = 0; i < out.region_flow_ratio_override_mask.size(); ++i)
+                if (has_filament_override(&explicit_flow, i))
+                    out.region_flow_ratio_override_mask.values[i] |= bit;
+        } else {
+            for (int &mask : out.region_flow_ratio_override_mask.values)
+                mask |= bit;
+        }
+    }
 
     // 1) Explicit feature filament values take precedence over base extruder fallback.
     auto *opt_extruder = in.opt<ConfigOptionInt>(key_extruder);
@@ -4407,7 +4425,8 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
 {
     PrintRegionConfig config = default_or_parent_region_config;
     if (volume.is_model_part())
-        config.region_flow_ratio_override_mask.value = 0;
+        config.region_flow_ratio_override_mask.values.assign(
+            std::max(config.top_solid_infill_flow_ratio.size(), variant_index.size()), 0);
     FeatureFilamentOverrideMask feature_overrides;
 
     // For model parts, non-zero values coming from the print defaults should stay explicit.

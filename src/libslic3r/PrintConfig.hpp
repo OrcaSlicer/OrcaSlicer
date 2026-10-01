@@ -1673,7 +1673,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<WallDirection>,  wall_direction))
 
     // Orca: other flow ratios (available for overriding, if set_other_flow_ratios is enabled)
-    ((ConfigOptionInt,                  region_flow_ratio_override_mask))
+    ((ConfigOptionInts,                 region_flow_ratio_override_mask))
     ((ConfigOptionFloat,                first_layer_flow_ratio))
     ((ConfigOptionFloat,                outer_wall_flow_ratio))
     ((ConfigOptionFloat,                inner_wall_flow_ratio))

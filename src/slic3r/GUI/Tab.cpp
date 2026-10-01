@@ -4502,6 +4502,24 @@ const std::vector<std::string> toolchange_opt_keys = {
 
 } // namespace
 
+int TabFilament::process_variant_index(unsigned int filament_variant_index) const
+{
+    const auto *variants = m_config->option<ConfigOptionStrings>("filament_extruder_variant");
+    if (variants == nullptr || variants->empty())
+        return 0;
+    // Filament variants have their own order; process columns also include the extruder id.
+    Tab *print_tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
+    const int extruder_id = print_tab ? print_tab->get_current_active_extruder() : 0;
+    const auto &printer_config = m_preset_bundle->printers.get_edited_preset().config;
+    const auto &process_config = m_preset_bundle->prints.get_edited_preset().config;
+    const auto *extruder_types = printer_config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (extruder_types == nullptr || extruder_types->empty())
+        return 0;
+    return std::max(0, process_config.get_index_for_extruder(extruder_id + 1, "print_extruder_id",
+        ExtruderType(extruder_types->get_at(extruder_id)), convert_to_nvt_type(variants->get_at(filament_variant_index)),
+        "print_extruder_variant"));
+}
+
 void TabFilament::add_filament_overrides_page()
 {
     //BBS
@@ -4576,7 +4594,9 @@ void TabFilament::add_filament_overrides_page()
                             evt.Skip();
                             return;
                         }
-                        const boost::any process_value = optgroup_sh->get_config_value(process_config, process_opt_key, 0);
+                        const int process_index = print_options_with_variant.count(process_opt_key)
+                            ? process_variant_index(selected_variant_index()) : 0;
+                        const boost::any process_value = optgroup_sh->get_config_value(process_config, process_opt_key, process_index);
 
                         if (is_checked) {
                             field->update_na_value(_(L("N/A")));
@@ -4749,7 +4769,9 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
             if (!is_checked) {
                 // Orca: Get the default value from the process config (flow_* without filament_ prefix)
                 const std::string process_opt_key = opt_key.substr(strlen("filament_"));
-                const boost::any process_config_value = flow_optgroup->get_config_value(process_config, process_opt_key, 0);
+                const int process_index = print_options_with_variant.count(process_opt_key)
+                    ? process_variant_index(extruder_idx) : 0;
+                const boost::any process_config_value = flow_optgroup->get_config_value(process_config, process_opt_key, process_index);
                 field->update_na_value(process_config_value);
                 field->set_value(process_config_value, false);
             } else

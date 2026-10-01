@@ -70,6 +70,7 @@ TEST_CASE("Explicit local top flow takes precedence over filament overrides", "[
 {
     const std::string scope = GENERATE(std::string("object"), std::string("part"),
                                       std::string("modifier"), std::string("height range"));
+    const bool explicit_value = GENERATE(false, true);
     auto config = multifilament_config(1, {
         {"wall_loops", "1"}, {"sparse_infill_density", "0%"},
         {"top_shell_layers", "1"}, {"bottom_shell_layers", "0"},
@@ -98,7 +99,8 @@ TEST_CASE("Explicit local top flow takes precedence over filament overrides", "[
             }
             // Calibration sets exactly this object override. Equality to the process
             // default must not make it disappear during region deduplication.
-            local->set_key_value("top_solid_infill_flow_ratio", new ConfigOptionFloat(1.));
+            local->set_key_value("top_solid_infill_flow_ratio", new ConfigOptionFloatsNullable{
+                explicit_value ? 1. : ConfigOptionFloatsNullable::nil_value()});
             print.apply(model, config);
         }
         return extrusion_with_comment(gcode(print), config, "infill");
@@ -108,7 +110,7 @@ TEST_CASE("Explicit local top flow takes precedence over filament overrides", "[
     REQUIRE(baseline > 0.);
     config.set_deserialize_strict("filament_top_solid_infill_flow_ratio", "0.8");
     CHECK_THAT(top_extrusion(false) / baseline, Catch::Matchers::WithinRel(0.8, 0.001));
-    CHECK_THAT(top_extrusion(true) / baseline, Catch::Matchers::WithinRel(1., 0.001));
+    CHECK_THAT(top_extrusion(true) / baseline, Catch::Matchers::WithinRel(explicit_value ? 1. : 0.8, 0.001));
 }
 
 TEST_CASE("An explicit object flow gate overrides the filament gate", "[Flow][Regression]")
@@ -268,6 +270,51 @@ TEST_CASE("Filament flow overrides follow nozzle variant expansion", "[Flow][H2C
     CHECK_THAT(overridden[0] / baseline[0], Catch::Matchers::WithinRel(1., 0.001));
     CHECK_THAT(overridden[1] / baseline[1], Catch::Matchers::WithinRel(1.2, 0.001));
 
+    config.set_deserialize_strict({
+        {"top_shell_layers", "1"}, {"top_shell_thickness", "0"},
+        {"gcode_comments", "1"}, {"filament_set_other_flow_ratios", "nil,nil"},
+        {"top_solid_infill_flow_ratio", "1"}, {"filament_top_solid_infill_flow_ratio", "nil"}
+    });
+    auto emitted_top_flow = [&](int nozzle_index, const char *local_flow = nullptr) {
+        Print sliced_print;
+        Model sliced_model;
+        std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides(1);
+        if (local_flow)
+            overrides[0] = {{"top_solid_infill_flow_ratio", local_flow}};
+        init_print(std::vector<TriangleMesh>{cube(4)}, sliced_print, sliced_model, config, &overrides, false);
+        sliced_print.process();
+        const size_t layers = sliced_print.objects().front()->layer_count();
+        auto layer_group = LayeredNozzleGroupResult::create(
+            std::vector<std::vector<int>>(layers, {nozzle_index}), nozzles, {0},
+            std::vector<std::vector<unsigned int>>(layers, {0}));
+        REQUIRE(layer_group.has_value());
+        sliced_print.set_nozzle_group_result(std::make_shared<LayeredNozzleGroupResult>(*layer_group));
+        sliced_print.update_to_config_by_nozzle_group_result(*layer_group);
+        return extrusion_with_comment(gcode(sliced_print), config, "infill");
+    };
+    const std::array<double, 2> top_baseline = {emitted_top_flow(0), emitted_top_flow(1)};
+    REQUIRE(top_baseline[0] > 0.);
+    REQUIRE(top_baseline[1] > 0.);
+    // Process slots belong to extruders, while filament slots belong to filaments.
+    // The second extruder uses process slots 2/3 and filament slots 0/1.
+    config.set_deserialize_strict("top_solid_infill_flow_ratio", "0.5,0.6,0.9,1.1");
+    CHECK_THAT(emitted_top_flow(0) / top_baseline[0], Catch::Matchers::WithinRel(0.9, 0.001));
+    CHECK_THAT(emitted_top_flow(1) / top_baseline[1], Catch::Matchers::WithinRel(1.1, 0.001));
+    config.set_deserialize_strict("filament_top_solid_infill_flow_ratio", "0.8,1.2");
+    CHECK_THAT(emitted_top_flow(0) / top_baseline[0], Catch::Matchers::WithinRel(0.8, 0.001));
+    CHECK_THAT(emitted_top_flow(1) / top_baseline[1], Catch::Matchers::WithinRel(1.2, 0.001));
+    CHECK_THAT(emitted_top_flow(0, "nil,nil,1,nil") / top_baseline[0], Catch::Matchers::WithinRel(1., 0.001));
+    CHECK_THAT(emitted_top_flow(1, "nil,nil,1,nil") / top_baseline[1], Catch::Matchers::WithinRel(1.2, 0.001));
+    CHECK_THAT(emitted_top_flow(0, "1,nil,nil,1.3") / top_baseline[0], Catch::Matchers::WithinRel(0.8, 0.001));
+    CHECK_THAT(emitted_top_flow(1, "1,nil,nil,1.3") / top_baseline[1], Catch::Matchers::WithinRel(1.3, 0.001));
+    CHECK_THAT(emitted_top_flow(0, "1") / top_baseline[0], Catch::Matchers::WithinRel(1., 0.001));
+    CHECK_THAT(emitted_top_flow(1, "1") / top_baseline[1], Catch::Matchers::WithinRel(1., 0.001));
+    config.set_deserialize_strict("filament_top_solid_infill_flow_ratio", "nil,1.2");
+    CHECK_THAT(emitted_top_flow(0) / top_baseline[0], Catch::Matchers::WithinRel(0.9, 0.001));
+    CHECK_THAT(emitted_top_flow(1) / top_baseline[1], Catch::Matchers::WithinRel(1.2, 0.001));
+    config.set_deserialize_strict("filament_top_solid_infill_flow_ratio", "0.85");
+    CHECK_THAT(emitted_top_flow(0) / top_baseline[0], Catch::Matchers::WithinRel(0.85, 0.001));
+    CHECK_THAT(emitted_top_flow(1) / top_baseline[1], Catch::Matchers::WithinRel(0.85, 0.001));
 }
 
 /// Test the expected behavior for auto-width,
