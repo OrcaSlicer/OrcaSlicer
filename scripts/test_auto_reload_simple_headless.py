@@ -152,6 +152,43 @@ def read_full_config(data_dir):
     return config, path
 
 
+PREF_KEYS = (PREF_RELOAD, PREF_CONFIRM, PREF_SLICE, "no_warn_when_modified_gcodes")
+
+
+def snapshot_prefs(data_dir):
+    """The current value of every preference write_prefs() touches (None = not present), so
+    restore_prefs() can put the user's real configuration back afterwards."""
+    app = read_full_config(data_dir)[0].get("app", {})
+    return {k: app.get(k) for k in PREF_KEYS}
+
+
+def restore_prefs(data_dir, snapshot):
+    config, path = read_full_config(data_dir)
+    app = config.setdefault("app", {})
+    for key, value in snapshot.items():
+        if value is None:
+            app.pop(key, None)
+        else:
+            app[key] = value
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent="\t")
+        f.write("\n")
+
+
+def discard_session_backup(data_dir):
+    """The app is stopped with SIGTERM/kill, which skips its own clean-exit cleanup and leaves its
+    unsaved-project backup behind; the next launch would then open the modal "Previously unsaved
+    items have been detected. Do you want to restore them?" prompt, which blocks reloads (they are
+    held while any modal dialog is open) and strands the run. Removing that backup is what a clean
+    exit would have done."""
+    try:
+        backup = read_full_config(data_dir)[0].get("app", {}).get("last_backup_path")
+    except (OSError, ValueError):
+        return
+    if backup and os.path.isdir(backup):
+        shutil.rmtree(backup, ignore_errors=True)
+
+
 def write_prefs(data_dir, want_reload, want_confirm, want_slice):
     """Only safe to call while the app isn't running: AppConfig loads this file once at startup
     and never re-reads it. Must leave a trailing newline after the closing brace -- see
@@ -347,6 +384,7 @@ class OrcaApp:
                 self.proc.kill()
                 self.proc.wait(timeout=timeout)
         self.proc = None
+        discard_session_backup(self.data_dir)
 
 
 BOX_FACES = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
@@ -514,6 +552,7 @@ def main():
         results.append((name, ok, detail))
         print("  %s  %s%s" % ("PASS" if ok else "FAIL", name, (" -- " + detail) if detail else ""))
 
+    original_prefs = snapshot_prefs(args.data_dir)
     app = OrcaApp(args.binary, args.data_dir, log_dir, hooks_dir)
     tail = None  # replaced by _restart() before every phase group
 
@@ -809,28 +848,22 @@ def main():
     else:
         wanted = None
 
-    last_state = None
     try:
         for state, letters in STATE_GROUPS:
             selected = [l for l in letters if wanted is None or l in wanted]
             if not selected:
                 continue
             _restart(*state)
-            last_state = state
             for letter in selected:
                 PHASE_FUNCS[letter]()
     finally:
         app.stop()
+        restore_prefs(args.data_dir, original_prefs)
 
     failed = [r for r in results if not r[1]]
     print("\n%d checks, %d failed" % (len(results), len(failed)))
     for name, _, detail in failed:
         print("  FAIL %s%s" % (name, (" -- " + detail) if detail else ""))
-    if last_state is not None:
-        want_reload, want_confirm, want_slice = last_state
-        print("\nOrcaSlicer.conf at %s was left with %s=%s, %s=%s, %s=%s -- restore these to "
-              "whatever you actually want for normal use."
-              % (args.data_dir, PREF_RELOAD, want_reload, PREF_CONFIRM, want_confirm, PREF_SLICE, want_slice))
     sys.exit(1 if failed else 0)
 
 
