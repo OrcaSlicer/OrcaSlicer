@@ -883,15 +883,17 @@ void ViewerImpl::reset()
     m_used_extruders.clear();
     m_total_time = { 0.0f, 0.0f };
     m_travels_time = { 0.0f, 0.0f };
-    m_vertices.clear();
-    m_vertices_colors.clear();
     // swap rather than clear: these are sized by the print, and a reset means the memory
     // should go back, not sit reserved until the next load
+    std::vector<PathVertex>().swap(m_vertices);
+    std::vector<float>().swap(m_vertices_colors);
     for (std::vector<float>& times : m_layer_start_times)
         std::vector<float>().swap(times);
     std::vector<uint32_t>().swap(m_layer_first_vertex);
     std::vector<float>().swap(m_colors_scratch);
-    m_valid_lines_bitset.clear();
+    // BitSet::clear() only zeroes the bits, it keeps the blocks allocated; load() builds a new
+    // bitset anyway and it is never read while m_vertices is empty
+    m_valid_lines_bitset = BitSet<>();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_cog_marker.reset();
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -1812,6 +1814,7 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += sizeof(m_extrusion_roles_colors);
     ret += sizeof(m_options_colors);
     ret += STDVEC_MEMSIZE(m_vertices, PathVertex);
+    ret += STDVEC_MEMSIZE(m_vertices_colors, float);
     for (const std::vector<float>& times : m_layer_start_times)
         ret += STDVEC_MEMSIZE(times, float);
     ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);

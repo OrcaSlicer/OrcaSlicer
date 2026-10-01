@@ -372,6 +372,56 @@ class Print;
 #endif
             return *this;
         }
+        // Orca: the user-declared copy assignment above suppresses the implicit move assignment, so
+        // `*result = std::move(processor.extract_result())` used to deep copy 'moves' (one MoveVertex
+        // per move, gigabytes on a large print) while the source stayed alive. This moves exactly the
+        // same members as the copy above, with the same omissions, so the members the copy leaves
+        // untouched on the target are left untouched here too.
+        GCodeProcessorResult& operator=(GCodeProcessorResult &&other)
+        {
+            filename = std::move(other.filename);
+            id = other.id;
+            moves = std::move(other.moves);
+            lines_ends = std::move(other.lines_ends);
+            printable_area = std::move(other.printable_area);
+            bed_exclude_area = std::move(other.bed_exclude_area);
+            wrapping_exclude_area = std::move(other.wrapping_exclude_area);
+            toolpath_outside = other.toolpath_outside;
+            label_object_enabled = other.label_object_enabled;
+            long_retraction_when_cut = other.long_retraction_when_cut;
+            timelapse_warning_code = other.timelapse_warning_code;
+            printable_height = other.printable_height;
+            settings_ids = std::move(other.settings_ids);
+            filaments_count = other.filaments_count;
+            extruder_colors = std::move(other.extruder_colors);
+            filament_diameters = std::move(other.filament_diameters);
+            filament_densities = std::move(other.filament_densities);
+            filament_costs = std::move(other.filament_costs);
+            print_statistics = std::move(other.print_statistics);
+            custom_gcode_per_print_z = std::move(other.custom_gcode_per_print_z);
+            spiral_vase_mode = other.spiral_vase_mode;
+            warnings = std::move(other.warnings);
+            bed_type = other.bed_type;
+            gcode_check_result = std::move(other.gcode_check_result);
+            limit_filament_maps = std::move(other.limit_filament_maps);
+            filament_printable_reuslt = std::move(other.filament_printable_reuslt);
+            nozzle_group_result = std::move(other.nozzle_group_result);
+            extruder_types = std::move(other.extruder_types);
+            printer_extruder_variant = std::move(other.printer_extruder_variant);
+            printer_extruder_id = std::move(other.printer_extruder_id);
+            layer_filaments = std::move(other.layer_filaments);
+            filament_change_sequence = std::move(other.filament_change_sequence);
+            used_mixed_filaments = std::move(other.used_mixed_filaments);
+            nozzle_change_sequence = std::move(other.nozzle_change_sequence);
+            optimal_assignment = std::move(other.optimal_assignment);
+            filament_change_count_map = std::move(other.filament_change_count_map);
+            skippable_part_time = std::move(other.skippable_part_time);
+            initial_layer_time = other.initial_layer_time;
+#if ENABLE_GCODE_VIEWER_STATISTICS
+            time = other.time;
+#endif
+            return *this;
+        }
         void  lock() const { result_mutex.lock(); }
         void  unlock() const { result_mutex.unlock(); }
     };
