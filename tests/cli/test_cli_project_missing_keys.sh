@@ -87,7 +87,7 @@ with open(dst + ".expected.json", "w") as f:
 EOF
 
 check() {
-    "$PY" - "$WORK/$1/out.3mf" "$WORK/old.3mf.expected.json" "$1" <<'EOF'
+    if ! "$PY" - "$WORK/$1/out.3mf" "$WORK/old.3mf.expected.json" "$1" <<'EOF'
 import json, sys, zipfile
 
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -99,7 +99,10 @@ for e in errors:
     print("FAIL: " + e)
 sys.exit(1 if errors else 0)
 EOF
-    [ $? -eq 0 ] || { tail -n 40 "$WORK/$1/log"; exit 1; }
+    then
+        tail -n 40 "$WORK/$1/log"
+        exit 1
+    fi
 }
 
 slice project "$WORK/old.3mf"
