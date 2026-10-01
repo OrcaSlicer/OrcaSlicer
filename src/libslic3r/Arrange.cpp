@@ -1014,7 +1014,12 @@ void _arrange(
 inline Box to_nestbin(const BoundingBox &bb) { return Box{{bb.min(X), bb.min(Y)}, {bb.max(X), bb.max(Y)}};}
 inline Circle to_nestbin(const CircleBed &c) { return Circle({c.center()(0), c.center()(1)}, c.radius()); }
 inline ExPolygon to_nestbin(const Polygon &p) { return ExPolygon{p}; }
-inline Box to_nestbin(const InfiniteBed &bed) { return Box::infinite({bed.center.x(), bed.center.y()}); }
+// libnest2d's infinite box reaches the int64 limit, where Clipper2's double math is no longer exact.
+inline Box to_nestbin(const InfiniteBed &bed)
+{
+    const coord_t r = coord_t(1) << 50;
+    return Box{{bed.center.x() - r, bed.center.y() - r}, {bed.center.x() + r, bed.center.y() + r}};
+}
 
 inline coord_t width(const BoundingBox& box) { return box.max.x() - box.min.x(); }
 inline coord_t height(const BoundingBox& box) { return box.max.y() - box.min.y(); }

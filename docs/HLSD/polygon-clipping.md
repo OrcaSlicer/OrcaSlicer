@@ -85,6 +85,15 @@ Clipper2 behaves differently by default, the wrapper adjusts it.
 - Polyline offsets use the requested end type. Clipper2 already unites the
   result, so no further union is done.
 
+### Coordinate range
+
+Clipper2 computes intersections and slopes in doubles, which hold integers
+exactly only up to 2^53 (about 9e15 units, 9,000 km). Geometry passed to
+`ClipperUtils` must stay well inside that range; near the int64 limit the
+results shift by hundreds of units. This is why the arrange `InfiniteBed` is a
+box of ±2^50 units around its centre rather than libnest2d's infinite box,
+which reaches ±2.3e18.
+
 ## ClipperZUtils
 
 `ZPoint` is a `Vec3crd`, and a `ZPath` is a vector of them.
