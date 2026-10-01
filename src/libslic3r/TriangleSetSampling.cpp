@@ -28,6 +28,10 @@ TriangleSetSamples sample_its_uniform_parallel(size_t samples_count, const index
         area_sum_to_triangle_idx[area_sum] = t_idx;
     }
 
+    if (area_sum_to_triangle_idx.empty())
+        // No triangle to sample from.
+        return {};
+
     std::mt19937_64 mersenne_engine { 27644437 };
     // random numbers on interval [0, 1)
     std::uniform_real_distribution<double> fdistribution;
@@ -50,7 +54,10 @@ TriangleSetSamples sample_its_uniform_parallel(size_t samples_count, const index
                     tbb::blocked_range<size_t> r) {
                 for (size_t s_idx = r.begin(); s_idx < r.end(); ++s_idx) {
                     double t_sample = random_samples[s_idx].x() * area_sum;
-                    size_t t_idx = area_sum_to_triangle_idx.upper_bound(t_sample)->second;
+                    // The keys of area_sum_to_triangle_idx are accumulated areas in double precision, while area_sum
+                    // is a float, thus t_sample may reach or exceed the largest key and upper_bound() may return end().
+                    auto   t_it    = area_sum_to_triangle_idx.upper_bound(t_sample);
+                    size_t t_idx   = (t_it == area_sum_to_triangle_idx.end() ? std::prev(t_it) : t_it)->second;
 
                     double sq_u = std::sqrt(random_samples[s_idx].y());
                     double v = random_samples[s_idx].z();

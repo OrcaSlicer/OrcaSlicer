@@ -1378,55 +1378,66 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         return out;
     };
 
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers, granularity), [&granularity, &num_layers, &num_facets_states, &layer_color_stat, &top_raw, &triangles_by_color_top,
-                                                                               &throw_on_cancel_callback, &input_expolygons, &bottom_raw, &triangles_by_color_bottom,
-                                                                               &shell_triangles_by_color_top, &shell_triangles_by_color_bottom](const tbb::blocked_range<size_t> &range) {
-        size_t group_idx   = range.begin() / granularity;
-        size_t layer_idx_offset = (group_idx & 1) * num_layers;
-        for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
-            for (size_t color_idx = 0; color_idx < num_facets_states; ++color_idx) {
-                throw_on_cancel_callback();
-                LayerColorStat stat = layer_color_stat(layer_idx, color_idx);
-                if (std::vector<Polygons> &top = top_raw[color_idx]; ! top.empty() && ! top[layer_idx].empty())
-                    if (ExPolygons top_ex = union_ex(top[layer_idx]); ! top_ex.empty()) {
-                        // Clean up thin projections. They are not printable anyways.
-                        top_ex = opening_ex(top_ex, stat.small_region_threshold);
-                        if (! top_ex.empty()) {
-                            append(triangles_by_color_top[color_idx][layer_idx + layer_idx_offset], top_ex);
-                            float offset = 0.f;
-                            ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
-                            for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_shell_layers), int(0)); --last_idx) {
-                                //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
-                                //offset -= stat.extrusion_width ;
-                                offset -= (stat.extrusion_spacing + stat.extrusion_width);
-                                layer_slices_trimmed = intersection_ex(layer_slices_trimmed, input_expolygons[last_idx]);
-                                ExPolygons last = opening_ex(intersection_ex(top_ex, offset_ex(layer_slices_trimmed, offset)), stat.small_region_threshold);
-                                if (last.empty())
-                                    break;
-                                append(shell_triangles_by_color_top[color_idx][last_idx + layer_idx_offset], std::move(last));
+    // The layers are processed in groups of "granularity" layers. A layer projects its shells up to "granularity"
+    // layers away, thus a group may write into the slots of its neighbor groups. The even and the odd groups
+    // therefore write into two disjoint halves of the output vectors (the 2nd half is offset by num_layers) and
+    // both halves are merged below. The group index has to be derived from the layer index and not from the extent
+    // of the TBB sub-range: tbb::blocked_range bisects at midpoints, thus a sub-range neither starts at a multiple
+    // of the grain size nor covers a whole group, and two sub-ranges of one group would append into a single
+    // ExPolygons concurrently. Iterating over the groups keeps every group on a single thread, in ascending order.
+    const size_t num_groups = (num_layers + size_t(granularity) - 1) / size_t(granularity);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_groups, 1), [&granularity, &num_layers, &num_facets_states, &layer_color_stat, &top_raw, &triangles_by_color_top,
+                                                                    &throw_on_cancel_callback, &input_expolygons, &bottom_raw, &triangles_by_color_bottom,
+                                                                    &shell_triangles_by_color_top, &shell_triangles_by_color_bottom](const tbb::blocked_range<size_t> &range) {
+        for (size_t group_idx = range.begin(); group_idx < range.end(); ++ group_idx) {
+            const size_t layer_idx_offset = (group_idx & 1) * num_layers;
+            const size_t layer_idx_begin  = group_idx * size_t(granularity);
+            const size_t layer_idx_end    = std::min(num_layers, layer_idx_begin + size_t(granularity));
+            for (size_t layer_idx = layer_idx_begin; layer_idx < layer_idx_end; ++ layer_idx) {
+                for (size_t color_idx = 0; color_idx < num_facets_states; ++color_idx) {
+                    throw_on_cancel_callback();
+                    LayerColorStat stat = layer_color_stat(layer_idx, color_idx);
+                    if (std::vector<Polygons> &top = top_raw[color_idx]; ! top.empty() && ! top[layer_idx].empty())
+                        if (ExPolygons top_ex = union_ex(top[layer_idx]); ! top_ex.empty()) {
+                            // Clean up thin projections. They are not printable anyways.
+                            top_ex = opening_ex(top_ex, stat.small_region_threshold);
+                            if (! top_ex.empty()) {
+                                append(triangles_by_color_top[color_idx][layer_idx + layer_idx_offset], top_ex);
+                                float offset = 0.f;
+                                ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
+                                for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_shell_layers), int(0)); --last_idx) {
+                                    //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
+                                    //offset -= stat.extrusion_width ;
+                                    offset -= (stat.extrusion_spacing + stat.extrusion_width);
+                                    layer_slices_trimmed = intersection_ex(layer_slices_trimmed, input_expolygons[last_idx]);
+                                    ExPolygons last = opening_ex(intersection_ex(top_ex, offset_ex(layer_slices_trimmed, offset)), stat.small_region_threshold);
+                                    if (last.empty())
+                                        break;
+                                    append(shell_triangles_by_color_top[color_idx][last_idx + layer_idx_offset], std::move(last));
+                                }
                             }
                         }
-                    }
-                if (std::vector<Polygons> &bottom = bottom_raw[color_idx]; ! bottom.empty() && ! bottom[layer_idx].empty())
-                    if (ExPolygons bottom_ex = union_ex(bottom[layer_idx]); ! bottom_ex.empty()) {
-                        // Clean up thin projections. They are not printable anyways.
-                        bottom_ex = opening_ex(bottom_ex, stat.small_region_threshold);
-                        if (! bottom_ex.empty()) {
-                            append(triangles_by_color_bottom[color_idx][layer_idx + layer_idx_offset], bottom_ex);
-                            float offset = 0.f;
-                            ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
-                            for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_shell_layers, num_layers); ++last_idx) {
-                                //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
-                                //offset -= stat.extrusion_width;
-                                offset -= (stat.extrusion_spacing + stat.extrusion_width);
-                                layer_slices_trimmed = intersection_ex(layer_slices_trimmed, input_expolygons[last_idx]);
-                                ExPolygons last = opening_ex(intersection_ex(bottom_ex, offset_ex(layer_slices_trimmed, offset)), stat.small_region_threshold);
-                                if (last.empty())
-                                    break;
-                                append(shell_triangles_by_color_bottom[color_idx][last_idx + layer_idx_offset], std::move(last));
+                    if (std::vector<Polygons> &bottom = bottom_raw[color_idx]; ! bottom.empty() && ! bottom[layer_idx].empty())
+                        if (ExPolygons bottom_ex = union_ex(bottom[layer_idx]); ! bottom_ex.empty()) {
+                            // Clean up thin projections. They are not printable anyways.
+                            bottom_ex = opening_ex(bottom_ex, stat.small_region_threshold);
+                            if (! bottom_ex.empty()) {
+                                append(triangles_by_color_bottom[color_idx][layer_idx + layer_idx_offset], bottom_ex);
+                                float offset = 0.f;
+                                ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
+                                for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_shell_layers, num_layers); ++last_idx) {
+                                    //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
+                                    //offset -= stat.extrusion_width;
+                                    offset -= (stat.extrusion_spacing + stat.extrusion_width);
+                                    layer_slices_trimmed = intersection_ex(layer_slices_trimmed, input_expolygons[last_idx]);
+                                    ExPolygons last = opening_ex(intersection_ex(bottom_ex, offset_ex(layer_slices_trimmed, offset)), stat.small_region_threshold);
+                                    if (last.empty())
+                                        break;
+                                    append(shell_triangles_by_color_bottom[color_idx][last_idx + layer_idx_offset], std::move(last));
+                                }
                             }
                         }
-                    }
+                }
             }
         }
     });
