@@ -11582,8 +11582,20 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
     else
         variant_index.resize(1, 0);
 
+    // A parent variant the child does not list (the parent gained it after the child was saved, or the
+    // child lists none) takes the child's first variant of the same extruder, as slicing does in
+    // get_config_index_base. Left unmatched, the parent's value would silently replace the user's.
+    auto same_extruder = [&](int i, int child_extruder_id) {
+        return cur_extruder_ids.empty() || child_extruder_id < 0 ||
+               (i < int(cur_extruder_ids.size()) && cur_extruder_ids[i] == child_extruder_id);
+    };
+
     if (target_variant_count == 0) {
-        variant_index[0] = 0;
+        // The child's one value belongs to the extruder of the parent's first variant.
+        const int child_extruder_id = cur_extruder_ids.empty() ? -1 : cur_extruder_ids[0];
+        for (int i = 0; i < int(variant_index.size()); i++)
+            if (i == 0 || same_extruder(i, child_extruder_id))
+                variant_index[i] = 0;
     }
     else if ((cur_extruder_ids.size() > 0) && cur_variant_count != cur_extruder_ids.size()){
         //should not happen
@@ -11601,12 +11613,21 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
             for (int j = 0; j < target_variant_count; j++)
             {
                 if ((cur_extruder_variants[i] == target_extruder_variants[j])
-                    &&(cur_extruder_ids.empty() || (cur_extruder_ids[i] == target_extruder_ids[j])))
+                    &&(cur_extruder_ids.empty() || target_extruder_ids.empty() || (cur_extruder_ids[i] == target_extruder_ids[j])))
                 {
                     variant_index[i] = j;
                     break;
                 }
             }
+        }
+        for (int i = 0; i < cur_variant_count; i++) {
+            if (variant_index[i] != -1)
+                continue;
+            for (int j = 0; j < target_variant_count; j++)
+                if (same_extruder(i, target_extruder_ids.empty() ? -1 : target_extruder_ids[j])) {
+                    variant_index[i] = j;
+                    break;
+                }
         }
     }
 

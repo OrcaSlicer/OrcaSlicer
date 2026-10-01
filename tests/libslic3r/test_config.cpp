@@ -421,6 +421,81 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
     }
 }
 
+SCENARIO("update_diff_values_to_child_config keeps a child's values on variants it does not list",
+         "[Config][Variant]") {
+    std::set<std::string> no_keys;
+    auto variants = [](std::initializer_list<std::string> names) { return new Slic3r::ConfigOptionStrings(names); };
+
+    GIVEN("A filament parent with three variants") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_key_value("filament_extruder_variant",
+            variants({"Direct Drive Standard", "Bowden Standard", "Direct Drive High Flow"}));
+        parent.set_deserialize_strict("nozzle_temperature", "220,220,220");
+
+        WHEN("the child was saved when the parent had only its first variant") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("filament_extruder_variant", variants({"Direct Drive Standard"}));
+            child.set_deserialize_strict("nozzle_temperature", "199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the child's value applies to every variant") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+        WHEN("the child lists every variant, in another order") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("filament_extruder_variant",
+                variants({"Bowden Standard", "Direct Drive High Flow", "Direct Drive Standard"}));
+            child.set_deserialize_strict("nozzle_temperature", "190,205,199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("each variant keeps its own value") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,190,205");
+            }
+        }
+        WHEN("the child lists no variants") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("nozzle_temperature", "199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the child's value applies to every variant") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+    }
+
+    GIVEN("A two-extruder printer parent with two variants per extruder") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_key_value("printer_extruder_variant",
+            variants({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+        parent.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 1, 2, 2}));
+        parent.set_deserialize_strict("retraction_length", "0.8,0.8,0.8,0.8");
+
+        WHEN("the child lists only the Standard variant of each extruder") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            child.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            child.set_deserialize_strict("retraction_length", "1.1,2.2");
+            parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                                      Slic3r::printer_options_with_variant_1,
+                                                      Slic3r::printer_options_with_variant_2);
+            THEN("each extruder's High Flow variant takes that extruder's value") {
+                REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,2.2,2.2");
+            }
+        }
+        WHEN("the child lists no variants") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("retraction_length", "1.1");
+            parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                                      Slic3r::printer_options_with_variant_1,
+                                                      Slic3r::printer_options_with_variant_2);
+            THEN("only the first extruder's variants take the child's value") {
+                REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,0.8,0.8");
+            }
+        }
+    }
+}
+
 // SCENARIO("DynamicPrintConfig JSON serialization", "[Config]") {
 //     WHEN("DynamicPrintConfig is serialized and deserialized") {
 // 	auto now = std::chrono::high_resolution_clock::now();
