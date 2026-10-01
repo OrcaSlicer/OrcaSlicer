@@ -36,6 +36,9 @@
 	"z_hop": [
 		"0.4"
 	],
+	"z_hop_types": [
+		"Normal Lift"
+	],
 	"retraction_speed": [
 		"30"
 	],
