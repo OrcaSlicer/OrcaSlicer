@@ -5204,7 +5204,8 @@ namespace Skirt {
 // Orca: Klipper can't parse object names with spaces and other spetical characters
 std::string sanitize_instance_name(const std::string& name) {
     // Replace sequences of non-word characters with an underscore
-    std::string result = std::regex_replace(name, std::regex("[ !@#$%^&*()=+\\[\\]{};:\",']+"), "_");
+    static const std::regex non_word_characters("[ !@#$%^&*()=+\\[\\]{};:\",']+");
+    std::string result = std::regex_replace(name, non_word_characters, "_");
     // Remove leading and trailing underscores
     if (!result.empty() && result.front() == '_') {
         result.erase(result.begin());
@@ -5218,12 +5219,16 @@ std::string sanitize_instance_name(const std::string& name) {
 
 inline std::string get_instance_name(const PrintObject *object, size_t inst_id) {
     auto obj_name = sanitize_instance_name(object->model_object()->name);
-    auto name = (boost::format("%1%_id_%2%_copy_%3%") % obj_name % object->get_id() % inst_id).str();
+    auto name = obj_name + "_id_" + std::to_string(object->get_id()) + "_copy_" + std::to_string(inst_id);
     return sanitize_instance_name(name);
 }
 
-inline std::string get_instance_name(const PrintObject *object, const PrintInstance &inst) {
-    return get_instance_name(object, inst.id);
+const std::string& GCode::instance_name(const PrintInstance &instance)
+{
+    auto [it, inserted] = m_instance_names.try_emplace(&instance);
+    if (inserted)
+        it->second = get_instance_name(instance.print_object, instance.id);
+    return it->second;
 }
 
 std::string GCode::generate_skirt(const Print &print,
@@ -6642,7 +6647,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_start_str(std::string("EXCLUDE_OBJECT_START NAME=") +
-                                                          get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                          instance_name(inst) + "\n");
                         }
                         else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             std::string str = std::string("M486 S") + std::to_string(inst.unique_id) + "\n";
@@ -6791,7 +6796,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_end_str(std::string("EXCLUDE_OBJECT_END NAME=") +
-                                                        get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                        instance_name(inst) + "\n");
                         } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             m_writer.set_object_end_str(std::string("M486 S-1\n"));
                         }
@@ -6866,7 +6871,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_start_str(std::string("EXCLUDE_OBJECT_START NAME=") +
-                                                          get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                          instance_name(inst) + "\n");
                         } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             m_writer.set_object_start_str(std::string("M486 S") + std::to_string(inst.unique_id) + "\n");
                         }
@@ -7092,7 +7097,7 @@ LayerResult GCode::process_layer(
                         const auto gflavor = print.config().gcode_flavor.value;
                         if (gflavor == gcfKlipper) {
                             m_writer.set_object_end_str(std::string("EXCLUDE_OBJECT_END NAME=") +
-                                                        get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
+                                                        instance_name(inst) + "\n");
                         } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
                             m_writer.set_object_end_str(std::string("M486 S-1\n"));
                         }
@@ -10074,6 +10079,7 @@ std::string GCode::set_object_info(Print *print) {
         // PA_Line has only one object, no EXCLUDE_OBJECT_DEFINE needed
     } else {
         size_t unique_id = 0;
+        m_instance_names.clear();
         for (PrintObject* object : print->objects()) {
             object->set_id(object_id++);
             size_t inst_id = 0;
@@ -10082,7 +10088,7 @@ std::string GCode::set_object_info(Print *print) {
                 inst.id        = inst_id++;
                 auto bbox      = inst.get_bounding_box();
                 auto center    = print->translate_to_print_space(Vec2d(bbox.center().x(), bbox.center().y()));
-                auto inst_name = get_instance_name(object, inst);
+                const std::string &inst_name = instance_name(inst);
                 if (gflavor == gcfKlipper) {
                     gcode << "EXCLUDE_OBJECT_DEFINE NAME=" << inst_name << " CENTER=" << center.x() << "," << center.y()
                           << " POLYGON=" << polygon_to_string(inst.get_convex_hull_2d(), print) << "\n";
