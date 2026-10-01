@@ -2,7 +2,6 @@
 #include "Label.hpp"
 #include "StaticBox.hpp"
 #include <wx/font.h>
-#include <strings.h>
 #include <string>
 #include <wx/dlimpexp.h>
 #include <wx/dc.h>

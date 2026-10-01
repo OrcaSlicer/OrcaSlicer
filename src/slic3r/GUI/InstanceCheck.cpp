@@ -7,9 +7,7 @@
 #include <vector>
 #include <cstdio>
 #include <stdio.h>
-#include <dbus/dbus-shared.h>
 #include <wx/string.h>
-#include <dbus/dbus-protocol.h>
 #include <cstddef>
 #include <cstdlib>
 #include <functional>

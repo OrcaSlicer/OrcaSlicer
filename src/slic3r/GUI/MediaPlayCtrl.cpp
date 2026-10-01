@@ -58,7 +58,6 @@
 #include <vector>
 #include <utility>
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
-#include <sys/types.h>
 #include <wx/mediactrl.h>
 #include <wx/panel.h>
 #include <wx/utils.h>

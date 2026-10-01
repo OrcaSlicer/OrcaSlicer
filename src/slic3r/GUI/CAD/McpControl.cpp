@@ -6,8 +6,6 @@
 #include <Standard_TypeDef.hxx>
 #include <exception>
 #include <cstdint>
-#include <sys/types.h>
-#include <fcntl.h>
 
 #ifndef _WIN32  // POSIX Unix-domain-socket transport only (slice 1)
 

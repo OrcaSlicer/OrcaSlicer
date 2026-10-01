@@ -6,7 +6,6 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
-#include <sys/stat.h>
 #include <cstdlib>
 #include <exception>
 #include "libslic3r_version.h"

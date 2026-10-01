@@ -53,8 +53,6 @@
 #include <boost/optional/optional.hpp>
 #include <fstream>
 #include <boost/none.hpp>
-#include <glib-object.h>
-#include <glib.h>
 #include <cstring>
 #include <cmath>
 #include <climits>
@@ -90,9 +88,7 @@
 #include <wx/chartype.h>
 #include <utility>
 #include <wx/app.h>
-#include <sys/stat.h>
 #include <wx/busycursor.h>
-#include <unistd.h>
 #include <wx/debug.h>
 #include <wx/anybutton.h>
 #include <wx/clntdata.h>

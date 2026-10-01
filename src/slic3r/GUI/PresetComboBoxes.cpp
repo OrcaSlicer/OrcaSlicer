@@ -10,7 +10,6 @@
 #include <cstddef>
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Config.hpp"
-#include <glib.h>
 #include <map>
 #include <iterator>
 #include <deque>

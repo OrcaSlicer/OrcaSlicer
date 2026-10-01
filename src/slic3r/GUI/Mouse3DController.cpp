@@ -24,7 +24,6 @@
 #include <map>
 #include <boost/algorithm/string/trim.hpp>
 #include <ios>
-#include <sys/select.h>
 #include <wx/app.h>
 #include <cstdlib>
 #include <wx/glcanvas.h>

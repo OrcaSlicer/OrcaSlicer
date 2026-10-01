@@ -14,9 +14,7 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/log/trivial.hpp>
 #include <string>
-#include <sys/types.h>
 #include <vector>
-#include <unistd.h>
 #include <wx/utils.h>
 #include <mutex>
 #include <system_error>

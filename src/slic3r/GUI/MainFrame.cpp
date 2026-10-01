@@ -4,8 +4,6 @@
 #include "slic3r/GUI/Event.hpp"
 #include <wx/gdicmn.h>
 #include <wx/dcclient.h>
-#include <gdk/gdk.h>
-#include <glib-object.h>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/filehistory.h>

@@ -11,7 +11,6 @@
 #include <algorithm>
 #include "libslic3r/Config.hpp"
 #include <map>
-#include <sys/types.h>
 #include <vector>
 #include <set>
 #include <unordered_map>

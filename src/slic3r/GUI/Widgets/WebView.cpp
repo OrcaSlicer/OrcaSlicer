@@ -8,10 +8,7 @@
 
 #include <cassert>
 #include <chrono>
-#include <glib.h>
-#include <gio/gio.h>
 #include <cstddef>
-#include <glib-object.h>
 #include <exception>
 #include <thread>
 

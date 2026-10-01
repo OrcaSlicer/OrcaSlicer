@@ -24,7 +24,6 @@
 #include <set>
 #include "slic3r/GUI/Widgets/StaticLine.hpp"
 #include "slic3r/GUI/BedShapeDialog.hpp"
-#include <sys/types.h>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <utility>
 #include <unordered_map>

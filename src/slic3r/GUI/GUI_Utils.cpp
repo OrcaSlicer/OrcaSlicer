@@ -26,8 +26,6 @@
 #include <wx/image.h>
 #include <cstring>
 #include <deque>
-#include <gtk/gtkcssprovider.h>
-#include <glib-object.h>
 #include <fstream>
 
 #ifdef _WIN32
