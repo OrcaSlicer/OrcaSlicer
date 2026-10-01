@@ -12,11 +12,11 @@ Three Preferences options control it, with defaults set in `AppConfig::set_defau
 |---|---|---|
 | `auto_reload_on_source_change` | off | Watch the loaded objects' source files and reload an object when its file changes. Takes effect immediately when toggled. |
 | `auto_slice_after_reload` | off | After an automatic reload, slice the plate(s) containing the reloaded objects. |
-| `auto_reload_confirm_paint_loss` | on | Before any reload, manual or automatic, that touches a volume with painted supports, seam, color or fuzzy skin, ask first. |
+| `auto_reload_confirm_paint_loss` | off | Before any reload, manual or automatic, that touches a volume with painted supports, seam, color or fuzzy skin, ask first. |
 
 With the first option off, nothing is watched and nothing in this document runs,
-except the paint-loss confirmation, which also applies to the manual "Reload from
-disk" menu items. See "Painted features do not survive a reload" below.
+except the paint-loss confirmation (when enabled), which also applies to the manual
+"Reload from disk" menu items. See "Painted features do not survive a reload" below.
 
 The feature has two parts: `SourceFileWatcher` (`src/slic3r/GUI/SourceFileWatcher.{hpp,cpp}`),
 which only knows how to detect that a tracked file's content changed, and
@@ -202,8 +202,8 @@ it's the one kind whose presence `reload_from_disk()` can always know for certai
 (`ModelVolume::is_any_painted()`, derived straight from the facet data) — so a
 confirmation here is genuinely informing the user of a consequence, not guessing at
 their intent. If any volume a reload is about to touch is painted, one confirmation
-dialog lists them and asks to continue, gated by `auto_reload_confirm_paint_loss` — **on
-by default**, since losing paint with no warning might make someone stop trusting the whole feature. The check that triggers the dialog
+dialog lists them and asks to continue, gated by `auto_reload_confirm_paint_loss` — **off
+by default**, so a manual reload behaves as it always has for users who never opt in. The check that triggers the dialog
 (`is_any_painted()`) runs before the `keep_painting` remap decision further down, so the
 dialog can't tell whether that experimental option would actually end up preserving the
 paint on the new mesh; its wording says the reload *might* discard the paint, not that it

@@ -752,7 +752,11 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
 
     switch (*shortcut) {
     case Shortcut::SlicePlate:
-        slice_current_plate();
+        if (m_slice_enable) {
+            wxGetApp().plater()->update(true, true);
+            wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+            m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
+        }
         break;
     case Shortcut::PrintPlate:
         m_plater->apply_background_progress();

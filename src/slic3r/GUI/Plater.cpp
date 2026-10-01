@@ -10616,6 +10616,9 @@ void Plater::priv::object_list_changed()
 std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
 {
     std::vector<SourcedVolume> result;
+    // A volume loaded from a 3MF without a recorded source_file gets that project file itself as
+    // its source. Watching it would reload the project into itself on every save.
+    const boost::filesystem::path project_file = into_path(get_project_filename(".3mf")).lexically_normal();
     for (int obj_idx = 0; obj_idx < int(model.objects.size()); ++obj_idx) {
         const ModelObject* object = model.objects[obj_idx];
         for (int vol_idx = 0; vol_idx < int(object->volumes.size()); ++vol_idx) {
@@ -10624,8 +10627,12 @@ std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
             // Same filter as reloadable_volumes() (below), which reload_from_disk() itself applies
             // to its selection -- otherwise this can watch/select a volume that reload_from_disk()
             // silently drops, so its stamp gets advanced as if it had actually been reloaded.
-            if (!input_file.empty() && !volume->source.is_from_builtin_objects && !fs::path(input_file).extension().string().empty())
-                result.push_back({obj_idx, vol_idx, SourceFileWatcher::resolve_source_file_path(input_file, m_project_folder)});
+            if (input_file.empty() || volume->source.is_from_builtin_objects || fs::path(input_file).extension().string().empty())
+                continue;
+            std::string path = SourceFileWatcher::resolve_source_file_path(input_file, m_project_folder);
+            if (!project_file.empty() && boost::filesystem::path(path).lexically_normal() == project_file)
+                continue;
+            result.push_back({obj_idx, vol_idx, std::move(path)});
         }
     }
     return result;
@@ -12024,10 +12031,10 @@ void Plater::priv::reload_from_disk()
     // honor it. The one exception is paint, because it's real, always-accurately-known data whose
     // loss is worth a chance to back out of. The same `auto_reload_confirm_paint_loss` preference
     // gates this for both a manual "Reload from disk"/"Reload all from disk" and the watcher --
-    // the risk is the same either way, so it isn't an auto-reload-specific setting (on by default:
-    // losing paint without warning is the kind of thing that makes someone stop trusting the whole
-    // feature). The dialog's own "Reload without warning" checkbox turns the preference off from
-    // right there, for whichever kind of reload the user hit it from. Declining only drops the
+    // the risk is the same either way, so it isn't an auto-reload-specific setting (off by default,
+    // so a manual reload behaves as it always has). The dialog's own "Reload without warning"
+    // checkbox turns the preference off from right there, for whichever kind of reload the user
+    // hit it from. Declining only drops the
     // painted volumes from this reload, not the whole batch -- one selection (manual or the
     // watcher's own) can cover several unrelated volumes that happen to share a source file (e.g.
     // clones, one of them painted), and protecting the painted one shouldn't also hold back a
@@ -12089,6 +12096,11 @@ void Plater::priv::reload_from_disk()
             }
         }
     }
+
+    // Close any open gizmo before the meshes are replaced: the paint gizmos keep per-triangle
+    // selectors for the old mesh and only rebuild them when the object id or volume count
+    // changes, neither of which a reload does.
+    view3D->get_canvas3d()->get_gizmos_manager().reset_all_states();
 #else
     Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
 

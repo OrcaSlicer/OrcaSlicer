@@ -132,10 +132,9 @@ void AppConfig::set_defaults()
             set_bool("auto_reload_on_source_change", false);
         if (get("auto_slice_after_reload").empty())
             set_bool("auto_slice_after_reload", false);
-        // On by default: a reload that silently drops painted supports/seam/color/fuzzy skin is
-        // the kind of surprise worth one confirmation.
+        // Off by default so a manual "Reload from disk" behaves as it always has.
         if (get("auto_reload_confirm_paint_loss").empty())
-            set_bool("auto_reload_confirm_paint_loss", true);
+            set_bool("auto_reload_confirm_paint_loss", false);
 
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
