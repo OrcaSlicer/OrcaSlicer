@@ -45,9 +45,17 @@ are the faces the range cuts open, and the top is what the user is looking at.
 
 The preview already loads the sliced objects as shells for its translucent ghost.
 `GCodeViewer::render_solid_model()` draws those shells opaque, in their filament colors, with the
-`gouraud` shader, whose z range cuts them to the visible layer range. The two toolpath layers of
-the reduced set are drawn afterwards and cap the cut with what was really printed there. The
-shells hold only the objects, so while this mode is on the prime tower is added from its sliced
+`gouraud` shader, whose z range cuts them to the visible layer range: from the top of the range's
+bottom layer to the bottom of its top layer, since those two layers are drawn as toolpaths and a
+face of the model in either layer's plane would flicker against them. The translucent ghost is
+drawn first, as in every other mode, so the part above the cut stays visible while dragging. The
+cut itself is capped, one body at a time: a pass counts, per pixel and with the depth test off,
+the body's back faces less its front faces into the stencil buffer, which is zero for a closed
+body and one where the cut has opened it, and a quad in each cut plane, in the body's colour
+darkened, is drawn where it is not zero. Between the lines of a sparse layer on the cut, that quad is what shows, rather than
+the first layer or the bed far below moving with the camera. A view through both cut planes of
+a body with neither wall in the way is not capped. The two toolpath layers of the reduced set are
+drawn afterwards and cap the cut with what was really printed there. The shells hold only the objects, so while this mode is on the prime tower is added from its sliced
 mesh, positioned as the print placed it. It is added or removed on its own when the mode changes,
 without reloading the objects, keeps its opaque color so that it never appears among the
 translucent shells, and stays out of their bounding box. Supports have no mesh and are not shown,
