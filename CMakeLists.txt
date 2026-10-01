@@ -1301,6 +1301,54 @@ if (WIN32)
     endif()
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
+
+    # CMake 3.31 does not recognize the v145 toolset shipped with VS 2026.
+    # The Windows ARM64 build is pinned to CMake 3.31 for its assembler
+    # support, so the runtime collector can leave this list without the CRT.
+    # Pick up the target-architecture redistributable directly in that case.
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+        set(_orca_has_msvcp140 FALSE)
+        set(_orca_has_vcruntime140 FALSE)
+        foreach (_runtime IN LISTS CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+            get_filename_component(_runtime_name "${_runtime}" NAME)
+            if (_runtime_name STREQUAL "msvcp140.dll")
+                set(_orca_has_msvcp140 TRUE)
+            elseif (_runtime_name STREQUAL "vcruntime140.dll")
+                set(_orca_has_vcruntime140 TRUE)
+            endif ()
+        endforeach ()
+
+        if (NOT _orca_has_msvcp140 OR NOT _orca_has_vcruntime140)
+            file(GLOB _orca_arm64_crt_dirs
+                "$ENV{ProgramFiles}/Microsoft Visual Studio/*/*/VC/Redist/MSVC/*/arm64/Microsoft.VC*.CRT")
+            if (NOT _orca_arm64_crt_dirs)
+                message(FATAL_ERROR
+                    "CMake did not collect the ARM64 MSVC runtime, and no ARM64 CRT redistributable directory was found.")
+            endif ()
+            # Multiple Visual Studio servicing versions can coexist; take the
+            # newest matching redistributable directory.
+            list(SORT _orca_arm64_crt_dirs ORDER DESCENDING)
+            list(GET _orca_arm64_crt_dirs 0 _orca_arm64_crt_dir)
+            file(GLOB _orca_arm64_crt_dlls "${_orca_arm64_crt_dir}/*.dll")
+            list(APPEND CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS ${_orca_arm64_crt_dlls})
+        endif ()
+
+        # Catch a bad VS layout or an incomplete redistributable before CPack
+        # can silently emit an installer that fails on a clean ARM64 machine.
+        set(_orca_has_msvcp140 FALSE)
+        set(_orca_has_vcruntime140 FALSE)
+        foreach (_runtime IN LISTS CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+            get_filename_component(_runtime_name "${_runtime}" NAME)
+            if (_runtime_name STREQUAL "msvcp140.dll")
+                set(_orca_has_msvcp140 TRUE)
+            elseif (_runtime_name STREQUAL "vcruntime140.dll")
+                set(_orca_has_vcruntime140 TRUE)
+            endif ()
+        endforeach ()
+        if (NOT _orca_has_msvcp140 OR NOT _orca_has_vcruntime140)
+            message(FATAL_ERROR "The ARM64 installer must contain msvcp140.dll and vcruntime140.dll.")
+        endif ()
+    endif ()
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
 elseif (SLIC3R_FHS)
     # CMAKE_INSTALL_FULL_DATAROOTDIR: read-only architecture-independent data root (share)
