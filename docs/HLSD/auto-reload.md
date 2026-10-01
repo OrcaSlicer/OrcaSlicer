@@ -139,6 +139,10 @@ Plater's `m_tracking_popup_menu`) returns true. It restarts the timer and commit
 so the change is reported once the dialog is closed. This is separate from
 `m_reload_in_progress`, which covers a dialog raised by the reload itself.
 
+Any modal counts, including the "Previously unsaved items have been detected" restore prompt
+shown at launch when an earlier session left a backup behind: until it is answered, a
+changed file is held, not reloaded.
+
 ## The Windows watcher thread
 
 wx's MSW backend serves every watch of a `wxFileSystemWatcher` from one worker thread, and
@@ -366,3 +370,12 @@ for an impossibility.
   0.4s or more; otherwise the test's own writer let the file go quiet, so the phase runs
   again (up to three attempts). Without that, a stall of the test process on a loaded
   machine would show up as a watcher failure.
+
+  The script stops the app with SIGTERM, which skips the app's clean-exit cleanup and leaves
+  its unsaved-project backup behind. The next launch would show the restore prompt above,
+  hold every reload and fail the run, so the script deletes the backup recorded in
+  `last_backup_path` after each stop. Before the first launch it does the same for a stale
+  one only if that backup's `origin.txt` names the test project; any other backup may be
+  genuine unsaved work (the data directory is normally the real one), so it exits with a
+  message instead of deleting it. It also snapshots the preferences it rewrites and restores
+  them at exit.
