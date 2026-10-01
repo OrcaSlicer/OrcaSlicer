@@ -865,6 +865,7 @@ const std::vector<std::string>& machine_filament_override_keys()
         "filament_start_gcode",
         "filament_end_gcode",
         "enable_pressure_advance",
+        "filament_z_hop_types",
     };
     return keys;
 }
@@ -8364,7 +8365,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("machine_filament_overrides", coBool);
     def->label = L("Override filament tool-change settings");
-    def->tooltip = L("Use the printer profile's ramming, loading, unloading, cooling, minimum purge, filament start/end G-code and pressure-advance enable settings for every filament. "
+    def->tooltip = L("Use the printer profile's ramming, loading, unloading, cooling, minimum purge, filament start/end G-code, Z-hop type and pressure-advance enable settings for every filament. "
                      "Settings not supplied by the printer remain unchanged.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
@@ -8374,13 +8375,17 @@ void PrintConfigDef::init_fff_params()
     for (const std::string &key : machine_filament_override_keys()) {
         const ConfigOptionDef *source = this->get(key);
         def = this->add("machine_" + key, source->type);
+        def->nullable = source->nullable;
+        def->enum_keys_map = source->enum_keys_map;
+        def->enum_values = source->enum_values;
+        def->enum_labels = source->enum_labels;
         def->label = source->label;
         def->tooltip = source->tooltip;
         def->min = source->min;
         def->max = source->max;
         def->multiline = source->multiline;
         def->mode = comAdvanced;
-        ConfigOption *value = source->default_value->clone();
+        ConfigOption *value = source->create_default_option();
         static_cast<ConfigOptionVectorBase *>(value)->resize(0);
         def->set_default_value(value);
     }

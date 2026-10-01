@@ -75,6 +75,9 @@
 	"purge_in_prime_tower": "0",
 	"manual_filament_change": "0",
 	"machine_filament_overrides": "1",
+	"machine_filament_z_hop_types": [
+		"Normal Lift"
+	],
 	"machine_enable_pressure_advance": [
 		"0"
 	],

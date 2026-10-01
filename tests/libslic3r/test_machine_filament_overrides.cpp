@@ -116,3 +116,22 @@ TEST_CASE("Printer composition applies overrides without modifying filament pres
     printer.config.set_key_value("machine_filament_overrides", new ConfigOptionBool(false));
     REQUIRE(bundle.full_config(false).opt_string("filament_start_gcode", 0u) == "M117 filament");
 }
+
+TEST_CASE("Machine Z-hop overrides preserve enum names and broadcast to every filament", "[MachineFilamentOverrides]")
+{
+    const bool enabled = GENERATE(false, true);
+    DynamicPrintConfig config;
+    config.set_key_value("machine_filament_overrides", new ConfigOptionBool(enabled));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats{1.75, 1.75, 1.75, 1.75});
+    config.set_deserialize_strict("filament_z_hop_types", "Slope Lift,Spiral Lift");
+    config.set_deserialize_strict("machine_filament_z_hop_types", "Normal Lift");
+    REQUIRE(config.option("machine_filament_z_hop_types")->serialize() == "Normal Lift");
+    config.apply_machine_filament_overrides();
+    CHECK(config.option("filament_z_hop_types")->serialize() ==
+          (enabled ? "Normal Lift,Normal Lift,Normal Lift,Normal Lift" : "Slope Lift,Spiral Lift"));
+
+    config.option<ConfigOptionEnumsGenericNullable>("machine_filament_z_hop_types")->values.clear();
+    config.set_deserialize_strict("filament_z_hop_types", "Slope Lift,nil");
+    config.apply_machine_filament_overrides();
+    CHECK(config.option("filament_z_hop_types")->serialize() == "Slope Lift,nil");
+}
