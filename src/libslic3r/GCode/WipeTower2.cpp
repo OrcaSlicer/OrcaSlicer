@@ -1165,7 +1165,7 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     if (max_vol_speed!= 0.f)
         m_filpar[idx].max_e_speed = (max_vol_speed / filament_area());
 
-    // геометрия башни — по самому широкому соплу; при экструзии ширина берётся от активного
+    // Tower geometry uses the widest nozzle; extrusion width follows the active tool.
     const float tool_pw = nozzle_diameter * Width_To_Nozzle_Ratio;
     if (idx == 0 || tool_pw > m_perimeter_width)
         m_perimeter_width = tool_pw;
@@ -1311,7 +1311,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
 WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
 {
     size_t old_tool = m_current_tool;
-    // ramming/unload — старое сопло; после смены подставим новое
+    // Ramming/unload use the old nozzle; switch to the new one after the toolchange.
     apply_perimeter_width_for(old_tool);
 
     float wipe_area = 0.f;
@@ -2261,7 +2261,7 @@ void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned i
 
 WipeTower2::WipeTowerInfo::ToolChange WipeTower2::set_toolchange(size_t old_tool, size_t new_tool, float layer_height, float wipe_volume, bool first_layer_plan)
 {
-    // глубина ramming/wipe — от сопла, которое реально экструдирует
+    // Ramming/wipe depth from the nozzle that actually extrudes.
     const float old_pw = perimeter_width_for(old_tool);
     const float new_pw = perimeter_width_for(new_tool);
 

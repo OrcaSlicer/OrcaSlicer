@@ -128,7 +128,7 @@ public:
         } else
             ++ m_num_layer_changes;
 		
-		// поток и ширина — от текущего сопла (важно при смешанных диаметрах)
+		// Flow and line width follow the current nozzle (needed for mixed diameters).
 		apply_perimeter_width_for(m_current_tool);
 		m_extrusion_flow = extrusion_flow(layer_height);
 	}
@@ -348,7 +348,7 @@ private:
 		return layer_height * ( m_perimeter_width - layer_height * (1.f-float(M_PI)/4.f)) / filament_area();
 	}
 
-    // ширина линии башни для конкретного сопла (не «последнего в конфиге»)
+    // Wipe-tower line width for a given nozzle (not whichever was registered last).
     float perimeter_width_for(size_t tool) const {
         if (tool >= m_filpar.size())
             return m_perimeter_width;
