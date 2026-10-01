@@ -10629,7 +10629,7 @@ std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
             // silently drops, so its stamp gets advanced as if it had actually been reloaded.
             if (input_file.empty() || volume->source.is_from_builtin_objects || fs::path(input_file).extension().string().empty())
                 continue;
-            std::string path = SourceFileWatcher::resolve_source_file_path(input_file, m_project_folder);
+            std::string path = SourceFileWatcher::resolve_source_file_path(input_file, object->input_file);
             if (!project_file.empty() && boost::filesystem::path(path).lexically_normal() == project_file)
                 continue;
             result.push_back({obj_idx, vol_idx, std::move(path)});
@@ -14494,13 +14494,10 @@ void Plater::priv::set_project_filename(const wxString& filename)
     if (!m_project_folder.empty() && !q->m_only_gcode)
         wxGetApp().mainframe->add_to_recent_projects(filename);
 
-    // Re-resolve and re-arm the source-file watches now that m_project_folder is current:
-    // SourceFileWatcher::resolve_source_file_path()'s project-folder fallback (for a volume whose
-    // recorded source degraded to a bare filename, e.g. a 3MF saved without "Store full source
-    // file paths") needs this to already be set, but object_list_changed() -- the usual place
-    // that recomputes the watch set -- fires before set_project_filename() during project load,
-    // not after, so its attempt at resolution sees an empty project folder and silently fails to
-    // find anything.
+    // Recompute the source-file watches now that the project file's path is current:
+    // sourced_volumes() leaves the project .3mf itself out of the watch set, but
+    // object_list_changed() -- the usual place that recomputes it -- fires before
+    // set_project_filename() during project load, so it can't know that path yet.
     update_source_file_watches();
 }
 

@@ -113,14 +113,18 @@ namespace {
 }
 
 std::string SourceFileWatcher::resolve_source_file_path(const std::string& recorded_path,
-                                                          const fs::path& project_folder)
+                                                          const std::string& object_input_file)
 {
     if (recorded_path.empty() || path_exists(recorded_path))
         return recorded_path;
-    if (!project_folder.empty()) {
-        fs::path candidate = project_folder / fs::path(recorded_path).filename();
-        if (path_exists(candidate))
-            return candidate.string();
+    // Same fallback as Plater::priv::reload_from_disk(): next to the object's input file.
+    if (!object_input_file.empty()) {
+        fs::path candidate = fs::path(object_input_file).remove_filename();
+        if (!candidate.empty()) {
+            candidate /= fs::path(recorded_path).filename();
+            if (path_exists(candidate))
+                return candidate.string();
+        }
     }
     return recorded_path;
 }

@@ -38,8 +38,8 @@ write to finish" below.
 A volume's source is a path recorded at import time (`ModelVolume::source.input_file`),
 possibly a bare filename if the project was saved without "Store full source file
 paths." `SourceFileWatcher::resolve_source_file_path()` falls back to looking next to
-the project file in that case, mirroring the manual "Reload from disk" menu item's own
-fallback. `Plater::priv::update_source_file_watches()` recomputes this set from the
+the object's own input file in that case, the same fallback the manual "Reload from
+disk" menu item uses. `Plater::priv::update_source_file_watches()` recomputes this set from the
 model on every relevant change (`object_list_changed()`, project load) and hands it to
 the watcher; the watcher itself never touches `Model`.
 
@@ -57,8 +57,8 @@ bound to the replaced file. Every reload therefore ends by rebuilding the OS wat
 from scratch (`forget_watched_files()` followed by `update_source_file_watches()`),
 whether it was manual or automatic and whether or not the user declined part of it.
 The watch set is also rebuilt once a project has finished loading, because the
-object-list refresh during loading runs before the project folder is known, so a
-bare recorded filename can't be resolved yet at that point.
+object-list refresh during loading runs before the project file's path is known, and
+that file is kept out of the watch set (its own save would otherwise reload it).
 
 ## Waiting for a write to finish
 

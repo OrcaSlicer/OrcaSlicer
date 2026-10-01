@@ -96,25 +96,25 @@ TEST_CASE("Source path resolution keeps a recorded path that exists", "[SourceFi
     TempDir dir;
     const std::string file = dir.write("part.stl", 10);
 
-    CHECK(SourceFileWatcher::resolve_source_file_path(file, fs::path()) == file);
-    CHECK(SourceFileWatcher::resolve_source_file_path(file, dir.path) == file);
+    CHECK(SourceFileWatcher::resolve_source_file_path(file, "") == file);
+    CHECK(SourceFileWatcher::resolve_source_file_path(file, (dir.path / "object.stl").string()) == file);
 }
 
-TEST_CASE("Source path resolution finds a bare filename next to the project", "[SourceFileWatcher]")
+TEST_CASE("Source path resolution finds a bare filename next to the object's input file", "[SourceFileWatcher]")
 {
     TempDir dir;
     const std::string file = dir.write("part.stl", 10);
 
-    CHECK(SourceFileWatcher::resolve_source_file_path("part.stl", dir.path) == file);
+    CHECK(SourceFileWatcher::resolve_source_file_path("part.stl", (dir.path / "object.stl").string()) == file);
 }
 
 TEST_CASE("Source path resolution leaves an unresolvable path unchanged", "[SourceFileWatcher]")
 {
     TempDir dir;
 
-    CHECK(SourceFileWatcher::resolve_source_file_path("missing.stl", dir.path) == "missing.stl");
-    CHECK(SourceFileWatcher::resolve_source_file_path("missing.stl", fs::path()) == "missing.stl");
-    CHECK(SourceFileWatcher::resolve_source_file_path("", dir.path).empty());
+    CHECK(SourceFileWatcher::resolve_source_file_path("missing.stl", (dir.path / "object.stl").string()) == "missing.stl");
+    CHECK(SourceFileWatcher::resolve_source_file_path("missing.stl", "") == "missing.stl");
+    CHECK(SourceFileWatcher::resolve_source_file_path("", (dir.path / "object.stl").string()).empty());
 }
 
 TEST_CASE("An unchanged tracked file is not reported", "[SourceFileWatcher]")

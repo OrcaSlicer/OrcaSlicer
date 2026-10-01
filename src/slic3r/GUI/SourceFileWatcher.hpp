@@ -53,12 +53,12 @@ struct SourceStamp
 class SourceFileWatcher : public wxEvtHandler
 {
 public:
-    // Resolves a volume's recorded source path against a project folder fallback: a volume's
-    // recorded source can be a bare filename rather than a full path (a 3MF saved without "Store
-    // full source file paths in projects" only keeps the filename). Falls back to the recorded
-    // path unchanged if it already exists or nothing is found next to the project.
+    // Resolves a volume's recorded source path the way "Reload from disk" does: the recorded path
+    // if it exists, else the same filename in the folder of the object's own input file (a 3MF
+    // saved without "Store full source file paths in projects" only keeps the filename). Returns
+    // the recorded path unchanged if neither exists.
     static std::string resolve_source_file_path(const std::string& recorded_path,
-                                                 const boost::filesystem::path& project_folder);
+                                                 const std::string& object_input_file);
 
     SourceFileWatcher();
     ~SourceFileWatcher() override;
