@@ -1024,13 +1024,14 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy2(SegmentEndPointFunc 
 	return chain_segments_greedy_constrained_reversals2_<PointType, SegmentEndPointFunc, false, decltype(could_reverse_func)>(end_point_func, could_reverse_func, num_segments, start_near);
 }
 
-std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
+template<typename EntityPtr>
+static std::vector<std::pair<size_t, bool>> chain_extrusion_entities_impl(const std::vector<EntityPtr> &entities, const Point *start_near)
 {
 	auto segment_end_point = [&entities](size_t idx, bool first_point) -> Point { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
 	auto could_reverse = [&entities](size_t idx) { const ExtrusionEntity *ee = entities[idx]; return ee->is_loop() || ee->can_reverse(); };
 	std::vector<std::pair<size_t, bool>> out = chain_segments_greedy_constrained_reversals<Point, decltype(segment_end_point), decltype(could_reverse)>(segment_end_point, could_reverse, entities.size(), start_near);
 	for (std::pair<size_t, bool> &segment : out) {
-		ExtrusionEntity *ee = entities[segment.first];
+		const ExtrusionEntity *ee = entities[segment.first];
 		if (ee->is_loop())
 			// Ignore reversals for loops, as the start point equals the end point.
 			segment.second = false;
@@ -1038,6 +1039,20 @@ std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<Extrus
 		assert(ee->can_reverse() || ! segment.second);
 	}
 	return out;
+}
+
+std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
+{
+	return chain_extrusion_entities_impl(entities, start_near);
+}
+
+// Orca: Reordering queries first_point() / last_point(); drop entities that cannot provide valid endpoints.
+template<typename EntityPtr>
+static void remove_entities_without_endpoints(std::vector<EntityPtr> &entities)
+{
+    entities.erase(std::remove_if(entities.begin(), entities.end(),
+                                  [](const ExtrusionEntity *entity) { return !extrusion_entity_has_endpoints(entity); }),
+                   entities.end());
 }
 
 void reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const std::vector<std::pair<size_t, bool>> &chain)
@@ -1061,12 +1076,25 @@ void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entitie
 
 void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
-    // Orca: Reordering queries first_point() / last_point(); drop entities that cannot provide valid endpoints.
-    entities.erase(std::remove_if(entities.begin(), entities.end(), [](ExtrusionEntity *entity) {
-        return !extrusion_entity_has_endpoints(entity);
-    }),
-                   entities.end());
+    remove_entities_without_endpoints(entities);
 	reorder_extrusion_entities(entities, chain_extrusion_entities(entities, start_near));
+}
+
+void chain_and_reorder_extrusion_entities(std::vector<const ExtrusionEntity*> &entities, const Point &start_near,
+                                          std::vector<std::unique_ptr<ExtrusionEntity>> &reversed_clones)
+{
+    remove_entities_without_endpoints(entities);
+    std::vector<const ExtrusionEntity*> out;
+    out.reserve(entities.size());
+    for (const auto &[idx, reverse] : chain_extrusion_entities_impl(entities, &start_near)) {
+        if (reverse) {
+            ExtrusionEntity *clone = reversed_clones.emplace_back(entities[idx]->clone()).get();
+            clone->reverse();
+            out.emplace_back(clone);
+        } else
+            out.emplace_back(entities[idx]);
+    }
+    entities.swap(out);
 }
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near)
