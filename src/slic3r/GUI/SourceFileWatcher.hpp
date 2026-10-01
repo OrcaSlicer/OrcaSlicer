@@ -74,11 +74,16 @@ public:
     // Plater::priv::reload_from_disk()), not retried later against the same bytes.
     void set_on_changed(std::function<void(const std::set<std::string>&)> on_changed) { m_on_changed = std::move(on_changed); }
 
+    // Reporting is held back while this returns true, for UI states the watcher can't see for
+    // itself and in which replacing the model is unsafe (a popup menu being tracked). Open modal
+    // dialogs are detected by the watcher itself; see on_timer().
+    void set_is_ui_blocked(std::function<bool()> is_ui_blocked) { m_is_ui_blocked = std::move(is_ui_blocked); }
+
     // Replaces the set of watched files (already resolved to their on-disk paths) and rearms the
     // underlying OS-level watches. Always rearms (needed after forget_watched_files(), even when
     // the path set itself is unchanged); the stamp baseline is left untouched for files that stay
     // tracked, and seeded fresh only for newly-added ones, so a rearm never erases a pending,
-    // not-yet-reported change. No-op if the path set is unchanged and nothing was forgotten.
+    // not-yet-reported change. No-op if the path set is unchanged, nothing was forgotten and every directory was watched.
     void set_watched_files(std::set<std::string> resolved_paths);
 
     // Drops all watches and the tracked baseline, e.g. when the feature is turned off.
@@ -93,6 +98,10 @@ public:
 
 private:
     void on_fs_event(wxFileSystemWatcherEvent& evt);
+#ifdef _WIN32
+    // Replaces the wxFileSystemWatcher with a new one watching the same files.
+    void restart_watcher();
+#endif
     void on_timer(wxTimerEvent& evt);
 
     // Whether the event names a tracked file (as its path, or as a rename's new path).
@@ -107,12 +116,17 @@ private:
     std::map<std::string, SourceStamp> changed_source_files() const;
 
     std::function<void(const std::set<std::string>&)> m_on_changed;
+    std::function<bool()>              m_is_ui_blocked;
     wxFileSystemWatcher*               m_watcher{ nullptr };
     wxTimer                            m_debounce_timer;
     std::set<std::string>              m_watched_files;
     std::map<std::string, SourceStamp> m_stamps; // committed baseline
     // m_stamps' keys in normalized_path() form, for matching an event's path with one lookup.
     std::set<std::string>              m_tracked_normalized;
+    // The watched directories in the same form, to recognise the event that reports one deleted.
+    std::set<std::string>              m_watched_dirs;
+    // Whether the last set_watched_files() skipped a directory that was missing or couldn't be added.
+    bool                               m_has_unwatched_dir{ false };
     // When the current burst of activity began; unset while idle. Bounds how long a tracked file
     // that keeps being written can hold back its own report.
     std::optional<std::chrono::steady_clock::time_point> m_settle_start;

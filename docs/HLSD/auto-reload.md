@@ -128,6 +128,28 @@ would make it one. The reliable arrangement is for the exporter to write atomica
 a temporary file that it renames into place, which this design handles without any
 timing assumption.
 
+## When the UI is busy
+
+A modal dialog, or a popup menu being tracked, runs its own nested event loop, so the
+debounce timer still fires while one is open. Reloading then would replace meshes under
+a dialog that may be holding objects or indices of the old model. `on_timer()` therefore
+holds back while `wxModalDialogHook::GetOpenCount()` is non-zero (wx counts every modal
+dialog, native ones included) or while the owner's `set_is_ui_blocked()` predicate (the
+Plater's `m_tracking_popup_menu`) returns true. It restarts the timer and commits nothing,
+so the change is reported once the dialog is closed. This is separate from
+`m_reload_in_progress`, which covers a dialog raised by the reload itself.
+
+## The Windows watcher thread
+
+wx's MSW backend serves every watch of a `wxFileSystemWatcher` from one worker thread, and
+that thread exits for good when any watched directory is deleted: it queues a delete event
+naming the directory and stops, after which none of the other watches deliver anything.
+Removing and re-adding watches does not revive it. `on_fs_event()` recognises that event
+(a delete whose path is one of the watched directories) and replaces the watcher with a
+new one for the same files, keeping the stamp baseline. A directory that is missing, or
+could not be watched, is retried by every later `set_watched_files()` call, so files in a
+deleted directory are watched again by the next refresh after it reappears.
+
 ## Detecting and committing a change
 
 When the debounce timer actually fires, `changed_source_files()` compares every

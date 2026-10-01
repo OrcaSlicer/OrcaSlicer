@@ -1,5 +1,7 @@
 #include "SourceFileWatcher.hpp"
 
+#include <wx/modalhook.h>
+
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/system/error_code.hpp>
@@ -156,7 +158,9 @@ SourceFileWatcher::~SourceFileWatcher()
 
 void SourceFileWatcher::set_watched_files(std::set<std::string> resolved_paths)
 {
-    if (resolved_paths == m_watched_files)
+    // An unchanged set normally needs no work, unless some directory couldn't be watched last time
+    // (missing or deleted since): retry it now, as it may have reappeared.
+    if (resolved_paths == m_watched_files && !m_has_unwatched_dir)
         return;
 
     if (m_watcher == nullptr) {
@@ -188,10 +192,20 @@ void SourceFileWatcher::set_watched_files(std::set<std::string> resolved_paths)
 
     // Paths are UTF-8; passing the std::string straight to wxFileName would read it in the ANSI
     // code page on Windows and fail to watch any folder with a non-ASCII name.
+    m_watched_dirs.clear();
+    m_has_unwatched_dir = false;
     for (const std::string& dir : watched_dirs) {
-        if (!dir.empty() && is_directory(dir) &&
-            !m_watcher->Add(wxFileName(wxString::FromUTF8(dir), wxEmptyString)))
+        if (dir.empty() || !is_directory(dir)) {
+            m_has_unwatched_dir = true;
+            continue;
+        }
+        const wxFileName dir_name(wxString::FromUTF8(dir), wxEmptyString);
+        if (m_watcher->Add(dir_name)) {
+            m_watched_dirs.insert(normalized_path(dir_name));
+        } else {
+            m_has_unwatched_dir = true;
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": could not watch directory " << dir;
+        }
     }
 
 #ifndef _WIN32
@@ -229,6 +243,8 @@ void SourceFileWatcher::clear()
     m_watched_files.clear();
     m_stamps.clear();
     m_tracked_normalized.clear();
+    m_watched_dirs.clear();
+    m_has_unwatched_dir = false;
 }
 
 void SourceFileWatcher::forget_watched_files()
@@ -256,8 +272,30 @@ bool SourceFileWatcher::settle_expired() const
     return m_settle_start && std::chrono::steady_clock::now() - *m_settle_start >= max_settle;
 }
 
+#ifdef _WIN32
+void SourceFileWatcher::restart_watcher()
+{
+    std::set<std::string> files = std::move(m_watched_files);
+    m_watched_files.clear();
+    delete m_watcher; // joins the worker thread, which has already exited
+    m_watcher = nullptr;
+    set_watched_files(std::move(files)); // creates a new watcher; the stamp baseline is kept
+}
+#endif
+
 void SourceFileWatcher::on_fs_event(wxFileSystemWatcherEvent& evt)
 {
+#ifdef _WIN32
+    // wx's MSW backend serves every watch from one worker thread, and that thread exits for good
+    // once any watched directory is deleted: it reports the directory as deleted, then stops, and
+    // every other watch silently stops delivering events with it. Remove() and Add() on the same
+    // wxFileSystemWatcher don't revive it, so start over with a new one.
+    if ((evt.GetChangeType() & wxFSW_EVENT_DELETE) && m_watched_dirs.count(normalized_path(evt.GetPath())) != 0) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": a watched directory was deleted, restarting the file system watcher";
+        restart_watcher();
+    }
+#endif
+
     if (!m_settle_start)
         m_settle_start = std::chrono::steady_clock::now();
 
@@ -286,6 +324,15 @@ void SourceFileWatcher::on_timer(wxTimerEvent&)
         // The callback below can pump the event loop (a modal dialog, wxBusyInfo) and let this
         // timer fire again while the first reload is still on the stack. Postpone instead of
         // re-entering it: the caller's model/selection state isn't valid to touch twice at once.
+        m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
+        return;
+    }
+
+    // A modal dialog or a tracked popup menu runs its own nested event loop, so this timer still
+    // fires while one is open. Replacing meshes under it would leave it holding stale objects and
+    // indices, so wait until it is closed. Nothing is committed meanwhile, so the change is still
+    // there to report afterwards.
+    if (wxModalDialogHook::GetOpenCount() > 0 || (m_is_ui_blocked && m_is_ui_blocked())) {
         m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
         return;
     }

@@ -386,6 +386,27 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
     CHECK(calls == 1);
 }
 
+TEST_CASE("A change is held back while the UI is blocked and reported afterwards", "[SourceFileWatcher]")
+{
+    WxEnv wx;
+    TempDir dir;
+    Harness h;
+    const std::string a = dir.write("a.stl", 10);
+    h.watcher.set_watched_files({ a });
+    dir.write("a.stl", 20);
+
+    bool blocked = true;
+    h.watcher.set_is_ui_blocked([&blocked]() { return blocked; });
+
+    h.tick();
+    CHECK(h.calls.empty());
+
+    blocked = false;
+    h.tick();
+    REQUIRE(h.calls.size() == 1);
+    CHECK(h.calls[0] == std::set<std::string>{ a });
+}
+
 TEST_CASE("Without a callback a change stays pending", "[SourceFileWatcher]")
 {
     WxEnv wx;

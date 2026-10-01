@@ -7860,6 +7860,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         }
     });
     this->source_file_watcher.set_on_changed([this](const std::set<std::string>& changed_files) { this->on_source_files_changed(changed_files); });
+    // A context menu being tracked runs a nested event loop like a modal dialog, which the watcher
+    // detects by itself.
+    this->source_file_watcher.set_is_ui_blocked([this]() { return q->m_tracking_popup_menu; });
 
     update();
 
