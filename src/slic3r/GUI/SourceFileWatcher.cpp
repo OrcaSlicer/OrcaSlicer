@@ -95,6 +95,16 @@ namespace {
     }
 #endif
 
+    // The form event paths and tracked paths are compared in: wxFileName::SameAs()'s own
+    // normalization (case folding where the filesystem needs it, separators, dots), done once per
+    // path so a lookup in a set replaces SameAs() against every tracked file.
+    std::string normalized_path(const wxFileName& path)
+    {
+        wxFileName normalized(path);
+        normalized.Normalize(wxPATH_NORM_ALL);
+        return normalized.GetFullPath().utf8_string();
+    }
+
     // fs::exists()/fs::is_directory() throw on an I/O error (e.g. an unreachable network share);
     // these treat that the same as "not found" instead, matching get_source_stamp() above.
     bool path_exists(const fs::path& path)
@@ -154,6 +164,7 @@ void SourceFileWatcher::set_watched_files(std::set<std::string> resolved_paths)
         m_watcher->SetOwner(this);
     }
 
+    const bool had_watches = !m_stamps.empty();
     m_watcher->RemoveAll();
 
     // Drop the baseline for files no longer tracked; keep it for files that stay tracked so a
@@ -171,21 +182,44 @@ void SourceFileWatcher::set_watched_files(std::set<std::string> resolved_paths)
 
     m_watched_files = std::move(resolved_paths);
 
+    m_tracked_normalized.clear();
+    for (const auto& entry : m_stamps)
+        m_tracked_normalized.insert(normalized_path(wxFileName(wxString::FromUTF8(entry.first))));
+
+    // Paths are UTF-8; passing the std::string straight to wxFileName would read it in the ANSI
+    // code page on Windows and fail to watch any folder with a non-ASCII name.
     for (const std::string& dir : watched_dirs) {
-        if (!dir.empty() && is_directory(dir))
-            m_watcher->Add(wxFileName(dir, wxEmptyString));
+        if (!dir.empty() && is_directory(dir) &&
+            !m_watcher->Add(wxFileName(wxString::FromUTF8(dir), wxEmptyString)))
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": could not watch directory " << dir;
     }
 
 #ifndef _WIN32
-    // The directory watch above only fires when the listing changes; an in-place overwrite of an
-    // existing file needs a watch on the file itself. Not on Windows: wx's backend rejects
-    // file-level watches with a wxLogError dialog, and ReadDirectoryChangesW already reports
-    // in-place writes through the directory watch.
+    // An in-place overwrite of an existing file needs a watch on the file itself where the
+    // directory watch doesn't report it. That is only macOS (kqueue, which sees listing changes
+    // only): on Linux, inotify's directory watch already reports writes to its children, and a
+    // second watch on the file just duplicates every event. A symlinked source is the exception
+    // on Linux, because its content lives in another directory. Not on Windows: wx's backend
+    // rejects file-level watches with a wxLogError dialog, and ReadDirectoryChangesW already
+    // reports in-place writes through the directory watch.
     for (const std::string& file : m_watched_files) {
-        if (path_exists(file))
-            m_watcher->Add(wxFileName(file));
+        if (!path_exists(file))
+            continue;
+#ifndef __APPLE__
+        boost::system::error_code ec;
+        if (!fs::is_symlink(fs::path(file), ec))
+            continue;
+#endif
+        if (!m_watcher->Add(wxFileName(wxString::FromUTF8(file))))
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": could not watch file " << file;
     }
 #endif
+
+    // RemoveAll() above discards events the backend had queued but not yet delivered. A change
+    // that landed just before this rebuild would then wait for some unrelated event to wake the
+    // timer, so look once more after the rebuild; it's a no-op if nothing changed.
+    if (had_watches)
+        m_debounce_timer.Start(debounce_ms, wxTIMER_ONE_SHOT);
 }
 
 void SourceFileWatcher::clear()
@@ -194,6 +228,7 @@ void SourceFileWatcher::clear()
         m_watcher->RemoveAll();
     m_watched_files.clear();
     m_stamps.clear();
+    m_tracked_normalized.clear();
 }
 
 void SourceFileWatcher::forget_watched_files()
@@ -209,11 +244,9 @@ bool SourceFileWatcher::is_tracked_file_event(const wxFileSystemWatcherEvent& ev
     if ((type & (wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME | wxFSW_EVENT_MODIFY)) == 0)
         return false;
 
-    // SameAs() normalizes both sides, so case and separators don't matter on Windows.
+    // Both sides are normalized, so case and separators don't matter on Windows.
     auto tracked = [this](const wxFileName& path) {
-        return path.IsOk() && std::any_of(m_stamps.begin(), m_stamps.end(), [&path](const auto& entry) {
-                   return wxFileName(wxString::FromUTF8(entry.first)).SameAs(path);
-               });
+        return path.IsOk() && m_tracked_normalized.count(normalized_path(path)) != 0;
     };
     return tracked(evt.GetPath()) || (type == wxFSW_EVENT_RENAME && tracked(evt.GetNewPath()));
 }

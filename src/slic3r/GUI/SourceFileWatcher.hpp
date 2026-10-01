@@ -43,13 +43,14 @@ struct SourceStamp
 // when the timer fires. A write that never goes quiet is reported anyway once max_settle (30s)
 // has passed since the first sign of activity. See docs/HLSD/auto-reload.md.
 //
-// Two watches cover each other's blind spot: an exporter that writes a temp file and renames it
-// into place is only visible as a directory-listing change, while an in-place overwrite produces no
-// directory event at all and needs a watch on the file itself. Whatever wakes it, the timer
-// resamples every tracked file's own stamp against the baseline recorded in set_watched_files()
-// -- the event's path only decides whether to extend the wait. Per-file watches are skipped on
-// Windows: wx's MSW backend rejects them with an error dialog, and its ReadDirectoryChangesW
-// directory watch already reports in-place writes.
+// Where the directory watch alone misses an in-place overwrite (macOS's kqueue reports only
+// listing changes), a watch on the file itself covers it; a rename-into-place is only visible as
+// a directory-listing change. Whatever wakes it, the timer resamples every tracked file's own
+// stamp against the baseline recorded in set_watched_files() -- the event's path only decides
+// whether to extend the wait. Per-file watches are skipped on Windows (wx's MSW backend rejects
+// them with an error dialog, and its ReadDirectoryChangesW directory watch already reports
+// in-place writes) and on Linux (inotify's directory watch reports writes to its children, so a
+// second watch would only duplicate every event), except for a symlinked source there.
 class SourceFileWatcher : public wxEvtHandler
 {
 public:
@@ -110,6 +111,8 @@ private:
     wxTimer                            m_debounce_timer;
     std::set<std::string>              m_watched_files;
     std::map<std::string, SourceStamp> m_stamps; // committed baseline
+    // m_stamps' keys in normalized_path() form, for matching an event's path with one lookup.
+    std::set<std::string>              m_tracked_normalized;
     // When the current burst of activity began; unset while idle. Bounds how long a tracked file
     // that keeps being written can hold back its own report.
     std::optional<std::chrono::steady_clock::time_point> m_settle_start;

@@ -43,14 +43,15 @@ disk" menu item uses. `Plater::priv::update_source_file_watches()` recomputes th
 model on every relevant change (`object_list_changed()`, project load) and hands it to
 the watcher; the watcher itself never touches `Model`.
 
-Detecting a change needs two OS-level watches, because neither alone covers both
-common export patterns: a directory watch (added for each tracked file's parent
-directory) catches a rename-into-place — the temp-file-then-rename pattern — which only
-shows up as a directory-listing change; a per-file watch catches an in-place overwrite,
-which produces no directory event at all. Per-file
-watches are skipped on Windows: wx's MSW backend rejects them outright, and
-`ReadDirectoryChangesW`'s directory watch already reports in-place writes, so nothing
-is lost by skipping them there.
+Detecting a change starts from a directory watch (added for each tracked file's parent
+directory), which catches a rename-into-place — the temp-file-then-rename pattern — as a
+directory-listing change. Whether it also sees an in-place overwrite depends on the
+backend: `ReadDirectoryChangesW` (Windows) and inotify (Linux) report writes to the
+directory's children, but macOS's kqueue reports only listing changes, so there each
+tracked file also gets a watch of its own. Per-file watches are skipped on Windows
+because wx's MSW backend rejects them outright, and on Linux because they would only
+duplicate every event (a symlinked source is the exception, as its content lives in
+another directory).
 
 A per-file watch follows the file's inode, so after a rename-into-place it is still
 bound to the replaced file. Every reload therefore ends by rebuilding the OS watches
