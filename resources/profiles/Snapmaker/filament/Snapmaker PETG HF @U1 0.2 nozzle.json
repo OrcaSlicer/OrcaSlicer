@@ -1,24 +1,18 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PETG HF @U1 0.2 nozzle",
+	"renamed_from": "Snapmaker PETG HF U1 0.2 nozzle;Snapmaker PETG HF @U1 0.2 High Flow nozzle;Snapmaker PETG HF U1 0.2 High Flow nozzle",
 	"inherits": "Snapmaker PETG HF @U1 base2",
 	"from": "system",
 	"setting_id": "Ujul2YTBwfldFiFd",
 	"instantiation": "true",
 	"filament_extruder_variant": [
-		"Direct Drive Standard"
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	],
 	"filament_max_volumetric_speed": [
-		"1"
-	],
-	"filament_ramming_travel_time": [
-		"0"
-	],
-	"long_retractions_when_ec": [
-		"0"
-	],
-	"retraction_distances_when_ec": [
-		"0"
+		"1",
+		"2"
 	],
 	"compatible_printers": [
 		"Snapmaker U1 (0.2 nozzle)"
@@ -54,9 +48,11 @@
 		"5"
 	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
 	],
 	"filament_retraction_length": [
+		"1.5",
 		"1.5"
 	],
 	"filament_start_gcode": [
@@ -72,10 +68,12 @@
 		"80"
 	],
 	"nozzle_temperature": [
+		"245",
 		"245"
 	],
 	"nozzle_temperature_initial_layer": [
-		"245"
+		"245",
+		"230"
 	],
 	"nozzle_temperature_range_low": [
 		"230"
@@ -102,6 +100,18 @@
 		"80"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Estimated 0.2 mm high-flow starting values, not manufacturer-calibrated. Flow ratio and pressure advance use this diameter's standard values times the material's 0.4 mm HF/standard ratio from Snapmaker OrcaSlicer. Temperature uses the 0.4 mm HF-standard difference. Retraction and cooling remain diameter-specific. Volumetric speed ceiling: 2 mm^3/s, from Snorca standard preset Snapmaker PETG HF @U1 0.2 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"pressure_advance": [
+		"0.03",
+		"0.0525"
+	],
+	"filament_flow_ratio": [
+		"0.95",
+		"0.955"
 	]
 }

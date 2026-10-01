@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker TPE @U1",
+	"renamed_from": "Snapmaker TPE U1;Snapmaker TPE @U1 0.4 High Flow nozzle;Snapmaker TPE U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker TPU @U1 base",
 	"from": "system",
 	"setting_id": "aqE9IR6dFd2MQLXR",
@@ -19,12 +20,14 @@
 		"65"
 	],
 	"filament_flow_ratio": [
+		"1.1",
 		"1.1"
 	],
 	"filament_density": [
 		"1.22"
 	],
 	"filament_max_volumetric_speed": [
+		"7.2",
 		"7.2"
 	],
 	"fan_max_speed": [
@@ -37,6 +40,10 @@
 		""
 	],
 	"filament_notes": [
-		"eSUN eLastic TPE-83A\n"
+		"Standard nozzle: eSUN eLastic TPE-83A\n\n\nHigh-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 7.2 mm^3/s, from local standard fallback preset Snapmaker TPE @U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

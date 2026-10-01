@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker TPU 95A @U1",
+	"renamed_from": "Snapmaker TPU 95A U1;Snapmaker TPU 95A @U1 0.4 High Flow nozzle;Snapmaker TPU 95A U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker TPU 95A @U1 base",
 	"from": "system",
 	"setting_id": "XdvEzjOGtQKamDRC",
@@ -9,25 +10,27 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"activate_chamber_temp_control": [
 		"0"
 	],
 	"adaptive_pressure_advance": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_bridges": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_model": [
+		"0,0,0\n0,0,0",
 		"0,0,0\n0,0,0"
 	],
 	"adaptive_pressure_advance_overhangs": [
+		"0",
 		"0"
-	],
-	"additional_cooling_fan_speed": [
-		"70"
 	],
 	"chamber_temperature": [
 		"0"
@@ -39,6 +42,7 @@
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
+		"80",
 		"80"
 	],
 	"cool_plate_temp": [
@@ -51,12 +55,14 @@
 		"0"
 	],
 	"during_print_exhaust_fan_speed": [
+		"60",
 		"60"
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"eng_plate_temp": [
@@ -90,6 +96,7 @@
 		"1.24"
 	],
 	"filament_deretraction_speed": [
+		"8",
 		"8"
 	],
 	"filament_diameter": [
@@ -97,9 +104,6 @@
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
-	],
-	"filament_flow_ratio": [
-		"1"
 	],
 	"filament_is_support": [
 		"0"
@@ -111,13 +115,12 @@
 		"3"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
+		"3.2",
 		"3.2"
-	],
-	"filament_minimal_purge_on_wipe_tower": [
-		"15"
 	],
 	"filament_multitool_ramming": [
 		"0"
@@ -129,39 +132,33 @@
 		"10"
 	],
 	"filament_notes": [
-		""
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 3.2 mm^3/s, from local standard fallback preset Snapmaker TPU 95A @U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	],
 	"filament_ramming_parameters": [
 		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
 	],
-	"filament_retract_before_wipe": [
-		"nil"
-	],
 	"filament_retract_lift_above": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_below": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_enforce": [
-		"nil"
-	],
-	"filament_retract_restart_extra": [
-		"nil"
-	],
-	"filament_retract_when_changing_layer": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
+		"1.4",
 		"1.4"
 	],
-	"filament_retraction_minimum_travel": [
-		"nil"
-	],
 	"filament_retraction_speed": [
+		"30",
 		"30"
 	],
 	"filament_shrink": [
@@ -197,16 +194,12 @@
 	"filament_vendor": [
 		"Snapmaker"
 	],
-	"filament_wipe": [
-		"nil"
-	],
-	"filament_wipe_distance": [
-		"nil"
-	],
 	"filament_z_hop": [
+		"0.4",
 		"0.4"
 	],
 	"filament_z_hop_types": [
+		"Auto Lift",
 		"Auto Lift"
 	],
 	"full_fan_speed_layer": [
@@ -222,16 +215,12 @@
 		"0"
 	],
 	"nozzle_temperature": [
+		"225",
 		"225"
 	],
 	"nozzle_temperature_initial_layer": [
+		"225",
 		"225"
-	],
-	"nozzle_temperature_range_high": [
-		"250"
-	],
-	"nozzle_temperature_range_low": [
-		"200"
 	],
 	"overhang_fan_speed": [
 		"100"
@@ -243,6 +232,7 @@
 		"0.4157"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [
@@ -280,5 +270,9 @@
 	],
 	"default_filament_colour": [
 		""
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

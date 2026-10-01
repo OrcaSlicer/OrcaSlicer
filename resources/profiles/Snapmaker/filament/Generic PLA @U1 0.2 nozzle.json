@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @U1 0.2 nozzle",
+	"renamed_from": "Generic PLA U1 0.2 nozzle;Generic PLA @U1 0.2 High Flow nozzle;Generic PLA U1 0.2 High Flow nozzle",
+	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "8pb3tert1D4w0SKP",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.2 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Uses the active Orca Generic material settings. Volumetric speed ceiling: 1.6 mm^3/s, from Snorca standard preset Generic PLA @U1 0.2 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"1.6"
+	]
+}

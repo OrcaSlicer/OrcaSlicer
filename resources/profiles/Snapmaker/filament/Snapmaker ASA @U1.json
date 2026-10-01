@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker ASA @U1",
+	"renamed_from": "Snapmaker ASA U1;Snapmaker ASA @U1 0.4 High Flow nozzle;Snapmaker ASA U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker ASA @U1 base",
 	"from": "system",
 	"setting_id": "XlbCMKY8EvV0vM88",
@@ -9,6 +10,61 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer for 0.4 mm nozzles. Volumetric speed ceiling: 22 mm^3/s, from Snorca HF preset Snapmaker ASA @U1 0.4 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"0",
+		"15"
+	],
+	"fan_max_speed": [
+		"15",
+		"25"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255",
+		"280"
+	],
+	"nozzle_temperature": [
+		"255",
+		"280"
+	],
+	"filament_multitool_ramming_volume": [
+		"0",
+		"10"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"8",
+		"22"
+	],
+	"pressure_advance": [
+		"0.04",
+		"0.02"
+	],
+	"filament_multitool_ramming_flow": [
+		"10",
+		"20"
+	],
+	"fan_min_speed": [
+		"0",
+		"10"
+	],
+	"filament_z_hop_types": [
+		"nil",
+		"Slope Lift"
+	],
+	"filament_multitool_ramming": [
+		"0",
+		"1"
 	]
 }

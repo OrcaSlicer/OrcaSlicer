@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PETG Translucent @U1 0.8 nozzle",
+	"renamed_from": "Snapmaker PETG Translucent U1 0.8 nozzle;Snapmaker PETG Translucent @U1 0.8 High Flow nozzle;Snapmaker PETG Translucent U1 0.8 High Flow nozzle",
 	"inherits": "Snapmaker PETG Translucent @U1 base",
 	"from": "system",
 	"setting_id": "aJk3TnFTU3uQGjd3",
@@ -12,9 +13,11 @@
 		"3"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"fan_max_speed": [
@@ -30,18 +33,18 @@
 		"1.25"
 	],
 	"filament_flow_ratio": [
+		"0.97",
 		"0.97"
 	],
 	"filament_max_volumetric_speed": [
+		"16",
 		"16"
 	],
 	"hot_plate_temp": [
 		"80"
 	],
-	"nozzle_temperature": [
-		"245"
-	],
 	"nozzle_temperature_initial_layer": [
+		"250",
 		"250"
 	],
 	"nozzle_temperature_range_low": [
@@ -51,7 +54,8 @@
 		"10%"
 	],
 	"pressure_advance": [
-		"0.02"
+		"0.02",
+		"0.025"
 	],
 	"slow_down_min_speed": [
 		"10"
@@ -81,12 +85,15 @@
 		"10"
 	],
 	"filament_retract_length_toolchange": [
+		"10",
 		"10"
 	],
 	"filament_retraction_length": [
+		"1",
 		"1"
 	],
 	"filament_retraction_minimum_travel": [
+		"nil",
 		"nil"
 	],
 	"filament_unloading_speed": [
@@ -96,9 +103,18 @@
 		"100"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"enable_pressure_advance": [
-		"0"
+		"0",
+		"1"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Estimated 0.8 mm high-flow starting values, not manufacturer-calibrated. Flow ratio and pressure advance use this diameter's standard values times the material's 0.4 mm HF/standard ratio from Snapmaker OrcaSlicer. Temperature uses the 0.4 mm HF-standard difference. Retraction and cooling remain diameter-specific. Volumetric speed ceiling: 16 mm^3/s, from Snorca standard preset Snapmaker PETG Translucent @U1 0.8 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

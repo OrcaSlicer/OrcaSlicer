@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker ABS Benchy @U1",
+	"renamed_from": "Snapmaker ABS Benchy U1;Snapmaker ABS Benchy @U1 0.4 High Flow nozzle;Snapmaker ABS Benchy U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker ABS @U1 base",
 	"from": "system",
 	"setting_id": "xszx4XRGrp88OdP8",
@@ -22,27 +23,35 @@
 		"2"
 	],
 	"filament_deretraction_speed": [
+		"55",
 		"55"
 	],
 	"filament_max_volumetric_speed": [
+		"31",
 		"31"
 	],
 	"filament_retract_when_changing_layer": [
+		"0",
 		"0"
 	],
 	"filament_retraction_length": [
+		"0.5",
 		"0.5"
 	],
 	"filament_z_hop": [
+		"0",
 		"0"
 	],
 	"filament_retraction_speed": [
+		"55",
 		"55"
 	],
 	"filament_wipe": [
+		"0",
 		"0"
 	],
 	"nozzle_temperature": [
+		"250",
 		"250"
 	],
 	"fan_max_speed": [
@@ -59,5 +68,12 @@
 	],
 	"default_filament_colour": [
 		""
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"Standard nozzle: eSUN ABS+\nSunlu ABS+\n\n\nHigh-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 31 mm^3/s, from local standard fallback preset Snapmaker ABS Benchy @U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA Wood @U1 0.4 nozzle",
+	"renamed_from": "Snapmaker PLA Wood U1 0.4 nozzle;Snapmaker PLA Wood @U1 0.4 High Flow nozzle;Snapmaker PLA Wood U1 0.4 High Flow nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "XvizDDHbds3bVrzi",
@@ -11,9 +12,6 @@
 	],
 	"filament_start_gcode": [
 		""
-	],
-	"enable_pressure_advance": [
-		"1"
 	],
 	"filament_end_gcode": [
 		"\n"
@@ -40,10 +38,12 @@
 		"65"
 	],
 	"filament_flow_ratio": [
+		"0.97",
 		"0.97"
 	],
 	"filament_max_volumetric_speed": [
-		"18"
+		"18",
+		"20"
 	],
 	"filament_multitool_ramming_flow": [
 		"40"
@@ -52,24 +52,29 @@
 		"10"
 	],
 	"filament_retract_length_toolchange": [
-		"5"
+		"5",
+		"6"
 	],
 	"filament_retraction_length": [
+		"0.6",
 		"0.6"
 	],
 	"pressure_advance": [
-		"0.025"
+		"0.025",
+		"0.024"
 	],
 	"slow_down_layer_time": [
 		"4"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
 		"0"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -79,21 +84,26 @@
 		"35"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"filament_cost": [
 		"20"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"nozzle_temperature": [
+		"220",
 		"220"
 	],
 	"overhang_fan_threshold": [
@@ -104,5 +114,16 @@
 	],
 	"temperature_vitrification": [
 		"45"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer for 0.4 mm nozzles. Volumetric speed ceiling: 20 mm^3/s, from Snorca HF preset Snapmaker PLA Wood @U1 0.4 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"filament_z_hop_types": [
+		"nil",
+		"Auto Lift"
 	]
 }

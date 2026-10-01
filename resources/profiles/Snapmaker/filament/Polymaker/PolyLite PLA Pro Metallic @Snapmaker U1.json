@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "PolyLite PLA Pro Metallic @Snapmaker U1",
+	"renamed_from": "PolyLite PLA Pro Metallic Snapmaker U1;PolyLite PLA Pro Metallic @U1 0.4 High Flow nozzle;PolyLite PLA Pro Metallic U1 0.4 High Flow nozzle",
 	"inherits": "PolyLite PLA Pro Metallic @Snapmaker U1 base",
 	"from": "system",
 	"setting_id": "21wjCLo6hOb9p38K",
@@ -25,6 +26,14 @@
 		"0"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 20 mm^3/s, from local standard fallback preset PolyLite PLA Pro Metallic @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

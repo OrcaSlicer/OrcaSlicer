@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Polymaker PLA @Snapmaker U1",
+	"renamed_from": "Polymaker PLA Snapmaker U1;Polymaker PLA @U1 0.4 High Flow nozzle;Polymaker PLA U1 0.4 High Flow nozzle",
 	"inherits": "Polymaker PLA @Snapmaker U1 base",
 	"from": "system",
 	"setting_id": "NSuD5f5eVr8SHA4n",
@@ -12,9 +13,14 @@
 		"15"
 	],
 	"filament_extruder_variant": [
-		"Direct Drive Standard"
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	],
 	"pressure_advance": [
+		"0.05",
 		"0.05"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 20 mm^3/s, from local standard fallback preset Polymaker PLA @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

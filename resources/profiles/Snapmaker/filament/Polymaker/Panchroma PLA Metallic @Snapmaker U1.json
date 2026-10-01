@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Panchroma PLA Metallic @Snapmaker U1",
-	"renamed_from": "Panchroma PLA Metallic @U1",
+	"renamed_from": "Panchroma PLA Metallic @U1;Panchroma PLA Metallic @U1 0.4 High Flow nozzle;Panchroma PLA Metallic U1 0.4 High Flow nozzle",
 	"inherits": "Panchroma PLA Metallic @Snapmaker U1 base",
 	"from": "system",
 	"setting_id": "pAQGZzMH04kst11B",
@@ -11,5 +11,12 @@
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 15 mm^3/s, from local standard fallback preset Panchroma PLA Metallic @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

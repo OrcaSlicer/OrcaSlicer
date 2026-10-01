@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Fiberon PA12-CF10 @Snapmaker U1",
+	"renamed_from": "Fiberon PA12-CF10 Snapmaker U1;Fiberon PA12-CF10 @U1 0.4 High Flow nozzle;Fiberon PA12-CF10 U1 0.4 High Flow nozzle",
 	"inherits": "Fiberon PA12-CF10 @Snapmaker U1 base",
 	"from": "system",
 	"setting_id": "x3irDyMqwMgklHKg",
@@ -12,15 +13,26 @@
 		"15"
 	],
 	"filament_retraction_length": [
+		"1.0",
 		"1.0"
 	],
 	"filament_z_hop": [
+		"0.0",
 		"0.0"
 	],
 	"enable_pressure_advance": [
+		"1",
 		"1"
 	],
 	"pressure_advance": [
+		"0.05",
 		"0.05"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"Standard nozzle: !! It needs to be dried before use.\n\n\nHigh-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 8 mm^3/s, from local standard fallback preset Fiberon PA12-CF10 @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

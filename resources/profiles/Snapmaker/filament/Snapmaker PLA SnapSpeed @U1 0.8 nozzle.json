@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA SnapSpeed @U1 0.8 nozzle",
+	"renamed_from": "Snapmaker PLA SnapSpeed U1 0.8 nozzle;Snapmaker PLA SnapSpeed @U1 0.8 High Flow nozzle;Snapmaker PLA SnapSpeed U1 0.8 High Flow nozzle",
 	"inherits": "Snapmaker PLA SnapSpeed @U1 base2",
 	"from": "system",
 	"setting_id": "sWoInox4hzxzIHfe",
@@ -9,25 +10,31 @@
 		"Snapmaker U1 (0.8 nozzle)"
 	],
 	"filament_deretraction_speed": [
+		"30",
 		"30"
 	],
 	"filament_multitool_ramming_flow": [
 		"30"
 	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
 	],
 	"filament_retraction_length": [
+		"1.6",
 		"1.6"
 	],
 	"filament_retraction_speed": [
+		"30",
 		"30"
 	],
 	"nozzle_temperature": [
+		"215",
 		"215"
 	],
 	"pressure_advance": [
-		"0.018"
+		"0.018",
+		"0.0216"
 	],
 	"textured_plate_temp": [
 		"65"
@@ -36,6 +43,14 @@
 		"65"
 	],
 	"enable_pressure_advance": [
-		"0"
+		"0",
+		"1"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Estimated 0.8 mm high-flow starting values, not manufacturer-calibrated. Flow ratio and pressure advance use this diameter's standard values times the material's 0.4 mm HF/standard ratio from Snapmaker OrcaSlicer. Temperature uses the 0.4 mm HF-standard difference. Retraction and cooling remain diameter-specific. Volumetric speed ceiling: 20 mm^3/s, from Snorca standard preset Snapmaker PLA SnapSpeed @U1 0.8 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

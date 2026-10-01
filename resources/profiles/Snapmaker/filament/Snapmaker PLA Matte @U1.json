@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA Matte @U1",
+	"renamed_from": "Snapmaker PLA Matte U1;Snapmaker PLA Matte @U1 0.4 High Flow nozzle;Snapmaker PLA Matte U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker PLA @U1 base",
 	"from": "system",
 	"setting_id": "uAhykL5ap1DAKacf",
@@ -10,25 +11,31 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"activate_chamber_temp_control": [
 		"0"
 	],
 	"adaptive_pressure_advance": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_bridges": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_model": [
+		"0,0,0\n0,0,0",
 		"0,0,0\n0,0,0"
 	],
 	"adaptive_pressure_advance_overhangs": [
+		"0",
 		"0"
 	],
 	"additional_cooling_fan_speed": [
-		"80"
+		"80",
+		"100"
 	],
 	"chamber_temperature": [
 		"0"
@@ -40,6 +47,7 @@
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -52,13 +60,15 @@
 		"0"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
 	],
 	"enable_pressure_advance": [
-		"0"
+		"0",
+		"1"
 	],
 	"eng_plate_temp": [
 		"60"
@@ -67,12 +77,6 @@
 		"60"
 	],
 	"fan_cooling_layer_time": [
-		"100"
-	],
-	"fan_max_speed": [
-		"100"
-	],
-	"fan_min_speed": [
 		"100"
 	],
 	"filament_cooling_final_speed": [
@@ -90,9 +94,6 @@
 	"filament_density": [
 		"1.32"
 	],
-	"filament_deretraction_speed": [
-		"nil"
-	],
 	"filament_diameter": [
 		"1.75"
 	],
@@ -100,7 +101,8 @@
 		"; filament end gcode \n"
 	],
 	"filament_flow_ratio": [
-		"1"
+		"1",
+		"0.99"
 	],
 	"filament_is_support": [
 		"0"
@@ -112,10 +114,12 @@
 		"50"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"22"
+		"22",
+		"40"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -130,42 +134,37 @@
 		"5"
 	],
 	"filament_notes": [
-		""
+		"High-flow nozzle: Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer for 0.4 mm nozzles. Volumetric speed ceiling: 40 mm^3/s, from Snorca HF preset Snapmaker PLA Matte @U1 (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	],
 	"filament_ramming_parameters": [
 		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
 	],
-	"filament_retract_before_wipe": [
-		"nil"
-	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
 	],
 	"filament_retract_lift_above": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_below": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_enforce": [
-		"nil"
-	],
-	"filament_retract_restart_extra": [
-		"nil"
-	],
-	"filament_retract_when_changing_layer": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
-		"nil"
-	],
-	"filament_retraction_minimum_travel": [
-		"nil"
+		"nil",
+		"1"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_shrink": [
@@ -201,17 +200,13 @@
 	"filament_vendor": [
 		"Snapmaker"
 	],
-	"filament_wipe": [
-		"nil"
-	],
 	"filament_wipe_distance": [
-		"nil"
-	],
-	"filament_z_hop": [
-		"nil"
+		"nil",
+		"1"
 	],
 	"filament_z_hop_types": [
-		"nil"
+		"nil",
+		"Slope Lift"
 	],
 	"full_fan_speed_layer": [
 		"0"
@@ -226,16 +221,12 @@
 		"0"
 	],
 	"nozzle_temperature": [
-		"215"
+		"215",
+		"220"
 	],
 	"nozzle_temperature_initial_layer": [
-		"215"
-	],
-	"nozzle_temperature_range_high": [
-		"240"
-	],
-	"nozzle_temperature_range_low": [
-		"190"
+		"215",
+		"220"
 	],
 	"overhang_fan_speed": [
 		"100"
@@ -247,7 +238,8 @@
 		"0.4157"
 	],
 	"pressure_advance": [
-		"0.02"
+		"0.02",
+		"0.024"
 	],
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -281,5 +273,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

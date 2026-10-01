@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA-CF @U1 0.4 nozzle",
-	"renamed_from": "Snapmaker PLA-CF @U1",
+	"renamed_from": "Snapmaker PLA-CF @U1;Snapmaker PLA-CF @U1 0.4 High Flow nozzle;Snapmaker PLA-CF U1 0.4 High Flow nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "2INwruC3ZVkBTdUT",
@@ -10,9 +10,6 @@
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
 	],
-	"enable_pressure_advance": [
-		"1"
-	],
 	"filament_end_gcode": [
 		""
 	],
@@ -20,7 +17,8 @@
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
-		"20"
+		"20",
+		"30"
 	],
 	"filament_start_gcode": [
 		""
@@ -40,11 +38,9 @@
 	"hot_plate_temp_initial_layer": [
 		"65"
 	],
-	"filament_flow_ratio": [
-		"0.98"
-	],
 	"filament_max_volumetric_speed": [
-		"15"
+		"15",
+		"20"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"50"
@@ -53,25 +49,31 @@
 		"5"
 	],
 	"filament_retract_length_toolchange": [
-		"5"
+		"5",
+		"15"
 	],
 	"filament_retraction_length": [
-		"1"
+		"1",
+		"0.8"
 	],
 	"filament_type": [
 		"PLA-CF"
 	],
 	"filament_z_hop": [
+		"0.4",
 		"0.4"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"nozzle_temperature": [
-		"240"
+		"240",
+		"230"
 	],
 	"nozzle_temperature_initial_layer": [
-		"240"
+		"240",
+		"230"
 	],
 	"nozzle_temperature_range_high": [
 		"250"
@@ -80,15 +82,18 @@
 		"200"
 	],
 	"pressure_advance": [
-		"0.01"
+		"0.01",
+		"0.02"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
 		"0"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -98,18 +103,22 @@
 		"45"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"filament_cost": [
 		"20"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"overhang_fan_threshold": [
@@ -128,6 +137,14 @@
 		"45"
 	],
 	"additional_cooling_fan_speed": [
-		"0"
+		"0",
+		"100"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer for 0.4 mm nozzles. Volumetric speed ceiling: 20 mm^3/s, from Snorca HF preset Snapmaker PLA-CF @U1 0.4 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

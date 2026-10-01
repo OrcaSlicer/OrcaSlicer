@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Fiberon PPS-GF20 @Snapmaker U1",
+	"renamed_from": "Fiberon PPS-GF20 Snapmaker U1;Fiberon PPS-GF20 @U1 0.4 High Flow nozzle;Fiberon PPS-GF20 U1 0.4 High Flow nozzle",
 	"inherits": "Fiberon PPS-GF20 @Snapmaker U1 base",
 	"from": "system",
 	"setting_id": "7IpyPFHEAOmFlINJ",
@@ -11,5 +12,12 @@
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
-	"description": " "
+	"description": " ",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"Standard nozzle: eSUN ABS+\nSunlu ABS+\n\n\nHigh-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 8 mm^3/s, from local standard fallback preset Fiberon PPS-GF20 @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	]
 }

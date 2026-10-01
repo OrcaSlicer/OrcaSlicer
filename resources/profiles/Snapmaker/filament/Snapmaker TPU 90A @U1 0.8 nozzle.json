@@ -1,12 +1,14 @@
 {
 	"type": "filament",
 	"name": "Snapmaker TPU 90A @U1 0.8 nozzle",
+	"renamed_from": "Snapmaker TPU 90A U1 0.8 nozzle;Snapmaker TPU 90A @U1 0.8 High Flow nozzle;Snapmaker TPU 90A U1 0.8 High Flow nozzle",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "w4Hpl2qNPmgNvaeM",
 	"filament_id": "OFY7jxcS",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
+		"3.5",
 		"3.5"
 	],
 	"compatible_printers": [
@@ -25,45 +27,49 @@
 		"0.1"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
-	"additional_cooling_fan_speed": [
-		"70"
-	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
-	"enable_pressure_advance": [
-		"0"
-	],
 	"filament_deretraction_speed": [
+		"20",
 		"20"
 	],
 	"filament_flow_ratio": [
+		"1.095",
 		"1.095"
 	],
 	"filament_multitool_ramming_flow": [
 		"5"
 	],
 	"filament_retract_length_toolchange": [
+		"4",
 		"4"
 	],
 	"filament_retraction_length": [
+		"1.2",
 		"1.2"
 	],
 	"filament_retraction_speed": [
+		"20",
 		"20"
 	],
 	"filament_vendor": [
 		"Snapmaker"
 	],
 	"nozzle_temperature": [
+		"220",
 		"220"
 	],
 	"nozzle_temperature_initial_layer": [
+		"220",
 		"220"
 	],
 	"slow_down_layer_time": [
@@ -73,9 +79,11 @@
 		"240"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
@@ -103,18 +111,22 @@
 		"20"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
 	"filament_retract_when_changing_layer": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_z_hop": [
+		"nil",
 		"nil"
 	],
 	"hot_plate_temp": [
@@ -140,5 +152,12 @@
 	],
 	"nozzle_temperature_range_low": [
 		"200"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"Standard nozzle: !! It needs to be dried before use.\nSunlu TPU 95A\n\n\nHigh-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 3.5 mm^3/s, from Snorca standard preset Snapmaker TPU 90A @U1 0.8 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

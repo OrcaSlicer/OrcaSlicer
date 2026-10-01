@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Polymaker PETG @Snapmaker U1",
+	"renamed_from": "Polymaker PETG Snapmaker U1;Polymaker PETG @U1 0.4 High Flow nozzle;Polymaker PETG U1 0.4 High Flow nozzle",
 	"inherits": "Polymaker PETG @Snapmaker U1 base",
 	"from": "system",
 	"setting_id": "kS4t66kFCXtambwx",
@@ -16,5 +17,12 @@
 	],
 	"supertack_plate_temp_initial_layer": [
 		"70"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 15 mm^3/s, from local standard fallback preset Polymaker PETG @Snapmaker U1; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

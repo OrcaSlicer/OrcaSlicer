@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA Glow @U1 0.4 nozzle",
+	"renamed_from": "Snapmaker PLA Glow U1 0.4 nozzle;Snapmaker PLA Glow @U1 0.4 High Flow nozzle;Snapmaker PLA Glow U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker PLA Glow @U1 base",
 	"from": "system",
 	"setting_id": "ee1YNNr8CwKetuvY",
@@ -9,12 +10,15 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"additional_cooling_fan_speed": [
-		"80"
+		"80",
+		"100"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"filament_cooling_final_speed": [
@@ -30,7 +34,8 @@
 		"20"
 	],
 	"filament_flow_ratio": [
-		"0.97"
+		"0.97",
+		"0.98"
 	],
 	"filament_loading_speed": [
 		"28"
@@ -39,7 +44,8 @@
 		"3"
 	],
 	"filament_max_volumetric_speed": [
-		"16"
+		"16",
+		"18"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"30"
@@ -54,12 +60,15 @@
 		"10"
 	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
 	],
 	"filament_retraction_length": [
+		"0.4",
 		"0.4"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_unloading_speed": [
@@ -69,9 +78,11 @@
 		"100"
 	],
 	"filament_z_hop": [
+		"0.2",
 		"0.2"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"hot_plate_temp_initial_layer": [
@@ -91,5 +102,16 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer for 0.4 mm nozzles. Volumetric speed ceiling: 18 mm^3/s, from Snorca HF preset Snapmaker PLA Glow @U1 0.4 nozzle (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"pressure_advance": [
+		"0.02",
+		"0.023"
 	]
 }

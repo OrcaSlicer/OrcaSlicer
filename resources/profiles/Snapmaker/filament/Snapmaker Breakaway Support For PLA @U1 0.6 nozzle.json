@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker Breakaway Support For PLA @U1 0.6 nozzle",
+	"renamed_from": "Snapmaker Breakaway Support For PLA U1 0.6 nozzle;Snapmaker Breakaway Support For PLA @U1 0.6 High Flow nozzle;Snapmaker Breakaway Support For PLA U1 0.6 High Flow nozzle",
 	"inherits": "Snapmaker Breakaway Support @base",
 	"from": "system",
 	"setting_id": "rKUUREJNhstIU0I2",
@@ -12,9 +13,6 @@
 	"filament_type": [
 		"PLA"
 	],
-	"enable_pressure_advance": [
-		"0"
-	],
 	"filament_cost": [
 		"69.98"
 	],
@@ -22,21 +20,25 @@
 		"1.3"
 	],
 	"filament_flow_ratio": [
+		"0.95",
 		"0.95"
 	],
 	"hot_plate_temp_initial_layer": [
 		"65"
 	],
 	"nozzle_temperature": [
+		"210",
 		"210"
 	],
 	"nozzle_temperature_initial_layer": [
+		"210",
 		"210"
 	],
 	"nozzle_temperature_range_low": [
 		"190"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
 	"textured_plate_temp": [
@@ -52,30 +54,38 @@
 		"1"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"fan_min_speed": [
 		"100"
 	],
 	"filament_deretraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_length_toolchange": [
+		"10",
 		"10"
 	],
 	"filament_retraction_length": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_minimum_travel": [
+		"1",
 		"1"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_wipe_distance": [
+		"2",
 		"2"
 	],
 	"filament_cooling_moves": [
@@ -101,5 +111,12 @@
 	],
 	"filament_unloading_speed_start": [
 		"100"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 12 mm^3/s, from local standard fallback preset Snapmaker Breakaway Support For PLA @U1 0.6 nozzle; no matching Snorca U1 material/nozzle profile. No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }

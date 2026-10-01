@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PVA @U1",
+	"renamed_from": "Snapmaker PVA U1;Snapmaker PVA @U1 0.4 High Flow nozzle;Snapmaker PVA U1 0.4 High Flow nozzle",
 	"inherits": "Snapmaker PVA @U1 base",
 	"from": "system",
 	"setting_id": "A9gyeySGTtUrTPeG",
@@ -9,12 +10,14 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"enable_pressure_advance": [
+		"1",
 		"1"
 	],
 	"nozzle_temperature_range_high": [
 		"240"
 	],
 	"pressure_advance": [
+		"0.03",
 		"0.03"
 	],
 	"additional_cooling_fan_speed": [
@@ -24,9 +27,11 @@
 		"1"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"fan_min_speed": [
@@ -42,6 +47,7 @@
 		"4"
 	],
 	"filament_deretraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_loading_speed": [
@@ -51,7 +57,8 @@
 		"3"
 	],
 	"filament_max_volumetric_speed": [
-		"5"
+		"5",
+		"6"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"20"
@@ -63,12 +70,15 @@
 		"0.1"
 	],
 	"filament_retract_length_toolchange": [
+		"4",
 		"4"
 	],
 	"filament_retraction_length": [
-		"0.4"
+		"0.4",
+		"0.6"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_unloading_speed": [
@@ -78,15 +88,18 @@
 		"100"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"hot_plate_temp_initial_layer": [
 		"65"
 	],
 	"nozzle_temperature": [
+		"240",
 		"240"
 	],
 	"nozzle_temperature_initial_layer": [
+		"240",
 		"240"
 	],
 	"slow_down_layer_time": [
@@ -97,5 +110,19 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Temperature, flow ratio, pressure advance and other high-flow overrides are based on Snapmaker OrcaSlicer for 0.4 mm nozzles. Volumetric speed ceiling: 6 mm^3/s, from Snorca HF preset Snapmaker PVA @U1 (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
+	],
+	"filament_multitool_ramming_flow": [
+		"10"
+	],
+	"filament_flow_ratio": [
+		"1",
+		"0.97"
 	]
 }

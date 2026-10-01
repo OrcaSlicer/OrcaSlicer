@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Polymaker Silk PLA Family @U1",
+	"renamed_from": "Polymaker Silk PLA Family U1;Polymaker Silk PLA Family @U1 0.4 High Flow nozzle;Polymaker Silk PLA Family U1 0.4 High Flow nozzle",
 	"inherits": "Polymaker PLA @U1 base",
 	"from": "system",
 	"setting_id": "h8vIYpXbxFtHPV6e",
@@ -16,9 +17,11 @@
 		"Polymaker"
 	],
 	"nozzle_temperature": [
+		"230",
 		"230"
 	],
 	"nozzle_temperature_initial_layer": [
+		"230",
 		"230"
 	],
 	"nozzle_temperature_range_high": [
@@ -29,5 +32,12 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_notes": [
+		"High-flow nozzle: Other material settings are inherited from the matching standard-nozzle preset. Volumetric speed ceiling: 12 mm^3/s, from Snorca standard preset Polymaker Silk PLA Family @U1 (Snapmaker OrcaSlicer). No multiplier or cross-material extrapolation is applied. Calibrate for your nozzle and filament."
 	]
 }
