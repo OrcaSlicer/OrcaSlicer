@@ -303,7 +303,7 @@ jobs:
       - name: Mint profiles-repo token
         id: token
         if: steps.vendors.outputs.vendors != ''
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.PROFILES_APP_ID }}
           private-key: ${{ secrets.PROFILES_APP_PRIVATE_KEY }}
