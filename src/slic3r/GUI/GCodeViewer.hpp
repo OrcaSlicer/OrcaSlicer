@@ -244,6 +244,7 @@ private:
     // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
     bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
     void render_solid_model(int canvas_width, int canvas_height);
+    void render_solid_model_caps(float z_bottom, float z_top, bool bottom_cut, const ColorRGBA& inside);
     // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
     void reload_shells_if_solid_model_changed(bool was_enabled);
     void update_shell_wipe_tower(const Print& print, bool initialized);

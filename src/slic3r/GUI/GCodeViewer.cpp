@@ -1704,12 +1704,11 @@ void GCodeViewer::reset()
 void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
+    render_shells(canvas_width, canvas_height);
     // while dragging in the solid model mode, the objects stand in for their toolpaths, cut to the
     // visible layer range; the toolpath set then holds only the range's bottom and top layers
     if (m_viewer.is_reduced_detail() && solid_model_enabled())
         render_solid_model(canvas_width, canvas_height);
-    else
-        render_shells(canvas_width, canvas_height);
 
     if (m_viewer.get_extrusion_roles_count() == 0)
         return;
@@ -2770,9 +2769,12 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     if (shader == nullptr)
         return;
 
+    // The range's end layers are drawn as toolpaths, so the solid runs from the top of the bottom
+    // one to the bottom of the top one. A face of the model in either layer's plane would otherwise
+    // fight the toolpaths for the same pixels and flicker while dragging.
     const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
-    const float z_top = m_viewer.get_layer_z(layers[1]) - m_z_offset + 0.001f;
-    const float z_bottom = (layers[0] > 0) ? m_viewer.get_layer_z(layers[0] - 1) - m_z_offset - 0.001f : -FLT_MAX;
+    const float z_top = (layers[1] > 0) ? m_viewer.get_layer_z(layers[1] - 1) - m_z_offset - 0.001f : -FLT_MAX;
+    const float z_bottom = m_viewer.get_layer_z(layers[0]) - m_z_offset + 0.001f;
 
     std::vector<float> alphas;
     alphas.reserve(m_shells.volumes.volumes.size());
@@ -2794,12 +2796,98 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
     shader->stop_using();
 
+    // The cut faces, one body at a time. A pixel looks into a body where, with the depth test off,
+    // its back faces outnumber its front faces: zero for a closed body, one where the cut has
+    // opened it. There a quad in the cut plane, in the body's own colour darkened, stands in for
+    // the material, so that a sparse layer on the cut shows a solid inside between its lines
+    // rather than whatever lies further down.
+    const bool bottom_cut = layers[0] > 0;
+    // the count needs every face of a body the range does not cut, its bottom included
+    m_shells.volumes.set_z_range(bottom_cut ? z_bottom : -FLT_MAX, z_top);
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    for (const GLVolume* volume : m_shells.volumes.volumes) {
+        glsafe(::glStencilMask(0xFF));
+        glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+        glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
+        glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
+        glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+        glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+        glsafe(::glDepthMask(GL_FALSE));
+        glsafe(::glDisable(GL_DEPTH_TEST));
+        shader->start_using();
+        m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, true, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height},
+            [volume](const GLVolume& v) { return &v == volume; });
+        shader->stop_using();
+        glsafe(::glEnable(GL_DEPTH_TEST));
+        glsafe(::glDepthMask(GL_TRUE));
+        glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+        glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
+        glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+        glsafe(::glStencilMask(0x00));
+        // the tower draws itself in its own colours and leaves the volume's at the default
+        ColorRGBA inside = volume->color;
+        if (const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume); tower != nullptr && !tower->colors().empty())
+            inside = tower->colors().front();
+        inside.r(0.55f * inside.r());
+        inside.g(0.55f * inside.g());
+        inside.b(0.55f * inside.b());
+        inside.a(1.0f);
+        render_solid_model_caps(z_bottom, z_top, bottom_cut, inside);
+    }
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glDisable(GL_STENCIL_TEST));
+
     m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
     size_t k = 0;
     for (GLVolume* volume : m_shells.volumes.volumes) {
         volume->color.a(alphas[k++]);
         volume->set_render_color();
     }
+}
+
+// A quad over the print in each cut plane, drawn where the stencil says the cut opened a model
+void GCodeViewer::render_solid_model_caps(float z_bottom, float z_top, bool bottom_cut, const ColorRGBA& inside)
+{
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+    const BoundingBoxf3& box = m_paths_bounding_box;
+    const float margin = 1.0f;
+    const Vec2f min(static_cast<float>(box.min.x()) - margin, static_cast<float>(box.min.y()) - margin);
+    const Vec2f max(static_cast<float>(box.max.x()) + margin, static_cast<float>(box.max.y()) + margin);
+    auto build = [&](float z) {
+        GLModel::Geometry data;
+        data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+        data.reserve_vertices(4);
+        data.reserve_indices(6);
+        data.add_vertex(Vec3f(min.x(), min.y(), z));
+        data.add_vertex(Vec3f(max.x(), min.y(), z));
+        data.add_vertex(Vec3f(max.x(), max.y(), z));
+        data.add_vertex(Vec3f(min.x(), max.y(), z));
+        data.add_triangle(0, 1, 2);
+        data.add_triangle(0, 2, 3);
+        GLModel model;
+        model.init_from(std::move(data));
+        return model;
+    };
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->start_using();
+    shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    glsafe(::glDisable(GL_CULL_FACE));
+    if (z_top > -FLT_MAX) {
+        GLModel top = build(z_top + m_z_offset);
+        top.set_color(inside);
+        top.render();
+    }
+    if (bottom_cut) {
+        GLModel bottom = build(z_bottom + m_z_offset);
+        bottom.set_color(inside);
+        bottom.render();
+    }
+    glsafe(::glEnable(GL_CULL_FACE));
+    shader->stop_using();
 }
 
 //BBS
