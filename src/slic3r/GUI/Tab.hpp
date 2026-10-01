@@ -616,6 +616,8 @@ private:
     void            add_filament_overrides_page();
     void            update_filament_overrides_page(const DynamicPrintConfig* printers_config);
 	void 			update_volumetric_flow_preset_hints();
+    // The variant index the variant switch shows, 0 without one.
+    unsigned int    selected_variant_index() const;
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
 

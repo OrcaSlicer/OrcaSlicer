@@ -308,11 +308,17 @@ DynamicPrintConfig slice_config(PresetBundle &bundle)
     // type (Direct Drive + Bowden) the mismatched lookup spams [error] lines. Single-nozzle and non-BBL
     // printers keep the default map (their toolchange rides the AMS/tool-changer path unchanged).
     const bool pin_filament_map = bundle.is_bbl_vendor() && nozzles > 1;
+    auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
     if (pin_filament_map) {
-        auto &fmap = bundle.project_config.option<ConfigOptionInts>("filament_map", true)->values;
         for (size_t i = 0; i < fmap.size(); ++i)
             fmap[i] = int(i % nozzles) + 1;
     }
+
+    // A fresh printer selection uses its declared nozzle volumes, just like the
+    // app. Otherwise a high-flow preset is silently sliced with Standard tuning.
+    bundle.reset_default_nozzle_volume_type();
+    bundle.project_config.option<ConfigOptionInts>("filament_volume_map", true)->values =
+        bundle.get_default_nozzle_volume_types_for_filaments(fmap);
 
     DynamicPrintConfig cfg = bundle.full_config();
     cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(true)); // force a purge tower so the change is detectable
