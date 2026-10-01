@@ -15,6 +15,16 @@
 //	   Slic3r::GUI::Tab::Preset;
 //	       - Single preset item: name, file is default or external.
 
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include "slic3r/GUI/Field.hpp"
+#include <boost/any.hpp>
+#include <string>
+#include <wx/event.h>
+#include <utility>
+#include <wx/anybutton.h>
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -22,6 +32,7 @@
 #include <wx/sizer.h>
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 

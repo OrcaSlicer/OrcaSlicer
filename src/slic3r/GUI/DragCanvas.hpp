@@ -4,6 +4,12 @@
 #include "wx/bitmap.h"
 #include "wx/dragimag.h"
 #include "wx/panel.h"
+#include <wx/object.h>
+#include <wx/gdicmn.h>
+#include <vector>
+#include <string>
+#include <wx/event.h>
+#include <wx/colour.h>
 
 namespace Slic3r { namespace GUI {
 

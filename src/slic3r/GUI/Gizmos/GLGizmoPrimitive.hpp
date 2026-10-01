@@ -4,6 +4,10 @@
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
+#include <string>
+#include <wx/event.h>
+#include <cereal/archives/binary.hpp>
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r {
 namespace GUI {

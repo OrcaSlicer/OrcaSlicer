@@ -3,10 +3,21 @@
 
 #include "libslic3r/PrintConfig.hpp"
 
+#include <cstdint>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Lazy.hpp"
+#include <wx/event.h>
+#include <functional>
+#include <cstddef>
+#include <deque>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/filehistory.h>
+#include <wx/timer.h>
 #ifdef __APPLE__
 #include <wx/taskbar.h>
 #endif // __APPLE__

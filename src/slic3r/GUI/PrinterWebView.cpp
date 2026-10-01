@@ -9,11 +9,19 @@
 #include "libslic3r_version.h"
 
 #include <boost/filesystem/path.hpp>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <memory>
+#include <wx/log.h>
+#include "libslic3r/Utils.hpp"
+#include <wx/event.h>
+#include <boost/log/trivial.hpp>
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/toolbar.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include <wx/utils.h>
 #include <wx/webview.h>
 
 #ifdef __linux__

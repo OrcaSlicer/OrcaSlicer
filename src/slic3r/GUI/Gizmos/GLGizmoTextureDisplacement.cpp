@@ -1,8 +1,11 @@
 #include "GLGizmoTextureDisplacement.hpp"
 
+#include <Eigen/Core>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 
+#include "ColorSpaceConvert.hpp"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -34,7 +37,32 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <chrono>
+#include <cstdio>
 #include <glad/gl.h>
+#include <imgui.h>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <memory>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "libslic3r/TextureDisplacement.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include <math.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/IconManager.hpp"
+#include <optional>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TextureBake/TextureBakeDebug.hpp"
+#include <ratio>
 #include <tbb/parallel_for.h>
 #include <algorithm>
 #include <array>
@@ -42,6 +70,12 @@
 #include <limits>
 #include <queue>
 #include <set>
+#include <vector>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/busycursor.h>
+#include <wx/string.h>
+#include <wx/filedlg.h>
 
 namespace Slic3r::GUI {
 

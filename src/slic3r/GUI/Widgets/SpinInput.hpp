@@ -1,7 +1,13 @@
 #ifndef slic3r_GUI_SpinInput_hpp_
 #define slic3r_GUI_SpinInput_hpp_
 
+#include <wx/containr.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dc.h>
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/textctrl.h>
 #include <wx/valtext.h>

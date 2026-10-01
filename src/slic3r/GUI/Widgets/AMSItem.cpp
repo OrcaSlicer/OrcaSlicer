@@ -12,10 +12,36 @@
 #include "slic3r/GUI/DeviceCore/DevConfig.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <wx/colour.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Event.hpp"
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/peninfobase.h>
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <algorithm>
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <optional>
+#include <utility>
+#include <cstddef>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/timer.h>
+#include <wx/sizer.h>
 
 #include "CalibUtils.hpp"
 

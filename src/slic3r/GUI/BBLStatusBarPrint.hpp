@@ -1,7 +1,9 @@
 #ifndef BBLStatusBarPrint_HPP
 #define BBLStatusBarPrint_HPP
 
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 
 #include <memory>

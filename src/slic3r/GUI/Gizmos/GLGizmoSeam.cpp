@@ -13,7 +13,21 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <algorithm>
+#include <array>
 #include <glad/gl.h>
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <wx/busycursor.h>
+#include <vector>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
 
 
 namespace Slic3r::GUI {

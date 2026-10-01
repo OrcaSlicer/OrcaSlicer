@@ -1,6 +1,12 @@
 #ifndef slic3r_GUI_KBShortcutsDialog_hpp_
 #define slic3r_GUI_KBShortcutsDialog_hpp_
 
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/KeyChord.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/wx.h>
 #include <map>
 #include <variant>

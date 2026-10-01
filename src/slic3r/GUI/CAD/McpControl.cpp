@@ -1,4 +1,13 @@
 #include "slic3r/GUI/CAD/McpControl.hpp"
+#include "libslic3r/Point.hpp"
+#include <stdexcept>
+#include <math.h>
+#include <TopAbs_ShapeEnum.hxx>
+#include <Standard_TypeDef.hxx>
+#include <exception>
+#include <cstdint>
+#include <sys/types.h>
+#include <fcntl.h>
 
 #ifndef _WIN32  // POSIX Unix-domain-socket transport only (slice 1)
 

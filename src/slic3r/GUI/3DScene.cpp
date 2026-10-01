@@ -1,3 +1,7 @@
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <cmath>
 #include <glad/gl.h>
 
 #include "3DScene.hpp"
@@ -25,6 +29,30 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <optional>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
+#include <set>
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Exception.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +64,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <Eigen/Dense>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef HAS_GLSAFE
 void glAssertRecentCallImpl(const char* file_name, unsigned int line, const char* function_name)

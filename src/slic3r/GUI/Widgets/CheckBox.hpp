@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 
+#include <wx/checklst.h>
 #include <wx/tglbtn.h>
 
 class CheckBox : public wxBitmapToggleButton

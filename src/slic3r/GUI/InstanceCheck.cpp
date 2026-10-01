@@ -1,7 +1,25 @@
 #include "GUI_App.hpp"
 #include "InstanceCheck.hpp"
 #include "Plater.hpp"
+#include <boost/bind/bind.hpp>
 #include <boost/regex.hpp>
+#include <string>
+#include <vector>
+#include <cstdio>
+#include <stdio.h>
+#include <dbus/dbus-shared.h>
+#include <wx/string.h>
+#include <dbus/dbus-protocol.h>
+#include <cstddef>
+#include <cstdlib>
+#include <functional>
+#include <exception>
+#include <wx/event.h>
+#include <cassert>
+#include <mutex>
+#include <utility>
+#include <cstring>
+#include <chrono>
 
 #ifdef _WIN32
   #include "MainFrame.hpp"

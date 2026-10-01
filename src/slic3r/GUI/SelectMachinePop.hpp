@@ -1,6 +1,15 @@
 #ifndef slic3r_GUI_SelectMachinePop_hpp_
 #define slic3r_GUI_SelectMachinePop_hpp_
 
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <cstddef>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <vector>
+#include <memory>
+#include <string>
+#include <map>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>

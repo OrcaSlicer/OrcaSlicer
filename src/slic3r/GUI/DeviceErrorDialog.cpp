@@ -7,8 +7,28 @@
 #include "ReleaseNote.hpp"
 #include "wxExtensions.hpp"
 
+#include <unordered_set>
+#include <string>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <boost/log/trivial.hpp>
+#include <wx/image.h>
+#include <utility>
+#include <vector>
+#include "slic3r/GUI/Monitor.hpp"
 #include <wx/mstream.h>
 #include <wx/dcmemory.h>
+#include <wx/statbmp.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/webrequest.h>
+#include <wx/timer.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r {
 namespace GUI

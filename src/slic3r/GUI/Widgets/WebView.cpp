@@ -3,11 +3,29 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 
+#include <cassert>
 #include <chrono>
+#include <glib.h>
+#include <gio/gio.h>
+#include <cstddef>
+#include <glib-object.h>
+#include <exception>
 #include <thread>
 
+#include <wx/setup.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sharedptr.h>
+#include <wx/vector.h>
+#include <wx/event.h>
+#include <vector>
+#include <wx/object.h>
+#include <wx/log.h>
+#include <utility>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
 #include <wx/weakref.h>

@@ -1,4 +1,5 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see scripts/CAD/tool_atlas.json
@@ -7,6 +8,11 @@
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"   // put_other_changes: mark the project dirty outside the undo stack
 
+#include <TopoDS_Face.hxx>
+#include <TopoDS_Edge.hxx>
+#include <TopoDS_Shape.hxx>
+#include <Eigen/Geometry>
+#include <TopAbs_Orientation.hxx>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>          // the offer/atlas join check reports on the log
@@ -14,15 +20,45 @@
 
 #include <cassert>
 #include <cstdarg>                        // offer_trace: diagnostic row dump for the offer ladder
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include <exception>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
 #include <map>
+#include <math.h>
 #include <set>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/chartype.h>
+#include <vector>
+#include <wx/scrolwin.h>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/listbase.h>
+#include <wx/busycursor.h>
+#include <wx/colourdata.h>
+#include "slic3r/GUI/CAD/DesignInteraction.hpp"
 #include <wx/sizer.h>
 #include <wx/button.h>
+#include <wx/spinbutt.h>
 #include <wx/stattext.h>
 #include <wx/checkbox.h>
 #include <wx/checklst.h>
 #include <wx/spinctrl.h>
 #include <wx/listctrl.h>
+#include <wx/string.h>
+#include <wx/treebase.h>
+#include <wx/tglbtn.h>
+#include <wx/textctrl.h>
+#include <wx/translation.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/statline.h>
@@ -35,6 +71,7 @@
 #include <wx/colordlg.h>
 #include <wx/menu.h>
 #include <wx/progdlg.h>
+#include <wx/unichar.h>
 #include <wx/utils.h>    // wxWindowDisabler, wxMilliSleep
 #include <wx/msgdlg.h>   // wxMessageBox
 
@@ -45,6 +82,7 @@
 #include <algorithm>
 #include <thread>
 #include <atomic>
+#include <wx/window.h>
 
 #include "slic3r/GUI/wxExtensions.hpp"   // ScalableButton, create_scaled_bitmap
 #include "slic3r/GUI/Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca

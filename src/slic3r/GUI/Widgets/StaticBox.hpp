@@ -4,6 +4,12 @@
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include <wx/peninfobase.h>
+#include <wx/event.h>
 #include <wx/window.h>
 
 class StaticBox : public wxWindow

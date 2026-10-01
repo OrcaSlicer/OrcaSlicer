@@ -3,6 +3,15 @@
 
 #include "ConfigWizard.hpp"
 
+#include <memory>
+#include "libslic3r/Preset.hpp"
+#include <string>
+#include <utility>
+#include <cstddef>
+#include <algorithm>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include <sys/types.h>
 #include <vector>
 #include <set>
 #include <unordered_map>
@@ -10,11 +19,15 @@
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/panel.h>
 #include <wx/button.h>
 #include <wx/choice.h>
 #include <wx/spinctrl.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/listbox.h>
 #include <wx/checklst.h>

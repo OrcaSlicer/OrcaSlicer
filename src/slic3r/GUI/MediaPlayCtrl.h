@@ -13,6 +13,14 @@
 #include "WebRtcMediaController.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 
+#include <wx/gdicmn.h>
+#include <wx/mediactrl.h>
+#include <wx/event.h>
+#include <string>
+#include <memory>
+#include <cstdint>
+#include <vector>
+#include <wx/datetime.h>
 #include <wx/panel.h>
 
 #include <boost/thread.hpp>
@@ -20,6 +28,7 @@
 
 #include <deque>
 #include <set>
+#include <wx/string.h>
 
 class Button;
 class Label;

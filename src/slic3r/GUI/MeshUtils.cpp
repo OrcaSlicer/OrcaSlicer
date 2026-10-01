@@ -14,11 +14,31 @@
 #include "slic3r/GUI/CameraUtils.hpp"
 
 
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
+#include <cstdlib>
+#include <cmath>
 #include <glad/gl.h>
 
 #include <igl/unproject.h>
 
 #include <cstdint>
+#include "libslic3r/AnyPtr.hpp"
+#include <utility>
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Color.hpp"
+#include <vector>
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/Point.hpp"
+#include <optional>
+#include <math.h>
+#include <limits>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/AABBMesh.hpp"
 
 
 namespace Slic3r {

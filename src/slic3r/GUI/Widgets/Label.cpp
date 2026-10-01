@@ -1,10 +1,26 @@
 #include "libslic3r/Utils.hpp"
 #include "Label.hpp"
 #include "StaticBox.hpp"
+#include <wx/font.h>
+#include <strings.h>
+#include <string>
+#include <wx/dlimpexp.h>
+#include <wx/dc.h>
+#include <wx/arrstr.h>
+#include <wx/dynarray.h>
+#include <cstddef>
+#include <algorithm>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/intl.h> // For wxLocale
 #include <wx/dcclient.h>
+#include <wx/language.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include <wx/stattext.h>
 #ifdef __linux__
 #include <fontconfig/fontconfig.h>
 #endif
