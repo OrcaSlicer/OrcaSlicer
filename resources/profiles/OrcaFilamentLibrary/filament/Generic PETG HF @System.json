@@ -6,7 +6,12 @@
 	"setting_id": "wNH8CohYIh9y6ayx",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"20"
+		"20",
+		"26",
+		"30",
+		"20",
+		"21",
+		"21"
 	],
 	"filament_multitool_ramming_flow": [
 		"20"

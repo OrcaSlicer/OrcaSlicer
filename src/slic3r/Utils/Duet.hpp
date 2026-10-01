@@ -40,7 +40,6 @@ private:
 	ConnectionType connect(wxString &msg) const;
 	void disconnect(ConnectionType connectionType) const;
 	bool start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const;
-	int get_err_code_from_body(const std::string &body) const;
 };
 
 }

@@ -1,8 +1,15 @@
 #include <catch2/catch_all.hpp>
 
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
+#include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
+#include "slic3r/Utils/Flashforge.hpp"
 
 using namespace Slic3r;
 
@@ -22,6 +29,41 @@ public:
     bool can_test() const override { return false; }
     PrintHostPostUploadActions get_post_upload_actions() const override { return {}; }
     std::string get_host() const override { return {}; }
+};
+
+class ThrowingPrintHost : public TestPrintHost
+{
+public:
+    bool upload(PrintHostUpload, ProgressFn, ErrorFn, InfoFn) const override { throw std::runtime_error("reply could not be read"); }
+};
+
+struct UploadEvents
+{
+    std::vector<LifecycleEvent>   events;
+    std::vector<LifecycleEvtCode> codes;
+    std::vector<std::string>      errors;
+    bool                          uploaded{false};
+
+    explicit UploadEvents(std::unique_ptr<PrintHost> host)
+    {
+        set_lifecycle_hook_fn([this](LifecycleEvent event, const LifecycleEventContext& ctx) {
+            events.push_back(event);
+            codes.push_back(ctx.code);
+        });
+
+        PrintHostJob job;
+        job.printhost               = std::move(host);
+        job.upload_data.source_path = "plate.gcode";
+        try {
+            uploaded = PrintHostJobQueue::upload_job(job, [](Http::Progress, bool&) {},
+                                                     [this](wxString error) { errors.push_back(error.ToStdString()); },
+                                                     [](wxString, wxString) {});
+        } catch (...) {
+            set_lifecycle_hook_fn(nullptr);
+            throw;
+        }
+        set_lifecycle_hook_fn(nullptr);
+    }
 };
 
 std::string format_error(const std::string& body, const std::string& error, unsigned status)
@@ -45,6 +87,14 @@ std::string moonraker_error(int code, const std::string& message, const std::str
 // A real Moonraker body for uploading a file that is being printed.
 constexpr const char* k_busy_file_403 =
     R"JSON({"error": {"code": 403, "message": "Forbidden", "traceback": "Traceback (most recent call last):\n\n  File \"/home/lava/moonraker/moonraker/components/file_manager/file_manager.py\", line 1017, in _finish_gcode_upload\n    can_start = self._handle_operation_check(check_path)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nmoonraker.utils.exceptions.ServerError: File currently in use\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n\n  File \"/home/lava/moonraker/moonraker/components/application.py\", line 1069, in post\n    raise tornado.web.HTTPError(\ntornado.web.HTTPError: HTTP 403: Forbidden (File is loaded, upload not permitted)\n"}})JSON";
+
+// Replies a print host can send instead of JSON: a proxy or login page, nothing, a cut-off body.
+const std::vector<std::string> non_json_replies = {
+    "<html><body>proxy login required</body></html>",
+    "",
+    "{\"err\":",
+    "{\"detail\":{\"matlStationInfo\":{\"slotInfos\":[{\"slotId\":1,",
+};
 
 } // namespace
 
@@ -210,4 +260,115 @@ TEST_CASE("Error bodies that are not a Moonraker envelope are left unchanged", "
     {
         CHECK(format_error("", "curl:Could not connect", 0) == "curl:Could not connect");
     }
+}
+
+TEST_CASE("Print host error code is read from a JSON reply", "[PrintHost]")
+{
+    CHECK(PrintHost::get_err_code_from_body(R"({"err":0})") == 0);
+    CHECK(PrintHost::get_err_code_from_body(R"({"err":2})") == 2);
+    CHECK(PrintHost::get_err_code_from_body(R"({"status":"ok"})") == 0);
+}
+
+TEST_CASE("Print host error code reports a reply that is not JSON as an error", "[PrintHost]")
+{
+    const std::string body = GENERATE(from_range(non_json_replies));
+    int err = 0;
+    REQUIRE_NOTHROW(err = PrintHost::get_err_code_from_body(body));
+    CHECK(err != 0);
+}
+
+TEST_CASE("Print host error code tolerates a wrongly typed err field", "[PrintHost]")
+{
+    const std::string body = GENERATE(as<std::string>{}, R"({"err":"busy"})", R"({"err":{"code":1}})", R"([1,2])");
+    CHECK_NOTHROW(PrintHost::get_err_code_from_body(body));
+}
+
+TEST_CASE("Flashforge material slots are read from a well-formed reply", "[PrintHost][Flashforge]")
+{
+    const std::string body = R"({"code":0,"detail":{"hasMatlStation":true,"matlStationInfo":{"slotCnt":2,"slotInfos":[
+        {"slotId":1,"hasFilament":true,"materialName":"PLA","materialColor":"#FFFFFF"},
+        {"slotId":2,"hasFilament":false,"materialName":"","materialColor":""}]}}})";
+
+    std::vector<FlashforgeMaterialSlot> slots;
+    bool supports_station = false;
+    REQUIRE(Flashforge::parse_material_slots(body, slots, &supports_station));
+    CHECK(supports_station);
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[0].slot_id == 1);
+    CHECK(slots[0].has_filament);
+    CHECK(slots[0].material_name == "PLA");
+    CHECK(slots[0].material_color == "#FFFFFF");
+    CHECK(slots[1].slot_id == 2);
+    CHECK_FALSE(slots[1].has_filament);
+}
+
+TEST_CASE("Flashforge material slots accept numbers as strings and flags as numbers", "[PrintHost][Flashforge]")
+{
+    const std::string body = R"({"detail":{"matlStationInfo":{"slotInfos":[
+        {"slotId":"3","hasFilament":1,"materialName":null,"materialColor":7}]}}})";
+
+    std::vector<FlashforgeMaterialSlot> slots;
+    REQUIRE_NOTHROW(Flashforge::parse_material_slots(body, slots, nullptr));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_id == 3);
+    CHECK(slots[0].has_filament);
+    CHECK(slots[0].material_name.empty());
+    CHECK(slots[0].material_color.empty());
+}
+
+TEST_CASE("Flashforge material slots skip entries that are not objects", "[PrintHost][Flashforge]")
+{
+    const std::string body = R"({"detail":{"matlStationInfo":{"slotInfos":[5,"slot",null,[],
+        {"slotId":4,"hasFilament":true,"materialName":"PETG"}]}}})";
+
+    std::vector<FlashforgeMaterialSlot> slots;
+    REQUIRE_NOTHROW(Flashforge::parse_material_slots(body, slots, nullptr));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_id == 4);
+    CHECK(slots[0].material_name == "PETG");
+}
+
+TEST_CASE("Flashforge material slots tolerate slot info that is not a list", "[PrintHost][Flashforge]")
+{
+    const std::string body = GENERATE(as<std::string>{},
+                                      R"({"detail":{"matlStationInfo":{"slotInfos":5}}})",
+                                      R"({"detail":{"matlStationInfo":{"slotInfos":"none"}}})",
+                                      R"({"detail":{"matlStationInfo":7}})",
+                                      R"({"detail":"offline"})");
+
+    std::vector<FlashforgeMaterialSlot> slots;
+    bool ok = false;
+    REQUIRE_NOTHROW(ok = Flashforge::parse_material_slots(body, slots, nullptr));
+    CHECK(ok);
+    CHECK(slots.empty());
+}
+
+TEST_CASE("Flashforge material slots reject a reply that is not JSON", "[PrintHost][Flashforge]")
+{
+    const std::string body = GENERATE(from_range(non_json_replies));
+    std::vector<FlashforgeMaterialSlot> slots;
+    bool ok = true;
+    REQUIRE_NOTHROW(ok = Flashforge::parse_material_slots(body, slots, nullptr));
+    CHECK_FALSE(ok);
+    CHECK(slots.empty());
+}
+
+TEST_CASE("An upload that throws still finishes with an error", "[PrintHost][LifecycleEvents]")
+{
+    UploadEvents run(std::make_unique<ThrowingPrintHost>());
+
+    CHECK_FALSE(run.uploaded);
+    CHECK(run.errors == std::vector<std::string>{"reply could not be read"});
+    CHECK(run.events == std::vector<LifecycleEvent>{LifecycleEvent::UploadStarted, LifecycleEvent::UploadFinished});
+    CHECK(run.codes == std::vector<LifecycleEvtCode>{LifecycleEvtCode::Ok, LifecycleEvtCode::Error});
+}
+
+TEST_CASE("A successful upload finishes without an error", "[PrintHost][LifecycleEvents]")
+{
+    UploadEvents run(std::make_unique<TestPrintHost>());
+
+    CHECK(run.uploaded);
+    CHECK(run.errors.empty());
+    CHECK(run.events == std::vector<LifecycleEvent>{LifecycleEvent::UploadStarted, LifecycleEvent::UploadFinished});
+    CHECK(run.codes == std::vector<LifecycleEvtCode>{LifecycleEvtCode::Ok, LifecycleEvtCode::Ok});
 }

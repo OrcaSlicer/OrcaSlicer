@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PCTG @RatRig",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "RatRig Generic PCTG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "JMTUqdhoQzCb6ZxJ",
 	"filament_id": "OFu1evlr",

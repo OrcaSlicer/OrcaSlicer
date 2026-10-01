@@ -183,9 +183,11 @@ jobs:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
-  # Slice a two-colour cube through every shipped printer so all custom g-code
-  # (change_filament_gcode, machine start/end, etc.) is expanded - catches
-  # slicing regressions the static profile checks and unit tests can't see.
+  # Slice a two-colour cube through every shipped printer, and through every
+  # system process/filament whose templates no printer's own slice reaches, so
+  # every custom g-code and filename_format shipped is expanded (names in {if}
+  # branches not taken included) - catches slicing regressions the static
+  # profile checks and unit tests can't see.
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:

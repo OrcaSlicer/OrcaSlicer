@@ -37,13 +37,31 @@
 	"machine_end_gcode": ";===== date: 20260605 =====================\n; layer [layer_num]\n; max_layer_z [max_layer_z]\n; print_sequence [print_sequence]\n\n{if print_sequence == \"by object\"}\n{\nlocal move_z = max_print_height;\n\nif max_layer_z < ((max_print_height - z_offset) - 2) then\n    move_z = z_offset + min(((max_layer_z - z_offset) + 2), max_print_height);\nendif\n}\n\nG91\nG1 X2 Y2 Z1 F24000\nG90\nG1 Z{move_z} F600\n{endif}\n\nPRINT_END\nTIMELAPSE_STOP\n",
 	"machine_max_jerk_z": [
 		"3",
+		"0.4",
+		"3",
+		"0.4",
+		"3",
+		"0.4",
+		"3",
 		"0.4"
 	],
 	"machine_max_speed_e": [
 		"30",
+		"25",
+		"30",
+		"25",
+		"30",
+		"25",
+		"30",
 		"25"
 	],
 	"machine_max_speed_z": [
+		"20",
+		"12",
+		"20",
+		"12",
+		"20",
+		"12",
 		"20",
 		"12"
 	],
@@ -67,7 +85,12 @@
 		"0.6",
 		"0.6"
 	],
-	"nozzle_type": "stainless_steel",
+	"nozzle_type": [
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel",
+		"stainless_steel"
+	],
 	"printable_area": [
 		"0.5x1",
 		"270.5x1",
@@ -186,6 +209,11 @@
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\nTIMELAPSE_TAKE_FRAME\nDEFECT_DETECTION_DETECT",
 	"machine_pause_gcode": "M600",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\nSET_PRINT_STATS_INFO TOTAL_LAYER={total_layer_count} CURRENT_LAYER={layer_num+1}",
-	"nozzle_volume": "143",
+	"nozzle_volume": [
+		"143",
+		"143",
+		"143",
+		"143"
+	],
 	"default_print_profile": "0.30 Standard @Snapmaker U1 (0.6 nozzle)"
 }

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "FusRock PAHT-GF",
-	"inherits": "FusRock PAHT-CF",
 	"renamed_from": "FusRock Generic PAHT-GF",
+	"inherits": "FusRock PAHT-CF",
 	"from": "system",
 	"setting_id": "yJJEULB0ra4GAS8Q",
 	"filament_id": "OFcVLpNA",

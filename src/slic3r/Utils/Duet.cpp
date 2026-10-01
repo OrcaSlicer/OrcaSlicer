@@ -274,13 +274,4 @@ bool Duet::start_print(wxString &msg, const std::string &filename, ConnectionTyp
 	return res;
 }
 
-int Duet::get_err_code_from_body(const std::string &body) const
-{
-	pt::ptree root;
-	std::istringstream iss (body); // wrap returned json to istringstream
-	pt::read_json(iss, root);
-
-	return root.get<int>("err", 0);
-}
-
 }

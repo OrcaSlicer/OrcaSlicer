@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFDSrzZ8",
-	"setting_id": "nZgETe4CTpicEjQX",
 	"name": "Generic PLA @Sovol Zero Hardened Steel nozzle",
 	"renamed_from": "Sovol Zero PLA Basic HS Nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "nZgETe4CTpicEjQX",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.0348"
 	],

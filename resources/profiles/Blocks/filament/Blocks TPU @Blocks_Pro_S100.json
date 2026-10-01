@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Blocks TPU @Blocks_Pro_S100",
+	"renamed_from": "Blocks Generic TPU;Generic TPU @Blocks",
 	"inherits": "Blocks TPU @base",
 	"from": "system",
 	"setting_id": "6Rkz2je91JRTRoTi",
@@ -11,6 +12,5 @@
 		"BLOCKS Pro S100 0.8 nozzle",
 		"BLOCKS Pro S100 1.0 nozzle",
 		"BLOCKS Pro S100 1.2 nozzle"
-	],
-	"renamed_from": "Blocks Generic TPU;Generic TPU @Blocks"
+	]
 }

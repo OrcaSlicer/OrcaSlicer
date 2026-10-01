@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFXCBZTA",
-	"setting_id": "R1lkPc60BdFq6i2Z",
 	"name": "Eolas Prints ABS @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"setting_id": "R1lkPc60BdFq6i2Z",
+	"filament_id": "OFXCBZTA",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

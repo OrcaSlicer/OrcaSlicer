@@ -339,62 +339,8 @@ bool PresetUpdater::priv::get_file(const std::string &url, const fs::path &targe
 //BBS: refine preset update logic
 bool PresetUpdater::priv::extract_file(const fs::path &source_path, const fs::path &dest_path)
 {
-    bool res = true;
-    std::string file_path = source_path.string();
-    std::string parent_path = (!dest_path.empty() ? dest_path : source_path.parent_path()).string();
-    mz_zip_archive archive;
-    mz_zip_zero_struct(&archive);
-
-    if (!open_zip_reader(&archive, file_path))
-    {
-        BOOST_LOG_TRIVIAL(error) << "Unable to open zip reader for "<<file_path;
-        return false;
-    }
-
-    mz_uint num_entries = mz_zip_reader_get_num_files(&archive);
-
-    mz_zip_archive_file_stat stat;
-    // we first loop the entries to read from the archive the .amf file only, in order to extract the version from it
-    for (mz_uint i = 0; i < num_entries; ++i)
-    {
-        if (mz_zip_reader_file_stat(&archive, i, &stat))
-        {
-            std::string dest_file = parent_path+"/"+stat.m_filename;
-            if (stat.m_is_directory) {
-                fs::path dest_path(dest_file);
-                if (!fs::exists(dest_path))
-                    fs::create_directories(dest_path);
-				continue;
-            }
-            else if (stat.m_uncomp_size == 0) {
-                BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]Unzip: invalid size for file "<<stat.m_filename;
-                continue;
-            }
-            try
-            {
-                res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
-                if (!res) {
-                    BOOST_LOG_TRIVIAL(error) << "[Orca Updater]extract file "<<stat.m_filename<<" to dest "<<dest_file<<" failed";
-                    close_zip_reader(&archive);
-                    return res;
-                }
-                BOOST_LOG_TRIVIAL(info) << "[Orca Updater]successfully extract file " << stat.m_file_index << " to "<<dest_file;
-            }
-            catch (const std::exception& e)
-            {
-                // ensure the zip archive is closed and rethrow the exception
-                close_zip_reader(&archive);
-                BOOST_LOG_TRIVIAL(error) << "[Orca Updater]Archive read exception:"<<e.what();
-                return false;
-            }
-        }
-        else {
-            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]Unzip: read file stat failed";
-        }
-    }
-    close_zip_reader(&archive);
-
-	return true;
+    const std::string parent_path = (!dest_path.empty() ? dest_path : source_path.parent_path()).string();
+    return extract_archive_confined(source_path.string(), parent_path);
 }
 
 // Remove a leftover partial archive for the vendor about to be synchronized.
