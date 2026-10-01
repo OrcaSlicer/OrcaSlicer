@@ -2982,6 +2982,29 @@ void PresetBundle::save_changes_for_preset(const std::string& new_name, Preset::
 void PresetBundle::load_installed_filaments(AppConfig &config)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": enter, printer size %1%")%printers.size();
+    // A printer-specific preset hides the library preset with the same alias.
+    // Preserve the user's installed materials when that replacement is introduced.
+    std::set<std::string> installed_aliases;
+    if (config.has_section(AppConfig::SECTION_FILAMENTS)) {
+        for (const auto &entry : config.get_section(AppConfig::SECTION_FILAMENTS)) {
+            const Preset *filament = filaments.find_preset(entry.first, false, true);
+            installed_aliases.insert(filament ? filament->alias : entry.first);
+        }
+    }
+    for (const Preset &filament : filaments) {
+        const auto *compatible = filament.config.option<ConfigOptionStrings>("compatible_printers");
+        if (!filament.is_system || filament.alias.empty() || !compatible || compatible->values.empty() ||
+            installed_aliases.count(filament.alias) == 0)
+            continue;
+        for (const Preset &printer : printers) {
+            if (printer.is_visible && printer.printer_technology() == ptFFF &&
+                is_compatible_with_printer(PresetWithVendorProfile(filament, filament.vendor),
+                                           PresetWithVendorProfile(printer, printer.vendor))) {
+                config.set(AppConfig::SECTION_FILAMENTS, filament.name, "true");
+                break;
+            }
+        }
+    }
     //if (! config.has_section(AppConfig::SECTION_FILAMENTS)
     //    || config.get_section(AppConfig::SECTION_FILAMENTS).empty()) {
         // Compatibility with the PrusaSlicer 2.1.1 and older, where the filament profiles were not installable yet.
