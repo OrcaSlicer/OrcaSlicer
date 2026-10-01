@@ -63,6 +63,7 @@ public:
         SlicingNeedSupportOn,
         SlicingEmptyGcodeLayers,
         SlicingGcodeOverlap,
+        SlicingExclusionVolumeToolpath,
         SlicingPreciseSeamWarning
     };
 

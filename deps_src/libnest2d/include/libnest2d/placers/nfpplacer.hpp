@@ -123,6 +123,10 @@ struct NfpPConfig {
 
     std::function<void(const ItemGroup &, NfpPConfig &config)> on_preload;
 
+    // Return false when a packed item does not constrain this candidate.
+    // By default every pair participates in the 2D collision calculation.
+    std::function<bool(const _Item<RawShape>&, const _Item<RawShape>&)> should_check_collision;
+
     //BBS: sort function for selector
     std::function<bool(_Item<RawShape>& i1, _Item<RawShape>& i2)> sortfunc;
     //BBS: excluded region for V4 bed
@@ -579,7 +583,14 @@ private:
     {
         using namespace nfp;
 
-        Shapes nfps(items_.size());
+        std::vector<Item *> collision_items;
+        collision_items.reserve(items_.size());
+        for (Item &item : items_) {
+            if (!config_.should_check_collision || config_.should_check_collision(trsh, item))
+                collision_items.emplace_back(&item);
+        }
+
+        Shapes nfps(collision_items.size());
 
         // /////////////////////////////////////////////////////////////////////
         // TODO: this is a workaround and should be solved in Item with mutexes
@@ -590,21 +601,21 @@ private:
         trsh.rightmostTopVertex();
         trsh.leftmostBottomVertex();
 
-        for(Item& itm : items_) {
-            itm.transformedShape();
-            itm.referenceVertex();
-            itm.rightmostTopVertex();
-            itm.leftmostBottomVertex();
+        for (Item *item : collision_items) {
+            item->transformedShape();
+            item->referenceVertex();
+            item->rightmostTopVertex();
+            item->leftmostBottomVertex();
         }
         // /////////////////////////////////////////////////////////////////////
 
-        __parallel::enumerate(items_.begin(), items_.end(),
-                              [&nfps, &trsh](const Item& sh, size_t n)
+        __parallel::enumerate(collision_items.begin(), collision_items.end(),
+                              [&nfps, &trsh](Item *const &sh, size_t n)
         {
-            auto& fixedp = sh.transformedShape();
+            auto& fixedp = sh->transformedShape();
             auto& orbp = trsh.transformedShape();
             auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
-            correctNfpPosition(subnfp_r, sh, trsh);
+            correctNfpPosition(subnfp_r, *sh, trsh);
             nfps[n] = subnfp_r.first;
         });
 
