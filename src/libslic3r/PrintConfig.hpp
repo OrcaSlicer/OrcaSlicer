@@ -180,6 +180,10 @@ enum class IroningType {
     Count,
 };
 
+// Smallest usable ironing line spacing. Anything tighter yields an unprintable number of lines,
+// and zero stops the fillers from making progress.
+constexpr double IRONING_SPACING_MIN = 0.05;
+
 //BBS
 enum class WallInfillOrder {
     InnerOuterInfill,
