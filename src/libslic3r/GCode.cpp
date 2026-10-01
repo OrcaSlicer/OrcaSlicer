@@ -8089,12 +8089,12 @@ static float overhang_fan_overlap_threshold(int overhang_fan_threshold)
     }
 }
 
-std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
+std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
 {
     std::string gcode;
 
-    if (is_bridge(path.role()))
-        description += " (bridge)";
+    const std::string  bridge_description = is_bridge(path.role()) ? path_description + " (bridge)" : std::string();
+    const std::string &description        = bridge_description.empty() ? path_description : bridge_description;
 
     const ExtrusionPathSloped* sloped = dynamic_cast<const ExtrusionPathSloped*>(&path);
 
@@ -8765,7 +8765,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             // ORCA: End of adaptive PA code segment
         }
         
-        gcode += m_writer.set_speed(F, "", comment);
+        m_writer.set_speed(gcode, F, "", comment);
         {
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
@@ -8789,7 +8789,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 double saved_z      = m_writer.get_position().z();
 
                 for (const Line3& line : path.polyline.lines()) {
-                    std::string tempDescription = description;
+                    std::string flow_description;
                     const double line_length = line.length() * SCALING_FACTOR;
                     if (line_length < EPSILON)
                         continue;
@@ -8800,7 +8800,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                         if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                            tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                            flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                         }
                     }
                     if (path.z_contoured) {
@@ -8819,24 +8819,24 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         if (z < 0.1) {
                             throw RuntimeError("GCode: very low z");
                         }
-                        gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                         GCodeWriter::full_gcode_comment ? tempDescription : "");
+                        m_writer.extrude_to_xyz(gcode, Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                                flow_description.empty() ? description : flow_description);
 
                     } else if (sloped == nullptr) {
                         // Normal extrusion
-                        gcode += m_writer.extrude_to_xy(
+                        m_writer.extrude_to_xy(gcode,
                             this->point_to_gcode(line.b.to_point()),
                             dE,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                     } else {
                         // Sloped extrusion
                         const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
                         Vec2d dest2d = this->point_to_gcode(line.b.to_point());
                         Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
-                        gcode += m_writer.extrude_to_xyz(
+                        m_writer.extrude_to_xyz(gcode,
                             dest3d,
                             dE * e_ratio,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                     }
                     check_and_insert_timelapse(line.b.to_point()); // Inline farthest-point snapshot
                 }
@@ -8844,13 +8844,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 // BBS: start to generate gcode from arc fitting data which includes line and arc
                 const std::vector<PathFittingData>& fitting_result = path.polyline.fitting_result;
                 for (size_t fitting_index = 0; fitting_index < fitting_result.size(); fitting_index++) {
-                    std::string tempDescription = description;
+                    std::string flow_description;
                     switch (fitting_result[fitting_index].path_type) {
                     case EMovePathType::Linear_move: {
                         size_t start_index = fitting_result[fitting_index].start_point_index;
                         size_t end_index = fitting_result[fitting_index].end_point_index;
                         for (size_t point_index = start_index + 1; point_index < end_index + 1; point_index++) {
-                            tempDescription = description;
+                            flow_description.clear();
                             const Line line = Line(path.polyline.points[point_index - 1].to_point(), path.polyline.points[point_index].to_point());
                             const double line_length = line.length() * SCALING_FACTOR;
                             if (line_length < EPSILON)
@@ -8861,13 +8861,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                 dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                                 if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                    tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                                    flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                                 }
                             }
-                            gcode += m_writer.extrude_to_xy(
+                            m_writer.extrude_to_xy(gcode,
                                 this->point_to_gcode(line.b),
                                 dE,
-                                GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                             check_and_insert_timelapse(line.b); // Inline farthest-point snapshot
                         }
                         break;
@@ -8885,15 +8885,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             dE = m_small_area_infill_flow_compensator->modify_flow(arc_length, dE, path.role());
 
                             if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
+                                flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
-                        gcode += m_writer.extrude_arc_to_xy(
+                        m_writer.extrude_arc_to_xy(gcode,
                             this->point_to_gcode(arc.end_point),
                             center_offset,
                             dE,
                             arc.direction == ArcDirection::Arc_Dir_CCW,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                         check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
                         break;
                     }
@@ -8917,7 +8917,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             Polyline3 l(p);
             total_length = l.length() * SCALING_FACTOR;
         }
-        gcode += m_writer.set_speed(last_set_speed, "", comment);
+        m_writer.set_speed(gcode, last_set_speed, "", comment);
         Vec3d prev            = this->point_to_gcode_quantized(new_points[0].p);
         bool pre_fan_enabled = false;
         bool cur_fan_enabled = false;
@@ -8929,7 +8929,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
         double path_length = 0.;
         for (size_t i = 1; i < new_points.size(); i++) {
-            std::string tempDescription = description;
+            std::string flow_description;
             const ProcessedPoint &processed_point = new_points[i];
             const ProcessedPoint &pre_processed_point = new_points[i-1];
             Vec3d                 p                   = this->point_to_gcode_quantized(processed_point.p);
@@ -8996,10 +8996,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             // Ignore small speed variations - emit speed change if the delta between current and new is greater than 60mm/min / 1mm/sec
             // Reset speed to F if delta to F is less than 1mm/sec
             if ((std::abs(last_set_speed - new_speed) > 60)) {
-                gcode += m_writer.set_speed(new_speed, "", comment);
+                m_writer.set_speed(gcode, new_speed, "", comment);
                 last_set_speed = new_speed;
             } else if ((std::abs(F - new_speed) <= 60)) {
-                gcode += m_writer.set_speed(F, "", comment);
+                m_writer.set_speed(gcode, F, "", comment);
                 last_set_speed = F;
             }
             auto dE = e_per_mm * line_length;
@@ -9008,7 +9008,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                 if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                    tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                    flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                 }
             }
             if (path.z_contoured) {
@@ -9026,16 +9026,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 if (z < 0.1) {
                     throw RuntimeError("GCode: very low z");
                 }
-                gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                 GCodeWriter::full_gcode_comment ? tempDescription : "");
+                m_writer.extrude_to_xyz(gcode, Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                        flow_description.empty() ? description : flow_description);
             } else if (sloped == nullptr) {
                 // Normal extrusion
-                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                m_writer.extrude_to_xy(gcode, p.head<2>(), dE, flow_description.empty() ? description : flow_description);
             } else {
                 // Sloped extrusion
                 const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
                 Vec3d dest3d(p(0), p(1), get_sloped_z(z_ratio));
-                gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                m_writer.extrude_to_xyz(gcode, dest3d, dE * e_ratio, flow_description.empty() ? description : flow_description);
             }
 
             // Inline farthest-point snapshot on the variable-speed emission path. Inert unless the
