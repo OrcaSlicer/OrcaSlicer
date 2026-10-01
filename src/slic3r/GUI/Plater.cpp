@@ -7109,6 +7109,13 @@ struct Plater::priv
     // second, overlapping auto-slice. Cleared unconditionally at the top of on_process_completed(),
     // which bounds its lifetime to that window regardless of which slice ends up completing first.
     bool m_slice_after_reload_starting {false};
+    // Set when maybe_auto_slice_after_reload() cancels the running job itself to restart it, so
+    // on_process_completed() can tell that cancel from the user pressing Cancel (which drops the queue).
+    bool m_auto_slice_restart_pending {false};
+    // True from "Slice all" starting until its sequence completes, is cancelled or fails. Unlike
+    // m_slice_all, which is left set afterwards, it is only true while a multi-plate slice is live.
+    bool m_slice_all_active {false};
+    void clear_auto_slice_queue();
     bool m_is_publishing {false};
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
@@ -10704,7 +10711,7 @@ void Plater::priv::maybe_auto_slice_after_reload(const std::set<int>& touched_ob
     if (affected_plates.empty())
         return;
 
-    if (m_slice_all && (background_process.running() || m_is_slicing || m_slice_after_reload_starting)) {
+    if (m_slice_all_active && (background_process.running() || m_is_slicing || m_slice_after_reload_starting)) {
         // Cancelling would abort the user's whole multi-plate "Slice all", not just one plate.
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Slice all is running, not auto-slicing the reloaded plate(s)";
         return;
@@ -10717,11 +10724,18 @@ void Plater::priv::maybe_auto_slice_after_reload(const std::set<int>& touched_ob
             plates_pending_slice_after_reload.push_back(plate_idx);
 
     if (background_process.running() || m_is_slicing || m_slice_after_reload_starting) {
-        // A previous job is still in flight. Cancel it and start on the queued plates once the
-        // cancellation completes (see on_process_completed()), instead of slicing directly:
+        // A previous job is still in flight. If it is for one of the affected plates, its result
+        // is stale: cancel it and start on the queued plates once the cancellation completes (see
+        // on_process_completed()), instead of slicing directly, since
         // MainFrame::get_enable_slice_status() would see a slice as still "in progress" and
-        // silently skip this request, leaving the freshly reloaded geometry unsliced.
-        background_process.stop();
+        // silently skip this request. A job for any other plate (or an export) is left alone; the
+        // queue is drained when it completes.
+        const int busy_plate = background_process.empty() ? partplate_list.get_curr_plate_index()
+                                                           : background_process.get_current_plate()->get_index();
+        if (affected_plates.count(busy_plate) && !background_process.is_export_scheduled()) {
+            m_auto_slice_restart_pending = true;
+            background_process.stop();
+        }
     } else {
         slice_after_reload();
     }
@@ -10841,6 +10855,8 @@ void Plater::priv::delete_all_objects_from_model()
 
     //BBS: update partplate
     partplate_list.clear();
+    clear_auto_slice_queue();
+    m_slice_all_active = false;
 
     model.clear_objects();
     update();
@@ -12596,7 +12612,28 @@ void Plater::priv::reload_source_files(const std::set<std::string>& changed_file
         return;
 
     Selection& selection = get_selection();
-    Selection::IndicesList curr_idxs = selection.get_volume_idxs();
+
+    // Remember the selection by what is selected, not by scene index: reload_from_disk() rebuilds
+    // the reloaded volumes and moves them to the end of their object's volume list, so the old
+    // indices would select different volumes afterwards. Objects themselves keep their indices.
+    const Selection::EMode saved_mode = selection.get_mode();
+    std::set<std::pair<int, int>>           selected_instances; // (object, instance)
+    std::set<std::tuple<int, int, ObjectID>> selected_volumes;   // (object, instance, volume id)
+    std::map<int, std::set<ObjectID>>       volume_ids_before;  // every volume id of an object with a selected volume
+    for (unsigned int idx : selection.get_volume_idxs()) {
+        const GLVolume* v = selection.get_volume(idx);
+        const int obj_idx = v->object_idx();
+        if (obj_idx < 0 || obj_idx >= int(model.objects.size()))
+            continue;
+        if (saved_mode == Selection::Instance) {
+            selected_instances.insert({obj_idx, v->instance_idx()});
+        } else if (v->volume_idx() >= 0 && v->volume_idx() < int(model.objects[obj_idx]->volumes.size())) {
+            selected_volumes.insert({obj_idx, v->instance_idx(), model.objects[obj_idx]->volumes[v->volume_idx()]->id()});
+            std::set<ObjectID>& ids = volume_ids_before[obj_idx];
+            for (const ModelVolume* mv : model.objects[obj_idx]->volumes)
+                ids.insert(mv->id());
+        }
+    }
 
     // reload_from_disk() operates on the current selection, same as reload_all_from_disk(); build
     // one covering exactly the volumes whose resolved source is one of changed_files instead of
@@ -12612,17 +12649,54 @@ void Plater::priv::reload_source_files(const std::set<std::string>& changed_file
         }
     }
 
+    // A reload replaces a volume with a new one that has a fresh id, so an object whose volume ids
+    // are unchanged afterwards was not reloaded (the paint prompt was declined, or the file failed
+    // to load) and must not trigger an auto-slice.
+    auto volume_ids = [this](int obj_idx) {
+        std::set<ObjectID> ids;
+        for (const ModelVolume* mv : model.objects[obj_idx]->volumes)
+            ids.insert(mv->id());
+        return ids;
+    };
+    std::map<int, std::set<ObjectID>> ids_before_reload;
+    for (const SourcedVolume& sv : matched)
+        ids_before_reload.emplace(sv.obj_idx, volume_ids(sv.obj_idx));
+
     if (!matched.empty())
         reload_from_disk();
 
     if (touched_objects)
-        for (const SourcedVolume& sv : matched)
-            touched_objects->insert(sv.obj_idx);
+        for (const auto& [obj_idx, ids_before] : ids_before_reload)
+            if (obj_idx < int(model.objects.size()) && volume_ids(obj_idx) != ids_before)
+                touched_objects->insert(obj_idx);
 
     // restore previous selection
+    Plater::SuppressSnapshots suppress(q);
     selection.clear();
-    for (unsigned int idx : curr_idxs) {
-        selection.add(idx, false);
+    if (saved_mode == Selection::Instance) {
+        for (const auto& [obj_idx, inst_idx] : selected_instances)
+            if (obj_idx < int(model.objects.size()) && inst_idx >= 0 && inst_idx < int(model.objects[obj_idx]->instances.size()))
+                selection.add_instance(obj_idx, inst_idx, false);
+    } else {
+        for (const auto& [obj_idx, ids_before] : volume_ids_before) {
+            if (obj_idx >= int(model.objects.size()))
+                continue;
+            const ModelObject* mo = model.objects[obj_idx];
+            const std::set<ObjectID> ids_now = volume_ids(obj_idx);
+            for (int inst_idx = 0; inst_idx < int(mo->instances.size()); ++inst_idx) {
+                // A selected volume that no longer exists was reloaded: select its replacement(s),
+                // the volumes the object did not have before.
+                bool reloaded = false;
+                for (const auto& [o, i, id] : selected_volumes)
+                    if (o == obj_idx && i == inst_idx && !ids_now.count(id))
+                        reloaded = true;
+                for (int vol_idx = 0; vol_idx < int(mo->volumes.size()); ++vol_idx) {
+                    const ObjectID id = mo->volumes[vol_idx]->id();
+                    if (selected_volumes.count({obj_idx, inst_idx, id}) || (reloaded && !ids_before.count(id)))
+                        selection.add_volume(obj_idx, vol_idx, inst_idx, false);
+                }
+            }
+        }
     }
 }
 
@@ -13408,6 +13482,15 @@ bool Plater::priv::warnings_dialog()
 
 }
 
+// Drops the queued auto-slice plates and the in-flight bookkeeping. The queue holds plate indices,
+// so it is only valid until plates are deleted, reordered or the project is replaced.
+void Plater::priv::clear_auto_slice_queue()
+{
+    plates_pending_slice_after_reload.clear();
+    m_slice_after_reload_starting = false;
+    m_auto_slice_restart_pending  = false;
+}
+
 //BBS: add project slice logic
 // Pops plates off plates_pending_slice_after_reload until one actually starts slicing (a plate
 // that can't be sliced, e.g. its object no longer fits the bed, is skipped, since no completion
@@ -13465,6 +13548,8 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": ignore this event %1%") % evt.status();
         return;
     }
+    const bool cancelled_by_auto_slice = m_auto_slice_restart_pending;
+    m_auto_slice_restart_pending = false;
     //BBS: add project slice logic
     bool is_finished = !m_slice_all || (m_cur_slice_plate == (partplate_list.get_plate_count() - 1));
 
@@ -13531,6 +13616,10 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", cancel event, status: %1%") % evt.status();
         this->notification_manager->set_slicing_progress_canceled(_u8L("Slicing Canceled"));
         is_finished = true;
+        // The user cancelled: don't go on to slice the queued plates. A cancel issued by
+        // maybe_auto_slice_after_reload() itself, to restart a stale slice, keeps the queue.
+        if (!cancelled_by_auto_slice)
+            plates_pending_slice_after_reload.clear();
     }
 
     {
@@ -13649,6 +13738,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":finished, reload print soon");
         m_is_slicing = false;
+        m_slice_all_active = false;
         this->preview->reload_print(false);
         q->mark_plate_toolbar_image_dirty();
         /* BBS if in publishing progress */
@@ -13751,6 +13841,13 @@ void Plater::priv::on_action_slice_plate(SimpleEvent&)
         m_slice_all = false;
         q->reslice();
         q->select_view_3D("Preview");
+        // The slice-start event this was waiting for has now been handled, so
+        // background_process.running()/m_is_slicing reflect reality again, whether or not a slice
+        // actually started.
+        m_slice_after_reload_starting = false;
+        // Nothing started, so no completion event will drain the auto-slice queue.
+        if (!plates_pending_slice_after_reload.empty() && !background_process.running() && !m_is_slicing)
+            slice_after_reload();
     }
 }
 
@@ -13768,6 +13865,7 @@ void Plater::priv::on_action_slice_all(SimpleEvent&)
         Model::setExtruderParams(config, numExtruders);
         Model::setPrintSpeedTable(config, print_config);
         m_slice_all = true;
+        m_slice_all_active = true;
         m_slice_all_only_has_gcode = true;
         m_cur_slice_plate = 0;
         //select plate
@@ -22872,6 +22970,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     } else if ((action == 7) && (!right_click)) {
         // move plate to the front
         take_snapshot("move plate to the front");
+        p->clear_auto_slice_queue();
         ret = p->partplate_list.move_plate_to_index(plate_index,0);
         p->partplate_list.update_slice_context_to_current_plate(p->background_process);
         p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
@@ -22931,6 +23030,7 @@ int Plater::delete_plate(int plate_index)
         index = p->partplate_list.get_curr_plate_index();
 
     take_snapshot("delete partplate");
+    p->clear_auto_slice_queue();
     ret = p->partplate_list.delete_plate(index);
 
     //BBS: update the current print to the current plate
