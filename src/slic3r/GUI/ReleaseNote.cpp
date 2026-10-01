@@ -32,7 +32,6 @@
 #include "DeviceCore/DevStorage.h"
 #include "../Utils/Http.hpp"
 #include "md4c/src/md4c-html.h"
-#include "../Utils/Http.hpp"
 
 namespace Slic3r { namespace GUI {
 
