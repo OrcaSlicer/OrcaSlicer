@@ -50,6 +50,34 @@ void CheckBox::SetHalfChecked(bool value)
 	update();
 }
 
+void CheckBox::BindLabel(wxWindow *label)
+{
+    if (label == nullptr)
+        return;
+
+    wxWeakRef<CheckBox> self(this);   // just in case for linux flatpak
+    auto on_toggle = [self](wxMouseEvent &e) {
+        if (!self || !self->IsEnabled()) {
+            e.Skip();
+            return;
+        }
+        self->wxBitmapToggleButton::SetValue(!self->wxBitmapToggleButton::GetValue());
+
+        wxCommandEvent evt(wxEVT_TOGGLEBUTTON, self->GetId());
+        evt.SetEventObject(self);
+        evt.SetInt(self->GetValue() ? 1 : 0);
+        self->GetEventHandler()->ProcessEvent(evt);
+
+        if (self)   // ProcessEvent may have triggered a rebuild that destroyed us
+            self->CallAfter([self] { 
+                if (self && !self->HasFocus())
+                    self->SetFocus();
+            });
+    };
+    label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle(e);});
+    label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle(e);});
+}
+
 void CheckBox::Rescale()
 {
     m_on.msw_rescale();

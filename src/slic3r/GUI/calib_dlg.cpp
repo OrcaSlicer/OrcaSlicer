@@ -47,6 +47,7 @@ CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
                       " and an appropriate layer height, making the test both accurate and easy to read.\n"
                       "Turn scaling off only if you wish to print the reference model exactly as-is."));
     text->SetToolTip(cb->GetToolTipText());
+    cb->BindLabel(text);
     row->Add(cb  , 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     row->Add(text, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     settings_sizer->Add(row, 0, wxLEFT | wxTOP, parent->FromDIP(3));
@@ -726,6 +727,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
                                   "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
                                   "minimum layer height is not enough, lower the end speed instead."));
     auto_adjust_text->SetToolTip(m_cbAutoAdjust->GetToolTipText());
+    m_cbAutoAdjust->BindLabel(auto_adjust_text);
     auto_adjust_sizer->Add(m_cbAutoAdjust  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     auto_adjust_sizer->Add(auto_adjust_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(auto_adjust_sizer, 0, wxLEFT | wxTOP, FromDIP(3));

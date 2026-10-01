@@ -74,6 +74,7 @@ public:
 
         auto *label = new Label(this, _L("Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"));
         label->SetFont(Label::Body_12);
+        m_smart_filament_checkbox->BindLabel(label);
 
         // Orca: dropped the vendor "Learn more" tracking link (no Orca help page for this feature).
 
@@ -313,6 +314,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
         auto* checkbox_label = new Label(bottom_panel, _L("Don't remind me again"));
         checkbox_label->SetFont(Label::Body_12);
+        m_checkbox->BindLabel(checkbox_label);
         checkbox_sizer->Add(checkbox_label, 0, wxLEFT| wxALIGN_CENTER , FromDIP(3));
 
         bottom_sizer->Add(checkbox_sizer, 0 ,  wxALIGN_CENTER | wxALL, FromDIP(15));
