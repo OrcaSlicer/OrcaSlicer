@@ -189,6 +189,32 @@ def discard_session_backup(data_dir):
         shutil.rmtree(backup, ignore_errors=True)
 
 
+def check_stale_backup(data_dir, project_path):
+    """Run before the first launch. A backup left by an earlier run that was hard-killed would open
+    the modal restore prompt (see discard_session_backup()), so drop it -- but only if it is
+    recognisably this test's own (its origin.txt names the test project). The data directory is
+    normally the real one, so any other backup may be genuine unsaved work from a real session and
+    is never deleted; the run stops with a message instead."""
+    try:
+        backup = read_full_config(data_dir)[0].get("app", {}).get("last_backup_path")
+    except (OSError, ValueError):
+        return
+    if not backup or not os.path.isfile(os.path.join(backup, ".3mf")):
+        return  # nothing the restore prompt would offer
+    try:
+        with open(os.path.join(backup, "origin.txt"), encoding="utf-8") as f:
+            origin = f.read().strip()
+    except OSError:
+        origin = ""
+    if origin and os.path.normcase(os.path.realpath(origin)) == os.path.normcase(os.path.realpath(project_path)):
+        shutil.rmtree(backup, ignore_errors=True)
+        print("Removed a stale unsaved-project backup left by an earlier test run: %s" % backup)
+        return
+    sys.exit("An unsaved-project backup from another session exists at %s (origin: %s). Launching "
+             "would open the modal restore prompt and hold every reload. If it is not wanted, remove "
+             "that folder; or use --data-dir with a scratch directory." % (backup, origin or "unknown"))
+
+
 def write_prefs(data_dir, want_reload, want_confirm, want_slice):
     """Only safe to call while the app isn't running: AppConfig loads this file once at startup
     and never re-reads it. Must leave a trailing newline after the closing brace -- see
@@ -552,6 +578,7 @@ def main():
         results.append((name, ok, detail))
         print("  %s  %s%s" % ("PASS" if ok else "FAIL", name, (" -- " + detail) if detail else ""))
 
+    check_stale_backup(args.data_dir, project_path)
     original_prefs = snapshot_prefs(args.data_dir)
     app = OrcaApp(args.binary, args.data_dir, log_dir, hooks_dir)
     tail = None  # replaced by _restart() before every phase group
