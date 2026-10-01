@@ -6,6 +6,8 @@
     "setting_id": "GFSL03_09",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "75",
+        "75",
         "75"
     ],
     "eng_plate_temp": [

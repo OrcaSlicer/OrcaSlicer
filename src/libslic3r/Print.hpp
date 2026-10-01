@@ -1222,7 +1222,9 @@ public:
 
     // Post-slicing config-slot resolvers: map a (filament, layer) pair to the index of its
     // per-(extruder x volume type) column in the expanded variant arrays, cached by grouping context.
-    int get_filament_config_indx(int filament_id, int layer_id);
+    // Orca: without use_cache, the filament resolver leaves the cache alone, for the G-code export
+    // pipeline's cooling stage, which runs concurrently with the generator stage filling it.
+    int get_filament_config_indx(int filament_id, int layer_id, bool use_cache = true);
     int get_nozzle_config_index(int filament_id, int layer_id);
 
     // Orca: Implement prusa's filament shrink compensation approach
@@ -1282,7 +1284,7 @@ protected:
     };
     using FilamentIndexMap = std::unordered_map<FilamentIndexKey, int, FilamentIndexKeyHash>;
     using PrintIndexMap = std::unordered_map<PrintIndexKey, int, PrintIndexKeyHash>;
-    int get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap &index_map);
+    int get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap *index_map);
     int get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, PrintIndexMap &index_map);
 
     // Invalidates the step, and its depending steps in Print.

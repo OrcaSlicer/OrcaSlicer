@@ -10,6 +10,8 @@
 #include <cctype>
 #include <fstream>
 #include <string>
+#include <thread>
+#include <system_error>
 
 #ifndef _WIN32
 #include <unistd.h>     // getuid
@@ -60,6 +62,113 @@ TEST_CASE("per-user temp root is unchanged on Windows, isolated elsewhere", "[ut
     REQUIRE(root != base);
     REQUIRE_THAT(root, Catch::Matchers::StartsWith(base + "/orcaslicer_"));
 #endif
+}
+
+TEST_CASE("write_file_atomically replaces the target and leaves no temporary file", "[utils]") {
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path target = dir.path() / "preset.json";
+
+    REQUIRE_FALSE(write_file_atomically(target.string(), "first"));
+    REQUIRE_FALSE(write_file_atomically(target.string(), "second"));
+
+    std::string content;
+    load_string_file(target, content);
+    REQUIRE(content == "second");
+    size_t entries = 0;
+    for (auto &entry : boost::filesystem::directory_iterator(dir.path())) {
+        (void) entry;
+        ++entries;
+    }
+    REQUIRE(entries == 1);
+}
+
+TEST_CASE("write_file_atomically reports a missing directory and writes nothing", "[utils]") {
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path target = dir.path() / "missing" / "preset.json";
+
+    const std::error_code ec = write_file_atomically(target.string(), "x");
+    REQUIRE(ec == std::errc::no_such_file_or_directory);
+    REQUIRE_FALSE(boost::filesystem::exists(target));
+}
+
+#ifndef _WIN32
+// The read-only bit on a directory stops file creation only on POSIX.
+TEST_CASE("write_file_atomically writes in place when no temporary can be created beside an existing target", "[utils]") {
+    if (::geteuid() == 0)
+        SKIP("a read-only directory does not stop root");
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path target = dir.path() / "preset.json";
+    REQUIRE_FALSE(write_file_atomically(target.string(), "first"));
+    boost::filesystem::permissions(dir.path(), boost::filesystem::owner_read | boost::filesystem::owner_exe);
+
+    const std::error_code replaced = write_file_atomically(target.string(), "second");
+    const std::error_code created  = write_file_atomically((dir.path() / "new.json").string(), "x");
+    // Restored before any assertion, so a failure never leaves an unremovable directory behind.
+    boost::filesystem::permissions(dir.path(), boost::filesystem::owner_all);
+
+    REQUIRE_FALSE(replaced);
+    REQUIRE(created == std::errc::permission_denied);
+    std::string content;
+    load_string_file(target, content);
+    REQUIRE(content == "second");
+}
+#endif
+
+TEST_CASE("write_file_atomically keeps bytes intact in binary mode", "[utils]") {
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path target = dir.path() / "blob.bin";
+    const std::string bytes("a\r\nb\0c", 6);
+
+    REQUIRE_FALSE(write_file_atomically(target.string(), bytes, /*binary=*/true));
+    REQUIRE(boost::filesystem::file_size(target) == bytes.size());
+}
+
+#ifndef _WIN32
+TEST_CASE("write_file_atomically writes through a symlink and keeps the target's permissions", "[utils]") {
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path real = dir.path() / "real.json";
+    const boost::filesystem::path link = dir.path() / "link.json";
+    REQUIRE_FALSE(write_file_atomically(real.string(), "first"));
+    boost::filesystem::permissions(real, boost::filesystem::owner_read | boost::filesystem::owner_write);
+    boost::filesystem::create_symlink(real, link);
+
+    REQUIRE_FALSE(write_file_atomically(link.string(), "second"));
+
+    REQUIRE(boost::filesystem::is_symlink(boost::filesystem::symlink_status(link)));
+    std::string content;
+    load_string_file(real, content);
+    REQUIRE(content == "second");
+
+    REQUIRE_FALSE(write_file_atomically(real.string(), "third"));
+    const auto perms = boost::filesystem::status(real).permissions() & boost::filesystem::all_all;
+    REQUIRE(perms == (boost::filesystem::owner_read | boost::filesystem::owner_write));
+}
+#endif
+
+TEST_CASE("write_file_atomically survives two threads writing one target", "[utils]") {
+    ScopedTemporaryDir dir;
+    const boost::filesystem::path target = dir.path() / "shared.json";
+    const std::string a(20000, 'a'), b(20000, 'b');
+
+    std::thread other([&] {
+        for (int i = 0; i < 50; ++i)
+            write_file_atomically(target.string(), a);
+    });
+    for (int i = 0; i < 50; ++i)
+        write_file_atomically(target.string(), b);
+    other.join();
+
+    std::string content;
+    load_string_file(target, content);
+    const bool whole = content == a || content == b;
+    REQUIRE(whole);
+    // No temporary may be left; a scanner on Windows may briefly hold the old
+    // file under another name, so only the temporaries are counted.
+    size_t temporaries = 0;
+    for (auto &entry : boost::filesystem::directory_iterator(dir.path()))
+        if (entry.path().extension() == ".tmp")
+            ++temporaries;
+    REQUIRE(temporaries == 0);
 }
 
 TEST_CASE("copy_file reports the OS error when the destination cannot be written", "[utils]") {

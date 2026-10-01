@@ -78,12 +78,12 @@ void ConfigManipulation::set_option_label(const std::string& opt_key, const wxSt
         cb_set_option_label(opt_key, label, opt_index);
 }
 
-void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrintConfig *config) {
+void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrintConfig *config, unsigned int variant_index) {
     if (is_msg_dlg_already_exist)
         return;
 
     int temperature_range_low, temperature_range_high;
-    if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
+    if (!get_temperature_range(config, temperature_range_low, temperature_range_high, variant_index)) return;
 
     // Get the selected filament type
     std::string filament_type = "";
@@ -123,16 +123,16 @@ void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrint
     }
 }
 
-void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *config)
+void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist)
         return;
 
     int temperature_range_low, temperature_range_high;
-    if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
+    if (!get_temperature_range(config, temperature_range_low, temperature_range_high, variant_index)) return;
 
     if (config->has("nozzle_temperature")) {
-        if (config->opt_int("nozzle_temperature", 0) < temperature_range_low || config->opt_int("nozzle_temperature", 0) > temperature_range_high) {
+        if (config->opt_int("nozzle_temperature", variant_index) < temperature_range_low || config->opt_int("nozzle_temperature", variant_index) > temperature_range_high) {
             wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
             MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
@@ -143,17 +143,17 @@ void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *conf
     }
 }
 
-void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config)
+void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist)
         return;
 
     int temperature_range_low, temperature_range_high;
-    if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
+    if (!get_temperature_range(config, temperature_range_low, temperature_range_high, variant_index)) return;
 
     if (config->has("nozzle_temperature_initial_layer")) {
-        if (config->opt_int("nozzle_temperature_initial_layer", 0) < temperature_range_low ||
-            config->opt_int("nozzle_temperature_initial_layer", 0) > temperature_range_high)
+        if (config->opt_int("nozzle_temperature_initial_layer", variant_index) < temperature_range_low ||
+            config->opt_int("nozzle_temperature_initial_layer", variant_index) > temperature_range_high)
         {
             wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
@@ -210,6 +210,30 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
         is_msg_dlg_already_exist = false;
     }
 
+}
+
+void ConfigManipulation::check_filament_ironing_spacing(DynamicPrintConfig *config)
+{
+    const auto *opt = config->option<ConfigOptionFloatsNullable>("filament_ironing_spacing");
+    if (opt == nullptr)
+        return;
+    std::vector<double> values = opt->values;
+    bool                reset  = false;
+    for (size_t i = 0; i < values.size(); ++i)
+        if (!opt->is_nil(i) && values[i] < IRONING_SPACING_MIN) {
+            values[i] = 0.1;
+            reset     = true;
+        }
+    if (!reset)
+        return;
+    const wxString     msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
+    MessageDialog      dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
+    DynamicPrintConfig new_conf = *config;
+    is_msg_dlg_already_exist    = true;
+    dialog.ShowModal();
+    new_conf.set_key_value("filament_ironing_spacing", new ConfigOptionFloatsNullable(values));
+    apply(config, &new_conf);
+    is_msg_dlg_already_exist = false;
 }
 
 void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
@@ -334,7 +358,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     //BBS: ironing_spacing shouldn't be too small or equal to zero
-    if (config->opt_float("ironing_spacing") < 0.05)
+    if (config->opt_float("ironing_spacing") < IRONING_SPACING_MIN)
     {
         const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -345,7 +369,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
     }
-    if (config->opt_float("support_ironing_spacing") < 0.05)
+    if (config->opt_float("support_ironing_spacing") < IRONING_SPACING_MIN)
     {
         const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -1295,15 +1319,15 @@ int ConfigManipulation::show_spiral_mode_settings_dialog(bool is_object_config)
     return answer;
 }
 
-bool ConfigManipulation::get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high)
+bool ConfigManipulation::get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high, unsigned int variant_index)
 {
     bool range_low_exist = false, range_high_exist = false;
     if (config->has("nozzle_temperature_range_low")) {
-        range_low       = config->opt_int("nozzle_temperature_range_low", (unsigned int) 0);
+        range_low       = config->opt_int("nozzle_temperature_range_low", variant_index);
         range_low_exist       = true;
     }
     if (config->has("nozzle_temperature_range_high")) {
-        range_high       = config->opt_int("nozzle_temperature_range_high", (unsigned int) 0);
+        range_high       = config->opt_int("nozzle_temperature_range_high", variant_index);
         range_high_exist       = true;
     }
     return range_low_exist && range_high_exist;

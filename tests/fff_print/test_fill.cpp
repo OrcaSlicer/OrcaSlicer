@@ -748,6 +748,61 @@ TEST_CASE("A region with ironing turned off is never ironed", "[Fill]")
     REQUIRE(Layer::choose_ironing_extruder(cfg, spiral_mode, /*is_topmost_layer=*/true) == -1);
 }
 
+// Ironing path count and total length in mm, over the whole object.
+static std::pair<size_t, double> ironing_extent(const Print &print)
+{
+    size_t paths  = 0;
+    double length = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (ironing_role(entity->role())) {
+                    ++paths;
+                    length += unscale<double>(entity->length());
+                }
+    return {paths, length};
+}
+
+TEST_CASE("Ironing spacing below the minimum irons at the minimum spacing", "[Fill]")
+{
+    const std::string pattern      = GENERATE("rectilinear", "concentric");
+    const bool        via_filament = GENERATE(false, true);
+    const double      spacing      = GENERATE(0., 0.001);
+    CAPTURE(pattern, via_filament, spacing);
+
+    auto ironing_for = [&pattern, via_filament](double spacing) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"ironing_type", "top"},
+                                       {"ironing_pattern", pattern},
+                                       {"layer_height", 0.2}});
+        // The filament override replaces the process spacing, which stays at a usable value.
+        if (via_filament)
+            config.set_deserialize_strict({{"ironing_spacing", 0.1}, {"filament_ironing_spacing", spacing}});
+        else
+            config.set_deserialize_strict({{"ironing_spacing", spacing}});
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print, config);
+        return ironing_extent(print);
+    };
+
+    const std::pair<size_t, double> clamped = ironing_for(spacing);
+    const std::pair<size_t, double> minimum = ironing_for(IRONING_SPACING_MIN);
+    REQUIRE(minimum.first > 0);
+    CHECK(clamped.first == minimum.first);
+    CHECK_THAT(clamped.second, Catch::Matchers::WithinRel(minimum.second, 1e-9));
+}
+
+TEST_CASE("Concentric fill at zero spacing returns without paths", "[Fill]")
+{
+    std::unique_ptr<Fill> filler(Fill::new_from_type(ipConcentric));
+    filler->spacing      = 0.;
+    filler->bounding_box = BoundingBox(Point(0, 0), Point::new_scale(10, 10));
+    FillParams params;
+    params.density = 1.f;
+    Surface surface(stTop, ExPolygon({Point(0, 0), Point::new_scale(10, 0), Point::new_scale(10, 10), Point::new_scale(0, 10)}));
+    CHECK(filler->fill_surface(&surface, params).empty());
+}
+
 TEST_CASE("Solid infill direction offsets every layer when no template is set", "[Fill]")
 {
     auto angles_for = [](int direction) {
