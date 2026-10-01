@@ -2702,6 +2702,9 @@ public:
     virtual ConfigOption*           optptr(const t_config_option_key &opt_key, bool create = false) = 0;
     // Collect names of all configuration values maintained by this configuration store.
     virtual t_config_option_keys    keys() const = 0;
+    // Set this config's options on target member by member, when target is of this config's static type or
+    // derives from it, and return true. apply() prefers this to looking every key up by name.
+    virtual bool                    apply_to(ConfigBase &/*target*/) const { return false; }
 
 protected:
     // Verify whether the opt_key has not been obsoleted or renamed.
@@ -2753,7 +2756,8 @@ public:
     // Apply all keys of other ConfigBase defined by this->def() to this ConfigBase.
     // An UnknownOptionException is thrown in case some option keys of other are not defined by this->def(),
     // or this ConfigBase is of a StaticConfig type and it does not support some of the keys, and ignore_nonexistent is not set.
-    void apply(const ConfigBase &other, bool ignore_nonexistent = false) { this->apply_only(other, other.keys(), ignore_nonexistent); }
+    void apply(const ConfigBase &other, bool ignore_nonexistent = false)
+        { if (! other.apply_to(*this)) this->apply_only(other, other.keys(), ignore_nonexistent); }
     // Apply explicitely enumerated keys of other ConfigBase defined by this->def() to this ConfigBase.
     // An UnknownOptionException is thrown in case some option keys are not defined by this->def(),
     // or this ConfigBase is of a StaticConfig type and it does not support some of the keys, and ignore_nonexistent is not set.

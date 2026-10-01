@@ -16,8 +16,10 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_utils.cpp
     test_config.cpp
     test_config_variant_expansion.cpp
+    test_locales_utils.cpp
     test_drc.cpp
     test_toolordering_nozzle_group.cpp
+    test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp

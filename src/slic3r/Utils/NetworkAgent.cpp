@@ -1,11 +1,10 @@
-#include <stdio.h>
+#include "NetworkAgent.hpp"
+
 #include <stdlib.h>
-#include <set>
-#include <algorithm>
 
 #include <boost/log/trivial.hpp>
-#include "libslic3r/Utils.hpp"
-#include "NetworkAgent.hpp"
+#include <nlohmann/json.hpp>
+#include "IPrinterAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
@@ -115,6 +114,8 @@ void NetworkAgent::add_cloud_agent(const std::string& provider, std::shared_ptr<
 
 void NetworkAgent::set_printer_agent(std::shared_ptr<IPrinterAgent> printer_agent)
 {
+    m_user_machine_list_generation.fetch_add(1);
+
     // Disconnect all callbacks from the old agent
     auto old_printer_agent = m_printer_agent;
 
@@ -432,10 +433,26 @@ int NetworkAgent::check_user_task_report(int* task_id, bool* printable, const st
 
 int NetworkAgent::get_user_print_info(unsigned int* http_code, std::string* http_body, const std::string& provider)
 {
+    const std::string request_agent_id = m_printer_agent_id;
+    const std::uint64_t request_generation = m_user_machine_list_generation.fetch_add(1) + 1;
     const auto cloud_agent = get_cloud_agent(provider);
-    if (cloud_agent)
-        return cloud_agent->get_user_print_info(http_code, http_body);
-    return -1;
+    if (!cloud_agent)
+        return -1;
+
+    const int result = cloud_agent->get_user_print_info(http_code, http_body);
+    if (result == 0 && http_body) {
+        try {
+            nlohmann::json response = nlohmann::json::parse(*http_body);
+            response["provider"] = provider;
+            response["agent_id"] = request_agent_id;
+            response["generation"] = request_generation;
+            *http_body = response.dump();
+        }
+        catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " metadata injection exception=" << e.what();
+        }
+    }
+    return result;
 }
 
 int NetworkAgent::get_user_tasks(TaskQueryParams params, std::string* http_body, const std::string& provider)
@@ -513,6 +530,15 @@ int NetworkAgent::get_camera_url(std::string dev_id, std::function<void(std::str
     if (cloud_agent)
         return cloud_agent->get_camera_url(std::move(dev_id), std::move(callback));
     return -1;
+}
+
+std::unique_ptr<ICameraSignalingChannel>
+NetworkAgent::create_camera_signaling_channel(const std::string& dev_id, const std::string& provider)
+{
+    const auto cloud_agent = get_cloud_agent(provider);
+    if (cloud_agent)
+        return cloud_agent->create_camera_signaling_channel(dev_id);
+    return nullptr;
 }
 
 int NetworkAgent::get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback, const std::string& provider)
@@ -767,10 +793,81 @@ int NetworkAgent::send_message(std::string dev_id, std::string json_str, int qos
     return -1;
 }
 
-int NetworkAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int NetworkAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
 {
     if (m_printer_agent)
-        return m_printer_agent->connect_printer(dev_id, dev_ip, username, password, use_ssl);
+        return m_printer_agent->command_ams_refresh_rfid(dev_id, ams_id, slot_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_ams_calibrate(dev_id, ams_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_ams_select_tray(dev_id, tray_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_start_camera(std::string dev_id)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_start_camera(dev_id);
+    return -1;
+}
+
+int NetworkAgent::command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_xyz_abs(dev_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_auto_leveling(dev_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_go_home(dev_id, is_printing, supports_mqtt_homing, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_set_bed(dev_id, temp, supports_mqtt_bed_ctrl, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_set_nozzle(dev_id, temp, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                                        bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_axis_control(dev_id, axis, unit, input_val, speed, is_core_xy, supports_mqtt_axis_control, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::connect_printer(const PrinterConnectionParams& params)
+{
+    if (m_printer_agent)
+        return m_printer_agent->connect_printer(params);
     return -1;
 }
 
@@ -786,6 +883,13 @@ int NetworkAgent::send_message_to_printer(std::string dev_id, std::string json_s
     if (m_printer_agent)
         return m_printer_agent->send_message_to_printer(dev_id, json_str, qos, flag);
     return -1;
+}
+
+std::string NetworkAgent::default_lan_username() const
+{
+    if (m_printer_agent)
+        return m_printer_agent->default_lan_username();
+    return {};
 }
 
 int NetworkAgent::check_cert()
@@ -846,8 +950,14 @@ std::string NetworkAgent::get_user_selected_machine()
 
 int NetworkAgent::set_user_selected_machine(std::string dev_id)
 {
-    if (m_printer_agent)
-        return m_printer_agent->set_user_selected_machine(dev_id);
+    BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::set_user_selected_machine: dev_id=" << dev_id
+                            << " printer_agent=" << (m_printer_agent ? m_printer_agent->get_agent_info().id : "<null>");
+    if (m_printer_agent) {
+        const int result = m_printer_agent->set_user_selected_machine(dev_id);
+        BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::set_user_selected_machine: result=" << result;
+        return result;
+    }
+    BOOST_LOG_TRIVIAL(warning) << "NetworkAgent::set_user_selected_machine: no printer agent";
     return -1;
 }
 
@@ -867,15 +977,27 @@ int NetworkAgent::stop_subscribe(std::string module)
 
 int NetworkAgent::add_subscribe(std::vector<std::string> dev_list)
 {
-    if (m_printer_agent)
-        return m_printer_agent->add_subscribe(std::move(dev_list));
+    BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::add_subscribe: count=" << dev_list.size()
+                            << " printer_agent=" << (m_printer_agent ? m_printer_agent->get_agent_info().id : "<null>");
+    if (m_printer_agent) {
+        const int result = m_printer_agent->add_subscribe(std::move(dev_list));
+        BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::add_subscribe: result=" << result;
+        return result;
+    }
+    BOOST_LOG_TRIVIAL(warning) << "NetworkAgent::add_subscribe: no printer agent";
     return -1;
 }
 
 int NetworkAgent::del_subscribe(std::vector<std::string> dev_list)
 {
-    if (m_printer_agent)
-        return m_printer_agent->del_subscribe(std::move(dev_list));
+    BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::del_subscribe: count=" << dev_list.size()
+                            << " printer_agent=" << (m_printer_agent ? m_printer_agent->get_agent_info().id : "<null>");
+    if (m_printer_agent) {
+        const int result = m_printer_agent->del_subscribe(std::move(dev_list));
+        BOOST_LOG_TRIVIAL(trace) << "NetworkAgent::del_subscribe: result=" << result;
+        return result;
+    }
+    BOOST_LOG_TRIVIAL(warning) << "NetworkAgent::del_subscribe: no printer agent";
     return -1;
 }
 
@@ -921,10 +1043,10 @@ FilamentSyncMode NetworkAgent::get_filament_sync_mode() const
     return FilamentSyncMode::none;
 }
 
-bool NetworkAgent::fetch_filament_info(std::string dev_id)
+bool NetworkAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
 {
     if (m_printer_agent) {
-        return m_printer_agent->fetch_filament_info(dev_id);
+        return m_printer_agent->fetch_filament_info(dev_id, sync_mode);
     }
     return false;
 }
@@ -941,6 +1063,20 @@ std::string NetworkAgent::from_orca_filament_id(const std::string& orca_filament
     if (m_printer_agent)
         return m_printer_agent->from_orca_filament_id(orca_filament_id);
     return orca_filament_id;
+}
+
+CameraStreamMode NetworkAgent::get_camera_stream_mode() const
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_camera_stream_mode();
+    return CameraStreamMode::none;
+}
+
+std::string NetworkAgent::get_local_camera_stream_url() const
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_camera_url();
+    return {};
 }
 
 int NetworkAgent::request_bind_ticket(std::string* ticket)
