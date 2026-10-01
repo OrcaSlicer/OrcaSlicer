@@ -4334,6 +4334,8 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
         if (!out.has(override.key) || option == nullptr)
             continue;
         const int bit = flow_ratio_override_bit(override.key);
+        // Orca: This is the only process flow override stored as a nullable per-nozzle array.
+        // Identify it by key so nil slots retain filament overrides instead of marking every nozzle as explicitly overridden.
         if (std::string_view(override.key) == "top_solid_infill_flow_ratio") {
             // Track explicit values per nozzle; a nil local slot still inherits the filament override.
             ConfigOptionFloatsNullable explicit_flow(
