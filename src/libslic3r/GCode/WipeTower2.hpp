@@ -128,7 +128,8 @@ public:
         } else
             ++ m_num_layer_changes;
 		
-		// Calculate extrusion flow from desired line width, nozzle diameter, filament diameter and layer_height:
+		// поток и ширина — от текущего сопла (важно при смешанных диаметрах)
+		apply_perimeter_width_for(m_current_tool);
 		m_extrusion_flow = extrusion_flow(layer_height);
 	}
 
@@ -216,7 +217,6 @@ private:
     float filament_area() const {
         return m_filpar[0].filament_area; // all extruders are assumed to have the same filament diameter at this point
     }
-
 
 	bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
 	bool   m_enable_filament_ramming = true;
@@ -348,6 +348,18 @@ private:
 		return layer_height * ( m_perimeter_width - layer_height * (1.f-float(M_PI)/4.f)) / filament_area();
 	}
 
+    // ширина линии башни для конкретного сопла (не «последнего в конфиге»)
+    float perimeter_width_for(size_t tool) const {
+        if (tool >= m_filpar.size())
+            return m_perimeter_width;
+        return m_filpar[tool].nozzle_diameter * Width_To_Nozzle_Ratio;
+    }
+
+    void apply_perimeter_width_for(size_t tool) {
+        m_perimeter_width = perimeter_width_for(tool);
+        if (m_layer_height > 0.f)
+            m_extrusion_flow = extrusion_flow(m_layer_height);
+    }
 
 	// Calculates depth for all layers and propagates them downwards
 	void plan_tower();
