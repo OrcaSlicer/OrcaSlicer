@@ -128,6 +128,37 @@ would make it one. The reliable arrangement is for the exporter to write atomica
 a temporary file that it renames into place, which this design handles without any
 timing assumption.
 
+### Network drives
+
+Everything above assumes the file lives on a local disk. On a network share the two
+halves of the design behave differently.
+
+*Detecting the write.* The watcher relies on the operating system's change
+notifications. On Windows, `ReadDirectoryChangesW` also works against SMB shares,
+because the file server reports changes made by other machines. inotify (Linux) and
+kqueue (macOS) are driven by the local kernel, so a write made from another host to an
+NFS or SMB mount is typically not reported at all. On those systems an object whose
+source file sits on a share may not be reloaded until something local touches the
+directory. The watcher has no polling fallback; see "Possible further development:
+polling safety net" below.
+
+*Waiting for the writer to finish.* The Windows open-for-writing check
+(`is_open_for_writing()`) asks for a share mode that excludes writers. Over SMB that
+request reaches the file server, which compares it with every open handle it knows
+about, whichever machine holds it. So a writer on another host that still has the file
+open is held back the same way a local one is. This relies on the writer having opened
+the file through SMB. A process writing on the server itself is only visible if the
+server shares its local opens with SMB (Samba does this only when configured to). NFS
+has no equivalent: its locks are advisory, and a writer that doesn't take one is
+invisible. Where the check can't see a writer, only the 500ms quiet period applies.
+
+In all of these cases the exporter writing a temporary file and renaming it into place
+is still the reliable arrangement. The rename is one atomic event on the server side
+and needs no timing assumption.
+
+These statements follow from how the protocols and notification APIs work; they have
+not been tested against a real network share.
+
 ## When the UI is busy
 
 A modal dialog, or a popup menu being tracked, runs its own nested event loop, so the
@@ -329,6 +360,20 @@ Limits of the approach:
 
 Not implemented; recorded here so the choice of not protecting these edits isn't mistaken
 for an impossibility.
+
+## Possible further development: polling safety net
+
+Change detection depends entirely on OS notifications, which don't arrive for writes made
+from another host on some network filesystems (see "Network drives" above). A slow poll
+would close that gap: every few seconds, on a worker thread (a `stat()` on an unreachable
+share can block for a long time, so it must never run on the UI thread), compare each
+tracked file's `(mtime, size)` stamp and feed any difference into the existing debounce
+timer. `changed_source_files()` already does the comparison, so the poll would only be a
+second source of "something may have changed" hints, like an fs event. Cost is a few dozen
+`stat()` calls per poll, negligible locally and a round trip each over a network. Client-side
+attribute caching (NFS, SMB) can still delay what a poll sees by seconds. Replacing the
+notification backends with polling altogether was considered and rejected: the backends
+are built and tested, and polling would only add latency to the local case.
 
 ## Implementation and verification
 
