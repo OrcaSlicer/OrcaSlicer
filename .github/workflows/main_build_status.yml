@@ -6,6 +6,7 @@ on:
     workflows: ["Build all"]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   actions: read
