@@ -296,6 +296,9 @@ public:
     // resolver keys filament-indexed arrays, the nozzle resolver keys (extruder x volume-type)
     // slot arrays. Both degenerate to filament_id / extruder index on single-volume printers.
     size_t get_filament_config_index(int filament_id) const;
+    // The filament resolver for a given layer, for the export pipeline stages after the generator,
+    // which run behind the current layer and concurrently with the generator.
+    size_t get_filament_config_index(int filament_id, size_t layer_id) const;
     size_t get_nozzle_config_index(int filament_id) const;
 
     // Object and support extrusions of the same PrintObject at the same print_z.

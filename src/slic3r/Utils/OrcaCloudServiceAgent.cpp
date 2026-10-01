@@ -819,7 +819,9 @@ int OrcaCloudServiceAgent::user_logout(bool request)
         }
     }
 
-    clear_session();
+    // An explicit logout also wipes the backend the token storage option is not using, so a token
+    // stranded by switching that option cannot sign the account back in later.
+    clear_session(/*all_backends=*/request);
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -1604,7 +1606,9 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
         }
     }
 
-    (void) stored;
+    if (stored) {
+        secret_stored = true;
+    }
 }
 
 bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
@@ -1644,6 +1648,7 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
                 }
 
                 if (integrity_ok && aes256gcm_decrypt(encoded_payload, key, plain) && !plain.empty()) {
+                    secret_stored = true;
                     out_secret = plain;
                     // Upgrade legacy payloads to signed format
                     if (payload.rfind("v2:", 0) != 0) {
@@ -1661,6 +1666,7 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
             if (store.Load(SECRET_STORE_SERVICE, username, secret) && secret.IsOk()) {
                 out_secret.assign(static_cast<const char*>(secret.GetData()), secret.GetSize());
                 if (!out_secret.empty()) {
+                    secret_stored = true;
                     return true;
                 }
             }
@@ -1670,11 +1676,20 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
     return false;
 }
 
-void OrcaCloudServiceAgent::clear_user_secret()
+void OrcaCloudServiceAgent::clear_user_secret(bool all_backends)
 {
-    wxSecretStore store = wxSecretStore::GetDefault();
-    if (store.IsOk()) {
-        store.Delete(SECRET_STORE_SERVICE);
+    // Nothing this process loaded or saved: leave the store alone. Deleting would only cost a
+    // keychain round trip (or a hang while the keychain is unresponsive) and could remove a
+    // login another instance just saved.
+    if (!secret_stored.exchange(false) && !all_backends) {
+        return;
+    }
+
+    if (all_backends || !m_use_encrypted_token_file) {
+        wxSecretStore store = wxSecretStore::GetDefault();
+        if (store.IsOk()) {
+            store.Delete(SECRET_STORE_SERVICE);
+        }
     }
 
     compute_fallback_path();
@@ -2023,13 +2038,13 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
     return success;
 }
 
-void OrcaCloudServiceAgent::clear_session()
+void OrcaCloudServiceAgent::clear_session(bool all_backends)
 {
     {
         std::lock_guard<std::mutex> lock(session_mutex);
         session = SessionInfo{};
     }
-    clear_user_secret();
+    clear_user_secret(all_backends);
 }
 
 // ============================================================================

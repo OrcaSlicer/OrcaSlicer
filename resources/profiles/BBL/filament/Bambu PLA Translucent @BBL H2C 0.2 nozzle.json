@@ -6,6 +6,7 @@
     "setting_id": "GFSA17_30",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "75",
         "75"
     ],
     "eng_plate_temp": [
@@ -65,6 +66,7 @@
         "fdm_filament_template_direct_dual"
     ],
     "nozzle_temperature_range_low": [
+        "200",
         "200"
     ],
     "nozzle_temperature": [

@@ -5940,3 +5940,19 @@ TEST_CASE("A project's different settings always keep the preset bookkeeping key
         CHECK(keys.count(key) == 1);
     CHECK(PresetBundle::project_different_keys(std::string()).count("inherits") == 1);
 }
+
+// A connected machine's tray is checked against the filament variant of the nozzle it feeds.
+TEST_CASE("A filament's variant index follows the extruder type and nozzle volume type", "[Preset]")
+{
+    DynamicPrintConfig filament;
+    filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow",
+                                                                                       "Bowden Standard"};
+    DynamicPrintConfig printer;
+    printer.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etBowden};
+
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 0, nvtStandard) == 0);
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 0, nvtHighFlow) == 1);
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 1, nvtStandard) == 2);
+    // the filament defines no Bowden High Flow variant
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 1, nvtHighFlow) == 0);
+}

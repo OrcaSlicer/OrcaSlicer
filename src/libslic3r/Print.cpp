@@ -4329,9 +4329,9 @@ bool Print::is_dynamic_group_reorder() const
     return true;
 }
 
-int Print::get_filament_config_indx(int filament_id, int layer_id)
+int Print::get_filament_config_indx(int filament_id, int layer_id, bool use_cache)
 {
-    return get_config_index(filament_id, layer_id, m_config.filament_extruder_variant.values, m_filament_self_index, m_filament_index_map);
+    return get_config_index(filament_id, layer_id, m_config.filament_extruder_variant.values, m_filament_self_index, use_cache ? &m_filament_index_map : nullptr);
 }
 
 void Print::update_filament_self_index_cache()
@@ -4374,7 +4374,7 @@ int Print::get_nozzle_config_index(int filament_id, int layer_id)
     return get_config_index(filament_id, layer_id, m_default_region_config.print_extruder_variant.values, m_default_region_config.print_extruder_id.values, m_nozzle_index_map);
 }
 
-int Print::get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap &index_map)
+int Print::get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap *index_map)
 {
     auto group_result = get_layered_nozzle_group_result();
     // Orca: defensive — when no grouping producer has published a result yet, fall back to the
@@ -4385,7 +4385,8 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
     if (!nozzle_info.has_value()) {
         // Orca: this fallback runs per-filament/per-layer in the g-code hot path — log once per filament
         // (reset each slice) instead of flooding thousands of identical lines that bury the real error.
-        if (m_missing_nozzle_group_logged.insert(filament_id).second)
+        // Without the cache, the log set is left alone too; the cached caller reports the same filament.
+        if (index_map && m_missing_nozzle_group_logged.insert(filament_id).second)
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__
                                      << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3% (further occurrences for this filament suppressed)") % __LINE__ % filament_id %
                                             layer_id;
@@ -4394,15 +4395,17 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 
     ExtruderType     extruder_type      = ExtruderType(m_config.extruder_type.get_at(nozzle_info->extruder_id));
     NozzleVolumeType nozzle_volume_type = nozzle_info->volume_type;
+    if (!index_map)
+        return get_config_index_base(nozzle_volume_type, extruder_type, filament_id + 1, variant_list, self_index_list);
 
     FilamentIndexKey key{filament_id, extruder_type, nozzle_volume_type};
-    auto             iter = index_map.find(key);
-    if (iter == index_map.end()) {
+    auto             iter = index_map->find(key);
+    if (iter == index_map->end()) {
         int index = get_config_index_base(nozzle_volume_type, extruder_type, filament_id + 1, variant_list, self_index_list);
-        index_map[key] = index;
+        (*index_map)[key] = index;
         return index;
     } else {
-        return index_map[key];
+        return iter->second;
     }
 }
 

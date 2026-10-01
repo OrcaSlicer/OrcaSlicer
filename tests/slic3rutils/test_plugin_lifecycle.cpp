@@ -42,6 +42,9 @@ namespace {
 // Declare this FIRST in a test so it is destroyed last.
 struct ScopedPluginManager
 {
+    // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
+    // which would otherwise land in the working directory.
+    ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
