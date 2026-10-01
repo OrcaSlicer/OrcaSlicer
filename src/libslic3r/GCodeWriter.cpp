@@ -9,6 +9,7 @@
 #include "ClipperUtils.hpp"
 #include "Geometry/ArcWelder.hpp"
 #include "Line.hpp"
+#include "LocalesUtils.hpp"
 #include "libslic3r.h"
 #include <algorithm>
 #include <cmath>
@@ -380,26 +381,35 @@ std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned i
 
     last_value = acceleration;
 
-    std::ostringstream gcode;
-    if (FLAVOR_IS(gcfRepetier))
-        gcode << (separate_travel ? "M202 X" : "M201 X") << acceleration << " Y" << acceleration;
-    else if (FLAVOR_IS(gcfRepRapFirmware) || FLAVOR_IS(gcfMarlinFirmware))
-        gcode << (separate_travel ? "M204 T" : "M204 P") << acceleration;
-    else if (FLAVOR_IS(gcfKlipper)) {
-        gcode << "SET_VELOCITY_LIMIT ACCEL=" << acceleration;
+    const std::string value = std::to_string(acceleration);
+    std::string       gcode;
+    if (FLAVOR_IS(gcfRepetier)) {
+        gcode += separate_travel ? "M202 X" : "M201 X";
+        gcode += value;
+        gcode += " Y";
+        gcode += value;
+    } else if (FLAVOR_IS(gcfRepRapFirmware) || FLAVOR_IS(gcfMarlinFirmware)) {
+        gcode += separate_travel ? "M204 T" : "M204 P";
+        gcode += value;
+    } else if (FLAVOR_IS(gcfKlipper)) {
+        gcode.reserve(96);
+        gcode += "SET_VELOCITY_LIMIT ACCEL=";
+        gcode += value;
         if (this->config.accel_to_decel_enable) {
-            gcode << " ACCEL_TO_DECEL=" << acceleration * this->config.accel_to_decel_factor / 100;
+            gcode += " ACCEL_TO_DECEL=";
+            gcode += float_to_string_decimal_point(acceleration * this->config.accel_to_decel_factor / 100);
             if (GCodeWriter::full_gcode_comment)
-                gcode << " ; adjust ACCEL_TO_DECEL";
+                gcode += " ; adjust ACCEL_TO_DECEL";
         }
+    } else {
+        gcode += "M204 S";
+        gcode += value;
     }
-    else
-        gcode << "M204 S" << acceleration;
 
-    if (GCodeWriter::full_gcode_comment) gcode << " ; adjust acceleration";
-    gcode << "\n";
+    if (GCodeWriter::full_gcode_comment) gcode += " ; adjust acceleration";
+    gcode += "\n";
 
-    return gcode.str();
+    return gcode;
 }
 
 std::string GCodeWriter::set_jerk_xy(double jerk)
@@ -476,25 +486,29 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
     if (!set_acceleration && !set_jerk)
         return std::string();
 
-    std::ostringstream gcode;
-    gcode << "SET_VELOCITY_LIMIT";
+    std::string gcode;
+    gcode.reserve(96);
+    gcode += "SET_VELOCITY_LIMIT";
     if (set_acceleration) {
-        gcode << " ACCEL=" << acceleration;
+        gcode += " ACCEL=";
+        gcode += std::to_string(acceleration);
         if (this->config.accel_to_decel_enable) {
-            gcode << " ACCEL_TO_DECEL=" << acceleration * this->config.accel_to_decel_factor / 100;
+            gcode += " ACCEL_TO_DECEL=";
+            gcode += float_to_string_decimal_point(acceleration * this->config.accel_to_decel_factor / 100);
         }
         m_last_acceleration = acceleration;
     }
     if (set_jerk) {
-        gcode << " SQUARE_CORNER_VELOCITY=" << jerk;
+        gcode += " SQUARE_CORNER_VELOCITY=";
+        gcode += float_to_string_decimal_point(jerk);
         m_last_jerk = jerk;
     }
 
     if (GCodeWriter::full_gcode_comment)
-        gcode << " ; adjust VELOCITY_LIMIT(accel/jerk)";
-    gcode << "\n";
+        gcode += " ; adjust VELOCITY_LIMIT(accel/jerk)";
+    gcode += "\n";
 
-    return gcode.str();
+    return gcode;
 
 }
 
