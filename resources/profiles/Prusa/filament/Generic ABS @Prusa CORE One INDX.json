@@ -66,5 +66,8 @@
 	],
 	"filament_shrink": [
 		"99.78%"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive High Flow"
 	]
 }

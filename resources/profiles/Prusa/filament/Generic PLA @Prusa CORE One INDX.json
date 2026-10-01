@@ -27,7 +27,7 @@
 		"#FF8000"
 	],
 	"filament_max_volumetric_speed": [
-		"17"
+		"28"
 	],
 	"nozzle_temperature": [
 		"215"
@@ -63,5 +63,8 @@
 	],
 	"pressure_advance": [
 		"0.027"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive High Flow"
 	]
 }
