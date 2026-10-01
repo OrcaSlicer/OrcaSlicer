@@ -1,8 +1,10 @@
+#include "DevManager.h"
 #include <nlohmann/json.hpp>
 
 #include <exception>
 
-#include "DevManager.h"
+#include <libslic3r/AppConfig.hpp>
+#include "CloudProvider.hpp"
 #include "DevUtil.h"
 
 // TODO: remove this include
@@ -14,6 +16,8 @@
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include "libslic3r/Time.hpp"
+
+#include "IPrinterAgent.hpp"
 
 using namespace nlohmann;
 
@@ -46,10 +50,12 @@ namespace {
 
 namespace Slic3r
 {
-    DeviceManager::DeviceManager(NetworkAgent* agent)
+    DeviceManager::DeviceManager(NetworkAgent* agent, bool enable_refresher, AppConfig* app_config)
     {
-        m_agent = agent;
-        m_refresher = new DeviceManagerRefresher(this);
+        m_agent      = agent;
+        m_app_config = app_config;
+        if (enable_refresher)
+            m_refresher = new DeviceManagerRefresher(this);
 
         DevPrinterConfigUtil::InitFilePath(resources_dir());
 
@@ -60,9 +66,14 @@ namespace Slic3r
         }
     }
 
+    AppConfig* DeviceManager::get_app_config() const
+    {
+        return m_app_config ? m_app_config : GUI::wxGetApp().app_config;
+    }
+
     void DeviceManager::load_local_machines_from_config()
     {
-        AppConfig* config = GUI::wxGetApp().app_config;
+        AppConfig* config = get_app_config();
         if (!config)
             return;
         const auto local_machines = config->get_local_machines();
@@ -88,9 +99,8 @@ namespace Slic3r
         }
     }
 
-    void DeviceManager::update_local_machine(const MachineObject& m)
+    void DeviceManager::update_local_machine(const MachineObject& m, AppConfig* config)
     {
-        AppConfig* config = GUI::wxGetApp().app_config;
         if (config) {
             if (m.is_lan_mode_printer()) {
                 if (m.has_access_right()) {
@@ -111,7 +121,8 @@ namespace Slic3r
 
     DeviceManager::~DeviceManager()
     {
-        delete m_refresher;
+        if (m_refresher)
+            delete m_refresher;
 
         for (auto it = localMachineList.begin(); it != localMachineList.end(); it++)
         {
@@ -171,14 +182,22 @@ namespace Slic3r
         return printer_agent ? printer_agent->get_agent_info().id : "";
     }
 
+    std::string DeviceManager::get_current_cloud_provider() const
+    {
+        const std::string agent_id = get_current_printer_agent_id();
+        if (!agent_id.empty())
+            return agent_id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER;
+        return GUI::wxGetApp().get_printer_cloud_provider();
+    }
+
     void DeviceManager::EnableMultiMachine(bool enable)
     {
         m_agent->enable_multi_machine(enable);
         m_enable_mutil_machine = enable;
     }
 
-    void DeviceManager::start_refresher() { m_refresher->Start(); }
-    void DeviceManager::stop_refresher() { m_refresher->Stop(); }
+    void DeviceManager::start_refresher() { if (m_refresher) m_refresher->Start(); }
+    void DeviceManager::stop_refresher() { if (m_refresher) m_refresher->Stop(); }
 
 
     void DeviceManager::keep_alive()
@@ -265,6 +284,10 @@ namespace Slic3r
             /* update userMachineList info */
             auto it = userMachineList.find(dev_id);
             if (it != userMachineList.end()) {
+                // A reused entry may have been created while another printer agent was active.
+                // The response was obtained through the current agent, so move ownership with
+                // the entry; otherwise agent-scoped lists hide it after a preset switch.
+                it->second->printer_agent_id = get_current_printer_agent_id();
                 if (it->second->get_dev_ip() != dev_ip ||
                     it->second->bind_state != bind_state ||
                     it->second->bind_sec_link != sec_link ||
@@ -291,10 +314,15 @@ namespace Slic3r
 
             /* update localMachineList */
             it = localMachineList.find(dev_id);
+            AppConfig* config = get_app_config();
+
             if (it != localMachineList.end()) {
                 // update properties
                 /* ip changed */
                 obj = it->second;
+                // A reused LAN entry may have been discovered while another printer agent was
+                // active. The current discovery message establishes ownership for this agent.
+                obj->printer_agent_id = get_current_printer_agent_id();
 
                 if (obj->get_dev_ip().compare(dev_ip) != 0) {
                     if ( connection_name.empty() ) {
@@ -384,7 +412,6 @@ namespace Slic3r
                 obj->m_is_online = true;
 
                 //load access code
-                AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
                 if (config) {
                     obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id, obj->printer_agent_id), false);
                 }
@@ -407,7 +434,7 @@ namespace Slic3r
                     fire_lifecycle_event(LifecycleEvent::DeviceDiscovered, ctx);
                 }
             }
-            update_local_machine(*obj);
+            update_local_machine(*obj, config);
         }
         catch (...) {
             ;
@@ -422,6 +449,9 @@ namespace Slic3r
         auto           it = localMachineList.find(machine.dev_id);
         if (it != localMachineList.end()) {
             obj = it->second;
+            // insert_local_device is called by the active agent, so a reused entry must follow
+            // that agent as well; otherwise the agent-scoped printer list hides it.
+            obj->printer_agent_id = get_current_printer_agent_id();
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
             obj->printer_agent_id = get_current_printer_agent_id();
@@ -439,9 +469,14 @@ namespace Slic3r
         obj->last_alive = Slic3r::Utils::get_current_time_utc();
         obj->set_access_code(access_code, false);
 
-        update_local_machine(*obj);
+        update_local_machine(*obj, get_app_config());
 
         return obj;
+    }
+
+    void DeviceManager::update_local_machine(const MachineObject& m)
+    {
+        update_local_machine(m, GUI::wxGetApp().app_config);
     }
 
     int DeviceManager::query_bind_status(std::string& msg, const std::string& provider)
@@ -514,7 +549,7 @@ namespace Slic3r
 
     MachineObject* DeviceManager::get_my_machine(std::string dev_id)
     {
-        auto list = get_my_machine_list();
+        auto list = get_my_machine_list(get_current_printer_agent_id());
         auto it = list.find(dev_id);
         if (it != list.end())
         {
@@ -551,25 +586,15 @@ namespace Slic3r
         OnSelectedMachineChanged(previous_selected_machine, selected_machine);
     }
 
-    void DeviceManager::clear_other_devices(const std::string& target_agent_id)
+    void DeviceManager::clear_other_devices()
     {
-        // why: on agent swap, keep "My Devices" but drop the transient "Other Devices"
-        // Those belong to the previous agent's network scan; the new agent's start_discovery re-populates its own.
-        //
-        // Also drop "My Devices" stamped by a different agent than the one we're swapping to
-        // (target_agent_id, passed by the caller since the live agent hasn't been repointed yet
-        // at this point): otherwise a device first discovered under agent A survives every swap
-        // with a stale printer_agent_id, stays hidden from every agent's filtered list, and only
-        // gets re-tagged if something happens to delete and re-create it (e.g. account logout).
-        // Dropping it here instead lets the new agent's start_discovery re-insert and re-stamp it
-        // like any other fresh device.
-        const auto my = get_my_machine_list();
+        // Device entries are now scoped by printer_agent_id when they are presented. Keep
+        // agent-owned discoveries across a switch so agents without automatic discovery (and
+        // plugins whose devices have not received an access code yet) do not lose their list.
+        // Entries without an owner are legacy/unscoped and cannot safely be shown.
         for (auto it = localMachineList.begin(); it != localMachineList.end();)
         {
-            const bool is_my_device = my.find(it->first) != my.end();
-            const bool agent_mismatch = !target_agent_id.empty() && it->second &&
-                                         it->second->printer_agent_id != target_agent_id;
-            if (!is_my_device || agent_mismatch)
+            if (!it->second || it->second->printer_agent_id.empty())
             {
                 delete it->second;
                 it = localMachineList.erase(it);
@@ -585,8 +610,22 @@ namespace Slic3r
     {
         BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id
             << " cur_selected=" << selected_machine;
-        auto my_machine_list = get_my_machine_list();
+        auto my_machine_list = get_my_machine_list(get_current_printer_agent_id());
         auto it = my_machine_list.find(dev_id);
+        BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: set_selected_machine lookup dev_id=" << dev_id
+                                << " found=" << (it != my_machine_list.end())
+                                << " my_machine_count=" << my_machine_list.size()
+                                << " current_agent=" << get_current_printer_agent_id()
+                                << " provider=" << GUI::wxGetApp().get_printer_cloud_provider();
+        if (it != my_machine_list.end() && it->second) {
+            BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: target machine dev_id=" << it->second->get_dev_id()
+                                    << " printer_agent_id=" << it->second->printer_agent_id
+                                    << " connection_type=" << it->second->connection_type()
+                                    << " dev_connection_type=" << it->second->dev_connection_type;
+        } else if (!dev_id.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Orca diagnostic: target machine was not found in the current agent's machine list";
+            return false;
+        }
 
         // disconnect last if dev_id difference from previous one
         auto last_selected = my_machine_list.find(selected_machine);
@@ -597,7 +636,9 @@ namespace Slic3r
                 m_agent->disconnect_printer();
             }
             else if (last_selected->second->connection_type() == "cloud") {
-                m_agent->set_user_selected_machine("");
+                const int result = m_agent->set_user_selected_machine("");
+                BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: cleared previous cloud selection dev_id="
+                                        << selected_machine << " result=" << result;
             }
         }
 
@@ -632,11 +673,7 @@ namespace Slic3r
                         m_agent->disconnect_printer();
                         it->second->reset();
 
-#if !BBL_RELEASE_TO_PUBLIC
-                        it->second->connect(Slic3r::GUI::wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
-#else
-                        it->second->connect(it->second->local_use_ssl);
-#endif
+                        it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
                     }
                 }
@@ -649,18 +686,16 @@ namespace Slic3r
                     {
                         // diff dev_id, cloud => set_user_selected_machine(new)
                         BOOST_LOG_TRIVIAL(info) << "set_selected_machine: select new cloud machine, dev_id =" << dev_id;
-                        m_agent->set_user_selected_machine(dev_id);
+                        const int result = m_agent->set_user_selected_machine(dev_id);
+                        BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: set new cloud selection dev_id="
+                                                << dev_id << " result=" << result;
                         it->second->reset();
                     }
                     else
                     {
                         BOOST_LOG_TRIVIAL(info) << "set_selected_machine: select new lan machine, dev_id =" << dev_id;
                         it->second->reset();
-#if !BBL_RELEASE_TO_PUBLIC
-                        it->second->connect(Slic3r::GUI::wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
-#else
-                        it->second->connect(it->second->local_use_ssl);
-#endif
+                        it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
                     }
                 }
@@ -677,6 +712,8 @@ namespace Slic3r
 
         selected_machine = dev_id;
         record_user_last_machine(selected_machine);
+        BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: DeviceManager selection complete selected_machine="
+                                << selected_machine;
         return true;
     }
 
@@ -707,7 +744,9 @@ namespace Slic3r
             dev_list.push_back(it->first);
             BOOST_LOG_TRIVIAL(trace) << "add_user_subscribe: " << it->first;
         }
-        m_agent->add_subscribe(dev_list);
+        const int result = m_agent->add_subscribe(dev_list);
+        BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: add_user_subscribe count=" << dev_list.size()
+                                << " result=" << result;
     }
 
 
@@ -720,7 +759,9 @@ namespace Slic3r
             dev_list.push_back(it->first);
             BOOST_LOG_TRIVIAL(trace) << "del_user_subscribe: " << it->first;
         }
-        m_agent->del_subscribe(dev_list);
+        const int result = m_agent->del_subscribe(dev_list);
+        BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: del_user_subscribe count=" << dev_list.size()
+                                << " result=" << result;
     }
 
     void DeviceManager::subscribe_device_list(std::vector<std::string> dev_list)
@@ -839,7 +880,24 @@ namespace Slic3r
         try
         {
             json j = json::parse(body);
-            const std::string provider = GUI::wxGetApp().get_printer_cloud_provider();
+
+            const bool has_request_context = j.contains("provider") && j.contains("agent_id") && j.contains("generation");
+            const std::string current_provider = get_current_cloud_provider();
+            const std::string provider = j.contains("provider") ? j["provider"].get<std::string>()
+                                                                   : current_provider;
+            const std::string agent_id = j.contains("agent_id") ? j["agent_id"].get<std::string>()
+                                                                  : get_current_printer_agent_id();
+            const std::uint64_t generation = j.value("generation", std::uint64_t(0));
+
+            if (has_request_context &&
+                (provider != current_provider ||
+                 agent_id != get_current_printer_agent_id() ||
+                 generation != (m_agent ? m_agent->get_user_machine_list_generation() : 0))) {
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": ignoring stale response provider="
+                                         << provider << " agent_id=" << agent_id
+                                         << " generation=" << generation;
+                return;
+            }
 
 #if !BBL_RELEASE_TO_PUBLIC
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": " << j;
@@ -862,11 +920,14 @@ namespace Slic3r
                         /* update field */
                         obj = iter->second;
                         obj->set_dev_id(dev_id);
+                        // A device can be rediscovered by a different agent after a preset
+                        // switch while retaining the same MachineObject instance.
+                        obj->printer_agent_id = agent_id;
                     }
                     else
                     {
                         obj = new MachineObject(this, m_agent, "", "", "");
-                        obj->printer_agent_id = get_current_printer_agent_id();
+                        obj->printer_agent_id = agent_id;
                         if (m_agent)
                         {
                             obj->set_bind_status(m_agent->get_user_name(provider));
@@ -874,12 +935,19 @@ namespace Slic3r
 
                         if (obj->get_dev_ip().empty())
                         {
-                            obj->get_dev_ip() = Slic3r::GUI::wxGetApp().app_config->get("ip_address", dev_id);
+                            if (AppConfig* config = get_app_config())
+                                obj->get_dev_ip() = config->get("ip_address", dev_id);
                         }
                         userMachineList.insert(std::make_pair(dev_id, obj));
                     }
 
                     if (!obj) continue;
+
+                    // Orca cloud printers are only ever delivered through this REST
+                    // account list; tag them so DeviceManager's cloud/lan branches
+                    // (subscribe + deselect in set_selected_machine) treat them right.
+                    if (provider == ORCA_CLOUD_PROVIDER)
+                        obj->dev_connection_type = "cloud";
 
                     if (!elem["dev_id"].is_null())
                         obj->set_dev_id(elem["dev_id"].get<std::string>());
@@ -912,6 +980,12 @@ namespace Slic3r
                         acc_code.erase(std::remove(acc_code.begin(), acc_code.end(), '\n'), acc_code.end());
                         obj->set_access_code(acc_code);
                     }
+
+                    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: parsed cloud machine dev_id=" << dev_id
+                                            << " name=" << obj->get_dev_name()
+                                            << " agent_id=" << obj->printer_agent_id
+                                            << " connection_type=" << obj->connection_type()
+                                            << " online=" << obj->m_is_online;
                 }
 
                 //remove MachineObject from userMachineList
@@ -927,6 +1001,9 @@ namespace Slic3r
                         iterat++;
                     }
                 }
+                BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: parse_user_print_info complete provider=" << provider
+                                        << " parsed_count=" << new_list.size()
+                                        << " stored_count=" << userMachineList.size();
             }
         }
         catch (std::exception& e)
@@ -943,25 +1020,29 @@ namespace Slic3r
         unsigned int http_code;
         std::string body;
         int result = m_agent->get_user_print_info(&http_code, &body, provider);
+        BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: get_user_print_info provider=" << provider
+                                << " result=" << result << " http_code=" << http_code
+                                << " body_bytes=" << body.size();
         if (result == 0)
         {
             // parse_user_print_info and on_machine_alive (SSDP for discovery) both mutate the same userMachineList map.
             // on_machine_alive mutates the map on the UI thread, do the same for parse_user_print_info.
+            BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: queueing parse_user_print_info on UI thread";
             Slic3r::GUI::wxGetApp().CallAfter([this, body]() { parse_user_print_info(body); });
         }
     }
 
     void DeviceManager::record_user_last_machine(const std::string& dev_id)
     {
-        if (Slic3r::GUI::wxGetApp().app_config) {
-            Slic3r::GUI::wxGetApp().app_config->set("user_last_selected_machine", dev_id);
+        if (AppConfig* config = get_app_config()) {
+            config->set("user_last_selected_machine", dev_id);
         }
     }
 
     std::string DeviceManager::get_user_last_machine() const
     {
-        if (Slic3r::GUI::wxGetApp().app_config) {
-            const auto& user_last_machine = Slic3r::GUI::wxGetApp().app_config->get("user_last_selected_machine");
+        if (AppConfig* config = get_app_config()) {
+            const auto& user_last_machine = config->get("user_last_selected_machine");
             if (!user_last_machine.empty()) {
                 return user_last_machine;
             } else if (m_agent) {

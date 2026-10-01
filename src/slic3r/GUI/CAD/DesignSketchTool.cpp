@@ -4034,7 +4034,7 @@ void DesignSketchTool::render_mate_connectors()
 // the information. The same bear rendered flat vs in relief gives 164 vs 210 lit pixels at 16
 // degrees and 66 vs 120 at 6. So the glyph is a small shaded solid, not an outline.
 //
-// The geometry is EMITTED from the real part by doc/design/mate-connectors/emit_glyph_table.py,
+// The geometry is EMITTED from the real part by scripts/CAD/mate-glyph/emit_glyph_table.py,
 // not hand-drawn, so the glyph and the printed connector cannot drift apart. Two vertices stand
 // above the 3 mm plate in the actual B-rep, which is why the snout here is a tent with one crest
 // edge and four flanks drafted at 20 degrees rather than anything more elaborate.
@@ -4042,7 +4042,7 @@ void DesignSketchTool::render_mate_connectors()
 // The cheek dot is the handedness mark. Without it the glyph differs from its own mirror by only
 // 5-9 % of its lit pixels, which is not enough to read; the dot roughly doubles that and, unlike
 // making the eyes uneven, identifies the side from that cheek alone instead of by comparison.
-// Emitted by doc/design/mate-connectors/emit_glyph_table.py from bear.step — do not hand-edit.
+// Emitted by scripts/CAD/mate-glyph/emit_glyph_table.py from bear.step — do not hand-edit.
 // Normalised to the part's bounding span and centred: the renderer scales by one radius.
 static const Vec2d kBearOutline[] = {        // 12 verts, RDP eps 0.030, CCW
     {+0.3842, +0.3294}, {+0.3156, +0.4002}, {+0.2424, +0.3294},

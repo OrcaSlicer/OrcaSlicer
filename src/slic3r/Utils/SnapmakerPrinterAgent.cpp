@@ -104,7 +104,7 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     return base;
 }
 
-bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
+bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
 

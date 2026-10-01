@@ -403,6 +403,15 @@ public:
     std::string get_current_printer_type(PresetBundle *preset_bundle); // get current preset type
 
     static void get_extruder_names_and_keysets(Type type, std::string& extruder_id_name, std::string& extruder_variant_name, std::set<std::string>** p_key_set1, std::set<std::string>** p_key_set2);
+    // Config of a preset loaded from a project or config file: the project's values over the type's
+    // default preset config, without the print-host keys. When different_settings_list is not empty,
+    // every key not listed in it is then refreshed from the base system preset, which find_base returns
+    // for the project's "inherits" (nullptr when there is none), with the listed per-variant values
+    // mapped onto the base's extruder variants. keys, if given, receives the keys taken from the project.
+    static DynamicPrintConfig load_external_config(Type type, const DynamicPrintConfig &default_config, const DynamicPrintConfig &project_config,
+                                                   const std::set<std::string> &different_settings_list,
+                                                   const std::function<DynamicPrintConfig *(const std::string &inherits)> &find_base,
+                                                   t_config_option_keys *keys = nullptr);
     std::string get_printer_id() const { return vendor ? vendor->id : ""; }
 
     bool has_lidar(PresetBundle *preset_bundle);

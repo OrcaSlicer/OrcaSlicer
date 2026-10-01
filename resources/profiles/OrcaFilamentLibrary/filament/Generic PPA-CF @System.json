@@ -7,6 +7,11 @@
 	"filament_id": "OF8tPByX",
 	"instantiation": "true",
 	"fan_max_speed": [
+		"35",
+		"35",
+		"35",
+		"35",
+		"35",
 		"35"
 	],
 	"filament_extruder_variant": [

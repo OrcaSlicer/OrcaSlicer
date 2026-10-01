@@ -6,6 +6,7 @@
 #include <boost/filesystem.hpp>
 #include <memory.h>
 #include <stdexcept>
+#include <string>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
@@ -25,8 +26,15 @@ void ensure_python_initialized()
     config.parse_argv = 0;
 
     const auto python_home = boost::dll::program_location().parent_path() / "python";
+#ifdef _WIN32
+    const auto stdlib = python_home / "Lib";
+#else
+    const auto stdlib = python_home / "lib" /
+                        ("python" + std::to_string(PY_MAJOR_VERSION) + "." + std::to_string(PY_MINOR_VERSION));
+#endif
 
-    if (boost::filesystem::exists(python_home)) {
+    // Only a real runtime: a stray python/ folder (packages a test left behind) is not a home.
+    if (boost::filesystem::exists(stdlib / "encodings")) {
         const std::string home = python_home.string();
         const PyStatus status  = PyConfig_SetBytesString(&config, &config.home, home.c_str());
 

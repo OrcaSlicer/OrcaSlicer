@@ -22,6 +22,9 @@ void FillConcentric::_fill_surface_single(
     
     coord_t min_spacing = scale_(this->spacing) * params.multiline;
     coord_t distance = coord_t(min_spacing / params.density);
+    // A non-positive step never shrinks the region, so the inset loop below would not end.
+    if (min_spacing <= 0 || distance <= 0)
+        return;
     
     if (params.density > 0.9999f && !params.dont_adjust) {
         distance = this->_adjust_solid_spacing(bounding_box.size()(0), distance);
@@ -108,6 +111,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
     // no rotation is supported for this infill pattern
     Point   bbox_size = expolygon.contour.bounding_box().size();
     coord_t min_spacing = scaled<coord_t>(this->spacing);
+    if (min_spacing <= 0)
+        return;
 
     if (params.density > 0.9999f && !params.dont_adjust) {
         coord_t                loops_count = std::max(bbox_size.x(), bbox_size.y()) / min_spacing + 1;
