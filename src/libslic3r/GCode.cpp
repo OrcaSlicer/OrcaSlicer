@@ -9179,7 +9179,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     _mm3_per_mm *= filament_flow_ratio;
 
     const int local_flow_overrides = m_config.object_flow_ratio_override_mask.value |
-                                     m_config.region_flow_ratio_override_mask.value;
+                                     NOZZLE_CONFIG(region_flow_ratio_override_mask);
     #define RESOLVE_OPTION(OPT) \
         ((local_flow_overrides & flow_ratio_override_bit(#OPT)) != 0 ? m_config.OPT.value : \
             resolve_filament_override(m_config.filament_##OPT, filament_idx, m_config.OPT.value))
