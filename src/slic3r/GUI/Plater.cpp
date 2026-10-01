@@ -7170,7 +7170,11 @@ struct Plater::priv
     wxTimer                     auto_reslice_timer;
     SourceFileWatcher           source_file_watcher;
 
+    // Schedules refresh_source_file_watches() for the next idle, once however many times it is
+    // requested before then: resolving every volume's source stats the filesystem on the UI thread.
     void update_source_file_watches();
+    void refresh_source_file_watches();
+    bool m_source_file_watch_refresh_pending {false};
     void on_source_files_changed(const std::set<std::string>& changed_files);
     void maybe_auto_slice_after_reload(const std::set<int>& touched_objects);
 
@@ -10645,9 +10649,20 @@ std::vector<Plater::priv::SourcedVolume> Plater::priv::sourced_volumes() const
     return result;
 }
 
+void Plater::priv::update_source_file_watches()
+{
+    if (m_source_file_watch_refresh_pending)
+        return;
+    m_source_file_watch_refresh_pending = true;
+    q->CallAfter([this]() {
+        m_source_file_watch_refresh_pending = false;
+        refresh_source_file_watches();
+    });
+}
+
 // Keeps the file-system watcher in sync with the distinct set of source files currently
 // referenced by the model.
-void Plater::priv::update_source_file_watches()
+void Plater::priv::refresh_source_file_watches()
 {
     if (!wxGetApp().app_config->get_bool("auto_reload_on_source_change")) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": watching 0 source file(s) for changes (auto-reload disabled)";
@@ -10911,6 +10926,8 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
 
     //BBS: clear the partplate list's object before object cleared
     partplate_list.reinit();
+    clear_auto_slice_queue();
+    m_slice_all_active = false;
     partplate_list.update_slice_context_to_current_plate(background_process);
     preview->update_gcode_result(partplate_list.get_current_slice_result());
 
@@ -11824,6 +11841,9 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
 
     sla::reproject_points_and_holes(old_model_object);
 
+    // The volume's source is now the replacement file.
+    update_source_file_watches();
+
     return true;
 }
 
@@ -12117,6 +12137,16 @@ void Plater::priv::reload_from_disk()
     // selectors for the old mesh and only rebuild them when the object id or volume count
     // changes, neither of which a reload does.
     view3D->get_canvas3d()->get_gizmos_manager().reset_all_states();
+
+    // Every volume id of the objects being reloaded, so the log below can pick out the volumes
+    // that were actually replaced: a replacement gets a fresh id.
+    std::set<int>      reload_object_idxs;
+    std::set<ObjectID> volume_ids_before_reload;
+    for (const auto &sv : selected_volumes)
+        reload_object_idxs.insert(sv.first);
+    for (int obj_idx : reload_object_idxs)
+        for (const ModelVolume *mv : model.objects[obj_idx]->volumes)
+            volume_ids_before_reload.insert(mv->id());
 #else
     Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
 
@@ -12210,6 +12240,22 @@ void Plater::priv::reload_from_disk()
             missing_input_paths.push_back(volume->name);
     }
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
+
+    // Rearm the source-file watches on every way out of here, manual or automatic, including
+    // cancelling the locate-file dialog below: a locate-missing-file prompt or a replace can
+    // repoint a volume's source entirely, and even an in-place reload of the same path can leave a
+    // rename-into-place's file-level watch bound to the old inode, which the regular
+    // object_list_changed() refresh would skip re-arming since the path set itself looks
+    // unchanged. forget_watched_files() forces a full rebuild regardless.
+    struct RearmSourceFileWatches
+    {
+        Plater::priv& p;
+        ~RearmSourceFileWatches()
+        {
+            p.source_file_watcher.forget_watched_files();
+            p.update_source_file_watches();
+        }
+    } rearm_source_file_watches{*this};
 
     std::sort(missing_input_paths.begin(), missing_input_paths.end());
     missing_input_paths.erase(std::unique(missing_input_paths.begin(), missing_input_paths.end()), missing_input_paths.end());
@@ -12549,22 +12595,23 @@ void Plater::priv::reload_from_disk()
         dlg.ShowModal();
     }
 
-    // Headless-testability: log the resulting size of every volume still in selected_volumes at
-    // this point (painted volumes declined above are already removed from it), keyed by source
-    // path rather than internal object/volume index -- a script watching the log knows which file
-    // it wrote, not which index OrcaSlicer assigned it -- so it can confirm "did it grow to N mm"
-    // without a human looking at the viewport. Best-effort like the rest of this design without
-    // retries: a volume whose specific file failed to load or had no match in the new model is
-    // still logged here as if it succeeded, since nothing tracks that distinction without
-    // unreloaded_volumes-style bookkeeping (removed along with the retry machinery it existed
-    // for) -- acceptable because a script relying on this avoids those failure paths entirely
-    // (see scripts/test_auto_reload_simple_headless.py's module docstring).
-    for (const auto &sv : selected_volumes) {
-        const ModelVolume *volume = model.objects[sv.first]->volumes[sv.second];
-        Vec3d size = model.objects[sv.first]->bounding_box_approx().size();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reloaded " << volume->source.input_file
-                                 << ", bounding box size = " << size.x() << " x " << size.y()
-                                 << " x " << size.z() << " mm";
+    // Headless-testability: log the size of every volume that was actually replaced, keyed by its
+    // source path rather than internal object/volume index -- a script watching the log knows which
+    // file it wrote, not which index OrcaSlicer assigned it -- so it can confirm "did it grow to N
+    // mm" without a human looking at the viewport. A volume whose file failed to load, or was
+    // declined in the paint prompt above, keeps its id and is not logged. See
+    // scripts/test_auto_reload_simple_headless.py's module docstring.
+    for (int obj_idx : reload_object_idxs) {
+        if (obj_idx >= int(model.objects.size()))
+            continue;
+        for (const ModelVolume *volume : model.objects[obj_idx]->volumes) {
+            if (volume_ids_before_reload.count(volume->id()))
+                continue;
+            const Vec3d size = volume->mesh().transformed_bounding_box(volume->get_matrix()).size();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reloaded " << volume->source.input_file
+                                     << ", bounding box size = " << size.x() << " x " << size.y()
+                                     << " x " << size.z() << " mm";
+        }
     }
 
     // update 3D scene
@@ -12574,14 +12621,6 @@ void Plater::priv::reload_from_disk()
     for (size_t i = 0; i < model.objects.size(); ++i) {
         view3D->get_canvas3d()->update_instance_printable_state_for_object(i);
     }
-
-    // Rearm the source-file watches after every reload, manual or automatic: a locate-missing-file
-    // prompt or a replace can repoint a volume's source entirely, and even an in-place reload of
-    // the same path can leave a rename-into-place's file-level watch bound to the old inode, which
-    // the regular object_list_changed() refresh would skip re-arming since the path set itself
-    // looks unchanged. forget_watched_files() forces a full rebuild regardless.
-    source_file_watcher.forget_watched_files();
-    update_source_file_watches();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " finish.";
 }
@@ -15698,6 +15737,9 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
 
     dirty_state.update_from_undo_redo_stack(m_undo_redo_stack_main.project_modified());
     update_title_dirty_status();
+
+    // Undo/redo can add, remove or restore volumes and with them their source files.
+    update_source_file_watches();
 }
 
 void Plater::priv::update_after_undo_redo(const UndoRedo::Snapshot& snapshot, bool /* temp_snapshot_was_taken */)
@@ -21789,6 +21831,9 @@ void Plater::changed_object(ModelObject &object){
 
     // update print
     p->schedule_background_process();
+
+    // A part added from a file ("Add part") arrives here with its source recorded.
+    p->update_source_file_watches();
         
     // Check outside bed
     get_current_canvas3D()->requires_check_outside_state();
@@ -21836,6 +21881,8 @@ void Plater::changed_objects(const std::vector<size_t>& object_idxs)
 
     // update print
     this->p->schedule_background_process();
+
+    p->update_source_file_watches();
 
     if (!is_loading_project()) {
         for (size_t obj_idx : object_idxs) {

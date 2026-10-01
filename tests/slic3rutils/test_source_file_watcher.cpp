@@ -368,9 +368,11 @@ TEST_CASE("A change is not reported while a reload is already running", "[Source
     watcher.set_on_changed([&](const std::set<std::string>&) {
         ++calls;
         // Stands in for a modal dialog or wxBusyInfo pumping the event loop mid-reload and letting
-        // the debounce timer fire again: the callback must not be re-entered.
+        // the debounce timer fire again: the callback must not be re-entered. The file changes
+        // again first, so a nested tick that got past the guard would find something to report.
         if (!nested) {
             nested = true;
+            dir.write("a.stl", 30);
             wxTimer timer;
             wxTimerEvent evt(timer);
             watcher.ProcessEvent(evt);
