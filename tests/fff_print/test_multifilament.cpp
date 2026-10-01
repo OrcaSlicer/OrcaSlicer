@@ -24,6 +24,63 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
+TEST_CASE("Filament changes honor the configured lift type", "[MultiFilament][Regression]")
+{
+    const std::string lift_type = GENERATE("", "Normal Lift", "Slope Lift", "Spiral Lift");
+    const bool shared_nozzle = GENERATE(false, true);
+    const bool prime_tower = GENERATE(false, true);
+    CAPTURE(lift_type, shared_nozzle, prime_tower);
+    DynamicPrintConfig config = multifilament_config(2, {
+        {"gcode_flavor", "marlin2"},
+        {"nozzle_diameter", shared_nozzle ? "0.4" : "0.4,0.4"},
+        {"single_extruder_multi_material", shared_nozzle ? "1" : "0"},
+        {"filament_map", shared_nozzle ? "1,1" : "1,2"},
+        {"printer_extruder_id", shared_nozzle ? "1" : "1,2"},
+        {"printer_extruder_variant", shared_nozzle ? "Direct Drive Standard" : "Direct Drive Standard;Direct Drive Standard"},
+        {"extruder_printable_height", shared_nozzle ? "0" : "0,0"},
+        {"enable_prime_tower", prime_tower ? "1" : "0"},
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+        {"sparse_infill_density", "20%"},
+        {"top_shell_layers", "0"},
+        {"bottom_shell_layers", "0"},
+        {"retraction_length", "0.8,0.8"},
+        {"retract_length_toolchange", "0.8,0.8"},
+        {"wipe", "0,0"},
+        {"z_hop", "1.5,1.5"},
+        {"travel_slope", "1,1"},
+        {"enable_arc_fitting", "1"},
+        {"printable_area", "-100x-100,300x-100,300x300,-100x300"},
+        {"change_filament_gcode", "; TOOLCHANGE_DOCK\nT[next_extruder]\nG0 Z{layer_z + 1.0}\n"},
+    });
+    config.option<ConfigOptionEnumsGeneric>("z_hop_types", true)->values = {zhtSlope, zhtSlope};
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+    config.set_key_value("filament_end_gcode", new ConfigOptionStrings{
+        "; TOOLCHANGE_CLEARANCE_BEGIN", "; TOOLCHANGE_CLEARANCE_BEGIN"});
+    if (!lift_type.empty())
+        config.set_deserialize_strict("filament_change_lift_type", lift_type);
+    const std::string output = slice_with_object_overrides(
+        {make_cube(4., 4., 0.6), make_cube(4., 4., 0.6)}, config,
+        {{{"extruder", 1}}, {{"extruder", 2}}});
+    size_t changes = 0, spirals = 0;
+    for (size_t begin = output.find("\n; TOOLCHANGE_CLEARANCE_BEGIN\n"); begin != std::string::npos;
+         begin = output.find("\n; TOOLCHANGE_CLEARANCE_BEGIN\n", begin + 1)) {
+        const size_t end = output.find("\n; TOOLCHANGE_DOCK\n", begin);
+        if (end == std::string::npos)
+            break;
+        const std::string clearance = output.substr(begin, end - begin);
+        const bool spiral = clearance.find("G3 Z") != std::string::npos;
+        CHECK((spiral || clearance.find("G1 Z") != std::string::npos || clearance.find("G0 Z") != std::string::npos));
+        if (lift_type == "Normal Lift" || lift_type == "Slope Lift")
+            CHECK_FALSE(spiral);
+        spirals += spiral;
+        ++changes;
+    }
+    CHECK(changes > 1);
+    if (lift_type.empty() || lift_type == "Spiral Lift")
+        CHECK(spirals > 0);
+}
+
 // 0-based tool indices used by extrusions whose role comment contains `role` (needs gcode_comments).
 static std::set<int> tools_for_role(const std::string& gcode, const std::string& role)
 {

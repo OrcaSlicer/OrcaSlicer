@@ -585,6 +585,13 @@ static const t_config_enum_values s_keys_map_ZHopType = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ZHopType)
 
+static const t_config_enum_values s_keys_map_LiftType = {
+    { "Normal Lift", LiftType::NormalLift },
+    { "Slope Lift", LiftType::SlopeLift },
+    { "Spiral Lift", LiftType::SpiralLift }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(LiftType)
+
 static const t_config_enum_values s_keys_map_RetractLiftEnforceType = {
     {"All Surfaces",        rletAllSurfaces},
     {"Top Only",         rletTopOnly},
@@ -6715,6 +6722,15 @@ void PrintConfigDef::init_fff_params()
                     "This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("filament_change_lift_type", coEnum);
+    def->label = L("Filament change lift type");
+    def->tooltip = L("Type of Z-hop before running the change filament G-code. Slope uses a normal lift when no XY travel destination is available.");
+    def->enum_keys_map = &ConfigOptionEnum<LiftType>::get_enum_values();
+    def->enum_values = { "Normal Lift", "Slope Lift", "Spiral Lift" };
+    def->enum_labels = { L("Normal"), L("Slope"), L("Spiral") };
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<LiftType>(LiftType::SpiralLift));
 
     def = this->add("wipe_tower_type", coEnum);
     def->label = L("Wipe tower type");

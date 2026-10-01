@@ -1099,7 +1099,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             auto_lift_type = LiftType::SpiralLift;
 
         // BBS: should be placed before toolchange parsing
-        std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false, auto_lift_type, true);
+        std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false,
+            tcr.is_tool_change && !is_nozzle_change ? gcodegen.config().filament_change_lift_type.value : auto_lift_type, true);
         check_add_eol(toolchange_retract_str);
 
         //BBS: if needed, write the gcode_label_objects_end then priming tower, if the retract, didn't did it.
@@ -9803,7 +9804,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     std::string change_filament_gcode = m_config.change_filament_gcode.value;
 
     // Move the lift gcode here which is in the change_filament_gcode originally
-    change_filament_gcode = this->retract(false, false, LiftType::SpiralLift, true) + change_filament_gcode;
+    change_filament_gcode = this->retract(false, false, m_config.filament_change_lift_type.value, true) + change_filament_gcode;
 
     std::string toolchange_gcode_parsed;
     //Orca: Ignore change_filament_gcode if is the first call for a tool change and manual_filament_change is enabled
