@@ -56,7 +56,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Pushes don't cancel a running build, because only a finished branch build
+  # saves caches every pull request can restore.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
   
 
 jobs:
