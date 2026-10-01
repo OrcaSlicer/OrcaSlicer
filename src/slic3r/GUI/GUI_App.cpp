@@ -8882,6 +8882,11 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
 			if (active_preset_combox)
 				tab->reactive_preset_combo_box();
 		}
+    // Preset loading can resize the filament list without an extruder-count change event.
+    // Refresh the controls even when the list already matches the printer's nozzle count.
+    if (printer_technology == ptFFF)
+        this->plater()->on_filament_count_change(preset_bundle->filament_presets.size());
+
     // BBS: model config
     for (Tab *tab : model_tabs_list)
 		if (tab->supports_printer_technology(printer_technology)) {

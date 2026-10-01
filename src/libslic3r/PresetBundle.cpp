@@ -4452,8 +4452,17 @@ std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::
     return compatible;
 }
 
+int PresetBundle::get_filament_variant_index(const DynamicPrintConfig &filament_config, const DynamicPrintConfig &printer_config,
+                                             int extruder_id, NozzleVolumeType nozzle_volume_type)
+{
+    const auto        *extruder_types = printer_config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    const ExtruderType extruder_type  = extruder_types && !extruder_types->empty() ? ExtruderType(extruder_types->get_at(extruder_id)) : etDirectDrive;
+    return std::max(0, filament_config.get_index_for_extruder(1, "", extruder_type, nozzle_volume_type, "filament_extruder_variant"));
+}
+
 bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(
-    const std::string &printer_type, std::string& nozzle_diameter_str, std::string &setting_id, std::string &tag_uid, std::string &nozzle_temp_min, std::string &nozzle_temp_max, std::string& preset_setting_id)
+    const std::string &printer_type, std::string& nozzle_diameter_str, std::string &setting_id, std::string &tag_uid, std::string &nozzle_temp_min, std::string &nozzle_temp_max, std::string& preset_setting_id,
+    int extruder_id, NozzleVolumeType nozzle_volume_type)
 {
     bool is_equation = true;
 
@@ -4476,13 +4485,15 @@ bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_m
                 // Compare only once
                 if (!compared) {
                     compared                        = true;
+                    const Preset *printer           = printers.find_preset(printer_str);
+                    const int     variant_index     = printer ? get_filament_variant_index(preset->config, printer->config, extruder_id, nozzle_volume_type) : 0;
                     bool          min_temp_equation = false, max_temp_equation = false;
                     int           min_nozzle_temp = std::stoi(nozzle_temp_min);
                     int           max_nozzle_temp = std::stoi(nozzle_temp_max);
                     ConfigOption *opt_min         = const_cast<Preset *>(preset)->config.option("nozzle_temperature_range_low");
                     if (opt_min) {
                         ConfigOptionInts *opt_min_ints = dynamic_cast<ConfigOptionInts *>(opt_min);
-                        min_nozzle_temp                = opt_min_ints->get_at(0);
+                        min_nozzle_temp                = opt_min_ints->get_at(variant_index);
                         if (std::to_string(min_nozzle_temp) == nozzle_temp_min)
                             min_temp_equation = true;
                         else {
@@ -4493,7 +4504,7 @@ bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_m
                     ConfigOption *opt_max = const_cast<Preset *>(preset)->config.option("nozzle_temperature_range_high");
                     if (opt_max) {
                         ConfigOptionInts *opt_max_ints = dynamic_cast<ConfigOptionInts *>(opt_max);
-                        max_nozzle_temp                = opt_max_ints->get_at(0);
+                        max_nozzle_temp                = opt_max_ints->get_at(variant_index);
                         if (std::to_string(max_nozzle_temp) == nozzle_temp_max)
                             max_temp_equation = true;
                         else {
