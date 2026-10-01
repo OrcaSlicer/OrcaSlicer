@@ -10,6 +10,7 @@
 		"1"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"close_fan_the_first_x_layers": [
@@ -42,9 +43,11 @@
 		"20"
 	],
 	"fan_max_speed": [
+		"100",
 		"100"
 	],
 	"fan_min_speed": [
+		"60",
 		"60"
 	],
 	"filament_adaptive_volumetric_speed": [
@@ -137,6 +140,7 @@
 		"12"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_pre_cooling_temperature": [
@@ -222,9 +226,11 @@
 		"255"
 	],
 	"nozzle_temperature_range_high": [
+		"280",
 		"280"
 	],
 	"nozzle_temperature_range_low": [
+		"250",
 		"250"
 	],
 	"overhang_fan_speed": [

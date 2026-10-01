@@ -103,6 +103,7 @@
 #include "Selection.hpp"
 #include "GLToolbar.hpp"
 #include "GUI_Preview.hpp"
+#include "UVEditorCanvas.hpp"
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
 #include "Camera.hpp"
@@ -283,6 +284,30 @@ static void set_config_values(DynamicPrintConfig *config, const std::string &key
     }
     else {
         BOOST_LOG_TRIVIAL(info) << "set_config_values: the key" << key << "is empty.";
+    }
+}
+
+// Orca: a calibration print sets pressure advance explicitly to 0 on each extruder variant that
+// has it disabled, so the value stored in the printer does not skew the result. Variants with
+// pressure advance enabled keep their own value.
+static void zero_pressure_advance_where_disabled(DynamicPrintConfig *filament_config)
+{
+    auto enable_pa   = filament_config->option<ConfigOptionBools>("enable_pressure_advance");
+    auto pa          = filament_config->option<ConfigOptionFloats>("pressure_advance");
+    auto adaptive_pa = filament_config->option<ConfigOptionBools>("adaptive_pressure_advance");
+    if (!enable_pa || !pa || !adaptive_pa || pa->empty() || adaptive_pa->empty())
+        return;
+    // All variant keys share the variant count; widen a short one rather than index past it.
+    if (pa->size() < enable_pa->size())
+        pa->resize(enable_pa->size());
+    if (adaptive_pa->size() < enable_pa->size())
+        adaptive_pa->resize(enable_pa->size());
+    for (size_t variant = 0; variant < enable_pa->size(); ++variant) {
+        if (enable_pa->get_at(variant))
+            continue;
+        enable_pa->values[variant]   = true;
+        pa->values[variant]          = 0.0;
+        adaptive_pa->values[variant] = false;
     }
 }
 
@@ -1773,11 +1798,14 @@ bool Sidebar::priv::switch_diameter_to(const wxString &diameter)
     Preset& printer_preset = wxGetApp().preset_bundle->printers.get_edited_preset();
     // The combo lists printer variants, and the variant of a mixed-nozzle machine ("0.4+0.6") is no
     // single extruder's diameter, so the preset's own variant answers first.
-    if (printer_preset.config.opt_string("printer_variant") == diameter.ToStdString()) {
+    const std::string &printer_variant = printer_preset.config.opt_string("printer_variant");
+    if (printer_variant == diameter.ToStdString()) {
         return true;
     }
+    // A named variant ("0.4 High Flow") shares its diameter with the standard profile, which selecting
+    // the plain diameter switches back to, so only a preset naming no variant is kept by its diameter.
     auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
-    if (nozzle_diameter && nozzle_diameter->size() > 0) {
+    if (printer_variant.empty() && nozzle_diameter && nozzle_diameter->size() > 0) {
         auto current_nozzle_dia = get_diameter_string(nozzle_diameter->values[0]);
         // If the selected diameter is the same as current nozzle, don't switch profiles
         if (current_nozzle_dia == diameter.ToStdString()) {
@@ -2212,12 +2240,14 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     std::string machine_print_name = obj->get_show_printer_type();
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     std::string target_model_id  = preset_bundle->printers.get_selected_preset().get_printer_type(preset_bundle);
-    Preset* machine_preset = get_printer_preset(obj);
-    if (!machine_preset) {
+    const bool optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj->printer_type);
+    const bool optional_target_model  = DevPrinterConfigUtil::is_optional_printer_model_id(target_model_id);
+    Preset* machine_preset = optional_printer_model ? nullptr : get_printer_preset(obj);
+    if (!optional_printer_model && !optional_target_model && !machine_preset) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
         return false;
     }
-    if (machine_print_name != target_model_id) {
+    if (!optional_printer_model && !optional_target_model && machine_print_name != target_model_id) {
         MessageDialog dlg(this->plater, _L("The currently selected machine preset is inconsistent with the connected printer type.\n"
                                             "Are you sure to continue syncing?"), _L("Sync printer information"), wxICON_WARNING | wxYES | wxNO);
         if (dlg.ShowModal() == wxID_NO) {
@@ -2405,6 +2435,11 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
 
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     if (!preset_bundle) {
+        clear_all_sync_status();
+        return;
+    }
+
+    if (DevPrinterConfigUtil::is_optional_printer_model_id(obj->printer_type)) {
         clear_all_sync_status();
         return;
     }
@@ -3672,7 +3707,7 @@ void Sidebar::update_all_preset_comboboxes()
         wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
         wxString apikey;
         if(url.empty())
-            url = wxString::Format("file://%s/web/orca/missing_connection.html", from_u8(resources_dir()));
+            url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/orca/missing_connection.html");
         else {
             const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
             if (cfg.has("printhost_apikey") && (host_type != htSimplyPrint))
@@ -3902,13 +3937,18 @@ void Sidebar::update_presets(Preset::Type preset_type)
             combo_flow->Show(combo_flow->GetCount() > 0);
         };
 
-        auto update_extruder_diameter = [&diameters, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
+        auto update_extruder_diameter = [&diameters, &nozzle_diameter, &diameter](int extruder_index,ExtruderGroup & extruder) {
             extruder.combo_diameter->Clear();
             if (extruder_index >= int(nozzle_diameter->values.size()))
                 return;
             int select = -1;
             // ORCA get the actual nozzle diameter from printer config
             auto nozzle_dia = get_diameter_string(nozzle_diameter->values[extruder_index]);
+            // Named variants such as "0.4HS" and "0.4 High Flow" share a physical diameter.
+            // Retain the variant selection unless the diameter was customized.
+            const bool keep_variant = diameter.substr(0, diameter.find_first_not_of("0123456789.")) == nozzle_dia &&
+                                      std::find(diameters.begin(), diameters.end(), diameter) != diameters.end();
+            const std::string &selected_variant = keep_variant ? diameter : nozzle_dia;
             // ORCA try to add nozzle diameter from config if list is empty. fixes blank nozzle combo box when preset has no alias
             if(!diameters.empty() && diameters[0].empty() && !nozzle_dia.empty()){
                 diameters[0] = nozzle_dia;
@@ -3918,7 +3958,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
                 diameters.push_back(nozzle_dia);
             }
             for (size_t i = 0; i < diameters.size(); ++i) {
-                if (diameters[i] == nozzle_dia)
+                if (diameters[i] == selected_variant)
                     select = extruder.combo_diameter->GetCount();
                 extruder.combo_diameter->Append(diameters[i], {});
             }
@@ -6042,11 +6082,30 @@ void Sidebar::load_ams_list(MachineObject* obj)
         filament_ams_list = build_filament_ams_list(obj);
     }
 
-    bool device_change     = false;
     const std::string& device = obj ? obj->get_dev_id() : "";
-    if (p->ams_list_device != device) {
+    const bool same_device = p->ams_list_device == device;
+
+    // Keep sync metadata out of the device payload, but preserve it across a
+    // subscription refresh when the physical filament in a slot is unchanged.
+    // Otherwise the refreshed configs differ only by the missing
+    // filament_changed key, causing combo boxes to rebuild and lose their
+    // transient post-sync badges.
+    auto &previous_filament_ams_list = wxGetApp().preset_bundle->filament_ams_list;
+    for (auto &entry : filament_ams_list) {
+        auto previous = previous_filament_ams_list.find(entry.first);
+        const auto *previous_changed = previous == previous_filament_ams_list.end() ? nullptr :
+                                       dynamic_cast<const ConfigOptionBool *>(previous->second.option("filament_changed"));
+        if (!same_device || previous_changed == nullptr ||
+            previous->second.opt_string("filament_id", 0u) != entry.second.opt_string("filament_id", 0u)) {
+            continue;
+        }
+        entry.second.set_key_value("filament_changed",
+                                   new ConfigOptionBool{previous_changed->value});
+    }
+
+    bool device_change     = !same_device;
+    if (device_change) {
         p->ams_list_device = device;
-        device_change      = true;
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1% items") % filament_ams_list.size();
     if (wxGetApp().preset_bundle->filament_ams_list == filament_ams_list && !device_change)
@@ -6056,9 +6115,27 @@ void Sidebar::load_ams_list(MachineObject* obj)
     wxGetApp().preset_bundle->filament_ams_list = filament_ams_list;
 
     for (auto c : p->combos_filament){
+        c->set_sync_badge(false);
         c->update();
-        if (device_change) {
-            c->ShowBadge(false);//change printer,then clear badge
+    }
+
+    if (!device_change) {
+        size_t combo_index = 0;
+        for (const auto &entry : filament_ams_list) {
+            const auto &tray = entry.second;
+            const bool has_filament = !tray.opt_string("filament_id", 0u).empty();
+            const bool is_placeholder = tray.has("filament_slot_placeholder") &&
+                                         tray.opt_bool("filament_slot_placeholder", 0u);
+            if (!has_filament && !is_placeholder) {
+                continue;
+            }
+            if (combo_index >= p->combos_filament.size()) {
+                break;
+            }
+            const auto *filament_changed = dynamic_cast<const ConfigOptionBool *>(tray.option("filament_changed"));
+            p->combos_filament[combo_index]->set_sync_badge(
+                has_filament && !is_placeholder && filament_changed != nullptr && filament_changed->value);
+            ++combo_index;
         }
     }
 
@@ -6232,18 +6309,32 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         auto tip     = sync_color_only ? _L("Only filament color information has been synchronized from printer.") :
                                          _L("Filament type and color information have been synchronized, but slot information is not included.");
         c->SetToolTip(tip);
-        c->ShowBadge(true);
+        c->set_sync_badge(true);
     };
     { // badge ams filament
         clear_combos_filament_badge();
         if (sync_result.direct_sync) {
-            // Orca: PresetBundle::sync_ams_list rebuilds combos_filament
-            // 1:1 from the AMS trays that produce a combo (loaded trays + placeholders; non-placeholder
-            // empty trays are skipped), so every resulting combo is AMS-sourced and gets a badge. The
-            // previous per-tray index walked the full filament_ams_list (including the skipped empties),
-            // so an empty slot before a loaded one dropped the badge for the trailing filaments.
-            for (auto &c : p->combos_filament) {
-                badge_combox_filament(c);
+            // A placeholder contributes a preserved project filament to the
+            // overwrite result, but it is not AMS-sourced and must not get a
+            // sync badge. Non-placeholder empty trays are omitted entirely.
+            size_t combo_index = 0;
+            for (const auto &entry : wxGetApp().preset_bundle->filament_ams_list) {
+                const auto &tray = entry.second;
+                const bool has_filament = !tray.opt_string("filament_id", 0u).empty();
+                const bool is_placeholder = tray.has("filament_slot_placeholder") &&
+                                             tray.opt_bool("filament_slot_placeholder", 0u);
+                if (!has_filament && !is_placeholder) {
+                    continue;
+                }
+                if (combo_index >= p->combos_filament.size()) {
+                    break;
+                }
+                if (is_placeholder) {
+                    p->combos_filament[combo_index]->set_sync_badge(false);
+                } else {
+                    badge_combox_filament(p->combos_filament[combo_index]);
+                }
+                ++combo_index;
             }
         }
     }
@@ -6511,6 +6602,11 @@ template<typename T> void setup_dialog_position(T& info)
 
 void Sidebar::pop_sync_nozzle_and_ams_dialog() {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " begin pop_sync_nozzle_and_ams_dialog";
+    auto agent = wxGetApp().getAgent();
+    if (!agent || agent->get_filament_sync_mode() == FilamentSyncMode::none) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " filament synchronization is not supported; skipping dialog";
+        return;
+    }
     wxTheApp->CallAfter([this]() {
         SyncNozzleAndAmsDialog::InputInfo temp_na_info;
         wxPoint                           big_btn_pt;
@@ -6642,17 +6738,14 @@ void Sidebar::clear_combos_filament_badge()
 {
     auto &combos_filament = p->combos_filament;
     for (auto &c : combos_filament) { // clear flag
-        c->ShowBadge(false);
+        c->set_sync_badge(false);
     }
 }
 
 void Sidebar::udpate_combos_filament_badge() {
     auto &combos_filament = p->combos_filament;
     for (auto &c : combos_filament) {
-        auto selection   = c->GetSelection();
-        auto select_flag = c->GetFlag(selection);
-        auto ok          = select_flag == (int) PresetComboBox::FilamentAMSType::FROM_AMS;
-        c->ShowBadge(ok);
+        c->update_badge_according_flag();
     }
 
 }
@@ -7024,6 +7117,13 @@ struct Plater::priv
     GLToolbar collapse_toolbar;
     Preview *preview;
     AssembleView* assemble_view { nullptr };
+    // Docked/resizable 2D pane showing GLGizmoTextureDisplacement's LSCM unwrap of a painted
+    // patch; a sibling AUI pane alongside "sidebar"/"main", not part of the view3D/preview/
+    // assemble_view sizer - see its registration below and Plater::get_uv_editor_canvas(). The
+    // pane hosts the panel (toolbar + canvas + status line); uv_editor_canvas is its inner canvas,
+    // cached so the gizmo can reach it directly.
+    UVEditorPanel*  uv_editor_panel { nullptr };
+    UVEditorCanvas* uv_editor_canvas { nullptr };
     bool first_enter_assemble{ true };
     std::unique_ptr<NotificationManager> notification_manager;
 
@@ -7273,6 +7373,8 @@ struct Plater::priv
 
     void undo();
     void redo();
+    // True, and tells the user, while a background job is working on the model - see the definition.
+    bool undo_redo_blocked_by_job();
     void undo_redo_to(size_t time_to_load);
 
     // BBS: backup
@@ -7726,6 +7828,26 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
                                    .BottomDockable(false)
                                    .BestSize(wxSize(39 * wxGetApp().em_unit(), 90 * wxGetApp().em_unit())));
 
+    // UV editor pane for GLGizmoTextureDisplacement's LSCM unwrap preview - a resizable/dockable
+    // sibling of "sidebar"/"main" like everything else registered on this same AUI manager, not a
+    // change to the view3D/preview/assemble_view sizer above. Hidden by default: only relevant
+    // while that gizmo is active with a layer using the "Unwrap (LSCM)" projection method (see
+    // Plater::show_uv_editor()), so it stays out of the way of everyone else's window layout.
+    uv_editor_panel  = new UVEditorPanel(q);
+    uv_editor_canvas = uv_editor_panel->canvas();
+    m_aui_mgr.AddPane(uv_editor_panel, wxAuiPaneInfo()
+                                            .Name("uv_editor")
+                                            .Caption(_L("UV Editor"))
+                                            .Right()
+                                            .Hide()
+                                            .BestSize(wxSize(40 * wxGetApp().em_unit(), 40 * wxGetApp().em_unit())));
+    // Closing the pane with its own X has to reach the gizmo, or its next update would simply show the pane again.
+    q->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent &evt) {
+        evt.Skip();
+        if (evt.GetPane() != nullptr && evt.GetPane()->window == uv_editor_panel && uv_editor_canvas != nullptr)
+            uv_editor_canvas->run_command(UVEditorCanvas::Command::PaneClosed);
+    });
+
     auto* panel_sizer = new wxBoxSizer(wxHORIZONTAL);
     panel_sizer->Add(view3D, 1, wxEXPAND | wxALL, 0);
     panel_sizer->Add(preview, 1, wxEXPAND | wxALL, 0);
@@ -7766,6 +7888,13 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             } else if (removed_floating_state) {
                 BOOST_LOG_TRIVIAL(info) << "Removed floating AUI state from saved window layout for Wayland";
             }
+
+            // The UV editor is a transient, gizmo-driven pane (see show_uv_editor()); a saved layout
+            // from a session that happened to close with it open would otherwise restore it visible on
+            // startup, with nothing painted in it. Force it hidden here so it only ever appears when the
+            // texture-displacement gizmo asks for it.
+            if (wxAuiPaneInfo &uv_pane = m_aui_mgr.GetPane("uv_editor"); uv_pane.IsOk())
+                uv_pane.Hide();
 
             sidebar_layout.is_collapsed = !sidebar.IsShown();
         }
@@ -12637,7 +12766,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
             sidebar->auto_calc_flushing_volumes(idx);
         }
         auto select_flag = combo->GetFlag(selection);
-        combo->ShowBadge(select_flag == (int)PresetComboBox::FilamentAMSType::FROM_AMS);
+        combo->set_sync_badge(select_flag == (int)PresetComboBox::FilamentAMSType::FROM_AMS);
         q->on_filament_change(idx);
     }
     bool select_preset = !combo->selection_is_changed_according_to_physical_printers();
@@ -14909,8 +15038,25 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
     BOOST_LOG_TRIVIAL(info) << "Undo / Redo snapshot taken: " << snapshot_name << ", Undo / Redo stack memory: " << Slic3r::format_memsize_MB(this->undo_redo_stack().memsize()) << log_memory_info();
 }
 
+// A background job holds the model it is working on: the texture displacement bake, for one, hands its
+// result to the volume when it finishes, and it was queued against the geometry as it was at the time.
+// Undoing while it runs restores an older state under it - a different transform, a different mesh -
+// and the result then lands on geometry it was never computed for. Undo and redo therefore wait for
+// the job, and say so rather than doing nothing.
+bool Plater::priv::undo_redo_blocked_by_job()
+{
+    if (m_worker.is_idle())
+        return false;
+    notification_manager->push_notification(NotificationType::CustomNotification,
+                                            NotificationManager::NotificationLevel::RegularNotificationLevel,
+                                            _u8L("Cannot undo or redo while an operation is running. Stop it first."));
+    return true;
+}
+
 void Plater::priv::undo()
 {
+    if (this->undo_redo_blocked_by_job())
+        return;
     const std::vector<UndoRedo::Snapshot> &snapshots = this->undo_redo_stack().snapshots();
     auto it_current = std::lower_bound(snapshots.begin(), snapshots.end(), UndoRedo::Snapshot(this->undo_redo_stack().active_snapshot_time()));
     // BBS: undo-redo until modify record
@@ -14928,6 +15074,8 @@ void Plater::priv::undo()
 
 void Plater::priv::redo()
 {
+    if (this->undo_redo_blocked_by_job())
+        return;
     const std::vector<UndoRedo::Snapshot> &snapshots = this->undo_redo_stack().snapshots();
     auto it_current = std::lower_bound(snapshots.begin(), snapshots.end(), UndoRedo::Snapshot(this->undo_redo_stack().active_snapshot_time()));
     // BBS: undo-redo until modify record
@@ -16573,7 +16721,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
 
-    /// --- scale ---
+    /// -- scale --
     // model is created for a 0.4 nozzle, scale z with nozzle size.
     const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
     std::vector<int> extruder_types         = printer_config->option<ConfigOptionEnumsGeneric>("extruder_type")->values;
@@ -17064,11 +17212,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_jerk", 0);
     }
 
-    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
-        set_config_values<bool, ConfigOptionBools>(filament_config, "enable_pressure_advance", true);
-        set_config_values<double, ConfigOptionFloatsNullable>(filament_config, "pressure_advance", 0.0);
-        set_config_values<bool, ConfigOptionBools>(filament_config, "adaptive_pressure_advance", false);
-    }
+    zero_pressure_advance_where_disabled(filament_config);
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{false});
@@ -17130,11 +17274,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_jerk", 0);
     }
 
-    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
-        set_config_values<bool, ConfigOptionBools>(filament_config, "enable_pressure_advance", true);
-        set_config_values<double, ConfigOptionFloatsNullable>(filament_config, "pressure_advance", 0.0);
-        set_config_values<bool, ConfigOptionBools>(filament_config, "adaptive_pressure_advance", false);
-    }
+    zero_pressure_advance_where_disabled(filament_config);
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{false});
@@ -17196,11 +17336,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
         set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_jerk", 0);
     }
 
-    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
-        set_config_values<bool, ConfigOptionBools>(filament_config, "enable_pressure_advance", true);
-        set_config_values<double, ConfigOptionFloatsNullable>(filament_config, "pressure_advance", 0.0);
-        set_config_values<bool, ConfigOptionBools>(filament_config, "adaptive_pressure_advance", false);
-    }
+    zero_pressure_advance_where_disabled(filament_config);
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{true});
@@ -21062,6 +21198,33 @@ GLCanvas3D* Plater::get_assmeble_canvas3D()
     return nullptr;
 }
 
+UVEditorCanvas* Plater::get_uv_editor_canvas()
+{
+    return p->uv_editor_canvas;
+}
+
+void Plater::show_uv_editor(bool show)
+{
+    if (p->uv_editor_panel == nullptr)
+        return;
+    const wxAuiPaneInfo &pane = p->m_aui_mgr.GetPane(p->uv_editor_panel);
+    if (!pane.IsOk() || pane.IsShown() == show)
+        return;
+
+    // Deferred, because GLGizmoTextureDisplacement calls this from its ImGui panel - that is, from
+    // the middle of the 3D canvas's GL frame. Showing an AUI pane re-lays out the window and
+    // delivers the resulting size/paint events synchronously, and the UV canvas painting itself
+    // makes its own surface current in the app's *shared* GL context, which mid-frame is the one
+    // the 3D canvas is drawing into. Doing the layout once the frame is over avoids that entirely.
+    CallAfter([this, show]() {
+        wxAuiPaneInfo &deferred_pane = p->m_aui_mgr.GetPane(p->uv_editor_panel);
+        if (!deferred_pane.IsOk() || deferred_pane.IsShown() == show)
+            return;
+        deferred_pane.Show(show);
+        p->m_aui_mgr.Update();
+    });
+}
+
 GLCanvas3D* Plater::get_current_canvas3D(bool exclude_preview)
 {
     return p->get_current_canvas3D(exclude_preview);
@@ -21323,9 +21486,14 @@ bool Plater::is_same_printer_for_connected_and_selected(bool popup_warning)
     }
     if (!check_printer_initialized(obj, true, popup_warning))
         return false;
-    Preset *      machine_preset     = get_printer_preset(obj);
-    if (!machine_preset)
+    const std::string machine_model = obj->printer_type;
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    const std::string selected_model = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
+    if (!DevPrinterConfigUtil::is_optional_printer_model_id(machine_model) &&
+        !DevPrinterConfigUtil::is_optional_printer_model_id(selected_model) &&
+        !get_printer_preset(obj)) {
         return false;
+    }
 
     if (wxGetApp().is_blocking_printing()) {
         if (popup_warning) {
@@ -22796,8 +22964,9 @@ bool Plater::can_copy_to_clipboard() const
     return true;
 }
 
-bool Plater::can_undo() const { return IsShown() && p->is_view3D_shown() && p->undo_redo_stack().has_undo_snapshot(); }
-bool Plater::can_redo() const { return IsShown() && p->is_view3D_shown() && p->undo_redo_stack().has_redo_snapshot(); }
+// The job check keeps the buttons in step with priv::undo()/redo(), which refuse while one runs.
+bool Plater::can_undo() const { return IsShown() && p->is_view3D_shown() && p->m_worker.is_idle() && p->undo_redo_stack().has_undo_snapshot(); }
+bool Plater::can_redo() const { return IsShown() && p->is_view3D_shown() && p->m_worker.is_idle() && p->undo_redo_stack().has_redo_snapshot(); }
 bool Plater::can_reload_from_disk() const { return p->can_reload_from_disk(); }
 //BBS
 bool Plater::can_fillcolor() const { return p->can_fillcolor(); }

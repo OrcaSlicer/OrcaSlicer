@@ -9451,6 +9451,10 @@ void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
         }
         config.set_key_value("wiping_volumes_use_custom_matrix", new ConfigOptionBool(custom));
     }
+
+    // Orca: a config saved before a key joined filament_options_with_variant stores it once per filament
+    // rather than once per filament variant, and one exported by an older CLI may store a single value.
+    normalize_filament_values_to_variants(config);
 }
 
 const PrintConfigDef print_config_def;
@@ -9553,6 +9557,23 @@ std::set<std::string> filament_options_with_variant = {
     "filament_ironing_spacing",
     "filament_ironing_inset",
     "filament_ironing_speed",
+    // Orca: pressure advance
+    "enable_pressure_advance",
+    "pressure_advance",
+    "adaptive_pressure_advance",
+    "adaptive_pressure_advance_model",
+    "adaptive_pressure_advance_overhangs",
+    "adaptive_pressure_advance_bridges",
+    // Orca: cooling fans, multi-tool ramming and recommended nozzle temperature range
+    "fan_min_speed",
+    "fan_max_speed",
+    "additional_cooling_fan_speed",
+    "filament_minimal_purge_on_wipe_tower",
+    "filament_multitool_ramming",
+    "filament_multitool_ramming_volume",
+    "filament_multitool_ramming_flow",
+    "nozzle_temperature_range_low",
+    "nozzle_temperature_range_high",
     "activate_air_filtration",
     "activate_air_filtration_during_print",
     "activate_air_filtration_on_completion",
@@ -10783,6 +10804,25 @@ void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVect
     target.set_to_index(&source, indices, stride);
 }
 
+void normalize_filament_values_to_variants(DynamicPrintConfig &config)
+{
+    const auto *self_index = config.option<ConfigOptionInts>("filament_self_index");
+    if (self_index == nullptr || self_index->empty())
+        return;
+    const int filament_count = *std::max_element(self_index->values.begin(), self_index->values.end());
+    if (filament_count <= 0 || size_t(filament_count) >= self_index->size())
+        return;
+    for (const std::string &key : filament_options_with_variant) {
+        auto *opt = dynamic_cast<ConfigOptionVectorBase *>(config.option(key));
+        if (opt == nullptr || (opt->size() != size_t(filament_count) && opt->size() != 1))
+            continue;
+        std::unique_ptr<ConfigOption> per_filament(opt->clone());
+        // set_at() takes the first value for a filament past the end of a single-value vector
+        for (size_t variant = 0; variant < self_index->size(); ++variant)
+            opt->set_at(per_filament.get(), variant, self_index->values[variant] - 1);
+    }
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11999,6 +12039,21 @@ PRINT_CONFIG_CACHE_INITIALIZE((
     SLAMaterialConfig, SLAPrintConfig, SLAPrintObjectConfig, SLAPrinterConfig, SLAFullPrintConfig))
 static int print_config_static_initialized = print_config_static_initializer();
 
+// The same set() calls ConfigBase::apply_only() makes, without looking every key up by name. Out of line so the
+// option list is expanded for this once, not in every file that includes PrintConfig.hpp.
+#define PRINT_CONFIG_APPLY_TO_DEFINITION(r, data, CLASS_NAME) \
+    bool CLASS_NAME::apply_to(ConfigBase &target) const \
+    { \
+        auto *dst = dynamic_cast<CLASS_NAME*>(&target); \
+        if (dst == nullptr) \
+            return false; \
+        visit_option_pairs(*dst, *this, [](const char*, ConfigOption &a, const ConfigOption &b) { a.set(&b); return true; }); \
+        return true; \
+    }
+BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_APPLY_TO_DEFINITION, _, (PrintObjectConfig)(PrintRegionConfig)(MachineEnvelopeConfig)(GCodeConfig)
+    (SLAMaterialConfig)(SLAPrintConfig)(SLAPrintObjectConfig)(SLAPrinterConfig))
+#undef PRINT_CONFIG_APPLY_TO_DEFINITION
+
 //BBS: remove unused command currently
 CLIActionsConfigDef::CLIActionsConfigDef()
 {
@@ -12636,6 +12691,7 @@ OtherSlicingStatesConfigDef::OtherSlicingStatesConfigDef()
 
     new_def("initial_no_support_extruder", coInt, "Initial no support extruder", "Zero-based index of the first extruder used for printing without support. Same as initial_no_support_tool.");
     new_def("in_head_wrap_detect_zone", coBool, "In head wrap detect zone", "Indicates if the first layer overlaps with the head wrap zone.");
+    new_def("curr_bed_type", coString, "Current bed type", "Name of the currently selected bed plate type (e.g. 'Textured PEI Plate', 'Smooth High Temp Plate').");
 }
 
 PrintStatisticsConfigDef::PrintStatisticsConfigDef()

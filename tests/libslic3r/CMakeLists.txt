@@ -17,8 +17,10 @@ add_executable(${_TEST_NAME}_tests
     test_config.cpp
     test_config_variant_expansion.cpp
     test_machine_filament_overrides.cpp
+    test_locales_utils.cpp
     test_drc.cpp
     test_toolordering_nozzle_group.cpp
+    test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp
@@ -45,6 +47,7 @@ add_executable(${_TEST_NAME}_tests
     test_lay_on_face.cpp
     test_model.cpp
     test_utils.cpp
+    test_miniz_extension.cpp
     test_timeutils.cpp
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
@@ -54,6 +57,7 @@ add_executable(${_TEST_NAME}_tests
     test_ordering_strategies.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
+    test_texture_displacement.cpp
     ../libnest2d/printer_parts.cpp
     )
 

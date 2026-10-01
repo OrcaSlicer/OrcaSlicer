@@ -13,6 +13,7 @@
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
+#include "libslic3r/Fill/FillGyroid.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -747,6 +748,61 @@ TEST_CASE("A region with ironing turned off is never ironed", "[Fill]")
     REQUIRE(Layer::choose_ironing_extruder(cfg, spiral_mode, /*is_topmost_layer=*/true) == -1);
 }
 
+// Ironing path count and total length in mm, over the whole object.
+static std::pair<size_t, double> ironing_extent(const Print &print)
+{
+    size_t paths  = 0;
+    double length = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (ironing_role(entity->role())) {
+                    ++paths;
+                    length += unscale<double>(entity->length());
+                }
+    return {paths, length};
+}
+
+TEST_CASE("Ironing spacing below the minimum irons at the minimum spacing", "[Fill]")
+{
+    const std::string pattern      = GENERATE("rectilinear", "concentric");
+    const bool        via_filament = GENERATE(false, true);
+    const double      spacing      = GENERATE(0., 0.001);
+    CAPTURE(pattern, via_filament, spacing);
+
+    auto ironing_for = [&pattern, via_filament](double spacing) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"ironing_type", "top"},
+                                       {"ironing_pattern", pattern},
+                                       {"layer_height", 0.2}});
+        // The filament override replaces the process spacing, which stays at a usable value.
+        if (via_filament)
+            config.set_deserialize_strict({{"ironing_spacing", 0.1}, {"filament_ironing_spacing", spacing}});
+        else
+            config.set_deserialize_strict({{"ironing_spacing", spacing}});
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print, config);
+        return ironing_extent(print);
+    };
+
+    const std::pair<size_t, double> clamped = ironing_for(spacing);
+    const std::pair<size_t, double> minimum = ironing_for(IRONING_SPACING_MIN);
+    REQUIRE(minimum.first > 0);
+    CHECK(clamped.first == minimum.first);
+    CHECK_THAT(clamped.second, Catch::Matchers::WithinRel(minimum.second, 1e-9));
+}
+
+TEST_CASE("Concentric fill at zero spacing returns without paths", "[Fill]")
+{
+    std::unique_ptr<Fill> filler(Fill::new_from_type(ipConcentric));
+    filler->spacing      = 0.;
+    filler->bounding_box = BoundingBox(Point(0, 0), Point::new_scale(10, 10));
+    FillParams params;
+    params.density = 1.f;
+    Surface surface(stTop, ExPolygon({Point(0, 0), Point::new_scale(10, 0), Point::new_scale(10, 10), Point::new_scale(0, 10)}));
+    CHECK(filler->fill_surface(&surface, params).empty());
+}
+
 TEST_CASE("Solid infill direction offsets every layer when no template is set", "[Fill]")
 {
     auto angles_for = [](int direction) {
@@ -1254,6 +1310,61 @@ TEST_CASE("Multiline infill of an object matches the infill of a larger object w
         const Polylines reference = fill(larger, layer_id);
         CHECK(farthest(reference, walls) < 0.01);
         CHECK(farthest(walls, reference) < 0.01);
+    }
+}
+
+TEST_CASE("Gyroid infill of an object matches the infill of a larger object with the same center", "[Fill]")
+{
+    const bool   optimized = GENERATE(false, true);
+    const int    multiline = GENERATE(1, 2);
+    const float  density   = GENERATE(0.05f, 0.2f);
+    const double spacing   = 0.45;
+    CAPTURE(optimized, multiline, density);
+
+    auto circle = [](double radius) {
+        Polygon contour = make_circle_num_segments(scale_(radius), 120);
+        contour.translate(Point::new_scale(100., 60.));
+        return ExPolygon(std::move(contour));
+    };
+    const ExPolygon object = circle(20.);
+    const ExPolygon larger = circle(30.);
+    auto fill = [optimized, multiline, density, spacing](const ExPolygon &region, double z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(ipGyroid));
+        filler->spacing = spacing;
+        filler->angle   = float(M_PI / 7.);
+        filler->z       = z;
+
+        FillParams params;
+        params.density          = density;
+        params.multiline        = multiline;
+        params.gyroid_optimized = optimized;
+        params.dont_adjust      = true;
+        Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary of the object, where both are clipped and connected the same way.
+    const Polygons inner = shrink(to_polygons(object), scale_(1.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+
+    // Marching squares simplifies rings that start elsewhere in each object.
+    const double tolerance = optimized ? SPARSE_INFILL_RESOLUTION + 0.01 : 0.01;
+    // Half a z period of the waves, through both switches between horizontal and vertical waves.
+    const double wave_distance = spacing * multiline / (density * FillGyroid::DensityAdjust);
+    for (int step = 0; step <= 8; ++step) {
+        const double z = wave_distance * M_PI * step / 8.;
+        CAPTURE(z);
+        const Polylines paths = fill(object, z);
+        REQUIRE_FALSE(paths.empty());
+        const Polylines reference = fill(larger, z);
+        CHECK(farthest(reference, paths) < tolerance);
+        CHECK(farthest(paths, reference) < tolerance);
     }
 }
 

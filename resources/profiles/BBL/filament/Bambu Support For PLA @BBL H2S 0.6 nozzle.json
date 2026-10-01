@@ -6,6 +6,8 @@
     "setting_id": "GFSS02_39",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "75",
+        "75",
         "75"
     ],
     "eng_plate_temp": [
@@ -15,9 +17,13 @@
         "55"
     ],
     "fan_max_speed": [
+        "80",
+        "80",
         "80"
     ],
     "fan_min_speed": [
+        "60",
+        "60",
         "60"
     ],
     "filament_cooling_before_tower": [

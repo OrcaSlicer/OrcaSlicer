@@ -18,7 +18,7 @@
 
 namespace Slic3r {
 
-CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
+CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
 {
     this->reset(gcodegen.writer().get_position());
 
@@ -737,10 +737,12 @@ std::string CoolingBuffer::apply_layer_cooldown(
         &ironing_fan_control, &ironing_fan_speed
     ](bool immediately_apply) {
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
-        float fan_min_speed = EXTRUDER_CONFIG(fan_min_speed);
+        // The per-variant options take the extruder variant the filament prints with on this layer
+        const size_t config_index = m_gcodegen.get_filament_config_index(m_current_extruder, layer_id);
+        float fan_min_speed = m_config.fan_min_speed.get_at(config_index);
         float fan_speed_new = EXTRUDER_CONFIG(reduce_fan_stop_start_freq) ? fan_min_speed : 0;
         //BBS
-        int additional_fan_speed_new = EXTRUDER_CONFIG(additional_cooling_fan_speed);
+        int additional_fan_speed_new = m_config.additional_cooling_fan_speed.get_at(config_index);
         int close_fan_the_first_x_layers = EXTRUDER_CONFIG(close_fan_the_first_x_layers);
         // Is the fan speed ramp enabled?
         int full_fan_speed_layer = EXTRUDER_CONFIG(full_fan_speed_layer);
@@ -776,7 +778,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
             // additional_fan_speed_new is left at its configured value (auxiliary fan is independent of the
             // part-cooling override).
         } else if (int(layer_id) >= close_fan_the_first_x_layers) {
-            float   fan_max_speed             = EXTRUDER_CONFIG(fan_max_speed);
+            float   fan_max_speed             = m_config.fan_max_speed.get_at(config_index);
             float slow_down_layer_time = float(EXTRUDER_CONFIG(slow_down_layer_time));
             float fan_cooling_layer_time      = float(EXTRUDER_CONFIG(fan_cooling_layer_time));
             //BBS: always enable the fan speed interpolation according to layer time

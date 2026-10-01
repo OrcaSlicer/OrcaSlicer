@@ -281,6 +281,8 @@ public:
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
     std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
+    // Sets the pressure advance of the filament's extruder variant, if enabled for it.
+    std::string     set_filament_pressure_advance(unsigned int filament_id);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 
@@ -294,6 +296,9 @@ public:
     // resolver keys filament-indexed arrays, the nozzle resolver keys (extruder x volume-type)
     // slot arrays. Both degenerate to filament_id / extruder index on single-volume printers.
     size_t get_filament_config_index(int filament_id) const;
+    // The filament resolver for a given layer, for the export pipeline stages after the generator,
+    // which run behind the current layer and concurrently with the generator.
+    size_t get_filament_config_index(int filament_id, size_t layer_id) const;
     size_t get_nozzle_config_index(int filament_id) const;
 
     // Object and support extrusions of the same PrintObject at the same print_z.

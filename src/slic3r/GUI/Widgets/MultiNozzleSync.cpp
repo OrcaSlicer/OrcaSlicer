@@ -1,5 +1,6 @@
 #include "MultiNozzleSync.hpp"
 
+#include "../GUI.hpp"
 #include "../GUI_App.hpp"
 #include "../I18N.hpp"
 #include "../Plater.hpp"
@@ -21,8 +22,6 @@
 #include <set>
 
 #include <wx/choice.h>
-#include <wx/filename.h>
-#include <wx/filesys.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -641,8 +640,7 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
     m_web_view->AddScriptMessageHandler("nozzleListTable");
     m_web_view->EnableContextMenu(false);
     fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
-    wxFileName fn(wxString::FromUTF8(filepath.string()));
-    wxString url = wxFileSystem::FileNameToURL(fn);
+    wxString url = file_url_from_path(filepath);
     m_web_view->LoadURL(url);
 
     auto sizer = new wxBoxSizer(wxVERTICAL);

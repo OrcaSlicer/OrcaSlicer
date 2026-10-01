@@ -83,6 +83,7 @@ constexpr const char* ORCA_UNSUBSCRIBE_PLUGINS = "/api/v1/plugins/subscriptions"
 constexpr const char* ORCA_PLUGINS_MINE        = "/api/v1/plugins/mine";
 constexpr const char* ORCA_PLUGINS_BASE        = "/api/v1/plugins";
 constexpr const char* ORCA_PLUGIN_DOWNLOAD_URL = "/api/v1/plugins/download";
+constexpr const char* ORCA_CLOUD_PRINTER       = "/api/v1/printers";
 
 constexpr const char* ORCA_CLOUD_LOGIN_PATH = "/orcaslicer-login";
 
@@ -818,7 +819,9 @@ int OrcaCloudServiceAgent::user_logout(bool request)
         }
     }
 
-    clear_session();
+    // An explicit logout also wipes the backend the token storage option is not using, so a token
+    // stranded by switching that option cannot sign the account back in later.
+    clear_session(/*all_backends=*/request);
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -1603,7 +1606,9 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
         }
     }
 
-    (void) stored;
+    if (stored) {
+        secret_stored = true;
+    }
 }
 
 bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
@@ -1643,6 +1648,7 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
                 }
 
                 if (integrity_ok && aes256gcm_decrypt(encoded_payload, key, plain) && !plain.empty()) {
+                    secret_stored = true;
                     out_secret = plain;
                     // Upgrade legacy payloads to signed format
                     if (payload.rfind("v2:", 0) != 0) {
@@ -1660,6 +1666,7 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
             if (store.Load(SECRET_STORE_SERVICE, username, secret) && secret.IsOk()) {
                 out_secret.assign(static_cast<const char*>(secret.GetData()), secret.GetSize());
                 if (!out_secret.empty()) {
+                    secret_stored = true;
                     return true;
                 }
             }
@@ -1669,11 +1676,20 @@ bool OrcaCloudServiceAgent::load_user_secret(std::string& out_secret)
     return false;
 }
 
-void OrcaCloudServiceAgent::clear_user_secret()
+void OrcaCloudServiceAgent::clear_user_secret(bool all_backends)
 {
-    wxSecretStore store = wxSecretStore::GetDefault();
-    if (store.IsOk()) {
-        store.Delete(SECRET_STORE_SERVICE);
+    // Nothing this process loaded or saved: leave the store alone. Deleting would only cost a
+    // keychain round trip (or a hang while the keychain is unresponsive) and could remove a
+    // login another instance just saved.
+    if (!secret_stored.exchange(false) && !all_backends) {
+        return;
+    }
+
+    if (all_backends || !m_use_encrypted_token_file) {
+        wxSecretStore store = wxSecretStore::GetDefault();
+        if (store.IsOk()) {
+            store.Delete(SECRET_STORE_SERVICE);
+        }
     }
 
     compute_fallback_path();
@@ -2022,13 +2038,13 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
     return success;
 }
 
-void OrcaCloudServiceAgent::clear_session()
+void OrcaCloudServiceAgent::clear_session(bool all_backends)
 {
     {
         std::lock_guard<std::mutex> lock(session_mutex);
         session = SessionInfo{};
     }
-    clear_user_secret();
+    clear_user_secret(all_backends);
 }
 
 // ============================================================================
@@ -2623,11 +2639,51 @@ int OrcaCloudServiceAgent::check_user_task_report(int* task_id, bool* printable)
 
 int OrcaCloudServiceAgent::get_user_print_info(unsigned int* http_code, std::string* http_body)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_user_print_info (stub)";
+    std::string response;
+    unsigned int code = 0;
+    int result = http_get(ORCA_CLOUD_PRINTER, &response, &code);
+
     if (http_code)
-        *http_code = 200;
-    if (http_body)
-        *http_body = "{}";
+        *http_code = code;
+
+    if (result != 0 || code != 200)
+        return result != 0 ? result : BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
+
+    try {
+        auto resp_json = nlohmann::json::parse(response);
+        nlohmann::json devices = nlohmann::json::array();
+
+        for (const auto& printer : resp_json.value("data", nlohmann::json::array())) {
+            const std::string role = printer.value("access_role", "");
+            if (role.empty() || role == "viewer")
+                continue;
+
+            nlohmann::json device;
+            device["dev_id"]   = printer.value("id", "");
+            device["dev_name"] = printer.value("name", "");
+            if (printer.contains("model") && printer["model"].is_string())
+                device["dev_model_name"] = printer["model"].get<std::string>();
+
+            bool online = false;
+            if (printer.contains("status_snapshot") && printer["status_snapshot"].is_object()) {
+                const auto& status = printer["status_snapshot"].value("status", nlohmann::json::object());
+                online = status.value("connection", nlohmann::json::object()).value("state", "") == "online";
+                if (status.contains("job") && status["job"].is_object())
+                    device["task_status"] = status["job"].value("state", "");
+            }
+            device["dev_online"] = online;
+            devices.push_back(std::move(device));
+        }
+
+        if (http_body) {
+            nlohmann::json out;
+            out["devices"] = std::move(devices);
+            *http_body = out.dump();
+        }
+    } catch (const std::exception&) {
+        return BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
+    }
+
     return BAMBU_NETWORK_SUCCESS;
 }
 

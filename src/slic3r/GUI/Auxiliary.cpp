@@ -428,7 +428,7 @@ void AuFile::on_dclick(wxMouseEvent &evt)
     if (m_type == AddFileButton)
         return;
     else
-        wxLaunchDefaultApplication(m_file_path.wstring(), 0);
+        desktop_open_project_attachment(this, m_file_path);
 }
 
 void AuFile::on_mouse_left_up(wxMouseEvent &evt)
