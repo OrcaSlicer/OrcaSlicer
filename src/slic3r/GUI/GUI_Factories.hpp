@@ -2,6 +2,7 @@
 #define slic3r_GUI_Factories_hpp_
 
 #include <map>
+#include <memory>
 #include <vector>
 #include <array>
 #include <cstddef>
@@ -120,12 +121,21 @@ private:
     MenuWithSeparators m_assemble_part_menu;
 
     wxMenu m_filament_action_menu;
+
+    // The selection dependent menus are rebuilt for every popup, so they cannot be members that
+    // outlive a build like the ones above; this owns the current one and destroys the previous.
+    // One slot is enough because PopupMenu() is synchronous: the menu a caller was handed is gone
+    // from the screen before anything can ask for the next one.
+    std::unique_ptr<MenuWithSeparators> m_transient_menu;
    
 
     // Removed/Prepended Items according to the view mode
     std::array<wxMenuItem*, mtCount> items_increase;
     std::array<wxMenuItem*, mtCount> items_decrease;
     std::array<wxMenuItem*, mtCount> items_set_number_of_copies;
+
+    // Replaces m_transient_menu with an empty menu and returns it.
+    MenuWithSeparators* new_transient_menu();
 
     void        create_default_menu();
     void        create_common_object_menu(wxMenu *menu);
