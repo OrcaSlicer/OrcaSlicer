@@ -1,0 +1,27 @@
+# Reports the newest push build of main that was not cancelled, for the README badge.
+name: Main build status
+
+on:
+  workflow_run:
+    workflows: ["Build all"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+
+jobs:
+  status:
+    if: github.repository == 'OrcaSlicer/OrcaSlicer'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in 1 2 3; do
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/workflows/build_all.yml/runs?branch=main&event=push&status=completed&per_page=100" \
+              --jq '[.workflow_runs[] | select(.conclusion != "cancelled")][0].conclusion') && break
+            sleep 10
+          done
+          echo "Latest finished push build of main: $conclusion"
+          [ "$conclusion" = success ]
