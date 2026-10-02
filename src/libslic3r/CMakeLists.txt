@@ -649,11 +649,8 @@ find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
 set(OCCT_LIBS
-    TKXDESTEP
-    TKSTEP
-    TKSTEP209
-    TKSTEPAttr
-    TKSTEPBase
+    TKDESTEP
+    TKDE
     TKXCAF
     TKXSBase
     TKVCAF
@@ -700,6 +697,19 @@ if (SLIC3R_CAD)
 endif ()
 # Published for the Windows packaging step in the top-level CMakeLists.txt.
 set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
+if (WIN32)
+    # OCCT installs a RelWithDebInfo or Debug build to bin/occti or bin/occtd, so the DLL
+    # directory is read from the imported target, preferring the configuration being built.
+    get_target_property(_occt_configs TKernel IMPORTED_CONFIGURATIONS)
+    list(GET _occt_configs 0 _occt_config)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" _build_config)
+    if (_build_config IN_LIST _occt_configs)
+        set(_occt_config ${_build_config})
+    endif ()
+    get_target_property(_occt_dll TKernel IMPORTED_LOCATION_${_occt_config})
+    get_filename_component(_occt_bin "${_occt_dll}" DIRECTORY)
+    set(OCCT_BIN_DIR "${_occt_bin}" CACHE INTERNAL "Directory holding the OCCT DLLs libslic3r links")
+endif ()
 
 target_link_libraries(libslic3r
     PUBLIC

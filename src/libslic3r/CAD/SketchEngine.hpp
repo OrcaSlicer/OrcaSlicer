@@ -7,6 +7,7 @@
 
 #include <gp_Pln.hxx>
 #include <gp_Ax3.hxx>
+#include <gp_Vec.hxx>
 #include <TopoDS_Wire.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
@@ -227,6 +228,8 @@ struct SketchParams {
 class SketchEngine
 {
 public:
+    // Throws on a zero vector, for which OCCT returns a degenerate solid.
+    static TopoDS_Shape make_prism(const TopoDS_Shape& base, const gp_Vec& vec);
     static TopoDS_Shape make_extrude(const TopoDS_Wire& wire, const SketchPlane& plane,
                                      double length, bool symmetric = false, double taper_deg = 0.0);
     static TopoDS_Shape make_extrude(const TopoDS_Face& face, const SketchPlane& plane,
