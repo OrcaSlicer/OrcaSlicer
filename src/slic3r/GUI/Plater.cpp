@@ -6,6 +6,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
+#include <boost/assert/source_location.hpp>
 #include <boost/optional/optional.hpp>
 #include <cmath>
 #include <boost/algorithm/string/join.hpp>

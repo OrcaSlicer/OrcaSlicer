@@ -11,6 +11,7 @@
 #include <slic3r/GUI/Widgets/SideTools.hpp>
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <slic3r/GUI/I18N.hpp>
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <unordered_map>
 #include <wx/string.h>

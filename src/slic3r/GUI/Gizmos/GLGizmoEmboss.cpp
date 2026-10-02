@@ -75,6 +75,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include <cfloat>
+#include <wx/string.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif

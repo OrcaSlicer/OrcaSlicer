@@ -1,6 +1,7 @@
 #include "StaticBox.hpp"
 #include "../GUI.hpp"
 #include <utility>
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/colour.h>
 #include <wx/dc.h>

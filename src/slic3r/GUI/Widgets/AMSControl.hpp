@@ -9,6 +9,7 @@
 #include "../DeviceManager.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/AmsMappingPopup.hpp"
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
 #include <string>

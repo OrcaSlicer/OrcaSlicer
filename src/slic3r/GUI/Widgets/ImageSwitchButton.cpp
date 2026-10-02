@@ -4,6 +4,7 @@
 #include "../wxExtensions.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <utility>
 #include <wx/checklst.h>

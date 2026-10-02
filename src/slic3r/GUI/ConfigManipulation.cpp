@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace GUI {

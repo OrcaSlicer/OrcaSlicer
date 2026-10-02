@@ -16,6 +16,7 @@
 #include "Widgets/TextInput.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <vector>
 #include <wx/checklst.h>

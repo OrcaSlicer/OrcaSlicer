@@ -34,6 +34,7 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include <wx/notebook.h>
+#include <wx/string.h>
 #include <wx/wx.h>
 #include <wx/treebase.h>
 #include <wx/simplebook.h>

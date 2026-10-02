@@ -1,9 +1,13 @@
 #ifndef slic3r_GUI_ObjectTableSettings_hpp_
 #define slic3r_GUI_ObjectTableSettings_hpp_
 
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include "wxExtensions.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
