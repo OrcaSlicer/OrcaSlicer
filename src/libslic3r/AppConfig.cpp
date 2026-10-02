@@ -206,6 +206,13 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // what the preview draws while the user drags it
+    {
+        const std::string mode = get("preview_reduced_detail_mode");
+        if (mode != "off" && mode != "solid" && mode != "shell")
+            set("preview_reduced_detail_mode", "off");
+    }
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);

@@ -114,6 +114,19 @@ public:
     //
     bool is_dim_previous_layers() const;
     void set_dim_previous_layers(bool value);
+    //
+    // The reduced set drawn while the user drags: what the mode keeps, and always the bottom and
+    // top layers of the visible range. While a mode is set it is built alongside the full set, so
+    // set_reduced_detail() rebuilds nothing. Ignored on the OpenGL ES path.
+    //
+    EReducedDetailMode get_reduced_detail_mode() const;
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    // Whether the shell mode hides the infill roles; off for a profile that leaves them on the
+    // surface, with no top or bottom shell or no walls.
+    bool get_reduced_detail_hide_infill() const;
+    void set_reduced_detail_hide_infill(bool value);
+    void set_reduced_detail(bool value);
+    bool is_reduced_detail() const;
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
     //
