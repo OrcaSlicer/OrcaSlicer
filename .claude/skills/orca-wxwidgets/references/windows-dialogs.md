@@ -428,7 +428,8 @@ this function does *not* show it", top-level windows only (`interface/wx/window.
 since 3.3 (`docs/changes.txt:144-146`). **[source]** MSW = `::SetForegroundWindow`, subject to the
 foreground lock — Windows may only flash the taskbar button (`src/msw/toplevel.cpp:650-655`); GTK =
 `gtk_window_present` only if shown (`src/gtk/toplevel.cpp:1301-1310`; during a deferred X11 first show it
-already counts as shown); macOS = `makeKeyAndOrderFront` only if shown (`src/osx/nonownedwnd_osx.cpp:289-295`, `src/osx/cocoa/nonownedwnd.mm:896-899`).
+already counts as shown); macOS = `makeKeyAndOrderFront` only if shown (`src/osx/nonownedwnd_osx.cpp:289-295`, `src/osx/cocoa/nonownedwnd.mm:897-899`),
+which also makes a `wxPopupWindow` the key window — never `Raise()` a popup (`references/popups-menus.md` §5, §10).
 
 **Enable.** `Enable(false)` on a parent disables children logically: `IsEnabled()` reflects ancestors,
 `IsThisEnabled()` the window's own flag (`interface/wx/window.h:3060-3070, 3116-3138`). **[source]** On MSW/macOS wx
