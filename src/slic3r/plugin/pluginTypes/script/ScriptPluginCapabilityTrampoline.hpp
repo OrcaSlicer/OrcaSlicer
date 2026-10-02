@@ -13,7 +13,6 @@ public:
     ExecutionResult execute() override
     {
         ORCA_PY_OVERRIDE_AUDITED(
-            ::Slic3r::PluginAuditManager::AuditMode::Loading,
             [] {},
             PYBIND11_OVERRIDE_PURE,
             ExecutionResult,

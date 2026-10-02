@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <regex>
@@ -775,7 +776,9 @@ double ConfigBase::get_abs_value(const t_config_option_key &opt_key, double rati
 {
     // Get stored option value.
     const ConfigOption *raw_opt = this->option(opt_key);
-    assert(raw_opt != nullptr);
+    // Mirror the single-arg overload — assert() is a no-op under NDEBUG.
+    if (raw_opt == nullptr)
+        throw ConfigurationError("ConfigBase::get_abs_value(): \"" + opt_key + "\" is not defined");
     if (raw_opt->type() != coFloatOrPercent)
         throw ConfigurationError("ConfigBase::get_abs_value(): opt_key is not of coFloatOrPercent");
     // Compute absolute value.
@@ -846,6 +849,19 @@ ConfigSubstitutions ConfigBase::load_from_json(const std::string &file, ForwardC
     return std::move(substitutions_ctxt.substitutions);
 }
 
+// Case-insensitive compare of a JSON key against a fixed ASCII one, without
+// boost::iequals, whose std::locale() takes a lock the whole process shares in the
+// MSVC runtime.
+static bool ascii_iequals(const std::string &key, const char *literal)
+{
+    auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
+    size_t i = 0;
+    for (; i < key.size() && literal[i] != '\0'; ++ i)
+        if (lower(key[i]) != lower(literal[i]))
+            return false;
+    return i == key.size() && literal[i] == '\0';
+}
+
 int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason)
 {
     json j;
@@ -913,41 +929,44 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
         }
         //parse the json elements
         for (auto it = j.begin(); it != j.end(); it++) {
-            if (boost::iequals(it.key(),BBL_JSON_KEY_VERSION)) {
+            if (ascii_iequals(it.key(), BBL_JSON_KEY_VERSION)) {
                 key_values.emplace(BBL_JSON_KEY_VERSION, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_IS_CUSTOM)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_IS_CUSTOM)) {
                 //skip it
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_NAME)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_NAME)) {
                 key_values.emplace(BBL_JSON_KEY_NAME, it.value());
                 if (it.value() == "project_settings")
                     is_project_settings = true;
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_URL)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_URL)) {
                 key_values.emplace(BBL_JSON_KEY_URL, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_TYPE)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_TYPE)) {
                 key_values.emplace(BBL_JSON_KEY_TYPE, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_SETTING_ID)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_SETTING_ID)) {
                 key_values.emplace(BBL_JSON_KEY_SETTING_ID, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_FILAMENT_ID)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_FILAMENT_ID)) {
                 key_values.emplace(BBL_JSON_KEY_FILAMENT_ID, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_FROM)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_FROM)) {
                 key_values.emplace(BBL_JSON_KEY_FROM, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_DESCRIPTION)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_DESCRIPTION)) {
                 key_values.emplace(BBL_JSON_KEY_DESCRIPTION, it.value());
             }
-            else if (boost::iequals(it.key(), BBL_JSON_KEY_INSTANTIATION)) {
+            else if (ascii_iequals(it.key(), BBL_JSON_KEY_INSTANTIATION)) {
                 key_values.emplace(BBL_JSON_KEY_INSTANTIATION, it.value());
             }
-            else if (!load_inherits_to_config && boost::iequals(it.key(), BBL_JSON_KEY_INHERITS)) {
+            else if (!load_inherits_to_config && ascii_iequals(it.key(), BBL_JSON_KEY_INHERITS)) {
                 key_values.emplace(BBL_JSON_KEY_INHERITS, it.value());
-            } else if (boost::iequals(it.key(), ORCA_JSON_KEY_RENAMED_FROM)) {
+            }
+            else if (!load_inherits_to_config && ascii_iequals(it.key(), BBL_JSON_KEY_INCLUDES)) {
+                key_values.emplace(BBL_JSON_KEY_INCLUDES, it.value().dump());
+            } else if (ascii_iequals(it.key(), ORCA_JSON_KEY_RENAMED_FROM)) {
                 key_values.emplace(ORCA_JSON_KEY_RENAMED_FROM, it.value());
             } else {
                 t_config_option_key opt_key = it.key();
@@ -1049,7 +1068,8 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                 std::vector<std::string>& different_settings = this->option<ConfigOptionStrings>("different_settings_to_system", true)->values;
                 size_t size = different_settings.size();
                 if (size == 0) {
-                    size = this->option<ConfigOptionStrings>("filament_settings_id")->values.size() + 2;
+                    const auto *filament_ids = this->option<ConfigOptionStrings>("filament_settings_id");
+                    size = (filament_ids ? filament_ids->values.size() : 0) + 2;
                     different_settings.resize(size);
                 }
 
@@ -1515,6 +1535,17 @@ std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value
 //BBS: add json support
 void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
 {
+    // Serialize first: if that throws (invalid UTF-8), the existing file stays untouched.
+    std::ostringstream ss;
+    this->save_to_json(ss, name, from, version);
+    if (const std::error_code ec = write_file_atomically(file, ss.str()))
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": failed to save config to %1%: %2%") % file % ec.message();
+    else
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
+}
+
+void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8) const
+{
     json j;
     //record the headers
     j[BBL_JSON_KEY_VERSION] = version;
@@ -1560,12 +1591,7 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
             j["plugins"] = unique_refs;
     }
 
-    boost::nowide::ofstream c;
-    c.open(file, std::ios::out | std::ios::trunc);
-    c << j.dump(1, '\t') << std::endl;
-    c.close();
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
+    os << j.dump(1, '\t', false, replace_invalid_utf8 ? json::error_handler_t::replace : json::error_handler_t::strict) << std::endl;
 }
 
 void ConfigBase::save(const std::string &file) const
@@ -1715,6 +1741,36 @@ const ConfigOption* DynamicConfig::optptr(const t_config_option_key &opt_key) co
     return (it == options.end()) ? nullptr : it->second.get();
 }
 
+// ConfigOptionBool(s)::deserialize only understands "1" and "0", but scripts commonly spell CLI
+// flags as --opt=true or --opt=no. Map the usual spellings onto what deserialize() accepts, per
+// comma-separated item so vector options keep working, and pass anything else through unchanged
+// so a genuine typo is still reported as invalid.
+static std::string normalize_cli_bool_value(const std::string &value)
+{
+    static const char* true_values[]  = { "1", "true",  "yes", "on",  "enabled"  };
+    static const char* false_values[] = { "0", "false", "no",  "off", "disabled" };
+
+    auto matches = [](const std::string &item, const char* const* candidates, size_t count) {
+        return std::any_of(candidates, candidates + count, [&item](const char* candidate) { return boost::iequals(item, candidate); });
+    };
+
+    std::string        normalized;
+    std::istringstream is(value);
+    std::string        item;
+    while (std::getline(is, item, ',')) {
+        boost::trim(item);
+        if (! normalized.empty())
+            normalized += ",";
+        if (matches(item, true_values, std::size(true_values)))
+            normalized += "1";
+        else if (matches(item, false_values, std::size(false_values)))
+            normalized += "0";
+        else
+            normalized += item;
+    }
+    return normalized;
+}
+
 bool DynamicConfig::read_cli(int argc, const char* const argv[], t_config_option_keys* extra, t_config_option_keys* keys)
 {
     // cache the CLI option => opt_key mapping
@@ -1812,17 +1868,32 @@ bool DynamicConfig::read_cli(int argc, const char* const argv[], t_config_option
             // to the end of the value.
             if (opt_base->type() == coBools && value.empty())
                 static_cast<ConfigOptionBools*>(opt_base)->values.push_back(!no);
-            else
+            else {
                 // Deserialize any other vector value (ConfigOptionInts, Floats, Percents, Points) the same way
                 // they get deserialized from an .ini file. For ConfigOptionStrings, that means that the C-style unescape
                 // will be applied for values enclosed in quotes, while values non-enclosed in quotes are left to be
                 // unescaped by the calling shell.
-				opt_vector->deserialize(value, true);
+                const std::string vector_value = opt_base->type() == coBools ? normalize_cli_bool_value(value) : value;
+                bool deserialized = false;
+                try {
+                    deserialized = opt_vector->deserialize(vector_value, true);
+                } catch (const std::exception &ex) {
+                    // e.g. "nil" deserialized into a non-nullable vector option throws instead of
+                    // returning false - treat that the same as any other invalid value here.
+                    deserialized = false;
+                }
+                if (! deserialized) {
+                    boost::nowide::cerr << "Invalid value for option --" << token.c_str() << std::endl;
+                    return false;
+                }
+            }
         } else if (opt_base->type() == coBool) {
             if (value.empty())
                 static_cast<ConfigOptionBool*>(opt_base)->value = !no;
-            else
-                opt_base->deserialize(value);
+            else if (! opt_base->deserialize(normalize_cli_bool_value(value))) {
+                boost::nowide::cerr << "Invalid value for option --" << token.c_str() << std::endl;
+                return false;
+            }
         } else if (opt_base->type() == coString) {
             // Do not unescape single string values, the unescaping is left to the calling shell.
             static_cast<ConfigOptionString*>(opt_base)->value = value;
@@ -2031,7 +2102,8 @@ const double& DynamicConfig::opt_float(const t_config_option_key &opt_key, unsig
         return opt_floats_nullable->get_at(idx);
     } else {
         assert(false);
-        return 0;
+        static const double zero = 0.0;
+        return zero;
     }
 }
 

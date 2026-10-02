@@ -1,6 +1,24 @@
 #ifndef slic3r_GUI_SelectMachine_hpp_
 #define slic3r_GUI_SelectMachine_hpp_
 
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include "libslic3r/ProjectTask.hpp"
+#include <map>
+#include <wx/image.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <list>
+#include <memory>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "libslic3r/CommonDefs.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
@@ -522,7 +540,7 @@ public:
     bool is_timeout();
     int  update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
     void set_print_type(PrintFromType type) {m_print_type = type;};
-    bool Show(bool show);
+    bool Show(bool show) override;
     void show_init();
     bool do_ams_mapping(MachineObject *obj_,bool use_ams);
     bool get_ams_mapping_result(std::string& mapping_array_str, std::string& mapping_array_str2, std::string& ams_mapping_info) const;
@@ -662,7 +680,6 @@ private:
     ScalableButton* m_button_question { nullptr };
 
     wxStaticBitmap* m_bed_image{ nullptr };
-    Label*         m_text_bed_type;
 };
 
 

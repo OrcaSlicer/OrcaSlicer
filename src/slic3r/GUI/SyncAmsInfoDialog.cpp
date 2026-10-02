@@ -1,7 +1,48 @@
 #include "SyncAmsInfoDialog.hpp"
 
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <algorithm>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/SelectMachine.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Utils.hpp"
+#include <string>
+#include "slic3r/GUI/BBLStatusBarPrint.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <cassert>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include <map>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "libslic3r/Thread.hpp"
+#include <memory>
+#include <boost/filesystem/path.hpp>
+#include <numeric>
+#include "slic3r/GUI/BitmapCache.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/BaseTransparentDPIFrame.hpp"
 #include <thread>
+#include <vector>
+#include <wx/anybutton.h>
+#include <wx/animate.h>
+#include <wx/busycursor.h>
+#include <wx/chartype.h>
+#include <wx/arrstr.h>
 #include <wx/event.h>
+#include <wx/image.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
@@ -16,6 +57,11 @@
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 #include <chrono>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/tglbtn.h>
+#include <wx/timer.h>
+#include <wx/wxcrt.h>
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
@@ -30,6 +76,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
+#include "FilamentBitmapUtils.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -630,7 +677,6 @@ void SyncAmsInfoDialog::updata_ui_when_priner_not_same() {
 SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
     DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe), wxID_ANY, _L("Synchronize AMS Filament Information"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
     , m_input_info(info)
-    , m_export_3mf_cancel(false)
     , m_mapping_popup(AmsMapingPopup(this,true))
     , m_mapping_tip_popup(AmsMapingTipPopup(this))
     , m_mapping_tutorial_popup(AmsTutorialPopup(this))
@@ -678,7 +724,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
 
         wxBoxSizer *loading_Sizer = new wxBoxSizer(wxHORIZONTAL);
         m_gif_ctrl = new wxAnimationCtrl(m_loading_page, wxID_ANY, wxNullAnimation, wxDefaultPosition, wxDefaultSize, wxAC_DEFAULT_STYLE);
-        auto gif_path = Slic3r::var("loading.gif").c_str();
+        const wxString gif_path = from_u8(Slic3r::var("loading.gif"));
         if (m_gif_ctrl->LoadFile(gif_path)){
             m_gif_ctrl->SetSize(m_gif_ctrl->GetAnimation().GetSize());
             m_gif_ctrl->Play();
@@ -700,7 +746,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
     //wxBoxSizer *m_scroll_sizer = new wxBoxSizer(wxVERTICAL);
     m_scrolledWindow = new wxScrolledWindow(m_show_page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
-    m_scrolledWindow->SetScrollRate(0, 20);
+    m_scrolledWindow->SetScrollRate(0, FromDIP(20));
     m_scrolledWindow->SetMinSize(wxSize(-1, SyncAmsInfoDialogHeightMAX));
     m_scrolledWindow->SetMaxSize(wxSize(-1, SyncAmsInfoDialogHeightMAX));
     m_scrolledWindow->EnableScrolling(false,true);
@@ -1112,7 +1158,7 @@ void SyncAmsInfoDialog::init_bind()
         e.Skip();
     });
 
-    Bind(EVT_CONNECT_LAN_MODE_PRINT, [this](wxCommandEvent &e) {
+    Bind(EVT_CONNECT_LAN_MODE_PRINT, [](wxCommandEvent &e) {
         if (e.GetInt() == 0) {
             DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev) return;
@@ -1516,6 +1562,8 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
                 used_extruders_flow[used_extruders[i]] = "Standard";
             } else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
                 used_extruders_flow[used_extruders[i]] = "TPU High Flow";
+            } else if (nozzle_volume_type == NozzleVolumeType::nvtE3DHighFlow) {
+                used_extruders_flow[used_extruders[i]] = "E3D High Flow";
             } else {
                 used_extruders_flow[used_extruders[i]] = "High Flow";
             }
@@ -1533,6 +1581,8 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             flow_type_of_machine.push_back("Standard");
         } else if (it->GetNozzleFlowType() == NozzleFlowType::U_FLOW) {
             flow_type_of_machine.push_back("TPU High Flow");
+        } else if (it->GetNozzleFlowType() == NozzleFlowType::E_FLOW) {
+            flow_type_of_machine.push_back("E3D High Flow");
         }
     }
 
@@ -1547,7 +1597,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
                     auto sai_nz_pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
                     if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID) {
                         pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
-                    } else if ((target_machine_nozzle_id == MAIN_EXTRUDER_ID)) {
+                    } else if (target_machine_nozzle_id == MAIN_EXTRUDER_ID) {
                         pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     }
 
@@ -1742,6 +1792,8 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingSuccess) {
         update_print_status_msg(wxEmptyString, false, false);
+    } else if (status == PrintDialogStatus::PrintStatusOptionalPrinterModel) {
+        update_print_status_msg(PrePrintChecker::get_pre_state_msg(PrintDialogStatus::PrintStatusOptionalPrinterModel), true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
         update_print_status_msg(wxEmptyString, true, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingMixInvalid) {
@@ -1861,26 +1913,13 @@ void SyncAmsInfoDialog::on_cancel(wxCloseEvent &event)
 
 bool SyncAmsInfoDialog::is_blocking_printing(MachineObject *obj_)
 {
-    DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    auto        target_model = obj_->printer_type;
-    std::string source_model = "";
+    if (m_print_type == PrintFromType::FROM_NORMAL)
+        return wxGetApp().is_blocking_printing(obj_);
 
-    if (m_print_type == PrintFromType::FROM_NORMAL) {
-        PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-        source_model                = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-
-    } else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW) {
-        if (m_required_data_plate_data_list.size() > 0) { source_model = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id; }
-    }
-
-    if (source_model != target_model) {
-        std::vector<std::string>      compatible_machine = obj_->get_compatible_machine();
-        vector<std::string>::iterator it                 = find(compatible_machine.begin(), compatible_machine.end(), source_model);
-        if (it == compatible_machine.end()) { return true; }
-    }
-
-    return false;
+    std::string source_model;
+    if (m_print_type == PrintFromType::FROM_SDCARD_VIEW && !m_required_data_plate_data_list.empty())
+        source_model = m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id;
+    return wxGetApp().is_blocking_printing(obj_, source_model);
 }
 
 bool SyncAmsInfoDialog::is_same_nozzle_type(std::string &filament_type, NozzleType &tag_nozzle_type)
@@ -1930,7 +1969,13 @@ bool SyncAmsInfoDialog::is_same_printer_model()
     if (obj_ == nullptr) { return result; }
 
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) != obj_->printer_type) {
+    const std::string source_model = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
+    if (DevPrinterConfigUtil::is_optional_printer_model_id(source_model) ||
+        DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type)) {
+        return true;
+    }
+
+    if (preset_bundle && source_model != obj_->printer_type) {
         if ((obj_->is_support_upgrade_kit && obj_->installed_upgrade_kit) && (preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == "C12")) {
             return true;
         }
@@ -2131,7 +2176,7 @@ void SyncAmsInfoDialog::update_user_printer()
     std::map<std::string, MachineObject *> option_list;
 
     // user machine list
-    option_list = dev->get_my_machine_list();
+    option_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
     // same machine only appear once
     for (auto it = option_list.begin(); it != option_list.end(); it++) {
@@ -2264,6 +2309,18 @@ void SyncAmsInfoDialog::update_show_status()
 
     reset_timeout();
 
+    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    if (m_print_type == PrintFromType::FROM_NORMAL) {
+        if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
+            has_optional_printer_model = has_optional_printer_model ||
+                DevPrinterConfigUtil::is_optional_printer_model_id(
+                    preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
+        }
+    } else if (m_print_type == PrintFromType::FROM_SDCARD_VIEW && !m_required_data_plate_data_list.empty()) {
+        has_optional_printer_model = has_optional_printer_model ||
+            DevPrinterConfigUtil::is_optional_printer_model_id(m_required_data_plate_data_list[m_print_plate_idx]->printer_model_id);
+    }
+
     if (!obj_->GetConfig()->SupportPrintAllPlates() && m_print_plate_idx == PLATE_ALL_IDX) {
         show_status(PrintDialogStatus::PrintStatusNotSupportedPrintAll);
         return;
@@ -2357,6 +2414,9 @@ void SyncAmsInfoDialog::update_show_status()
             }
         }
     }
+
+    if (has_optional_printer_model)
+        show_status(PrintDialogStatus::PrintStatusOptionalPrinterModel);
 }
 
 bool SyncAmsInfoDialog::has_timelapse_warning()
@@ -2575,6 +2635,10 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
     m_materialList.clear();
     m_filaments.clear();
 
+    // Mixed-color slots are virtual: they never occupy a tray, so they must not appear as
+    // AMS sync targets.
+    auto* is_mixed_opt = preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+
     bool use_double_extruder = get_is_double_extruder();
     if (use_double_extruder) {
         const auto &project_config = preset_bundle->project_config;
@@ -2591,6 +2655,8 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
 
         auto colour_rgb = wxColour((int) rgb[0], (int) rgb[1], (int) rgb[2], (int) rgb[3]);
         if (extruder >= materials.size() || extruder < 0 || extruder >= display_materials.size())
+            continue;
+        if (is_mixed_opt && extruder < (int) is_mixed_opt->values.size() && is_mixed_opt->values[extruder])
             continue;
 
         if (contronal_index % SYNC_FLEX_GRID_COL == 0) {
@@ -2637,7 +2703,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
         item_index++;
 
         contronal_index++;
-        item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent &e) {});
+        item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent &e) {});
         item->Bind(wxEVT_LEFT_DOWN, [this, item, materials, extruder, item_index_str](wxMouseEvent &e) {
             MaterialHash::iterator iter = m_materialList.begin();
             while (iter != m_materialList.end()) {
@@ -2793,6 +2859,10 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
     m_fix_materialList.clear();
     m_fix_filaments.clear();
 
+    // Mixed-color slots are virtual: they never occupy a tray, so they must not appear as
+    // AMS sync targets.
+    auto* is_mixed_opt = preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+
     bool use_double_extruder = get_is_double_extruder();
     if (use_double_extruder) {
         const auto &project_config = preset_bundle->project_config;
@@ -2809,6 +2879,8 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
 
         auto colour_rgb = wxColour((int) rgb[0], (int) rgb[1], (int) rgb[2], (int) rgb[3]);
         if (extruder >= extruders.size() || extruder < 0 || extruder >= m_ams_combo_info.ams_filament_colors.size())
+            continue;
+        if (is_mixed_opt && extruder < (int) is_mixed_opt->values.size() && is_mixed_opt->values[extruder])
             continue;
 
         if (contronal_index % SYNC_FLEX_GRID_COL == 0) {
@@ -2931,6 +3003,20 @@ void SyncAmsInfoDialog::clone_thumbnail_data()
             iter++;
         }
     }
+
+    // Expand color arrays to cover mixed (virtual) slots and compute their blended colors
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    size_t total = 0;
+    if (auto* opt = cfg.option<ConfigOptionBools>("filament_is_mixed"))
+        total = opt->values.size();
+    size_t target = std::max(total, m_cur_colors_in_thumbnail.size());
+    if (m_cur_colors_in_thumbnail.size() < target)
+        m_cur_colors_in_thumbnail.resize(target);
+    if (m_preview_colors_in_thumbnail.size() < target)
+        m_preview_colors_in_thumbnail.resize(target);
+    recompute_mixed_slot_colors(m_preview_colors_in_thumbnail, cfg);
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     // copy data
     auto &data = m_cur_input_thumbnail_data;
     m_preview_thumbnail_data.reset();
@@ -3119,6 +3205,10 @@ void SyncAmsInfoDialog::change_default_normal(int old_filament_id, wxColour temp
             return;
         }
     }
+    // Recompute mixed slot colors after physical slot color change
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     ThumbnailData &data          = m_cur_input_thumbnail_data;
     ThumbnailData &no_light_data = m_cur_no_light_thumbnail_data;
     if (data.width > 0 && data.height > 0 && data.width == no_light_data.width && data.height == no_light_data.height) {
@@ -3176,6 +3266,7 @@ SyncAmsInfoDialog::~SyncAmsInfoDialog() {
 void SyncAmsInfoDialog::set_info(SyncInfo &info)
 {
     m_input_info = info;
+    reinit_dialog();
 }
 
 void SyncAmsInfoDialog::update_lan_machine_list()

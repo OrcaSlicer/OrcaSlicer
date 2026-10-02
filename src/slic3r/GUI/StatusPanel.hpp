@@ -8,14 +8,40 @@
 #include "CameraPopup.hpp"
 #include "GUI.hpp"
 #include "ThermalPreconditioningDialog.hpp"
+#include <string>
+#include <vector>
+#include <set>
+#include <utility>
+#include <functional>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <ctime>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <unordered_map>
+#include <unordered_set>
+#include "slic3r/GUI/wxMediaCtrl3.h"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <map>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <optional>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/scrolwin.h>
+#include <wx/simplebook.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
+#include <wx/string.h>
 #include <wx/webrequest.h>
-#include "wxMediaCtrl2.h"
+#include <memory>
+#include <wx/webview.h>
 #include "MediaPlayCtrl.h"
+#include "WebMediaController.hpp"
 #include "AMSSetting.hpp"
 #include "Calibration.hpp"
 #include "CalibrationWizardPage.hpp"
@@ -37,6 +63,7 @@
 #include "HMS.hpp"
 #include "PartSkipDialog.hpp"
 #include "DeviceErrorDialog.hpp"
+#include "StagedBuild.hpp"
 
 class StepIndicator;
 
@@ -195,11 +222,11 @@ public:
     void      set_cloud_bitmap(std::vector<std::string> cloud_bitmaps);
 
 protected:
-    enum StatusCode { 
-        UPLOAD_PROGRESS = 0, 
-        UPLOAD_EXIST_ISSUE, 
+    enum StatusCode {
+        UPLOAD_PROGRESS = 0,
+        UPLOAD_EXIST_ISSUE,
         UPLOAD_IMG_FAILED,
-        CODE_NUMBER 
+        CODE_NUMBER
     };
 
     std::shared_ptr<int>     m_tocken;
@@ -217,7 +244,7 @@ protected:
     {
         wxString          local_image_url; //local image path
         std::string       img_url_paths; // oss url path
-        vector<wxPanel *> image_broad; 
+        vector<wxPanel *> image_broad;
         bool              is_selected;
         bool              is_uploaded; // load
         wxBoxSizer *      image_tb_broad = nullptr;
@@ -252,7 +279,7 @@ protected:
     std::set<std::pair<wxStaticBitmap *, wxString>>        add_need_upload_imgs();
     std::pair<wxStaticBitmap *, ImageMsg>                  create_local_thumbnail(wxString &local_path);
     std::pair<wxStaticBitmap *, ImageMsg>                  create_oss_thumbnail(std::string &oss_path);
-    
+
 };
 
 class PrintingTaskPanel : public wxPanel
@@ -261,7 +288,7 @@ public:
     PrintingTaskPanel(wxWindow* parent, PrintingTaskType type);
     ~PrintingTaskPanel();
     void create_panel(wxWindow* parent);
-    
+
 
 private:
     MachineObject*  m_obj{nullptr};
@@ -353,7 +380,7 @@ public:
     void set_plate_index(int plate_idx = -1);
     void market_scoring_show();
     void market_scoring_hide();
-    
+
 public:
     ScalableButton* get_abort_button() {return m_button_abort;};
     ScalableButton* get_pause_resume_button() {return m_button_pause_resume;};
@@ -376,7 +403,7 @@ public:
     void paint(wxPaintEvent&);
 };
 
-class StatusBasePanel : public wxScrolledWindow
+class StatusBasePanel : public wxScrolledWindow, public StagedBuild
 {
 protected:
     wxBitmap m_item_placeholder;
@@ -440,11 +467,11 @@ protected:
     wxStaticBitmap *m_bitmap_sdcard_img;
     wxStaticBitmap *m_bitmap_static_use_time;
     wxStaticBitmap *m_bitmap_static_use_weight;
-    wxStaticBitmap* m_camera_switch_button;
+    // wxStaticBitmap* m_camera_switch_button;
 
 
-    wxMediaCtrl2 *  m_media_ctrl;
-    MediaPlayCtrl * m_media_play_ctrl;
+    wxMediaCtrl3 *  m_media_ctrl;
+    MediaPlayCtrl * m_media_play_ctrl{nullptr};
 
     Label *         m_staticText_printing;
     wxStaticBitmap *m_bitmap_thumbnail;
@@ -462,6 +489,8 @@ protected:
     ScalableButton *m_button_abort;
     Button *        m_button_clean;
     wxWebView *     m_custom_camera_view{nullptr};
+    std::unique_ptr<WebMediaController> m_web_media_controller;
+
     wxSimplebook*   m_extruder_book;
     std::vector<ExtruderImage *> m_extruderImage;
 
@@ -567,7 +596,7 @@ protected:
     virtual void on_bed_temp_kill_focus(wxFocusEvent &event) { event.Skip(); }
     virtual void on_bed_temp_set_focus(wxFocusEvent &event) { event.Skip(); }
     virtual void on_nozzle_temp_kill_focus(wxFocusEvent &event) { event.Skip(); }
-    virtual void on_nozzle_temp_set_focus(wxFocusEvent &event) { event.Skip(); }    
+    virtual void on_nozzle_temp_set_focus(wxFocusEvent &event) { event.Skip(); }
     virtual void on_nozzle_fan_switch(wxCommandEvent &event) { event.Skip(); }
     virtual void on_printing_fan_switch(wxCommandEvent &event) { event.Skip(); }
     virtual void on_axis_ctrl_z_up_10(wxCommandEvent &event) { event.Skip(); }
@@ -577,13 +606,8 @@ protected:
     virtual void on_axis_ctrl_e_up_10(wxCommandEvent &event) { event.Skip(); }
     virtual void on_axis_ctrl_e_down_10(wxCommandEvent &event) { event.Skip(); }
     virtual void on_nozzle_selected(wxCommandEvent &event) { event.Skip(); }
-    void on_camera_source_change(wxCommandEvent& event);
-    void handle_camera_source_change();
     void remove_controls();
     void on_webview_navigating(wxWebViewEvent& evt);
-    void on_camera_switch_toggled(wxMouseEvent& event);
-    void toggle_custom_camera();
-    void toggle_builtin_camera();
 
 public:
     StatusBasePanel(wxWindow *      parent,
@@ -630,6 +654,8 @@ class StatusPanel : public StatusBasePanel
 {
 private:
     friend class MonitorPanel;
+    void wire_controls();
+    bool load_thumbnail_from_url(const wxString &url, MachineObject *obj);
 
 protected:
     std::shared_ptr<SliceInfoPopup> m_slice_info_popup;
@@ -680,7 +706,7 @@ protected:
     std::map<std::string, std::string> m_print_connect_types;
     std::vector<Button *>       m_buttons;
     int last_status;
-    ScoreData *m_score_data;
+    ScoreData *m_score_data = nullptr;
     wxBitmap* calib_bitmap = nullptr;
     CalibMode m_calib_mode;
     CalibrationMethod m_calib_method;

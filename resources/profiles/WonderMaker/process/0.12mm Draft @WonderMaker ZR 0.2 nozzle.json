@@ -7,8 +7,6 @@
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height, and results in almost negligible layer lines, and slightly shorter printing time.",
 	"elefant_foot_compensation": "0.15",
-	"smooth_coefficient": "150",
-	"overhang_totally_speed": "50",
 	"compatible_printers": [
 		"WonderMaker ZR 0.2 nozzle"
 	]

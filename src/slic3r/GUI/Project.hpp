@@ -7,6 +7,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include <string>
+#include "slic3r/GUI/StagedBuild.hpp"
+#include <wx/string.h>
+#include <wx/bookctrl.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 #if wxUSE_WEBVIEW_EDGE
 #include "wx/msw/webview_edge.h"
@@ -35,6 +43,7 @@
 #include "libslic3r/ProjectTask.hpp"
 #include "wxExtensions.hpp"
 #include "Auxiliary.hpp"
+#include "Lazy.hpp"
 
 #define AUFILE_GREY700 wxColour(107, 107, 107)
 #define AUFILE_GREY500 wxColour(158, 158, 158)
@@ -59,11 +68,10 @@ struct project_file{
     std::string size;
 };
 
-class ProjectPanel : public wxPanel
+class ProjectPanel : public wxPanel, public StagedBuild, public LazyInstance<ProjectPanel>
 {
 private:
     std::atomic<bool> m_web_init_completed{false};
-    bool       m_reload_already = {false};
 
     std::shared_ptr<std::atomic<bool>> m_reload_cancel_token{std::make_shared<std::atomic<bool>>(false)};
     std::unique_ptr<boost::thread> m_reload_task;
@@ -98,7 +106,6 @@ public:
     void msw_rescale();
     void update_model_data();
     void clear_model_info();
-    void init_auxiliary() { m_auxiliary->init_auxiliary(); }
 
     bool Show(bool show);
     void OnScriptMessage(wxWebViewEvent& evt);

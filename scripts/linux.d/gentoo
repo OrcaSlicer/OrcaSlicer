@@ -32,6 +32,9 @@ REQUIRED_DEV_PACKAGES=(
     sys-devel/m4
     virtual/libudev
     x11-libs/gtk+:3
+    dev-util/pkgconf
+    dev-lang/yasm
+    dev-lang/nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]

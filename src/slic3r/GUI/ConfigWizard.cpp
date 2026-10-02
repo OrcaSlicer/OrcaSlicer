@@ -1,9 +1,30 @@
 // FIXME: extract absolute units -> em
 
 #include "ConfigWizard_private.hpp"
+#include "libslic3r_version.h"
 
 #include <algorithm>
+#include <memory>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Preset.hpp"
+#include <functional>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <boost/filesystem/directory.hpp>
+#include <map>
+#include <iterator>
 #include <numeric>
+#include <string>
+#include <set>
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
+#include "slic3r/GUI/BedShapeDialog.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <utility>
 #include <unordered_map>
 #include <stdexcept>
@@ -12,8 +33,19 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <vector>
+#include <wx/gdicmn.h>
+#include <wx/html/htmlwin.h>
+#include <wx/arrstr.h>
+#include <wx/busycursor.h>
+#include <wx/dialog.h>
+#include <wx/scrolwin.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/dcclient.h>
 #include <wx/statbmp.h>
@@ -24,6 +56,7 @@
 #include <wx/listbook.h>
 #include <wx/display.h>
 #include <wx/filefn.h>
+#include <wx/types.h>
 #include <wx/wupdlock.h>
 #include <wx/debug.h>
 
@@ -66,41 +99,41 @@ using Config::SnapshotDB;
 
 // Configuration data structures extensions needed for the wizard
 //BBS: set BBL as default
-bool Bundle::load(fs::path source_path, bool ais_in_resources, bool ais_bbl_bundle)
+bool Bundle::load(fs::path dir, const std::string &vendor_name, bool ais_in_resources, bool ais_bbl_bundle)
 {
     this->preset_bundle = std::make_unique<PresetBundle>();
     this->is_in_resources = ais_in_resources;
     this->is_bbl_bundle = ais_bbl_bundle;
 
-    std::string path_string = source_path.string();
-    std::string parent_path = source_path.parent_path().string();
     //BBS: add json logic for vendor bundles
-    std::string vendor_name = source_path.filename().string();
-    if (Slic3r::is_json_file(path_string)) {
-        // Remove the .json suffix.
-        vendor_name.erase(vendor_name.size() - 5);
-    }
-    else
+    // Orca: served from the vendor's preset cache where one covers it — which is
+    // how a shipped build carries its vendors — and parsed from the JSONs otherwise.
+    // A vendor that can be neither read nor parsed — a cache the build cannot use
+    // with the preset JSONs behind it pruned, say — is one the wizard cannot offer.
+    // Every other vendor still can be, so it is left out rather than thrown over.
+    size_t presets_loaded = 0;
+    try {
+        auto [config_substitutions, loaded] = preset_bundle->load_vendor_configs_from_json(
+            dir.string(), vendor_name, PresetBundle::LoadConfigBundleAttribute::LoadSystem, ForwardCompatibilitySubstitutionRule::Disable);
+        UNUSED(config_substitutions);
+        // No substitutions shall be reported when loading a system config bundle, no substitutions are allowed.
+        assert(config_substitutions.empty());
+        presets_loaded = loaded;
+    } catch (const std::exception &e) {
+        BOOST_LOG_TRIVIAL(fatal) << boost::format("Vendor bundle: `%1%`: cannot be loaded, leaving it out: %2%") % vendor_name % e.what();
         return false;
-
-    // Throw when parsing invalid configuration. Only valid configuration is supposed to be provided over the air.
-    //BBS: add json logic for vendor bundles
-    auto [config_substitutions, presets_loaded] = preset_bundle->load_vendor_configs_from_json(
-        parent_path, vendor_name, PresetBundle::LoadConfigBundleAttribute::LoadSystem, ForwardCompatibilitySubstitutionRule::Disable);
-    UNUSED(config_substitutions);
-    // No substitutions shall be reported when loading a system config bundle, no substitutions are allowed.
-    assert(config_substitutions.empty());
+    }
     auto first_vendor = preset_bundle->vendors.begin();
     if (first_vendor == preset_bundle->vendors.end()) {
-        BOOST_LOG_TRIVIAL(error) << boost::format("Vendor bundle: `%1%`: No vendor information defined, cannot install.") % path_string;
+        BOOST_LOG_TRIVIAL(error) << boost::format("Vendor bundle: `%1%`: No vendor information defined, cannot install.") % vendor_name;
         return false;
     }
     if (presets_loaded == 0) {
-        BOOST_LOG_TRIVIAL(error) << boost::format("Vendor bundle: `%1%`: No profile loaded.") % path_string;
+        BOOST_LOG_TRIVIAL(error) << boost::format("Vendor bundle: `%1%`: No profile loaded.") % vendor_name;
         return false;
-    } 
+    }
 
-    BOOST_LOG_TRIVIAL(trace) << boost::format("Vendor bundle: `%1%`: %2% profiles loaded.") % path_string % presets_loaded;
+    BOOST_LOG_TRIVIAL(trace) << boost::format("Vendor bundle: `%1%`: %2% profiles loaded.") % vendor_name % presets_loaded;
     this->vendor_profile = &first_vendor->second;
     return true;
 }
@@ -125,15 +158,10 @@ BundleMap BundleMap::load()
 
     //Orca: add custom as default
     //Orca: add json logic for vendor bundle
-    auto orca_bundle_path = (vendor_dir / PresetBundle::ORCA_DEFAULT_BUNDLE).replace_extension(".json");
-    auto orca_bundle_rsrc = false;
-    if (!boost::filesystem::exists(orca_bundle_path)) {
-        orca_bundle_path = (rsrc_vendor_dir / PresetBundle::ORCA_DEFAULT_BUNDLE).replace_extension(".json");
-        orca_bundle_rsrc = true;
-    }
     {
+        const bool from_rsrc = ! is_vendor_installed(PresetBundle::ORCA_DEFAULT_BUNDLE);
         Bundle bbl_bundle;
-        if (bbl_bundle.load(std::move(orca_bundle_path), orca_bundle_rsrc, true))
+        if (bbl_bundle.load(from_rsrc ? rsrc_vendor_dir : vendor_dir, PresetBundle::ORCA_DEFAULT_BUNDLE, from_rsrc, true))
             res.emplace(PresetBundle::ORCA_DEFAULT_BUNDLE, std::move(bbl_bundle));
     }
 
@@ -141,18 +169,13 @@ BundleMap BundleMap::load()
     // and then additionally from resources/profiles.
     bool is_in_resources = false;
     for (auto dir : { &vendor_dir, &rsrc_vendor_dir }) {
-        for (const auto &dir_entry : boost::filesystem::directory_iterator(*dir)) {
-            //BBS: add json logic for vendor bundle
-            if (Slic3r::is_json_file(dir_entry.path().string())) {
-                std::string id = dir_entry.path().stem().string();  // stem() = filename() without the trailing ".json" part
+        for (const std::string &id : vendor_names_in(*dir)) {
+            // Don't load this bundle if we've already loaded it.
+            if (res.find(id) != res.end()) { continue; }
 
-                // Don't load this bundle if we've already loaded it.
-                if (res.find(id) != res.end()) { continue; }
-
-                Bundle bundle;
-                if (bundle.load(dir_entry.path(), is_in_resources))
-                    res.emplace(std::move(id), std::move(bundle));
-            }
+            Bundle bundle;
+            if (bundle.load(*dir, id, is_in_resources))
+                res.emplace(id, std::move(bundle));
         }
 
         is_in_resources = true;
@@ -2720,7 +2743,7 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     SetSizerAndFit(vsizer);
 
     // We can now enable scrolling on hscroll
-    p->hscroll->SetScrollRate(30, 30);
+    p->hscroll->SetScrollRate(30, FromDIP(20));
 
     on_window_geometry(this, [this]() {
         p->init_dialog_size();
@@ -2762,7 +2785,7 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     });
 
     if (wxLinux_gtk3)
-        this->Bind(wxEVT_SHOW, [this, vsizer](const wxShowEvent& e) {
+        this->Bind(wxEVT_SHOW, [](const wxShowEvent& e) {
             ;
         });
 

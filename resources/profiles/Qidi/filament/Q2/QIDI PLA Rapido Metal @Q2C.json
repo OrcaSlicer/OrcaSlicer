@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Metal@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_3",
+	"filament_id": "OFANFm4x",
 	"instantiation": "false",
 	"filament_type": [
 		"PLA"

@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Metallic @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM012",
+	"filament_id": "OFjb0wos",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

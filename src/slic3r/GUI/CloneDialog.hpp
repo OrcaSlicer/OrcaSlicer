@@ -10,6 +10,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ProgressBar.hpp"
+#include "libslic3r/AppConfig.hpp"
 
 namespace Slic3r { namespace GUI {
 

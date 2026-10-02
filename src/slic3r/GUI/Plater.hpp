@@ -1,13 +1,38 @@
 #ifndef slic3r_Plater_hpp_
 #define slic3r_Plater_hpp_
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <map>
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <functional>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include <atomic>
 #include <memory>
+#include "slic3r/GUI/Event.hpp"
+#include <string>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/arrstr.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
 // BBS
 #include <wx/notebook.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Selection.hpp"
 
@@ -41,6 +66,7 @@ class Button;
 namespace Slic3r {
 
 class BuildVolume;
+class MachineObject;
 enum class BuildVolume_Type : char;
 class Model;
 class ModelObject;
@@ -85,6 +111,10 @@ using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 
 class Plater;
 enum class ActionButtonType : int;
+
+// Sentinel filament id meaning "use the slot the sidebar context menu was opened on"
+// (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
+inline constexpr int kSidebarContextMenuFilamentId = -2;
 
 #define EVT_PUBLISHING_START        1
 #define EVT_PUBLISHING_STOP         2
@@ -188,7 +218,7 @@ public:
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
     void change_filament(size_t from_id, size_t to_id);  // 0 base
     void edit_filament();
-    void add_custom_filament(wxColour new_col);
+    void add_custom_filament(wxColour new_col, const std::string& preset_name = std::string(), bool skip_preset_validation = false);
     bool is_new_project_in_gcode3mf();
     // BBS
     void on_bed_type_change(BedType bed_type);
@@ -262,7 +292,22 @@ public:
     std::vector<PlaterPresetComboBox*>&   combos_filament();
     void                                 clear_combos_filament_badge();
     void                                 udpate_combos_filament_badge();
+
+    // Mixed-color filament sidebar section
+    void add_mixed_filament();
+    void edit_mixed_filament(size_t idx);
+    void delete_mixed_filament_at(size_t idx);
+    void decompose_filament_color(int filament_idx);
+    void recalc_filament_scroll_sizes();
+    void update_mixed_filament_list();
+    bool has_broken_mixed_filament() const;
+    bool has_broken_mixed_filament(const PartPlate* plate) const;
+    void collect_physical_filament_info(std::vector<std::string>& color_strs,
+                                        std::vector<std::string>& names,
+                                        std::vector<std::string>& types,
+                                        std::vector<size_t>* config_indices = nullptr);
     Search::OptionsSearcher&        get_searcher();
+    Search::SettingsIndex&          settings_index();
     std::string&                    get_search_line();
     void                            update_printer_thumbnail();
 
@@ -313,7 +358,12 @@ public:
     const SLAPrint& sla_print() const;
     SLAPrint& sla_print();
 
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString());
+    // Helper: returns config indices where filament_is_mixed == true
+    std::vector<size_t> mixed_filament_config_indices() const;
+    // Helper: returns config indices where filament_is_mixed == false
+    std::vector<size_t> physical_filament_config_indices() const;
+
+    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     int save_project(bool saveAs = false);
@@ -383,9 +433,7 @@ public:
     bool preview_zip_archive(const boost::filesystem::path& archive_path);
 
     // BBS: restore
-    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
-    // To be called when providing a list of files to the GUI slic3r on command line.
-    std::vector<size_t> load_files(const std::vector<std::string>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
+    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr);
     // to be called on drag and drop
     bool load_files(const wxArrayString& filenames);
 
@@ -452,6 +500,17 @@ public:
 
     void reset_window_layout();
 
+    // Dock panes sit alongside the sidebar; `window` must be a child of the Plater. `dock` is
+    // "left", "right", "bottom" or "float", and `size` is in DIPs. A pane closed from its own close
+    // button is destroyed after on_close runs; remove_dock_pane() destroys it without calling on_close.
+    void add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
+                       const wxSize& size, std::function<void()> on_close);
+    void remove_dock_pane(wxWindow* window);
+    void show_dock_pane(wxWindow* window, bool show);
+    // Removes every dock pane without calling on_close, for MainFrame::shutdown() (app exit and a
+    // language switch), while the Plater and any floating frames still exist.
+    void remove_dock_panes();
+
     // Called after the Preferences dialog is closed and the program settings are saved.
     // Update the UI based on the current preferences.
     void update_ui_from_settings();
@@ -464,7 +523,7 @@ public:
     void deselect_all();
     void exit_gizmo();
     void remove(size_t obj_idx);
-    void reset(bool apply_presets_change = false);
+    void reset(bool apply_presets_change = false, bool reload_presets = true);
     void reset_with_confirm();
     //BBS: return int for various result
     int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr); // BBS close project
@@ -495,6 +554,13 @@ public:
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
+    // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
+    // pure export that leaves the in-memory project untouched.
+    int  export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
+    // Session-level stash of the last published selection, seeded into the Publish dialog on
+    // open and written on publish or on loading a published 3MF
+    bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material) const;
+    void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
     void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
@@ -568,7 +634,7 @@ public:
 
     void on_filament_change(size_t filament_idx);
     void on_filament_count_change(size_t extruders_count);
-    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
+    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1, const std::vector<unsigned char>& is_mixed_before_delete = {});
     std::vector<Slic3r::ColorRGBA> get_extruders_colors();
     // BBS
     void on_bed_type_change(BedType bed_type);
@@ -583,6 +649,12 @@ public:
     std::vector<std::string> get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result = nullptr) const;
     std::vector<std::string> get_filament_colors_render_info() const;
     std::vector<std::string> get_filament_color_render_type() const;
+
+    // Per slot, the colours a gradient mixed filament actually prints, sampled bottom (index 0)
+    // to top, so the sidebar, the paint gizmo and the extruder icons draw the same fade the
+    // editor previews rather than a straight blend of two endpoints. A slot that is not a
+    // gradient mixed filament gets an empty ramp. Cached; recomputed when the config changes.
+    const std::vector<std::vector<wxColour>>& get_filament_gradient_ramps() const;
     std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr) const;
 
     void set_global_filament_map_mode(FilamentMapMode mode);
@@ -623,6 +695,13 @@ public:
     GLCanvas3D* get_preview_canvas3D();
     GLCanvas3D* get_assmeble_canvas3D();
     wxWindow* get_select_machine_dialog();
+
+    // Docked UV-editor pane used by GLGizmoTextureDisplacement's LSCM projection preview (see
+    // UVEditorCanvas.hpp). Returns nullptr only before the main window is fully constructed.
+    class UVEditorCanvas* get_uv_editor_canvas();
+    // Shows or hides the UV-editor AUI pane, updating its docked layout accordingly. Safe to call
+    // repeatedly (e.g. every time the gizmo's active layer/projection method changes).
+    void show_uv_editor(bool show);
 
     void arrange();
     void orient();
@@ -745,6 +824,9 @@ public:
     void apply_background_progress();
     //BBS: select the plate by hover_id
     int select_plate_by_hover_id(int hover_id, bool right_click = false, bool isModidyPlateName = false);
+    //BBS: add an empty plate and switch to it (the toolbar's Add Plate). Returns the new
+    // plate index, or -1 when the plate cap is reached.
+    int add_plate();
     //BBS: delete the plate, index= -1 means the current plate
     int delete_plate(int plate_index = -1);
     int duplicate_plate(int plate_index = -1);
@@ -915,6 +997,9 @@ public:
     bool is_show_wireframe() const;
     void enable_wireframe(bool status);
     bool is_wireframe_enabled() const;
+
+    void toggle_show_xray();
+    bool is_show_xray() const;
 
 	// Wrapper around wxWindow::PopupMenu to suppress error messages popping out while tracking the popup menu.
 	bool PopupMenu(wxMenu *menu, const wxPoint& pos = wxDefaultPosition);

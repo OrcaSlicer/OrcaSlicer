@@ -225,7 +225,7 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 }
 
 void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r::Model &model, const DynamicPrintConfig &config_in,
-                const std::vector<std::vector<ConfigBase::SetDeserializeItem>> *per_object_overrides, bool arrange)
+                const std::vector<std::vector<ConfigBase::SetDeserializeItem>> *per_object_overrides, bool arrange, size_t instances)
 {
 	DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.apply(config_in);
@@ -236,7 +236,8 @@ void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r
 		ModelObject *object = model.add_object();
 		object->name += "object.stl";
 		object->add_volume(std::move(t));
-		object->add_instance();
+		for (size_t i = 0; i < instances; ++i)
+			object->add_instance();
 
 		if (per_object_overrides && object_idx < per_object_overrides->size() && !(*per_object_overrides)[object_idx].empty()) {
 			DynamicPrintConfig oc;

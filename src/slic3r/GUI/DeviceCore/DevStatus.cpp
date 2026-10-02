@@ -1,6 +1,7 @@
 #include "DevStatus.h"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <boost/log/trivial.hpp>
+#include <exception>
 
 namespace Slic3r {
 
@@ -27,6 +28,7 @@ void DevStatus::ParseStatus(const nlohmann::json& print_jj)
 #else
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": get exception=" << e.what();
 #endif
+        (void)e; // suppress C4101 when BBL_RELEASE_TO_PUBLIC
     }
 }
 

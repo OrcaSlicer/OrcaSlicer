@@ -4,6 +4,7 @@
 	"inherits": "PolyLite PLA @base",
 	"from": "system",
 	"setting_id": "wcpOTTMyZNPFKyXr",
+	"filament_id": "OF7SliVn",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

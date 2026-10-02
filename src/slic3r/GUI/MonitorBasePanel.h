@@ -7,7 +7,9 @@
 
 #pragma once
 
+#include <cstddef>
 #include <wx/artprov.h>
+#include <wx/event.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
@@ -34,7 +36,6 @@
 #include "Widgets/AxisCtrlButton.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/StaticLine.hpp"
-#include "wxMediaCtrl2.h"
 #include "MediaPlayCtrl.h"
 
 ///////////////////////////////////////////////////////////////////////////

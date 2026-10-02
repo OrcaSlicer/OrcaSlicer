@@ -11,16 +11,44 @@
 #include "MainFrame.hpp"
 #include "Tab.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/PrintBase.hpp"
 #include "format.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/bind/placeholders.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <imgui.h>
+#include <cstddef>
+#include <cassert>
+#include <functional>
+#include <cwctype>
+#include <cstdint>
+#include <iomanip>
 #include <iostream>
 
+#include <string>
+#include <utility>
+#include "libslic3r/Preset.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <limits>
+#include <sstream>
+#include <vector>
+#include "slic3r/GUI/Downloader.hpp"
+#include <memory>
+#include <iterator>
+#include "libslic3r/Model.hpp"
+#include <wx/dataview.h>
+#include "slic3r/GUI/Plater.hpp"
 #include <wx/glcanvas.h>
+#include <wx/utils.h>
+#include <wx/time.h>
 
 #include "GUI_App.hpp"
 #include "FilamentMapDialog.hpp"
@@ -3083,8 +3111,10 @@ bool NotificationManager::push_notification_data(std::unique_ptr<NotificationMan
     }
 	bool retval = false;
 	if (this->activate_existing(notification.get())) {
-		if (m_initialized) { // ignore update action - it cant be initialized if canvas and imgui context is not ready
-			if (notification->get_type() == NotificationType::SlicingWarning) {
+		if (m_initialized && m_imgui_ready) {
+			// Precise Seam already aggregates all causes; replace it on repeated warning events.
+			if (notification->get_type() == NotificationType::SlicingWarning &&
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingPreciseSeamWarning) {
 				m_pop_notifications.back()->append(notification->get_data().ori_text);
 			} else {
                 m_pop_notifications.back()->update(notification->get_data());
@@ -3129,6 +3159,10 @@ void NotificationManager::stop_delayed_notifications_of_type(const NotificationT
 
 void NotificationManager::render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin)
 {
+	// Notifications render inside an ImGui frame, so the font atlas is built from this point on
+	// and pushed notifications may safely measure their text.
+	m_imgui_ready = true;
+
 	sort_notifications();
 
 	float bottom_up_last_y = bottom_margin; // ORCA dont scale margins
@@ -3339,17 +3373,7 @@ size_t NotificationManager::get_notification_count() const
 void NotificationManager::bbl_show_plateinfo_notification(const std::string &text)
 {
     NotificationData data{NotificationType::BBLPlateInfo, NotificationLevel::PrintInfoNotificationLevel, BBL_NOTICE_MAX_INTERVAL, text};
-
-    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-        if (notification->get_type() == NotificationType::BBLPlateInfo) {
-            notification->reinit();
-            notification->update(data);
-            return;
-        }
-    }
-
-    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
-    push_notification_data(std::move(notification), 0);
+    push_notification_data(data, 0);
 }
 
 void NotificationManager::bbl_close_3mf_warn_notification()
@@ -3360,20 +3384,10 @@ void NotificationManager::bbl_close_3mf_warn_notification()
         }
 }
 
-void NotificationManager::bbl_show_3mf_warn_notification(const std::string &text)
+void NotificationManager::bbl_show_3mf_warn_notification(const std::string &text, NotificationLevel level)
 {
-    NotificationData data{NotificationType::BBL3MFInfo, NotificationLevel::ErrorNotificationLevel, BBL_NOTICE_MAX_INTERVAL, text};
-
-    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-        if (notification->get_type() == NotificationType::BBL3MFInfo) {
-            notification->reinit();
-            notification->update(data);
-            return;
-        }
-    }
-
-    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
-    push_notification_data(std::move(notification), 0);
+    NotificationData data{NotificationType::BBL3MFInfo, level, BBL_NOTICE_MAX_INTERVAL, text};
+    push_notification_data(data, 0);
 }
 
 void NotificationManager::bbl_close_plateinfo_notification()
@@ -3388,17 +3402,7 @@ void NotificationManager::bbl_close_plateinfo_notification()
 void NotificationManager::bbl_show_preview_only_notification(const std::string &text)
 {
     NotificationData data{NotificationType::BBLPreviewOnlyMode, NotificationLevel::WarningNotificationLevel, 0, text};
-
-    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-        if (notification->get_type() == NotificationType::BBLPreviewOnlyMode) {
-            notification->reinit();
-            notification->update(data);
-            return;
-        }
-    }
-
-    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
-    push_notification_data(std::move(notification), 0);
+    push_notification_data(data, 0);
 }
 
 void NotificationManager::bbl_close_preview_only_notification()

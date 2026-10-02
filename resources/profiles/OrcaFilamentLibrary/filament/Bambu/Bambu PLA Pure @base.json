@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Pure @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFTHDCqA",
+	"instantiation": "false",
+	"filament_cost": [
+		"16.99"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_flow_ratio": [
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98"
+	],
+	"filament_vendor": [
+		"Bambu Lab"
+	],
+	"nozzle_temperature_range_high": [
+		"220"
+	],
+	"slow_down_layer_time": [
+		"8"
+	]
+}

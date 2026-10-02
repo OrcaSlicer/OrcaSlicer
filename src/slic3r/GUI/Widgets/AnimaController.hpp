@@ -3,6 +3,11 @@
 
 #include "../wxExtensions.hpp"
 #include "Label.hpp"
+#include <wx/panel.h>
+#include <wx/checklst.h>
+#include <vector>
+#include <string>
+#include <wx/timer.h>
 
 
 class AnimaIcon : public wxPanel
@@ -13,7 +18,7 @@ public:
 
     void Play();
     void Stop();
-    void Enable();
+    void ShowEnabledIcon();
     bool IsPlaying() const { return IsRunning(); };
     bool IsRunning() const;
 

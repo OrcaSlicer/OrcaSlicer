@@ -5,10 +5,26 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/Utils/Http.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <boost/asio/ip/address.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <exception>
+#include <wx/utils.h>
+#include <string>
 
 namespace Slic3r {
 namespace GUI {
@@ -268,7 +284,7 @@ void NetworkTestDialog::start_test_url(TestJob job, wxString name, wxString url)
 
     int result = -1;
 	http.timeout_max(10)
-		.on_complete([this, &result](std::string body, unsigned status) {
+		.on_complete([&result](std::string body, unsigned status) {
 			try {
 				if (status == 200) {
 					result = 0;

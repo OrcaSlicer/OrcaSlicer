@@ -1,10 +1,18 @@
 #pragma once
 
+#include <string>
+#include <map>
 #include <unordered_set>
 #include <atomic>
 #include <memory>
+#include <wx/gdicmn.h>
+#include <vector>
+#include <wx/sizer.h>
+#include <wx/dialog.h>
 #include <wx/statbmp.h>
+#include <wx/string.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 #include <wx/webrequest.h>
 
 #include "GUI_Utils.hpp"

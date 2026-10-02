@@ -229,6 +229,22 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
 
     // Append thin walls to the nearest-neighbor search (only for first iteration)
     if (! thin_walls.empty()) {
+        // Orca: apply fuzzy skin to thin walls as well
+        for (auto& thin_wall : thin_walls) {
+            // First, we convert the ThickPolyline into Arachne::ExtrusionLine so we could reuse our existing fuzzy code
+            Arachne::ExtrusionLine el(0, true);
+            el.junctions.reserve(thin_wall.points.size());
+            for (int i = 0; i < thin_wall.points.size(); i++) {
+                el.junctions.emplace_back(thin_wall.points[i], thin_wall.width[i], 0);
+            }
+
+            // Then we fuzzy it
+            apply_fuzzy_skin(&el, perimeter_generator, true, thin_wall.is_closed());
+
+            // Then convert the result back to ThickPolyline
+            thin_wall = Arachne::to_thick_polyline(el);
+        }
+
         variable_width(thin_walls, erExternalPerimeter, perimeter_generator.ext_perimeter_flow, coll.entities);
         thin_walls.clear();
     }
@@ -392,7 +408,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
 
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
-        apply_fuzzy_skin(extrusion, perimeter_generator, is_contour);
+        apply_fuzzy_skin(extrusion, perimeter_generator, is_contour, extrusion->is_closed);
 
         ExtrusionPaths paths;
         // detect overhanging/bridging perimeters
@@ -534,6 +550,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
+                extrusion_loop.inset_idx = extrusion->inset_idx;
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
@@ -1302,6 +1319,73 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
     }
 }
 
+// A loop made of nothing but overhang paths lies entirely off the lower layer.
+static bool is_unsupported_loop(const ExtrusionEntity *entity)
+{
+    if (!entity->is_loop())
+        return false;
+    const ExtrusionPaths &paths = static_cast<const ExtrusionLoop *>(entity)->paths;
+    return !paths.empty() && std::all_of(paths.begin(), paths.end(),
+                                         [](const ExtrusionPath &path) { return path.role() == erOverhangPerimeter; });
+}
+
+// ORCA: A wall loop with nothing under it has nothing to lean on, so whatever the configured wall
+// sequence it is extruded after the loops that anchor it, innermost first. A loop that runs alongside
+// an anchored one belongs to the same wall stack and keeps its place ahead of the infill, which needs
+// it as an anchor; one that touches nothing has only that infill to rest on, so it is flagged for the
+// G-code writer to hold it back until the infill is down.
+static void defer_unsupported_loops(const PerimeterGenerator &perimeter_generator, ExtrusionEntityCollection &entities)
+{
+    if (!perimeter_generator.config->unsupported_wall_last)
+        return;
+
+    ExtrusionEntitiesPtr &src = entities.entities;
+    auto first_deferred = std::stable_partition(src.begin(), src.end(),
+                                                [](const ExtrusionEntity *entity) { return !is_unsupported_loop(entity); });
+    if (first_deferred == src.end())
+        return;
+
+    std::stable_sort(first_deferred, src.end(),
+                     [](const ExtrusionEntity *lhs, const ExtrusionEntity *rhs) { return lhs->inset_idx > rhs->inset_idx; });
+
+    auto collect_lines = [](const ExtrusionEntity *entity, Lines &out) {
+        Polylines polylines;
+        entity->collect_polylines(polylines);
+        append(out, to_lines(polylines));
+    };
+
+    Lines anchored;
+    for (auto it = src.begin(); it != first_deferred; ++it)
+        collect_lines(*it, anchored);
+
+    std::vector<ExtrusionLoop *> unattached;
+    for (auto it = first_deferred; it != src.end(); ++it)
+        unattached.emplace_back(static_cast<ExtrusionLoop *>(*it));
+
+    // A loop leaning on a loop that is itself anchored is anchored as well, so spread outwards from
+    // the anchored loops until no unsupported loop is left touching what was reached.
+    const double touch_distance = 1.5 * std::max(perimeter_generator.ext_perimeter_flow.scaled_spacing(),
+                                                 perimeter_generator.perimeter_flow.scaled_spacing());
+    while (!anchored.empty()) {
+        AABBTreeLines::LinesDistancer<Line> distancer{std::move(anchored)};
+        anchored.clear();
+        for (ExtrusionLoop *&loop : unattached) {
+            if (loop == nullptr)
+                continue;
+            const Points points = loop->as_polyline().points;
+            if (std::any_of(points.begin(), points.end(),
+                            [&distancer, touch_distance](const Point &point) { return distancer.distance_from_lines<false>(point) < touch_distance; })) {
+                collect_lines(loop, anchored);
+                loop = nullptr;
+            }
+        }
+    }
+
+    for (ExtrusionLoop *loop : unattached)
+        if (loop != nullptr)
+            loop->print_after_infill = true;
+}
+
 void PerimeterGenerator::process_classic()
 {
     group_region_by_fuzzify(*this);
@@ -1788,6 +1872,8 @@ void PerimeterGenerator::process_classic()
                 }
             }
             
+            defer_unsupported_loops(*this, entities);
+
             // append perimeters for this slice as a collection
             if (! entities.empty())
                 this->loops->append(entities);
@@ -2111,7 +2197,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 bridgeable_filtered = union_ex(offset_ex(remaining, perimeter_spacing), bridgeable_filtered);
                                 bridgeable_filtered = offset_ex(bridgeable_filtered, -perimeter_spacing);
                                 bridgeable_filtered = diff_ex(bridgeable_filtered, remaining, ApplySafetyOffset::Yes);
-                                bridgeable_filtered = opening_ex(bridgeable_filtered, perimeter_spacing); // filter noise from the diff_ex
+                                bridgeable_filtered = opening_ex(bridgeable_filtered, ext_perimeter_width / 2); // filter noise from the diff_ex
                                 bridgeable_filtered = offset_ex(bridgeable_filtered, perimeter_spacing);  // restore the size to the original bridgeable area
                                 // Safety measure: Keep the bridge mask from intruding deeper into the
                                 // supported anchor region than the explicit anchor overlap.
@@ -2170,13 +2256,45 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
 
 // ORCA:
 // Inner Outer Inner wall ordering mode perimeter order optimisation functions
+
+// Whether two Arachne lines touch: somewhere the gap between their centrelines is no more than the
+// touching distance there. Each junction of one line is measured against the segments of the other,
+// both ways, and the search stops at the first spot that touches.
+// Arachne varies line width to fill the region (e.g. the odd centre line of a narrow wall is wider
+// than nominal), so the touching distance is half the combined width at the closest points, not the
+// nominal spacing. Widths are taken locally so a line widened in one place (a wedge tip, a wall
+// transition) does not count as touching where it passes close to other perimeters. min_threshold keeps
+// the nominal spacing threshold as the lower bound.
+static bool arachne_lines_touch(const Arachne::ExtrusionLine &a, const Arachne::ExtrusionLine &b, double min_threshold)
+{
+    auto one_way = [min_threshold](const Arachne::ExtrusionLine &from, const Arachne::ExtrusionLine &to) {
+        for (const Arachne::ExtrusionJunction &j : from.junctions) {
+            const Vec2d p = j.p.cast<double>();
+            for (size_t k = 0; k + 1 < to.junctions.size(); ++k) {
+                const Arachne::ExtrusionJunction &j0 = to.junctions[k];
+                const Arachne::ExtrusionJunction &j1 = to.junctions[k + 1];
+                const Vec2d  s0  = j0.p.cast<double>();
+                const Vec2d  seg = j1.p.cast<double>() - s0;
+                const double l2  = seg.squaredNorm();
+                const double t   = l2 > 0. ? std::clamp((p - s0).dot(seg) / l2, 0., 1.) : 0.;
+                const double w   = double(j0.w) + t * double(j1.w - j0.w); // width of `to` at the closest point
+                const double touch_distance = std::max(min_threshold, 0.5 * (double(j.w) + w));
+                if ((s0 + t * seg - p).norm() <= touch_distance)
+                    return true;
+            }
+        }
+        return false;
+    };
+    return one_way(a, b) || one_way(b, a);
+}
+
 /**
  * @brief Finds all perimeters touching a given set of reference lines, given as indexes.
  *
  * @param entities The list of PerimeterGeneratorArachneExtrusion entities.
  * @param referenceIndices A set of indices representing the reference points.
- * @param threshold_external The distance threshold to consider for proximity for a reference perimeter with inset index 0
- * @param threshold_internal The distance threshold to consider for proximity for a reference perimeter with inset index 1+
+ * @param threshold_external The minimum touching distance for a reference perimeter with inset index 0 
+ * @param threshold_internal The minimum touching distance for a reference perimeter with inset index 1+ 
  * @param considered_inset_idx What perimeter inset index are we searching for (eg. if we are searching for first internal perimeters proximate to the current reference perimeter, this value should be set to 1 etc).
  * @return std::vector<int> A vector of indices representing the touching perimeters.
  */
@@ -2185,7 +2303,6 @@ std::vector<int> findAllTouchingPerimeters(const std::vector<PerimeterGeneratorA
 
     for (const int refIdx : referenceIndices) {
         const auto& referenceEntity = entities[refIdx];
-        Points referencePoints = Arachne::to_points(*referenceEntity.extrusion);
         for (size_t i = 0; i < entities.size(); ++i) {
             // Skip already considered references and the reference entity
             if (referenceIndices.count(i) > 0) continue;
@@ -2196,15 +2313,9 @@ std::vector<int> findAllTouchingPerimeters(const std::vector<PerimeterGeneratorA
                 continue; // skip if they dont match
             }
             
-            Points points = Arachne::to_points(*entity.extrusion);
-            double distance = MultiPoint::minimumDistanceBetweenLinesDefinedByPoints(referencePoints, points);
-            // Add to touchingIndices if within threshold distance
-            size_t threshold=0;
-            if(referenceEntity.extrusion->inset_idx == 0)
-                threshold = threshold_external;
-            else
-                threshold = threshold_internal;
-            if (distance <= threshold) {
+            // Add to touchingIndices if the lines touch.
+            const double threshold = double(referenceEntity.extrusion->inset_idx == 0 ? threshold_external : threshold_internal);
+            if (arachne_lines_touch(*referenceEntity.extrusion, *entity.extrusion, threshold)) {
                 touchingIndices.insert(i);
             }
         }
@@ -2726,6 +2837,7 @@ void PerimeterGenerator::process_arachne()
                 reorient_perimeters(extrusion_coll, steep_overhang_contour, steep_overhang_hole,
                                     this->config->overhang_reverse_internal_only);
             }
+            defer_unsupported_loops(*this, extrusion_coll);
             this->loops->append(extrusion_coll);
         }
 
@@ -2796,6 +2908,21 @@ bool PerimeterGeneratorLoop::is_internal_contour() const
         if (loop.is_contour)
             return false;
     return true;
+}
+
+// ORCA: Arachne drops features below min_feature_size, classic builds nothing thinner than a third of the
+// nozzle. Both describe the layer below, a union of regions sharing neither nozzle nor generator, so every
+// ambiguity resolves low: it may keep a sliver that was never printed, but it never drops one that was.
+ExPolygons PerimeterGenerator::printable_slices(const ExPolygons &slices) const
+{
+    double min_width = *std::min_element(print_config->nozzle_diameter.values.begin(),
+                                         print_config->nozzle_diameter.values.end()) / 3.;
+    if (object_config->wall_generator.value == PerimeterGeneratorType::Arachne) {
+        const double min_feature_size = Arachne::make_paths_params(layer_id, *object_config, *print_config).min_feature_size;
+        // Spiral vase can put a classic layer under an Arachne one, so there both limits apply.
+        min_width = print_config->spiral_mode ? std::min(min_width, min_feature_size) : min_feature_size;
+    }
+    return min_width > EPSILON ? opening_ex(slices, float(scale_(min_width / 2.))) : slices;
 }
 
 std::vector<Polygons> PerimeterGenerator::generate_lower_polygons_series(float width)

@@ -1,7 +1,25 @@
 #include "TextLines.hpp"
 
+#include <cstddef>
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <Eigen/Geometry>
 #include <glad/gl.h>
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <math.h>
+#include <utility>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/AABBTreeIndirect.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/TextConfiguration.hpp"
 
+#include "EmbossStyleManager.hpp"
 #include "libslic3r/Model.hpp"
 
 #include "libslic3r/Emboss.hpp"

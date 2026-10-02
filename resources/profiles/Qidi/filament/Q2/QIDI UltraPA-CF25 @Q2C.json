@@ -3,7 +3,7 @@
 	"name": "QIDI UltraPA-CF25@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_26",
+	"filament_id": "OF9PELEb",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"65"

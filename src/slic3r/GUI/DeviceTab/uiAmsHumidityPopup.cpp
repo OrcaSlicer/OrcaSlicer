@@ -14,8 +14,14 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include <cmath>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
 #include <wx/grid.h>
+#include <wx/sizer.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -98,7 +104,7 @@ void uiAmsPercentHumidityDryPopup::Create()
     Refresh();
 }
 
-void uiAmsPercentHumidityDryPopup::Update(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
+void uiAmsPercentHumidityDryPopup::UpdateInfo(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
 {
     if (m_humidity_level != humidiy_level || m_humidity_percent != humidity_percent ||
         m_left_dry_time != left_dry_time || m_current_temperature != current_temperature)

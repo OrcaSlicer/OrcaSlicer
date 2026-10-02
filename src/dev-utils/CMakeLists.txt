@@ -20,6 +20,22 @@ if (SLIC3R_ENC_CHECK)
     )
 endif()
 
+if (ORCA_TOOLS)
+    set(_DEV_DEFS -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
+
+    # generate_system_cache: pre-generates per-vendor <vendor>.opc files under resources/profiles for CI bundling.
+    add_executable(generate_system_cache generate_system_cache.cpp)
+    target_link_libraries(generate_system_cache libslic3r boost_headeronly)
+    target_compile_definitions(generate_system_cache PRIVATE ${_DEV_DEFS})
+
+    # profile_include_dump: prints what included templates contribute to a vendor's presets,
+    # to diff against the same tool built in BambuStudio. Built only on request.
+    add_executable(profile_include_dump EXCLUDE_FROM_ALL profile_include_dump.cpp)
+    target_link_libraries(profile_include_dump libslic3r boost_headeronly)
+    target_compile_definitions(profile_include_dump PRIVATE ${_DEV_DEFS})
+
+endif()
+
 # Function that adds source file encoding check to a target
 # using the above encoding-check binary
 

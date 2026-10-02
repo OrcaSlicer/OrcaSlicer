@@ -146,15 +146,6 @@ bool ESP3D::start_print(wxString& msg, const std::string& filename) const
     return ret;
 }
 
-int ESP3D::get_err_code_from_body(const std::string& body) const
-{
-    pt::ptree          root;
-    std::istringstream iss(body); // wrap returned json to istringstream
-    pt::read_json(iss, root);
-
-    return root.get<int>("err", 0);
-}
-
 // ESP3D only accepts 8.3 filenames else it crashes marlin and other undefined behaviour
 std::string ESP3D::get_short_name(const std::string& filename) const
 {

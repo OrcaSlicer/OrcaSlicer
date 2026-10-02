@@ -1032,7 +1032,8 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_y_shift(0.f),
     m_z_pos(0.f),
     m_bridging(float(config.wipe_tower_bridging)),
-    m_no_sparse_layers(config.wipe_tower_no_sparse_layers),
+    m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(config)),
+    m_sparse_layers_combined(wipe_tower_sparse_layers_combined(config)),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
@@ -1149,6 +1150,16 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].filament_area = float((M_PI/4.f) * pow(config.filament_diameter.get_at(idx), 2)); // all extruders are assumed to have the same filament diameter at this point
     float nozzle_diameter = float(config.nozzle_diameter.get_at(idx));
     m_filpar[idx].nozzle_diameter = nozzle_diameter; // to be used in future with (non-single) multiextruder MM
+
+    // Orca: max_layer_height is per nozzle, so read it through the filament->nozzle map rather than
+    // by filament id. Zero means three quarters of the nozzle diameter, as in Slicing.cpp.
+    {
+        const std::vector<int> &filament_map = config.filament_map.values; // 1 based nozzle indices
+        const size_t nozzle_idx = idx < filament_map.size() && filament_map[idx] > 0 ? size_t(filament_map[idx] - 1) : 0;
+        const float  max_layer_height = float(config.max_layer_height.get_at(nozzle_idx));
+        m_filpar[idx].max_layer_height = max_layer_height > 0.f ? max_layer_height
+                                                                : 0.75f * float(config.nozzle_diameter.get_at(nozzle_idx));
+    }
 
     float max_vol_speed = float(config.filament_max_volumetric_speed.get_at(idx));
     if (max_vol_speed!= 0.f)
@@ -1730,7 +1741,7 @@ void WipeTower2::toolchange_Change(
         } else if (m_wall_type == (int)wtwCone) {
             const double support_scale = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
                                                                   m_wipe_tower_cone_angle).second;
-            const double z = m_no_sparse_layers ? (m_current_height + m_layer_info->height) : m_layer_info->z;
+            const double z = m_sparse_layers_skipped ? (m_current_height + m_layer_info->height) : m_layer_info->z;
             const double r = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
             const double w = m_layer_info->depth + m_perimeter_width;
             if (r > 0.5 * w + 0.01) { // same guard as generate_support_cone_wall
@@ -1872,7 +1883,7 @@ void WipeTower2::toolchange_Wipe(
     // All the calculations in all other places take the spacing into account for all the layers.
 
 	// If spare layers are excluded->if 1 or less toolchange has been done, it must be sill the first layer, too.So slow down.
-    const float target_speed = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers) ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
+    const float target_speed = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped) ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
     float wipe_speed = 0.33f * target_speed;
 
     // if there is less than 2.5*line_width to the edge, advance straightaway (there is likely a blob anyway)
@@ -1970,7 +1981,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     // Slow down on the 1st layer.
     // If spare layers are excluded -> if 1 or less toolchange has been done, it must be still the first layer, too. So slow down.
-    bool first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
+    bool first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
     float                      feedrate      = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
     if (m_enable_tower_interface_features && m_prev_layer_had_interface)
         feedrate = std::min(feedrate, 20.f * 60.f);
@@ -2103,7 +2114,9 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (! m_no_sparse_layers || toolchanges_on_layer || first_layer) {
+    // A folded layer prints nothing, so it consumes nothing and adds no height of its own.
+    const bool combined_away = m_layer_info != m_plan.end() && m_layer_info->combined_away;
+    if ((! m_sparse_layers_skipped || toolchanges_on_layer || first_layer) && ! combined_away) {
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
         m_current_height += m_layer_info->height;
@@ -2127,6 +2140,23 @@ std::pair<double, double> WipeTower2::get_wipe_tower_cone_base(double width, dou
         support_scale = (w / 2. + t / tan + t * tan) / (w / 2.);
     }
     return std::make_pair(R, support_scale);
+}
+
+Polygon WipeTower2::cone_base_polygon(double width, double depth, double height, double angle_deg)
+{
+    Polygon box({Point::new_scale(Vec2d(0., 0.)), Point::new_scale(Vec2d(width, 0.)),
+                 Point::new_scale(Vec2d(width, depth)), Point::new_scale(Vec2d(0., depth))});
+    if (angle_deg <= EPSILON || height <= EPSILON || width <= EPSILON || depth <= EPSILON)
+        return box;
+    const auto [R, x_scale] = get_wipe_tower_cone_base(width, height, depth, angle_deg);
+    if (R <= EPSILON)
+        return box;
+    const Vec2d center(width / 2., depth / 2.);
+    Polygon ellipse;
+    for (double alpha = 0.; alpha < 2. * M_PI; alpha += M_PI / 20.)
+        ellipse.points.push_back(Point::new_scale(center + R * Vec2d(std::cos(alpha) / x_scale, std::sin(alpha))));
+    Polygons u = union_({box, ellipse});
+    return u.empty() ? box : u.front();
 }
 
 // Static method to extract wipe_volumes[from][to] from the configuration.
@@ -2209,7 +2239,7 @@ void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned i
 	if (m_plan.empty() || m_plan.back().z + WT_EPSILON < z_par) // if we moved to a new layer, we'll add it to m_plan first
 		m_plan.push_back(WipeTowerInfo(z_par, layer_height_par));
 
-    if (m_first_layer_idx == size_t(-1) && (! m_no_sparse_layers || old_tool != new_tool || m_plan.size() == 1))
+    if (m_first_layer_idx == size_t(-1) && (! m_sparse_layers_skipped || old_tool != new_tool || m_plan.size() == 1))
         m_first_layer_idx = m_plan.size() - 1;
 
     if (old_tool == new_tool)	// new layer without toolchanges - we are done
@@ -2418,6 +2448,10 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 	if (m_plan.empty())
         return;
 
+    // Before planning: the layer heights this rewrites feed the extrusion flow of every later pass.
+    if (m_sparse_layers_combined)
+        combine_sparse_wipe_tower_plan(m_plan, m_filpar, m_first_layer_idx, m_current_tool);
+
 	plan_tower();
 #if 1
     for (int i=0;i<5;++i) {
@@ -2515,6 +2549,10 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             else
                 layer_result[idx] = merge_tcr(layer_result[idx], finish_layer_tcr);
         }
+
+        if (layer.combined_away)
+            for (WipeTower::ToolChangeResult &tcr : layer_result)
+                tcr.combined_away = true;
 
 		result.emplace_back(std::move(layer_result));
 
@@ -2635,7 +2673,7 @@ Polygon WipeTower2::generate_support_cone_wall(
     const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
                                                              m_wipe_tower_cone_angle);
 
-    double z = m_no_sparse_layers ?
+    double z = m_sparse_layers_skipped ?
                    (m_current_height + m_layer_info->height) :
                    m_layer_info->z; // the former should actually work in both cases, but let's stay on the safe side (the 2.6.0 is close)
 

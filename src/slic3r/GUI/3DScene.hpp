@@ -16,8 +16,17 @@
 #include "GLShader.hpp"
 #include "MeshUtils.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cmath>
 #include <functional>
+#include <map>
+#include "libslic3r/BoundingBox.hpp"
+#include <memory>
 #include <optional>
+#include <vector>
+#include <string>
+#include <utility>
 
 #ifndef NDEBUG
 #define HAS_GLSAFE
@@ -93,6 +102,13 @@ public:
     static ColorRGBA SUPPORT_ENFORCER_COL;
     static ColorRGBA SUPPORT_BLOCKER_COL;
     static ColorRGBA MODEL_HIDDEN_COL;
+    // Precise Seam modifier colors
+    static ColorRGBA PRECISE_SEAM_CENTER_COL;
+    static ColorRGBA PRECISE_SEAM_LEFT_COL;
+    static ColorRGBA PRECISE_SEAM_RIGHT_COL;
+    static ColorRGBA PRECISE_SEAM_ENFORCED_COL;
+    static ColorRGBA PRECISE_SEAM_NEUTRAL_COL;
+    static ColorRGBA PRECISE_SEAM_BLOCKED_COL;
 
     static void update_render_colors();
     static void load_render_colors();

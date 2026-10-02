@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Glow @base",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"filament_id": "OFjPXrXO",
+	"instantiation": "false"
+}

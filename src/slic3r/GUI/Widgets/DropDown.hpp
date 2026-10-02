@@ -2,7 +2,15 @@
 #define slic3r_GUI_DropDown_hpp_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <wx/event.h>
+#include <vector>
+#include <cstddef>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <wx/dc.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 #include "PopupWindow.hpp"
@@ -13,6 +21,7 @@
 
 #define DD_ITEM_STYLE_SPLIT_ITEM  0x0001 // ----text----, text with horizontal line arounds
 #define DD_ITEM_STYLE_DISABLED    0x0002 // ----text----, text with horizontal line arounds
+#define DD_ITEM_STYLE_DIMMED      0x0004 // gray text, but still selectable
 
 wxDECLARE_EVENT(EVT_DISMISS, wxCommandEvent);
 

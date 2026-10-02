@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Preset.hpp"
 
 using namespace Slic3r;
 
@@ -29,6 +30,61 @@ void add_print_variant_columns(DynamicPrintConfig &config)
 }
 
 } // namespace
+
+TEST_CASE("Filament cooling and pressure settings follow the selected nozzle variant", "[Config][FilamentVariants]")
+{
+    struct Setting {
+        const char *key;
+        const char *standard;
+        const char *high_flow;
+    };
+    const Setting settings[] = {
+        {"enable_pressure_advance", "0", "1"},
+        {"pressure_advance", "0.04", "0.02"},
+        {"fan_min_speed", "15", "10"},
+        {"fan_max_speed", "15", "60"},
+        {"additional_cooling_fan_speed", "70", "0"},
+        {"filament_minimal_purge_on_wipe_tower", "0", "15"},
+        {"filament_multitool_ramming", "0", "1"},
+        {"filament_multitool_ramming_volume", "0", "5"},
+        {"filament_multitool_ramming_flow", "10", "30"},
+        {"nozzle_temperature_range_low", "190", "210"},
+        {"nozzle_temperature_range_high", "255", "280"},
+    };
+    const int variant_index = GENERATE(0, 1, 2, 3);
+    const bool load_preset = GENERATE(false, true);
+    const bool high_flow = variant_index % 2 != 0;
+    for (const Setting &setting : settings) {
+        DYNAMIC_SECTION(setting.key << " variant=" << variant_index << " loaded=" << load_preset) {
+            DynamicPrintConfig printer = make_hybrid_printer_config();
+            if (variant_index >= 2)
+                printer.option<ConfigOptionEnumsGeneric>("extruder_type")->values[1] = etBowden;
+            DynamicPrintConfig filament;
+            filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values =
+                {"Direct Drive Standard", "Direct Drive High Flow", "Bowden Standard", "Bowden High Flow"};
+            // one value per variant of filament_extruder_variant
+            const std::string values = std::string(setting.standard) + "," + setting.high_flow + "," + setting.standard + "," + setting.high_flow;
+            REQUIRE(filament.option(setting.key, true)->deserialize(values));
+
+            if (load_preset) {
+                extend_default_config_length(filament, false, DynamicPrintConfig::full_print_config());
+                DynamicPrintConfig expanded;
+                REQUIRE(expanded.option(setting.key, true)->deserialize(values));
+                REQUIRE(*filament.option(setting.key) == *expanded.option(setting.key));
+            }
+
+            std::vector<std::vector<NozzleVolumeType>> nozzle_types;
+            const int count = printer.get_extruder_nozzle_volume_count(2, nozzle_types);
+            filament.update_values_to_printer_extruders(printer, 2, count, nozzle_types,
+                filament_options_with_variant, "", "filament_extruder_variant", 1, 2,
+                high_flow ? nvtHighFlow : nvtStandard);
+
+            DynamicPrintConfig expected;
+            REQUIRE(expected.option(setting.key, true)->deserialize(high_flow ? setting.high_flow : setting.standard));
+            REQUIRE(*filament.option(setting.key) == *expected.option(setting.key));
+        }
+    }
+}
 
 TEST_CASE("apply_override fills nil entries from the 0-based default index", "[Config]")
 {
@@ -120,14 +176,32 @@ TEST_CASE("get_config_index_base resolves (volume type, extruder type, id) to a 
         REQUIRE(get_config_index_base(nvtHighFlow, etDirectDrive, 2, variant_list, variant_ids) == 3);
     }
 
-    SECTION("no matching column falls back to slot 0") {
-        REQUIRE(get_config_index_base(nvtStandard, etDirectDrive, 3, variant_list, variant_ids) == 0);
+    SECTION("no matching variant falls back to the id's first variant") {
         REQUIRE(get_config_index_base(nvtStandard, etBowden, 1, variant_list, variant_ids) == 0);
+        REQUIRE(get_config_index_base(nvtStandard, etBowden, 2, variant_list, variant_ids) == 2);
     }
 
-    SECTION("Hybrid is not a preset variant string and falls back to slot 0") {
-        REQUIRE(get_config_index_base(nvtHybrid, etDirectDrive, 2, variant_list, variant_ids) == 0);
+    SECTION("an id without any variant falls back to variant index 0") {
+        REQUIRE(get_config_index_base(nvtStandard, etDirectDrive, 3, variant_list, variant_ids) == 0);
     }
+
+    SECTION("Hybrid is not a preset variant string and falls back to the id's first variant") {
+        REQUIRE(get_config_index_base(nvtHybrid, etDirectDrive, 2, variant_list, variant_ids) == 2);
+    }
+
+    SECTION("a filament without a High Flow variant keeps its own variant, not the first filament's") {
+        // filament 1 defines Standard and High Flow, filament 2 only Standard
+        const std::vector<std::string> mixed_list = {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard"};
+        const std::vector<int>         mixed_ids  = {1, 1, 2};
+        REQUIRE(get_config_index_base(nvtHighFlow, etDirectDrive, 1, mixed_list, mixed_ids) == 1);
+        REQUIRE(get_config_index_base(nvtHighFlow, etDirectDrive, 2, mixed_list, mixed_ids) == 2);
+    }
+}
+
+TEST_CASE("support interface pattern registry includes spiral inset", "[Config]")
+{
+    const auto &values = ConfigOptionEnum<SupportMaterialInterfacePattern>::get_enum_values();
+    REQUIRE(values.at("spiralinset") == SupportMaterialInterfacePattern::smipSpiralInset);
 }
 
 TEST_CASE("get_extruder_nozzle_volume_count reads the per-extruder volume-type layout", "[Config]")
@@ -390,6 +464,8 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
         config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow",
                                                                                          "Direct Drive Standard", "Direct Drive High Flow"};
         config.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {12., 20., 13., 21.};
+        config.option<ConfigOptionFloats>("fan_max_speed", true)->values = {15., 60., 20., 80.};
+        config.option<ConfigOptionBools>("filament_multitool_ramming", true)->values = {false, true, false, true};
     };
 
     std::set<std::string> filament_keys = filament_options_with_variant;
@@ -409,6 +485,8 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
             "filament_self_index", "filament_extruder_variant");
 
         REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
+        REQUIRE(config.option<ConfigOptionFloats>("fan_max_speed")->values == std::vector<double>({15., 80.}));
+        REQUIRE(config.option<ConfigOptionBools>("filament_multitool_ramming")->values == std::vector<unsigned char>({0, 1}));
         REQUIRE(config.option<ConfigOptionStrings>("filament_extruder_variant")->values ==
                 std::vector<std::string>({"Direct Drive Standard", "Direct Drive High Flow"}));
         REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
@@ -478,4 +556,236 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
         REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
         REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
     }
+
+    SECTION("a variant option shorter than the filament slots keeps its first value instead of zero") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtHighFlow};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard,Direct Drive High Flow",
+                                                                                     "Direct Drive Standard,Direct Drive High Flow"};
+        make_filament_arrays(config);
+        config.option<ConfigOptionInts>("filament_map", true)->values = {1, 2};
+        // no loaded preset carries the key, so only its single registered default is present
+        config.option<ConfigOptionFloatsNullable>("filament_cooling_before_tower", true)->values = {10.};
+        // only the first filament's two variant columns were loaded
+        config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed", true)->values = {-1., -2.};
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 2;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+
+        config.update_values_to_printer_extruders_for_multiple_filaments(config, extruder_count, count, filament_keys,
+            "filament_self_index", "filament_extruder_variant");
+
+        // filament 2 resolves to column 3 (its extruder's High Flow column), past the end of both vectors
+        REQUIRE_THAT(config.option<ConfigOptionFloatsNullable>("filament_cooling_before_tower")->values,
+                     Catch::Matchers::Approx(std::vector<double>({10., 10.})));
+        REQUIRE_THAT(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed")->values,
+                     Catch::Matchers::Approx(std::vector<double>({-1., -1.})));
+        REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 21.}));
+    }
+
+    // A single extruder whose only variant is Standard or High Flow; filament 1 defines both
+    // variants, filament 2 only Standard.
+    auto make_single_variant_config = [](NozzleVolumeType nozzle_volume_type, const std::string &variant) {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nozzle_volume_type};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {variant};
+        config.option<ConfigOptionFloats>("filament_diameter", true)->values = {1.75, 1.75};
+        config.option<ConfigOptionInts>("filament_self_index", true)->values = {1, 1, 2};
+        config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow",
+                                                                                         "Direct Drive Standard"};
+        config.option<ConfigOptionFloats>("filament_max_volumetric_speed", true)->values = {12., 20., 13.};
+        config.option<ConfigOptionInts>("filament_map", true)->values = {1, 1};
+        return config;
+    };
+
+    SECTION("a single-variant printer picks each filament's variant of that variant string") {
+        auto [nozzle_volume_type, variant, speeds] = GENERATE(table<NozzleVolumeType, std::string, std::vector<double>>({
+            {nvtStandard, "Direct Drive Standard", {12., 13.}},
+            // filament 2 defines no High Flow variant and keeps its first
+            {nvtHighFlow, "Direct Drive High Flow", {20., 13.}},
+        }));
+        DynamicPrintConfig config = make_single_variant_config(nozzle_volume_type, variant);
+        int extruder_count = 1;
+        REQUIRE_FALSE(config.support_different_extruders(extruder_count));
+        REQUIRE(config.has_multi_variant_filament());
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+        config.update_values_to_printer_extruders_for_multiple_filaments(config, extruder_count, count, filament_keys,
+            "filament_self_index", "filament_extruder_variant");
+
+        REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == speeds);
+        REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
+    }
+
+    SECTION("a filament map shorter than the filament count keeps every filament") {
+        DynamicPrintConfig config = make_single_variant_config(nvtStandard, "Direct Drive Standard");
+        config.option<ConfigOptionInts>("filament_map", true)->values = {1};
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 1;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+        config.update_values_to_printer_extruders_for_multiple_filaments(config, extruder_count, count, filament_keys,
+            "filament_self_index", "filament_extruder_variant");
+
+        REQUIRE(config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->values == std::vector<double>({12., 13.}));
+        REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
+    }
+}
+
+TEST_CASE("has_multi_variant_filament is true only when a filament defines more than one variant", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values = {1.75, 1.75};
+
+    SECTION("one variant per filament reports false") {
+        config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Bowden Standard"};
+        REQUIRE_FALSE(config.has_multi_variant_filament());
+    }
+
+    SECTION("a filament with Standard and High Flow variants reports true") {
+        config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow",
+                                                                                         "Direct Drive Standard"};
+        REQUIRE(config.has_multi_variant_filament());
+    }
+}
+
+// update_values_from_multi_to_multi_2 walks the DESTINATION PRINTER's variant list while writing
+// into a row taken from the destination PRINT preset, whose arrays are sized to its own
+// print_extruder_variant. Those two widths disagree until the print preset is re-selected for the
+// new printer -- Tab::load_current_preset() runs this migration first -- so a project authored on
+// a single-variant printer, opened and switched to a wider one, wrote past the end of the row.
+TEST_CASE("update_values_from_multi_to_multi_2 sizes the destination row to the variant count",
+          "[Config][VariantExpansion]")
+{
+    const std::vector<std::string> src_variants{"Direct Drive Standard"};
+    const std::vector<std::string> dst_variants{"Direct Drive Standard", "Direct Drive High Flow",
+                                                "Direct Drive Standard", "Direct Drive High Flow"};
+    const std::set<std::string>    keys{"outer_wall_speed"};
+
+    // The per-object override as authored on the single-variant printer.
+    const auto object_override = [] {
+        DynamicPrintConfig c;
+        c.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {42.};
+        return c;
+    };
+
+    SECTION("a row narrower than the variant list is grown, not overrun") {
+        DynamicPrintConfig object_config = object_override();
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200.};
+
+        REQUIRE(object_config.update_values_from_multi_to_multi_2(src_variants, dst_variants, dst, keys) == 0);
+
+        const auto& out = object_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(out.size() == dst_variants.size());
+        // Both "Direct Drive Standard" columns match the source variant, so they take the override.
+        CHECK(out[0] == Catch::Approx(42.));
+        CHECK(out[2] == Catch::Approx(42.));
+        // The High Flow columns have no matching source variant: nil, so the destination keeps
+        // tracking the print preset rather than being pinned to another variant's value.
+        CHECK(std::isnan(out[1]));
+        CHECK(std::isnan(out[3]));
+    }
+
+    // The regression guard: where the row already matches the variant list -- every case that was
+    // not corrupting the heap -- the resize is a no-op and the output is unchanged.
+    SECTION("a correctly sized row is untouched") {
+        DynamicPrintConfig object_config = object_override();
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200., 500., 210., 510.};
+
+        REQUIRE(object_config.update_values_from_multi_to_multi_2(src_variants, dst_variants, dst, keys) == 0);
+
+        const auto& out = object_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(out.size() == 4);
+        CHECK(out[0] == Catch::Approx(42.));    // matched -> override
+        CHECK(out[1] == Catch::Approx(500.));   // unmatched -> preset value preserved
+        CHECK(out[2] == Catch::Approx(42.));
+        CHECK(out[3] == Catch::Approx(510.));
+    }
+
+    // is_nil(idx) indexes values[idx] with no bounds check, so a source shorter than its own
+    // variant list read out of range before the guard was added.
+    SECTION("a source shorter than its variant list is read in range") {
+        DynamicPrintConfig object_config = object_override();   // one value...
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200., 500.};
+
+        REQUIRE(object_config.update_values_from_multi_to_multi_2(
+            {"Direct Drive Standard", "Direct Drive Standard"},   // ...but two source variants
+            {"Direct Drive Standard", "Direct Drive High Flow"}, dst, keys) == 0);
+
+        const auto& out = object_config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
+        REQUIRE(out.size() == 2);
+        CHECK(out[0] == Catch::Approx(42.));
+        CHECK(out[1] == Catch::Approx(500.));
+    }
+
+    SECTION("an empty destination variant list is refused") {
+        DynamicPrintConfig object_config = object_override();
+        DynamicPrintConfig dst;
+        dst.option<ConfigOptionFloatsNullable>("outer_wall_speed", true)->values = {200.};
+
+        CHECK(object_config.update_values_from_multi_to_multi_2(src_variants, {}, dst, keys) == -1);
+    }
+}
+
+TEST_CASE("get_index_for_extruder returns -1 when no variant column matches the extruder", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+
+    SECTION("the extruder that owns the column resolves to its slot") {
+        REQUIRE(config.get_index_for_extruder(1, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == 0);
+    }
+
+    SECTION("an extruder with no matching column resolves to -1") {
+        REQUIRE(config.get_index_for_extruder(2, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == -1);
+    }
+}
+
+// stride scales the returned slot so callers can address stride-2 options (machine_max_*, a
+// Normal/Silent pair per column) by their pair's base slot. The printer Tab's extruder sync
+// relies on this to copy the right slots on the Motion ability page.
+TEST_CASE("get_index_for_extruder scales the variant column by the requested stride", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("printer_extruder_id", true)->values = {1, 2};
+    config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values = {"Direct Drive Standard",
+                                                                                    "Direct Drive High Flow"};
+
+    // extruder 1 resolves to column 0, extruder 2 to column 1
+    const int col0_stride1 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 1);
+    const int col1_stride1 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 1);
+    REQUIRE(col0_stride1 == 0);
+    REQUIRE(col1_stride1 == 1);
+
+    // stride 2 returns exactly twice the stride-1 index (the pair's base slot)
+    const int col0_stride2 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 2);
+    const int col1_stride2 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 2);
+    REQUIRE(col0_stride2 == col0_stride1 * 2);
+    REQUIRE(col1_stride2 == col1_stride1 * 2);
+    REQUIRE(col0_stride2 == 0);
+    REQUIRE(col1_stride2 == 2);
+}
+
+// A per-variant filament option read with a single value gives it to every filament variant. A project
+// exported by an older CLI holds a single value for an option no loaded preset defined, such as
+// filament_ironing_flow.
+TEST_CASE("A per-variant filament option read with a single value gives it to every filament variant", "[Config]")
+{
+    // filament 1 defines Standard and High Flow, filament 2 Standard
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values = {1, 1, 2};
+    config.load_from_ini_string("pressure_advance = 0.021", ForwardCompatibilitySubstitutionRule::Disable);
+    REQUIRE(config.option<ConfigOptionFloats>("pressure_advance")->values == std::vector<double>({0.021, 0.021, 0.021}));
 }

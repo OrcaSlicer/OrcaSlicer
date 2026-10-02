@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_4_1_34",
 	"name": "QIDI PC/ABS-FR@X-Plus 5-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x5_common",
+	"from": "system",
+	"filament_id": "OFDIrhbu",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"50"
 	],

@@ -2,7 +2,14 @@
 #define slic3r_GUI_IMSlider_hpp_
 
 #include "TickCode.hpp"
+#include <cstddef>
+#include <functional>
+#include <array>
 #include <imgui/imgui.h>
+#include <vector>
+#include "libslic3r/CustomGCode.hpp"
+#include <string>
+#include <wx/event.h>
 #include <wx/slider.h>
 
 #include <set>
@@ -176,7 +183,6 @@ private:
     // Use those values to disable selection of active extruders
     bool m_is_dark = false;
 
-    bool is_osx{false};
     int  m_min_value;
     int  m_max_value;
     int  m_lower_value;
@@ -201,10 +207,6 @@ private:
     void *m_one_layer_on_hover_id;
     void *m_one_layer_off_id;
     void *m_one_layer_off_hover_id;
-    void* m_one_layer_on_light_id;
-    void* m_one_layer_on_hover_light_id;
-    void* m_one_layer_off_light_id;
-    void* m_one_layer_off_hover_light_id;
     void* m_one_layer_on_dark_id;
     void* m_one_layer_on_hover_dark_id;
     void* m_one_layer_off_dark_id;
@@ -221,7 +223,6 @@ private:
     long                m_extra_style;
     float               m_label_koef{1.0};
 
-    float                    m_zero_layer_height = 0.0f;
     std::vector<double>      m_values;
     TickCodeInfo             m_ticks;
     std::vector<double>      m_layers_times;

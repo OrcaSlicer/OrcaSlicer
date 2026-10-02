@@ -1,10 +1,40 @@
 #include "CalibrationWizardSavePage.hpp"
+#include "CalibUtils.hpp"
+#include "GUI.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevNozzleRack.h"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include <utility>
+#include <unordered_set>
+#include <string>
+#include <algorithm>
+#include <wx/valtext.h>
+#include <wx/arrstr.h>
+#include <map>
+#include <wx/sizer.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
 
 
 namespace Slic3r { namespace GUI {
@@ -272,7 +302,7 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
     preset_names = default_naming(preset_names);
 
     std::vector<PACalibResult> sorted_cali_result = cali_result;
-    std::sort(sorted_cali_result.begin(), sorted_cali_result.end(), [this](const PACalibResult &left, const PACalibResult& right) {
+    std::sort(sorted_cali_result.begin(), sorted_cali_result.end(), [](const PACalibResult &left, const PACalibResult& right) {
         return left.tray_id < right.tray_id;
     });
 
@@ -366,7 +396,7 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
                 }
             }
 
-            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [this, comboBox_tray_name, k_value, n_value](auto& e) {
+            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [comboBox_tray_name](auto& e) {
                 int selection = comboBox_tray_name->GetSelection();
                 auto history = filtered_results[selection];
                 });
@@ -731,6 +761,7 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
                 case NozzleVolumeType::nvtStandard:    nozzle_id_str += _L("Standard Flow"); break;
                 case NozzleVolumeType::nvtHighFlow:    nozzle_id_str += _L("High Flow"); break;
                 case NozzleVolumeType::nvtTPUHighFlow: nozzle_id_str += _L("TPU High Flow"); break;
+                case NozzleVolumeType::nvtE3DHighFlow: nozzle_id_str += _L("E3D High Flow"); break;
                 default: break;
                 }
                 nozzle_id_value->SetLabel(nozzle_id_str);
@@ -744,7 +775,7 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
                 }
             }
 
-            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [this, comboBox_tray_name, k_value, n_value](auto &e) {
+            comboBox_tray_name->Bind(wxEVT_COMBOBOX, [comboBox_tray_name](auto &e) {
                 int  selection = comboBox_tray_name->GetSelection();
                 auto history   = filtered_results[selection];
             });

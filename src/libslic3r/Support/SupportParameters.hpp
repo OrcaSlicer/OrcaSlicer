@@ -64,7 +64,7 @@ struct SupportParameters {
 
         this->ironing = object_config.support_ironing;
         this->ironing_flow = support_material_interface_flow.with_height(support_material_interface_flow.height() * 0.01 * object_config.support_ironing_flow.value);
-        this->ironing_spacing = object_config.support_ironing_spacing;
+        this->ironing_spacing = std::max(IRONING_SPACING_MIN, object_config.support_ironing_spacing.value);
         this->ironing_pattern = object_config.support_ironing_pattern;
 
         // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
@@ -141,6 +141,8 @@ struct SupportParameters {
             this->contact_fill_pattern = ipGrid;
         else if (object_config.support_interface_pattern == smipRectilinearInterlaced)
             this->contact_fill_pattern = ipRectilinear;
+        else if (object_config.support_interface_pattern == smipSpiralInset)
+            this->contact_fill_pattern = ipSpiralInset;
         else
             this->contact_fill_pattern =
             (object_config.support_interface_pattern == smipAuto && zero_gap_contact_interface) ||

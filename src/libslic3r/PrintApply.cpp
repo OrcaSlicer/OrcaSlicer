@@ -1,18 +1,19 @@
 #include "ClipperUtils.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
+#include "FilamentMixer.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
 
 namespace Slic3r {
 
-// Add or remove support modifier ModelVolumes from model_object_dst to match the ModelVolumes of model_object_new
+// Add or remove support and Precise Seam modifier ModelVolumes from model_object_dst to match the ModelVolumes of model_object_new
 // in the exact order and with the same IDs.
-// It is expected, that the model_object_dst already contains the non-support volumes of model_object_new in the correct order.
+// Other volume types must already match model_object_new in the correct order.
 // Friend to ModelVolume to allow copying.
 // static is not accepted by gcc if declared as a friend of ModelObject.
-/* static */ void model_volume_list_update_supports(ModelObject &model_object_dst, const ModelObject &model_object_new)
+/* static */ void model_volume_list_update_supports_and_seams(ModelObject &model_object_dst, const ModelObject &model_object_new)
 {
     typedef std::pair<const ModelVolume*, bool> ModelVolumeWithStatus;
     std::vector<ModelVolumeWithStatus> old_volumes;
@@ -32,18 +33,22 @@ namespace Slic3r {
             assert(! it->second); // not consumed yet
             it->second = true;
             ModelVolume *model_volume_dst = const_cast<ModelVolume*>(it->first);
-            // For support modifiers, the type may have been switched from blocker to enforcer and vice versa.
-            assert((model_volume_dst->is_support_modifier() && model_volume_src->is_support_modifier()) || model_volume_dst->type() == model_volume_src->type());
+            // Type may switch within support family, within precise_seam family, or between them.
+            assert((model_volume_dst->is_support_modifier() && model_volume_src->is_support_modifier()) ||
+                   (model_volume_dst->is_precise_seam()     && model_volume_src->is_precise_seam())     ||
+                   (model_volume_dst->is_support_modifier() && model_volume_src->is_precise_seam())     ||
+                   (model_volume_dst->is_precise_seam()     && model_volume_src->is_support_modifier()) ||
+                   model_volume_dst->type() == model_volume_src->type());
             model_object_dst.volumes.emplace_back(model_volume_dst);
-            if (model_volume_dst->is_support_modifier()) {
-                // For support modifiers, the type may have been switched from blocker to enforcer and vice versa.
+            if (model_volume_dst->is_support_modifier() || model_volume_dst->is_precise_seam()) {
+                // Type may have been switched within or between support/precise_seam families.
                 model_volume_dst->set_type(model_volume_src->type());
                 model_volume_dst->set_transformation(model_volume_src->get_transformation());
             }
             assert(model_volume_dst->get_matrix().isApprox(model_volume_src->get_matrix()));
         } else {
             // The volume was not found in the old list. Create a new copy.
-            assert(model_volume_src->is_support_modifier());
+            assert(model_volume_src->is_support_modifier() || model_volume_src->is_precise_seam());
             model_object_dst.volumes.emplace_back(new ModelVolume(*model_volume_src));
             model_object_dst.volumes.back()->set_model_object(&model_object_dst);
         }
@@ -54,17 +59,20 @@ namespace Slic3r {
             delete mv_with_status.first;
 }
 
-static inline void model_volume_list_copy_configs(ModelObject &model_object_dst, const ModelObject &model_object_src, const ModelVolumeType type)
+// Copy configs of ModelVolumes matching type_filter predicate from src to dst.
+// Mirrors the template pattern of model_volume_list_changed() in Model.cpp.
+template<typename TypeFilterFn>
+static inline void model_volume_list_copy_configs(ModelObject &model_object_dst, const ModelObject &model_object_src, TypeFilterFn type_filter)
 {
     size_t i_src, i_dst;
     for (i_src = 0, i_dst = 0; i_src < model_object_src.volumes.size() && i_dst < model_object_dst.volumes.size();) {
         const ModelVolume &mv_src = *model_object_src.volumes[i_src];
         ModelVolume       &mv_dst = *model_object_dst.volumes[i_dst];
-        if (mv_src.type() != type) {
+        if (! type_filter(mv_src.type())) {
             ++ i_src;
             continue;
         }
-        if (mv_dst.type() != type) {
+        if (! type_filter(mv_dst.type())) {
             ++ i_dst;
             continue;
         }
@@ -85,6 +93,20 @@ static inline void model_volume_list_copy_configs(ModelObject &model_object_dst,
         ++ i_src;
         ++ i_dst;
     }
+}
+
+// Convenience overload: single volume type.
+static inline void model_volume_list_copy_configs(ModelObject &model_object_dst, const ModelObject &model_object_src, const ModelVolumeType type)
+{
+    model_volume_list_copy_configs(model_object_dst, model_object_src, [type](const ModelVolumeType t) { return t == type; });
+}
+
+// Convenience overload: multiple volume types at once (e.g. all precise seam types).
+static inline void model_volume_list_copy_configs(ModelObject &model_object_dst, const ModelObject &model_object_src, const std::initializer_list<ModelVolumeType> &types)
+{
+    model_volume_list_copy_configs(model_object_dst, model_object_src, [&types](const ModelVolumeType t) {
+        return std::find(types.begin(), types.end(), t) != types.end();
+    });
 }
 
 static inline void layer_height_ranges_copy_configs(t_layer_config_ranges &lr_dst, const t_layer_config_ranges &lr_src)
@@ -559,9 +581,11 @@ static inline bool model_volume_solid_or_modifier(const ModelVolume &mv)
 
 static inline Transform3f trafo_for_bbox(const Transform3d &object_trafo, const Transform3d &volume_trafo)
 {
-    Transform3d m = object_trafo * volume_trafo;
-    m.translation().x() = 0.;
-    m.translation().y() = 0.;
+    // Orca: Keep the volume's local XY offset for multipart overlap checks, but remove the object's bed placement.
+    Transform3d object_trafo_local = object_trafo;
+    object_trafo_local.translation().x() = 0.;
+    object_trafo_local.translation().y() = 0.;
+    Transform3d m = object_trafo_local * volume_trafo;
     return m.cast<float>();
 }
 
@@ -886,7 +910,12 @@ bool verify_update_print_object_regions(
             size_t hash = regions[i]->config_hash();
             size_t j = i;
             for (++ j; j < regions.size() && regions[j]->config_hash() == hash; ++ j)
-                if (regions[i]->config() == regions[j]->config()) {
+                // Same config but different gradient_volume_id is intentional (per-part gradient
+                // splitting) and must NOT be flagged as a merge. When per-part is off all regions
+                // carry an invalid (default) gradient_volume_id, so the AND condition is always
+                // true and behavior matches the legacy check.
+                if (regions[i]->config() == regions[j]->config()
+                    && regions[i]->gradient_volume_id() == regions[j]->gradient_volume_id()) {
                     // Regions were merged. We need to reslice.
                     return false;
                 }
@@ -978,7 +1007,10 @@ static PrintObjectRegions* generate_print_object_regions(
     const float                                  xy_contour_compensation,
     const std::vector<unsigned int>             &painting_extruders,
     std::vector<int>                            &variant_index,
-    const bool                                   has_painted_fuzzy_skin)
+    const bool                                   has_painted_fuzzy_skin,
+    // Per-part gradient: slot_per_part_enabled[s-1] is true when mixed slot s has
+    // filament_mixed_gradient_per_part on. Empty / all-false preserves legacy behavior.
+    const std::vector<bool>                     &slot_per_part_enabled = {})
 {
     // Reuse the old object or generate a new one.
     auto out = print_object_regions_old ? std::unique_ptr<PrintObjectRegions>(print_object_regions_old) : std::make_unique<PrintObjectRegions>();
@@ -1013,17 +1045,69 @@ static PrintObjectRegions* generate_print_object_regions(
     update_volume_bboxes(layer_ranges_regions, out->cached_volume_ids, model_volumes, out->trafo_bboxes, is_mm_painted ? 0.f : std::max(0.f, xy_contour_compensation));
 
     std::vector<PrintRegion*> region_set;
-    auto get_create_region = [&region_set, &all_regions](PrintRegionConfig &&config) -> PrintRegion* {
+    // Look up or create a PrintRegion. The optional volume_tag, when valid (non-zero ObjectID),
+    // keys the region to one ModelVolume so two volumes with identical settings still get
+    // separate regions — needed so each part can run its own gradient. A default (invalid)
+    // tag reproduces the previous lookup exactly.
+    auto get_create_region = [&region_set, &all_regions](PrintRegionConfig &&config, ObjectID volume_tag = ObjectID()) -> PrintRegion* {
         size_t hash = config.hash();
-        auto it = Slic3r::lower_bound_by_predicate(region_set.begin(), region_set.end(), [&config, hash](const PrintRegion* l) {
-            return l->config_hash() < hash || (l->config_hash() == hash && l->config() < config); });
-        if (it != region_set.end() && (*it)->config_hash() == hash && (*it)->config() == config)
+        auto it = Slic3r::lower_bound_by_predicate(region_set.begin(), region_set.end(), [&config, hash, volume_tag](const PrintRegion* l) {
+            return l->config_hash() < hash || (l->config_hash() == hash && l->config() < config)
+                || (l->config_hash() == hash && l->config() == config && l->gradient_volume_id() < volume_tag); });
+        if (it != region_set.end() && (*it)->config_hash() == hash && (*it)->config() == config
+            && (*it)->gradient_volume_id() == volume_tag)
             return *it;
         // Insert into a sorted array, it has O(n) complexity, but the calling algorithm has an O(n^2*log(n)) complexity anyways.
-        all_regions.emplace_back(std::make_unique<PrintRegion>(std::move(config), hash, int(all_regions.size())));
+        all_regions.emplace_back(std::make_unique<PrintRegion>(std::move(config), hash, int(all_regions.size()), volume_tag));
         PrintRegion *region = all_regions.back().get();
         region_set.emplace(it, region);
         return region;
+    };
+
+    // Per-part gradient: count how many model-part volumes in this object use each
+    // per-part-enabled gradient slot. Only slots with at least 2 users get their volumes
+    // tagged — a single-user slot gains nothing from per-volume splitting and would only
+    // inflate the region count. Empty slot_per_part_enabled leaves this empty, so
+    // compute_volume_tag below always returns an invalid tag and nothing changes.
+    std::vector<int> per_part_volume_users;
+    if (!slot_per_part_enabled.empty()) {
+        per_part_volume_users.assign(slot_per_part_enabled.size(), 0);
+        for (const ModelVolume *mv : model_volumes) {
+            if (! mv->is_model_part())
+                continue;
+            const DynamicPrintConfig *range_cfg = layer_ranges_regions.empty() ? nullptr : layer_ranges_regions.front().config;
+            PrintRegionConfig vol_cfg = region_config_from_model_volume(default_region_config, range_cfg, *mv, num_extruders, variant_index);
+            for (unsigned int s_1based : { (unsigned int)vol_cfg.outer_wall_filament_id.value,
+                                           (unsigned int)vol_cfg.inner_wall_filament_id.value,
+                                           (unsigned int)vol_cfg.sparse_infill_filament_id.value,
+                                           (unsigned int)vol_cfg.internal_solid_filament_id.value,
+                                           (unsigned int)vol_cfg.top_surface_filament_id.value,
+                                           (unsigned int)vol_cfg.bottom_surface_filament_id.value }) {
+                if (s_1based >= 1
+                    && size_t(s_1based - 1) < slot_per_part_enabled.size()
+                    && slot_per_part_enabled[s_1based - 1])
+                    ++per_part_volume_users[s_1based - 1];
+            }
+        }
+    }
+    auto compute_volume_tag = [&](const PrintRegionConfig &cfg, const ModelVolume &mv) -> ObjectID {
+        if (per_part_volume_users.empty())
+            return ObjectID();
+        auto qualifies = [&](unsigned int s_1based) {
+            return s_1based >= 1
+                && size_t(s_1based - 1) < slot_per_part_enabled.size()
+                && slot_per_part_enabled[s_1based - 1]
+                && per_part_volume_users[s_1based - 1] >= 2;
+        };
+        if (qualifies((unsigned int)cfg.outer_wall_filament_id.value)
+            || qualifies((unsigned int)cfg.inner_wall_filament_id.value)
+            || qualifies((unsigned int)cfg.sparse_infill_filament_id.value)
+            || qualifies((unsigned int)cfg.internal_solid_filament_id.value)
+            || qualifies((unsigned int)cfg.top_surface_filament_id.value)
+            || qualifies((unsigned int)cfg.bottom_surface_filament_id.value)) {
+            return mv.id();
+        }
+        return ObjectID();
     };
 
     // Chain the regions in the order they are stored in the volumes list.
@@ -1034,9 +1118,11 @@ static PrintObjectRegions* generate_print_object_regions(
                 if (const PrintObjectRegions::BoundingBox *bbox = find_volume_extents(layer_range, volume); bbox) {
                     if (volume.is_model_part()) {
                         // Add a model volume, assign an existing region or generate a new one.
+                        PrintRegionConfig vol_cfg = region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders, variant_index);
+                        ObjectID volume_tag = compute_volume_tag(vol_cfg, volume);
                         layer_range.volume_regions.push_back({
                             &volume, -1,
-                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders, variant_index)),
+                            get_create_region(std::move(vol_cfg), volume_tag),
                             bbox
                         });
                     } else if (volume.is_negative_volume()) {
@@ -1121,6 +1207,12 @@ static PrintObjectRegions* generate_print_object_regions(
         }
     }
 
+
+    // Save the slot_per_part_enabled bit vector that produced these regions, so the guard in
+    // Print::apply can detect changes on the next call even when PrintRegionConfig did not
+    // change. Always written — including an empty vector — so the snapshot always reflects
+    // the exact input used to generate the current regions.
+    out->last_slot_per_part_enabled = slot_per_part_enabled;
     return out.release();
 }
 
@@ -1140,6 +1232,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // BBS
     std::vector <unsigned int> used_filaments = this->extruders(true);
     std::unordered_set <unsigned int> used_filament_set(used_filaments.begin(), used_filaments.end());
+
+    // A mixed slot is virtual: the filaments actually consumed are its components, so add them
+    // to the used set or they would be treated as unused and stripped from the config.
+    {
+        auto* is_mixed_opt  = new_full_config.option<ConfigOptionBools>("filament_is_mixed");
+        auto* comp_strs_opt = new_full_config.option<ConfigOptionStrings>("filament_mixed_components");
+        if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+            auto expanded = expand_mixed_filaments(used_filaments, is_mixed_opt->values, comp_strs_opt->values);
+            used_filament_set.insert(expanded.begin(), expanded.end());
+        }
+    }
 
     //new_full_config.normalize_fdm(used_filaments);
     new_full_config.normalize_fdm_1();
@@ -1214,7 +1317,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                                                                                  extruder_count, extruder_volume_type_count, filament_keys,
                                                                                  "filament_self_index", "filament_extruder_variant",
                                                                                  &dynamic_slot_indices);
-        else if ((extruder_count > 1) || different_extruder)
+        // Orca: also on a printer with a single extruder variant once a filament defines several
+        // (e.g. Standard and High Flow), so each filament takes its variant for that extruder.
+        else if ((extruder_count > 1) || different_extruder || new_full_config.has_multi_variant_filament())
             new_full_config.update_values_to_printer_extruders_for_multiple_filaments(m_ori_full_print_config, extruder_count, extruder_volume_type_count, filament_keys,
                                                                                       "filament_self_index", "filament_extruder_variant");
     }
@@ -1536,6 +1641,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     // 3) Synchronize ModelObjects & PrintObjects.
     const std::initializer_list<ModelVolumeType> solid_or_modifier_types { ModelVolumeType::MODEL_PART, ModelVolumeType::NEGATIVE_VOLUME, ModelVolumeType::PARAMETER_MODIFIER };
+    const std::initializer_list<ModelVolumeType> precise_seam_types {
+        ModelVolumeType::PRECISE_SEAM_CENTER, ModelVolumeType::PRECISE_SEAM_LEFT,
+        ModelVolumeType::PRECISE_SEAM_RIGHT,  ModelVolumeType::PRECISE_SEAM_ENFORCED,
+        ModelVolumeType::PRECISE_SEAM_BLOCKED, ModelVolumeType::PRECISE_SEAM_NEUTRAL
+    };
     for (size_t idx_model_object = 0; idx_model_object < model.objects.size(); ++ idx_model_object) {
         ModelObject       &model_object        = *m_model.objects[idx_model_object];
         ModelObjectStatus &model_object_status = const_cast<ModelObjectStatus&>(model_object_status_db.reuse(model_object));
@@ -1553,6 +1663,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                                           model_fuzzy_skin_data_changed(model_object, model_object_new);
         bool supports_differ            = model_volume_list_changed(model_object, model_object_new, ModelVolumeType::SUPPORT_BLOCKER) ||
                                           model_volume_list_changed(model_object, model_object_new, ModelVolumeType::SUPPORT_ENFORCER);
+        bool precise_seam_differ        = model_volume_list_changed(model_object, model_object_new, precise_seam_types);
         bool layer_height_ranges_differ = ! layer_height_ranges_equal(model_object.layer_config_ranges, model_object_new.layer_config_ranges, model_object_new.layer_height_profile.empty());
         bool model_origin_translation_differ = model_object.origin_translation != model_object_new.origin_translation;
         bool brim_points_differ = model_brim_points_data_changed(model_object, model_object_new);
@@ -1595,13 +1706,20 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 // Invalidate just the supports step.
                 for (const PrintObjectStatus &print_object_status : print_objects_range)
                     update_apply_status(print_object_status.print_object->invalidate_step(posSupportMaterial));
-                if (supports_differ) {
-                    // Copy just the support volumes.
-                    model_volume_list_update_supports(model_object, model_object_new);
-                }
+            }
+            if (precise_seam_differ) {
+                // First stop background processing before shuffling or deleting the ModelVolumes in the ModelObject's list.
+                this->call_cancel_callback();
+                update_apply_status(false);
+                // Invalidate seam placement (affects G-code export).
+                update_apply_status(this->invalidate_step(psGCodeExport));
             } else if (model_custom_seam_data_changed(model_object, model_object_new)) {
                 update_apply_status(this->invalidate_step(psGCodeExport));
             }
+            // Synchronize both families once, after cancellation and all affected-step invalidations.
+            // This also handles type changes between supports and Precise Seam before copying configs below.
+            if (supports_differ || precise_seam_differ)
+                model_volume_list_update_supports_and_seams(model_object, model_object_new);
             if (brim_points_differ) {
                 model_object.brim_points = model_object_new.brim_points;
                 update_apply_status(this->invalidate_all_steps());
@@ -1626,6 +1744,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             //FIXME What to do with m_material_id?
 			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, ModelVolumeType::MODEL_PART);
 			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, ModelVolumeType::PARAMETER_MODIFIER);
+			// Synchronize Precise Seam modifier volumes
+			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, precise_seam_types);
             layer_height_ranges_copy_configs(model_object.layer_config_ranges /* dst */, model_object_new.layer_config_ranges /* src */);
             // Copy the ModelObject name, input_file and instances. The instances will be compared against PrintObject instances in the next step.
             model_object.name       = model_object_new.name;
@@ -1802,6 +1922,29 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         update_filament_self_index_cache();
     }
 
+    // Per-part gradient: compute the per-slot enable bit vector once for this Print::apply pass.
+    // Used by generate_print_object_regions to decide which volumes deserve their own PrintRegion.
+    std::vector<bool> slot_per_part_enabled;
+    {
+        const auto &is_mixed_vec   = m_config.filament_is_mixed.values;
+        const auto &grad_vec       = m_config.filament_mixed_gradient.values;
+        const auto &per_part_vec   = m_config.filament_mixed_gradient_per_part.values;
+        const auto &components_vec = m_config.filament_mixed_components.values;
+        slot_per_part_enabled.assign(is_mixed_vec.size(), false);
+        for (size_t i = 0; i < is_mixed_vec.size(); ++i) {
+            if (! is_mixed_vec[i])
+                continue;
+            std::vector<unsigned int> comps = parse_mixed_components(i < components_vec.size() ? components_vec[i] : "");
+            if (comps.size() != 2)
+                continue;
+            if (i >= grad_vec.size() || ! grad_vec[i])
+                continue;
+            if (i >= per_part_vec.size() || ! per_part_vec[i])
+                continue;
+            slot_per_part_enabled[i] = true;
+        }
+    }
+
     // All regions now have distinct settings.
     // Check whether applying the new region config defaults we would get different regions,
     // update regions or create regions from scratch.
@@ -1828,7 +1971,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             for (const ModelVolume *volume : volumes) {
                 const std::vector<bool> &volume_used_facet_states = volume->mmu_segmentation_facets.get_data().used_states;
 
-                assert(volume_used_facet_states.size() == used_facet_states.size());
+                // Paint data saved before the painted state range was extended deserializes a
+                // shorter used_states vector, so merge over the common prefix.
                 for (size_t state_idx = 0; state_idx < std::min(volume_used_facet_states.size(), used_facet_states.size()); ++state_idx)
                     used_facet_states[state_idx] |= volume_used_facet_states[state_idx];
             }
@@ -1862,6 +2006,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                                 update_apply_status((*it)->invalidate_state_by_config_options(old_config, new_config, diff_keys));
                     },
                     print_variant_index)) {
+                // Per-part gradient: PrintRegionConfig alone cannot reveal a change in which slots
+                // have per-part enabled, so compare against the snapshot taken when these regions
+                // were generated and regenerate on any difference (slot toggled, per-part moved
+                // between slots, eligibility changed via components / gradient / is_mixed).
+                if (print_object_regions->last_slot_per_part_enabled != slot_per_part_enabled) {
+                    invalidate();
+                    model_object_status.print_object_regions_status = ModelObjectStatus::PrintObjectRegionsStatus::PartiallyValid;
+                    print_regions_reshuffled = true;
+                }
                 // Regions are valid, just keep them.
             } else {
                 // Regions were reshuffled.
@@ -1884,7 +2037,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 print_object.is_mm_painted() ? 0.f : float(print_object.config().xy_contour_compensation.value),
                 painting_extruders,
                 print_variant_index,
-                print_object.is_fuzzy_skin_painted());
+                print_object.is_fuzzy_skin_painted(),
+                slot_per_part_enabled);
         }
         for (auto it = it_print_object; it != it_print_object_end; ++it)
             if ((*it)->m_shared_regions) {

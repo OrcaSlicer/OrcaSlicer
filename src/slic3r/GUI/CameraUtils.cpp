@@ -1,6 +1,16 @@
 #include "CameraUtils.hpp"
+#include <Eigen/Core>
+#include <cstddef>
+#include <cassert>
+#include <cmath>
 #include <igl/project.h> // projecting points
 #include <igl/unproject.h>
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include <vector>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <limits>
 
 #include "slic3r/GUI/3DScene.hpp" // GLVolume
 #include "libslic3r/Geometry/ConvexHull.hpp"

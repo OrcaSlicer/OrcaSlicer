@@ -122,6 +122,9 @@ sed "/name: OrcaSlicer/{
 \1    git_commit_hash: \"$GIT_COMMIT_HASH\"|
 }" > "$MANIFEST_DOCKER"
 
+# ---------- pack deps/ ----------
+./scripts/flatpak/make_deps_tar.sh
+
 # ---------- run build in Docker ----------
 DOCKER="${DOCKER:-docker}"
 

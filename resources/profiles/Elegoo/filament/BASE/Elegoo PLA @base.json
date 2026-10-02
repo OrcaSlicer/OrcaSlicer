@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "EPLAB00",
+	"filament_id": "OFvgE0Zh",
 	"instantiation": "false",
 	"filament_density": [
 		"1.25"
@@ -15,6 +15,6 @@
 		"Elegoo"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
+		"; Elegoo PLA filament start gcode\n"
 	]
 }

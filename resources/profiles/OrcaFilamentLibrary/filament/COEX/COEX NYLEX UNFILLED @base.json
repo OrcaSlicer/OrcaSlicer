@@ -3,7 +3,7 @@
 	"name": "COEX NYLEX UNFILLED @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "CXPAUB21",
+	"filament_id": "OFJs1ToM",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"
@@ -22,12 +22,6 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"260"
-	],
-	"bed_temperature": [
-		"100"
-	],
-	"bed_temperature_initial_layer": [
-		"100"
 	],
 	"temperature_vitrification": [
 		"100"

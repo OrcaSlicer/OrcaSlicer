@@ -2,6 +2,7 @@
 #include "ConfigManipulation.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "DeviceCore/DevConfigUtil.h"
 #include "format.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
@@ -13,7 +14,15 @@
 #include "Plater.hpp"
 
 #include <algorithm>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Field.hpp"
+#include <cstdlib>
+#include <set>
+#include <map>
 #include <sstream>
+#include <string>
+#include <vector>
 #include <wx/msgdlg.h>
 
 namespace Slic3r {
@@ -77,12 +86,12 @@ void ConfigManipulation::set_option_label(const std::string& opt_key, const wxSt
         cb_set_option_label(opt_key, label, opt_index);
 }
 
-void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrintConfig *config) {
+void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrintConfig *config, unsigned int variant_index) {
     if (is_msg_dlg_already_exist)
         return;
 
     int temperature_range_low, temperature_range_high;
-    if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
+    if (!get_temperature_range(config, temperature_range_low, temperature_range_high, variant_index)) return;
 
     // Get the selected filament type
     std::string filament_type = "";
@@ -122,16 +131,16 @@ void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrint
     }
 }
 
-void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *config)
+void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist)
         return;
 
     int temperature_range_low, temperature_range_high;
-    if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
+    if (!get_temperature_range(config, temperature_range_low, temperature_range_high, variant_index)) return;
 
     if (config->has("nozzle_temperature")) {
-        if (config->opt_int("nozzle_temperature", 0) < temperature_range_low || config->opt_int("nozzle_temperature", 0) > temperature_range_high) {
+        if (config->opt_int("nozzle_temperature", variant_index) < temperature_range_low || config->opt_int("nozzle_temperature", variant_index) > temperature_range_high) {
             wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
             MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
@@ -142,17 +151,17 @@ void ConfigManipulation::check_nozzle_temperature_range(DynamicPrintConfig *conf
     }
 }
 
-void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config)
+void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist)
         return;
 
     int temperature_range_low, temperature_range_high;
-    if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
+    if (!get_temperature_range(config, temperature_range_low, temperature_range_high, variant_index)) return;
 
     if (config->has("nozzle_temperature_initial_layer")) {
-        if (config->opt_int("nozzle_temperature_initial_layer", 0) < temperature_range_low ||
-            config->opt_int("nozzle_temperature_initial_layer", 0) > temperature_range_high)
+        if (config->opt_int("nozzle_temperature_initial_layer", variant_index) < temperature_range_low ||
+            config->opt_int("nozzle_temperature_initial_layer", variant_index) > temperature_range_high)
         {
             wxString msg_text = _(L("The nozzle may become clogged when the temperature is out of the recommended range.\nPlease make sure whether to use this temperature to print.\n\n"));
             msg_text += wxString::Format(_L("The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."), temperature_range_low, temperature_range_high);
@@ -170,14 +179,16 @@ void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfi
         return;
 
     const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
-    if (model == nullptr || model->values.empty())
+    if (model == nullptr)
         return;
 
-    std::string raw_model;
-    for (const std::string& chunk : model->values)
-        raw_model += chunk;
-
-    std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(raw_model);
+    // Each extruder variant holds its own model.
+    std::string error;
+    for (const std::string& variant_model : model->values) {
+        error = AdaptivePAProcessor::validate_adaptive_pa_model(variant_model);
+        if (!error.empty())
+            break;
+    }
     if (!error.empty()) {
         wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
         msg_text += from_u8(error);
@@ -207,6 +218,30 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
         is_msg_dlg_already_exist = false;
     }
 
+}
+
+void ConfigManipulation::check_filament_ironing_spacing(DynamicPrintConfig *config)
+{
+    const auto *opt = config->option<ConfigOptionFloatsNullable>("filament_ironing_spacing");
+    if (opt == nullptr)
+        return;
+    std::vector<double> values = opt->values;
+    bool                reset  = false;
+    for (size_t i = 0; i < values.size(); ++i)
+        if (!opt->is_nil(i) && values[i] < IRONING_SPACING_MIN) {
+            values[i] = 0.1;
+            reset     = true;
+        }
+    if (!reset)
+        return;
+    const wxString     msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
+    MessageDialog      dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
+    DynamicPrintConfig new_conf = *config;
+    is_msg_dlg_already_exist    = true;
+    dialog.ShowModal();
+    new_conf.set_key_value("filament_ironing_spacing", new ConfigOptionFloatsNullable(values));
+    apply(config, &new_conf);
+    is_msg_dlg_already_exist = false;
 }
 
 void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
@@ -331,7 +366,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     //BBS: ironing_spacing shouldn't be too small or equal to zero
-    if (config->opt_float("ironing_spacing") < 0.05)
+    if (config->opt_float("ironing_spacing") < IRONING_SPACING_MIN)
     {
         const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -342,7 +377,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
     }
-    if (config->opt_float("support_ironing_spacing") < 0.05)
+    if (config->opt_float("support_ironing_spacing") < IRONING_SPACING_MIN)
     {
         const wxString msg_text = _(L("Ironing spacing too small\nIt has been reset to 0.1"));
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -453,7 +488,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     if (config->opt_bool("alternate_extra_wall") &&
         (config->opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == evstAll)) {
-        wxString msg_text = _(L("Alternate extra wall does't work well when ensure vertical shell thickness is set to All."));
+        wxString msg_text = _(L("Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."));
 
         if (is_global_config)
             msg_text += "\n\n" + _(L("Change these settings automatically?\n"
@@ -577,27 +612,72 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    static const char* keys[] = { "support_filament", "support_interface_filament"};
-    for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        std::string key = std::string(keys[i]);
+    // Reset filament overrides pointing at a slot that no longer exists. Support and the wipe
+    // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
+    // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
+    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "wipe_tower_filament" };
+    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
+                                          "sparse_infill_filament_id", "internal_solid_filament_id",
+                                          "top_surface_filament_id", "bottom_surface_filament_id" };
+    auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
-        if (opt != nullptr) {
-            if (opt->getInt() > filament_cnt) {
-                DynamicPrintConfig new_conf = *config;
-                const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
-                int new_value = 0;
-                if (conf_temp != nullptr && conf_temp->has(key)) {
-                    new_value = conf_temp->opt_int(key);
+        if (opt == nullptr)
+            return;
+        const int  val          = opt->getInt();
+        const bool out_of_range = val > filament_cnt;
+        const bool is_mixed     = !allow_mixed && val > 0 && val <= filament_cnt &&
+                                  wxGetApp().preset_bundle->is_mixed_filament(val - 1);
+        if (!out_of_range && !is_mixed)
+            return;
+        DynamicPrintConfig new_conf = *config;
+        int new_value = 0;
+        if (out_of_range) {
+            const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
+            if (conf_temp != nullptr && conf_temp->has(key))
+                new_value = conf_temp->opt_int(key);
+        }
+        new_conf.set_key_value(key, new ConfigOptionInt(new_value));
+        apply(config, &new_conf);
+    };
+    for (const char* key : physical_only_keys)
+        reset_invalid_filament(key, false);
+    for (const char* key : feature_keys)
+        reset_invalid_filament(key, true);
+
+    // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
+    // those sub-layer heights vary per layer, which degrades the blend. Warn once per enable.
+    {
+        static bool s_mixed_sublayer_warned = false;
+        bool sublayer_on = config->opt_bool("enable_mixed_color_sublayer");
+        if (sublayer_on && !s_mixed_sublayer_warned &&
+            wxGetApp().app_config->get("no_warn_mixed_sublayer_variable_layer") != "1") {
+            bool has_variable_layer = false;
+            for (const auto* obj : wxGetApp().model().objects) {
+                if (obj->layer_height_profile.get().size() > 4) {
+                    has_variable_layer = true;
+                    break;
                 }
-                new_conf.set_key_value(key, new ConfigOptionInt(new_value));
-                apply(config, &new_conf);
+            }
+            if (has_variable_layer) {
+                MessageDialog dialog(m_msg_dlg_parent,
+                    _L("Using variable layer height together with mixed color sublayer may result in poor color mixing quality."),
+                    "", wxICON_WARNING | wxOK);
+                dialog.show_dsa_button();
+                is_msg_dlg_already_exist = true;
+                dialog.ShowModal();
+                is_msg_dlg_already_exist = false;
+                if (dialog.get_checkbox_state())
+                    wxGetApp().app_config->set("no_warn_mixed_sublayer_variable_layer", "1");
+                s_mixed_sublayer_warned = true;
             }
         }
+        if (!sublayer_on)
+            s_mixed_sublayer_warned = false;
     }
 
     if (config->opt_enum<SeamScarfType>("seam_slope_type") != SeamScarfType::None &&
         config->get_abs_value("seam_slope_start_height") >= layer_height) {
-        const wxString     msg_text = _(L("seam_slope_start_height need to be smaller than layer_height.\nReset to 0."));
+        const wxString     msg_text = _(L("seam_slope_start_height needs to be smaller than layer_height.\nReset to 0."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -611,7 +691,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     float skin_depth = config->opt_float("skin_infill_depth");
     if (config->opt_float("infill_lock_depth") > skin_depth) {
         // xgettext:no-c-format, no-boost-format
-        const wxString     msg_text = _(L("Lock depth should smaller than skin depth.\nReset to 50% of skin depth."));
+        const wxString     msg_text = _(L("Lock depth should be smaller than skin depth.\nReset to 50% of skin depth."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
@@ -696,14 +776,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
-        "minimum_sparse_infill_area", "sparse_infill_filament_id", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
+        "minimum_sparse_infill_area", "sparse_infill_filament_id","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
+
+    InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
+
+    // Orca: the concentric patterns follow the surface outline instead of crossing it, so there is
+    // nothing for an infill anchor to attach to. Hide the anchor settings for them.
+    bool have_infill_anchor = have_infill && pattern != ipConcentric && pattern != ipSpiralInset;
+    toggle_line("infill_anchor", have_infill_anchor);
+    toggle_line("infill_anchor_max", have_infill_anchor);
 
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
     toggle_line("infill_combination_max_layer_height", have_combined_infill);
 
     // Infill patterns that support multiline infill.
-    InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
     bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
@@ -786,7 +873,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("separated_infills", is_internal_infill_separable);
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
-    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
+    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipSpiralInset || p == ipArchimedeanChords || p == ipOctagramSpiral; };
     toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
 
@@ -988,9 +1075,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
                     "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
-                    "wipe_tower_bridging", "wipe_tower_extra_flow",
-                    "wipe_tower_no_sparse_layers"})
+                    "wipe_tower_bridging", "wipe_tower_extra_flow"})
             toggle_line(el, have_prime_tower && supports_wipe_tower_2);
+
+    // Orca: both tower generators skip sparse layers, so this is not a wipe tower 2 exclusive.
+    toggle_line("wipe_tower_no_sparse_layers", have_prime_tower);
+    // Dropping the sparse layers outright leaves nothing to combine, so the two are exclusive.
+    toggle_line("wipe_tower_sparse_layers_combination", have_prime_tower && !config->opt_bool("wipe_tower_no_sparse_layers"));
 
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
     bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower;
@@ -1001,6 +1092,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
+
+    bool use_cyclic_ordering = config->opt_enum<ToolChangeOrderingType>("toolchange_ordering") == ToolChangeOrderingType::Cyclic;
+    toggle_line("toolchange_cyclic_order", use_cyclic_ordering);
+    toggle_line("toolchange_cyclic_first_layer", use_cyclic_ordering);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 
@@ -1051,6 +1146,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     auto is_role_based_wipe_speed = config->opt_bool("role_based_wipe_speed");
     toggle_field("wipe_speed",!is_role_based_wipe_speed);
 
+    const bool have_wipe_inward = config->opt_bool("wipe_inward");
+    toggle_line("wipe_inward_distance", have_wipe_inward);
+
     for (auto el : {"accel_to_decel_enable", "accel_to_decel_factor"})
         toggle_line(el, gcf_is_klipper);
     if(gcf_is_klipper)
@@ -1072,6 +1170,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
     bool allow_overhang_reverse   = !has_spiral_vase;
+    toggle_line("unsupported_wall_last", has_detect_overhang_wall);
     toggle_line("overhang_reverse", allow_overhang_reverse);
     toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse);
     bool has_overhang_reverse_internal_only = config->opt_bool("overhang_reverse_internal_only");
@@ -1228,15 +1327,15 @@ int ConfigManipulation::show_spiral_mode_settings_dialog(bool is_object_config)
     return answer;
 }
 
-bool ConfigManipulation::get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high)
+bool ConfigManipulation::get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high, unsigned int variant_index)
 {
     bool range_low_exist = false, range_high_exist = false;
     if (config->has("nozzle_temperature_range_low")) {
-        range_low       = config->opt_int("nozzle_temperature_range_low", (unsigned int) 0);
+        range_low       = config->opt_int("nozzle_temperature_range_low", variant_index);
         range_low_exist       = true;
     }
     if (config->has("nozzle_temperature_range_high")) {
-        range_high       = config->opt_int("nozzle_temperature_range_high", (unsigned int) 0);
+        range_high       = config->opt_int("nozzle_temperature_range_high", variant_index);
         range_high_exist       = true;
     }
     return range_low_exist && range_high_exist;

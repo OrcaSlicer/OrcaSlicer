@@ -4,6 +4,8 @@
 #include "HintNotification.hpp"
 
 //#include <wx/time.h>
+#include <imgui.h>
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <memory>
@@ -51,7 +53,6 @@ private:
     int m_uid;
     bool m_first_enter{ false };
     bool m_is_dark{ false };
-    DailyTipsLayout m_layout{ DailyTipsLayout::Vertical };
     float m_fade_opacity{ 1.0f };
 };
 

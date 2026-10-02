@@ -1,5 +1,6 @@
 #include "Http.hpp"
 
+#include <atomic>
 #include <cstdlib>
 #include <functional>
 #include <thread>
@@ -122,7 +123,7 @@ struct Http::priv
 	std::string error_buffer;    // Used for CURLOPT_ERRORBUFFER
     std::string headers;
 	size_t limit;
-	bool cancel;
+	std::atomic_bool cancel;
     std::unique_ptr<form_file> putFile;
 
 	std::thread io_thread;
@@ -254,17 +255,15 @@ int Http::priv::xfercb(void *userp, curl_off_t dltotal, curl_off_t dlnow, curl_o
 	bool cb_cancel = false;
 
 	if (self->progressfn) {
-		double speed;
+		double speed = 0.;
         curl_easy_getinfo(self->curl, CURLINFO_SPEED_UPLOAD, &speed);
-		if (speed > 0.01)
-			speed = speed;
 		Progress progress(dltotal, dlnow, ultotal, ulnow, self->buffer, speed);
 		self->progressfn(progress, cb_cancel);
 	}
 
-	if (cb_cancel) { self->cancel = true; }
+	if (cb_cancel) { self->cancel.store(true); }
 
-	return self->cancel;
+	return self->cancel.load();
 }
 
 int Http::priv::xfercb_legacy(void *userp, double dltotal, double dlnow, double ultotal, double ulnow)
@@ -323,8 +322,10 @@ void Http::priv::form_add_file(const char *name, const fs::path &path, const cha
 	// We can't use CURLFORM_FILECONTENT, because curl doesn't support Unicode filenames on Windows
 	// and so we use CURLFORM_STREAM with boost ifstream to read the file.
 
+	std::string filename_str;
 	if (filename == nullptr) {
-		filename = path.string().c_str();
+		filename_str = path.string();
+		filename = filename_str.c_str();
 	}
 
 	form_files.emplace_back(path, offset, length);
@@ -473,7 +474,7 @@ void Http::priv::http_perform()
 
 	if (res != CURLE_OK) {
 		if (res == CURLE_ABORTED_BY_CALLBACK) {
-			if (cancel) {
+			if (cancel.load()) {
 				// The abort comes from the request being cancelled programatically
 				Progress dummyprogress(0, 0, 0, 0, std::string());
 				bool cancel = true;
@@ -784,7 +785,7 @@ void Http::perform_sync()
 
 void Http::cancel()
 {
-	if (p) { p->cancel = true; }
+	if (p) { p->cancel.store(true); }
 }
 
 void Http::print() const

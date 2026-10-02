@@ -27,6 +27,10 @@ public:
     // in WipeTowerIntegration::append_tcr2 does not strip it.
     static const std::string wait_for_temp_tag() { return ";_WAIT_FOR_TEMP_ON_WIPE_TOWER"; }
 	static std::pair<double, double> get_wipe_tower_cone_base(double width, double height, double depth, double angle_deg);
+	// First-layer outline of a cone-wall tower in tower-local (scaled) coordinates: body box
+	// unioned with the cone's base ellipse — the model first_layer_wipe_tower_corners uses,
+	// and generate_support_cone_wall stays within it. Brim not included.
+	static Polygon cone_base_polygon(double width, double depth, double height, double angle_deg);
 	static std::vector<std::vector<float>> extract_wipe_volumes(const ConfigBase& config);
 	// Estimated total flush volume of a SEMM print with the given number of filaments,
 	// used to reserve wipe tower space before the tower is generated.
@@ -196,6 +200,8 @@ public:
         float               tower_interface_pre_extrusion_length = 0.f;
         float               tower_ironing_area = 4.f;
         float               tower_interface_purge_length = 0.f;
+        // Tallest layer this filament's nozzle can lay down; caps the sparse layer combination.
+        float               max_layer_height = 0.f;
     };
 
 private:
@@ -263,7 +269,8 @@ private:
     float           m_parking_pos_retraction    = 0.f;
     float           m_extra_loading_move        = 0.f;
     float           m_bridging                  = 0.f;
-    bool            m_no_sparse_layers          = false;
+    bool            m_sparse_layers_skipped     = false;
+    bool            m_sparse_layers_combined    = false;
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
@@ -364,6 +371,8 @@ private:
 		float z;		// z position of the layer
 		float height;	// layer height
 		float depth;	// depth of the layer based on all layers above
+		// Folded into a later, thicker layer, so this one prints nothing at all.
+		bool  combined_away{false};
 		float toolchanges_depth() const { float sum = 0.f; for (const auto &a : tool_changes) sum += a.required_depth; return sum; }
 
 		std::vector<ToolChange> tool_changes;
