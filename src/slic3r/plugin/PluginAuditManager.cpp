@@ -338,6 +338,43 @@ std::vector<std::string> PluginAuditManager::default_denied_path_keywords()
     return {"secret", "cert", "conf"};
 }
 
+void PluginAuditManager::add_keyword_exempt_filename(const std::string& filename)
+{
+    if (filename.empty())
+        return;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_keyword_exempt_filenames.push_back(filename);
+    BOOST_LOG_TRIVIAL(info) << "[AUDIT] Keyword-deny exempt filename: " << filename;
+}
+
+std::vector<std::string> PluginAuditManager::default_keyword_exempt_filenames()
+{
+    // Exact names the keyword deny above must not fire on. The keyword exists to keep plugins
+    // out of configuration files that can carry secrets; obn.conf is the Open Bamboo networking
+    // plugin's own operational config (block_cloud, log keys, PEM paths -- paths, not material),
+    // holds no secrets, and is maintained at install time by that plugin's ensure_obn_conf()
+    // (open_bambu_networking.py). Without this exemption the "conf" keyword denied it before the
+    // allowed-root cascade was ever consulted, so every install failed with "Could not update
+    // obn.conf (Plugin attempted an audited operation without permission)". Exact base-name
+    // equality only: a companion like obn.conf.bak still matches the keyword rule.
+    return {"obn.conf"};
+}
+
+bool PluginAuditManager::is_keyword_exempt(const boost::filesystem::path& candidate) const
+{
+    const std::string filename = candidate.filename().string();
+    if (filename.empty())
+        return false;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (const auto& exempt : m_keyword_exempt_filenames) {
+        if (boost::algorithm::iequals(filename, exempt))
+            return true;
+    }
+    return false;
+}
+
 bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& candidate) const
 {
     namespace fs = boost::filesystem;
@@ -369,7 +406,8 @@ bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& c
 
 bool PluginAuditManager::is_denied_path(const boost::filesystem::path& candidate) const
 {
-    return is_denied_filename(candidate) || is_denied_path_keyword(candidate);
+    return is_denied_filename(candidate) ||
+           (is_denied_path_keyword(candidate) && !is_keyword_exempt(candidate));
 }
 
 // ---------------------------------------------------------------------------
@@ -394,7 +432,7 @@ AuditDecision PluginAuditManager::check_path_access(const boost::filesystem::pat
                                    << " plugin=" << plugin_key << " reason=denied filename";
         return {false, "denied filename"};
     }
-    if (is_denied_path_keyword(path)) {
+    if (is_denied_path_keyword(path) && !is_keyword_exempt(path)) {
         BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << path.string() << " is_write=" << is_write
                                    << " plugin=" << plugin_key << " reason=denied path keyword";
         return {false, "denied path keyword"};
@@ -981,6 +1019,10 @@ void PluginAuditManager::install_hook()
     // source of this list; the tests seed from it too.
     for (const auto& keyword : default_denied_path_keywords())
         add_denied_path_keyword(keyword);
+
+    // Narrow exemptions for that keyword deny, single-sourced and test-seeded the same way.
+    for (const auto& name : default_keyword_exempt_filenames())
+        add_keyword_exempt_filename(name);
 
     if (PySys_AddAuditHook(audit_hook, this) < 0) {
         BOOST_LOG_TRIVIAL(error) << "[AUDIT] Failed to install CPython audit hook";

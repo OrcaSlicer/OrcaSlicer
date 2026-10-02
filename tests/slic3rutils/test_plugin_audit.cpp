@@ -27,7 +27,8 @@ void seed_denied_names()
         mgr.add_denied_filename(name);
 }
 
-// Seed the keyword registry with the same list install_hook() uses. Same rationale as
+// Seed the keyword registry with the same list install_hook() uses, including the narrow
+// keyword exemptions install_hook() seeds right after it. Same rationale as
 // seed_denied_names(): a process-singleton registry, seeded from the single shared source so
 // production and tests cannot drift apart.
 void seed_denied_keywords()
@@ -35,6 +36,8 @@ void seed_denied_keywords()
     PluginAuditManager& mgr = PluginAuditManager::instance();
     for (const auto& keyword : PluginAuditManager::default_denied_path_keywords())
         mgr.add_denied_path_keyword(keyword);
+    for (const auto& name : PluginAuditManager::default_keyword_exempt_filenames())
+        mgr.add_keyword_exempt_filename(name);
 }
 
 } // namespace
@@ -268,6 +271,59 @@ TEST_CASE("Plugin audit is_denied_path combines the filename and keyword registr
     SECTION("a path matching neither registry is not denied")
     {
         CHECK_FALSE(mgr.is_denied_path(fs::path("/plugin/output/model.gcode")));
+    }
+}
+
+TEST_CASE("Plugin audit exempts the plugin's own obn.conf from the config keyword deny", "[audit]")
+{
+    ScopedDataDir data_dir_guard("plugin-audit-obn-conf");
+    seed_denied_names();
+    seed_denied_keywords();
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+    mgr.add_global_allowed_root(data_dir());
+
+    ScopedPluginAuditContext ctx("test_plugin", "");
+
+    const fs::path obn_conf      = fs::path(data_dir()) / "obn.conf";
+    const fs::path obn_conf_bak  = fs::path(data_dir()) / "obn.conf.bak";
+
+    SECTION("the installer can write obn.conf inside data_dir")
+    {
+        // Regression: the "conf" keyword denied obn.conf before the allowed-root cascade ran,
+        // so every plugin install failed with "Could not update obn.conf (...)".
+        CHECK(mgr.check_open(obn_conf.string(), "w").allowed);
+    }
+
+    SECTION("the installer can read obn.conf inside data_dir")
+    {
+        CHECK(mgr.check_open(obn_conf.string(), "r").allowed);
+    }
+
+    SECTION("is_denied_path lets obn.conf through while the raw keyword rule still fires")
+    {
+        CHECK_FALSE(mgr.is_denied_path(obn_conf));
+        CHECK(mgr.is_denied_path_keyword(obn_conf));
+    }
+
+    SECTION("the exemption is case-insensitive on every platform")
+    {
+        CHECK_FALSE(mgr.is_denied_path(fs::path(data_dir()) / "OBN.CONF"));
+    }
+
+    SECTION("a companion of obn.conf keeps matching the keyword rule")
+    {
+        CHECK(mgr.is_denied_path(obn_conf_bak));
+    }
+
+    SECTION("another .conf file in the same directory stays denied")
+    {
+        CHECK(mgr.is_denied_path(fs::path(data_dir()) / "other.conf"));
+    }
+
+    SECTION("the app config in the same directory stays denied by the filename registry")
+    {
+        CHECK(mgr.is_denied_path(fs::path(data_dir()) / (SLIC3R_APP_KEY ".conf")));
     }
 }
 

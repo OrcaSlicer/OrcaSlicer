@@ -116,11 +116,24 @@ public:
     // same set without a live interpreter.
     static std::vector<std::string> default_denied_path_keywords();
 
+    // Exact base names the keyword deny must not fire on. Registering an exempt name narrows
+    // the keyword rule only: the exact-name is_denied_filename registry still wins for these.
+    void add_keyword_exempt_filename(const std::string& filename);
+
     // True when any component of candidate's (canonicalized) path contains a registered
     // keyword, case-insensitively.
     bool is_denied_path_keyword(const boost::filesystem::path& candidate) const;
 
-    // is_denied_filename(candidate) || is_denied_path_keyword(candidate). Convenience for
+    // The list of exact base names the keyword deny must not fire on, exposed so tests seed
+    // from the same source as install_hook().
+    static std::vector<std::string> default_keyword_exempt_filenames();
+
+    // True when candidate's base name equals a registered exempt name case-insensitively.
+    // Exact equality only: companions such as obn.conf.bak keep matching the keyword rule.
+    bool is_keyword_exempt(const boost::filesystem::path& candidate) const;
+
+    // is_denied_filename(candidate) || (is_denied_path_keyword(candidate) &&
+    // !is_keyword_exempt(candidate)). Convenience for
     // call sites that only need to know whether a path is categorically off-limits, not which
     // specific rule fired.
     bool is_denied_path(const boost::filesystem::path& candidate) const;
@@ -176,6 +189,7 @@ private:
     std::vector<AllowedRoot>             m_global_allowed_roots;
     std::vector<std::string>             m_denied_filenames;
     std::vector<std::string>             m_denied_path_keywords;
+    std::vector<std::string>             m_keyword_exempt_filenames;
     std::unordered_map<std::string, std::unordered_set<std::string>> m_approved_call_sites; // plugin_key -> call-site ids
 };
 
