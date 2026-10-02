@@ -12,6 +12,7 @@
 
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -22,6 +23,116 @@
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
+
+TEST_CASE("Custom retraction state controls generated retract and unretract moves", "[GCodeWriter][Retraction]")
+{
+    const bool shared = GENERATE(false, true);
+    const bool relative_e = GENERATE(false, true);
+    const double custom_retraction = GENERATE(0., 0.5, 0.8);
+    CAPTURE(shared, relative_e, custom_retraction);
+
+    GCodeWriter writer;
+    writer.config.single_extruder_multi_material.value = shared;
+    writer.config.use_relative_e_distances.value = relative_e;
+    writer.config.retraction_length.values = {0.6};
+    writer.config.retract_restart_extra.values = {0.};
+    writer.config.filament_map.values = {1, 1};
+    writer.set_extruders({0, 1});
+    writer.set_extruder(1);
+
+    writer.filament()->set_retracted(custom_retraction, 0.);
+    std::string gcode = writer.retract();
+    const double total_retraction = std::max(custom_retraction, 0.6);
+    CHECK_THAT(writer.filament()->retracted(), Catch::Matchers::WithinAbs(total_retraction, 1e-9));
+    gcode += writer.unretract();
+    CHECK_THAT(writer.filament()->retracted(), Catch::Matchers::WithinAbs(0., 1e-9));
+
+    double retracted = 0., unretracted = 0.;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.retracting(self))
+            retracted -= line.dist_E(self);
+        else if (line.extruding(self))
+            unretracted += line.dist_E(self);
+    });
+    CHECK_THAT(retracted, Catch::Matchers::WithinAbs(total_retraction - custom_retraction, 1e-6));
+    CHECK_THAT(unretracted, Catch::Matchers::WithinAbs(total_retraction, 1e-6));
+}
+
+TEST_CASE("Custom retraction state follows the physical extruder mapping", "[GCodeWriter][Retraction]")
+{
+    GCodeWriter writer;
+    writer.config.single_extruder_multi_material.value = true;
+    writer.config.use_relative_e_distances.value = true;
+    writer.config.filament_map.values = {2, 2, 1};
+    writer.set_extruders({0, 1, 2});
+    writer.set_extruder(1);
+    writer.filament()->set_retracted(0.5, 0.2);
+
+    CHECK_THAT(writer.extruders()[0].retracted(), Catch::Matchers::WithinAbs(0.5, 1e-9));
+    CHECK_THAT(writer.extruders()[2].retracted(), Catch::Matchers::WithinAbs(0., 1e-9));
+    CHECK_THAT(writer.get_extruder_retracted_length(1), Catch::Matchers::WithinAbs(0.5, 1e-9));
+    CHECK_THAT(writer.filament()->unretract(), Catch::Matchers::WithinAbs(0.7, 1e-9));
+    CHECK_THAT(writer.extruders()[0].retracted(), Catch::Matchers::WithinAbs(0., 1e-9));
+
+    writer.filament()->set_retracted(0.5, 0.2);
+    writer.filament()->set_retracted(0., 0.2);
+    CHECK_THAT(writer.get_extruder_retracted_length(1), Catch::Matchers::WithinAbs(0., 1e-9));
+    CHECK_THAT(writer.filament()->restart_extra(), Catch::Matchers::WithinAbs(0., 1e-9));
+    CHECK(writer.unretract().empty());
+}
+
+TEST_CASE("Start G-code retraction is repaid before the first printed extrusion", "[GCodeWriter][Retraction]")
+{
+    const bool shared = GENERATE(false, true);
+    const bool purge = GENERATE(false, true);
+    CAPTURE(shared, purge);
+
+    const std::string start = purge ?
+        "LINE_PURGE\n{e_retracted[initial_no_support_extruder] = 0.5}\n" : "";
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "gcode_flavor", "klipper" },
+        { "single_extruder_multi_material", shared ? "1" : "0" },
+        { "use_relative_e_distances", "1" },
+        { "machine_start_gcode", start + "; initial_tool={initial_no_support_extruder}\n" },
+        { "retraction_length", "0.6" },
+        { "retract_restart_extra", "0" },
+        { "retract_when_changing_layer", "1" },
+        { "wipe", "0" },
+        { "enable_prime_tower", "0" },
+        { "skirt_loops", "0" },
+        { "brim_type", "no_brim" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "outer_wall_filament_id", "2" },
+        { "inner_wall_filament_id", "2" },
+        { "sparse_infill_filament_id", "2" },
+        { "internal_solid_filament_id", "2" },
+        { "top_surface_filament_id", "2" },
+        { "bottom_surface_filament_id", "2" },
+    });
+    const std::string gcode = slice({cube(1)}, config);
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; initial_tool=1"));
+
+    double retracted = 0., unretracted = 0.;
+    bool reached_print = false;
+    GCodeReader reader;
+    reader.apply_config(config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            reached_print = true;
+            self.quit_parsing();
+        } else if (line.retracting(self)) {
+            retracted -= line.dist_E(self);
+        } else if (line.extruding(self)) {
+            unretracted += line.dist_E(self);
+        }
+    });
+    REQUIRE(reached_print);
+    CHECK_THAT(retracted, Catch::Matchers::WithinAbs(purge ? 0.1 : 0.6, 1e-6));
+    CHECK_THAT(unretracted, Catch::Matchers::WithinAbs(0.6, 1e-6));
+}
 
 // Arrange on a finite bed, not an unbounded InfiniteBed: the latter places items
 // near INT64_MIN/4 (~2.3e18), which reaches ClipperLib's coordinate limit and throws
