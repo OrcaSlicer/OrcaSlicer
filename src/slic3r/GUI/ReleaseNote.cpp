@@ -23,14 +23,15 @@
 #include <wx/filedlg.h>
 #include <miniz.h>
 #include <algorithm>
+#include <cctype>
 #include "Plater.hpp"
 #include "BitmapCache.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
-#include "md4c/src/md4c-html.h"
 #include "../Utils/Http.hpp"
+#include "md4c/src/md4c-html.h"
 
 namespace Slic3r { namespace GUI {
 
@@ -1777,7 +1778,7 @@ void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
     auto str_ip = m_input_ip->GetTextCtrl()->GetValue();
     auto str_access_code = m_input_access_code->GetTextCtrl()->GetValue();
     // ORCA enabling / disabling buttons with conditions enough to change its style
-    m_button_ok->Enable(isIp(str_ip.ToStdString()) &&
+    m_button_ok->Enable(isValidEndpoint(str_ip.ToStdString()) &&
                         (str_access_code.IsEmpty() || str_access_code.Length() >= 8));
 
     Layout();
@@ -1815,19 +1816,29 @@ void InputIpAddressDialog::update_test_msg(wxString msg,bool connected)
     Fit();
 }
 
-bool InputIpAddressDialog::isIp(std::string ipstr)
+bool InputIpAddressDialog::isValidEndpoint(std::string endpoint)
 {
-    istringstream ipstream(ipstr);
-    int num[4];
-    char point[3];
-    string end;
-    ipstream >> num[0] >> point[0] >> num[1] >> point[1] >> num[2] >> point[2] >> num[3] >> end;
-    for (int i = 0; i < 3; ++i) {
-        if (num[i] < 0 || num[i]>255) return false;
-        if (point[i] != '.') return false;
-    }
-    if (num[3] < 0 || num[3]>255) return false;
-    if (!end.empty()) return false;
+    if (endpoint.empty() || std::any_of(endpoint.begin(), endpoint.end(), [](unsigned char c) {
+            return std::isspace(c) != 0;
+        }))
+        return false;
+
+    const bool has_http_scheme = endpoint.rfind("http://", 0) == 0;
+    const bool has_https_scheme = endpoint.rfind("https://", 0) == 0;
+    const auto scheme_pos = endpoint.find("://");
+    if (scheme_pos != std::string::npos && !has_http_scheme && !has_https_scheme)
+        return false;
+
+    std::string port;
+    const std::string host = Http::get_host_from_url(endpoint, &port);
+    if (host.empty())
+        return false;
+
+    // get_host_from_url returns its input when libcurl cannot parse it. For a
+    // URL with a scheme, that means a failed parse still needs to be rejected.
+    if (scheme_pos != std::string::npos && host == endpoint)
+        return false;
+
     return true;
 }
 
@@ -2130,7 +2141,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
 
     // ORCA enabling / disabling buttons with conditions enough to change its style
     bool valid_access_code_length = str_access_code.IsEmpty() || str_access_code.Length() >= 8;
-    bool enable_btns = isIp(str_ip.ToStdString()) && valid_access_code_length && invalid_access_code;
+    bool enable_btns = isValidEndpoint(str_ip.ToStdString()) && valid_access_code_length && invalid_access_code;
     m_button_manual_setup->Enable(enable_btns);
     m_button_ok->Enable(enable_btns);
 

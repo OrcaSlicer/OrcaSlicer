@@ -348,7 +348,7 @@ public:
     void update_title(wxString title);
     void set_machine_obj(MachineObject* obj);
     void update_test_msg(wxString msg, bool connected);
-    bool isIp(std::string ipstr);
+    bool isValidEndpoint(std::string endpoint);
     void check_ip_address_failed(int result);
     void on_check_ip_address_failed(wxCommandEvent& evt);
     void on_ok(wxMouseEvent& evt);
