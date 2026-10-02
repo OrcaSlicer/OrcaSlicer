@@ -22,6 +22,7 @@ enum ExtrusionRole : uint8_t {
     erPerimeter,
     erExternalPerimeter,
     erOverhangPerimeter,
+    erBridgePerimeter,
     erInternalInfill,
     erSolidInfill,
     erTopSolidInfill,
@@ -57,7 +58,8 @@ inline bool is_perimeter(ExtrusionRole role)
 {
     return role == erPerimeter
         || role == erExternalPerimeter
-        || role == erOverhangPerimeter;
+        || role == erOverhangPerimeter
+        || role == erBridgePerimeter;
 }
 
 inline bool is_internal_perimeter(ExtrusionRole role)
@@ -100,7 +102,8 @@ inline bool is_bridge(ExtrusionRole role)
 {
     return role == erBridgeInfill
         || role == erInternalBridgeInfill
-        || role == erOverhangPerimeter;
+        || role == erOverhangPerimeter
+        || role == erBridgePerimeter;
 }
 
 // Orca
