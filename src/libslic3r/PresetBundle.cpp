@@ -3722,11 +3722,11 @@ bool PresetBundle::is_mixed_filament(size_t idx) const
 
 size_t PresetBundle::num_mixed_filaments() const
 {
-    auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    const auto *colors = project_config.option<ConfigOptionStrings>("filament_colour");
-    const size_t slot_count = colors->values.size();
-    return opt == nullptr ? 0 : size_t(std::count(opt->values.begin(),
-        opt->values.begin() + std::min(slot_count, opt->values.size()), true));
+    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    if (opt == nullptr)
+        return 0;
+    const size_t slot_count = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
 // Colours describe actual slots; filament_presets can be topped up to the nozzle count alone.
