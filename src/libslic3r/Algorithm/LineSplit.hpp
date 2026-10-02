@@ -2,6 +2,11 @@
 #define SRC_LIBSLIC3R_ALGORITHM_LINE_SPLIT_HPP_
 
 #include "ClipperZUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include "libslic3r/ExPolygon.hpp"
 
 namespace Slic3r {
 namespace Algorithm {

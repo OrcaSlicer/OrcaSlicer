@@ -2,6 +2,13 @@
 #define slic3r_Polygon_hpp_
 
 #include "libslic3r.h"
+#include <initializer_list>
+#include <utility>
+#include <cstddef>
+#include <algorithm>
+#include <iterator>
+#include <cmath>
+#include <cassert>
 #include <vector>
 #include <string>
 #include "Line.hpp"

@@ -1,4 +1,6 @@
 #include "Config.hpp"
+#include "Exception.hpp"
+#include "Point.hpp"
 #include "format.hpp"
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
@@ -6,7 +8,20 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <cmath>
+#include <boost/algorithm/string/join.hpp>
+#include <cstdlib>
+#include <exception>
+#include <cctype>
+#include <boost/algorithm/string/trim.hpp>
 #include <fstream>
+#include <functional>
+#include <set>
+#include <initializer_list>
+#include <map>
+#include <list>
+#include <optional>
+#include <memory>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -26,8 +41,15 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/format.hpp>
+#include <stdexcept>
 #include <string.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <system_error>
 //BBS: add json support
+#include "libslic3r.h"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
 using namespace nlohmann;

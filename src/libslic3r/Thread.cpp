@@ -1,3 +1,10 @@
+#include <optional>
+#include <string>
+#include <cstddef>
+#include <cassert>
+#include <sstream>
+#include <locale.h>
+#include <clocale>
 #ifdef _WIN32
 	#include <windows.h>
 	#include <boost/nowide/convert.hpp>

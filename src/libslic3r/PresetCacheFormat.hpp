@@ -1,6 +1,7 @@
 #ifndef slic3r_PresetCacheFormat_hpp_
 #define slic3r_PresetCacheFormat_hpp_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>

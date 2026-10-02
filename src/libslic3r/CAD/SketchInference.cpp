@@ -1,7 +1,13 @@
 #include "libslic3r/CAD/SketchInference.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
+#include <cstddef>
+#include <optional>
+#include <math.h>
 
 namespace Slic3r {
 

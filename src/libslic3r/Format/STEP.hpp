@@ -13,6 +13,7 @@ namespace fs = boost::filesystem;
 namespace Slic3r {
 
 class TriangleMesh;
+class Model;
 class ModelObject;
 
 // load step stage

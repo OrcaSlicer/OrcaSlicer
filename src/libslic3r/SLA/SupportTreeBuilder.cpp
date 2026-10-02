@@ -1,5 +1,19 @@
 #ifndef NOMINMAX
 #define NOMINMAX
+#include "libslic3r/SLA/SpatIndex.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/SLA/Pad.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/MTUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <utility>
+#include <mutex>
+#include <cassert>
+#include <cstddef>
+#include <algorithm>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/SLA/SupportTree.hpp"
 #endif
 
 #include <libslic3r/SLA/SupportTreeBuilder.hpp>

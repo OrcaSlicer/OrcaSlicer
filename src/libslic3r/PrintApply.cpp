@@ -1,10 +1,35 @@
 #include "ClipperUtils.hpp"
+#include "Geometry.hpp"
+#include "CustomGCode.hpp"
+#include "Config.hpp"
 #include "Model.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "Print.hpp"
 #include "FilamentMixer.hpp"
+#include "Slicing.hpp"
+#include "libslic3r.h"
+#include "PrintConfig.hpp"
+#include "PrintBase.hpp"
+#include "libslic3r_version.h"
+#include "TriangleSelector.hpp"
 
+#include <algorithm>
+#include <array>
 #include <boost/log/trivial.hpp>
+#include <cassert>
 #include <cfloat>
+#include <utility>
+#include <vector>
+#include <cstddef>
+#include <initializer_list>
+#include <set>
+#include <cstdlib>
+#include <functional>
+#include <memory>
+#include <unordered_set>
+#include <unordered_map>
+#include <mutex>
 
 namespace Slic3r {
 

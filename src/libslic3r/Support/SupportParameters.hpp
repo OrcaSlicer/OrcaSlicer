@@ -4,6 +4,8 @@
 #include <boost/log/trivial.hpp>
 #include "../libslic3r.h"
 #include "../Flow.hpp"
+#include "../Layer.hpp"
+#include "../Print.hpp"
 
 namespace Slic3r {
 

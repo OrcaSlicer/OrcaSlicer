@@ -9,9 +9,11 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/optional.hpp>
 #include <cereal/archives/binary.hpp>
+#include <vector>
 #include "Point.hpp" // Transform3d
 #include "ExPolygon.hpp"
 #include "ExPolygonSerialize.hpp"
+#include "libslic3r.h"
 #include "nanosvg/nanosvg.h" // NSVGimage
 
 namespace Slic3r {

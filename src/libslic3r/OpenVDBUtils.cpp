@@ -1,5 +1,17 @@
 #ifndef NOMINMAX
 #define NOMINMAX
+#include <cstddef>
+#include <openvdb/Types.h>
+#include <Eigen/Core>
+#include "Point.hpp"
+#include <openvdb/openvdb.h>
+#include <openvdb/math/Transform.h>
+#include <vector>
+#include "TriangleMesh.hpp"
+#include <algorithm>
+#include "libslic3r.h"
+#include <utility>
+#include <openvdb/Metadata.h>
 #endif
 #include "OpenVDBUtils.hpp"
 

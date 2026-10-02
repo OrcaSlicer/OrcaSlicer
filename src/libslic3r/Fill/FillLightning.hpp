@@ -1,7 +1,13 @@
 #ifndef slic3r_FillLightning_hpp_
 #define slic3r_FillLightning_hpp_
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <memory>
+#include <functional>
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 

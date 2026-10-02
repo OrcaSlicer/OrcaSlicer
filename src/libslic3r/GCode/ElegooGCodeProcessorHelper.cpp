@@ -1,10 +1,13 @@
 #include "GCodeProcessor.hpp"
 
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/libslic3r.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
+#include <math.h>
 #include <string_view>
 
 namespace Slic3r {
