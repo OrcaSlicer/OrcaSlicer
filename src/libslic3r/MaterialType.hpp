@@ -22,6 +22,7 @@ struct MaterialTypeInfo {
     double thermal_length;
     // Material families this type belongs to (e.g. {"PLA"} for "PLA-CF", {"PC", "ABS"} for "PC-ABS").
     // Empty falls back to the type name itself.
+    // Family list and the bonding rule are from OrcaSlicer PR #14495 (@ianalexis).
     std::vector<std::string> base_materials;
 };
 

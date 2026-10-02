@@ -28,6 +28,8 @@ constexpr double DEFAULT_THERMAL_LENGTH       = 200.0;
 
 // Both tables are data files shipped in <resources>/info so they can be refined (or hand-edited)
 // without rebuilding. Each carries a "version" like the vendor profiles do.
+// The tables themselves, and the base-material compatibility rule below, come from
+// OrcaSlicer pull request #14495 by @ianalexis (material-compatibility).
 constexpr const char* INFO_SUBDIR               = "info";
 constexpr const char* MATERIAL_TYPES_FILE       = "material_types.json";
 constexpr const char* BASE_COMPATIBILITIES_FILE = "base_compatibilities.json";
