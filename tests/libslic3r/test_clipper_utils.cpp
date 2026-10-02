@@ -325,6 +325,15 @@ static std::vector<std::vector<coord_t>> canonical_rings(const ExPolygons &expol
     return rings;
 }
 
+// The same rings, every coordinate within `tolerance`.
+static bool same_rings(const ExPolygons &a, const ExPolygons &b, coord_t tolerance)
+{
+    const std::vector<std::vector<coord_t>> ra = canonical_rings(a), rb = canonical_rings(b);
+    return std::equal(ra.begin(), ra.end(), rb.begin(), rb.end(), [tolerance](const std::vector<coord_t> &x, const std::vector<coord_t> &y) {
+        return std::equal(x.begin(), x.end(), y.begin(), y.end(), [tolerance](coord_t u, coord_t v) { return std::abs(u - v) <= tolerance; });
+    });
+}
+
 TEST_CASE("Tiled diff and intersection return the same polygons as the plain calls", "[ClipperUtils]") {
     // A grid of disjoint framed squares, enough of them to be split into several tiles.
     const int  n    = 40;
@@ -358,13 +367,16 @@ TEST_CASE("Tiled diff and intersection return the same polygons as the plain cal
     // path under test is never taken.
     REQUIRE(ClipperUtils::tile_expolygons(subject, 32).size() > 1);
 
+    // With the safety offset a tile unites fewer clip polygons, so Clipper2 can round a crossing 1 unit differently.
+    const coord_t tolerance = safety == ApplySafetyOffset::Yes ? 1 : 0;
+
     const ExPolygons diff_plain = diff_ex(subject, clip, safety);
     const ExPolygons diff_tiled = diff_ex_by_piece(subject, clip, safety);
     REQUIRE(area(diff_plain) > 0.);
-    CHECK(canonical_rings(diff_tiled) == canonical_rings(diff_plain));
+    CHECK(same_rings(diff_tiled, diff_plain, tolerance));
 
     const ExPolygons intersection_plain = intersection_ex(subject, clip, safety);
     const ExPolygons intersection_tiled = intersection_ex_by_piece(subject, clip, safety);
     REQUIRE(area(intersection_plain) > 0.);
-    CHECK(canonical_rings(intersection_tiled) == canonical_rings(intersection_plain));
+    CHECK(same_rings(intersection_tiled, intersection_plain, tolerance));
 }

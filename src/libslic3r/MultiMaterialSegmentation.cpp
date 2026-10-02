@@ -1403,7 +1403,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     // `shell_layers`, nearest first), one more perimeter in on each, stopping at the first layer where nothing is left.
     // Only the slices within the deepest offset of `ex` (three times that with the miter joins) decide the result, so the
     // work is done per tile of `ex`'s ExPolygons on the slices cut to the tile's box grown by that much: the same result, but
-    // each ClipperLib call stays the size of a tile rather than of a layer cut through a fine relief, and the tiles run in
+    // each Clipper call stays the size of a tile rather than of a layer cut through a fine relief, and the tiles run in
     // parallel.
     const auto project_to_shells = [&input_expolygons](const ExPolygons &ex, size_t layer_idx, const std::vector<size_t> &shell_layers,
                                                        const LayerColorStat &stat, ShellProjections &dst) {
@@ -1965,7 +1965,7 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - Merging segmented layers in parallel - Begin";
     // Every region of a layer is merged together with the regions of the islands it overlaps, and the islands are further
     // apart than the dimple removal below reaches, so this gives the same result as merging the layer at once. On a layer
-    // cut through a fine relief every region shares thousands of hole contours with every other, and ClipperLib, splitting
+    // cut through a fine relief every region shares thousands of hole contours with every other, and Clipper, splitting
     // and re-linking one huge polygon over and over, took anything up to half an hour for a layer; per island each operation
     // stays the size of the island, and the islands run in parallel.
     tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&](const tbb::blocked_range<size_t> &range) {

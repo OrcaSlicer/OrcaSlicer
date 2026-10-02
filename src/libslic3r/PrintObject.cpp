@@ -3531,7 +3531,7 @@ void PrintObject::bridge_over_infill()
                 std::map<coord_t, Polylines> boundary_by_spacing;
                 // expansion_area is a clean, non-overlapping set, so uniting it with a bridge or cutting a bridge
                 // out of it only changes the polygons near that bridge. The rest are passed through untouched
-                // instead of being fed to ClipperLib with the whole layer again for every candidate.
+                // instead of being fed to Clipper with the whole layer again for every candidate.
                 // Not `near`/`far`: the Windows headers still define those as macros, and they expand to
                 // nothing, which turns the declaration below into an empty one.
                 const auto split_near = [](const Polygons &polys, const BoundingBox &bbox, Polygons &rest) {
@@ -3568,6 +3568,7 @@ void PrintObject::bridge_over_infill()
                     Polygons       limiting_area;
                     const Polygons near_expansion = split_near(expansion_area, get_extents(area_to_be_bridge).inflated(SCALED_EPSILON),
                                                                limiting_area);
+                    const size_t   num_far        = limiting_area.size();
                     append(limiting_area, union_(area_to_be_bridge, near_expansion));
 
                     auto boundary_it = boundary_by_spacing.find(flow.scaled_spacing());
@@ -3577,11 +3578,9 @@ void PrintObject::bridge_over_infill()
                                           .first;
                     Polylines boundary_plines = boundary_it->second;
                     {
-                        // No offset here: flow.spacing() is in mm, so the expand(limiting_area, 0.3 * flow.spacing())
-                        // this used to be moved the outline by 0.135 scaled units - nothing beyond rounding - while
-                        // costing a whole-layer ClipperLib pass for every candidate. limiting_area is already a clean
-                        // union, so its own outline is the same boundary.
-                        Polylines limiting_plines = to_polylines(limiting_area);
+                        // The sub-unit offset (spacing is in mm) still re-unites touching polygons by the bridge, which the anchors depend on.
+                        Polylines limiting_plines = to_polylines(Polygons(limiting_area.begin(), limiting_area.begin() + num_far));
+                        append(limiting_plines, to_polylines(expand(Polygons(limiting_area.begin() + num_far, limiting_area.end()), 0.3 * flow.spacing())));
                         boundary_plines.insert(boundary_plines.end(), limiting_plines.begin(), limiting_plines.end());
                     }
 

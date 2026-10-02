@@ -819,8 +819,11 @@ namespace ClipperUtils {
 
 static Slic3r::ExPolygons clipper_ex_by_piece(ClipType clipType, const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
 {
-    // A few dozen subject ExPolygons to a tile, each tile one ClipperLib call with the clip cut to the tile's box.
+    // A few dozen subject ExPolygons to a tile, each tile one Clipper call with the clip cut to the tile's box.
     const std::vector<ClipperUtils::ExPolygonsTile> tiles = ClipperUtils::tile_expolygons(subject, 32);
+    // One tile is the plain call: cutting the clip would only cost time.
+    if (tiles.size() <= 1)
+        return _clipper_ex(clipType, ClipperUtils::ExPolygonsProvider(subject), ClipperUtils::PolygonsProvider(clip), do_safety_offset);
     std::vector<BoundingBox> clip_bboxes;
     clip_bboxes.reserve(clip.size());
     for (const Polygon &polygon : clip)

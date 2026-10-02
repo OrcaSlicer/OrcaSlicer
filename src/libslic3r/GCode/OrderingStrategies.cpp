@@ -10,7 +10,6 @@
 #include <limits>
 #include <numeric>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -188,26 +187,34 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
 
     // Process crossings one at a time: find first, reverse it, restart scan.
     // Cap iterations to prevent infinite loops on collinear/overlapping segments.
-    int max_iters = static_cast<int>(pn * pn);
+    const int max_iters = static_cast<int>(pn * pn);
     bool improved = false;
     // Reversing between two segments that only touch or overlap along a line need not remove the intersection, so on
     // islands laid out on a regular grid (a tiled texture, an array of parts) the loop can cycle through the same
-    // orderings until the pn * pn cap. Stop as soon as an ordering repeats; up to that point this is the same loop.
-    std::unordered_set<uint64_t> seen_paths;
+    // orderings until the pn * pn cap. Once an ordering repeats the rest of the loop is periodic, so only the steps
+    // to the ordering the capped loop would have stopped on are taken.
+    std::unordered_map<uint64_t, int> seen_paths; // path hash -> reversals done when it was reached
     const auto path_hash = [&path]() {
         uint64_t h = 1469598103934665603ull; // FNV-1a
         for (size_t idx : path)
             h = (h ^ uint64_t(idx)) * 1099511628211ull;
         return h;
     };
-    seen_paths.insert(path_hash());
-    while (max_iters-- > 0) {
+    const auto reverse_first_crossing = [&]() {
         auto [ci, cj] = pn >= grid_min_size ? find_crossing_grid() : find_crossing();
-        if (ci == std::numeric_limits<size_t>::max()) break;
-        improved = true;
+        if (ci == std::numeric_limits<size_t>::max())
+            return false;
         std::reverse(path.begin() + ci + 1, path.begin() + cj + 1);
-        if (!seen_paths.insert(path_hash()).second)
+        return true;
+    };
+    seen_paths.emplace(path_hash(), 0);
+    for (int iter = 1; iter <= max_iters && reverse_first_crossing(); ++iter) {
+        improved = true;
+        if (auto [it, inserted] = seen_paths.emplace(path_hash(), iter); !inserted) {
+            for (int steps = (max_iters - iter) % (iter - it->second); steps > 0; --steps)
+                reverse_first_crossing();
             break;
+        }
     }
     return improved;
 }
