@@ -1726,9 +1726,11 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
         //ConfigSubstitutions config_substitutions = config.load_from_ini(preset.file, substitution_rule);
         std::map<std::string, std::string> key_values;
         std::string reason;
-        ConfigSubstitutions config_substitutions = config.load_from_json(preset.file, substitution_rule, key_values, reason);
-        if (! config_substitutions.empty())
-            out.substitutions.push_back({ preset.name, m_type, PresetConfigSubstitutions::Source::UserFile, preset.file, std::move(config_substitutions) });
+        ConfigSubstitutionContext load_context(substitution_rule);
+        load_context.accept_nil = true;
+        config.load_from_json(preset.file, load_context, true, key_values, reason);
+        if (! load_context.substitutions.empty())
+            out.substitutions.push_back({ preset.name, m_type, PresetConfigSubstitutions::Source::UserFile, preset.file, std::move(load_context.substitutions) });
         if (!reason.empty()) {
             out.discard_file = true;
             out.errors.push_back((boost::format("parse config %1% failed") % preset.file).str());
@@ -1764,7 +1766,7 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
             preset.config = inherit_preset->config;
             preset.filament_id = inherit_preset->filament_id;
             extend_default_config_length(config, false, {});
-            preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2, &load_context.nil_slots);
         }
         else {
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
@@ -2137,7 +2139,8 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
                 BOOST_LOG_TRIVIAL(error) << boost::format("can not find parent for config %1%!")%preset->file;
                 continue;
             }
-            preset->config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            preset->config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2, &preset->nil_slots);
+            preset->nil_slots.clear();
             //preset->config.apply(std::move(config));
             Preset::normalize(preset->config);
             // Report configuration fields, which are misplaced into a wrong group.

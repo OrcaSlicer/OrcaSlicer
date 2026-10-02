@@ -873,10 +873,10 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
 
     CNumericLocalesSetter locales_setter;
 
-    std::function<bool(const json::const_iterator&, const char,const char,const bool,std::string&)> parse_str_arr = [&parse_str_arr](const json::const_iterator& it, const char single_sep,const char array_sep,const bool escape_string_style,std::string& value_str)->bool {
+    std::function<bool(const json&, const char,const char,const bool,std::string&)> parse_str_arr = [&parse_str_arr](const json& arr, const char single_sep,const char array_sep,const bool escape_string_style,std::string& value_str)->bool {
         // must have consistent type name
         std::string consistent_type;
-        for (auto iter = it.value().begin(); iter != it.value().end(); ++iter) {
+        for (auto iter = arr.begin(); iter != arr.end(); ++iter) {
             if (consistent_type.empty())
                 consistent_type = iter.value().type_name();
             else {
@@ -886,13 +886,13 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
         }
 
         bool first = true;
-        for (auto iter = it.value().begin(); iter != it.value().end(); iter++) {
+        for (auto iter = arr.begin(); iter != arr.end(); iter++) {
             if (iter.value().is_array()) {
                 if (!first)
                     value_str += array_sep;
                 else
                     first = false;
-                bool success = parse_str_arr(iter, single_sep, array_sep,escape_string_style, value_str);
+                bool success = parse_str_arr(iter.value(), single_sep, array_sep,escape_string_style, value_str);
                 if (!success)
                     return false;
             }
@@ -1038,8 +1038,39 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                         }
                     }
 
+                    // BambuStudio and its forks save a nozzle variant that matches the parent preset as "nil".
+                    // An option that can't hold nil gets its default in that slot, and the slot is reported so
+                    // the merge onto the parent keeps the parent's value. All slots nil means the key is not set.
+                    const json *values = &it.value();
+                    json values_with_defaults;
+                    if (substitution_context.accept_nil && optdef && !optdef->nullable && optdef->default_value &&
+                        (optdef->type == coFloats || optdef->type == coPercents || optdef->type == coFloatsOrPercents ||
+                         optdef->type == coInts || optdef->type == coEnums || optdef->type == coBools)) {
+                        auto is_nil = [](const json &v) { return v.is_string() && v.get<std::string>() == "nil"; };
+                        std::vector<size_t> nil_slots;
+                        for (size_t i = 0; i < values->size(); ++i)
+                            if (is_nil((*values)[i]))
+                                nil_slots.push_back(i);
+                        if (!nil_slots.empty()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << file << ": " << it.key() << " is nil in "
+                                                       << nil_slots.size() << " of " << values->size()
+                                                       << " slots, read as not set (the parent preset's value, or the default)";
+                            if (nil_slots.size() == values->size())
+                                continue;
+                            // create_default_option() gives enums their names, which vserialize() needs.
+                            std::unique_ptr<ConfigOption> default_option(optdef->create_default_option());
+                            const std::vector<std::string> defaults = static_cast<const ConfigOptionVectorBase*>(default_option.get())->vserialize();
+                            values_with_defaults = *values;
+                            const json first_value = *std::find_if_not(values->begin(), values->end(), is_nil);
+                            for (size_t i : nil_slots)
+                                values_with_defaults[i] = defaults.empty() ? first_value : json(defaults[i % defaults.size()]);
+                            values = &values_with_defaults;
+                            substitution_context.nil_slots[opt_key] = std::move(nil_slots);
+                        }
+                    }
+
                     // BBS: we only support 2 depth array
-                    valid = parse_str_arr(it, single_sep, array_sep,escape_string_type, value_str);
+                    valid = parse_str_arr(*values, single_sep, array_sep,escape_string_type, value_str);
                     if (!valid) {
                         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file << " error, invalid json array for " << it.key();
                         break;

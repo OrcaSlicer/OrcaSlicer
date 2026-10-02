@@ -269,6 +269,8 @@ public:
     //BBS: add type for project-embedded
     bool                is_project_embedded = false;
     ConfigSubstitutions *loading_substitutions{nullptr};
+    // Slots that were nil in the embedded preset's file, see ConfigSubstitutionContext::nil_slots.
+    std::map<std::string, std::vector<size_t>> nil_slots;
     bool                is_user() const { return ! this->is_default && ! this->is_system && ! this->is_project_embedded && ! this->is_from_bundle(); }
     bool                can_overwrite() const { return ! this->is_default && ! this->is_system && ! this->is_from_bundle(); }
     //bool                is_user() const { return ! this->is_default && ! this->is_system; }

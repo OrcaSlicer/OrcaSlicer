@@ -585,6 +585,81 @@ TEST_CASE("A BambuStudio project config loads its renamed settings without subst
     CHECK(config.validate().count("raft_first_layer_expansion") == 0);
 }
 
+TEST_CASE("load_from_json reads a BambuStudio nil slot as not set", "[Config]") {
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        // Keys after retraction_length in file order must still load.
+        ofs << R"({"layer_height":"0.2","retraction_length":["0.8","nil"],"wall_loops":"3","z_hop":["nil","nil"],)"
+               R"("z_hop_types":["Spiral Lift","nil"]})";
+    }
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+
+    SECTION("a loader that doesn't merge onto a parent still rejects nil") {
+        DynamicPrintConfig config;
+        ConfigSubstitutionContext context(ForwardCompatibilitySubstitutionRule::Enable);
+        config.load_from_json(tmp.string(), context, true, key_values, reason);
+        CHECK_FALSE(reason.empty());
+    }
+
+    SECTION("a loader that opts in reads it as not set") {
+        DynamicPrintConfig config;
+        ConfigSubstitutionContext context(ForwardCompatibilitySubstitutionRule::Enable);
+        context.accept_nil = true;
+        REQUIRE(config.load_from_json(tmp.string(), context, true, key_values, reason) == 0);
+        CHECK(reason.empty());
+
+        const auto *default_length = static_cast<const ConfigOptionFloats*>(print_config_def.get("retraction_length")->default_value.get());
+        const auto &retraction_length = config.option<ConfigOptionFloats>("retraction_length")->values;
+        REQUIRE(retraction_length.size() == 2);
+        CHECK_THAT(retraction_length[0], Catch::Matchers::WithinAbs(0.8, 1e-9));
+        CHECK_THAT(retraction_length[1], Catch::Matchers::WithinAbs(default_length->get_at(1), 1e-9));
+
+        std::unique_ptr<ConfigOption> default_types(print_config_def.get("z_hop_types")->create_default_option());
+        const std::vector<std::string> type_defaults = static_cast<const ConfigOptionVectorBase*>(default_types.get())->vserialize();
+        CHECK(static_cast<const ConfigOptionVectorBase*>(config.option("z_hop_types"))->vserialize() ==
+              std::vector<std::string>{"Spiral Lift", type_defaults[1 % type_defaults.size()]});
+
+        CHECK(context.nil_slots == std::map<std::string, std::vector<size_t>>{{"retraction_length", {1}}, {"z_hop_types", {1}}});
+        CHECK_FALSE(config.has("z_hop"));
+        CHECK(config.opt_int("wall_loops") == 3);
+    }
+}
+
+TEST_CASE("A nozzle variant that was nil keeps the parent preset's value", "[Config]") {
+    auto printer = [](std::vector<double> nozzle_diameter, std::vector<double> retraction_length, std::vector<double> max_speed_x) {
+        DynamicPrintConfig config;
+        config.set_key_value("printer_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow"}));
+        config.set_key_value("printer_extruder_id", new ConfigOptionInts({1, 1}));
+        // Not a per-variant key, so the merge copies it whole.
+        config.set_key_value("nozzle_diameter", new ConfigOptionFloats(nozzle_diameter));
+        config.set_key_value("retraction_length", new ConfigOptionFloats(retraction_length));
+        // Two values per variant: normal and silent mode.
+        config.set_key_value("machine_max_speed_x", new ConfigOptionFloats(max_speed_x));
+        return config;
+    };
+    auto check_values = [](const DynamicPrintConfig &config, const char *key, const std::vector<double> &expected) {
+        const std::vector<double> &values = config.option<ConfigOptionFloats>(key)->values;
+        INFO(key);
+        REQUIRE(values.size() == expected.size());
+        for (size_t i = 0; i < expected.size(); ++i)
+            CHECK_THAT(values[i], Catch::Matchers::WithinAbs(expected[i], 1e-9));
+    };
+    DynamicPrintConfig parent = printer({0.4, 0.6}, {0.6, 0.5}, {500, 200, 400, 100});
+    // The nil slots of the child hold the option default after loading.
+    DynamicPrintConfig child = printer({0.2, 0.4}, {0.8, 0.4}, {500, 200, 300, 90});
+    const std::map<std::string, std::vector<size_t>> nil_slots{{"nozzle_diameter", {1}}, {"retraction_length", {1}}, {"machine_max_speed_x", {3}}};
+
+    parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                              printer_options_with_variant_1, printer_options_with_variant_2, &nil_slots);
+
+    check_values(parent, "nozzle_diameter", {0.2, 0.6});
+    check_values(parent, "retraction_length", {0.8, 0.5});
+    // Only the silent-mode value of the second variant was nil.
+    check_values(parent, "machine_max_speed_x", {500, 200, 300, 100});
+}
+
 TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
     DynamicPrintConfig config;
     config.set_key_value("layer_height", new ConfigOptionFloat(0.2));

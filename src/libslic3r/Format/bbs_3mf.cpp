@@ -2696,6 +2696,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
             std::map<std::string, std::string> key_values;
             std::string reason;
+            // No parent preset here: a nil slot keeps the option default.
+            config_substitutions.accept_nil = true;
             int ret = config.load_from_json(dest_file, config_substitutions, true, key_values, reason);
             if (ret) {
                 add_error("Error load config from json:"+reason);
@@ -2736,7 +2738,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             //ConfigSubstitutions config_substitutions = config.load_from_ini(dest_file, Enable);
             std::map<std::string, std::string> key_values;
             std::string reason;
-            ConfigSubstitutions config_substitutions = use_json? config.load_from_json(dest_file, Enable, key_values, reason) : config.load_from_ini(dest_file, Enable);
+            ConfigSubstitutionContext load_context(Enable);
+            load_context.accept_nil = true;
+            if (use_json)
+                config.load_from_json(dest_file, load_context, true, key_values, reason);
+            else
+                load_context.substitutions = config.load_from_ini(dest_file, Enable);
+            ConfigSubstitutions config_substitutions = std::move(load_context.substitutions);
             if (!reason.empty()) {
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", load project embedded config from  %1% failed\n") % dest_file;
                 //skip this file
@@ -2785,6 +2793,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             preset->is_project_embedded = true;
             preset->is_external = true;
             preset->is_dirty = false;
+            preset->nil_slots = std::move(load_context.nil_slots);
 
             std::string version_str = key_values[BBL_JSON_KEY_VERSION];
             boost::optional<Semver> version = Semver::parse(version_str);

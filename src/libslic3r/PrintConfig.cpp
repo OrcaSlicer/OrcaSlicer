@@ -11596,7 +11596,8 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
     return;
 }
 
-void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& new_config, std::string extruder_id_name, std::string extruder_variant_name, std::set<std::string>& key_set1, std::set<std::string>& key_set2)
+void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& new_config, std::string extruder_id_name, std::string extruder_variant_name, std::set<std::string>& key_set1, std::set<std::string>& key_set2,
+    const std::map<std::string, std::vector<size_t>>* nil_slots)
 {
     std::vector<int> cur_extruder_ids, target_extruder_ids, variant_index;
     std::vector<std::string> cur_extruder_variants, target_extruder_variants;
@@ -11657,6 +11658,13 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
         if (opt_src && opt_target && (*opt_src != *opt_target)) {
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" change key %1% from base_value %2% to child's value %3%")
                     %opt %(opt_src->serialize()) %(opt_target->serialize());
+            const std::vector<size_t> *unset_slots = nullptr;
+            if (nil_slots && opt_src->is_vector())
+                if (auto it = nil_slots->find(opt); it != nil_slots->end())
+                    unset_slots = &it->second;
+            std::unique_ptr<ConfigOption> base_value(unset_slots ? opt_src->clone() : nullptr);
+            int  stride            = 1;
+            bool merged_by_variant = false;
             if (opt_target->is_scalar()
                 || ((key_set1.find(opt) == key_set1.end()) && (key_set2.empty() || (key_set2.find(opt) == key_set2.end())))) {
                 //nothing to do, keep the original one
@@ -11665,7 +11673,6 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
             else {
                 ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
                 const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_target);
-                int stride = 1;
                 if (key_set2.find(opt) != key_set2.end())
                     stride = 2;
                 // set_only_diff() requires the base vector length to equal variant_index.size()*stride, where
@@ -11679,8 +11686,26 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
                 if (opt_vec_src->size() != variant_index.size() * size_t(stride)) {
                     opt_src->set(opt_target);
                 }
-                else
+                else {
                     opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
+                    merged_by_variant = true;
+                }
+            }
+            // A slot that was nil in the child's file is not set there, so it keeps this config's value.
+            if (unset_slots) {
+                auto       *merged    = static_cast<ConfigOptionVectorBase*>(opt_src);
+                const size_t base_size = static_cast<const ConfigOptionVectorBase*>(base_value.get())->size();
+                for (size_t slot = 0; slot < merged->size() && slot < base_size; ++slot) {
+                    size_t child_slot = slot;
+                    if (merged_by_variant) {
+                        const int child_variant = variant_index[slot / stride];
+                        if (child_variant == -1)
+                            continue;
+                        child_slot = size_t(child_variant) * stride + slot % stride;
+                    }
+                    if (std::find(unset_slots->begin(), unset_slots->end(), child_slot) != unset_slots->end())
+                        merged->set_at(base_value.get(), slot, slot);
+                }
             }
         }
     }

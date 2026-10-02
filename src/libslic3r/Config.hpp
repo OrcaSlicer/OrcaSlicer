@@ -267,6 +267,11 @@ struct ConfigSubstitutionContext
     ForwardCompatibilitySubstitutionRule 	rule;
     ConfigSubstitutions					    substitutions;
     std::vector<std::string>                unrecogized_keys;
+    // Read "nil" in an option that can't hold it as not set instead of failing. Set by callers that hand
+    // nil_slots to the merge onto the parent preset, or for which the option default is the right fallback.
+    bool                                    accept_nil = false;
+    // Slots of options that can't hold nil but were "nil" in the file; they hold the option default.
+    std::map<std::string, std::vector<size_t>> nil_slots;
 };
 
 // A generic value of a configuration option.
