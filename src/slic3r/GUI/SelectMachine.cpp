@@ -37,6 +37,8 @@
 #include "libslic3r/MultiNozzleUtils.hpp" // filament-change-gap model for the best-position popup
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "FilamentMappingUtils.hpp"
 
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
@@ -3479,6 +3481,9 @@ void SelectMachineDialog::navigate_to_timelapse_page()
     this->EndModal(wxID_CANCEL);
 }
 
+// Mapping helpers live in FilamentMappingUtils.hpp (shared with
+// SendMultiMachinePage); they mirror the agent serializer exactly.
+
 void SelectMachineDialog::on_send_print()
 {
     BOOST_LOG_TRIVIAL(info) << "print_job: on_ok to send";
@@ -3532,6 +3537,28 @@ void SelectMachineDialog::on_send_print()
     std::string ams_mapping_info;
 
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
+
+    // The policy lives in FilamentMappingUtils.hpp; this dialog only differs
+    // from the multi-device page in how it reports a refusal.
+    switch (prepare_filament_mapping_for_send(obj_, ams_mapping_array2, m_ams_mapping_result)) {
+    case MappingSendError::unsupported:
+        BOOST_LOG_TRIVIAL(warning) << "print_job: connector does not advertise filament_mapping; refusing mapped print";
+        m_status_bar->set_status_text(_L("AMS filament mapping is not available for this printer. Clear the AMS mapping before printing."));
+        Enable_Send_Button(true);
+        return;
+    case MappingSendError::incomplete:
+        BOOST_LOG_TRIVIAL(warning) << "print_job: a used filament has no AMS target; refusing print";
+        m_status_bar->set_status_text(_L("A filament used by this print has no AMS mapping. Assign it before printing."));
+        Enable_Send_Button(true);
+        return;
+    case MappingSendError::none:
+        break;
+    default:
+        // A refusal added without a handler here must not silently send.
+        BOOST_LOG_TRIVIAL(warning) << "print_job: unrecognized mapping refusal; refusing print";
+        Enable_Send_Button(true);
+        return;
+    }
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {

@@ -714,9 +714,15 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
     std::string nozzle_diameter_str = stream.str();
 
     if (preset_bundle) {
+        // OrcaSonar's model id is optional; the helper falls back to the selected profile
+        // so the list is never empty.
+        const std::string filament_printer_model = resolve_filament_printer_model(obj->printer_type, preset_bundle);
+        if (filament_printer_model.empty())
+            return filament_items;
+
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
         for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
-                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+                 filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
             if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
             const std::string alias = preset_bundle->filaments.get_preset_alias(*filament_it, true);

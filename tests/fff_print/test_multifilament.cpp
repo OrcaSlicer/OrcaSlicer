@@ -40,6 +40,20 @@ static std::set<int> tools_for_role(const std::string& gcode, const std::string&
     return tools;
 }
 
+// Every id named by a Tn command anywhere in `gcode`. A non-BBL single-extruder multi-filament
+// setup emits T<filament_id>, and that id is what the Klipper toolchange macro consumes.
+static std::set<int> tool_ids(const std::string& gcode)
+{
+    std::set<int> tools;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&tools](GCodeReader&, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char)cmd[1]))
+            tools.insert(std::stoi(cmd.substr(1)));
+    });
+    return tools;
+}
+
 // X where the nozzle sits while each tagged _WAIT_FOR_TEMP_ON_WIPE_TOWER M109 blocks:
 // the nearest preceding G1 carrying an X (the park travel emitted just before the wait).
 static std::vector<double> wait_park_xs(const std::string& gcode)
@@ -285,6 +299,29 @@ TEST_CASE("Each feature prints with its assigned filament (three filaments)", "[
         }));
     CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 2 }); // filament 3
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 1 }); // filament 2
+}
+
+// The per-print wire mapping keys each entry by the filament's index in the config filament
+// arrays (the ams_mapping2 position). Pin that the id the toolchange emits is that index even
+// when the used filaments skip a middle one: filament 2 (index 1) is configured but unused, so
+// a renumbering to the used set would emit {0, 1} instead of {0, 2} and aim the map at the
+// wrong lane.
+TEST_CASE("Toolchange ids keep the config index of the used filament when a middle filament is unused", "[MultiFilament]")
+{
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(3, {
+            { "sparse_infill_filament_id",  1 },
+            { "internal_solid_filament_id", 1 },
+            { "top_surface_filament_id",    1 },
+            { "bottom_surface_filament_id", 1 },
+            { "outer_wall_filament_id",     3 },
+            { "inner_wall_filament_id",     3 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "no_brim" },
+        }));
+    CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 2 }); // filament 3
+    CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // filament 1
+    CHECK(tool_ids(gcode)                    == std::set<int>{ 0, 2 });
 }
 
 // The override must survive tool ordering: object 1's walls print on their filament's

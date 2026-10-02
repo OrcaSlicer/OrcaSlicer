@@ -7,6 +7,7 @@
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
+#include "slic3r/GUI/DeviceManager.hpp"
 
 #include "slic3r/GUI/MsgDialog.hpp"
 
@@ -1602,8 +1603,16 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
         stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
         std::string nozzle_diameter_str = stream.str();
 
+        // The connected device's model may not resolve (OrcaSonar's is optional); the
+        // helper falls back to the selected profile so the list is never empty.
+        const std::string filament_printer_model = resolve_filament_printer_model(obj->printer_type, preset_bundle);
+        if (filament_printer_model.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " cannot resolve a printer model for the filament list";
+            return false;
+        }
+
         for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
-                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+                 filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
             if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
             const std::string filament_alias = filaments.get_preset_alias(*filament_it, true);

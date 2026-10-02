@@ -15,7 +15,7 @@
 
 namespace Slic3r {
 static constexpr char ORCA_PRINTER_AGENT_ID[] = "orca";
-static constexpr char BBL_PRINTER_AGENT_ID[] = "bbl";
+static constexpr char BBL_PRINTER_AGENT_ID[]  = "bbl";
 
 // Factory function type for creating printer agents
 using PrinterAgentFactory =
@@ -24,17 +24,20 @@ using PrinterAgentFactory =
 // Information about a registered printer agent
 struct PrinterAgentInfo
 {
-    std::string         id;           // Registry/config key, e.g. "orca" or a plugin AgentInfo::id
-    std::string         display_name; // e.g., "Orca Native", "Bambu Lab"
-    std::string         plugin_identifier;     // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
-    PrinterAgentFactory factory;      // Function to create the agent
+    std::string id;                // Registry/config key, e.g. "orca" or a plugin AgentInfo::id
+    std::string display_name;      // e.g., "Orca Native", "Bambu Lab"
+    std::string plugin_identifier; // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
+    PrinterAgentFactory factory;   // Function to create the agent
 
     bool is_plugin() const { return !plugin_identifier.empty(); }
     PrinterAgentInfo(const std::string& id_, const std::string& display_name_, PrinterAgentFactory factory_)
         : id(id_), display_name(display_name_), factory(std::move(factory_))
     {}
 
-    PrinterAgentInfo(const std::string& id_, const std::string& display_name_, const std::string& plugin_identifier, PrinterAgentFactory factory_)
+    PrinterAgentInfo(const std::string& id_,
+                     const std::string& display_name_,
+                     const std::string& plugin_identifier,
+                     PrinterAgentFactory factory_)
         : id(id_), display_name(display_name_), plugin_identifier(plugin_identifier), factory(std::move(factory_))
     {}
 };
@@ -116,9 +119,9 @@ public:
      * @param log_dir Directory for log files
      * @return Shared pointer to IPrinterAgent, or nullptr if ID not found
      */
-    static std::shared_ptr<IPrinterAgent> create_printer_agent_by_id(const std::string&                  id,
+    static std::shared_ptr<IPrinterAgent> create_printer_agent_by_id(const std::string& id,
                                                                      std::shared_ptr<ICloudServiceAgent> cloud_agent,
-                                                                     const std::string&                  log_dir);
+                                                                     const std::string& log_dir);
 
     /**
      * Clear the printer agent cache.

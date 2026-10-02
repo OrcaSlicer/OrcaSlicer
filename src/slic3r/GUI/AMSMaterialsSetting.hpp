@@ -122,7 +122,7 @@ public:
     std::string    ams_filament_id;
     std::string    ams_setting_id;
 
-    bool           m_is_third;
+    bool           m_is_third = false;
     // Orca: view-only mode (laser/cut). When set, the dialog is inspectable but every
     // editing control is disabled and no command is sent.
     bool           m_view_only = false;
@@ -184,6 +184,9 @@ protected:
     wxStaticText*       m_n_param;
     TextInput*          m_input_n_val;
     int                 m_filament_selection;
+    // True while the popup's initial, printer-driven selection is being handled; it
+    // keeps that selection from overwriting the tray's own temps with preset temps.
+    bool                m_comboBox_from_printer = false;
 
     int m_pa_cali_select_id = 0;
 
