@@ -1,3 +1,9 @@
+#ifdef _WIN32
+// Keep this first. A header below reaches boost/regex, whose w32_regex_traits
+// needs the Win32 types declared already.
+#include <Windows.h>
+#endif
+
 #include "PrintBase.hpp"
 #include <utility>
 #include <string>
@@ -47,11 +53,6 @@
 #include <boost/thread/lock_types.hpp>
 #include <iterator>
 #include "TriangleMesh.hpp"
-#ifdef _WIN32
-// Keep this first. A header below reaches boost/regex, whose w32_regex_traits
-// needs the Win32 types declared already.
-#include <Windows.h>
-#endif
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"

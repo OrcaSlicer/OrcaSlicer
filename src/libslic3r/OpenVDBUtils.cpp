@@ -1,5 +1,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
 #include <cstddef>
 #include <openvdb/Types.h>
 #include <Eigen/Core>
@@ -12,7 +14,6 @@
 #include "libslic3r.h"
 #include <utility>
 #include <openvdb/Metadata.h>
-#endif
 #include "OpenVDBUtils.hpp"
 
 #ifdef _MSC_VER

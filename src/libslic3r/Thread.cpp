@@ -1,10 +1,3 @@
-#include <optional>
-#include <string>
-#include <cstddef>
-#include <cassert>
-#include <sstream>
-#include <locale.h>
-#include <clocale>
 #ifdef _WIN32
 	#include <windows.h>
 	#include <boost/nowide/convert.hpp>
@@ -12,6 +5,14 @@
 	// any posix system
 	#include <pthread.h>
 #endif
+
+#include <optional>
+#include <string>
+#include <cstddef>
+#include <cassert>
+#include <sstream>
+#include <locale.h>
+#include <clocale>
 
 #include <atomic>
 #include <condition_variable>
