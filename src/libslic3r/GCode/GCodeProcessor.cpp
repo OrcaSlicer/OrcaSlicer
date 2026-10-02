@@ -2582,8 +2582,12 @@ void GCodeProcessorResult::reset() {
     //BBS: add mutex for protection of gcode result
     lock();
 
-    moves.clear();
-    lines_ends.clear();
+    // release rather than clear: these two are sized by the print - one entry per move and one
+    // per g-code line - and a reset is where the memory is expected to go back to the allocator
+    // (see BackgroundSlicingProcess::apply()). The capacity would not be reused anyway: the
+    // result is refilled by move-assigning the processor's own result.
+    moves = std::vector<MoveVertex>();
+    lines_ends = std::vector<size_t>();
     printable_area = Pointfs();
     //BBS: add bed exclude area
     bed_exclude_area = Pointfs();
