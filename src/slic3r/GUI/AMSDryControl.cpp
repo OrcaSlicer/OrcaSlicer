@@ -19,7 +19,38 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Preset.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/gdicmn.h>
+#include "libslic3r/Exception.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <utility>
+#include <chrono>
+#include <optional>
+#include <wx/timer.h>
+#include "libslic3r/Utils.hpp"
+#include <unordered_set>
+#include <vector>
+#include <set>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <limits>
+#include <memory>
 
 namespace Slic3r { namespace GUI {
 

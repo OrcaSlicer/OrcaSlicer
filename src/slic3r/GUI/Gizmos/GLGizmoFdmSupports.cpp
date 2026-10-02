@@ -17,9 +17,34 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <boost/chrono/duration.hpp>
+#include <cstddef>
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <glad/gl.h>
 
 #include <boost/log/trivial.hpp>
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <imgui.h>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include <math.h>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <wx/busycursor.h>
+#include <memory>
+#include <mutex>
+#include "slic3r/GUI/GLModel.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <wx/event.h>
 
 namespace Slic3r::GUI {
 

@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_Preview_hpp_
 #define slic3r_GUI_Preview_hpp_
 
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include <functional>
+#include <wx/event.h>
 #include <wx/panel.h>
 
 #include "libslic3r/Point.hpp"
@@ -12,6 +16,7 @@
 #include <string>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include <slic3r/GUI/GCodeViewer.hpp>
+#include <wx/window.h>
 
 class wxGLCanvas;
 class wxBoxSizer;

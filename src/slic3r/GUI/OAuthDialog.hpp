@@ -4,6 +4,8 @@
 #include "GUI_Utils.hpp"
 #include "Jobs/OAuthJob.hpp"
 #include "Jobs/Worker.hpp"
+#include <memory>
+#include <wx/event.h>
 
 namespace Slic3r {
 namespace GUI {

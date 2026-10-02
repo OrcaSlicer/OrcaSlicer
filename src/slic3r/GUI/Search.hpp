@@ -1,11 +1,22 @@
 #ifndef slic3r_SearchComboBox_hpp_
 #define slic3r_SearchComboBox_hpp_
 
+#include <string>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <algorithm>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <utility>
 #include <vector>
 #include <map>
 
 #include <boost/nowide/convert.hpp>
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <wx/dataview.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/listctrl.h>
@@ -15,6 +26,8 @@
 #include <wx/checkbox.h>
 #include <wx/dialog.h>
 #include <wx/srchctrl.h>
+#include <wx/string.h>
+#include <wx/variant.h>
 
 #include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"

@@ -8,6 +8,17 @@
 #include "MonitorBasePanel.h"
 #include "Printer/PrinterFileSystem.h"
 #include "Widgets/Label.hpp"
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/splitter.h>
+#include <wx/event.h>
+#include <cstddef>
+#include <wx/chartype.h>
+#include <wx/stattext.h>
+#include <wx/font.h>
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
 
 ///////////////////////////////////////////////////////////////////////////
 using namespace Slic3r::GUI;

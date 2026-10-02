@@ -1,5 +1,6 @@
 #include "WebViewDialog.hpp"
 
+#include "CloudProvider.hpp"
 #include "I18N.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -7,15 +8,40 @@
 #include "libslic3r_version.h"
 #include "../Utils/Http.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
+#include <algorithm>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Utils.hpp"
+#include <wx/log.h>
+#include "libslic3r/Config.hpp"
+#include <wx/filefn.h>
+#include <wx/filename.h>
+#include <sstream>
+#include <string>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <functional>
+#include <cstddef>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/timer.h>
+#include <wx/textctrl.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
+#include <wx/toplevel.h>
 #include <wx/url.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include <wx/webview.h>
+#include <wx/utils.h>
+#include <wx/window.h>
 
 namespace pt = boost::property_tree;
 

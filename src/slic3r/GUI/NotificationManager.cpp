@@ -14,14 +14,41 @@
 #include "libslic3r/PrintBase.hpp"
 #include "format.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/bind/placeholders.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <imgui.h>
+#include <cstddef>
+#include <cassert>
+#include <functional>
+#include <cwctype>
+#include <cstdint>
+#include <iomanip>
 #include <iostream>
 
+#include <string>
+#include <utility>
+#include "libslic3r/Preset.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <limits>
+#include <sstream>
+#include <vector>
+#include "slic3r/GUI/Downloader.hpp"
+#include <memory>
+#include <iterator>
+#include "libslic3r/Model.hpp"
+#include <wx/dataview.h>
+#include "slic3r/GUI/Plater.hpp"
 #include <wx/glcanvas.h>
+#include <wx/utils.h>
+#include <wx/time.h>
 
 #include "GUI_App.hpp"
 #include "FilamentMapDialog.hpp"

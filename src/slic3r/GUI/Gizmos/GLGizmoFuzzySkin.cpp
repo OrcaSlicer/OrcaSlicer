@@ -14,8 +14,24 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <array>
+#include <cassert>
 #include <glad/gl.h>
 #include <algorithm>
+#include <string>
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include <vector>
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <wx/busycursor.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
 
 namespace Slic3r::GUI {
 

@@ -4,8 +4,16 @@
 #include "libslic3r/AppConfig.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <array>
+#include <cstddef>
 #include <map>
+#include "slic3r/GUI/KeyChord.hpp"
+#include <optional>
+#include <string>
 #include <utility>
+#include <wx/accel.h>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 

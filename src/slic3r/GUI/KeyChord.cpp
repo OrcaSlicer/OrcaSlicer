@@ -3,6 +3,11 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 
+#include <wx/accel.h>
+#include <string>
+#include <cstddef>
+#include <optional>
+#include <vector>
 #include <wx/event.h>
 
 #include <algorithm>

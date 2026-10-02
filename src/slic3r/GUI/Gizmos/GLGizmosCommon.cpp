@@ -1,5 +1,6 @@
 #include "GLGizmosCommon.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -10,7 +11,18 @@
 
 #include "libslic3r/PresetBundle.hpp"
 
+#include <cstddef>
 #include <glad/gl.h>
+#include "slic3r/GUI/Selection.hpp"
+#include <limits>
+#include "libslic3r/Model.hpp"
+#include <vector>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <wx/busycursor.h>
+#include <memory>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {

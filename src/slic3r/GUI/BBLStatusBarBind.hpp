@@ -2,6 +2,7 @@
 #define BBLStatusBarBind_HPP
 
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/simplebook.h>
 

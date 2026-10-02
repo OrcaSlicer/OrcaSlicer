@@ -1,6 +1,32 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include <climits>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/colour.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <wx/textctrl.h>
+#include <string>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/ParameterUtils.hpp"
+#include <cstddef>
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;

@@ -14,7 +14,15 @@
 #include "Plater.hpp"
 
 #include <algorithm>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Field.hpp"
+#include <cstdlib>
+#include <set>
+#include <map>
 #include <sstream>
+#include <string>
+#include <vector>
 #include <wx/msgdlg.h>
 
 namespace Slic3r {

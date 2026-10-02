@@ -1,0 +1,47 @@
+# clang-tidy configuration. Only missing includes are reported for now: a file
+# should include the header for every symbol it uses, not rely on the
+# precompiled header or another header's includes. Run with --fix to add them.
+Checks: '-*,misc-include-cleaner'
+CheckOptions:
+  # Missing includes only. Builds without the precompiled header break on these.
+  misc-include-cleaner.UnusedIncludes: false
+  # Headers that declare a symbol but are not the one to include: per-platform
+  # implementations of wxWidgets and Boost.Thread (a Linux run would suggest the
+  # GTK or pthread one), library internals and forward declarations, CPython's
+  # headers behind Python.h, curl's behind curl.h, oneTBB's behind tbb/, and
+  # admesh's stl.h, which the include path also exposes without its directory.
+  # FFmpeg's C headers are left alone because they are only included inside
+  # extern "C", which an inserted include would miss. OS-specific headers (GLib,
+  # GTK, D-Bus, POSIX, the Windows SDK) are only used inside platform #if blocks,
+  # and an include added at the top of the file would break the other platforms'
+  # builds. A symbol these provide is not reported missing.
+  # Write every / as [/\\] so the patterns also match Windows paths.
+  # No comments inside the block below, because a # there silently becomes part of a pattern.
+  misc-include-cleaner.IgnoreHeaders: >-
+    wx[/\\](gtk|gtk1|msw|osx|unix|x11|motif|univ|qt|dfb|generic|private)[/\\].*;
+    .*[/\\]detail[/\\].*;
+    .*[/\\]impl[/\\].*;
+    .*_fwd\.hpp;
+    python3\.[0-9]+[/\\].*;
+    bits[/\\].*;
+    imconfig\.h;
+    expat_external\.h;
+    admesh[/\\]stl\.h;
+    boost[/\\]thread[/\\](pthread|win32)[/\\].*;
+    boost[/\\]regex[/\\]v[0-9]+[/\\].*;
+    curl[/\\](easy|multi|system|urlapi|header|options|websockets|mprintf)\.h;
+    oneapi[/\\]tbb[/\\].*;
+    opencv2[/\\]core[/\\]hal[/\\].*;
+    openssl[/\\]ossl_typ\.h;
+    libav[a-z]+[/\\].*;
+    libsw[a-z]+[/\\].*;
+    glib-2\.0[/\\].*;
+    gtk-3\.0[/\\].*;
+    dbus-1\.0[/\\].*;
+    sys[/\\].*;
+    unistd\.h;
+    strings\.h;
+    fcntl\.h;
+    termios\.h;
+    [/\\](um|shared)[/\\].*;
+    sal\.h

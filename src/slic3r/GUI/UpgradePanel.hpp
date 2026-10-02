@@ -1,12 +1,23 @@
 #ifndef slic3r_UpgradePanel_hpp_
 #define slic3r_UpgradePanel_hpp_
 
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dynarray.h>
+#include <vector>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/panel.h>
 #include <slic3r/GUI/Widgets/Button.hpp>
 #include "Widgets/ProgressBar.hpp"
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <slic3r/GUI/Widgets/ScrolledWindow.hpp>
 #include <slic3r/GUI/StatusPanel.hpp>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
 #include "ReleaseNote.hpp"
 
 namespace Slic3r {

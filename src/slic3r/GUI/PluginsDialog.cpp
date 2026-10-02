@@ -9,10 +9,19 @@
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include <cctype>
+#include <exception>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <chrono>
 #include <libslic3r/Utils.hpp>
 
 #include <slic3r/GUI/NotificationManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
+#include "slic3r/GUI/PluginSource.hpp"
+#include "slic3r/GUI/PluginStatus.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include "slic3r/GUI/PluginSort.hpp"
 #include <slic3r/GUI/format.hpp>
 
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -25,13 +34,18 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include <wx/busycursor.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
+#include <wx/gdicmn.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
 

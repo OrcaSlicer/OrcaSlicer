@@ -5,7 +5,23 @@
 
 #include "../wxExtensions.hpp"
 
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/anybutton.h>
+#include <utility>
+#include <wx/colour.h>
+#include <wx/image.h>
+#include <cstring>
+#include <wx/dc.h>
+#include <vector>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/scrolwin.h>
 #include <wx/settings.h>
+#include <wx/tglbtn.h>
+#include <wx/string.h>
+#include <wx/types.h>
+#include <wx/sizer.h>
 #include "../GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "../Utils/MacDarkMode.hpp"

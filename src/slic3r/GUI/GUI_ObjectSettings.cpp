@@ -16,6 +16,15 @@
 #include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <memory>
+#include <cstddef>
+#include <wx/dataview.h>
+#include <map>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cassert>
+#include "slic3r/GUI/GUI_ObjectLayers.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
 #include <wx/wupdlock.h>
 
 namespace Slic3r

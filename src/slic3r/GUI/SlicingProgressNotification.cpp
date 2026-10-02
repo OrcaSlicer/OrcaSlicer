@@ -1,4 +1,17 @@
 #include "SlicingProgressNotification.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/NotificationManager.hpp"
+#include <algorithm>
+#include <cstddef>
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <cstdint>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include <sstream>
+#include <ios>
+#include <iomanip>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS

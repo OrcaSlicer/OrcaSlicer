@@ -3,6 +3,7 @@
 #include "WebPanel.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace Slic3r { namespace GUI {

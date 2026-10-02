@@ -2,8 +2,25 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "BitmapCache.hpp"
+#include <string>
+#include <sstream>
+#include <ios>
+#include <cctype>
+#include <iomanip>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/WebView.hpp"
 #include <wx/dcgraph.h>
 #include <slic3r/GUI/I18N.hpp>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/log.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
 
 
 namespace Slic3r { namespace GUI {
