@@ -117,6 +117,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
 
     m_sizer_ams_option = new wxBoxSizer(wxHORIZONTAL);
+    m_sizer_switcher_option = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_option_left = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_option_mid = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_option_right = new wxBoxSizer(wxHORIZONTAL);
@@ -158,9 +159,11 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
     // Orca: filament-switch routing glyph; hidden by default so it stays inert (zero layout impact)
     // on any printer without a Filament Track Switch. Shown from UpdateAms only when installed.
+    // Lives in its own row (m_sizer_switcher_option) between the down-road graphic and the button
+    // row, matching where the routing tubes actually meet, not squeezed into the button row.
     m_switcher = new SwitcherImage(m_amswin, wxID_ANY, "fila_switch", wxSize(FromDIP(29), FromDIP(16)), wxDefaultPosition);
     m_switcher->Hide();
-    m_sizer_option_mid->Add(m_switcher, 0, wxALIGN_CENTER | wxLEFT, FromDIP(6));
+    m_sizer_switcher_option->Add(m_switcher, 0, wxALIGN_CENTER, 0);
 
 
     /*option right*/
@@ -218,6 +221,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_sizer_body->Add(0, 0, 1, wxEXPAND | wxTOP, FromDIP(10));
     m_sizer_body->Add(m_sizer_ams_body, 0, wxALIGN_CENTER, 0);
     m_sizer_body->Add(m_sizer_down_road, 0, wxALIGN_CENTER, 0);
+    m_sizer_body->Add(m_sizer_switcher_option, 0, wxALIGN_CENTER, 0);
     m_sizer_body->Add(m_sizer_ams_option, 0, wxEXPAND, 0);
 
     m_amswin->SetSizer(m_sizer_body);
