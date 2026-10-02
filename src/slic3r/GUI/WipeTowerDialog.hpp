@@ -3,6 +3,7 @@
 
 #include <wx/dialog.h>
 #include <wx/webview.h>
+#include "libslic3r/FlushVolCalc.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "Widgets/SpinInput.hpp"
 

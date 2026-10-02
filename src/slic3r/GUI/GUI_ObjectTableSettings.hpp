@@ -5,11 +5,13 @@
 #include <vector>
 #include <wx/panel.h>
 #include "wxExtensions.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 class wxBoxSizer;
 
 namespace Slic3r {
 class DynamicPrintConfig;
+class ModelObject;
 class ModelConfig;
 namespace GUI {
 class ConfigOptionsGroup;

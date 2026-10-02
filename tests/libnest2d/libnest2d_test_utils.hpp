@@ -8,6 +8,7 @@
 // it here and include this header from every libnest2d test file.
 
 #include <cstdint>
+#include <iostream>
 
 #include "libnest2d/common.hpp"
 #include "libnest2d/geometry_traits_nfp.hpp"

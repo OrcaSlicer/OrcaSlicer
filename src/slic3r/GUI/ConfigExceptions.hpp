@@ -1,4 +1,7 @@
 #include <exception> 
+
+#include "libslic3r/Exception.hpp"
+
 namespace Slic3r {
 
 class ConfigError : public Slic3r::RuntimeError { 

@@ -7,7 +7,10 @@
 #include "Worker.hpp"
 #include "BusyCursorJob.hpp"
 
+#include <wx/app.h>
+
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {
