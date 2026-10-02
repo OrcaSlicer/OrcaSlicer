@@ -508,6 +508,83 @@ TEST_CASE("load_from_json hands a preset's include list to the caller instead of
     CHECK(config.opt_string("machine_end_gcode") == "M84");
 }
 
+TEST_CASE("handle_legacy maps BambuStudio keys and values to their OrcaSlicer equivalents", "[Config]") {
+    struct Row { std::string key, value, expected_key, expected_value; };
+    const Row row = GENERATE(values<Row>({
+        {"role_base_wipe_speed", "0", "role_based_wipe_speed", "0"},
+        {"no_slow_down_for_cooling_on_outwalls", "1", "dont_slow_down_outer_wall", "1"},
+        {"process_notes", "note", "notes", "note"},
+        {"prime_tower_max_speed", "70", "wipe_tower_max_purge_speed", "70"},
+        {"enable_support_ironing", "1", "support_ironing", "1"},
+        {"sparse_infill_lattice_angle_1", "-30", "lateral_lattice_angle_1", "-30"},
+        {"sparse_infill_lattice_angle_2", "20", "lateral_lattice_angle_2", "20"},
+        {"lattice_angle_1", "-30", "lateral_lattice_angle_1", "-30"},
+        {"lattice_angle_2", "20", "lateral_lattice_angle_2", "20"},
+        {"sparse_infill_pattern", "2dlattice", "sparse_infill_pattern", "lateral-lattice"},
+        {"sparse_infill_pattern", "2dhoneycomb", "sparse_infill_pattern", "lateral-honeycomb"},
+        {"support_style", "tree_organic", "support_style", "organic"},
+        {"raft_first_layer_expansion", "-1", "raft_first_layer_expansion", "2"},
+        {"raft_first_layer_expansion", "3.5", "raft_first_layer_expansion", "3.5"},
+        {"ensure_vertical_shell_thickness", "enabled", "ensure_vertical_shell_thickness", "ensure_all"},
+        {"ensure_vertical_shell_thickness", "partial", "ensure_vertical_shell_thickness", "ensure_moderate"},
+        {"ensure_vertical_shell_thickness", "disabled", "ensure_vertical_shell_thickness", "none"},
+        {"top_one_wall_type", "not apply", "only_one_wall_top", "0"},
+        {"top_one_wall_type", "all top", "only_one_wall_top", "1"},
+        {"top_one_wall_type", "topmost", "only_one_wall_top", "1"},
+        {"prime_tower_rib_wall", "1", "wipe_tower_wall_type", "rib"},
+        {"prime_tower_rib_wall", "0", "wipe_tower_wall_type", "rectangle"},
+        {"prime_tower_rib_wall", "true", "wipe_tower_wall_type", "rib"},
+        // A rename touches whole entries, not keys that contain the old name.
+        {"different_settings_to_system", "lattice_angle_1;sparse_infill_lattice_angle_1;wall_loops", "different_settings_to_system",
+         "lateral_lattice_angle_1;lateral_lattice_angle_1;wall_loops"},
+        // different_settings_to_system and JSON arrays pass the key alone
+        {"prime_tower_rib_wall", "", "wipe_tower_wall_type", ""},
+        {"top_one_wall_type", "", "only_one_wall_top", ""},
+        {"enable_height_slowdown", "1", "", "1"},
+        {"counter_coef_2", "0.025", "", "0.025"},
+    }));
+    t_config_option_key key = row.key;
+    std::string value = row.value;
+    PrintConfigDef::handle_legacy(key, value);
+    INFO(row.key << " = " << row.value);
+    CHECK(key == row.expected_key);
+    CHECK(value == row.expected_value);
+}
+
+TEST_CASE("A BambuStudio project config loads its renamed settings without substitutions", "[Config]") {
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << R"({"role_base_wipe_speed":"0","no_slow_down_for_cooling_on_outwalls":["1","0"],)"
+               R"("process_notes":"note","prime_tower_max_speed":"70","enable_support_ironing":"1",)"
+               R"("sparse_infill_pattern":"2dlattice","sparse_infill_lattice_angle_1":"-30",)"
+               R"("support_style":"tree_organic","ensure_vertical_shell_thickness":"partial",)"
+               R"("top_one_wall_type":"not apply","prime_tower_rib_wall":"0","raft_first_layer_expansion":"-1",)"
+               R"("enable_height_slowdown":["1"]})";
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+    REQUIRE(config.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
+    CHECK(substitutions.substitutions.empty());
+    CHECK(substitutions.unrecogized_keys == std::vector<std::string>{"enable_height_slowdown"});
+
+    CHECK_FALSE(config.opt_bool("role_based_wipe_speed"));
+    CHECK(config.option<ConfigOptionBools>("dont_slow_down_outer_wall")->values == std::vector<unsigned char>{1, 0});
+    CHECK(config.opt_string("notes") == "note");
+    CHECK_THAT(config.opt_float("wipe_tower_max_purge_speed"), Catch::Matchers::WithinAbs(70., 1e-9));
+    CHECK(config.opt_bool("support_ironing"));
+    CHECK(config.opt_enum<InfillPattern>("sparse_infill_pattern") == ipLateralLattice);
+    CHECK_THAT(config.opt_float("lateral_lattice_angle_1"), Catch::Matchers::WithinAbs(-30., 1e-9));
+    CHECK(config.opt_enum<SupportMaterialStyle>("support_style") == smsTreeOrganic);
+    CHECK(config.opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == evstModerate);
+    CHECK_FALSE(config.opt_bool("only_one_wall_top"));
+    CHECK(config.opt_enum<WipeTowerWallType>("wipe_tower_wall_type") == wtwRectangle);
+    CHECK_THAT(config.opt_float("raft_first_layer_expansion"), Catch::Matchers::WithinAbs(2., 1e-9));
+    CHECK(config.validate().count("raft_first_layer_expansion") == 0);
+}
+
 TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
     DynamicPrintConfig config;
     config.set_key_value("layer_height", new ConfigOptionFloat(0.2));

@@ -10,6 +10,8 @@
 #include "GCode/Thumbnails.hpp"
 #include <set>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -9185,16 +9187,18 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     } else if (opt_key == "tree_support_wall_count" && value == "-1") {
         value = "0";
     } else if (opt_key == "different_settings_to_system") {
-        std::string copy_value = value;
-        copy_value.erase(std::remove(copy_value.begin(), copy_value.end(), '\"'), copy_value.end()); // remove '"' in string
-        std::set<std::string> split_keys = SplitStringAndRemoveDuplicateElement(copy_value, ";");
-        for (std::string split_key : split_keys) {
-            std::string copy_key = split_key, copy_value = "";
-            handle_legacy(copy_key, copy_value);
-            if (copy_key != split_key) {
-                ReplaceString(value, split_key, copy_key);
-            }
+        // Rename whole entries: a substring rename would also hit longer keys that contain the old name.
+        std::vector<std::string> entries;
+        boost::split(entries, value, boost::is_any_of(";"));
+        for (std::string &entry : entries) {
+            std::string key = entry, unused_value;
+            key.erase(std::remove(key.begin(), key.end(), '\"'), key.end());
+            std::string new_key = key;
+            handle_legacy(new_key, unused_value);
+            if (new_key != key)
+                ReplaceString(entry, key, new_key);
         }
+        value = boost::algorithm::join(entries, ";");
     } else if (opt_key == "overhang_fan_threshold" && value == "5%") {
         value = "10%";
     } else if( opt_key == "wall_infill_order" ) {
@@ -9236,6 +9240,13 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         else if (value == "0"){
             value = "ensure_moderate";
         }
+        // BambuStudio's levels
+        else if (value == "enabled")
+            value = "ensure_all";
+        else if (value == "partial")
+            value = "ensure_moderate";
+        else if (value == "disabled")
+            value = "none";
     } else if (opt_key == "rotate_solid_infill_direction") {
         opt_key = "solid_infill_rotate_template";
         if (value == "1") {
@@ -9251,9 +9262,11 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "chamber_temperature";
     } else if (opt_key == "thumbnail_size") {
         opt_key = "thumbnails";
-    } else if (opt_key == "top_one_wall_type" && value != "none") {
+    } else if (opt_key == "top_one_wall_type") {
+        // BambuStudio's "topmost" (one wall on the topmost layer only) widens to every top surface.
         opt_key = "only_one_wall_top";
-        value = "1";
+        if (!value.empty())
+            value = (value == "not apply" || value == "none") ? "0" : "1";
     } else if (opt_key == "initial_layer_flow_ratio") {
         opt_key = "bottom_solid_infill_flow_ratio";
     } else if (opt_key == "ironing_direction") {
@@ -9271,6 +9284,20 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
                 opt_key == "ironing_pattern"               ||
                 opt_key == "support_ironing_pattern") && value == "zig-zag") {
         value = "rectilinear";
+    } else if (opt_key == "sparse_infill_pattern" && value == "2dlattice") {
+        // BambuStudio's name, and OrcaSlicer's before the lateral patterns were renamed
+        value = "lateral-lattice";
+    } else if (opt_key == "sparse_infill_pattern" && value == "2dhoneycomb") {
+        value = "lateral-honeycomb";
+    } else if (opt_key == "sparse_infill_lattice_angle_1" || opt_key == "lattice_angle_1") {
+        opt_key = "lateral_lattice_angle_1";
+    } else if (opt_key == "sparse_infill_lattice_angle_2" || opt_key == "lattice_angle_2") {
+        opt_key = "lateral_lattice_angle_2";
+    } else if (opt_key == "support_style" && value == "tree_organic") {
+        value = "organic";
+    } else if (opt_key == "raft_first_layer_expansion" && !value.empty() && value.front() == '-') {
+        // BambuStudio's auto: 2 mm for normal supports and rafts. Tree branches use tree_support_auto_brim here.
+        value = "2";
     } else if (opt_key == "filament_map_mode") {
         if (value == "Auto") value = "Auto For Flush";
     }
@@ -9299,12 +9326,11 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     }
     // Orca: Rename wipe tower ribs related options
     else if (opt_key == "prime_tower_rib_wall") {
-        if (value == "1") {
-            opt_key = "wipe_tower_wall_type";
-            value   = "rib";
-        } else {
-            opt_key = "";
-        }
+        opt_key = "wipe_tower_wall_type";
+        if (value == "1" || value == "true")
+            value = "rib";
+        else if (!value.empty())
+            value = "rectangle";
     } else if (opt_key == "prime_tower_extra_rib_length") {
         opt_key = "wipe_tower_extra_rib_length";
     } else if (opt_key == "prime_tower_rib_width") {
@@ -9315,6 +9341,18 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "extruder_clearance_radius";
     } else if (opt_key == "machine_switch_extruder_time") {
         opt_key = "machine_tool_change_time";
+    }
+    // BambuStudio names of OrcaSlicer options
+    else if (opt_key == "role_base_wipe_speed") {
+        opt_key = "role_based_wipe_speed";
+    } else if (opt_key == "no_slow_down_for_cooling_on_outwalls") {
+        opt_key = "dont_slow_down_outer_wall";
+    } else if (opt_key == "process_notes") {
+        opt_key = "notes";
+    } else if (opt_key == "prime_tower_max_speed") {
+        opt_key = "wipe_tower_max_purge_speed";
+    } else if (opt_key == "enable_support_ironing") {
+        opt_key = "support_ironing";
     }
     else if (opt_key == "wall_direction" && value == "auto") {
         value = "ccw";
