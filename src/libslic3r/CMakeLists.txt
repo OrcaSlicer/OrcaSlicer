@@ -455,6 +455,8 @@ set(lisbslic3r_sources
     Slicing.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
+    Support/SupportFins.cpp
+    Support/SupportFins.hpp
     Support/SupportLayer.hpp
     Support/SupportMaterial.cpp
     Support/SupportMaterial.hpp
