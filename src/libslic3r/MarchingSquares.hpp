@@ -7,6 +7,8 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include <cstdio>
+#include <iomanip>
 
 // Marching squares
 //

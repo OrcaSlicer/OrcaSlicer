@@ -11,12 +11,14 @@
 #include <regex>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include "AdaptivePAInterpolator.hpp"
 
 namespace Slic3r {
 
 // Forward declaration of GCode class
 class GCode;
+class PrintConfig;
 
 /**
  * @brief Class for processing G-code layers with adaptive pressure advance.

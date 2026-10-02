@@ -2,6 +2,7 @@
 #define CSGMESHCOPY_HPP
 
 #include "CSGMesh.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r { namespace csg {
 

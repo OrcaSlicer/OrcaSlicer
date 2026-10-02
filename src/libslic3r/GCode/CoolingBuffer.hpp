@@ -2,6 +2,7 @@
 #define slic3r_CoolingBuffer_hpp_
 
 #include "../libslic3r.h"
+#include "../Point.hpp"
 #include <map>
 #include <string>
 #include <cfloat>
@@ -10,6 +11,7 @@ namespace Slic3r {
 
 class GCode;
 class Layer;
+class PrintConfig;
 struct PerExtruderAdjustments;
 
 // A standalone G-code filter, to control cooling of the print.

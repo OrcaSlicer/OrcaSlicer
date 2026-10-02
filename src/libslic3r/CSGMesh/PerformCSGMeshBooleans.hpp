@@ -4,6 +4,8 @@
 #include <stack>
 #include <vector>
 
+#include <boost/log/trivial.hpp>
+
 #include "CSGMesh.hpp"
 
 #include "libslic3r/Execution/ExecutionTBB.hpp"

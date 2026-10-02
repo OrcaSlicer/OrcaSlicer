@@ -1,7 +1,12 @@
 #ifndef Slic3r_MeasureUtils_hpp_
 #define Slic3r_MeasureUtils_hpp_
 
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <initializer_list>
+
+#include "Point.hpp"
 
 namespace Slic3r {
 namespace Measure {

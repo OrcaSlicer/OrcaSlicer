@@ -2,6 +2,8 @@
 #define CSGMESH_HPP
 
 #include <libslic3r/AnyPtr.hpp>
+#include <libslic3r/Point.hpp>
+#include <libslic3r/TriangleMesh.hpp>
 #include <admesh/stl.h>
 
 namespace Slic3r { namespace csg {
