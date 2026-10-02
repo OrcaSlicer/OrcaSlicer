@@ -1340,7 +1340,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         bool _handle_start_relationship(const char** attributes, unsigned int num_attributes);
 
-        void _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
+        bool _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
         bool _generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
         //bool _generate_volumes(ModelObject& object, const Geometry& geometry, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
 
@@ -2055,7 +2055,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                     }
                     std::vector<Component> object_id_list;
-                    _generate_current_object_list(object_id_list, object.first, m_current_objects);
+                    if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                        return false;
 
                     ObjectMetadata::VolumeMetadataList volumes;
                     ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -2154,7 +2155,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
 
             std::vector<Component> object_id_list;
-            _generate_current_object_list(object_id_list, object.first, m_current_objects);
+            if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                return false;
 
             ObjectMetadata::VolumeMetadataList volumes;
             ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -5002,31 +5004,45 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
-    void _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
+    bool _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
     {
-        std::list<std::pair<Component, Transform3d>> id_list;
-        id_list.push_back(std::make_pair(Component(object_id, Transform3d::Identity()), Transform3d::Identity()));
+        // A chain of component references longer than the number of objects has to visit an object
+        // twice, so the component graph contains a cycle and the expansion below would not stop.
+        const size_t max_depth = current_objects.size();
+        // An acyclic graph may still expand exponentially, so bound the number of expanded components
+        // as well. Way above the number of parts of any real object.
+        static constexpr size_t max_components = 100000;
 
+        std::list<std::tuple<Component, Transform3d, size_t>> id_list;
+        id_list.push_back(std::make_tuple(Component(object_id, Transform3d::Identity()), Transform3d::Identity(), 0));
+
+        size_t num_components = 0;
         while (!id_list.empty())
         {
             auto current_item = id_list.front();
-            Component current_id = current_item.first;
+            Component current_id = std::get<0>(current_item);
             id_list.pop_front();
+            if (std::get<2>(current_item) > max_depth || ++ num_components > max_components) {
+                add_error("invalid 3mf: cyclic or too deeply nested components");
+                sub_objects.clear();
+                return false;
+            }
             IdToCurrentObjectMap::iterator current_object = current_objects.find(current_id.object_id);
             if (current_object != current_objects.end()) {
                 //found one
                 if (!current_object->second.components.empty()) {
                     for (const Component &comp : current_object->second.components) {
-                        id_list.push_back(std::pair(comp, current_item.second * comp.transform));
+                        id_list.push_back(std::make_tuple(comp, std::get<1>(current_item) * comp.transform, std::get<2>(current_item) + 1));
                     }
                 }
                 else if (!(current_object->second.geometry.empty())) {
                     //CurrentObject* ptr = &(current_objects[current_id]);
                     //CurrentObject* ptr2 = &(current_object->second);
-                    sub_objects.push_back({ current_object->first, current_item.second});
+                    sub_objects.push_back({ current_object->first, std::get<1>(current_item)});
                 }
             }
         }
+        return true;
     }
 
     bool _BBS_3MF_Importer::_generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions)

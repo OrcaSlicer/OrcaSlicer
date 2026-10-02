@@ -27,6 +27,7 @@
 #include <Eigen/Geometry>
 #include <type_traits> // for std::enable_if_t
 #include <typeinfo>    // for typeid
+#include <regex>
 
 namespace Catch {
     template <typename T>
@@ -315,6 +316,30 @@ TEST_CASE("A project with a plate id below 1 fails to load", "[3mf][Regression]"
     REQUIRE(replace_in_3mf_entry(temp.string(), "model_settings.config", "key=\"plater_id\" value=\"1\"",
                                  "key=\"plater_id\" value=\"" + std::to_string(plate_id) + "\""));
     ScopedTemporaryDir backup_dir("orca_plate_dst");
+    Model              model;
+    bool               loaded = true;
+    REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
+    REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("A project whose components reference themselves fails to load", "[3mf][Regression]")
+{
+    ScopedTemporaryFile temp(".3mf");
+    store_painted_cube(temp.string());
+
+    // Point the component back at the object that holds it. Expanding that reference used to push
+    // into the work list forever, growing it until the process ran out of memory.
+    REQUIRE(rewrite_3mf_entries(temp.string(), [](std::string& name, std::string& data) {
+        if (!boost::algorithm::ends_with(name, "3dmodel.model"))
+            return false;
+        std::smatch match;
+        if (!std::regex_search(data, match, std::regex("<object id=\"([0-9]+)\"[^>]*>\\s*<components")))
+            return false;
+        data = std::regex_replace(data, std::regex("objectid=\"[0-9]+\""), "objectid=\"" + match[1].str() + "\"");
+        return true;
+    }));
+
+    ScopedTemporaryDir backup_dir("orca_cycle_dst");
     Model              model;
     bool               loaded = true;
     REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
