@@ -12,7 +12,8 @@ CheckOptions:
   # admesh's stl.h, which the include path also exposes without its directory.
   # Clipper's own clipper.hpp is only included through libslic3r/clipper.hpp or
   # clipper_z.hpp, which configure it first, and Boost.Polygon's headers only
-  # work through boost/polygon/polygon.hpp or voronoi.hpp.
+  # work through boost/polygon/polygon.hpp or voronoi.hpp. minilzo's config
+  # headers are internal to minilzo.h.
   # FFmpeg's C headers are left alone because they are only included inside
   # extern "C", which an inserted include would miss. OS-specific headers (GLib,
   # GTK, D-Bus, POSIX, the Windows SDK) are only used inside platform #if blocks,
@@ -51,4 +52,5 @@ CheckOptions:
     clipper[/\\]clipper\.hpp;
     png(lib)?conf\.h;
     mcut[/\\]platform\.h;
-    boost[/\\]polygon[/\\].*
+    boost[/\\]polygon[/\\].*;
+    lzo(conf|defs)\.h
