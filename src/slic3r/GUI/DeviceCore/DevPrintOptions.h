@@ -1,7 +1,9 @@
 #pragma once
+#include <ctime>
 #include <map>
 #include <nlohmann/json.hpp>
 #include "slic3r/Utils/json_diff.hpp"
+#include <string>
 #include <wx/string.h>
 
 #include "DevDefs.h"

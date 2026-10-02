@@ -8,17 +8,30 @@
 #include "GLModel.hpp"
 #include "I18N.hpp"
 
+#include <algorithm>
 #include <boost/iostreams/device/mapped_file.hpp>
 
 #include "LibVGCode/LibVGCodeWrapper.hpp"
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
+#include <iterator>
+#include "libvgcode/include/PathVertex.hpp"
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
 #include <cstdint>
 #include <float.h>
 #include <set>
+#include <string>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

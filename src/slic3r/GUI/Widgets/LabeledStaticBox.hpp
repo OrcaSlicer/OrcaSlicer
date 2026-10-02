@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_LabeledStaticBox_hpp_
 #define slic3r_GUI_LabeledStaticBox_hpp_
 
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/window.h>
 #include <wx/dc.h>
 #include <wx/dcgraph.h>

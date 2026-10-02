@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/webview.h>
 

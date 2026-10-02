@@ -4,6 +4,20 @@
 #include "libslic3r/Utils.hpp"
 #include "GUI.hpp"
 #include "Notebook.hpp"
+#include <vector>
+#include "slic3r/GUI/Shortcuts.hpp"
+#include <wx/colour.h>
+#include <string>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <cstddef>
+#include <wx/panel.h>
+#include <variant>
+#include <optional>
 #include <wx/scrolwin.h>
 #include <wx/display.h>
 #include <algorithm>
@@ -20,6 +34,9 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include <wx/notebook.h>
+#include <wx/wx.h>
+#include <wx/treebase.h>
+#include <wx/simplebook.h>
 
 namespace Slic3r {
 namespace GUI {

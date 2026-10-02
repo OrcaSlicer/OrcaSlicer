@@ -1,6 +1,11 @@
 #ifndef slic3r_GUI_ParamsDialog_hpp_
 #define slic3r_GUI_ParamsDialog_hpp_
 
+#include <wx/event.h>
+#include "slic3r/GUI/Event.hpp"
+#include <wx/object.h>
+#include <string>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>

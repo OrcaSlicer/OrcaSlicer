@@ -1,6 +1,7 @@
 #ifndef slic3r_CreateFontStyleImagesJob_hpp_
 #define slic3r_CreateFontStyleImagesJob_hpp_
 
+#include <exception>
 #include <vector>
 #include <string>
 #include <libslic3r/Emboss.hpp>

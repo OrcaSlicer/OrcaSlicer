@@ -1,7 +1,10 @@
 #ifndef slic3r_TextureDisplacementDebugJob_hpp_
 #define slic3r_TextureDisplacementDebugJob_hpp_
 
+#include <cstddef>
+#include <exception>
 #include <functional>
+#include "libslic3r/Point.hpp"
 #include <vector>
 
 #include "libslic3r/ObjectID.hpp"

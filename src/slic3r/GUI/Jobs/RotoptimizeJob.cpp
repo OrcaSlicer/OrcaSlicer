@@ -11,6 +11,12 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include <string>
+#include <algorithm>
+#include <cstddef>
+#include <tuple>
+#include <exception>
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r { namespace GUI {
 

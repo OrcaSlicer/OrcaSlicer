@@ -57,8 +57,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
 17. Don't shrink a dropdown below two rows to fit the screen. (§7)
 18. Content that needs typing focus or hosts a `wxWebView` uses a frameless `wxDialog` that hides on
     deactivation, not a transient popup. (§10)
-19. Display-only overlays (HUDs, toasts) use a plain `wxPopupWindow`: it never takes focus and never
-    auto-dismisses. (§4, §10)
+19. Display-only overlays (HUDs, toasts) use a plain `wxPopupWindow`: `Show()` never gives it focus and it
+    never auto-dismisses. Never `Raise()` any `wxPopupWindow`: `Raise()` is for top-level windows only, and on
+    macOS it makes the popup the key window. (§4, §5, §10)
 20. On MSW, don't `SetFocus()` another window on hover while `wxCurrentPopupWindow` is non-null. (§8)
 21. Menu items use `wxID_ANY` and read `item->GetId()`. `wxNewId()` is deprecated. (§13)
 22. Set a menu item's bitmap before `Append`. Don't expect icons on check or radio items. Never call
@@ -356,6 +357,13 @@ compensates for (§6).
   with `ShowWithoutActivating` → `setHidesOnDeactivate:YES` + `orderFront` (`src/osx/carbon/popupwin.cpp:56-75`,
   `nonownedwnd.mm:938-945`). When the app deactivates, Cocoa hides the panel and shows it again on reactivation.
   wx never calls `OnDismiss`, and `IsShown()` stays true. This applies to plain `wxPopupWindow` overlays too.
+- `Raise()` activates the popup. It is `makeKeyAndOrderFront` (`src/osx/nonownedwnd_osx.cpp:289-295`,
+  `nonownedwnd.mm:897-899`), and `wxNSPanel` answers `canBecomeKeyWindow` with YES (`nonownedwnd.mm:271`), so
+  the popup becomes the key window. Keys go to it, and the frame loses key status: `windowDidResignKey` →
+  `HandleActivated(0, false)` → `wxEVT_ACTIVATE(false)` on the frame (`nonownedwnd.mm:567-576`,
+  `nonownedwnd_osx.cpp:303-310`). Hiding the key popup gives key back to the frame, which then gets
+  `wxEVT_ACTIVATE(true)` (observed; AppKit behaviour, not in the wx tree). A popup at `NSPopUpMenuWindowLevel`
+  is already above its frame, so `Raise()` buys nothing.
 - Capture: `Show(true)` makes `m_child` capture the mouse ("Assume that the mouse is outside the popup to begin
   with", `popupcmn.cpp:421-426`). `OnIdle` releases the capture while the cursor is inside and re-captures it
   outside, but only when the mouse position has changed since the last idle pass. `s_posLast` is a
@@ -739,8 +747,26 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
 - **Rule:** For overlays that must never take keyboard focus (above a GL surface), use a plain
   `wxPopupWindow(top, wxBORDER_NONE)`, not a `wxFrame`.
   **Why:** A frame took the X input focus and swallowed every shortcut until the user clicked the canvas. A popup
-  window cannot take focus. On macOS these overlays hide while the app is inactive (§5).
+  window does not take focus when shown. On macOS these overlays hide while the app is inactive (§5).
   Cite: `CAD/DesignCanvas.cpp` (`m_hud`, `m_status_hud`).
+- **Rule:** Never `Raise()` a `wxPopupWindow`. To bring an overlay up, `Show()` it if it is hidden, then
+  `Move()` it.
+  **Why:** `Raise()` is documented for top-level windows only (`interface/wx/window.h:3028-3029`), and a popup
+  derives from `wxNonOwnedWindow`, not `wxTopLevelWindow` (`include/wx/popupwin.h:33`). On macOS it makes the
+  popup the key window (§5): the popup takes the keys meant for the window below it, and the frame receives
+  `wxEVT_ACTIVATE(false)`. A frame activate handler that hides the overlay on deactivation and re-places it on
+  activation then loops: each `Raise()` deactivates the frame, the hide reactivates it, and the re-place raises
+  again, recursing until the main thread's stack overflows. A popup's `Show()` is `ShowWithoutActivating`
+  and is safe.
+  ```cpp
+  // Wrong
+  if (!overlay->IsShown()) overlay->Show();
+  overlay->Move(pos);
+  overlay->Raise();
+  // Right
+  if (!overlay->IsShown()) overlay->Show();
+  overlay->Move(pos);
+  ```
 
 ## 11. wxComboCtrl / wxComboPopup
 

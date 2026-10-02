@@ -4,6 +4,14 @@
 #include "GLGizmoBase.hpp"
 //BBS: add size adjust related
 #include "GizmoObjectManipulation.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "libslic3r/Color.hpp"
+#include <string>
+#include <wx/event.h>
+#include <array>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/3DScene.hpp"
 
 namespace Slic3r {
 namespace GUI {

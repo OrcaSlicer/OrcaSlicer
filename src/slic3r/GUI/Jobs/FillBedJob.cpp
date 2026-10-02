@@ -9,7 +9,25 @@
 #include "slic3r/plugin/PluginManager.hpp"
 #include "libnest2d/common.hpp"
 
+#include <algorithm>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
 #include <numeric>
+#include "slic3r/GUI/Jobs/ArrangeJob.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include <utility>
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <vector>
+#include "slic3r/GUI/Jobs/Job.hpp"
 
 namespace Slic3r {
 namespace GUI {

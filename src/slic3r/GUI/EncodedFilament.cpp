@@ -1,5 +1,14 @@
 #include "EncodedFilament.hpp"
+#include "libslic3r/Utils.hpp"
+#include <fstream>
+#include <boost/log/trivial.hpp>
+#include <cassert>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "GUI_App.hpp"
 

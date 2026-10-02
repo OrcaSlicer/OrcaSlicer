@@ -5,9 +5,16 @@
 #include "StateColor.hpp"
 #include "StaticBox.hpp"
 
+#include <cstddef>
 #include <vector>
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/dc.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 #include "Button.hpp"
 

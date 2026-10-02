@@ -9,9 +9,19 @@
 //BBS set font size
 #include "Widgets/Label.hpp"
 
+#include <wx/bookctrl.h>
+#include <cmath>
+#include <cstddef>
+#include <utility>
+#include <string>
+#include <algorithm>
 #include <wx/button.h>
+#include <wx/colour.h>
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
+#include <wx/window.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
 

@@ -10,14 +10,23 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MeasureUtils.hpp"
 
+#include <cstdlib>
+#include <imgui.h>
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/Measure.hpp"
 #include <numeric>
 
 #include <glad/gl.h>
 
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoMeasure.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <optional>
 #include <tbb/parallel_for.h>
 #include <future>
+#include <vector>
 #include <wx/clipbrd.h>
 
 namespace Slic3r {

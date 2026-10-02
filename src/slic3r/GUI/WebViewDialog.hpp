@@ -6,6 +6,13 @@
 #include "wx/cmdline.h"
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
+#include <wx/setup.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <functional>
+#include <wx/dialog.h>
+#include <wx/accel.h>
 #include <wx/webview.h>
 
 #if wxUSE_WEBVIEW_EDGE

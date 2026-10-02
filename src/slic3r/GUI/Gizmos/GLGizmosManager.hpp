@@ -10,6 +10,16 @@
 
 #include "libslic3r/ObjectID.hpp"
 
+#include <cstdlib>
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <memory>
+#include <utility>
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include <wx/event.h>
+#include <cereal/specialize.hpp>
 #include <wx/timer.h>
 #include <map>
 

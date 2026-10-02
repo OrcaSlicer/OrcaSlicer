@@ -16,6 +16,21 @@
 #include "Widgets/TextInput.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
+#include <wx/colour.h>
+#include <vector>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <string>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/panel.h>
+#include <map>
 
 #define AMS_MATERIALS_SETTING_DEF_COLOUR wxColour(255, 255, 255)
 #define AMS_MATERIALS_SETTING_GREY900 wxColour(38, 46, 48)
