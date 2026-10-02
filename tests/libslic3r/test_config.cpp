@@ -421,31 +421,31 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
     }
 }
 
-TEST_CASE("A variant column comes from the same variant and owner, else the owner's first column", "[Config][Variant]") {
-    const std::vector<std::string> source_variants{"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard"};
-    const std::vector<int>         source_ids{1, 1, 2};
+TEST_CASE("A variant index comes from the same variant and id, else the id's first variant", "[Config][Variant]") {
+    const std::vector<std::string> variant_list{"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard"};
+    const std::vector<int>         variant_ids{1, 1, 2};
 
-    SECTION("same variant and owner") {
-        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", 1, source_variants, source_ids) == 1);
-        CHECK(Slic3r::find_variant_column("Direct Drive Standard", 2, source_variants, source_ids) == 2);
+    SECTION("same variant and id") {
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 1, variant_list, variant_ids) == 1);
+        CHECK(Slic3r::find_variant_index("Direct Drive Standard", 2, variant_list, variant_ids) == 2);
     }
-    SECTION("a variant the owner lacks falls back to the owner's first column") {
-        CHECK(Slic3r::find_variant_column("Bowden Standard", 1, source_variants, source_ids) == 0);
-        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", 2, source_variants, source_ids) == 2);
+    SECTION("a variant the id lacks falls back to the id's first variant") {
+        CHECK(Slic3r::find_variant_index("Bowden Standard", 1, variant_list, variant_ids) == 0);
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 2, variant_list, variant_ids) == 2);
     }
-    SECTION("an owner with no columns matches none") {
-        CHECK(Slic3r::find_variant_column("Direct Drive Standard", 3, source_variants, source_ids) == -1);
+    SECTION("an id with no variants matches none") {
+        CHECK(Slic3r::find_variant_index("Direct Drive Standard", 3, variant_list, variant_ids) == -1);
     }
-    SECTION("a negative owner or a source without ids matches any owner") {
-        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", -1, source_variants, source_ids) == 1);
-        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", 2, source_variants, {}) == 1);
+    SECTION("a negative id or a list without ids matches any id") {
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", -1, variant_list, variant_ids) == 1);
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 2, variant_list, {}) == 1);
     }
-    SECTION("a target column past a shorter id list gets no column") {
-        CHECK(Slic3r::map_variant_columns(source_variants, {1}, source_variants, source_ids) == std::vector<int>{0, -1, -1});
+    SECTION("a variant past a shorter id list gets no variant index") {
+        CHECK(Slic3r::map_variant_indices(variant_list, {1}, variant_list, variant_ids) == std::vector<int>{0, -1, -1});
     }
-    SECTION("a source without names is one column per owner, and an empty one a single column") {
-        CHECK(Slic3r::map_variant_columns(source_variants, source_ids, {}, {1, 2}) == std::vector<int>{0, 0, 1});
-        CHECK(Slic3r::map_variant_columns(source_variants, source_ids, {}, {}) == std::vector<int>{0, 0, 0});
+    SECTION("a list without variant strings has one variant per id, and an empty one a single variant") {
+        CHECK(Slic3r::map_variant_indices(variant_list, variant_ids, {}, {1, 2}) == std::vector<int>{0, 0, 1});
+        CHECK(Slic3r::map_variant_indices(variant_list, variant_ids, {}, {}) == std::vector<int>{0, 0, 0});
     }
 }
 
