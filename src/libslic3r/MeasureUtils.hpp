@@ -1,10 +1,12 @@
 #ifndef Slic3r_MeasureUtils_hpp_
 #define Slic3r_MeasureUtils_hpp_
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <vector>
 
 #include "Point.hpp"
 

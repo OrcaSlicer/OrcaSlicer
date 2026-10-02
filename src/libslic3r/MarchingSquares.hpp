@@ -2,6 +2,10 @@
 #define MARCHINGSQUARES_HPP
 
 #include "Execution/ExecutionTBB.hpp"
+#include <ostream>
+#include "libslic3r/Execution/Execution.hpp"
+#include <array>
+#include <iterator>
 #include <type_traits>
 #include <cstdint>
 #include <vector>

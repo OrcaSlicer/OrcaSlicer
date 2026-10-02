@@ -4,6 +4,12 @@
 #include "../libslic3r.h"
 #include "../ExtrusionEntity.hpp"
 #include "../PrintConfig.hpp"
+#include <string>
+#include <cstddef>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <cassert>
 
 #include <queue>
 

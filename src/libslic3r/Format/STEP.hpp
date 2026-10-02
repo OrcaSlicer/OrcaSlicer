@@ -3,10 +3,19 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFApp_Application.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
+#include <Standard_TypeDef.hxx>
+#include <Standard_Handle.hxx>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <Message_ProgressIndicator.hxx>
 #include <atomic>
+#include <functional>
+#include <string>
+#include <iostream>
+#include <ios>
+#include <iomanip>
+#include <ostream>
+#include <vector>
 
 namespace fs = boost::filesystem;
 

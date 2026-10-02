@@ -5,6 +5,8 @@
 #include <libslic3r/Point.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 #include <admesh/stl.h>
+#include <string>
+#include <utility>
 
 namespace Slic3r { namespace csg {
 

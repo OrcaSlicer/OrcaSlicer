@@ -3,9 +3,11 @@
 
 #include "../libslic3r.h"
 #include "../Point.hpp"
+#include <cstddef>
 #include <map>
 #include <string>
 #include <cfloat>
+#include <vector>
 
 namespace Slic3r {
 

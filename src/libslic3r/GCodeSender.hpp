@@ -3,6 +3,13 @@
 
 #include "libslic3r.h"
 #include <queue>
+#include <boost/core/noncopyable.hpp>
+#include <cstddef>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/serial_port.hpp>
+#include <boost/asio/streambuf.hpp>
+#include <list>
+#include <deque>
 #include <string>
 #include <vector>
 #include <boost/asio.hpp>
