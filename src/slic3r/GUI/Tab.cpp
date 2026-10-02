@@ -2760,6 +2760,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("ironing_type", "quality_settings_ironing#type");
         optgroup->append_single_option_line("ironing_pattern", "quality_settings_ironing#pattern");
         optgroup->append_single_option_line("ironing_flow", "quality_settings_ironing#flow");
+        optgroup->append_single_option_line("ironing_filament", "quality_settings_ironing#filament");
         optgroup->append_single_option_line("ironing_spacing", "quality_settings_ironing#line-spacing");
         optgroup->append_single_option_line("ironing_inset", "quality_settings_ironing#inset");
         optgroup->append_single_option_line("ironing_angle", "quality_settings_ironing#angle-offset");
@@ -3008,6 +3009,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_ironing_pattern", "support_settings_ironing#pattern");
         optgroup->append_single_option_line("support_ironing_flow", "support_settings_ironing#flow");
         optgroup->append_single_option_line("support_ironing_spacing", "support_settings_ironing#line-spacing");
+        optgroup->append_single_option_line("support_ironing_filament", "support_settings_ironing#filament");
 
         //optgroup = page->new_optgroup(L("Options for support material and raft"));
 
@@ -3056,6 +3058,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("prime_tower_enable_framework", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_multimaterial", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_independent", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("prime_tower_group_by_material", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("prime_tower_independent_full_height", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_width", "multimaterial_settings_prime_tower#width");
         optgroup->append_single_option_line("prime_volume", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_brim_width", "multimaterial_settings_prime_tower#brim-width");

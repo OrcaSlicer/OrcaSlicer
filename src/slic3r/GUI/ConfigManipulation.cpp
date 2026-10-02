@@ -988,7 +988,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool can_ironing_support = have_raft || (have_support_material && config->opt_int("support_interface_top_layers") > 0);
     toggle_field("support_ironing", can_ironing_support);
     bool has_support_ironing = can_ironing_support && config->opt_bool("support_ironing");
-    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
+    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing", "support_ironing_filament" })
         toggle_line(el, has_support_ironing);
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
@@ -1019,7 +1019,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                  have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
-    for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
+    for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed", "ironing_filament" })
         toggle_line(el, has_ironing);
     bool has_rectilinear_ironing = (config->opt_enum<InfillPattern>("ironing_pattern") == InfillPattern::ipRectilinear);
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
@@ -1030,6 +1030,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_zaa = config->opt_bool("zaa_enabled");
     for (auto el : {"zaa_minimize_perimeter_height", "zaa_min_z", "zaa_dont_alternate_fill_direction", "ironing_expansion"})
         toggle_line(el, has_zaa);
+
 
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })
@@ -1074,6 +1075,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     const bool have_independent_towers  = config->opt_bool("prime_tower_independent");
     toggle_line("prime_tower_multimaterial", have_prime_tower && supports_wipe_tower_2 && !have_independent_towers);
     toggle_line("prime_tower_independent", have_prime_tower && supports_wipe_tower_2 && !have_multimaterial_tower);
+    const bool independent_active = have_prime_tower && supports_wipe_tower_2 && have_independent_towers && !have_multimaterial_tower;
+    toggle_line("prime_tower_group_by_material", independent_active);
+    toggle_line("prime_tower_independent_full_height", independent_active);
 
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
     bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower;

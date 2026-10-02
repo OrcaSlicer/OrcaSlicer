@@ -354,6 +354,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_enable_framework"
             || opt_key == "prime_tower_multimaterial"
             || opt_key == "prime_tower_independent"
+            || opt_key == "prime_tower_group_by_material"
+            || opt_key == "prime_tower_independent_full_height"
+            || opt_key == "prime_tower_share_matrix"
             || opt_key == "prime_tower_width"
             || opt_key == "prime_tower_brim_width"
             || opt_key == "prime_tower_brim_object_gap"
@@ -552,6 +555,12 @@ std::vector<unsigned int> Print::support_material_extruders() const
                 support_uses_current_extruder = true;
             else {
             	unsigned int i = (unsigned int)object->config().support_interface_filament - 1;
+                extruders.emplace_back((i >= num_extruders) ? 0 : i);
+            }
+            // Support ironing may print with its own filament; "Default" (0) follows the interface filament,
+            // which is already accounted for above.
+            if (object->config().support_ironing && object->config().support_ironing_filament > 0) {
+                unsigned int i = (unsigned int)object->config().support_ironing_filament - 1;
                 extruders.emplace_back((i >= num_extruders) ? 0 : i);
             }
         }
@@ -1298,24 +1307,26 @@ static Polygons estimated_wipe_tower_footprints(const Print &print)
         Polygons footprints;
         const auto &independent = print.wipe_tower_data().independent_towers;
         const std::vector<unsigned int> used = print.extruders(true);
-        const float spacing = independent_wipe_tower_spacing(float(width), float(brim));
+        const std::vector<int> groups = prime_tower_group_ids(prime_tower_groups(config, used), used);
+        const float spacing = independent_wipe_tower_auto_spacing(config, float(width), float(brim));
         const Vec2f base(float(config.wipe_tower_x.get_at(print.get_plate_index())),
                          float(config.wipe_tower_y.get_at(print.get_plate_index())));
-        for (size_t i = 0; i < used.size(); ++i) {
+        for (size_t i = 0; i < groups.size(); ++i) {
+            const unsigned int group = (unsigned int) groups[i];
             Vec2f pos;
             const bool stored = independent_wipe_tower_stored_pos(config.independent_wipe_tower_x.values,
                                                                  config.independent_wipe_tower_y.values,
-                                                                 independent_wipe_tower_pos_index(print.get_plate_index(), int(used[i])), pos);
+                                                                 independent_wipe_tower_pos_index(print.get_plate_index(), int(group)), pos);
             if (!stored) {
                 bool from_generated = false;
                 for (const WipeTowerData::IndependentTower &tower : independent)
-                    if (tower.filament_id == used[i]) {
+                    if (tower.filament_id == group) {
                         pos = tower.pos;
                         from_generated = true;
                         break;
                     }
                 if (!from_generated)
-                    pos = resolve_independent_tower_pos(print, base, i, used[i], spacing,
+                    pos = resolve_independent_tower_pos(print, base, i, group, spacing,
                                                         float(width), float(depth), float(brim));
             }
             footprints.emplace_back(box_at(pos.cast<double>() + origin));
@@ -1470,16 +1481,63 @@ void Print::validate_compacted_wipe_tower_clearance() const
 
     const bool grow_spiral = !independent;
     std::vector<CompactedTowerZone> zones;
+    std::vector<int>                zone_keys;
     zones.reserve(pts_by_tower.size());
     for (const auto &kv : pts_by_tower) {
         if (kv.second.empty())
             continue;
         CompactedTowerZone zone = compacted_wipe_tower_zone(m_config, Geometry::convex_hull(kv.second), grow_spiral);
-        if (!zone.empty())
+        if (!zone.empty()) {
             zones.emplace_back(std::move(zone));
+            zone_keys.emplace_back(kv.first);
+        }
     }
     if (zones.empty())
         return;
+
+    // Independent towers end at different heights, so a taller tower is an obstacle to a lower one
+    // that is still being printed, exactly like an object is. Each tower rises on the layers that
+    // hold one of its tool changes and keeps its height on the others.
+    if (independent && zones.size() > 1) {
+        std::unordered_map<int, std::vector<float>> z_by_tower;
+        for (int key : zone_keys)
+            z_by_tower[key].assign(tool_changes.size(), float(m_config.z_offset.value));
+        for (size_t i = 0; i < tool_changes.size(); ++i) {
+            for (auto &kv : z_by_tower) {
+                float z = i == 0 ? float(m_config.z_offset.value) : kv.second[i - 1];
+                for (const WipeTower::ToolChangeResult &tcr : tool_changes[i])
+                    if (tcr.has_tower_pos && tcr.tower_filament == kv.first) {
+                        z += tcr.layer_height;
+                        break;
+                    }
+                kv.second[i] = z;
+            }
+        }
+        for (size_t a = 0; a < zones.size(); ++a) {
+            const std::vector<float> &za = z_by_tower[zone_keys[a]];
+            for (size_t b = 0; b < zones.size(); ++b) {
+                if (a == b)
+                    continue;
+                const std::vector<float> &zb = z_by_tower[zone_keys[b]];
+                double max_rise = 0.;
+                for (size_t i = 0; i < tool_changes.size(); ++i) {
+                    bool prints_a = false;
+                    for (const WipeTower::ToolChangeResult &tcr : tool_changes[i])
+                        if (tcr.has_tower_pos && tcr.tower_filament == zone_keys[a]) {
+                            prints_a = true;
+                            break;
+                        }
+                    if (prints_a)
+                        max_rise = std::max(max_rise, double(zb[i]) - double(za[i]));
+                }
+                if (max_rise <= EPSILON)
+                    continue;
+                const CompactedTowerClearance clearance = compacted_wipe_tower_clearance(m_config, zones[a], zones[b].hull, max_rise);
+                if (max_rise > clearance.allowed_rise + EPSILON)
+                    throw Slic3r::SlicingError(compacted_wipe_tower_clearance_error());
+            }
+        }
+    }
 
     for (const PrintObject *object : m_objects) {
         const double object_top = unscaled<double>(object->max_z());
@@ -1626,10 +1684,11 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             }
         } else if (config.prime_tower_independent) {
             const std::vector<unsigned int> used = print.extruders(true);
-            const float spacing = independent_wipe_tower_spacing(width, brim_width);
+            const std::vector<int> groups = prime_tower_group_ids(prime_tower_groups(config, used), used);
+            const float spacing = independent_wipe_tower_auto_spacing(config, width, brim_width);
             const Vec2f base(x - plate_origin(0), y - plate_origin(1));
-            for (size_t i = 0; i < used.size(); ++i) {
-                const Vec2f pos = resolve_independent_tower_pos(print, base, i, used[i], spacing, width, depth, brim_width);
+            for (size_t i = 0; i < groups.size(); ++i) {
+                const Vec2f pos = resolve_independent_tower_pos(print, base, i, (unsigned int) groups[i], spacing, width, depth, brim_width);
                 add_estimated_box(pos.x() + plate_origin(0), pos.y() + plate_origin(1));
             }
         } else if (!print.is_step_done(psWipeTower)) {
@@ -1696,7 +1755,8 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     const std::vector<std::string>& filament_types,
     const std::vector<int>& nozzle_temperatures,
     const std::vector<int>& nozzle_temperature_range_lows,
-    const std::vector<int>& nozzle_temperature_range_highs)
+    const std::vector<int>& nozzle_temperature_range_highs,
+    const std::vector<unsigned char>& support_only)
 {
     const size_t filament_count = filament_types.size();
     if (filament_count < 2)
@@ -1729,23 +1789,44 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
         resolved_range_highs[i] = range_high;
     }
 
+    // A filament used solely for support is meant NOT to bond - that is how the support detaches.
+    // Applying the bonding rule to it would flag every print whose support filament does its job.
+    auto is_support_only = [&support_only](size_t i) {
+        return i < support_only.size() && support_only[i] != 0;
+    };
+
+    bool any_temperature_mismatch = false;
+    bool any_unknown_material     = false;
     for (size_t i = 0; i < filament_count; ++i) {
         for (size_t j = i + 1; j < filament_count; ++j) {
+            // Material rule: known-incompatible materials never bond (e.g. PLA + PETG) and take
+            // precedence over everything else, so bail out immediately.
+            if (!is_support_only(i) && !is_support_only(j)) {
+                const MaterialCompatibility material = MaterialType::compatibility(filament_types[i], filament_types[j]);
+                if (material == MaterialCompatibility::Incompatible)
+                    return FilamentCompatibilityType::IncompatibleMaterials;
+                if (material == MaterialCompatibility::Unknown)
+                    any_unknown_material = true;
+            }
+
+            // Range rule: both filaments must sit within each other's recommended nozzle range.
             const bool i_temp_is_compatible_with_j =
                 resolved_temperatures[i] >= resolved_range_lows[j] &&
                 resolved_temperatures[i] <= resolved_range_highs[j];
             const bool j_temp_is_compatible_with_i =
                 resolved_temperatures[j] >= resolved_range_lows[i] &&
                 resolved_temperatures[j] <= resolved_range_highs[i];
-
-            if (i_temp_is_compatible_with_j && j_temp_is_compatible_with_i)
-                continue;
-
-            // Range-only rule: any pair outside mutual recommended ranges is incompatible.
-            return FilamentCompatibilityType::HighLowMixed;
+            if (!i_temp_is_compatible_with_j || !j_temp_is_compatible_with_i)
+                any_temperature_mismatch = true;
         }
     }
 
+    if (any_temperature_mismatch && any_unknown_material)
+        return FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible;
+    if (any_temperature_mismatch)
+        return FilamentCompatibilityType::HighLowMixed;
+    if (any_unknown_material)
+        return FilamentCompatibilityType::PossibleIncompatibleMaterials;
     return FilamentCompatibilityType::Compatible;
 }
 
@@ -1787,16 +1868,111 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
     return HighLowCompatible;
 }
 
+// The message for a filament compatibility verdict. The two dimensions the verdict carries - nozzle
+// temperature ranges and material bonding - get their own text, and a verdict that fails both says both.
+// The temperature rule blocks unless bypassed in Preferences ("Remove mixed temperature restriction").
+// The material rule only ever warns: printing materials that do not bond on one hotend is a legitimate
+// setup (PLA supports under PETG parts, grouped independent prime towers keep them apart), it just
+// deserves a heads-up that the parts may delaminate where the two touch.
+static void fill_filament_compatibility_exception(FilamentCompatibilityType type, bool temperature_bypassed, StringObjectException &ret)
+{
+    const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
+    const std::string invalid_temp_range_msg = L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+    const std::string incompatible_materials_msg = L("Selected filament materials do not bond with each other (for example PLA and PETG). Where they touch, the printed parts may delaminate.");
+    const std::string possible_incompatible_materials_msg = L("Selected filament materials may not bond. Their compatibility is unknown, so the printed parts may delaminate where they touch.");
+    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
+
+    switch (type) {
+    case FilamentCompatibilityType::Compatible:
+        break;
+    case FilamentCompatibilityType::InvalidTemperatureRange:
+        ret.string = invalid_temp_range_msg;
+        break;
+    case FilamentCompatibilityType::IncompatibleMaterials:
+        ret.string     = incompatible_materials_msg;
+        ret.is_warning = true;
+        break;
+    case FilamentCompatibilityType::PossibleIncompatibleMaterials:
+        ret.string     = possible_incompatible_materials_msg;
+        ret.is_warning = true;
+        break;
+    case FilamentCompatibilityType::HighLowMixed:
+    case FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible: {
+        std::string msg = incompatible_temp_msg;
+        if (type == FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible)
+            msg += " " + possible_incompatible_materials_msg;
+        ret.string     = temperature_bypassed ? msg : msg + " " + incompatible_temp_msg_preferences_enable;
+        ret.is_warning = temperature_bypassed;
+        break;
+    }
+    }
+}
+
+// 0-based ids of the filaments a plate uses only for support (base / interface). Their job is to
+// not bond to the object, so the material-bonding rule must skip them; any filament that also prints
+// object geometry is excluded here and stays fully checked.
+static std::set<unsigned int> collect_support_only_filaments(const Print &print)
+{
+    const PrintConfig &print_config  = print.config();
+    const size_t       num_filaments = print_config.filament_diameter.size();
+    std::set<unsigned int> support_used, object_used;
+    for (const PrintObject *object : print.objects()) {
+        for (unsigned int e : object->object_extruders())
+            object_used.insert(e);
+        if (!object->has_support_material())
+            continue;
+        auto add_support = [&](int filament_1based) {
+            if (filament_1based >= 1 && size_t(filament_1based) <= num_filaments)
+                support_used.insert(unsigned(filament_1based - 1));
+        };
+        add_support(object->config().support_filament);
+        add_support(object->config().support_interface_filament);
+        if (object->config().support_ironing)
+            add_support(object->config().support_ironing_filament);
+    }
+    std::set<unsigned int> support_only;
+    for (unsigned int e : support_used)
+        if (object_used.find(e) == object_used.end())
+            support_only.insert(e);
+    return support_only;
+}
+
+// Mark the entries of `filaments` (0-based ids, parallel to the collected property vectors) that
+// appear in `support_only`.
+static std::vector<unsigned char> mark_support_only(const std::vector<unsigned int> &filaments,
+                                                    const std::set<unsigned int>    &support_only)
+{
+    std::vector<unsigned char> flags(filaments.size(), 0);
+    for (size_t i = 0; i < filaments.size(); ++i)
+        flags[i] = support_only.find(filaments[i]) != support_only.end();
+    return flags;
+}
+
+// Collect the filament properties check_multi_filaments_compatibility() compares, for the given 0-based filaments.
+static void collect_filament_properties(const PrintConfig &print_config, const std::vector<unsigned int> &filaments,
+                                        std::vector<std::string> &types, std::vector<int> &temperatures,
+                                        std::vector<int> &range_lows, std::vector<int> &range_highs)
+{
+    types.reserve(filaments.size());
+    temperatures.reserve(filaments.size());
+    range_lows.reserve(filaments.size());
+    range_highs.reserve(filaments.size());
+    for (unsigned int filament : filaments) {
+        types.push_back(print_config.filament_type.get_at(filament));
+        temperatures.push_back(print_config.nozzle_temperature.get_at(filament));
+        range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(filament));
+        range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(filament));
+    }
+}
+
 //BBS: this function is used to check whether multi filament can be printed
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
-    const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
-    const std::string invalid_temp_range_msg = L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
-    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
+    const std::set<unsigned int> support_only_filaments = collect_support_only_filaments(print);
+    const bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
     if(print_config.print_sequence == PrintSequence::ByObject) {// use ByObject valid under ByObject print sequence
-        bool has_incompatible_object = false;
-        bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
+        FilamentCompatibilityType incompatible_type = FilamentCompatibilityType::Compatible;
         StringObjectException ret;
 
         for (const auto &objectID_t : print.print_object_ids()) {
@@ -1817,86 +1993,99 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 assert(print_object->config().support_interface_filament >= 0);
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
+                if (print_object->config().support_ironing && print_object->config().support_ironing_filament >= 1 && (unsigned int)print_object->config().support_ironing_filament < num_extruders + 1)
+                    obj_used_extruder_ids.insert((unsigned int) print_object->config().support_ironing_filament - 1);
             }
+            const std::vector<unsigned int> obj_filaments(obj_used_extruder_ids.begin(), obj_used_extruder_ids.end());
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
             std::vector<int> nozzle_temperature_range_highs;
-            filament_types.reserve(obj_used_extruder_ids.size());
-            nozzle_temperatures.reserve(obj_used_extruder_ids.size());
-            nozzle_temperature_range_lows.reserve(obj_used_extruder_ids.size());
-            nozzle_temperature_range_highs.reserve(obj_used_extruder_ids.size());
-
-            for (const auto &extruder_idx : obj_used_extruder_ids) {
-                filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
-                nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
-                nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
-                nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
-            }
+            collect_filament_properties(print_config, obj_filaments,
+                                        filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
 
             auto compatibility = check_multi_filaments_compatibility(
                 filament_types,
                 nozzle_temperatures,
                 nozzle_temperature_range_lows,
-                nozzle_temperature_range_highs); // check for each object
+                nozzle_temperature_range_highs,
+                mark_support_only(obj_filaments, support_only_filaments)); // check for each object
             if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
-                ret.string = invalid_temp_range_msg;
+                fill_filament_compatibility_exception(compatibility, enable_mix_printing, ret);
                 return ret;
             }
             if (compatibility != FilamentCompatibilityType::Compatible) {
-                has_incompatible_object = true;
+                incompatible_type = compatibility;
                 break;
             }
         }
-        if (has_incompatible_object){
-            if (enable_mix_printing) {
-                ret.string     = incompatible_temp_msg;
-                ret.is_warning = true;
-            } else
-                ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
-        }
+        fill_filament_compatibility_exception(incompatible_type, enable_mix_printing, ret);
         return ret;
     }
-    std::vector<unsigned int> extruders = print.extruders();
+    const std::vector<unsigned int> extruders = print.extruders();
     std::vector<std::string> filament_types;
     std::vector<int> nozzle_temperatures;
     std::vector<int> nozzle_temperature_range_lows;
     std::vector<int> nozzle_temperature_range_highs;
-    filament_types.reserve(extruders.size());
-    nozzle_temperatures.reserve(extruders.size());
-    nozzle_temperature_range_lows.reserve(extruders.size());
-    nozzle_temperature_range_highs.reserve(extruders.size());
-    for (const auto& extruder_idx : extruders) {
-        filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
-        nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
-        nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
-        nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
-    }
+    collect_filament_properties(print_config, extruders,
+                                filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
 
     auto compatibility = check_multi_filaments_compatibility(
         filament_types,
         nozzle_temperatures,
         nozzle_temperature_range_lows,
-        nozzle_temperature_range_highs);
-    bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
+        nozzle_temperature_range_highs,
+        mark_support_only(extruders, support_only_filaments));
 
     StringObjectException ret;
+    fill_filament_compatibility_exception(compatibility, enable_mix_printing, ret);
+    return ret;
+}
 
-    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
-        ret.string = invalid_temp_range_msg;
-        return ret;
+// Everything printed inside one object is fused to its neighbours: a part and the modifier carving into it, a
+// painted region and the wall beside it, the ironed skin and the surface below it. Unlike support, which is
+// chosen for NOT bonding, these have to bond or the object delaminates along the seam. Reported per object and
+// on every printer - a second nozzle keeps the materials out of one hotend, not out of one part - with the
+// same verdicts and messages as the shared-hotend check, since the same two properties decide it.
+// Only ever a warning: the pairing may well be deliberate, and unlike a shared hotend it endangers nothing.
+StringObjectException Print::check_object_materials_valid(const Print &print)
+{
+    StringObjectException     ret;
+    FilamentCompatibilityType worst = FilamentCompatibilityType::Compatible;
+    for (const PrintObject *object : print.objects()) {
+        // Every filament the object prints with: its parts and modifiers, the painted regions, and the
+        // per-feature picks (walls, surfaces, ironing). Support is left out on purpose - it is meant to peel.
+        std::vector<std::string> filament_types;
+        std::vector<int> nozzle_temperatures;
+        std::vector<int> nozzle_temperature_range_lows;
+        std::vector<int> nozzle_temperature_range_highs;
+        collect_filament_properties(print.config(), object->object_extruders(),
+                                    filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
+
+        const FilamentCompatibilityType compatibility = check_multi_filaments_compatibility(
+            filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
+        // Report the worst object. The enum is not ordered by severity, so rank it explicitly.
+        auto severity = [](FilamentCompatibilityType type) {
+            switch (type) {
+            case FilamentCompatibilityType::Compatible:                          return 0;
+            case FilamentCompatibilityType::PossibleIncompatibleMaterials:       return 1;
+            case FilamentCompatibilityType::HighLowMixed:                        return 2;
+            case FilamentCompatibilityType::HighLowMixedAndPossibleIncompatible: return 3;
+            case FilamentCompatibilityType::IncompatibleMaterials:               return 4;
+            case FilamentCompatibilityType::InvalidTemperatureRange:             return 5;
+            }
+            return 0;
+        };
+        if (severity(compatibility) <= severity(worst))
+            continue;
+        worst      = compatibility;
+        ret.object = object->model_object();
     }
 
-    if(compatibility != FilamentCompatibilityType::Compatible){
-        if(enable_mix_printing){
-            ret.string = incompatible_temp_msg;
-            ret.is_warning = true;
-        }
-        else{
-            ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
-        }
-    }
-
+    // Reported as bypassed, so every case comes out as a warning with no "enable it in Preferences"
+    // hint - there is nothing to unblock here.
+    fill_filament_compatibility_exception(worst, true, ret);
+    ret.is_warning = ! ret.string.empty();
     return ret;
 }
 
@@ -1969,6 +2158,9 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 return ret;
         }
     }
+
+    if (auto ret = check_object_materials_valid(*this); !ret.string.empty())
+        add_warning(ret);
 
     if (m_config.print_sequence == PrintSequence::ByObject && (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
@@ -5055,8 +5247,16 @@ void Print::_make_wipe_tower()
 
         if (independent_towers) {
             const std::vector<unsigned int> used = m_wipe_tower_data.tool_ordering.all_extruders();
-            const float spacing = independent_wipe_tower_spacing(float(m_config.prime_tower_width),
-                                                                 float(std::max(0., m_config.prime_tower_brim_width.value)));
+            // Filaments whose materials bond share one tower (see prime_tower_groups()); the group is
+            // named after its smallest member so positions and object ids stay per-filament indexed.
+            const std::vector<int> group_of = prime_tower_groups(m_config.filament_type.values, m_config.prime_tower_share_matrix.values,
+                                                                 m_config.prime_tower_group_by_material, used);
+            const std::vector<int> group_ids = prime_tower_group_ids(group_of, used);
+            auto in_group = [&group_of](unsigned int filament, int group) {
+                return size_t(filament) < group_of.size() ? group_of[size_t(filament)] == group : int(filament) == group;
+            };
+            const float spacing = independent_wipe_tower_auto_spacing(m_config, float(m_config.prime_tower_width),
+                                                                      float(std::max(0., m_config.prime_tower_brim_width.value)));
             const Vec2f base_pos(float(m_config.wipe_tower_x.get_at(m_plate_index)), float(m_config.wipe_tower_y.get_at(m_plate_index)));
 
             m_wipe_tower_data.tool_changes.assign(independent_layers.size(), {});
@@ -5065,29 +5265,33 @@ void Print::_make_wipe_tower()
             m_wipe_tower_data.used_filament.assign(number_of_extruders, 0.f);
             m_wipe_tower_data.number_of_toolchanges = 0;
 
-            auto stamp = [](std::vector<WipeTower::ToolChangeResult> &layer, const Vec2f &pos, unsigned int filament) {
+            // tower_filament carries the group id. carrier is the group member that printed this
+            // layer on the tower, which is what the G-code emitter keys the TCR on.
+            auto stamp = [&in_group](std::vector<WipeTower::ToolChangeResult> &layer, const Vec2f &pos, int group, unsigned int carrier) {
                 for (WipeTower::ToolChangeResult &tcr : layer) {
                     tcr.has_tower_pos  = true;
                     tcr.tower_pos      = pos;
-                    tcr.tower_filament = int(filament);
+                    tcr.tower_filament = group;
                     tcr.force_travel   = true;
                     // Dummy finish_layer TCRs inherit WipeTower2's m_current_tool, which generate()
-                    // seeds from the first real toolchange's old_tool. A same-filament first layer
-                    // then lands as new_tool != this tower's filament, and append_tcr2 throws.
-                    if (tcr.new_tool != int(filament) && tcr.initial_tool == tcr.new_tool) {
-                        tcr.initial_tool = int(filament);
-                        tcr.new_tool     = int(filament);
+                    // seeds from the first real toolchange's old_tool. That tool may belong to another
+                    // group, and append_tcr2 then throws on an unexpected toolchange: pin them to the
+                    // member that really prints this layer.
+                    if (tcr.initial_tool == tcr.new_tool && (tcr.new_tool < 0 || !in_group(unsigned(tcr.new_tool), group))) {
+                        tcr.initial_tool = int(carrier);
+                        tcr.new_tool     = int(carrier);
                     }
                 }
             };
 
-            for (size_t used_order = 0; used_order < used.size(); ++used_order) {
-                const unsigned int filament = used[used_order];
+            for (size_t group_order = 0; group_order < group_ids.size(); ++group_order) {
+                const int          group    = group_ids[group_order];
+                const unsigned int filament = (unsigned int) group; // representative member
                 Vec2f pos;
                 const bool stored = independent_wipe_tower_stored_pos(m_config.independent_wipe_tower_x.values, m_config.independent_wipe_tower_y.values,
-                                                                      independent_wipe_tower_pos_index(m_plate_index, int(filament)), pos);
+                                                                      independent_wipe_tower_pos_index(m_plate_index, group), pos);
                 if (!stored)
-                    pos = resolve_independent_tower_pos(*this, base_pos, used_order, filament, spacing,
+                    pos = resolve_independent_tower_pos(*this, base_pos, group_order, filament, spacing,
                                                         float(m_config.prime_tower_width), float(m_config.prime_tower_width),
                                                         float(std::max(0., m_config.prime_tower_brim_width.value)));
 
@@ -5097,42 +5301,54 @@ void Print::_make_wipe_tower()
                 for (size_t i = 0; i < number_of_extruders; ++i)
                     wipe_tower.set_extruder(i, m_config);
 
-                auto plan_visit = [&](float z, float height, unsigned int old_tool, float volume) {
-                    if (old_tool == filament) {
-                        // WipeTower2::plan_toolchange ignores same-tool layers. Invent a different
-                        // old tool so the layer is a real visit onto this tower's filament.
+                // A real toolchange onto a member of this group, or a first visit of a member that was
+                // already loaded (WipeTower2::plan_toolchange ignores same-tool layers, so invent a
+                // different old tool to make the layer a real visit).
+                auto plan_visit = [&](float z, float height, unsigned int old_tool, unsigned int new_tool, float volume) {
+                    if (old_tool == new_tool) {
                         if (number_of_extruders < 2)
                             return false;
-                        old_tool = (filament + 1) % number_of_extruders;
-                        if (old_tool == filament)
+                        old_tool = (new_tool + 1) % number_of_extruders;
+                        if (old_tool == new_tool)
                             return false;
                         volume = std::max(volume, float(m_config.prime_volume));
                     }
-                    wipe_tower.plan_toolchange(z, height, old_tool, filament, volume);
+                    wipe_tower.plan_toolchange(z, height, old_tool, new_tool, volume);
                     return true;
                 };
 
                 bool started = false;
-                std::vector<size_t> planned_indices;
+                // (layer index, carrier member) per planned tower layer, in plan order.
+                std::vector<std::pair<size_t, unsigned int>> planned_layers;
                 for (size_t li = 0; li < independent_layers.size(); ++li) {
                     const IndependentLayerPlan &layer = independent_layers[li];
-                    bool planned = false;
+                    bool         planned = false;
+                    unsigned int carrier = filament;
                     for (const IndependentLayerTC &tc : layer.tcs) {
-                        if (tc.dummy || tc.new_tool != filament)
+                        if (tc.dummy || !in_group(tc.new_tool, group))
                             continue;
-                        if (plan_visit(layer.z, layer.height, tc.old_tool, tc.volume)) {
+                        if (plan_visit(layer.z, layer.height, tc.old_tool, tc.new_tool, tc.volume)) {
                             planned = true;
                             started = true;
+                            carrier = tc.new_tool;
                         }
                     }
-                    if (!started && std::find(layer.extruders.begin(), layer.extruders.end(), filament) != layer.extruders.end()) {
-                        if (plan_visit(layer.z, layer.height, filament, float(m_config.prime_volume))) {
-                            planned = true;
-                            started = true;
+                    if (!started) {
+                        // The group's filament was loaded from the start: begin the tower on the first
+                        // layer a member prints, even though no toolchange leads onto it.
+                        for (unsigned int extruder : layer.extruders) {
+                            if (!in_group(extruder, group))
+                                continue;
+                            if (plan_visit(layer.z, layer.height, extruder, extruder, float(m_config.prime_volume))) {
+                                planned = true;
+                                started = true;
+                                carrier = extruder;
+                            }
+                            break;
                         }
                     }
                     if (planned)
-                        planned_indices.push_back(li);
+                        planned_layers.emplace_back(li, carrier);
                 }
 
                 std::vector<std::vector<WipeTower::ToolChangeResult>> generated;
@@ -5149,13 +5365,16 @@ void Print::_make_wipe_tower()
                     }
                 }
 
-                for (size_t gi = 0; gi < generated.size() && gi < planned_indices.size(); ++gi) {
-                    stamp(generated[gi], pos, filament);
-                    append(m_wipe_tower_data.tool_changes[planned_indices[gi]], std::move(generated[gi]));
+                for (size_t gi = 0; gi < generated.size() && gi < planned_layers.size(); ++gi) {
+                    stamp(generated[gi], pos, group, planned_layers[gi].second);
+                    append(m_wipe_tower_data.tool_changes[planned_layers[gi].first], std::move(generated[gi]));
                 }
 
                 WipeTowerData::IndependentTower tower;
                 tower.filament_id      = filament;
+                for (unsigned int f : used)
+                    if (in_group(f, group))
+                        tower.members.push_back(f);
                 tower.pos              = pos;
                 tower.depth            = wipe_tower.get_depth();
                 tower.width            = wipe_tower.width();
@@ -5184,7 +5403,7 @@ void Print::_make_wipe_tower()
                         pos = clamped;
                         for (auto &layer : m_wipe_tower_data.tool_changes)
                             for (WipeTower::ToolChangeResult &tcr : layer)
-                                if (tcr.tower_filament == int(filament))
+                                if (tcr.tower_filament == group)
                                     tcr.tower_pos = pos;
                     }
                 }

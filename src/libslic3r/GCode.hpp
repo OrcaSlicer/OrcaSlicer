@@ -110,7 +110,8 @@ public:
         m_last_wipe_tower_print_z(print_config.z_offset.value),
         m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config)),
         m_independent_towers(print_config.prime_tower_independent && !print_config.prime_tower_multimaterial),
-        m_independent_last_z(print_config.filament_colour.values.size(), print_config.z_offset.value)
+        m_independent_last_z(print_config.filament_colour.values.size(), print_config.z_offset.value),
+        m_independent_z_layer(print_config.filament_colour.values.size(), -1)
     {
         // Precomputed rather than accumulated while emitting, so that the clearance validator and
         // the emitter cannot disagree about where the compacted tower sits on any given layer.
@@ -196,7 +197,11 @@ private:
     // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
     std::vector<float>                                           m_compacted_tower_z;
     const bool                                                   m_independent_towers;
+    // Compacted print z per independent tower (indexed by group id = tower_filament), and the
+    // print layer it was last raised on, so a tower rises once per layer however many filaments
+    // of its group purge into it.
     std::vector<double>                                          m_independent_last_z;
+    std::vector<int>                                             m_independent_z_layer;
 };
 
 class ColorPrintColors
@@ -499,8 +504,11 @@ private:
     {
         ObjectByExtruder() : support(nullptr), support_extrusion_role(erNone) {}
         const ExtrusionEntityCollection  *support;
-        // erSupportMaterial / erSupportMaterialInterface / erSupportTransition or erMixed.
+        // erSupportMaterial / erSupportMaterialInterface / erSupportTransition, erIroning or erMixed.
         ExtrusionRole                     support_extrusion_role;
+        // Set when support ironing shares this group's extruder, so the group emits the ironing pass too.
+        // A dedicated erIroning group prints it via its role instead.
+        bool                              prints_ironing = false;
 
         struct Island
         {

@@ -1403,10 +1403,11 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool, bool print_shel
             writer.apply_first_layer_adhesion(m_filpar[tool].first_layer_temperature, true);
         toolchange_Load(writer, cleaning_box);
         writer.travel(writer.x(), writer.y()-m_perimeter_width); // cooling and loading were done a bit down the road
-        if (print_shell && !m_shell_done_this_layer) {
+        // Anchor the first layer before the purge. Walls are printed afterwards, in
+        // finish_layer(), once the infill they have to weld to is already down.
+        if (print_shell && is_first_layer()) {
             const Vec2f wipe_start(writer.x(), writer.y());
-            extrude_tower_shell(writer, is_first_layer());
-            m_shell_done_this_layer = true;
+            extrude_first_layer_brim(writer);
             writer.travel(wipe_start);
         }
         int base_temp = is_first_layer() ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature;
@@ -1766,7 +1767,7 @@ void WipeTower2::toolchange_Change(
             const double z = m_sparse_layers_skipped ? (m_current_height + m_layer_info->height) : m_layer_info->z;
             const double r = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
             const double w = m_layer_info->depth + m_perimeter_width;
-            if (r > 0.5 * w + 0.01) { // same guard as generate_support_cone_wall
+            if (r > 0.5 * w + 0.01) { // same guard as make_cone_wall_polygon
                 const float bulge = float(std::sqrt(r * r - 0.25 * w * w) / support_scale);
                 min_x = std::min(min_x, m_wipe_tower_width / 2.f - bulge);
                 max_x = std::max(max_x, m_wipe_tower_width / 2.f + bulge);
@@ -1991,32 +1992,150 @@ void WipeTower2::toolchange_Wipe(
 
 
 
+static Polygon largest_polygon(const Polygons& polys)
+{
+    Polygon best;
+    double  best_area = -1.;
+    for (const Polygon& p : polys) {
+        const double a = std::abs(p.area());
+        if (a > best_area) {
+            best_area = a;
+            best      = p;
+        }
+    }
+    return best;
+}
+
+static Polygon shift_polygon_y(Polygon poly, float dy)
+{
+    if (std::abs(dy) > 1e-3f)
+        poly.translate(Point(coord_t(0), coord_t(scale_(dy))));
+    return poly;
+}
+
+Polygon WipeTower2::desired_wall_polygon(WipeTowerWriter2& writer)
+{
+    Polygon poly;
+    if (m_wall_type == (int) wtwCone) {
+        WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
+                                          m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        poly = make_cone_wall_polygon(wt_box);
+    } else {
+        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        poly = generate_support_rib_wall(writer, wt_box, 0., is_first_layer(), m_wall_type == (int) wtwRib, false);
+    }
+    if (poly.size() >= 3)
+        poly.make_counter_clockwise();
+    return poly;
+}
+
+Polygon WipeTower2::clamp_wall_to_support(Polygon desired) const
+{
+    if (m_last_outer_wall.empty() || desired.size() < 3)
+        return desired;
+
+    // Half a bead: the new centreline still overlaps the previous bead, so the wall
+    // sits on it. Anything further out is an overhang in the air; anything further in
+    // misses the previous bead (the rib/cone interior is hollow) and is also in the air.
+    const float max_shift = 0.5f * m_perimeter_width;
+    Polygon     desired_phys = shift_polygon_y(desired, m_y_shift);
+    const Polygon& prev = m_last_outer_wall;
+
+    const Polygons grown = offset(prev, scale_(max_shift));
+    if (grown.empty())
+        return desired;
+    Polygons shrunk = offset(prev, -scale_(max_shift));
+    // A footprint too small to inset must not jump inward at all.
+    if (shrunk.empty())
+        shrunk.push_back(prev);
+
+    Polygons clipped = intersection(Polygons{desired_phys}, grown);
+    Polygon  bounded = clipped.empty() ? largest_polygon(grown) : largest_polygon(clipped);
+    if (bounded.empty())
+        return desired;
+    const Polygons merged = union_(Polygons{bounded}, shrunk);
+    if (!merged.empty())
+        bounded = largest_polygon(merged);
+    bounded = shift_polygon_y(bounded, -m_y_shift);
+    if (bounded.size() >= 3)
+        bounded.make_counter_clockwise();
+    return bounded.empty() ? desired : bounded;
+}
+
+void WipeTower2::extrude_one_wall(WipeTowerWriter2& writer, const Polygon& poly, float feedrate, bool gap)
+{
+    if (poly.size() < 3)
+        return;
+
+    Polylines result_wall;
+    Polygon   insert_skip_polygon;
+    if (gap && m_use_gap_wall) {
+        static const std::vector<Vec2f> no_skip_points;
+        const size_t layer_id = size_t(m_layer_info - m_plan.begin());
+        const std::vector<Vec2f>& layer_skip_points =
+            layer_id < m_wall_skip_points.size() ? m_wall_skip_points[layer_id] : no_skip_points;
+        result_wall = construct_gap_for_skip_points(poly, layer_skip_points, m_wipe_tower_width, 2.5f * m_perimeter_width,
+                                                    insert_skip_polygon);
+    } else {
+        result_wall.push_back(to_polyline(poly));
+    }
+    if (result_wall.empty())
+        return;
+
+    const float retract_length = m_current_tool < m_filpar.size() ? m_filpar[m_current_tool].retract_length : 0.f;
+    const float retract_speed  = m_current_tool < m_filpar.size() ? m_filpar[m_current_tool].retract_speed * 60.f : 0.f;
+    writer.generate_path(result_wall, feedrate, retract_length, retract_speed, m_used_fillet);
+}
+
+void WipeTower2::extrude_first_layer_brim(WipeTowerWriter2& writer)
+{
+    if (!is_first_layer() || m_brim_done_this_layer)
+        return;
+    const float spacing = m_perimeter_width - m_layer_height * float(1. - M_PI_4);
+    Polygon outline = (m_wall_type == (int) wtwCone)
+        ? cone_base_polygon(m_wipe_tower_width, m_wipe_tower_depth, m_wipe_tower_height, m_wipe_tower_cone_angle)
+        : desired_wall_polygon(writer);
+    if (outline.size() < 3)
+        return;
+    extrude_brim(writer, outline, spacing);
+    m_brim_done_this_layer = true;
+}
+
 Polygon WipeTower2::extrude_tower_shell(WipeTowerWriter2& writer, bool first_layer)
 {
     const float spacing = m_perimeter_width - m_layer_height * float(1. - M_PI_4);
     const float feedrate = first_layer ? m_first_layer_speed * 60.f :
                                          std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
 
-    Polygon poly;
-    if (m_wall_type == (int) wtwCone) {
+    Polygon outline = clamp_wall_to_support(desired_wall_polygon(writer));
+    if (outline.size() < 3)
+        return outline;
+
+    if (m_wall_type == (int) wtwCone && first_layer) {
         WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
                                           m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        const bool infill_cone = first_layer && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing;
-        if (first_layer) {
-            Polygon brim_poly = cone_base_polygon(m_wipe_tower_width, m_wipe_tower_depth, m_wipe_tower_height, m_wipe_tower_cone_angle);
-            extrude_brim(writer, brim_poly, spacing);
-        }
-        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing);
-    } else {
-        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int) wtwRib, false);
-        if (first_layer) {
-            Polygon brim_poly = poly;
-            extrude_brim(writer, brim_poly, spacing);
-        }
-        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int) wtwRib, true);
+        extrude_cone_ear_infill(writer, outline, wt_box, feedrate, spacing);
     }
-    return poly;
+
+    // Inner loop first, so it welds to the purge that is already down. The outer loop is the
+    // one clamped onto the previous layer.
+    const Polygons inner = offset(outline, -scale_(spacing));
+    if (!inner.empty()) {
+        Polygon inner_poly = largest_polygon(inner);
+        if (inner_poly.size() >= 3) {
+            inner_poly.make_counter_clockwise();
+            extrude_one_wall(writer, inner_poly, feedrate, false);
+        }
+    }
+    extrude_one_wall(writer, outline, feedrate, true);
+
+    if (m_wall_type == (int) wtwRib && is_first_layer()) {
+        const BoundingBox bbox = get_extents(outline);
+        m_rib_offset = Vec2f(-unscaled<float>(bbox.min.x()), -unscaled<float>(bbox.min.y()));
+    }
+
+    m_last_outer_wall = shift_polygon_y(outline, m_y_shift);
+    return outline;
 }
 
 WipeTower::ToolChangeResult WipeTower2::finish_layer()
@@ -2043,18 +2162,13 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     WipeTower::box_coordinates fill_box(Vec2f(m_perimeter_width, m_layer_info->depth-(current_depth-m_perimeter_width)),
                              m_wipe_tower_width - 2 * m_perimeter_width, current_depth-m_perimeter_width);
 
-    Polygon poly;
-    if (!m_shell_done_this_layer) {
-        writer.set_initial_position(Vec2f(0.f, 0.f), m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
-        if (this->is_first_layer())
-            writer.apply_first_layer_adhesion(m_filpar[m_current_tool].first_layer_temperature, true);
-        poly = extrude_tower_shell(writer, first_layer);
-        m_shell_done_this_layer = true;
-    } else {
-        writer.set_initial_position((m_left_to_right ? fill_box.ru : fill_box.lu),
-                                     m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
-        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int) wtwRib, false);
+    writer.set_initial_position((m_left_to_right ? fill_box.ru : fill_box.lu),
+                                 m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
+    if (first_layer && !m_brim_done_this_layer) {
+        // tool_change() already asserted bed adhesion and printed the brim before the purge.
+        // Planning passes and a finish-before-toolchange layer have not.
+        writer.apply_first_layer_adhesion(m_filpar[m_current_tool].first_layer_temperature, true);
+        extrude_first_layer_brim(writer);
     }
 
     bool toolchanges_on_layer = m_layer_info->toolchanges_depth() > WT_EPSILON;
@@ -2123,6 +2237,11 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         writer.append("; CP EMPTY GRID END\n"
                       ";------------------\n\n\n\n\n\n\n");
     }
+
+    // Purge and sparse infill are down. Two wall loops on top of that: the inner one welds
+    // to the fill, the outer one stays on the previous layer's wall.
+    Polygon poly = extrude_tower_shell(writer, first_layer);
+    m_shell_done_this_layer = true;
 
     // Now prepare future wipe.
     if (!poly.empty()) {
@@ -2394,6 +2513,9 @@ void WipeTower2::plan_tower()
 
 void WipeTower2::save_on_last_wipe()
 {
+    // finish_layer() records the wall it just clamped against. Each planning pass has to
+    // start from an empty support, same as the real extrusion loop below.
+    m_last_outer_wall.clear();
     for (m_layer_info=m_plan.begin();m_layer_info<m_plan.end();++m_layer_info) {
         set_layer(m_layer_info->z, m_layer_info->height, 0, m_layer_info->z == m_plan.front().z, m_layer_info->z == m_plan.back().z);
         if (m_layer_info->tool_changes.size()==0)   // we have no way to save anything on an empty layer
@@ -2997,6 +3119,7 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
     m_used_filament_length_until_layer.emplace_back(0.f, m_used_filament_length);
 
     m_old_temperature = -1; // reset last temperature written in the gcode
+    m_last_outer_wall.clear();
 
 	for (const WipeTower2::WipeTowerInfo& layer : m_plan)
 	{
@@ -3156,111 +3279,91 @@ Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 
 }
 
 
-// This block creates the stabilization cone.
-// First define a lambda to draw the rectangle with stabilization.
-Polygon WipeTower2::generate_support_cone_wall(
-    WipeTowerWriter2& writer, const WipeTower::box_coordinates& wt_box, double feedrate, bool infill_cone, float spacing){
-
+// Centreline of this layer's cone wall. The radius shrinks toward the top; the caller
+// clamps that outline onto the previous layer before extruding it.
+Polygon WipeTower2::make_cone_wall_polygon(const WipeTower::box_coordinates& wt_box) const
+{
     const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
                                                              m_wipe_tower_cone_angle);
+    (void) R;
 
-    double z = m_sparse_layers_skipped ?
+    const double z = m_sparse_layers_skipped ?
                    (m_current_height + m_layer_info->height) :
                    m_layer_info->z; // the former should actually work in both cases, but let's stay on the safe side (the 2.6.0 is close)
 
-    double r      = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
-    Vec2f  center = (wt_box.lu + wt_box.rd) / 2.;
-    double w      = wt_box.lu.y() - wt_box.ld.y();
-    enum Type { Arc, Corner, ArcStart, ArcEnd };
+    const double r      = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
+    const Vec2f  center = (wt_box.lu + wt_box.rd) / 2.;
+    const double w      = wt_box.lu.y() - wt_box.ld.y();
 
-    // First generate vector of annotated point which form the boundary.
-    std::vector<std::pair<Vec2f, Type>> pts = {{wt_box.ru, Corner}};
-    if (double alpha_start = std::asin((0.5 * w) / r); !std::isnan(alpha_start) && r > 0.5 * w + 0.01) {
+    std::vector<Vec2f> pts = {wt_box.ru};
+    if (const double alpha_start = std::asin((0.5 * w) / r); !std::isnan(alpha_start) && r > 0.5 * w + 0.01) {
         for (double alpha = alpha_start; alpha < M_PI - alpha_start + 0.001; alpha += (M_PI - 2 * alpha_start) / 40.)
-            pts.emplace_back(Vec2f(center.x() + r * std::cos(alpha) / support_scale, center.y() + r * std::sin(alpha)),
-                             alpha == alpha_start ? ArcStart : Arc);
-        pts.back().second = ArcEnd;
+            pts.push_back(Vec2f(float(center.x() + r * std::cos(alpha) / support_scale),
+                                float(center.y() + r * std::sin(alpha))));
     }
-    pts.emplace_back(wt_box.lu, Corner);
-    pts.emplace_back(wt_box.ld, Corner);
+    pts.push_back(wt_box.lu);
+    pts.push_back(wt_box.ld);
     for (int i = int(pts.size()) - 3; i > 0; --i)
-        pts.emplace_back(Vec2f(pts[i].first.x(), 2 * center.y() - pts[i].first.y()), i == int(pts.size()) - 3 ? ArcStart :
-                                                                                     i == 1                   ? ArcEnd :
-                                                                                                                Arc);
-    pts.emplace_back(wt_box.rd, Corner);
+        pts.push_back(Vec2f(pts[i].x(), float(2. * center.y() - pts[i].y())));
+    pts.push_back(wt_box.rd);
 
-    // Create a Polygon from the points.
     Polygon poly;
-    for (const auto& [pt, tag] : pts)
+    for (const Vec2f& pt : pts)
         poly.points.push_back(Point::new_scale(pt));
-
-    // Prepare polygons to be filled by infill.
-    Polylines polylines;
-    if (infill_cone && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing) {
-        ExPolygons infill_areas;
-        ExPolygon  wt_contour(poly);
-        Polygon    wt_rectangle(
-            Points{Point::new_scale(wt_box.ld), Point::new_scale(wt_box.rd), Point::new_scale(wt_box.ru), Point::new_scale(wt_box.lu)});
-        wt_rectangle = offset(wt_rectangle, scale_(-spacing / 2.)).front();
-        wt_contour   = offset_ex(wt_contour, scale_(-spacing / 2.)).front();
-        infill_areas = diff_ex(wt_contour, wt_rectangle);
-        if (infill_areas.size() == 2) {
-            ExPolygon& bottom_expoly = infill_areas.front().contour.points.front().y() < infill_areas.back().contour.points.front().y() ?
-                                           infill_areas[0] :
-                                           infill_areas[1];
-            std::unique_ptr<Fill> filler(Fill::new_from_type(ipMonotonicLine));
-            filler->angle   = Geometry::deg2rad(45.f);
-            filler->spacing = spacing;
-            FillParams params;
-            params.density = 1.f;
-            Surface surface(stBottom, bottom_expoly);
-            filler->bounding_box = get_extents(bottom_expoly);
-            polylines            = filler->fill_surface(&surface, params);
-            if (!polylines.empty()) {
-                if (polylines.front().points.front().x() > polylines.back().points.back().x()) {
-                    std::reverse(polylines.begin(), polylines.end());
-                    for (Polyline& p : polylines)
-                        p.reverse();
-                }
-            }
-        }
-    }
-
-    // Find the closest corner and travel to it.
-    int    start_i  = 0;
-    double min_dist = std::numeric_limits<double>::max();
-    for (int i = 0; i < int(pts.size()); ++i) {
-        if (pts[i].second == Corner) {
-            double dist = (pts[i].first - Vec2f(writer.x(), writer.y())).squaredNorm();
-            if (dist < min_dist) {
-                min_dist = dist;
-                start_i  = i;
-            }
-        }
-    }
-    writer.travel(pts[start_i].first);
-
-    // Now actually extrude the boundary (and possibly infill):
-    int i = start_i + 1 == int(pts.size()) ? 0 : start_i + 1;
-    while (i != start_i) {
-        writer.extrude(pts[i].first, feedrate);
-        if (pts[i].second == ArcEnd) {
-            // Extrude the infill.
-            if (!polylines.empty()) {
-                // Extrude the infill and travel back to where we were.
-                bool mirror = ((pts[i].first.y() - center.y()) * (unscale(polylines.front().points.front()).y() - center.y())) < 0.;
-                for (const Polyline& line : polylines) {
-                    writer.travel(center - (mirror ? 1.f : -1.f) * (unscale(line.points.front()).cast<float>() - center));
-                    for (size_t i = 0; i < line.points.size(); ++i)
-                        writer.extrude(center - (mirror ? 1.f : -1.f) * (unscale(line.points[i]).cast<float>() - center));
-                }
-                writer.travel(pts[i].first);
-            }
-        }
-        if (++i == int(pts.size()))
-            i = 0;
-    }
-    writer.extrude(pts[start_i].first, feedrate);
     return poly;
 }
+
+// Solid fill of the two cone ears on the first layer, so the bulging arc is not a single
+// bead on the bed. Upper layers only extrude the wall, held on this fill by the support clamp.
+void WipeTower2::extrude_cone_ear_infill(WipeTowerWriter2& writer, const Polygon& poly,
+                                         const WipeTower::box_coordinates& wt_box, float feedrate, float spacing)
+{
+    if (poly.size() < 3 || m_wipe_tower_width <= 2 * spacing || m_wipe_tower_depth <= 2 * spacing)
+        return;
+
+    const Vec2f center = (wt_box.lu + wt_box.rd) / 2.f;
+    ExPolygon   wt_contour(poly);
+    Polygon     wt_rectangle(Points{Point::new_scale(wt_box.ld), Point::new_scale(wt_box.rd),
+                                    Point::new_scale(wt_box.ru), Point::new_scale(wt_box.lu)});
+    const Polygons rects = offset(wt_rectangle, scale_(-spacing / 2.));
+    const ExPolygons contours = offset_ex(wt_contour, scale_(-spacing / 2.));
+    if (rects.empty() || contours.empty())
+        return;
+    wt_rectangle = rects.front();
+    wt_contour   = contours.front();
+    ExPolygons infill_areas = diff_ex(wt_contour, wt_rectangle);
+    if (infill_areas.size() != 2)
+        return;
+
+    ExPolygon& bottom_expoly = infill_areas.front().contour.points.front().y() < infill_areas.back().contour.points.front().y() ?
+                                   infill_areas[0] : infill_areas[1];
+    std::unique_ptr<Fill> filler(Fill::new_from_type(ipMonotonicLine));
+    filler->angle   = Geometry::deg2rad(45.f);
+    filler->spacing = spacing;
+    FillParams params;
+    params.density = 1.f;
+    Surface surface(stBottom, bottom_expoly);
+    filler->bounding_box = get_extents(bottom_expoly);
+    Polylines polylines = filler->fill_surface(&surface, params);
+    if (polylines.empty())
+        return;
+    if (polylines.front().points.front().x() > polylines.back().points.back().x()) {
+        std::reverse(polylines.begin(), polylines.end());
+        for (Polyline& pl : polylines)
+            pl.reverse();
+    }
+
+    // The filler covers the lower ear. Reflect it through the tower centre for the upper one.
+    for (bool mirror : {false, true}) {
+        for (const Polyline& line : polylines) {
+            const Vec2f front = unscale(line.points.front()).cast<float>();
+            writer.travel(center - (mirror ? 1.f : -1.f) * (front - center));
+            for (const Point& pt : line.points) {
+                const Vec2f p = unscale(pt).cast<float>();
+                writer.extrude(center - (mirror ? 1.f : -1.f) * (p - center), feedrate);
+            }
+        }
+    }
+}
+
 } // namespace Slic3r

@@ -1188,6 +1188,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<InfillPattern>, support_ironing_pattern))
     ((ConfigOptionPercent,             support_ironing_flow))
     ((ConfigOptionFloat,               support_ironing_spacing))
+    ((ConfigOptionInt,                 support_ironing_filament))
     ((ConfigOptionFloat,               xy_hole_compensation))
     ((ConfigOptionFloat,               xy_contour_compensation))
     ((ConfigOptionBool,                flush_into_objects))
@@ -1339,6 +1340,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
     ((ConfigOptionEnum<InfillPattern>, ironing_pattern))
+    ((ConfigOptionInt, ironing_filament))
     ((ConfigOptionPercent, ironing_flow))
     ((ConfigOptionFloat, ironing_spacing))
     ((ConfigOptionFloat, ironing_inset))
@@ -1863,6 +1865,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,               prime_tower_enable_framework))
     ((ConfigOptionBool,               prime_tower_multimaterial))
     ((ConfigOptionBool,               prime_tower_independent))
+    ((ConfigOptionBool,               prime_tower_group_by_material))
+    ((ConfigOptionBool,               prime_tower_independent_full_height))
+    ((ConfigOptionInts,               prime_tower_share_matrix))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic
     ((ConfigOptionFloats,             wipe_tower_x))
     ((ConfigOptionFloats,             wipe_tower_y))

@@ -765,6 +765,7 @@ struct Sidebar::priv
     ScalableButton* m_filament_icon = nullptr;
     Button * m_purge_mode_btn = nullptr;
     Button * m_flushing_volume_btn = nullptr;
+    Button * m_tower_share_btn = nullptr;
     TextInput* m_search_item = nullptr;
     StaticBox* m_search_bar = nullptr;
     Search::SearchObjectDialog* dia = nullptr;
@@ -2438,12 +2439,14 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_physical_filament_list);
+    Choice::register_dynamic_list("support_ironing_filament", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("ironing_filament", &dynamic_filament_list); // per-region key, resolved per layer
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -2923,6 +2926,7 @@ Sidebar::Sidebar(Plater *parent)
         int exclude_pt = p->m_bpButton_set_filament->GetPosition().x; // maximum fixed item
         if      (p->m_purge_mode_btn->IsShown())        exclude_pt = p->m_purge_mode_btn->GetPosition().x;
         else if (p->m_flushing_volume_btn->IsShown())   exclude_pt = p->m_flushing_volume_btn->GetPosition().x;
+        else if (p->m_tower_share_btn && p->m_tower_share_btn->IsShown()) exclude_pt = p->m_tower_share_btn->GetPosition().x;
         else if (p->m_bpButton_add_filament->IsShown()) exclude_pt = p->m_bpButton_add_filament->GetPosition().x - FromDIP(30); // reserve spacing for delete button
         else if (ams_btn->IsShown())                    exclude_pt = ams_btn->GetPosition().x;
         if (e.GetPosition().x > exclude_pt)
@@ -2992,6 +2996,18 @@ Sidebar::Sidebar(Plater *parent)
 
     bSizer39->Add(p->m_flushing_volume_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
     bSizer39->Hide(p->m_flushing_volume_btn); // ORCA Ensure button is hidden on launch while 1 filament exist
+
+    // Which filaments share an independent prime tower (material groups + per-pair overrides).
+    p->m_tower_share_btn = new Button(p->m_panel_filament_title, _L("Towers"));
+    p->m_tower_share_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
+    p->m_tower_share_btn->SetToolTip(_L("Which filaments share an independent prime tower"));
+    p->m_tower_share_btn->Bind(wxEVT_BUTTON, ([parent, this](wxCommandEvent &e) {
+        open_prime_tower_share_dialog(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+        p->plater->get_view3D_canvas3D()->reload_scene(true);
+        p->plater->update();
+    }));
+    bSizer39->Add(p->m_tower_share_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    bSizer39->Hide(p->m_tower_share_btn);
 
     ScalableButton* add_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "add_filament");
     add_btn->SetToolTip(_L("Add one filament"));
@@ -5112,6 +5128,7 @@ void Sidebar::msw_rescale()
     p->m_bpButton_set_filament->msw_rescale();
     p->m_purge_mode_btn->Rescale();
     p->m_flushing_volume_btn->Rescale();
+    if (p->m_tower_share_btn) p->m_tower_share_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 
     //BBS
@@ -5198,6 +5215,7 @@ void Sidebar::sys_color_changed()
     p->m_bpButton_set_filament->msw_rescale();
     p->m_purge_mode_btn->Rescale();
     p->m_flushing_volume_btn->Rescale();
+    if (p->m_tower_share_btn) p->m_tower_share_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
 
     // BBS
@@ -6112,6 +6130,9 @@ void Sidebar::show_SEMM_buttons()
     p->m_bpButton_add_filament->Show(single_or_bbl);
     p->m_bpButton_del_filament->Show(is_multi);
     p->m_flushing_volume_btn->Show(  is_multi);
+    // Independent tower sharing table: any multi-filament setup, not only single-extruder MM.
+    if (p->m_tower_share_btn)
+        p->m_tower_share_btn->Show(is_multi_material);
 
     if (is_multi) {
         for (auto &c : p->combos_filament)
@@ -7382,14 +7403,14 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
         "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_brim_object_gap", "prime_tower_brim_flow_ratio", "prime_tower_skip_points", "prime_tower_enable_framework",
         "prime_tower_multimaterial",
-        "prime_tower_independent",
+        "prime_tower_independent", "prime_tower_group_by_material", "prime_tower_independent_full_height", "prime_tower_share_matrix",
         "independent_wipe_tower_x", "independent_wipe_tower_y",
         "prime_tower_infill_gap", "prime_volume",
         "extruder_colour", "filament_colour", "filament_type", "filament_is_support", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
         // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
         "layer_height", "initial_layer_print_height", "min_layer_height", "max_layer_height",
         "wall_loops", "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_density", "sparse_infill_filament_id", "top_shell_layers",
-        "enable_support", "support_filament", "support_interface_filament",
+        "enable_support", "support_filament", "support_interface_filament", "support_ironing", "support_ironing_filament", "ironing_filament",
         "support_top_z_distance", "support_bottom_z_distance", "raft_layers",
         "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
         "prime_tower_acceleration",
@@ -20222,7 +20243,7 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     sidebar().obj_list()->update_objects_list_filament_column_when_delete_filament(filament_id, num_filaments, replace_filament_id);
 
     // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    static const char *keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -20405,10 +20426,11 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             update_scheduled = true;
         }
         // Orca: update when *_filament changed
-        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
+        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" || opt_key == "support_ironing_filament" ||
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
-                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
+                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "ironing_filament") {
             update_scheduled = true;
         }
     }

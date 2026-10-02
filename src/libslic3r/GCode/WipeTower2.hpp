@@ -127,6 +127,7 @@ public:
 		m_depth_traversed  = 0.f;
         m_current_layer_finished = false;
         m_shell_done_this_layer  = false;
+        m_brim_done_this_layer   = false;
         m_prev_layer_had_interface = m_current_layer_has_interface;
 
 		
@@ -165,8 +166,8 @@ public:
 		bool 						last_wipe_inside_wipe_tower);
 
 	// Returns gcode for a toolchange and a final print head position.
-	// print_shell: brim (first layer) and outer walls before the inner wipe, so the
-	// merged finish_layer only has to fill the leftover core.
+	// print_shell: on the first layer, anchor the footprint with the brim before the purge.
+	// The walls themselves are printed by finish_layer(), after the purge and the infill.
     WipeTower::ToolChangeResult tool_change(size_t new_tool, bool print_shell = false);
 
 	// Fill the unfilled space with a sparse infill.
@@ -280,6 +281,12 @@ private:
     bool   m_current_layer_has_interface = false;
     bool   m_independent_tower        = false;
     bool   m_shell_done_this_layer    = false;
+    bool   m_brim_done_this_layer     = false;
+    // Outer-wall centreline of the last layer that actually extruded one, in the same
+    // frame the writer emits (local polygon shifted by that layer's m_y_shift). Empty
+    // until the first wall. The next wall is not allowed to leave this outline by more
+    // than half a bead, so a rib/cone step or a skipped layer cannot print in the air.
+    Polygon m_last_outer_wall;
 
 	int m_wall_type;
     bool   m_used_fillet                  = true;
@@ -469,16 +476,24 @@ private:
                                       bool                   rib_wall,
                                       bool                   extrude_perimeter);
 
-    Polygon generate_support_cone_wall(
-        WipeTowerWriter2& writer, 
-		const WipeTower::box_coordinates& wt_box, 
-		double feedrate, 
-		bool infill_cone, 
-		float spacing);
-
     Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
 
-    // Brim (first layer only) then outer walls. Returns the wall polygon for the wipe path.
+    // Designed centreline of this layer's outer wall (rib, rectangle or cone), before the
+    // support clamp. Not extruded.
+    Polygon desired_wall_polygon(WipeTowerWriter2& writer);
+    Polygon make_cone_wall_polygon(const WipeTower::box_coordinates& wt_box) const;
+    // Pull `desired` back onto m_last_outer_wall. The centreline may move by at most half a
+    // bead (a small overhang that still overlaps the previous bead). Returns local coordinates.
+    Polygon clamp_wall_to_support(Polygon desired) const;
+    void extrude_one_wall(WipeTowerWriter2& writer, const Polygon& poly, float feedrate, bool gap);
+    // Solid fill of the cone's ears. First layer only; the upper cone is a wall on that fill.
+    void extrude_cone_ear_infill(WipeTowerWriter2& writer, const Polygon& poly,
+                                 const WipeTower::box_coordinates& wt_box, float feedrate, float spacing);
+    // First printed layer only. No-op once this layer has already anchored the brim.
+    void extrude_first_layer_brim(WipeTowerWriter2& writer);
+
+    // Two wall loops after the infill: inner first (welds to the purge), then the outer loop
+    // held on the previous layer's wall. Returns the outer centreline for the wipe path.
     Polygon extrude_tower_shell(WipeTowerWriter2& writer, bool first_layer);
 
     // Lay the brim loops around the tower outline (first layer only) and record the brim width

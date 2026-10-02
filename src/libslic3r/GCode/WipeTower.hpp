@@ -798,6 +798,47 @@ inline bool independent_wipe_tower_stored_pos(const std::vector<double> &xs, con
     return true;
 }
 
+// Independent towers grouped by material. Filaments whose materials bond with each other share one
+// tower (printed layer by layer like the stock tower), filaments that do not bond get their own.
+// The project-level n*n matrix `prime_tower_share_matrix` overrides single pairs:
+//   -1 (Auto)     decide from MaterialType::bonds() when prime_tower_group_by_material is on,
+//                 otherwise every filament gets its own tower;
+//    0 (Separate) never put the pair directly on one tower;
+//    1 (Share)    always put the pair on one tower.
+// A group is the transitive closure of the sharing pairs, and is identified by the smallest filament
+// index among its members, so every per-filament storage (positions, object ids) keeps working.
+enum class PrimeTowerShare : int { Auto = -1, Separate = 0, Share = 1 };
+
+// Override stored for pair (a, b); Auto when the matrix is missing or too short.
+PrimeTowerShare prime_tower_share_override(const std::vector<int> &share_matrix, size_t filament_count, unsigned int a, unsigned int b);
+// Writes the override for pair (a, b) symmetrically, growing the matrix to filament_count^2 if needed.
+void prime_tower_set_share_override(std::vector<int> &share_matrix, size_t filament_count, unsigned int a, unsigned int b, PrimeTowerShare value);
+// Whether a and b end up on one tower by the direct rule (override, else material compatibility).
+bool prime_tower_filaments_share(const std::vector<std::string> &filament_types, const std::vector<int> &share_matrix,
+                                 bool auto_by_material, unsigned int a, unsigned int b);
+// Group id per filament index for the given used filaments. The result has filament_types.size()
+// entries (at least max(filaments)+1); filaments not in `filaments` map to themselves.
+std::vector<int> prime_tower_groups(const std::vector<std::string> &filament_types, const std::vector<int> &share_matrix,
+                                    bool auto_by_material, const std::vector<unsigned int> &filaments);
+// Distinct group ids of `filaments` in the order they first appear.
+std::vector<int> prime_tower_group_ids(const std::vector<int> &group_of, const std::vector<unsigned int> &filaments);
+// Group map and ids for the filaments of one plate straight from the print config.
+std::vector<int> prime_tower_groups(const PrintConfig &config, const std::vector<unsigned int> &filaments);
+
+// Centre-to-centre step of the automatic independent tower layout. Compact towers (the default)
+// end at different heights, so a tall tower must stay a full toolhead radius away from a lower
+// neighbour that is still being printed; full-height towers only need a small gap.
+float independent_wipe_tower_auto_spacing(const PrintConfig &config, float width, float brim_width);
+inline float independent_wipe_tower_auto_spacing(bool full_height, float extruder_clearance_radius, float width, float brim_width)
+{
+    const float spacing = independent_wipe_tower_spacing(width, brim_width);
+    if (full_height)
+        return spacing;
+    // Same horizontal rule the compacted-tower clearance check applies between a tower and an
+    // object: hulls a full extruder_clearance_radius apart, plus a little slack.
+    return std::max(spacing, width + 2.f * std::max(brim_width, 0.f) + extruder_clearance_radius + 2.f);
+}
+
 
 } // namespace Slic3r
 

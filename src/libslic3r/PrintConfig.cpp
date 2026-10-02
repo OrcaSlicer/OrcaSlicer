@@ -4818,7 +4818,18 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Concentric"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    
+
+    def = this->add("ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Ironing filament");
+    def->category = L("Quality");
+    def->tooltip  = L("Filament to iron the surfaces with.\n\"Default\" uses the filament of the surface being ironed.\n"
+                      "Selecting a specific filament lets the ironing pass use another material than the surface below it, "
+                      "for example a smoother one for a cleaner finish.");
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("ironing_flow", coPercent);
     def->label = L("Ironing flow");
     def->category = L("Quality");
@@ -7337,6 +7348,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
 
+    def = this->add("support_ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Support ironing filament");
+    def->category = L("Support");
+    def->tooltip = L("Filament to iron the support interface with.\n\"Default\" uses the same filament as the support interface.\n"
+                     "Selecting a specific filament lets the ironing pass use a different material than the interface, "
+                     "for example a smoother or non-bonding filament for a cleaner support-facing surface.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");
     def->tooltip = L("Enable this option for automated chamber temperature control. "
@@ -7600,6 +7622,33 @@ void PrintConfigDef::init_fff_params()
                      "ram the old filament into the tower.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("prime_tower_group_by_material", coBool);
+    def->label = L("Group towers by material");
+    def->tooltip = L("With independent towers, filaments whose materials bond to each other (for example "
+                     "several PETG colours) share one tower that is printed layer by layer like the "
+                     "standard prime tower, while materials that do not bond (for example PLA supports "
+                     "next to PETG parts) get a tower of their own. Materials with unknown compatibility "
+                     "are kept apart.\n\n"
+                     "Single pairs can be overridden in the \"Tower sharing\" table next to the filament list.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("prime_tower_independent_full_height", coBool);
+    def->label = L("Full height towers");
+    def->tooltip = L("Keep every independent tower as tall as the object. On a layer where none of a tower's "
+                     "filaments is printed, a change to one of them is forced so the tower still gets a layer. "
+                     "This costs extra tool changes and purge.\n\n"
+                     "Off: a tower only grows on the layers where one of its filaments prints and stays lower "
+                     "than the object (compact towers).");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Project-level n*n override matrix for independent tower sharing; see PrimeTowerShare.
+    def = this->add("prime_tower_share_matrix", coInts);
+    def->label = L("Tower sharing");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInts{});
 
     def = this->add("flush_volumes_vector", coFloats);
     // BBS: remove _L()

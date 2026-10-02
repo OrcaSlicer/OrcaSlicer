@@ -90,6 +90,9 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
     	emplace_extruder(region_config.top_surface_filament_id);
     if (region_config.bottom_shell_layers.value > 0)
     	emplace_extruder(region_config.bottom_surface_filament_id);
+    // "Default" (0) irons with the surface's own filament, which is already collected above.
+    if (region_config.ironing_type != IroningType::NoIroning && region_config.ironing_filament.value > 0)
+        emplace_extruder(region_config.ironing_filament);
 }
 
 void PrintRegion::collect_object_printing_extruders(const Print &print, std::vector<unsigned int> &object_extruders) const

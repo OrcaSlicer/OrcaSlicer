@@ -10,6 +10,7 @@
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "LocalesUtils.hpp"
+#include "MaterialType.hpp"
 #include "Triangulation.hpp"
 
 
@@ -53,6 +54,118 @@ std::vector<float> compute_compacted_wipe_tower_z(const std::vector<std::vector<
         tower_z[i] = last;
     }
     return tower_z;
+}
+
+PrimeTowerShare prime_tower_share_override(const std::vector<int> &share_matrix, size_t filament_count, unsigned int a, unsigned int b)
+{
+    if (a == b)
+        return PrimeTowerShare::Share;
+    if (share_matrix.size() < filament_count * filament_count || a >= filament_count || b >= filament_count)
+        return PrimeTowerShare::Auto;
+    // Symmetric by construction, but a hand-edited project may disagree: an explicit value on
+    // either side wins over Auto, Separate wins over Share.
+    const int ab = share_matrix[size_t(a) * filament_count + b];
+    const int ba = share_matrix[size_t(b) * filament_count + a];
+    if (ab == 0 || ba == 0)
+        return PrimeTowerShare::Separate;
+    if (ab == 1 || ba == 1)
+        return PrimeTowerShare::Share;
+    return PrimeTowerShare::Auto;
+}
+
+void prime_tower_set_share_override(std::vector<int> &share_matrix, size_t filament_count, unsigned int a, unsigned int b, PrimeTowerShare value)
+{
+    if (a >= filament_count || b >= filament_count || a == b)
+        return;
+    if (share_matrix.size() != filament_count * filament_count) {
+        // Keep whatever fits of the old square matrix.
+        const size_t old_n = size_t(std::sqrt(double(share_matrix.size())) + 0.5);
+        std::vector<int> resized(filament_count * filament_count, int(PrimeTowerShare::Auto));
+        if (old_n * old_n == share_matrix.size())
+            for (size_t i = 0; i < std::min(old_n, filament_count); ++i)
+                for (size_t j = 0; j < std::min(old_n, filament_count); ++j)
+                    resized[i * filament_count + j] = share_matrix[i * old_n + j];
+        share_matrix.swap(resized);
+    }
+    share_matrix[size_t(a) * filament_count + b] = int(value);
+    share_matrix[size_t(b) * filament_count + a] = int(value);
+}
+
+bool prime_tower_filaments_share(const std::vector<std::string> &filament_types, const std::vector<int> &share_matrix,
+                                 bool auto_by_material, unsigned int a, unsigned int b)
+{
+    if (a == b)
+        return true;
+    const size_t n = filament_types.size();
+    switch (prime_tower_share_override(share_matrix, n, a, b)) {
+    case PrimeTowerShare::Share:    return true;
+    case PrimeTowerShare::Separate: return false;
+    case PrimeTowerShare::Auto:     break;
+    }
+    if (!auto_by_material || a >= n || b >= n)
+        return false;
+    // Unknown compatibility keeps the filaments apart: only a known bond shares a tower.
+    return MaterialType::bonds(filament_types[a], filament_types[b]);
+}
+
+std::vector<int> prime_tower_groups(const std::vector<std::string> &filament_types, const std::vector<int> &share_matrix,
+                                    bool auto_by_material, const std::vector<unsigned int> &filaments)
+{
+    size_t n = filament_types.size();
+    for (unsigned int f : filaments)
+        n = std::max(n, size_t(f) + 1);
+    std::vector<int> parent(n);
+    for (size_t i = 0; i < n; ++i)
+        parent[i] = int(i);
+    auto find = [&parent](int x) {
+        while (parent[size_t(x)] != x) {
+            parent[size_t(x)] = parent[size_t(parent[size_t(x)])];
+            x = parent[size_t(x)];
+        }
+        return x;
+    };
+    // Union toward the smaller root, so the representative is the smallest member.
+    auto unite = [&](int a, int b) {
+        a = find(a);
+        b = find(b);
+        if (a == b)
+            return;
+        if (a < b)
+            parent[size_t(b)] = a;
+        else
+            parent[size_t(a)] = b;
+    };
+    for (size_t i = 0; i < filaments.size(); ++i)
+        for (size_t j = i + 1; j < filaments.size(); ++j)
+            if (prime_tower_filaments_share(filament_types, share_matrix, auto_by_material, filaments[i], filaments[j]))
+                unite(int(filaments[i]), int(filaments[j]));
+    std::vector<int> group_of(n);
+    for (size_t i = 0; i < n; ++i)
+        group_of[i] = find(int(i));
+    return group_of;
+}
+
+std::vector<int> prime_tower_groups(const PrintConfig &config, const std::vector<unsigned int> &filaments)
+{
+    return prime_tower_groups(config.filament_type.values, config.prime_tower_share_matrix.values,
+                              config.prime_tower_group_by_material.value, filaments);
+}
+
+float independent_wipe_tower_auto_spacing(const PrintConfig &config, float width, float brim_width)
+{
+    return independent_wipe_tower_auto_spacing(config.prime_tower_independent_full_height.value,
+                                               float(config.extruder_clearance_radius.value), width, brim_width);
+}
+
+std::vector<int> prime_tower_group_ids(const std::vector<int> &group_of, const std::vector<unsigned int> &filaments)
+{
+    std::vector<int> ids;
+    for (unsigned int f : filaments) {
+        const int g = size_t(f) < group_of.size() ? group_of[size_t(f)] : int(f);
+        if (std::find(ids.begin(), ids.end(), g) == ids.end())
+            ids.push_back(g);
+    }
+    return ids;
 }
 
 inline float align_round(float value, float base)

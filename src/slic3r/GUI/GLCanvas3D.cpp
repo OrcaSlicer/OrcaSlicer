@@ -3033,15 +3033,34 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
 
                 std::vector<int> plate_extruders = part_plate->get_extruders(true); // 1-based
                 if (independent && plate_extruders.size() > 1) {
-                    const float spacing = independent_wipe_tower_spacing(float(wipe_tower_size(0)), brim_width);
+                    // One tower per material group (see prime_tower_groups()); the preview cube is
+                    // keyed and coloured by the group's representative filament.
+                    std::vector<unsigned int> used_0;
+                    for (int e : plate_extruders)
+                        if (e > 0)
+                            used_0.push_back((unsigned int) (e - 1));
+                    std::sort(used_0.begin(), used_0.end());
+                    const auto *types_opt  = full_config.option<ConfigOptionStrings>("filament_type");
+                    const auto *matrix_opt = proj_cfg.option<ConfigOptionInts>("prime_tower_share_matrix");
+                    const bool  by_material = dconfig.option("prime_tower_group_by_material") == nullptr ||
+                                              dconfig.opt_bool("prime_tower_group_by_material");
+                    const bool  full_height = dconfig.option("prime_tower_independent_full_height") != nullptr &&
+                                              dconfig.opt_bool("prime_tower_independent_full_height");
+                    const std::vector<int> group_of = prime_tower_groups(types_opt ? types_opt->values : std::vector<std::string>{},
+                                                                         matrix_opt ? matrix_opt->values : std::vector<int>{},
+                                                                         by_material, used_0);
+                    const std::vector<int> group_ids = prime_tower_group_ids(group_of, used_0);
+                    const auto *radius_opt = full_config.option<ConfigOptionFloat>("extruder_clearance_radius");
+                    const float spacing = independent_wipe_tower_auto_spacing(full_height, radius_opt ? float(radius_opt->value) : 0.f,
+                                                                              float(wipe_tower_size(0)), brim_width);
                     const Vec2f base(x, y);
                     const auto *ix = proj_cfg.option<ConfigOptionFloatsNullable>("independent_wipe_tower_x");
                     const auto *iy = proj_cfg.option<ConfigOptionFloatsNullable>("independent_wipe_tower_y");
                     const auto &generated = current_print->wipe_tower_data().independent_towers;
                     const Vec2d plate_size = part_plate->get_size();
-                    for (size_t i = 0; i < plate_extruders.size(); ++i) {
-                        const int filament_1based = plate_extruders[i];
-                        const int filament_0      = filament_1based - 1;
+                    for (size_t i = 0; i < group_ids.size(); ++i) {
+                        const int filament_0      = group_ids[i];
+                        const int filament_1based = filament_0 + 1;
                         const int obj_idx         = independent_wipe_tower_object_idx(plate_id, filament_0);
                         bool  have_generated = false;
                         const WipeTowerData::IndependentTower *gt = nullptr;

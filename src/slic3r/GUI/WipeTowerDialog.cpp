@@ -14,7 +14,11 @@
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/CheckBox.hpp"
 #include "MainFrame.hpp"
+#include "Plater.hpp"
+#include "libslic3r/MaterialType.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -672,4 +676,228 @@ std::vector<double> WipingDialog::GetFlattenMatrix()const
 std::vector<double> WipingDialog::GetMultipliers()const
 {
     return m_flush_multipliers;
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// PrimeTowerShareDialog
+// ---------------------------------------------------------------------------------------------
+
+PrimeTowerShareDialog::PrimeTowerShareDialog(wxWindow *parent)
+    : wxDialog(parent, wxID_ANY, _L("Prime tower sharing"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+{
+    SetBackgroundColour(*wxWHITE);
+    update_ui(this);
+
+    auto &preset_bundle  = *wxGetApp().preset_bundle;
+    auto &project_config = preset_bundle.project_config;
+    const DynamicPrintConfig full_config = preset_bundle.full_config();
+    const DynamicPrintConfig &print_config = preset_bundle.prints.get_edited_preset().config;
+
+    m_count = preset_bundle.filament_presets.size();
+    m_names = preset_bundle.filament_presets;
+    if (const auto *types = full_config.option<ConfigOptionStrings>("filament_type"))
+        m_types = types->values;
+    m_types.resize(m_count);
+    const std::vector<std::string> colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
+    for (size_t i = 0; i < m_count; ++i)
+        m_colours.emplace_back(i < colours.size() ? wxColour(colours[i]) : wxColour(*wxLIGHT_GREY));
+    m_auto_by_material = print_config.option("prime_tower_group_by_material") == nullptr ||
+                         print_config.opt_bool("prime_tower_group_by_material");
+    const auto *matrix_opt = project_config.option<ConfigOptionInts>("prime_tower_share_matrix");
+    m_result = matrix_opt ? matrix_opt->values : std::vector<int>{};
+    if (m_result.size() != m_count * m_count)
+        m_result.assign(m_count * m_count, int(PrimeTowerShare::Auto));
+
+    auto main_sizer = new wxBoxSizer(wxVERTICAL);
+
+    const bool independent_on = print_config.option("enable_prime_tower") && print_config.opt_bool("enable_prime_tower") &&
+                                print_config.option("prime_tower_independent") && print_config.opt_bool("prime_tower_independent") &&
+                                !(print_config.option("prime_tower_multimaterial") && print_config.opt_bool("prime_tower_multimaterial"));
+    wxString intro = _L("A checked pair of filaments purges into one independent prime tower; unchecked pairs get separate towers. "
+                        "The checks are prefilled from the material compatibility table, so only pairs you change are stored with the project.");
+    if (!independent_on)
+        intro += "\n" + _L("Independent prime towers are currently off (Process > Multimaterial > Prime tower); the table takes effect once they are enabled.");
+    auto intro_label = new Label(this, intro);
+    intro_label->Wrap(FromDIP(560));
+    main_sizer->Add(intro_label, 0, wxEXPAND | wxALL, FromDIP(12));
+
+    // Header row: swatch + number per column; first column: swatch + number + type + preset name.
+    auto grid = new wxFlexGridSizer(int(m_count) + 1, int(m_count) + 1, FromDIP(4), FromDIP(8));
+    auto make_swatch = [this](size_t i) {
+        auto panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, FromDIP(wxSize(14, 14)));
+        panel->SetBackgroundColour(m_colours[i]);
+        return panel;
+    };
+    auto make_header = [&](size_t i, bool full) {
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->Add(make_swatch(i), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        wxString text = wxString::Format("%d", int(i) + 1);
+        if (full) {
+            text += " " + wxString::FromUTF8(m_types[i]);
+            if (i < m_names.size())
+                text += wxString::FromUTF8("  (" + m_names[i] + ")");
+        }
+        sizer->Add(new Label(this, text), 0, wxALIGN_CENTER_VERTICAL);
+        return sizer;
+    };
+    grid->Add(new wxPanel(this), 0);
+    for (size_t j = 0; j < m_count; ++j)
+        grid->Add(make_header(j, false), 0, wxALIGN_CENTER);
+
+    m_checks.assign(m_count, std::vector<::CheckBox *>(m_count, nullptr));
+    for (size_t i = 0; i < m_count; ++i) {
+        grid->Add(make_header(i, true), 0, wxALIGN_CENTER_VERTICAL);
+        for (size_t j = 0; j < m_count; ++j) {
+            if (i == j) {
+                grid->Add(new Label(this, "-"), 0, wxALIGN_CENTER);
+            } else if (i < j) {
+                auto check = new ::CheckBox(this);
+                const PrimeTowerShare stored = prime_tower_share_override(m_result, m_count, (unsigned) i, (unsigned) j);
+                const bool checked = stored == PrimeTowerShare::Auto ? auto_share(i, j) : stored == PrimeTowerShare::Share;
+                check->SetValue(checked);
+                check->SetToolTip(wxString::Format(_L("Filaments %d and %d purge into one tower"), int(i) + 1, int(j) + 1));
+                check->Bind(wxEVT_TOGGLEBUTTON, [this, i, j](wxCommandEvent &e) {
+                    if (m_checks[j][i])
+                        m_checks[j][i]->SetValue(m_checks[i][j]->GetValue());
+                    update_summary();
+                    e.Skip();
+                });
+                m_checks[i][j] = check;
+                grid->Add(check, 0, wxALIGN_CENTER);
+            } else {
+                // Mirror of the upper triangle, kept in sync so either half can be clicked.
+                auto check = new ::CheckBox(this);
+                check->SetValue(pair_checked(j, i));
+                check->Bind(wxEVT_TOGGLEBUTTON, [this, i, j](wxCommandEvent &e) {
+                    if (m_checks[j][i])
+                        m_checks[j][i]->SetValue(m_checks[i][j]->GetValue());
+                    update_summary();
+                    e.Skip();
+                });
+                m_checks[i][j] = check;
+                grid->Add(check, 0, wxALIGN_CENTER);
+            }
+        }
+    }
+    main_sizer->Add(grid, 0, wxLEFT | wxRIGHT, FromDIP(12));
+
+    m_summary = new Label(this, "");
+    m_summary->Wrap(FromDIP(560));
+    main_sizer->Add(m_summary, 0, wxEXPAND | wxALL, FromDIP(12));
+    m_warning = new Label(this, "");
+    m_warning->SetForegroundColour(wxColour("#D01B1B"));
+    m_warning->Wrap(FromDIP(560));
+    main_sizer->Add(m_warning, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+
+    auto dlg_btns = new DialogButtons(this, {"Reset to automatic", "OK", "Cancel"}, _L("OK"), 1);
+    if (Button *reset_btn = dlg_btns->GetButtonFromIndex(0))
+        reset_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { reset_to_auto(); });
+    main_sizer->Add(dlg_btns, 0, wxEXPAND);
+
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+        // Store only the deviations from the automatic verdict.
+        m_result.assign(m_count * m_count, int(PrimeTowerShare::Auto));
+        for (size_t i = 0; i < m_count; ++i)
+            for (size_t j = i + 1; j < m_count; ++j) {
+                const bool checked = pair_checked(i, j);
+                if (checked != auto_share(i, j))
+                    prime_tower_set_share_override(m_result, m_count, (unsigned) i, (unsigned) j,
+                                                   checked ? PrimeTowerShare::Share : PrimeTowerShare::Separate);
+            }
+        m_submit_flag = true;
+        EndModal(wxID_OK);
+    });
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_CANCEL); });
+    this->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent &) { EndModal(wxID_CANCEL); });
+
+    update_summary();
+    SetSizer(main_sizer);
+    main_sizer->SetSizeHints(this);
+    wxGetApp().UpdateDlgDarkUI(this);
+    CentreOnParent();
+}
+
+bool PrimeTowerShareDialog::auto_share(size_t a, size_t b) const
+{
+    if (a == b)
+        return true;
+    if (!m_auto_by_material)
+        return false;
+    return MaterialType::bonds(m_types[a], m_types[b]);
+}
+
+bool PrimeTowerShareDialog::pair_checked(size_t a, size_t b) const
+{
+    if (a == b)
+        return true;
+    if (a > b)
+        std::swap(a, b);
+    return m_checks[a][b] != nullptr && m_checks[a][b]->GetValue();
+}
+
+void PrimeTowerShareDialog::reset_to_auto()
+{
+    for (size_t i = 0; i < m_count; ++i)
+        for (size_t j = 0; j < m_count; ++j)
+            if (i != j && m_checks[i][j])
+                m_checks[i][j]->SetValue(auto_share(i, j));
+    update_summary();
+}
+
+void PrimeTowerShareDialog::update_summary()
+{
+    // Effective groups from the checked pairs (transitive): the same union the slicer applies.
+    std::vector<int> matrix(m_count * m_count, int(PrimeTowerShare::Separate));
+    std::vector<unsigned int> all;
+    for (size_t i = 0; i < m_count; ++i) {
+        all.push_back((unsigned) i);
+        for (size_t j = 0; j < m_count; ++j)
+            if (pair_checked(i, j))
+                matrix[i * m_count + j] = int(PrimeTowerShare::Share);
+    }
+    const std::vector<int> group_of  = prime_tower_groups(m_types, matrix, false, all);
+    const std::vector<int> group_ids = prime_tower_group_ids(group_of, all);
+
+    wxString summary = wxString::Format(_L("Resulting towers: %d"), int(group_ids.size()));
+    wxString warning;
+    for (int g : group_ids) {
+        wxString members;
+        std::vector<size_t> ids;
+        for (size_t i = 0; i < m_count; ++i)
+            if (group_of[i] == g) {
+                ids.push_back(i);
+                if (!members.empty())
+                    members += ", ";
+                members += wxString::Format("%d %s", int(i) + 1, wxString::FromUTF8(m_types[i]));
+            }
+        summary += "\n  [" + members + "]";
+        for (size_t a = 0; a < ids.size(); ++a)
+            for (size_t b = a + 1; b < ids.size(); ++b)
+                if (MaterialType::compatibility(m_types[ids[a]], m_types[ids[b]]) == MaterialCompatibility::Incompatible) {
+                    if (warning.empty())
+                        warning = _L("Warning: materials that do not bond share a tower:");
+                    warning += wxString::Format("\n  %d %s + %d %s", int(ids[a]) + 1, wxString::FromUTF8(m_types[ids[a]]),
+                                                int(ids[b]) + 1, wxString::FromUTF8(m_types[ids[b]]));
+                }
+    }
+    m_summary->SetLabel(summary);
+    m_warning->SetLabel(warning);
+    m_warning->Show(!warning.empty());
+    Layout();
+    Fit();
+}
+
+void open_prime_tower_share_dialog(wxEvtHandler *parent, const wxEvent &event)
+{
+    auto &project_config = wxGetApp().preset_bundle->project_config;
+
+    PrimeTowerShareDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
+    dlg.ShowModal();
+    if (dlg.GetSubmitFlag()) {
+        project_config.option<ConfigOptionInts>("prime_tower_share_matrix", true)->values = dlg.GetMatrix();
+        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+        wxGetApp().plater()->update_project_dirty_from_presets();
+        wxPostEvent(parent, event);
+    }
 }

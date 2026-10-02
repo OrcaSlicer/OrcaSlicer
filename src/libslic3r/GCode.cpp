@@ -1980,16 +1980,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode;
     }
 
-    // Independent towers store every filament's TCR on the same layer. append_tcr2 requires
-    // new_extruder_id == tcr.new_tool, so matching on tower_filament alone (a dummy finish
-    // written with a stale current tool) throws "a toolchange it didn't expect".
+    // Independent towers store every tower's TCRs on the same layer; tower_filament is the group
+    // id, not the printing filament. append_tcr2 requires new_extruder_id == tcr.new_tool, so the
+    // TCR is matched on the tool it really switches to. Every extruder prints once per layer and
+    // belongs to exactly one group, so this picks each TCR exactly once.
     static bool independent_wipe_tower_tcr_matches(const WipeTower::ToolChangeResult &tcr, int extruder_id)
     {
-        if (!tcr.has_tower_pos)
-            return false;
-        if (tcr.new_tool != extruder_id)
-            return false;
-        return tcr.tower_filament < 0 || tcr.tower_filament == extruder_id;
+        return tcr.has_tower_pos && tcr.new_tool == extruder_id;
     }
 
     std::string WipeTowerIntegration::tool_change(GCode &gcodegen, int extruder_id, bool finish_layer)
@@ -2006,10 +2003,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     if (!independent_wipe_tower_tcr_matches(tcr, extruder_id))
                         continue;
                     double wipe_tower_z = -1;
-                    const int filament = tcr.tower_filament >= 0 ? tcr.tower_filament : tcr.new_tool;
-                    if (filament >= 0 && size_t(filament) < m_independent_last_z.size()) {
-                        m_independent_last_z[size_t(filament)] += tcr.layer_height;
-                        wipe_tower_z = m_independent_last_z[size_t(filament)];
+                    const int tower = tcr.tower_filament >= 0 ? tcr.tower_filament : tcr.new_tool;
+                    if (tower >= 0 && size_t(tower) < m_independent_last_z.size()) {
+                        // One compacted step per tower per print layer, even when several filaments
+                        // of the same group purge into it on that layer.
+                        if (m_independent_z_layer[size_t(tower)] != m_layer_idx) {
+                            m_independent_last_z[size_t(tower)] += tcr.layer_height;
+                            m_independent_z_layer[size_t(tower)] = m_layer_idx;
+                        }
+                        wipe_tower_z = m_independent_last_z[size_t(tower)];
                     }
                     gcode += append_tcr2(gcodegen, tcr, tcr.new_tool, wipe_tower_z);
                 }
@@ -6105,6 +6107,19 @@ LayerResult GCode::process_layer(
                 // Both the support and the support interface are printed with the same extruder, therefore
                 // the interface may be interleaved with the support base.
                 bool single_extruder = ! has_support || support_extruder == interface_extruder;
+                // The extruder the support base group prints with; the interface group always uses interface_extruder.
+                const unsigned int base_extruder = has_support ? support_extruder : interface_extruder;
+                // Support ironing extruder. "Default" (0) follows the support interface filament.
+                unsigned int ironing_extruder = object.config().support_ironing_filament.value > 0
+                    ? (unsigned int) (object.config().support_ironing_filament.value - 1)
+                    : interface_extruder;
+                // Ironing sits on the top interface, so not every layer has it.
+                bool has_ironing = false;
+                for (const ExtrusionEntity *ee : support_layer.support_fills.entities)
+                    if (ee->role() == erIroning) { has_ironing = true; break; }
+                // Ironing needs its own group only when neither existing group already uses its extruder.
+                bool ironing_own_group = has_ironing && ironing_extruder != base_extruder && ironing_extruder != interface_extruder;
+
                 // Farthest-point timelapse: record the extruder for each support role so
                 // compute_farthest_point can attribute farthest support points correctly.
                 if (has_support) {
@@ -6112,17 +6127,27 @@ LayerResult GCode::process_layer(
                     support_filaments[{ &support_layer, erSupportTransition }] = support_extruder;
                 }
                 if (has_interface) {
-                    support_filaments[{ &support_layer, erSupportMaterialInterface }] =
-                        single_extruder ? (has_support ? support_extruder : interface_extruder) : interface_extruder;
+                    support_filaments[{ &support_layer, erSupportMaterialInterface }] = interface_extruder;
                 }
+                if (has_ironing)
+                    support_filaments[{ &support_layer, erIroning }] = ironing_extruder;
                 // Assign an extruder to the base.
-                ObjectByExtruder &obj = object_by_extruder(by_extruder, has_support ? support_extruder : interface_extruder, &layer_to_print - layers.data(), layers.size());
+                ObjectByExtruder &obj = object_by_extruder(by_extruder, base_extruder, &layer_to_print - layers.data(), layers.size());
                 obj.support = &support_layer.support_fills;
                 obj.support_extrusion_role = single_extruder ? erMixed : erSupportMaterial;
+                // Each group prints the ironing pass when the ironing filament is the one it already uses.
+                obj.prints_ironing = has_ironing && ironing_extruder == base_extruder;
                 if (! single_extruder && has_interface) {
                     ObjectByExtruder &obj_interface = object_by_extruder(by_extruder, interface_extruder, &layer_to_print - layers.data(), layers.size());
                     obj_interface.support = &support_layer.support_fills;
                     obj_interface.support_extrusion_role = erSupportMaterialInterface;
+                    obj_interface.prints_ironing = has_ironing && ironing_extruder == interface_extruder;
+                }
+                if (ironing_own_group) {
+                    ObjectByExtruder &obj_ironing = object_by_extruder(by_extruder, ironing_extruder, &layer_to_print - layers.data(), layers.size());
+                    obj_ironing.support = &support_layer.support_fills;
+                    // The erIroning role makes extrude_support() emit only the ironing pass for this group.
+                    obj_ironing.support_extrusion_role = erIroning;
                 }
             }
         }
@@ -6660,14 +6685,18 @@ LayerResult GCode::process_layer(
                     bool support_intf_overridden = wiping_extrusions.is_support_interface_overridden(layer_to_print.original_object);
 
                     ExtrusionRole support_extrusion_role = instance_to_print.object_by_extruder.support_extrusion_role;
-                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden : support_overridden;
+                    // A dedicated ironing group (role erIroning) prints in the normal, non-wiping pass.
+                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden
+                                       : support_extrusion_role == erIroning                 ? false
+                                       :                                                        support_overridden;
                     if (is_overridden == (print_wipe_extrusions != 0)) {
                         gcode += this->extrude_support(
-                            // support_extrusion_role is erSupportMaterial, erSupportTransition, erSupportMaterialInterface or erMixed for all extrusion paths.
+                            // support_extrusion_role is erSupportMaterial, erSupportTransition, erSupportMaterialInterface,
+                            // erIroning (dedicated ironing group) or erMixed for all extrusion paths.
                             *instance_to_print.object_by_extruder.support, support_extrusion_role);
 
-                        // Make sure ironing is the last
-                        if (support_extrusion_role == erMixed || support_extrusion_role == erSupportMaterialInterface) {
+                        // Ironing goes last. A dedicated ironing group already emitted it above via its role.
+                        if (instance_to_print.object_by_extruder.prints_ironing) {
                             gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                         }
                     }
@@ -7052,8 +7081,9 @@ LayerResult GCode::process_layer(
                     }
                     ExtrusionRole support_role = instance_to_print.object_by_extruder.support_extrusion_role;
                     gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, support_role);
-                    // Make sure ironing is the last (Orca names this role erIroning, not erSupportIroning).
-                    if (support_role == erMixed || support_role == erSupportMaterialInterface)
+                    // Ironing goes last (Orca names this role erIroning, not erSupportIroning). A dedicated
+                    // ironing group (role erIroning) already emitted it above.
+                    if (instance_to_print.object_by_extruder.prints_ironing)
                         gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                 }
 
