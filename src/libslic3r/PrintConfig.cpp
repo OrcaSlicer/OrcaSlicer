@@ -8,6 +8,7 @@
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
+#include <numeric>
 #include <set>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -671,19 +672,46 @@ std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolume
     return variant_string;
 }
 
+int find_variant_column(const std::string& variant, int owner_id, const std::vector<std::string>& source_variants, const std::vector<int>& source_ids)
+{
+    const int count = int(source_variants.empty() ? source_ids.size() : source_variants.size());
+    if (count == 0)
+        return 0;
+    auto same_owner = [&](int index) {
+        return owner_id < 0 || source_ids.empty() || (index < int(source_ids.size()) && source_ids[index] == owner_id);
+    };
+    for (int index = 0; index < int(source_variants.size()); ++index)
+        if (source_variants[index] == variant && same_owner(index))
+            return index;
+    // Without this variant, use the owner's own first variant (usually Standard), not column 0,
+    // which belongs to the first filament or extruder.
+    for (int index = 0; index < count; ++index)
+        if (same_owner(index))
+            return index;
+    return -1;
+}
+
+std::vector<int> map_variant_columns(const std::vector<std::string>& target_variants, const std::vector<int>& target_ids,
+                                     const std::vector<std::string>& source_variants, const std::vector<int>& source_ids)
+{
+    const size_t count = target_variants.empty() ? target_ids.size() : target_variants.size();
+    std::vector<int> columns(count);
+    for (size_t index = 0; index < count; ++index) {
+        if (!target_ids.empty() && index >= target_ids.size()) {
+            columns[index] = -1;
+            continue;
+        }
+        columns[index] = find_variant_column(index < target_variants.size() ? target_variants[index] : std::string(),
+                                             target_ids.empty() ? -1 : target_ids[index], source_variants, source_ids);
+    }
+    return columns;
+}
+
 int get_config_index_base(NozzleVolumeType volume_type, ExtruderType extruder_type, int variant_id_1based, const std::vector<std::string>& variant_list, const std::vector<int>& variant_ids_1based)
 {
     assert(variant_list.size() == variant_ids_1based.size());
-    std::string extruder_variant = get_extruder_variant_string(extruder_type, volume_type);
-    for (int index = 0; index < int(variant_list.size()); ++index) {
-        if (extruder_variant == variant_list[index] && variant_ids_1based[index] == variant_id_1based) { return index; }
-    }
-    // Without this variant, use the id's own first variant (usually Standard), not variant index 0,
-    // which belongs to the first filament or extruder.
-    for (int index = 0; index < int(variant_list.size()); ++index) {
-        if (variant_ids_1based[index] == variant_id_1based) { return index; }
-    }
-    return 0;
+    const int index = find_variant_column(get_extruder_variant_string(extruder_type, volume_type), variant_id_1based, variant_list, variant_ids_1based);
+    return std::max(index, 0);
 }
 
 std::set<NozzleVolumeType> get_extruder_supported_nozzle_volume_types(const DynamicPrintConfig &printer_config, int extruder_id)
@@ -10741,14 +10769,23 @@ void normalize_filament_values_to_variants(DynamicPrintConfig &config)
     const int filament_count = *std::max_element(self_index->values.begin(), self_index->values.end());
     if (filament_count <= 0 || size_t(filament_count) >= self_index->size())
         return;
+    // The source holds one unnamed column per filament, or a single value for all of them. The target's
+    // variant names do not change today's mapping; they are passed so a rule that reads them applies here too.
+    const auto *variants = config.option<ConfigOptionStrings>("filament_extruder_variant");
+    const std::vector<std::string> target_variants = variants && variants->size() == self_index->size() ? variants->values : std::vector<std::string>();
+    std::vector<int> filament_ids(filament_count);
+    std::iota(filament_ids.begin(), filament_ids.end(), 1);
+    const std::vector<int> from_filaments = map_variant_columns(target_variants, self_index->values, {}, filament_ids);
+    const std::vector<int> from_single    = map_variant_columns(target_variants, self_index->values, {}, {});
     for (const std::string &key : filament_options_with_variant) {
         auto *opt = dynamic_cast<ConfigOptionVectorBase *>(config.option(key));
         if (opt == nullptr || (opt->size() != size_t(filament_count) && opt->size() != 1))
             continue;
-        std::unique_ptr<ConfigOption> per_filament(opt->clone());
-        // set_at() takes the first value for a filament past the end of a single-value vector
+        const std::vector<int> &columns = opt->size() == size_t(filament_count) ? from_filaments : from_single;
+        std::unique_ptr<ConfigOption> source(opt->clone());
+        // -1 and a single-value source both resolve to the first value through get_at()
         for (size_t variant = 0; variant < self_index->size(); ++variant)
-            opt->set_at(per_filament.get(), variant, self_index->values[variant] - 1);
+            opt->set_at(source.get(), variant, columns[variant]);
     }
 }
 
@@ -11583,19 +11620,13 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
         variant_index.resize(1, 0);
 
     // A parent variant the child does not list (the parent gained it after the child was saved, or the
-    // child lists none) takes the child's first variant of the same extruder, as slicing does in
-    // get_config_index_base. Left unmatched, the parent's value would silently replace the user's.
-    auto same_extruder = [&](int i, int child_extruder_id) {
-        return cur_extruder_ids.empty() || child_extruder_id < 0 ||
-               (i < int(cur_extruder_ids.size()) && cur_extruder_ids[i] == child_extruder_id);
-    };
-
+    // child lists none) takes the child's first variant of the same extruder, as slicing does.
+    // Left unmatched, the parent's value would silently replace the user's.
     if (target_variant_count == 0) {
         // The child's one value belongs to the extruder of the parent's first variant.
-        const int child_extruder_id = cur_extruder_ids.empty() ? -1 : cur_extruder_ids[0];
-        for (int i = 0; i < int(variant_index.size()); i++)
-            if (i == 0 || same_extruder(i, child_extruder_id))
-                variant_index[i] = 0;
+        if (cur_variant_count > 0)
+            variant_index = map_variant_columns(cur_extruder_variants, cur_extruder_ids, {},
+                                                cur_extruder_ids.empty() ? std::vector<int>() : std::vector<int>{cur_extruder_ids[0]});
     }
     else if ((cur_extruder_ids.size() > 0) && cur_variant_count != cur_extruder_ids.size()){
         //should not happen
@@ -11607,28 +11638,8 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" size of %1% = %2%, not equal to size of %3% = %4%")
              %extruder_variant_name %target_variant_count %extruder_id_name %target_extruder_ids.size();
     }
-    else {
-        for (int i = 0; i < cur_variant_count; i++)
-        {
-            for (int j = 0; j < target_variant_count; j++)
-            {
-                if ((cur_extruder_variants[i] == target_extruder_variants[j])
-                    &&(cur_extruder_ids.empty() || target_extruder_ids.empty() || (cur_extruder_ids[i] == target_extruder_ids[j])))
-                {
-                    variant_index[i] = j;
-                    break;
-                }
-            }
-        }
-        for (int i = 0; i < cur_variant_count; i++) {
-            if (variant_index[i] != -1)
-                continue;
-            for (int j = 0; j < target_variant_count; j++)
-                if (same_extruder(i, target_extruder_ids.empty() ? -1 : target_extruder_ids[j])) {
-                    variant_index[i] = j;
-                    break;
-                }
-        }
+    else if (cur_variant_count > 0) {
+        variant_index = map_variant_columns(cur_extruder_variants, cur_extruder_ids, target_extruder_variants, target_extruder_ids);
     }
 
     const t_config_option_keys &keys = new_config.keys();

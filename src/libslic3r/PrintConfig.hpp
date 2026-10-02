@@ -556,6 +556,16 @@ enum PrimeVolumeMode {
 
 extern std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
 
+// The variant column a value is taken from: in a source variant list paired with its 1-based owner
+// (extruder or filament) ids, the column with the same variant and owner, else that owner's first
+// column, else -1. owner_id < 0 or empty source ids match any owner. A source without variant names
+// is one unnamed column per id, and one with neither names nor ids is a single unnamed column.
+extern int find_variant_column(const std::string& variant, int owner_id, const std::vector<std::string>& source_variants, const std::vector<int>& source_ids);
+// find_variant_column for every column of a target variant list paired with its owner ids. A column
+// past the end of a shorter id list has no owner and gets -1.
+extern std::vector<int> map_variant_columns(const std::vector<std::string>& target_variants, const std::vector<int>& target_ids,
+                                            const std::vector<std::string>& source_variants, const std::vector<int>& source_ids);
+
 // Base slot lookup: scans a variant list (paired with its 1-based extruder/filament ids) for the
 // entry matching the given extruder/volume type and id. Returns 0 when no entry matches.
 extern int get_config_index_base(NozzleVolumeType volume_type, ExtruderType extruder_type, int variant_id_1based, const std::vector<std::string>& variant_list, const std::vector<int>& variant_ids_1based);

@@ -421,6 +421,34 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
     }
 }
 
+TEST_CASE("A variant column comes from the same variant and owner, else the owner's first column", "[Config][Variant]") {
+    const std::vector<std::string> source_variants{"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard"};
+    const std::vector<int>         source_ids{1, 1, 2};
+
+    SECTION("same variant and owner") {
+        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", 1, source_variants, source_ids) == 1);
+        CHECK(Slic3r::find_variant_column("Direct Drive Standard", 2, source_variants, source_ids) == 2);
+    }
+    SECTION("a variant the owner lacks falls back to the owner's first column") {
+        CHECK(Slic3r::find_variant_column("Bowden Standard", 1, source_variants, source_ids) == 0);
+        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", 2, source_variants, source_ids) == 2);
+    }
+    SECTION("an owner with no columns matches none") {
+        CHECK(Slic3r::find_variant_column("Direct Drive Standard", 3, source_variants, source_ids) == -1);
+    }
+    SECTION("a negative owner or a source without ids matches any owner") {
+        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", -1, source_variants, source_ids) == 1);
+        CHECK(Slic3r::find_variant_column("Direct Drive High Flow", 2, source_variants, {}) == 1);
+    }
+    SECTION("a target column past a shorter id list gets no column") {
+        CHECK(Slic3r::map_variant_columns(source_variants, {1}, source_variants, source_ids) == std::vector<int>{0, -1, -1});
+    }
+    SECTION("a source without names is one column per owner, and an empty one a single column") {
+        CHECK(Slic3r::map_variant_columns(source_variants, source_ids, {}, {1, 2}) == std::vector<int>{0, 0, 1});
+        CHECK(Slic3r::map_variant_columns(source_variants, source_ids, {}, {}) == std::vector<int>{0, 0, 0});
+    }
+}
+
 SCENARIO("update_diff_values_to_child_config keeps a child's values on variants it does not list",
          "[Config][Variant]") {
     std::set<std::string> no_keys;
