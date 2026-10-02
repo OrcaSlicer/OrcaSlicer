@@ -2,7 +2,17 @@
 #define slic3r_PresetComboBoxes_hpp_
 
 //#include <wx/bmpcbox.h>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <utility>
 #include <wx/colourdata.h>
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/clrpicker.h>
 
@@ -205,6 +215,7 @@ public:
     void msw_rescale() override;
     void OnSelect(wxCommandEvent& evt) override;
     void update_badge_according_flag();
+    void set_sync_badge(bool show);
 
     FilamentColor get_cur_color_info();
     void show_default_color_picker();
@@ -214,6 +225,7 @@ public:
 private:
     // BBS
     wxColor m_color;
+    bool    m_sync_badge{false};
 };
 
 

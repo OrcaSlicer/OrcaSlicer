@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PLA @XL",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Prusament PLA @base",
 	"from": "system",
 	"setting_id": "PlHq1KqHrreo5W8m",
 	"instantiation": "true",
@@ -33,8 +33,6 @@
 	"filament_loading_speed": "10",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "100",
-	"filament_load_time": "10.5",
-	"filament_unload_time": "8.5",
 	"filament_cooling_moves": "2",
 	"filament_cooling_initial_speed": "10",
 	"filament_cooling_final_speed": "3.5",

@@ -2,7 +2,14 @@
 #define slic3r_GUI_IMSlider_hpp_
 
 #include "TickCode.hpp"
+#include <cstddef>
+#include <functional>
+#include <array>
 #include <imgui/imgui.h>
+#include <vector>
+#include "libslic3r/CustomGCode.hpp"
+#include <string>
+#include <wx/event.h>
 #include <wx/slider.h>
 
 #include <set>
@@ -216,7 +223,6 @@ private:
     long                m_extra_style;
     float               m_label_koef{1.0};
 
-    float                    m_zero_layer_height = 0.0f;
     std::vector<double>      m_values;
     TickCodeInfo             m_ticks;
     std::vector<double>      m_layers_times;

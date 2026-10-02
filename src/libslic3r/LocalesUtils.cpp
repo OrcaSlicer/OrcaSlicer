@@ -3,6 +3,8 @@
 #ifdef _WIN32
     #include <charconv>
 #endif
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 
 #include <fast_float/fast_float.h>
@@ -11,8 +13,19 @@
 namespace Slic3r {
 
 
+// How many setters this thread holds, so the ones nested in another can skip
+// setlocale, which takes a lock the whole process shares on Windows.
+static thread_local int s_numeric_locale_depth = 0;
+
 CNumericLocalesSetter::CNumericLocalesSetter()
 {
+    // Nested in another setter on this thread, whose "C" the separator check
+    // confirms is still set.
+    if (s_numeric_locale_depth > 0 && is_decimal_separator_point()) {
+        m_nested = true;
+        ++ s_numeric_locale_depth;
+        return;
+    }
 #ifdef _WIN32
     _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
     m_orig_numeric_locale = std::setlocale(LC_NUMERIC, nullptr);
@@ -27,12 +40,17 @@ CNumericLocalesSetter::CNumericLocalesSetter()
     m_new_locale = newlocale(LC_NUMERIC_MASK, "C", m_new_locale);
     uselocale(m_new_locale);
 #endif
+    // Counted last, since the destructor does not run for a constructor that throws.
+    ++ s_numeric_locale_depth;
 }
 
 
 
 CNumericLocalesSetter::~CNumericLocalesSetter()
 {
+    -- s_numeric_locale_depth;
+    if (m_nested)
+        return;
 #ifdef _WIN32
     std::setlocale(LC_NUMERIC, m_orig_numeric_locale.data());
 #else

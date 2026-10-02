@@ -3,7 +3,9 @@
 
 #include "CalibrationWizard.hpp"
 #include "Tabbook.hpp"
-//#include "Widgets/SideTools.hpp"
+#include "Lazy.hpp"
+#include "SelectMachinePop.hpp"
+#include "Widgets/SideTools.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -70,11 +72,7 @@ public:
 
 private:
     int                                 m_my_devices_count{ 0 };
-    int                                 m_other_devices_count{ 0 };
     bool                                m_dismiss{ false };
-    wxWindow*                           m_placeholder_panel   { nullptr };
-    wxWindow*                           m_panel_body{ nullptr };
-    wxBoxSizer*                         m_sizer_body{ nullptr };
     wxBoxSizer*                         m_sizer_my_devices{ nullptr };
     wxScrolledWindow*                   m_scrolledWindow{ nullptr };
     wxTimer*                            m_refresh_timer{ nullptr };
@@ -92,7 +90,7 @@ private:
 };
 
 
-class CalibrationPanel : public wxPanel
+class CalibrationPanel : public wxPanel, public StagedBuild, public LazyInstance<CalibrationPanel>
 {
 public:
     CalibrationPanel(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
@@ -113,7 +111,6 @@ protected:
 
 
     int                     last_status;
-    bool                    m_initialized { false };
     std::string             last_conn_type = "undedefined";
     MachineObject*          obj{ nullptr };
     MachineObject*          last_obj { nullptr };

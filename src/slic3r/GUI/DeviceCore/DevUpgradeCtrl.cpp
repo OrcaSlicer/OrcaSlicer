@@ -1,7 +1,10 @@
 #include "DevUpgrade.h"
 #include "DevUtil.h"
 
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
 
 namespace Slic3r {
 

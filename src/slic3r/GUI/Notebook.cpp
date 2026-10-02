@@ -9,8 +9,19 @@
 //BBS set font size
 #include "Widgets/Label.hpp"
 
+#include <wx/bookctrl.h>
+#include <cmath>
+#include <cstddef>
+#include <utility>
+#include <string>
+#include <algorithm>
 #include <wx/button.h>
+#include <wx/colour.h>
+#include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
+#include <wx/window.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
 
@@ -158,11 +169,21 @@ void ButtonsListCtrl::SetSelection(int sel)
 
 bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /* = false*/, const std::string &bmp_name /* = ""*/, const wxBitmap &bmp /* = wxNullBitmap */)
 {
-    Button * btn = new Button(this, text.empty() ? text : " " + text, bmp_name, wxNO_BORDER);
+    Button * btn = new Button(this, text, bmp_name, wxNO_BORDER);
     btn->SetCornerRadius(0);
 
     if (bmp_name.empty() && bmp.IsOk())
         btn->SetIcon(bmp);
+
+    // The label no longer carries a leading space, so widen the icon<->text gap to keep the
+    // original spacing between a tab's icon and its caption.
+    {
+        wxClientDC dc(btn);
+        dc.SetFont(btn->GetFont());
+        int space_w = 0;
+        dc.GetTextExtent(" ", &space_w, nullptr);
+        btn->SetIconSpacing(5 + space_w);
+    }
 
     int em = em_unit(this);
     //BBS set size for button
@@ -190,6 +211,7 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);
     m_pageLabels.insert(m_pageLabels.begin() + n, text); // ORCA
+    m_pageIcons.insert(m_pageIcons.begin() + n, bmp_name);
     m_buttons_sizer->Insert(n, new wxSizerItem(btn));
     m_buttons_sizer->SetCols(m_buttons_sizer->GetCols() + 1);
     m_sizer->Layout();
@@ -209,6 +231,7 @@ void ButtonsListCtrl::RemovePage(size_t n)
     Button* btn = m_pageButtons[n];
     m_pageButtons.erase(m_pageButtons.begin() + n);
     m_pageLabels.erase(m_pageLabels.begin() + n); // ORCA
+    m_pageIcons.erase(m_pageIcons.begin() + n);
     m_buttons_sizer->Remove(n);
 #if __WXOSX__
     RemoveChild(btn);
@@ -245,13 +268,19 @@ void ButtonsListCtrl::SetCompact(size_t n, bool compact)
     int em = em_unit(this);
     Button* btn = m_pageButtons[n];
     btn->SetMinSize({(compact ? 40 : 136) * em / 10, 36 * em / 10});
-    btn->SetLabel(compact ? "" : (" " +  m_pageLabels[n]));
+    btn->SetLabel(compact ? "" : m_pageLabels[n]);
 }
 
 wxString ButtonsListCtrl::GetPageText(size_t n) const
 {
     Button* btn = m_pageButtons[n];
     return btn->GetLabel();
+}
+
+// ORCA
+wxString ButtonsListCtrl::GetPageLabel(size_t n) const
+{
+    return n < m_pageLabels.size() ? m_pageLabels[n] : wxString();
 }
 
 // ORCA

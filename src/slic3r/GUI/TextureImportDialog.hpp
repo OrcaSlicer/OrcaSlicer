@@ -4,11 +4,14 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "libslic3r/TexturePainting.hpp"
 
+#include <cstddef>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include "Widgets/PopupWindow.hpp"
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include "Widgets/SpinInput.hpp"
 #include <wx/checkbox.h>

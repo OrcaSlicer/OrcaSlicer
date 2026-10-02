@@ -1,10 +1,29 @@
 #include "GLGizmoScale.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <cstddef>
+#include <array>
+#include <cstdlib>
+#include <cmath>
 #include <glad/gl.h>
 
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <wx/intl.h>
+#include "libslic3r/Model.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include <utility>
+#include "libslic3r/Geometry.hpp"
 #include <wx/utils.h>
 
 namespace Slic3r {
@@ -135,7 +154,7 @@ bool GLGizmoScale3D::on_init()
 
     // BBS
     m_grabbers[4].enabled = false;
-    m_shortcut_key = WXK_CONTROL_S;
+    m_shortcut = Shortcut::GizmoScale;
 
     return true;
 }

@@ -1,6 +1,8 @@
 #ifndef slic3r_GUI_WebView_hpp_
 #define slic3r_GUI_WebView_hpp_
 
+#include <wx/string.h>
+#include <wx/setup.h>
 #include <wx/webview.h>
 #include <wx/event.h>
 

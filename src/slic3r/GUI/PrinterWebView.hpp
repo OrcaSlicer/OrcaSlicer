@@ -6,6 +6,8 @@
 #include "wx/cmdline.h"
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
+#include <wx/setup.h>
+#include <wx/event.h>
 #include <wx/webview.h>
 #include <wx/string.h>
 
@@ -27,6 +29,7 @@
 #include <wx/timer.h>
 #include <functional>
 #include <memory>
+#include "Lazy.hpp"
 
 
 namespace Slic3r {
@@ -37,7 +40,7 @@ class PrintagoTabBridge;
 class Plater;
 
 
-class PrinterWebView : public wxPanel {
+class PrinterWebView : public wxPanel, public LazyInstance<PrinterWebView> {
 public:
     PrinterWebView(wxWindow *parent);
     virtual ~PrinterWebView();

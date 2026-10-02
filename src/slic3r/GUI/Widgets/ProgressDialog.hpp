@@ -7,6 +7,12 @@
 #include "wx/simplebook.h"
 #include "Button.hpp"
 #include "../wxExtensions.hpp"
+#include <wx/dlimpexp.h>
+#include <wx/string.h>
+#include <cstddef>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/translation.h>
 
 class WXDLLIMPEXP_FWD_CORE wxButton;
 class WXDLLIMPEXP_FWD_CORE wxEventLoop;
@@ -18,7 +24,7 @@ class WXDLLIMPEXP_FWD_CORE wxWindowDisabler;
 #define PROGRESSDIALOG_GAUGE_SIZE wxSize(FromDIP(320), FromDIP(6))
 #define PROGRESSDIALOG_CANCEL_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
 #define PROGRESSDIALOG_DEF_BK wxColour(255,255,255)
-#define PROGRESSDIALOG_GREY_700 wxColour(107,107,107)
+#define PROGRESSDIALOG_GREY_700 wxColour(54,54,54) // #363636 label color
 
 #define wxPD_NO_PROGRESS 0x0100
 

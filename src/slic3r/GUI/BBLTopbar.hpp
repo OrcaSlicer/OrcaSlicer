@@ -7,6 +7,9 @@
 #include "DeviceManager.hpp"
 
 #include <wx/control.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 
 using namespace Slic3r::GUI;
 
@@ -93,7 +96,6 @@ private:
     CenteredTitle*    m_title_ctrl { nullptr };
     wxString          m_titleText;
 
-    wxAuiToolBarItem* m_model_store_item;
     
     //wxAuiToolBarItem *m_publish_item;
     wxAuiToolBarItem* m_undo_item;

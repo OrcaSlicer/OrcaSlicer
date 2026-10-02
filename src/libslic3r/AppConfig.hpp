@@ -2,6 +2,7 @@
 #define slic3r_AppConfig_hpp_
 
 #include <set>
+#include <chrono>
 #include <map>
 #include <string>
 #include "nlohmann/json.hpp"
@@ -33,6 +34,8 @@ using namespace nlohmann;
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
+#define SETTING_OPENGL_SCENE_CACHE "opengl_scene_cache"
+#define SETTING_OPENGL_SKIP_IDENTICAL_FRAMES "opengl_skip_identical_frames"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
@@ -40,11 +43,17 @@ using namespace nlohmann;
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
+#define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
 #define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
 #define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
+
+#define SETTING_SPEED_DIAL_RECENT_COUNT "speed_dial_recent_count"
+#define SPEED_DIAL_RECENT_COUNT_MIN 0
+#define SPEED_DIAL_RECENT_COUNT_DEFAULT 5
+#define SPEED_DIAL_RECENT_COUNT_MAX 10
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
@@ -113,13 +122,19 @@ public:
 	void 			   	set_defaults();
 
 	// Load the slic3r.ini from a user profile directory (or a datadir, if configured).
-	// return error string or empty strinf
-	std::string         load();
+	// Return an error string, or an empty string on success.
+	std::string         load(bool read_only = false);
+	// Treat a missing config as default state; otherwise load it normally.
+	// The CLI's load: it never saves, so it takes no lock and creates no lock file.
+	std::string         load_if_exists();
 	// Store the slic3r.ini into a user profile directory (or a datadir, if configured).
 	void 			   	save();
 
 	// Does this config need to be saved?
 	bool 				dirty() const { return m_dirty; }
+	// False for ten seconds after a failed write, so the idle handler does not
+	// repeat a hopeless attempt on every event; an explicit save() always tries.
+	bool 				save_due() const { return std::chrono::steady_clock::now() >= m_retry_save_at; }
 
 
 	void				set_dirty() { m_dirty = true; }
@@ -329,6 +344,8 @@ public:
 
 	// Get the default config path from Slic3r::data_dir().
 	std::string			config_path();
+	// Lock file guarding config_path() against other running instances; empty without a data dir.
+	std::string			lock_path();
 
 	// Returns true if the user's data directory comes from before Slic3r 1.40.0 (no updating)
 	bool 				legacy_datadir() const { return m_legacy_datadir; }
@@ -392,6 +409,9 @@ public:
     // dropdown on the last tab.
     int get_plugin_pages_visible_count() const;
 
+    // Number of recently launched actions shown at the top of the Speed Dial; 0 hides them.
+    int get_speed_dial_recent_count() const;
+
     std::vector<std::string> get_skipped_network_versions() const;
     void add_skipped_network_version(const std::string& version);
     bool is_network_version_skipped(const std::string& version) const;
@@ -436,8 +456,16 @@ private:
 
 	// Preset for each machine
 	MachineSettingMap											m_printer_settings;
+	// Writes the assembled config text, and on Windows its checksum and a backup copy; false when the
+	// config itself could not be written, in which case the caller stays dirty and retries. `checksum_source`
+	// is the text load() will verify, which for the JSON config ends before the trailing newline.
+	bool												write_config_file(const std::string &path, std::string body, const std::string &checksum_source);
+
 	// Has any value been modified since the config.ini has been last saved or loaded?
 	bool														m_dirty;
+	// After a failed write, save_due() is false for the next ten seconds, so the
+	// idle handler does not repeat a hopeless write on every event.
+	std::chrono::steady_clock::time_point						m_retry_save_at{};
 	// Original version found in the ini file before it was overwritten
 	Semver                                                      m_orig_version;
 	// Whether the existing version is before system profiles & configuration updating

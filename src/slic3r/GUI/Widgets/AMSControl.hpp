@@ -9,11 +9,24 @@
 #include "../DeviceManager.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/AmsMappingPopup.hpp"
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <map>
+#include <vector>
+#include <utility>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/colour.h>
+#include <wx/event.h>
 #include <wx/simplebook.h>
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
 #include <tuple>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/AMSDryControl.hpp"

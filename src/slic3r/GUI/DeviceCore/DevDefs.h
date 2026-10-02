@@ -9,8 +9,12 @@
 */
 
 #pragma once
+#include <functional>
+#include <cstddef>
 #include <string>
 #include <nlohmann/json.hpp>
+#include <utility>
+#include <unordered_map>
 
 // Reserved for future usage
 #define DEV_RESERVED_FOR_FUTURE(...) /* stripped */

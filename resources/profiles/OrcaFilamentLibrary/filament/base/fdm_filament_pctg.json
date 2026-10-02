@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pctg",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFG97",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"0"

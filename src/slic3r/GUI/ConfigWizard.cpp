@@ -1,9 +1,30 @@
 // FIXME: extract absolute units -> em
 
 #include "ConfigWizard_private.hpp"
+#include "libslic3r_version.h"
 
 #include <algorithm>
+#include <memory>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Preset.hpp"
+#include <functional>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <boost/filesystem/directory.hpp>
+#include <map>
+#include <iterator>
 #include <numeric>
+#include <string>
+#include <set>
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
+#include "slic3r/GUI/BedShapeDialog.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #include <utility>
 #include <unordered_map>
 #include <stdexcept>
@@ -12,8 +33,19 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <vector>
+#include <wx/gdicmn.h>
+#include <wx/html/htmlwin.h>
+#include <wx/arrstr.h>
+#include <wx/busycursor.h>
+#include <wx/dialog.h>
+#include <wx/scrolwin.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/dcclient.h>
 #include <wx/statbmp.h>
@@ -24,6 +56,7 @@
 #include <wx/listbook.h>
 #include <wx/display.h>
 #include <wx/filefn.h>
+#include <wx/types.h>
 #include <wx/wupdlock.h>
 #include <wx/debug.h>
 
@@ -2710,7 +2743,7 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     SetSizerAndFit(vsizer);
 
     // We can now enable scrolling on hscroll
-    p->hscroll->SetScrollRate(30, 30);
+    p->hscroll->SetScrollRate(30, FromDIP(20));
 
     on_window_geometry(this, [this]() {
         p->init_dialog_size();

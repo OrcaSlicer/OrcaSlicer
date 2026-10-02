@@ -1,0 +1,56 @@
+{
+	"type": "filament",
+	"name": "BETA HIPS @base",
+	"inherits": "fdm_filament_hips",
+	"from": "system",
+	"filament_id": "OFlmxlDG",
+	"instantiation": "false",
+	"filament_is_support": [
+		"1"
+	],
+	"filament_vendor": [
+		"BETA"
+	],
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
+	"retraction_distances_when_ec": [
+		"0"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0"
+	],
+	"filament_adhesiveness_category": [
+		"798"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"90"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"75"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"65",
+		"80",
+		"65",
+		"75"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"80"
+	]
+}

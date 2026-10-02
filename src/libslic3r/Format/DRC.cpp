@@ -48,24 +48,37 @@ bool load_drc(const char *path, TriangleMesh *meshptr)
         indexed_triangle_set its;
 
         const PointAttribute *const positions = dracoMesh.GetNamedAttribute(GeometryAttribute::POSITION);
+        if (positions == nullptr) {
+            BOOST_LOG_TRIVIAL(error) << "load_drc: the mesh has no POSITION attribute";
+            return false;
+        }
         size_t num_vertices = positions->size();
         its.vertices.reserve(num_vertices);
         for (AttributeValueIndex i(0); i < num_vertices; ++ i) {
             float pos[3];
-            positions->ConvertValue<float>(i, 3, pos);
+            if (!positions->ConvertValue<float>(i, 3, pos)) {
+                BOOST_LOG_TRIVIAL(error) << "load_drc: invalid vertex position";
+                return false;
+            }
             its.vertices.emplace_back(pos[0], pos[1], pos[2]);
         }
 
+        // The Draco decoder does not check face indices against the point count.
+        const uint32_t num_points = dracoMesh.num_points();
         size_t num_faces = dracoMesh.num_faces();
         its.indices.reserve(num_faces);
         for (FaceIndex i(0); i < num_faces; ++ i) {
-            Mesh::Face face = dracoMesh.face(i);
-
-            its.indices.emplace_back(
-                positions->mapped_index(face[0]).value(),
-                positions->mapped_index(face[1]).value(),
-                positions->mapped_index(face[2]).value()
-            );
+            const Mesh::Face &face = dracoMesh.face(i);
+            stl_triangle_vertex_indices facet;
+            for (int k = 0; k < 3; ++ k) {
+                const size_t vertex_idx = face[k].value() < num_points ? positions->mapped_index(face[k]).value() : num_vertices;
+                if (vertex_idx >= num_vertices) {
+                    BOOST_LOG_TRIVIAL(error) << "load_drc: invalid vertex index";
+                    return false;
+                }
+                facet[k] = static_cast<int>(vertex_idx);
+            }
+            its.indices.emplace_back(facet);
         }
 
         *meshptr = TriangleMesh(std::move(its));

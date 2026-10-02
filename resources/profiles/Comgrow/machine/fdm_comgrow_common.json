@@ -117,7 +117,6 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "PAUSE",
 	"machine_pause_gcode": "PAUSE",
@@ -131,7 +130,7 @@
 	"thumbnails_format": "PNG",
 	"nozzle_type": "hardened_steel",
 	"default_filament_profile": [
-		"Comgrow Generic PETG"
+		"Generic PETG @Comgrow"
 	],
 	"default_print_profile": "0.20mm Standard @Comgrow T500",
 	"bed_exclude_area": [

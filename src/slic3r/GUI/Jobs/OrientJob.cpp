@@ -5,7 +5,26 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include <cstddef>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/Orient.hpp"
+#include <chrono>
+#include <string>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r { namespace GUI {
@@ -254,6 +273,12 @@ void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
         mesh.apply();
     }
 
+    if (!m_selected.empty()) {
+        Slic3r::LifecycleEventContext ctx;
+        ctx.code = Slic3r::LifecycleEvtCode::Ok;
+        ctx.msg = "auto_oriented";
+        Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::ObjectTransformed, ctx);
+    }
 
     m_plater->update();
 

@@ -13,6 +13,19 @@
 #include "Widgets/DialogButtons.hpp"
 #include "miniz.h"
 #include "ParamsDialog.hpp"
+#include <wx/sizer.h>
+#include <wx/arrstr.h>
+#include <wx/string.h>
+#include <vector>
+#include <utility>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <set>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/event.h>
+#include <memory>
 
 namespace Slic3r {
 namespace GUI {
@@ -74,7 +87,6 @@ private:
     std::unordered_set<std::string>                                  m_system_filament_types_set;
     std::set<std::string>                                            m_visible_printers;
     CreateType                                                       m_create_type;
-    Button *                                                         m_button_cancel                = nullptr;
     ComboBox *                                                       m_filament_vendor_combobox     = nullptr;
     ::CheckBox *                                                     m_can_not_find_vendor_checkbox = nullptr;
     ComboBox *                                                       m_filament_type_combobox       = nullptr;

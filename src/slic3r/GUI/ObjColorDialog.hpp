@@ -5,6 +5,15 @@
 #include "Camera.hpp"
 #include "GuiColor.hpp"
 #include "libslic3r/Format/OBJ.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include <string>
+#include <functional>
+#include <wx/colour.h>
+#include <wx/scrolwin.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include <unordered_map>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
@@ -94,7 +103,6 @@ private:
     std::vector<int>      m_cluster_map_filaments;//show middle
     int                   m_max_filament_index = 0;
     std::vector<wxColour> m_cluster_colours;//from_algo and show left
-    bool                  m_can_add_filament{true};
     bool                  m_deal_thumbnail_flag{false};
     std::vector<wxColour> m_new_add_colors;
     std::vector<wxColour> m_new_add_final_colors;
@@ -123,8 +131,6 @@ private:
     wxBoxSizer *                      m_main_sizer     = nullptr;
     wxBoxSizer *                      m_buttons_sizer   = nullptr;
     std::unordered_map<int, Button *> m_button_list;
-    std::vector<unsigned char>&      m_filament_ids;
-    unsigned char &                  m_first_extruder_id;
 };
 
 #endif  // _WIPE_TOWER_DIALOG_H_

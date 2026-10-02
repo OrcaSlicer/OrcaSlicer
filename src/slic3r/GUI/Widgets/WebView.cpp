@@ -1,19 +1,41 @@
 #include "WebView.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
 #include <utility>
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 
+#include <cassert>
+#include <chrono>
+#include <cstddef>
+#include <exception>
+#include <thread>
+
+#include <wx/setup.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sharedptr.h>
+#include <wx/vector.h>
+#include <wx/event.h>
+#include <vector>
+#include <wx/object.h>
+#include <wx/log.h>
+#include <utility>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
+#include <wx/weakref.h>
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
 #elif defined(__WXMAC__)
 #include <wx/osx/webview_webkit.h>
 #endif
 #include <wx/uri.h>
+#include <wx/filename.h>
+#include <wx/stdpaths.h>
 #if defined(__WIN32__) || defined(__WXMAC__)
 #include "wx/private/jsscriptwrapper.h"
 #endif
@@ -75,7 +97,7 @@ DWORD DownloadAndInstallWV2RT() {
       })
       .perform_sync();
   // Sleep for 1 second to wait for the buffer writen into disk
-  std::this_thread::sleep_for(1000ms);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   if (downloaded) {
     // Either Package the WebView2 Bootstrapper with your app or download it using fwlink
     // Then invoke install at Runtime.
@@ -231,9 +253,9 @@ class FakeWebView : public wxWebView
 wxDEFINE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 static std::vector<wxWebView*> g_webviews;
-// Handler registrations deferred because another add is currently in progress. Each entry is
-// (webview, handler-name). See register_script_handler() for why this serialization is required.
-static std::vector<std::pair<wxWebView*, wxString>> g_delay_handlers;
+// Webviews waiting for their script handler while another one is added; adding it yields, so a
+// view can be destroyed while it waits.
+static std::vector<wxWeakRef<wxWebView>> g_delay_webviews;
 
 class WebViewRef : public wxObjectRefData
 {
@@ -353,10 +375,37 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
         Slic3r::GUI::WKWebView_setTransparentBackground(wkWebView);
 #endif
-#ifdef __WIN32__
-        register_script_handler(webView, "wx");
-#else
-        webView->CallAfter([webView] { register_script_handler(webView, "wx"); });
+        auto addScriptMessageHandler = [] (wxWebView *webView) {
+            // Skip if SendAPIKey() already registered "wx"; a duplicate add throws an
+            // uncatchable NSException on WKWebView, killing the app at startup.
+            WebViewRef *ref = webview_ref(webView);
+            if (ref && ref->m_script_handler_added)
+                return;
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": begin to add script message handler for wx.";
+            Slic3r::GUI::wxGetApp().set_adding_script_handler(true);
+            if (!webView->AddScriptMessageHandler("wx"))
+                wxLogError("Could not add script message handler");
+            else if (ref)
+                ref->m_script_handler_added = true;
+            Slic3r::GUI::wxGetApp().set_adding_script_handler(false);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished add script message handler for wx.";
+        };
+#ifndef __WIN32__
+        webView->CallAfter([webView, addScriptMessageHandler] {
+#endif
+            if (Slic3r::GUI::wxGetApp().is_adding_script_handler()) {
+                g_delay_webviews.push_back(webView);
+            } else {
+                addScriptMessageHandler(webView);
+                while (!g_delay_webviews.empty()) {
+                    auto views = std::move(g_delay_webviews);
+                    for (const wxWeakRef<wxWebView>& wv : views)
+                        if (wv)
+                            addScriptMessageHandler(wv.get());
+                }
+            }
+#ifndef __WIN32__
+        });
 #endif
         webView->EnableContextMenu(true);
     } else {

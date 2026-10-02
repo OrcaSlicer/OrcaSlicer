@@ -15,6 +15,8 @@
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
 
+#include <sstream>
+
 using namespace Slic3r;
 
 SCENARIO("Generic config validation performs as expected.", "[Config]") {
@@ -419,6 +421,109 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
     }
 }
 
+TEST_CASE("A variant index comes from the same variant and id, else the id's first variant", "[Config][Variant]") {
+    const std::vector<std::string> variant_list{"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard"};
+    const std::vector<int>         variant_ids{1, 1, 2};
+
+    SECTION("same variant and id") {
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 1, variant_list, variant_ids) == 1);
+        CHECK(Slic3r::find_variant_index("Direct Drive Standard", 2, variant_list, variant_ids) == 2);
+    }
+    SECTION("a variant the id lacks falls back to the id's first variant") {
+        CHECK(Slic3r::find_variant_index("Bowden Standard", 1, variant_list, variant_ids) == 0);
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 2, variant_list, variant_ids) == 2);
+    }
+    SECTION("an id with no variants matches none") {
+        CHECK(Slic3r::find_variant_index("Direct Drive Standard", 3, variant_list, variant_ids) == -1);
+    }
+    SECTION("a negative id or a list without ids matches any id") {
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", -1, variant_list, variant_ids) == 1);
+        CHECK(Slic3r::find_variant_index("Direct Drive High Flow", 2, variant_list, {}) == 1);
+    }
+    SECTION("a variant past a shorter id list gets no variant index") {
+        CHECK(Slic3r::map_variant_indices(variant_list, {1}, variant_list, variant_ids) == std::vector<int>{0, -1, -1});
+    }
+    SECTION("a list without variant strings has one variant per id, and an empty one a single variant") {
+        CHECK(Slic3r::map_variant_indices(variant_list, variant_ids, {}, {1, 2}) == std::vector<int>{0, 0, 1});
+        CHECK(Slic3r::map_variant_indices(variant_list, variant_ids, {}, {}) == std::vector<int>{0, 0, 0});
+    }
+}
+
+SCENARIO("update_diff_values_to_child_config keeps a child's values on variants it does not list",
+         "[Config][Variant]") {
+    std::set<std::string> no_keys;
+    auto variants = [](std::initializer_list<std::string> names) { return new Slic3r::ConfigOptionStrings(names); };
+
+    GIVEN("A filament parent with three variants") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_key_value("filament_extruder_variant",
+            variants({"Direct Drive Standard", "Bowden Standard", "Direct Drive High Flow"}));
+        parent.set_deserialize_strict("nozzle_temperature", "220,220,220");
+
+        WHEN("the child was saved when the parent had only its first variant") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("filament_extruder_variant", variants({"Direct Drive Standard"}));
+            child.set_deserialize_strict("nozzle_temperature", "199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the child's value applies to every variant") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+        WHEN("the child lists every variant, in another order") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("filament_extruder_variant",
+                variants({"Bowden Standard", "Direct Drive High Flow", "Direct Drive Standard"}));
+            child.set_deserialize_strict("nozzle_temperature", "190,205,199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("each variant keeps its own value") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,190,205");
+            }
+        }
+        WHEN("the child lists no variants") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("nozzle_temperature", "199");
+            parent.update_diff_values_to_child_config(child, "", "filament_extruder_variant",
+                                                      Slic3r::filament_options_with_variant, no_keys);
+            THEN("the child's value applies to every variant") {
+                REQUIRE(parent.opt_serialize("nozzle_temperature") == "199,199,199");
+            }
+        }
+    }
+
+    GIVEN("A two-extruder printer parent with two variants per extruder") {
+        Slic3r::DynamicPrintConfig parent;
+        parent.set_key_value("printer_extruder_variant",
+            variants({"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard", "Direct Drive High Flow"}));
+        parent.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 1, 2, 2}));
+        parent.set_deserialize_strict("retraction_length", "0.8,0.8,0.8,0.8");
+
+        WHEN("the child lists only the Standard variant of each extruder") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_key_value("printer_extruder_variant", variants({"Direct Drive Standard", "Direct Drive Standard"}));
+            child.set_key_value("printer_extruder_id", new Slic3r::ConfigOptionInts({1, 2}));
+            child.set_deserialize_strict("retraction_length", "1.1,2.2");
+            parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                                      Slic3r::printer_options_with_variant_1,
+                                                      Slic3r::printer_options_with_variant_2);
+            THEN("each extruder's High Flow variant takes that extruder's value") {
+                REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,2.2,2.2");
+            }
+        }
+        WHEN("the child lists no variants") {
+            Slic3r::DynamicPrintConfig child;
+            child.set_deserialize_strict("retraction_length", "1.1");
+            parent.update_diff_values_to_child_config(child, "printer_extruder_id", "printer_extruder_variant",
+                                                      Slic3r::printer_options_with_variant_1,
+                                                      Slic3r::printer_options_with_variant_2);
+            THEN("only the first extruder's variants take the child's value") {
+                REQUIRE(parent.opt_serialize("retraction_length") == "1.1,1.1,0.8,0.8");
+            }
+        }
+    }
+}
+
 // SCENARIO("DynamicPrintConfig JSON serialization", "[Config]") {
 //     WHEN("DynamicPrintConfig is serialized and deserialized") {
 // 	auto now = std::chrono::high_resolution_clock::now();
@@ -486,6 +591,77 @@ TEST_CASE("save_to_json round-trips plugin capability references as strings", "[
     REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
     CHECK(reason.empty());
     CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
+}
+
+TEST_CASE("load_from_json hands a preset's include list to the caller instead of the config", "[Config]") {
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << R"({"type":"machine","name":"P","instantiation":"true","include":["T start","T end"],"machine_end_gcode":"M84"})";
+    }
+    DynamicPrintConfig config;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+    REQUIRE(config.load_from_json(tmp.string(), substitutions, false, key_values, reason) == 0);
+    CHECK(reason.empty());
+    CHECK(key_values["include"] == R"(["T start","T end"])");
+    CHECK_FALSE(config.has("include"));
+    CHECK(substitutions.unrecogized_keys.empty());
+    CHECK(config.opt_string("machine_end_gcode") == "M84");
+}
+
+TEST_CASE("save_to_json writes the same document to a stream as to a file", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    config.set_key_value("filament_type", new ConfigOptionStrings({ "PLA", "PETG" }));
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28\nG1 Z5"));
+
+    ScopedTemporaryFile tmp(".json");
+    config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0");
+    std::string file_contents;
+    {
+        boost::nowide::ifstream ifs(tmp.string());
+        file_contents.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    // The file format: one tab per nesting level and a trailing newline.
+    REQUIRE_FALSE(file_contents.empty());
+    CHECK(file_contents.rfind("{\n\t\"", 0) == 0);
+    CHECK(file_contents.back() == '\n');
+
+    std::ostringstream strict, replaced;
+    config.save_to_json(strict, "test_preset", "User", "1.0.0.0");
+    config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true);
+    CHECK(strict.str() == file_contents);
+    CHECK(replaced.str() == file_contents);
+    CHECK(nlohmann::json::parse(strict.str())["machine_start_gcode"] == "G28\nG1 Z5");
+}
+
+TEST_CASE("save_to_json replaces invalid UTF-8 in a stream only when asked", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    std::ostringstream strict, replaced;
+    CHECK_THROWS_AS(config.save_to_json(strict, "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+    REQUIRE_NOTHROW(config.save_to_json(replaced, "test_preset", "User", "1.0.0.0", true));
+    CHECK(nlohmann::json::parse(replaced.str())["machine_start_gcode"] == "G28 ; \xEF\xBF\xBD");
+}
+
+TEST_CASE("save_to_json leaves an existing file untouched when the config cannot be serialized", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("machine_start_gcode", new ConfigOptionString("G28 ; \xff"));
+
+    ScopedTemporaryFile tmp(".json");
+    {
+        boost::nowide::ofstream ofs(tmp.string());
+        ofs << "previous";
+    }
+    CHECK_THROWS_AS(config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0"), nlohmann::json::type_error);
+
+    boost::nowide::ifstream ifs(tmp.string());
+    const std::string contents((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    CHECK(contents == "previous");
 }
 
 TEST_CASE("plugin capability references survive string-map serialization", "[Config][plugins]") {
@@ -1090,4 +1266,199 @@ TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][F
         REQUIRE(config.get_filament_type(displayed, 0) == "PLA-S");
         REQUIRE(displayed == "Sup.PLA");
     }
+}
+
+namespace {
+
+// min_object_distance reads exactly these three options.
+DynamicPrintConfig spacing_config(PrinterTechnology tech, PrintSequence seq, double clearance_radius)
+{
+    DynamicPrintConfig c;
+    c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(tech));
+    c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(seq));
+    c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(clearance_radius));
+    return c;
+}
+
+} // namespace
+
+TEST_CASE("min_object_distance floors object spacing per print sequence", "[Config]")
+{
+    struct Case
+    {
+        std::string       description;
+        PrinterTechnology tech;
+        PrintSequence     sequence;
+        double            clearance_radius;
+        double            expected;
+    };
+
+    auto c = GENERATE(values<Case>({
+        {"sequential FFF takes a clearance radius above the floor", ptFFF, PrintSequence::ByObject, 12., 12.},
+        {"sequential FFF holds the floor at the radius",            ptFFF, PrintSequence::ByObject,  6.,  6.},
+        {"sequential FFF holds the floor below the radius",         ptFFF, PrintSequence::ByObject,  4.,  6.},
+        {"layered FFF ignores the clearance radius",                ptFFF, PrintSequence::ByLayer,  12.,  6.},
+        {"SLA is a flat 6mm",                                       ptSLA, PrintSequence::ByObject, 12.,  6.},
+        {"SLA ignores the print sequence too",                      ptSLA, PrintSequence::ByLayer,  12.,  6.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        CHECK_THAT(min_object_distance(spacing_config(c.tech, c.sequence, c.clearance_radius)),
+                   Catch::Matchers::WithinAbs(c.expected, 1e-9));
+    }
+}
+
+TEST_CASE("min_object_distance yields no floor when an FFF config lacks the options", "[Config]")
+{
+    // Missing options yield 0 rather than an error, so a caller gets no floor at all.
+    SECTION("no clearance radius") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("no print sequence") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("nothing at all") {
+        CHECK_THAT(min_object_distance(DynamicPrintConfig{}), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("an unset printer technology is treated as FFF") {
+        DynamicPrintConfig c;
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
+    }
+}
+
+TEST_CASE("Static print configs compare, order and hash by their option values", "[Config]")
+{
+    // PrintObjectConfig comes from PRINT_CONFIG_CLASS_DEFINE; PrintConfig combines MachineEnvelopeConfig
+    // and GCodeConfig through PRINT_CONFIG_CLASS_DERIVED_DEFINE. Both generate hash(), operator==,
+    // operator< and the option registration from the same option list. The hash inequalities use fixed
+    // inputs, so they are deterministic; they check that hash() covers the changed option.
+    SECTION("default-constructed configs are equal and find their options by key")
+    {
+        PrintObjectConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+        REQUIRE_FALSE(a < b);
+        REQUIRE_FALSE(b < a);
+        REQUIRE(a.optptr("layer_height") == &a.layer_height);
+        REQUIRE(a.optptr("brim_object_gap") == &a.brim_object_gap);
+    }
+
+    SECTION("one differing option makes the configs unequal and orders them")
+    {
+        PrintObjectConfig a, b;
+        b.layer_height.value = a.layer_height.value + 0.05;
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+        REQUIRE(a < b);
+        REQUIRE_FALSE(b < a);
+    }
+
+    SECTION("ordering is decided by the first option in declaration order that differs")
+    {
+        PrintObjectConfig a, b;
+        a.brim_object_gap.value = b.brim_object_gap.value + 1.0;  // declared first
+        a.layer_height.value    = b.layer_height.value - 0.05;    // declared later, points the other way
+        REQUIRE(b < a);
+        REQUIRE_FALSE(a < b);
+    }
+
+    SECTION("a derived config sees differences in its parents and in its own options")
+    {
+        PrintConfig a, b;
+        REQUIRE(a == b);
+        REQUIRE(a.hash() == b.hash());
+
+        b.gcode_flavor.value = b.gcode_flavor.value == gcfMarlinLegacy ? gcfKlipper : gcfMarlinLegacy;  // GCodeConfig parent
+        REQUIRE(a != b);
+        REQUIRE(a.hash() != b.hash());
+
+        PrintConfig c, d;
+        d.skirt_distance.value = c.skirt_distance.value + 1.0;  // PrintConfig's own list
+        REQUIRE(c != d);
+        REQUIRE(c.hash() != d.hash());
+        REQUIRE(c.optptr("skirt_distance") == &c.skirt_distance);
+        REQUIRE(c.optptr("gcode_flavor") == &c.gcode_flavor);
+    }
+}
+
+namespace {
+
+// Keys whose values differ between two full configs, compared as text so enum names count too.
+std::vector<std::string> differing_keys(const FullPrintConfig &a, const FullPrintConfig &b)
+{
+    std::vector<std::string> keys;
+    for (const std::string &key : a.keys())
+        if (a.opt_serialize(key) != b.opt_serialize(key))
+            keys.push_back(key);
+    return keys;
+}
+
+// Applies source to one full config member by member and to another key by key, as apply() did before
+// static configs could apply themselves.
+template<class Source> void check_member_apply_matches_key_apply(const Source &source)
+{
+    FullPrintConfig by_member;
+    FullPrintConfig by_key;
+    by_member.apply(source);
+    by_key.apply_only(source, source.keys());
+    CHECK(differing_keys(by_member, by_key).empty());
+    CHECK_FALSE(differing_keys(by_member, FullPrintConfig()).empty());
+}
+
+} // namespace
+
+TEST_CASE("A static config applies itself onto a config of its type as a lookup by name would", "[Config]")
+{
+    SECTION("region config")
+    {
+        PrintRegionConfig region;
+        region.sparse_infill_pattern.value = ipGyroid;
+        region.outer_wall_speed.values     = {37.};
+        region.sparse_infill_density.value = 35.;
+        FullPrintConfig full;
+        REQUIRE(region.apply_to(full));
+        check_member_apply_matches_key_apply(region);
+    }
+    SECTION("object config")
+    {
+        PrintObjectConfig object;
+        object.seam_position.value  = spRear;
+        object.wall_generator.value = PerimeterGeneratorType::Arachne;
+        object.support_speed.values = {33.};
+        object.enable_support.value = true;
+        FullPrintConfig full;
+        REQUIRE(object.apply_to(full));
+        check_member_apply_matches_key_apply(object);
+    }
+    SECTION("G-code config, whose enum lists carry their names through a keys map")
+    {
+        GCodeConfig gcode;
+        gcode.z_hop_types.values       = {int(zhtSpiral)};
+        gcode.retraction_length.values = {1.5};
+        FullPrintConfig full;
+        REQUIRE(gcode.apply_to(full));
+        check_member_apply_matches_key_apply(gcode);
+    }
+}
+
+TEST_CASE("A static config applied onto a config of another type falls back to a lookup by name", "[Config]")
+{
+    PrintRegionConfig region;
+    region.sparse_infill_pattern.value = ipGyroid;
+    DynamicPrintConfig dynamic;
+    REQUIRE_FALSE(region.apply_to(dynamic));
+    dynamic.apply(region);
+    CHECK(dynamic.opt_serialize("sparse_infill_pattern") == "gyroid");
 }

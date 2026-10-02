@@ -1,5 +1,6 @@
 #include "GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/MeshBoolean.hpp"
@@ -7,6 +8,25 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <cstddef>
+#include <limits>
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <optional>
+#include "libslic3r/TriangleSelector.hpp"
+#include <algorithm>
+#include <imgui.h>
+#include <cereal/archives/binary.hpp>
+#include <utility>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <wx/dataview.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -104,7 +124,7 @@ bool GLGizmoMeshBoolean::on_mouse(const wxMouseEvent &mouse_event)
 
 bool GLGizmoMeshBoolean::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_B;
+    m_shortcut = Shortcut::GizmoMeshBoolean;
     return true;
 }
 

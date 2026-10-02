@@ -1,7 +1,7 @@
 {
 	"name": "WonderMaker",
 	"url": "",
-	"version": "02.04.00.01",
+	"version": "02.04.00.04",
 	"force_update": "0",
 	"description": "WonderMaker configurations",
 	"machine_model_list": [
@@ -432,12 +432,8 @@
 			"sub_path": "machine/WonderMaker ZR 0.4 nozzle.json"
 		},
 		{
-			"name": "WonderMaker ZR Ultra 0.4 nozzle",
-			"sub_path": "machine/WonderMaker ZR Ultra 0.4 nozzle.json"
-		},
-		{
-			"name": "WonderMaker ZR Ultra S 0.4 nozzle",
-			"sub_path": "machine/WonderMaker ZR Ultra S 0.4 nozzle.json"
+			"name": "fdm_ultra_common",
+			"sub_path": "machine/fdm_ultra_common.json"
 		},
 		{
 			"name": "WonderMaker ZR 0.2 nozzle",
@@ -456,6 +452,10 @@
 			"sub_path": "machine/WonderMaker ZR Ultra 0.2 nozzle.json"
 		},
 		{
+			"name": "WonderMaker ZR Ultra 0.4 nozzle",
+			"sub_path": "machine/WonderMaker ZR Ultra 0.4 nozzle.json"
+		},
+		{
 			"name": "WonderMaker ZR Ultra 0.6 nozzle",
 			"sub_path": "machine/WonderMaker ZR Ultra 0.6 nozzle.json"
 		},
@@ -466,6 +466,10 @@
 		{
 			"name": "WonderMaker ZR Ultra S 0.2 nozzle",
 			"sub_path": "machine/WonderMaker ZR Ultra S 0.2 nozzle.json"
+		},
+		{
+			"name": "WonderMaker ZR Ultra S 0.4 nozzle",
+			"sub_path": "machine/WonderMaker ZR Ultra S 0.4 nozzle.json"
 		},
 		{
 			"name": "WonderMaker ZR Ultra S 0.6 nozzle",

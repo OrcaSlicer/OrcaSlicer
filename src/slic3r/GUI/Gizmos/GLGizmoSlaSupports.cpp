@@ -34,7 +34,6 @@ GLGizmoSlaSupports::GLGizmoSlaSupports(GLCanvas3D& parent, const std::string& ic
 
 bool GLGizmoSlaSupports::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_L;
 
     m_desc["head_diameter"]    = _L("Head diameter") + ": ";
     m_desc["lock_supports"]    = _L("Lock supports under new islands");

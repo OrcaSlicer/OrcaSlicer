@@ -4,6 +4,7 @@
 	"inherits": "PolyTerra PLA @base",
 	"from": "system",
 	"setting_id": "4MZWZX7QPBzxdEGj",
+	"filament_id": "OF43Raws",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

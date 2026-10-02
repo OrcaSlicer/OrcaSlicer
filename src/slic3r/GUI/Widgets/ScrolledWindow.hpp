@@ -1,4 +1,9 @@
 #pragma once
+#include <wx/scrolwin.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/panel.h>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
