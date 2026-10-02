@@ -5477,7 +5477,10 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         const float       seg_pad   = m_imgui->scaled(0.5f);
         const float seg_w[2] = { ImGui::CalcTextSize(labels[0].c_str()).x + 2.f * seg_pad, ImGui::CalcTextSize(labels[1].c_str()).x + 2.f * seg_pad };
         ImGui::SameLine();
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + panel_w - (seg_w[0] + seg_w[1] + gap_s + icon_sm)));
+        // Three icons now follow the segmented control (video guide, wiki, dock toggle), each preceded by
+        // its own gap - the reserved width has to cover all of them or the cluster runs past the panel edge.
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                      x0 + panel_w - (seg_w[0] + seg_w[1] + 3.f * (gap_s + icon_sm))));
 
         // Standard / Pro is a mode, not an option: Standard hides every mesh-preparation control and folds
         // the whole recipe into Bake, Pro shows all of it and hands the ordering to the user.
