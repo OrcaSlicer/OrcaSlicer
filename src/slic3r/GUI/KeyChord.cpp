@@ -3,6 +3,11 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 
+#include <wx/accel.h>
+#include <string>
+#include <cstddef>
+#include <optional>
+#include <vector>
 #include <wx/event.h>
 
 #include <algorithm>
@@ -180,6 +185,16 @@ bool KeyChord::needs_char_event() const { return is_symbol(key) && (modifiers & 
 bool KeyChord::is_menu_accelerator() const
 {
     return valid() && ((modifiers & (wxMOD_CONTROL | wxMOD_ALT | wxMOD_RAW_CONTROL)) != 0 || (!is_printable(key) && key != WXK_SPACE));
+}
+
+// Only a chord the desktop acts on while still delivering it to the app belongs here.
+bool KeyChord::is_system_shortcut() const
+{
+#ifdef _WIN32
+    return modifiers == wxMOD_ALT && (key == WXK_F4 || key == WXK_SPACE);
+#else
+    return false;
+#endif
 }
 
 std::string KeyChord::to_string() const

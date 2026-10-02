@@ -4,19 +4,47 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <atomic>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <array>
+#include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Auxiliary.hpp"
+#include <cstddef>
+#include <memory>
+#include <map>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <exception>
+#include <cmath>
+#include <fstream>
+#include <ios>
+#include <sstream>
 #include <wx/app.h>
+#include <wx/base64.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/filefn.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 #include <wx/filedlg.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wupdlock.h>
 #include <wx/dataview.h>
 #include <wx/tokenzr.h>
@@ -45,10 +73,10 @@ const std::vector<std::string> license_list = {
 ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style) : wxPanel(parent, id, pos, size, style)
 {
     SetBackgroundColour(*wxWHITE);
-    m_project_home_url = wxString::Format("file://%s/web/model/index.html", from_u8(resources_dir()));
+    m_project_home_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/model/index.html");
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
-        m_project_home_url = wxString::Format("file://%s/web/model/index.html?lang=%s", from_u8(resources_dir()), strlang);
+        m_project_home_url += "?lang=" + strlang;
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -293,10 +321,8 @@ void ProjectPanel::OnScriptMessage(wxWebViewEvent& evt)
             if (!accessory_path.empty()) {
                 std::string decode_path = wxGetApp().url_decode(accessory_path.ToStdString());
                 fs::path path(decode_path);
-
-                if (fs::exists(path)) {
-                    wxLaunchDefaultApplication(path.wstring(), 0);
-                }
+                if (!desktop_open_project_attachment(this, path))
+                    BOOST_LOG_TRIVIAL(warning) << "open_3mf_accessory: not opening " << decode_path;
             }
         }
         else if (strCmd == "request_3mf_info") {

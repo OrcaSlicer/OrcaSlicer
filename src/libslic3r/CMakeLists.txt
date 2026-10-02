@@ -94,12 +94,9 @@ set(lisbslic3r_sources
     calib.hpp
     Circle.cpp
     Circle.hpp
-    clipper.cpp
-    clipper.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
-    Clipper2Utils.cpp
-    Clipper2Utils.hpp
+    ClipperZUtils.cpp
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
@@ -259,6 +256,8 @@ set(lisbslic3r_sources
     GCode/RetractWhenCrossingPerimeters.hpp
     GCode/SeamPlacer.cpp
     GCode/SeamPlacer.hpp
+    GCode/PreciseSeam.cpp
+    GCode/PreciseSeam.hpp
     #GCodeSender.cpp
     #GCodeSender.hpp
     GCode/SmallAreaInfillFlowCompensator.cpp
@@ -304,6 +303,8 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    InstanceLock.cpp
+    InstanceLock.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
@@ -353,6 +354,7 @@ set(lisbslic3r_sources
     Optimize/Optimizer.hpp
     Orient.cpp
     Orient.hpp
+    ParallelResolve.hpp
     ParameterUtils.cpp
     ParameterUtils.hpp
     pchheader.cpp
@@ -477,6 +479,30 @@ set(lisbslic3r_sources
     Tesselate.cpp
     Tesselate.hpp
     TextConfiguration.hpp
+    TextureDisplacement.cpp
+    TextureDisplacement.hpp
+    TextureBake/TextureBakeIndex.cpp
+    TextureBake/TextureBakeIndex.hpp
+    TextureBake/TextureBakeSubdivide.cpp
+    TextureBake/TextureBakeSubdivide.hpp
+    TextureBake/TextureBakeRegularize.cpp
+    TextureBake/TextureBakeRegularize.hpp
+    TextureBake/TextureBakeRelocate.cpp
+    TextureBake/TextureBakeRelocate.hpp
+    TextureBake/TextureBakeFlip.cpp
+    TextureBake/TextureBakeFlip.hpp
+    TextureBake/TextureBakeDebug.cpp
+    TextureBake/TextureBakeDebug.hpp
+    TextureBake/TextureBakeDisplace.cpp
+    TextureBake/TextureBakeDisplace.hpp
+    TextureBake/TextureBakeDecimate.cpp
+    TextureBake/TextureBakeDecimate.hpp
+    TextureBake/TextureBakeRepair.cpp
+    TextureBake/TextureBakeRepair.hpp
+    TextureBake/TextureBakePipeline.cpp
+    TextureBake/TextureBakePipeline.hpp
+    TextureBake/TextureBakeMesh.cpp
+    TextureBake/TextureBakeMesh.hpp
     Thread.cpp
     Thread.hpp
     Time.cpp
@@ -687,7 +713,6 @@ target_link_libraries(libslic3r
         ${OCCT_LIBS}
         boost_libs
         cereal::cereal
-        clipper
         Clipper2
         draco::draco
         glu-libtess

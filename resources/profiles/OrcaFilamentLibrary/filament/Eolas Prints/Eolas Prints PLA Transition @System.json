@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFHfzQXo",
-	"setting_id": "o3RoG3NGSBlyBkfZ",
 	"name": "Eolas Prints PLA Transition @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "o3RoG3NGSBlyBkfZ",
+	"filament_id": "OFHfzQXo",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

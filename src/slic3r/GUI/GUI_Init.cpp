@@ -11,10 +11,19 @@
 #include "slic3r/GUI/Plater.hpp"
 
 // To show a message box if GUI initialization ends up with an exception thrown.
+#include <vector>
+#include <utility>
+#include <wx/init.h>
+#include "libslic3r/Exception.hpp"
+#include <boost/log/trivial.hpp>
+#include <ostream>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <exception>
 #include <wx/msgdlg.h>
 
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/convert.hpp>
+#include <wx/string.h>
 
 #if __APPLE__
     #include <signal.h>

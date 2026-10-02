@@ -3,8 +3,18 @@
 #include "TextCtrl.h"
 #include "slic3r/GUI/Widgets/Label.hpp"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <cassert>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dc.h>
+#include <algorithm>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/textctrl.h>
+#include <wx/event.h>
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

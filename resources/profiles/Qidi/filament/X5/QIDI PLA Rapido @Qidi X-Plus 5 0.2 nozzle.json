@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "S56TixVPmXr4uFut",
 	"name": "QIDI PLA Rapido @Qidi X-Plus 5 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "S56TixVPmXr4uFut",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

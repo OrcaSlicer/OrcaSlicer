@@ -238,7 +238,8 @@ TEST_CASE("Native command catalog includes the Help and developer-mode commands"
     const Slic3r::GUI::NativeCommand* first = find("help_keyboard_shortcuts");
     REQUIRE(first != nullptr);
     for (const char* key : {"help_setup_wizard", "help_open_config_folder", "help_troubleshoot", "help_network_test",
-                            "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki", "open_youtube"}) {
+                            "help_benchmark_3d_scene", "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki",
+                            "open_youtube"}) {
         const Slic3r::GUI::NativeCommand* c = find(key);
         REQUIRE(c != nullptr);
         CHECK(c->group == first->group);

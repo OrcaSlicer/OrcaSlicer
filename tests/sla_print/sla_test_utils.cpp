@@ -261,7 +261,8 @@ static void _test_concave_hull(const Polygons &hull, const ExPolygons &polys)
     
     REQUIRE(cchull_holes == 0);
     
-    Polygons intr = diff(to_polygons(polys), hull);
+    // Hull vertices where the connectors cross the input are rounded, so the hull may miss the input by a unit or two.
+    Polygons intr = diff(to_polygons(polys), offset(hull, float(SCALED_EPSILON)));
     REQUIRE(intr.empty());
 }
 

@@ -14,6 +14,9 @@ on:
     # this workflow.
     - 'resources/printers/**'
     - 'scripts/**'
+    # orca_profile_tool.py reads the variant key sets from PrintConfig.cpp, and its
+    # tests the obsolete keys, so a PR changing either must be checked against the profiles.
+    - 'src/libslic3r/PrintConfig.cpp'
     - ".github/workflows/check_profiles.yml"
 
   workflow_dispatch:
@@ -71,8 +74,10 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
           exit ${PIPESTATUS[0]}
-      # Slice a two-colour cube through every printer so all custom g-code (incl. change_filament_gcode)
-      # is expanded - catches undefined-placeholder / invalid-flow bugs the static checks above cannot see.
+      # Slice a two-colour cube through every printer, and through every system process/filament whose
+      # templates no printer's own slice reaches, so every custom g-code and filename_format shipped is
+      # expanded (names in {if} branches not taken included) - catches undefined-placeholder /
+      # invalid-flow bugs the static checks above cannot see.
       - name: validate slice (expand custom g-code)
         id: validate_slice
         continue-on-error: true

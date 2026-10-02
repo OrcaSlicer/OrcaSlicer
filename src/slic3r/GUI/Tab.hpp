@@ -15,6 +15,16 @@
 //	   Slic3r::GUI::Tab::Preset;
 //	       - Single preset item: name, file is default or external.
 
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include "slic3r/GUI/Field.hpp"
+#include <boost/any.hpp>
+#include <string>
+#include <wx/event.h>
+#include <utility>
+#include <wx/anybutton.h>
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -22,6 +32,7 @@
 #include <wx/sizer.h>
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 
@@ -71,6 +82,7 @@ class Page: public std::enable_shared_from_this<Page>// : public wxScrolledWindo
 	// BBS: new layout
 	wxStaticText*	m_page_title;
     bool            m_show = true;
+    bool            m_visibility_applied = false;
 public:
 	//BBS: GUI refactor
     Page(wxWindow* parent, const wxString& title, int iconID, wxPanel* tab_owner);
@@ -98,6 +110,8 @@ public:
     bool        build_pending() const;
     // Builds the next option group that has no controls yet; true while some remain.
     bool        build_step(ConfigOptionMode mode);
+    // Whether the controls have not been shown or hidden for a mode since they were built.
+    bool        visibility_pending() const { return !m_visibility_applied; }
     void        clear();
     void        msw_rescale();
     void        sys_color_changed();
@@ -443,8 +457,8 @@ public:
 	// BBS: new layout
 	void set_expanded(bool value);
 	void restore_last_select_item();
-	// page_build_pending() says whether the selected page has groups without controls, and
-	// page_build_step() builds one.
+	// page_build_pending() says whether the selected page has groups without controls or controls
+	// not yet shown for the mode, and page_build_step() does the next of those.
 	bool page_build_pending() const;
 	bool page_build_step();
 
@@ -613,6 +627,8 @@ private:
     void            add_filament_overrides_page();
     void            update_filament_overrides_page(const DynamicPrintConfig* printers_config);
 	void 			update_volumetric_flow_preset_hints();
+    // The variant index the variant switch shows, 0 without one.
+    unsigned int    selected_variant_index() const;
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
 

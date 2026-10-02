@@ -1,5 +1,14 @@
 name: Post-merge profiles
 
+run-name: >-
+  Post-merge profiles${{
+    inputs.ofl_cron_dispatch_id != '' &&
+    inputs.vendor == 'OrcaFilamentLibrary' &&
+    (inputs.auto_publish == true || inputs.auto_publish == 'true') &&
+    format(' [OFL cron {0}]', inputs.ofl_cron_dispatch_id) ||
+    ''
+  }}
+
 # Push-triggered counterpart to check_profiles.yml (which only gates PRs). When a
 # profile change lands on main or a release branch, rebuild the affected vendors'
 # binary preset caches (<vendor>.opc) and publish each as a versioned ZIP asset on
@@ -59,6 +68,12 @@ on:
         required: false
         type: boolean
         default: false
+      ofl_cron_dispatch_id:
+        description: >-
+          Unique marker supplied by the trusted OFL daily cron so it can find
+          and wait for this dispatched workflow run.
+        required: false
+        type: string
 
 permissions:
   contents: read

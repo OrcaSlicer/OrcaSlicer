@@ -2,7 +2,21 @@
 #include "Label.hpp"
 #include "PopupWindow.hpp"
 #include "../I18N.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <string>
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
 #include "../GUI.hpp"
 #include "../GUI_App.hpp"
 

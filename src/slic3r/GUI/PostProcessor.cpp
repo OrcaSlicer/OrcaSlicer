@@ -13,6 +13,11 @@
 #include "slic3r/plugin/PythonInterpreter.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
@@ -22,9 +27,21 @@
 
 // BBS
 #include <algorithm>
+#include <boost/process/pipe.hpp>
+#include <boost/process/io.hpp>
+#include <cstring>
+#include <cstdio>
+#include <exception>
 #include <iostream>
 #include <fstream>
+#include "libslic3r/PrintConfig.hpp"
+#include <memory>
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Exception.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <string>
+#include <vector>
+#include <utility>
 
 #ifdef WIN32
 

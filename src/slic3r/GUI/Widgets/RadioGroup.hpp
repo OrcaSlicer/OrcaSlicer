@@ -3,6 +3,10 @@
 
 #include "../wxExtensions.hpp"
 
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/wx.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>

@@ -165,7 +165,7 @@ namespace Emboss
     /// Fix duplicit points and self intersections in polygons.
     /// Also try to reduce amount of points and remove useless polygon parts
     /// </summary>
-    /// <param name="is_non_zero">Fill type ClipperLib::pftNonZero for overlapping otherwise </param>
+    /// <param name="is_non_zero">Fill type pftNonZero for overlapping otherwise </param>
     /// <param name="max_iteration">Look at heal_expolygon()::max_iteration</param>
     /// <returns>Healed shapes with flag is fully healed</returns>
     HealedExPolygons heal_polygons(const Polygons &shape, bool is_non_zero = true, unsigned max_iteration = 10);

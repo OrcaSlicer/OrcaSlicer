@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ParallelResolve.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -16,6 +17,10 @@
 #include <algorithm>
 #include <iostream>
 #include <initializer_list>
+
+#ifndef _WIN32
+#include <unistd.h> // geteuid
+#endif
 
 using namespace Slic3r;
 
@@ -57,6 +62,16 @@ void write_preset_with_inherits(const DynamicPrintConfig &default_config, const 
 
     fs::create_directories(file.parent_path());
     config.save_to_json(file.string(), name, "User", "1.0.0");
+}
+
+// A user preset file stating nothing but the preset it inherits, so every value it
+// ends up with came from resolving that parent.
+void write_minimal_child(const fs::path &file, const std::string &name, const std::string &inherits)
+{
+    fs::create_directories(file.parent_path());
+    std::ofstream(file.string())
+        << R"({"type":"process","name":")" << name << R"(","from":"User","version":"1.0.0","inherits":")"
+        << inherits << R"("})";
 }
 
 // Add an in-memory preset (no file) with the given inherits value (empty => root preset).
@@ -259,6 +274,162 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
 
     CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
     CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
+}
+
+TEST_CASE("A directory of user presets loads with each one resolved against its parent", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.config.option<ConfigOptionFloat>("layer_height", true)->value = 0.24;
+    parent.is_system = true;
+
+    constexpr int children = 400;
+    for (int i = 0; i < children; ++ i)
+        write_minimal_child(temp_dir.path() / PRESET_PRINT_NAME / ("Child " + std::to_string(i) + ".json"),
+                            "Child " + std::to_string(i), "Parent Process");
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.size() == size_t(children) + 2); // the children, the default preset and the parent
+    CHECK(coll.error_count() == 0);
+    for (int i = 0; i < children; ++ i) {
+        const Preset *child = coll.find_preset("Child " + std::to_string(i));
+        REQUIRE(child != nullptr);
+        CHECK(child->inherits() == "Parent Process");
+        CHECK(child->alias == "Child " + std::to_string(i));
+        CHECK(child->loaded);
+        REQUIRE(child->config.option<ConfigOptionFloat>("layer_height") != nullptr);
+        CHECK_THAT(child->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-9));
+    }
+}
+
+TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+
+    auto seed_directory = [&]() {
+        for (int i = 0; i < 200; ++ i)
+            write_minimal_child(temp_dir.path() / PRESET_PRINT_NAME / ("Child " + std::to_string(i) + ".json"),
+                                "Child " + std::to_string(i), "Parent Process");
+    };
+
+    std::vector<std::vector<std::string>> names_per_run;
+    for (int run = 0; run < 3; ++ run) {
+        RenameTestCollection coll;
+        Preset &parent = add_inmemory_preset(coll, "Parent Process");
+        parent.is_system = true;
+        if (run == 0)
+            seed_directory();
+
+        PresetsConfigSubstitutions substitutions;
+        coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                          ForwardCompatibilitySubstitutionRule::Disable);
+
+        std::vector<std::string> names;
+        for (auto it = coll.begin(); it != coll.end(); ++ it)
+            names.push_back(it->name + "|" + it->alias + "|" + it->inherits());
+        names_per_run.push_back(std::move(names));
+    }
+
+    REQUIRE(names_per_run[0].size() > 200);
+    CHECK(names_per_run[1] == names_per_run[0]);
+    CHECK(names_per_run[2] == names_per_run[0]);
+}
+
+TEST_CASE("An unreadable user preset is counted and removed while the rest still load", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+    const fs::path       dir = temp_dir.path() / PRESET_PRINT_NAME;
+
+    for (int i = 0; i < 20; ++ i)
+        write_preset_with_inherits(coll.default_preset().config, dir / ("Good " + std::to_string(i) + ".json"),
+                                   "Good " + std::to_string(i), std::string());
+    fs::create_directories(dir);
+    std::ofstream((dir / "Broken.json").string()) << "{not-json";
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Broken") == nullptr);
+    CHECK_FALSE(fs::exists(dir / "Broken.json"));
+    for (int i = 0; i < 20; ++ i)
+        CHECK(coll.find_preset("Good " + std::to_string(i)) != nullptr);
+}
+
+TEST_CASE("A user filament naming no compatible printer gets the one after its @, in memory and on disk", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+    const fs::path     file = temp_dir.path() / PRESET_FILAMENT_NAME / "My PLA @Test Printer.json";
+    REQUIRE(bundle.filaments.default_preset().config.option<ConfigOptionStrings>("compatible_printers")->values.empty());
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const std::vector<std::string> expected { "Test Printer" };
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->config.option<ConfigOptionStrings>("compatible_printers")->values == expected);
+
+    DynamicPrintConfig                 saved;
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    saved.load_from_json(file.string(), ForwardCompatibilitySubstitutionRule::EnableSilent, key_values, reason);
+    REQUIRE(reason.empty());
+    REQUIRE(saved.option<ConfigOptionStrings>("compatible_printers") != nullptr);
+    CHECK(saved.option<ConfigOptionStrings>("compatible_printers")->values == expected);
+}
+
+TEST_CASE("A user preset's setting id equal to its base id is dropped in memory, not in the .info written back", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+    const fs::path     file = temp_dir.path() / PRESET_FILAMENT_NAME / "My PLA @Test Printer.json";
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+    fs::path info = file;
+    info.replace_extension(".info");
+    std::ofstream(info.string()) << "sync_info = \nuser_id = \nsetting_id = PFUS1\nbase_id = PFUS1\nupdated_time = 0\n";
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->setting_id.empty());
+    CHECK(preset->base_id == "PFUS1");
+    Preset reloaded(Preset::TYPE_FILAMENT, "My PLA @Test Printer");
+    reloaded.load_info(info.string());
+    CHECK(reloaded.setting_id == "PFUS1");
+}
+
+TEST_CASE("A user preset that is not loaded still reports its substituted values", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir   temp_dir;
+    RenameTestCollection coll;
+    const fs::path       dir = temp_dir.path() / PRESET_PRINT_NAME;
+    fs::create_directories(dir);
+    std::ofstream((dir / "Orphan.json").string())
+        << R"({"type":"process","name":"Orphan","from":"User","version":"1.0.0","inherits":"No Such Parent",)"
+        << R"("wall_generator":"no_such_generator"})";
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Enable);
+
+    CHECK(coll.find_preset("Orphan") == nullptr);
+    CHECK(coll.error_count() == 1);
+    REQUIRE(substitutions.size() == 1);
+    CHECK(substitutions.front().preset_name == "Orphan");
 }
 
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")
@@ -5405,6 +5576,35 @@ struct ScopedDataDir
     ~ScopedDataDir() { set_data_dir(previous); }
 };
 
+// resources_dir() is process-wide too; system preset lookups scan its profiles directory.
+struct ScopedResourcesDir
+{
+    std::string previous = resources_dir();
+    explicit ScopedResourcesDir(const fs::path &dir) { set_resources_dir(dir.string()); }
+    ~ScopedResourcesDir() { set_resources_dir(previous); }
+};
+
+// An "Acme" vendor under root whose "Acme Printer" inherits extruder_clearance_dist_to_rod from an
+// abstract base, with the printer in a nested sub_path so the name cannot be derived from the file.
+void write_acme_printer_vendor(const fs::path &root, double dist_to_rod)
+{
+    const fs::path machine_dir = root / "Acme" / "machine";
+    fs::create_directories(machine_dir / "nested");
+    std::ofstream((root / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme",)"
+        << R"("machine_model_list":[{"name":"Acme One","sub_path":"machine/model.json"}],"machine_list":[)"
+        << R"({"name":"fdm_acme_common","sub_path":"machine/base.json"},)"
+        << R"({"name":"Acme Printer","sub_path":"machine/nested/printer.json"}]})";
+    std::ofstream((machine_dir / "model.json").string())
+        << R"({"type":"machine_model","name":"Acme One","nozzle_diameter":"0.4"})";
+    std::ofstream((machine_dir / "base.json").string())
+        << R"({"type":"machine","name":"fdm_acme_common","from":"system","instantiation":"false",)"
+        << R"("extruder_clearance_dist_to_rod":")" << dist_to_rod << R"("})";
+    std::ofstream((machine_dir / "nested" / "printer.json").string())
+        << R"({"type":"machine","name":"Acme Printer","from":"system","instantiation":"true","inherits":"fdm_acme_common",)"
+        << R"("printer_model":"Acme One","printer_variant":"0.4"})";
+}
+
 std::string read_file(const fs::path &file)
 {
     std::ifstream in(file.string(), std::ios::binary);
@@ -5482,3 +5682,493 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
         CHECK_FALSE(any_filename_contains(temp_dir.path(), "bundle-escape"));
     }
 }
+
+// A project saved before a key joined filament_options_with_variant stores it once per filament,
+// while the keys that were already per variant store it once per filament variant. Loading such a
+// project gives every variant of a filament that filament's value.
+TEST_CASE("A project saved with pressure advance per filament applies it to every variant of the filament", "[Preset][Bundle]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_settings_id", true)->values = { "Project PLA", "Project PETG" };
+    // A multi-variant printer: full_print_config() leaves the list out, and the loader splits the
+    // variant keys per filament only when the project carries it.
+    config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = { "Direct Drive Standard,Direct Drive High Flow" };
+    // filament 1 defines Standard and High Flow, filament 2 Standard
+    config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = { "Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard" };
+    config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 1, 2 };
+    config.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values = { 0.95, 0.96, 0.97 }; // one per filament variant
+    // One per filament, read through the loader that project files go through.
+    config.load_from_ini_string("pressure_advance = 0.021,0.043", ForwardCompatibilitySubstitutionRule::Disable);
+    // The CLI slices the config as loaded.
+    check_double_vector(config.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.021, 0.021, 0.043 });
+    check_double_vector(config.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.95, 0.96, 0.97 });
+    // The GUI normalizes the config before load; mirror that so only the production path runs.
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    REQUIRE(bundle.filament_presets.size() == 2);
+    const DynamicPrintConfig &pla  = bundle.filaments.find_preset(bundle.filament_presets[0], false, true)->config;
+    const DynamicPrintConfig &petg = bundle.filaments.find_preset(bundle.filament_presets[1], false, true)->config;
+    check_double_vector(pla.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.021, 0.021 });
+    check_double_vector(petg.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.043 });
+    check_double_vector(pla.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.95, 0.96 });
+    check_double_vector(petg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.97 });
+}
+
+TEST_CASE("A system preset resolves by name from the bundled profiles", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(temp_dir.path() / "resources" / "profiles", 33.);
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(error.empty());
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A system preset resolves from the data directory copy of its vendor", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(temp_dir.path() / "resources" / "profiles", 33.);
+    write_acme_printer_vendor(temp_dir.path() / "data" / PRESET_SYSTEM_DIR, 35.);
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(35., 1e-6));
+}
+
+TEST_CASE("A system preset resolves from a vendor shipped as its preset cache alone", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    const fs::path     profiles = temp_dir.path() / "resources" / "profiles";
+    write_acme_printer_vendor(profiles, 33.);
+
+    PresetBundle writer;
+    writer.set_generate_vendor_caches(true);
+    writer.load_vendor_configs_from_json(profiles.string(), "Acme", PresetBundle::LoadSystem,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
+    REQUIRE(fs::exists(profiles / "Acme.opc"));
+    // Release builds ship the cache and drop the profile JSONs, manifest included.
+    fs::remove(profiles / "Acme.json");
+    fs::remove_all(profiles / "Acme");
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A system preset no vendor lists is not resolved", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(temp_dir.path() / "resources" / "profiles", 33.);
+
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Unknown Printer",
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_FALSE(error.empty());
+}
+
+namespace {
+
+// A default preset config for type, built the way PresetBundle builds its default presets.
+DynamicPrintConfig external_default_config(Preset::Type type)
+{
+    DynamicPrintConfig config;
+    config.apply_only(static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()),
+                      type == Preset::TYPE_PRINTER ? Preset::printer_options() : Preset::print_options());
+    Preset::inherits(config);
+    return config;
+}
+
+// A find_base callback that counts its calls and returns base.
+auto base_finder(DynamicPrintConfig *base, int &calls)
+{
+    return [base, &calls](const std::string &) {
+        ++calls;
+        return base;
+    };
+}
+
+} // namespace
+
+TEST_CASE("A key missing from a project takes the default preset value when there is no base", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    defaults.set("wall_loops", 7, true);
+    const DynamicPrintConfig project;
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"sparse_infill_density"},
+                                                                   base_finder(nullptr, calls));
+    CHECK(calls == 1);
+    CHECK(config.opt_int("wall_loops") == 7);
+}
+
+TEST_CASE("A key missing from a project takes its base preset value", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    defaults.set("wall_loops", 7, true);
+    DynamicPrintConfig base = defaults;
+    base.set("wall_loops", 5, true);
+    const DynamicPrintConfig project;
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"sparse_infill_density"},
+                                                                   base_finder(&base, calls));
+    CHECK(config.opt_int("wall_loops") == 5);
+}
+
+TEST_CASE("A project key listed as different keeps the project value", "[Preset][ExternalPreset]")
+{
+    const DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    DynamicPrintConfig       base     = defaults;
+    base.set("wall_loops", 5, true);
+    DynamicPrintConfig project;
+    project.set("wall_loops", 4, true);
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"wall_loops"},
+                                                                   base_finder(&base, calls));
+    CHECK(config.opt_int("wall_loops") == 4);
+}
+
+TEST_CASE("A project key not listed as different is refreshed to the base value", "[Preset][ExternalPreset]")
+{
+    const DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    DynamicPrintConfig       base     = defaults;
+    base.set("wall_loops", 5, true);
+    DynamicPrintConfig project;
+    project.set("wall_loops", 4, true);
+    project.set("inherits", "Base Process", true);
+    std::string inherits;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"sparse_infill_density"},
+                                                                   [&base, &inherits](const std::string &name) {
+                                                                       inherits = name;
+                                                                       return &base;
+                                                                   });
+    CHECK(inherits == "Base Process");
+    CHECK(config.opt_int("wall_loops") == 5);
+}
+
+TEST_CASE("An empty different settings list keeps the project values without a base", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    defaults.set("top_shell_layers", 7, true);
+    DynamicPrintConfig base = defaults;
+    base.set("wall_loops", 5, true);
+    base.set("top_shell_layers", 9, true);
+    DynamicPrintConfig project;
+    project.set("wall_loops", 4, true);
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {}, base_finder(&base, calls));
+    CHECK(calls == 0);
+    CHECK(config.opt_int("wall_loops") == 4);
+    CHECK(config.opt_int("top_shell_layers") == 7);
+}
+
+TEST_CASE("Print-host keys are never taken from a project", "[Preset][ExternalPreset]")
+{
+    DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINTER);
+    defaults.set("print_host", "", true);
+    defaults.set("printhost_apikey", "", true);
+    DynamicPrintConfig project;
+    project.set("print_host", "http://project-host", true);
+    project.set("printhost_apikey", "project-key", true);
+    project.set("printer_notes", "project notes", true);
+    t_config_option_keys keys;
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINTER, defaults, project, {"printer_notes"},
+                                                                   base_finder(nullptr, calls), &keys);
+    CHECK(config.opt_string("print_host").empty());
+    CHECK(config.opt_string("printhost_apikey").empty());
+    CHECK(config.opt_string("printer_notes") == "project notes");
+    CHECK_FALSE(contains_key(keys, "print_host"));
+    CHECK_FALSE(contains_key(keys, "printhost_apikey"));
+    CHECK(contains_key(keys, "printer_notes"));
+}
+
+TEST_CASE("A per-variant project value maps onto its base preset's variant layout", "[Preset][ExternalPreset]")
+{
+    const DynamicPrintConfig defaults = external_default_config(Preset::TYPE_PRINT);
+    DynamicPrintConfig       base     = defaults;
+    base.set_key_value("print_extruder_id", new ConfigOptionInts({1, 1}));
+    base.set_key_value("print_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow"}));
+    base.set_key_value("outer_wall_speed", new ConfigOptionFloats({200., 300.}));
+    base.set_key_value("inner_wall_speed", new ConfigOptionFloats({250., 350.}));
+    // A project saved before its printer had a High Flow variant.
+    DynamicPrintConfig project;
+    project.set_key_value("print_extruder_id", new ConfigOptionInts({1}));
+    project.set_key_value("print_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard"}));
+    project.set_key_value("outer_wall_speed", new ConfigOptionFloats({100.}));
+    project.set_key_value("inner_wall_speed", new ConfigOptionFloats({150.}));
+    int calls = 0;
+
+    const DynamicPrintConfig config = Preset::load_external_config(Preset::TYPE_PRINT, defaults, project, {"outer_wall_speed"},
+                                                                   base_finder(&base, calls));
+    CHECK(config.option<ConfigOptionStrings>("print_extruder_variant")->values ==
+          std::vector<std::string>{"Direct Drive Standard", "Direct Drive High Flow"});
+    // The listed key keeps the project's Standard value and takes High Flow from the base.
+    check_double_vector(config.option<ConfigOptionFloats>("outer_wall_speed")->values, {100., 300.});
+    check_double_vector(config.option<ConfigOptionFloats>("inner_wall_speed")->values, {250., 350.});
+}
+
+TEST_CASE("A project's different settings always keep the preset bookkeeping keys", "[Preset][ExternalPreset]")
+{
+    const std::set<std::string> keys = PresetBundle::project_different_keys(escape_strings_cstyle({"wall_loops", "top_shell_layers"}));
+    for (const char *key : {"wall_loops", "top_shell_layers", "inherits", "print_settings_id", "filament_settings_id", "printer_settings_id"})
+        CHECK(keys.count(key) == 1);
+    CHECK(PresetBundle::project_different_keys(std::string()).count("inherits") == 1);
+}
+
+// A connected machine's tray is checked against the filament variant of the nozzle it feeds.
+TEST_CASE("A filament's variant index follows the extruder type and nozzle volume type", "[Preset]")
+{
+    DynamicPrintConfig filament;
+    filament.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow",
+                                                                                       "Bowden Standard"};
+    DynamicPrintConfig printer;
+    printer.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etBowden};
+
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 0, nvtStandard) == 0);
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 0, nvtHighFlow) == 1);
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 1, nvtStandard) == 2);
+    // the filament defines no Bowden High Flow variant
+    CHECK(PresetBundle::get_filament_variant_index(filament, printer, 1, nvtHighFlow) == 0);
+}
+
+TEST_CASE("A user preset saved over by another instance while its directory loads is read again under the lock", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.config.option<ConfigOptionFloat>("layer_height", true)->value = 0.24;
+    parent.is_system = true;
+
+    // Fewer than one batch, so every file is read before the first one is committed.
+    constexpr int  children = 8;
+    static_assert(children <= int(resolve_batch_size));
+    const fs::path dir      = temp_dir.path() / PRESET_PRINT_NAME;
+    for (int i = 0; i < children; ++ i)
+        write_minimal_child(dir / ("Child " + std::to_string(i) + ".json"), "Child " + std::to_string(i), "Parent Process");
+
+    // The first commit stands in for another instance saving every other preset after
+    // they were read and before they are committed.
+    std::string first;
+    auto save_the_others = [&](Preset &preset) {
+        if (! first.empty())
+            return;
+        first = preset.name;
+        for (int i = 0; i < children; ++ i) {
+            const std::string name = "Child " + std::to_string(i);
+            if (name != first)
+                std::ofstream((dir / (name + ".json")).string())
+                    << R"({"type":"process","name":")" << name
+                    << R"(","from":"User","version":"1.0.0","inherits":"Parent Process","layer_height":"0.3"})";
+        }
+    };
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable, save_the_others);
+
+    REQUIRE_FALSE(first.empty());
+    CHECK(coll.error_count() == 0);
+    for (int i = 0; i < children; ++ i) {
+        const std::string name  = "Child " + std::to_string(i);
+        const Preset     *child = coll.find_preset(name);
+        REQUIRE(child != nullptr);
+        CHECK_THAT(child->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(name == first ? 0.24 : 0.3, 1e-9));
+    }
+}
+
+TEST_CASE("A user preset removed by another instance while its directory loads is not installed", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.is_system = true;
+
+    // Fewer than one batch, so every file is read before the first one is committed.
+    constexpr int  children = 8;
+    static_assert(children <= int(resolve_batch_size));
+    const fs::path dir      = temp_dir.path() / PRESET_PRINT_NAME;
+    for (int i = 0; i < children; ++ i)
+        write_minimal_child(dir / ("Child " + std::to_string(i) + ".json"), "Child " + std::to_string(i), "Parent Process");
+
+    std::string first;
+    auto remove_the_others = [&](Preset &preset) {
+        if (! first.empty())
+            return;
+        first = preset.name;
+        for (int i = 0; i < children; ++ i)
+            if (const std::string name = "Child " + std::to_string(i); name != first)
+                fs::remove(dir / (name + ".json"));
+    };
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable, remove_the_others);
+
+    REQUIRE_FALSE(first.empty());
+    CHECK(coll.error_count() == 0);
+    CHECK(coll.size() == 3); // the default preset, the parent and the first child
+    CHECK(coll.find_preset(first) != nullptr);
+}
+
+TEST_CASE("Without the instance lock a user preset loads but its file is not written back", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data_dir_scope(temp_dir.path());
+    // A directory where the lock file belongs, so the lock cannot be taken.
+    fs::create_directories(fs::path(user_presets_lock_path()));
+    PresetBundle       bundle;
+    const fs::path     file = temp_dir.path() / PRESET_FILAMENT_NAME / "My PLA @Test Printer.json";
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+    const std::string before = read_file(file);
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{ "Test Printer" });
+    CHECK(read_file(file) == before);
+}
+
+#ifndef _WIN32
+// File permissions stop reading only on POSIX.
+TEST_CASE("A user preset that cannot be read under the instance lock is counted and removed", "[Preset][Bundle][InstanceLock]")
+{
+    if (::geteuid() == 0)
+        SKIP("file permissions do not stop root");
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.is_system = true;
+    const fs::path file = temp_dir.path() / PRESET_PRINT_NAME / "Unreadable.json";
+    write_minimal_child(file, "Unreadable", "Parent Process");
+    fs::permissions(file, fs::no_perms);
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Unreadable") == nullptr);
+    CHECK_FALSE(fs::exists(file));
+}
+#endif
+
+#ifndef _WIN32
+// Creating a symlink needs no privilege only on POSIX.
+TEST_CASE("A user preset that is a symlink to itself is counted and removed while the rest still load", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.is_system = true;
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_minimal_child(dir / "Good A.json", "Good A", "Parent Process");
+    write_minimal_child(dir / "Good B.json", "Good B", "Parent Process");
+    const fs::path loop = dir / "Loop.json";
+    fs::create_symlink(loop.filename(), loop);
+
+    PresetsConfigSubstitutions substitutions;
+    REQUIRE_NOTHROW(coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                                      ForwardCompatibilitySubstitutionRule::Disable));
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Good A") != nullptr);
+    CHECK(coll.find_preset("Good B") != nullptr);
+    CHECK(coll.find_preset("Loop") == nullptr);
+    boost::system::error_code ec;
+    CHECK(fs::symlink_status(loop, ec).type() == fs::file_not_found);
+}
+#endif
+
+#ifndef _WIN32
+// Creating a symlink needs no privilege only on POSIX.
+TEST_CASE("A user preset symlinked to a missing target is counted but the link is kept", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    const fs::path dir  = temp_dir.path() / PRESET_PRINT_NAME;
+    const fs::path link = dir / "Linked.json";
+    fs::create_directories(dir);
+    fs::create_symlink(temp_dir.path() / "unmounted" / "Linked.json", link);
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Linked") == nullptr);
+    boost::system::error_code ec;
+    CHECK(fs::symlink_status(link, ec).type() == fs::symlink_file);
+}
+#endif
+
+#ifndef _WIN32
+// The read-only bit on a directory stops file creation only on POSIX.
+TEST_CASE("A user filament whose derived compatible printer cannot be written back still loads with the failure counted", "[Preset][Bundle]")
+{
+    if (::geteuid() == 0)
+        SKIP("a read-only directory does not stop root");
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+    const fs::path     dir  = temp_dir.path() / PRESET_FILAMENT_NAME;
+    const fs::path     file = dir / "My PLA @Test Printer.json";
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+    const std::string before = read_file(file);
+
+    fs::permissions(file, fs::owner_read);
+    fs::permissions(dir, fs::owner_read | fs::owner_exe);
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+    // Restored before any assertion, so a failure never leaves an unremovable directory behind.
+    fs::permissions(dir, fs::owner_all);
+    fs::permissions(file, fs::owner_read | fs::owner_write);
+
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{ "Test Printer" });
+    CHECK(bundle.filaments.error_count() == 1);
+    CHECK(read_file(file) == before);
+}
+#endif

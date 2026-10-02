@@ -1692,9 +1692,9 @@ void Layer::make_ironing()
 				ironing_params.just_infill 	= false;
 				// ORCA: Get filament-specific overrides if configured, otherwise use process values
 				size_t extruder_idx = ironing_params.extruder - 1;
-				ironing_params.line_spacing = (!config.filament_ironing_spacing.is_nil(extruder_idx)
+				ironing_params.line_spacing = std::max(IRONING_SPACING_MIN, !config.filament_ironing_spacing.is_nil(extruder_idx)
 					? config.filament_ironing_spacing.get_at(extruder_idx)
-					: config.ironing_spacing);
+					: config.ironing_spacing.value);
                 ironing_params.inset = (!config.filament_ironing_inset.is_nil(extruder_idx)
 					? config.filament_ironing_inset.get_at(extruder_idx)
 					: config.ironing_inset);

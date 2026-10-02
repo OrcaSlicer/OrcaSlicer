@@ -627,9 +627,9 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
 }
 #else
 
-//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
-//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 1.5
-#define EXTERNAL_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
+//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
+#define EXTERNAL_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Polygons *lower_layer_covered)
 {

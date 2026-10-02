@@ -1,5 +1,3 @@
-#include "clipper/clipper_z.hpp"
-
 #include "libslic3r.h"
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"

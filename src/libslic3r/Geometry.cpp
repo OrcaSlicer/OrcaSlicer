@@ -4,7 +4,6 @@
 #include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
 #include "Line.hpp"
-#include "clipper.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cmath>

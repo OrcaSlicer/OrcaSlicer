@@ -3519,7 +3519,7 @@ ExPolygon priv::to_expoly(const SurfacePatch &patch, const Project &projection, 
 {
     Polygons polys = unproject_loops(patch, projection, depth_range);
     // should not be used when no opposit triangle are counted so should not create overlaps
-    ClipperLib::PolyFillType fill_type = ClipperLib::PolyFillType::pftEvenOdd;
+    PolyFillType fill_type = pftEvenOdd;
     ExPolygons expolys = Slic3r::union_ex(polys, fill_type);
     if (expolys.size() == 1)
         return expolys.front();

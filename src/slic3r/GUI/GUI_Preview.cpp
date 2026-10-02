@@ -5,6 +5,23 @@
 #include "GUI_Preview.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#include <wx/slider.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <vector>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <functional>
+#include "libslic3r/Config.hpp"
+#include <boost/log/trivial.hpp>
+#include "libslic3r/CustomGCode.hpp"
+#include <wx/event.h>
+#include <algorithm>
+#include <cstdlib>
+#include <cassert>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <cmath>
+#include "libvgcode/include/Types.hpp"
 #if ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "GUI_Init.hpp"
 #endif // ENABLE_OPENGL_AUTO_AA_SAMPLES

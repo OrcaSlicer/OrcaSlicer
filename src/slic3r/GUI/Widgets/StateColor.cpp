@@ -1,5 +1,10 @@
 #include "StateColor.hpp"
+#include <algorithm>
 #include <cmath>
+#include <wx/colour.h>
+#include <map>
+#include <tuple>
+#include <wx/string.h>
 
 static bool gDarkMode = false;
 

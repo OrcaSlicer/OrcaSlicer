@@ -8,6 +8,7 @@
 #include <string>
 
 #include <wx/bitmap.h>
+#include <wx/gdicmn.h>
 
 namespace Slic3r { namespace GUI {
 

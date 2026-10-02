@@ -57,18 +57,28 @@ function(orcaslicer_copy_test_dlls)
         # into it). Copy them next to the executable and give it an $ORIGIN
         # rpath so the loader finds them when the tests run on the CI unit-test
         # runner, which only receives this build/tests tree.
-        get_target_property(_linked_libs ${_TEST_NAME}_tests LINK_LIBRARIES)
+        #
+        # Optional first arg: the target to patch, for directories that define
+        # more than one test executable. Defaults to ${_TEST_NAME}_tests so
+        # existing single-executable callers don't need to pass it.
+        if (ARGC GREATER 0)
+            set(_target ${ARGV0})
+        else()
+            set(_target ${_TEST_NAME}_tests)
+        endif()
+
+        get_target_property(_linked_libs ${_target} LINK_LIBRARIES)
         if (NOT "libslic3r_gui" IN_LIST _linked_libs)
             return()
         endif()
 
-        set_property(TARGET ${_TEST_NAME}_tests PROPERTY BUILD_RPATH "$ORIGIN")
+        set_property(TARGET ${_target} PROPERTY BUILD_RPATH "$ORIGIN")
         set(_configs ${CMAKE_CONFIGURATION_TYPES})
         if (NOT _configs)
             set(_configs "${CMAKE_BUILD_TYPE}")
         endif()
         foreach(_cfg IN LISTS _configs)
-            orcaslicer_copy_sos(${_TEST_NAME}_tests "${_cfg}" "" _unused_sos)
+            orcaslicer_copy_sos(${_target} "${_cfg}" "" _unused_sos)
         endforeach()
     endif()
 endfunction()

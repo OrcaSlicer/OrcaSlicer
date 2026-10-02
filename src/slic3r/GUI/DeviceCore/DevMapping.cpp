@@ -1,6 +1,18 @@
+#include "libslic3r/ProjectTask.hpp"
+#include <cstdlib>
+#include <cassert>
+#include <cstdio>
+#include <boost/log/trivial.hpp>
 #include <limits>
 
+#include <map>
 #include <nlohmann/json.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <wx/colour.h>
+#include <set>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "DevMapping.h"
 #include "DevFilaSystem.h"
 #include "DevUtil.h"

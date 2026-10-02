@@ -20,7 +20,6 @@
 #include "TopExp_Explorer.hxx"
 #include "TopoDS.hxx"
 #include "BRepExtrema_SelfIntersection.hxx"
-#include "libslic3r/clipper.hpp"
 #include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
@@ -211,26 +210,15 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
             Polygons polygons;
             bool close_polygon = false;
             for (int i = 0; i < path_line_points.size(); ++i) {
-                ClipperLib::Path pt_path;
-                for (auto line_point : path_line_points[i]) { 
-                    pt_path.push_back(ClipperLib::IntPoint(line_point.first.X() * scale_size, line_point.first.Y() * scale_size));
+                Polyline pt_path;
+                for (auto line_point : path_line_points[i]) {
+                    pt_path.points.push_back(Point(line_point.first.X() * scale_size, line_point.first.Y() * scale_size));
                 }
-                pt_path.push_back(ClipperLib::IntPoint(path_line_points[i].back().second.X() * scale_size, path_line_points[i].back().second.Y() * scale_size));
+                pt_path.points.push_back(Point(path_line_points[i].back().second.X() * scale_size, path_line_points[i].back().second.Y() * scale_size));
 
-                ClipperLib::Paths         out_paths;
-                ClipperLib::ClipperOffset co;
-                if (pt_path.front() == pt_path.back()) {
-                    co.AddPath(pt_path, ClipperLib::jtMiter, ClipperLib::etClosedLine);
-                    close_polygon = true;
-                } else {
-                    co.AddPath(pt_path, ClipperLib::jtMiter, ClipperLib::etOpenSquare);
-                    close_polygon = false;
-                }
-                co.Execute(out_paths, stroke_width / 2);
-
-                for (auto out_path : out_paths) {
-                    polygons.emplace_back(Polygon(out_path));
-                }
+                close_polygon = pt_path.points.front() == pt_path.points.back();
+                if (stroke_width > 0)
+                    append(polygons, offset(pt_path, stroke_width / 2, jtMiter, 2., close_polygon ? etClosedLine : etOpenSquare));
             }
 
             if (!close_polygon)
