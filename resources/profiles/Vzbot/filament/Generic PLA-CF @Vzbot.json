@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA-CF @Vzbot",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Vzbot Generic PLA-CF",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "FETpZHhHj60hztGS",
 	"filament_id": "OFWbdGsC",

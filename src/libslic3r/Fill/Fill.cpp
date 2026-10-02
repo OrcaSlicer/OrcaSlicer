@@ -1698,10 +1698,10 @@ void Layer::make_ironing()
 				auto filament_override = [extruder_idx](const auto &opt, double process_value) {
 					return extruder_idx < opt.values.size() && ! opt.is_nil(extruder_idx) ? opt.get_at(extruder_idx) : process_value;
 				};
-				ironing_params.line_spacing = filament_override(config.filament_ironing_spacing, config.ironing_spacing);
-				ironing_params.inset        = filament_override(config.filament_ironing_inset, config.ironing_inset);
-				ironing_params.height       = default_layer_height * 0.01 * filament_override(config.filament_ironing_flow, config.ironing_flow);
-				ironing_params.speed        = filament_override(config.filament_ironing_speed, config.ironing_speed);
+				ironing_params.line_spacing = std::max(IRONING_SPACING_MIN, filament_override(config.filament_ironing_spacing, config.ironing_spacing.value));
+                ironing_params.inset = filament_override(config.filament_ironing_inset, config.ironing_inset);
+				ironing_params.height = default_layer_height * 0.01 * filament_override(config.filament_ironing_flow, config.ironing_flow);
+                ironing_params.speed = filament_override(config.filament_ironing_speed, config.ironing_speed);
                 const bool top_layer_direction_set = config.top_layer_direction.value >= 0.;
                 const double top_layer_base_angle  = top_layer_direction_set ?
                     Geometry::deg2rad(config.top_layer_direction.value) :

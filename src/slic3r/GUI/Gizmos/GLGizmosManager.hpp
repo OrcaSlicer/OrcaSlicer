@@ -84,6 +84,7 @@ public:
         Seam,
         FuzzySkin,
         MmSegmentation,
+        TextureDisplacement,
         Emboss,
         Svg,
         Measure,

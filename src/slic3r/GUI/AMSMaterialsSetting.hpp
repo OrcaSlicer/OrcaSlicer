@@ -150,6 +150,8 @@ protected:
     void update_widgets();
 
     void update_filament_editing(bool is_printing);
+    // Orca: the variant index of the filament's per-variant options on the nozzle this tray feeds
+    int  get_filament_variant_index(const Preset &filament, const std::string &nozzle_diameter_str);
 
 protected:
     StateColor          m_btn_bg_green;
