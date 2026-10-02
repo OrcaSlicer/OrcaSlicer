@@ -54,18 +54,12 @@ if [ -z "${python_exe}" ]; then
     numpy_unavailable "no bundled Python under ${TEST_DIR}"
 elif ! has_pinned_numpy; then
     uv_exe="${python_exe%/python/*}/tools/uv/uv"
-    # Windows stages uv.exe; other platforms stage uv.
-    if [ ! -x "${uv_exe}" ] && [ -x "${uv_exe}.exe" ]; then
-        uv_exe="${uv_exe}.exe"
-    fi
-    if [ ! -x "${uv_exe}" ]; then
-        # Local builds may use uv on PATH; CI must exercise the staged binary.
-        uv_exe=""
-        [ -n "${CI:-}" ] || uv_exe="$(command -v uv)"
-    fi
+    # Windows stages uv.exe; other platforms stage uv. Never fall back to a uv on
+    # PATH: the app only runs its bundled uv, so the tests must too.
+    [ -x "${uv_exe}" ] || uv_exe="${uv_exe}.exe"
     echo "Installing numpy ${NUMPY_VERSION} into the embedded test interpreter (${python_exe})..."
-    if [ -z "${uv_exe}" ]; then
-        numpy_unavailable "no uv staged beside the tests or on PATH"
+    if [ ! -x "${uv_exe}" ]; then
+        numpy_unavailable "no uv staged beside the tests"
     elif ! "${uv_exe}" pip install --python "${python_exe}" --only-binary :all: "numpy==${NUMPY_VERSION}" \
             || ! has_pinned_numpy; then
         numpy_unavailable "could not install numpy ${NUMPY_VERSION} into ${python_exe}"
