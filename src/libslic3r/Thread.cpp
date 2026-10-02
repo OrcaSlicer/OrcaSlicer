@@ -12,6 +12,7 @@
 #include <thread>
 #include <tbb/parallel_for.h>
 #include <tbb/task_arena.h>
+#include <tbb/task_scheduler_observer.h>
 
 #include "Thread.hpp"
 #include "Utils.hpp"
@@ -212,70 +213,71 @@ bool is_main_thread_active()
 	return get_main_thread_id() == boost::this_thread::get_id();
 }
 
-// Spawn (n - 1) worker threads on Intel TBB thread pool and name them by an index and a system thread ID.
-// Also it sets locale of the worker threads to "C" for the G-code generator to produce "." as a decimal separator.
+// Name the current TBB worker thread and set its locale to "C", so that the G-code generator
+// produces "." as a decimal separator. Called once per worker thread, before it runs its first task.
+static void setup_tbb_worker_thread()
+{
+	static std::atomic<size_t> s_worker_idx{ 0 };
+	std::ostringstream name;
+	name << "slic3r_tbb_" << (1 + s_worker_idx.fetch_add(1, std::memory_order_relaxed));
+	set_current_thread_name(name.str().c_str());
+#ifdef _WIN32
+	_configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
+	std::setlocale(LC_ALL, "C");
+#else
+	// We are leaking some memory here, because the newlocale() produced memory will never be released.
+	// This is not a problem though, as there will be a maximum one worker thread created per physical thread.
+	uselocale(newlocale(
+#ifdef __APPLE__
+		LC_ALL_MASK
+#else // some Unix / Linux / BSD
+		LC_ALL
+#endif
+		, "C", nullptr));
+#endif
+}
+
+// Sets up the TBB worker threads of the arena of the thread, which activated the observation.
+// A worker sets itself up on entry to the arena, before it executes its first task, thus unlike a barrier
+// inside a parallel_for, this does not depend on TBB running any number of tasks simultaneously.
+class TBBWorkerThreadSetupObserver : public tbb::task_scheduler_observer
+{
+public:
+	TBBWorkerThreadSetupObserver() { this->observe(true); }
+
+	void on_scheduler_entry(bool is_worker) override
+	{
+		// Leave the external threads (the calling / UI thread) alone, their name and locale must not be modified here.
+		if (! is_worker)
+			return;
+		// A worker thread enters an arena many times, while its name and locale have to be set just once.
+		static thread_local bool initialized = false;
+		if (initialized)
+			return;
+		initialized = true;
+		setup_tbb_worker_thread();
+	}
+};
+
+// Name the threads of the Intel TBB thread pool by an index and set their locale to "C"
+// for the G-code generator to produce "." as a decimal separator.
+// Formerly all the worker threads were caught inside a single parallel_for, which was held on a condition
+// variable barrier until max_concurrency() of its chunks were running. TBB guarantees no such simultaneity,
+// thus the barrier was able to block the slicing threads indefinitely. The TBB scheduler observer below
+// sets each worker up on its own, thus no two chunks have to run at the same time.
 void name_tbb_thread_pool_threads_set_locale()
 {
-	static bool initialized = false;
-	if (initialized)
-		return;
-	initialized = true;
-
-	// see GH issue #5661 PrusaSlicer hangs on Linux when run with non standard task affinity
-	// TBB will respect the task affinity mask on Linux and spawn less threads than std::thread::hardware_concurrency().
-//	const size_t nthreads_hw = std::thread::hardware_concurrency();
-	const size_t nthreads_hw = tbb::this_task_arena::max_concurrency();
-	size_t       nthreads    = nthreads_hw;
-
 #ifdef SLIC3R_PROFILE
 	// Shiny profiler is not thread safe, thus disable parallelization.
 	disable_multi_threading();
-	nthreads = 1;
 #endif
 
-	size_t                  nthreads_running(0);
-	std::condition_variable cv;
-	std::mutex				cv_m;
-	auto					master_thread_id = std::this_thread::get_id();
-    tbb::parallel_for(
-        tbb::blocked_range<size_t>(0, nthreads, 1),
-        [&nthreads_running, nthreads, &master_thread_id, &cv, &cv_m](const tbb::blocked_range<size_t> &range) {
-        	assert(range.begin() + 1 == range.end());
-			if (std::unique_lock<std::mutex> lk(cv_m);  ++nthreads_running == nthreads) {
-				lk.unlock();
-        		// All threads are spinning.
-        		// Wake them up.
-    			cv.notify_all();
-        	} else {
-        		// Wait for the last thread to wake the others.
-			    cv.wait(lk, [&nthreads_running, nthreads]{return nthreads_running == nthreads;});
-        	}
-        	auto thread_id = std::this_thread::get_id();
-			if (thread_id == master_thread_id) {
-				// The calling thread runs the 0'th task.
-				assert(range.begin() == 0);
-			} else {
-				assert(range.begin() > 0);
-				std::ostringstream name;
-		        name << "slic3r_tbb_" << range.begin();
-		        set_current_thread_name(name.str().c_str());
-		        // Set locales of the worker thread to "C".
-#ifdef _WIN32
-			    _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
-			    std::setlocale(LC_ALL, "C");
-#else
-				// We are leaking some memory here, because the newlocale() produced memory will never be released.
-				// This is not a problem though, as there will be a maximum one worker thread created per physical thread.
-				uselocale(newlocale(
-#ifdef __APPLE__
-					LC_ALL_MASK
-#else // some Unix / Linux / BSD
-					LC_ALL
-#endif
-					, "C", nullptr));
-#endif
-    		}
-        });
+	// An observer is local to the arena of the thread which activates it, thus one observer is registered
+	// per calling thread. Being function local and thread local, it is also initialized exactly once per
+	// thread without a race. It is intentionally never destroyed, as it has to stay alive as long as the
+	// TBB scheduler may notify it, which includes the shutdown of the process.
+	static thread_local tbb::task_scheduler_observer *observer = new TBBWorkerThreadSetupObserver();
+	(void)observer;
 }
 
 }

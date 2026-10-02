@@ -424,8 +424,16 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
         [this](size_t i, size_t j) { return m_layer_outlines[i].second.size() < m_layer_outlines[j].second.size(); });
 
     // Layer range for which the collisions will be calculated.
+    // Another thread may have advanced getMaxCalculatedLayer() past max_layer_idx after this calculation
+    // was requested. Bail out in that case, otherwise the layer range would be negative and allocating
+    // it would throw std::length_error out of a parallel task.
+    const LayerIndex            start_layer = 1 + m_collision_cache.getMaxCalculatedLayer(radius);
+    if (start_layer > max_layer_idx) {
+        BOOST_LOG_TRIVIAL(debug) << "Requested calculation for value already calculated ?";
+        return;
+    }
     LayerPolygonCache           data;
-    data.allocate(m_collision_cache.getMaxCalculatedLayer(radius) + 1, max_layer_idx + 1);
+    data.allocate(start_layer, max_layer_idx + 1);
 
     const bool                  calculate_placable = m_support_rests_on_model && radius == 0;
     LayerPolygonCache           data_placeable;
@@ -804,6 +812,12 @@ void TreeModelVolumes::calculateWallRestrictions(const std::vector<RadiusLayerPa
             const coord_t    radius             = keys[key_idx].first;
             const LayerIndex max_required_layer = keys[key_idx].second;
             const coord_t    min_layer_bottom   = std::max(1, m_wall_restrictions_cache.getMaxCalculatedLayer(radius));
+            if (min_layer_bottom > max_required_layer) {
+                // Another thread has calculated this range in the meantime. Continuing would make
+                // buffer_size negative and allocating it would throw std::length_error.
+                BOOST_LOG_TRIVIAL(debug) << "Requested calculation for value already calculated ?";
+                continue;
+            }
             const size_t     buffer_size        = max_required_layer + 1 - min_layer_bottom;
             std::vector<Polygons> data(buffer_size, Polygons{});
             std::vector<Polygons> data_min;
