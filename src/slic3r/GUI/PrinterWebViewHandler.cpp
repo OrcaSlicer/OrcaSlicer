@@ -1,5 +1,6 @@
 #include "PrinterWebViewHandler.hpp"
 
+#include "Http.hpp"
 #include "I18N.hpp"
 #include "PrinterWebView.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -7,12 +8,20 @@
 #include "slic3r/Utils/PrintHost.hpp"
 #include "libslic3r/Preset.hpp"
 
+#include <memory>
+#include <cstdint>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <nlohmann/json.hpp>
 #include <atomic>
 #include <boost/filesystem/path.hpp>
+#include <string>
 #include <thread>
+#include <utility>
 #include <wx/filedlg.h>
 #include <wx/string.h>
+#include <wx/webview.h>
+#include <wx/utils.h>
 
 using json = nlohmann::json;
 

@@ -2,6 +2,7 @@
 #define GL_GIZMO_UTIL_HPP
 
 #include <map>
+#include <utility>
 #include <vector>
 #include <string>
 #include <wx/string.h>

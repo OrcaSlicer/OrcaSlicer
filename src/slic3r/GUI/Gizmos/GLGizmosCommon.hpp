@@ -1,8 +1,15 @@
 #ifndef slic3r_GUI_GLGizmosCommon_hpp_
 #define slic3r_GUI_GLGizmosCommon_hpp_
 
+#include "libslic3r/TriangleMesh.hpp"
+#include <cassert>
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
 #include <memory>
 #include <map>
+#include <vector>
+#include <utility>
 
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"

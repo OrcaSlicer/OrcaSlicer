@@ -1,5 +1,6 @@
 #pragma once
 
+#include <wx/gdicmn.h>
 #include <wx/mediactrl.h>
 #include <wx/uri.h>
 

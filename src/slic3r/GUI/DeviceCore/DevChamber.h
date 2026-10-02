@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <nlohmann/json.hpp>
 #include "slic3r/Utils/json_diff.hpp"
 

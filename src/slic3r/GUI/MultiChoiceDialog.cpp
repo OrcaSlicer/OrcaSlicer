@@ -2,6 +2,18 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include <wx/string.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/CheckList.hpp"
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include <wx/event.h>
+#include <wx/dynarray.h>
 
 namespace Slic3r { namespace GUI {
 

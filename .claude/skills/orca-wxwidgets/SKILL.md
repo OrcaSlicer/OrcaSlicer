@@ -206,7 +206,8 @@ known class with a pitfall entry and a fixing commit.
 - **macOS:** capture-lost is never sent (a leaked capture freezes all clicks); transient popups hover-
   dismiss across a gap — anchor flush and re-verify the cursor; native modals (file/dir dialogs, native
   message boxes) and generic progress dialogs re-activate the main window, so re-raise a secondary window
-  afterwards with a deferred, liveness-guarded `Raise()`; a live menu accelerator consumes the key before
+  afterwards with a deferred, liveness-guarded `Raise()` — but never `Raise()` a `wxPopupWindow`, which makes
+  it the key window; a live menu accelerator consumes the key before
   any wx key event; Control+click arrives as a right-click.
 - **Windows:** `IsDark()` and `wxSYS_COLOUR_*` follow the system app mode, not Orca's theme — use
   `dark_mode()`; menu bitmaps follow `check_dark_mode()`; windows are not double-buffered by default in

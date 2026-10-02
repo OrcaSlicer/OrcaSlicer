@@ -6,9 +6,31 @@
 #include "MainFrame.hpp"
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
+#include <memory>
+#include <cassert>
+#include <miniz.h>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/miniz_extension.hpp"
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
 #include <regex>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
+#include <wx/string.h>
+#include <wx/dataview.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include <wx/settings.h>
+#include <wx/sizer.h>
+#include <wx/dvrenderers.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
 
 namespace Slic3r {
 namespace GUI {

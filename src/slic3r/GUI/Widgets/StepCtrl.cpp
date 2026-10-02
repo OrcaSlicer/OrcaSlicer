@@ -1,8 +1,16 @@
 #include "StepCtrl.hpp"
 #include "Label.hpp"
 
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <algorithm>
+#include "slic3r/GUI/BitmapCache.hpp"
 #include <wx/dc.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/pen.h>
+#include <wx/string.h>
 
 wxDEFINE_EVENT( EVT_STEP_CHANGING, wxCommandEvent );
 wxDEFINE_EVENT( EVT_STEP_CHANGED, wxCommandEvent );

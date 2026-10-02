@@ -3,6 +3,12 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/string.h>
+#include <wx/checklst.h>
+#include <wx/event.h>
+#include <wx/dc.h>
 #include <wx/tipwin.h>
 #include <wx/colour.h>
 

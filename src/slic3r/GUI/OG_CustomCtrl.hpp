@@ -1,11 +1,23 @@
 #ifndef slic3r_OG_CustomCtrl_hpp_
 #define slic3r_OG_CustomCtrl_hpp_
 
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <cstddef>
+#include <vector>
+#include <wx/event.h>
+#include "slic3r/GUI/Field.hpp"
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/settings.h>
 
 #include <map>
 #include <functional>
+#include <wx/types.h>
+#include <wx/string.h>
+#include <wx/validate.h>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"

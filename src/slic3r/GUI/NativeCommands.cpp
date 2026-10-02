@@ -19,6 +19,9 @@
 #include "PlateSettingsDialog.hpp"
 #include "DeviceCore/DevManager.h"
 
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include <initializer_list>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Utils.hpp>
 
@@ -26,11 +29,15 @@
 #include <cmath>
 #include <cstdlib>
 #include <exception>
+#include "libslic3r/libslic3r.h"
 #include <memory>
+#include "slic3r/GUI/ActionRegistry.hpp"
 #include <string>
 #include <tuple>
 #include <utility>
 
+#include <vector>
+#include <wx/string.h>
 #include <wx/utils.h>
 
 namespace Slic3r { namespace GUI {

@@ -17,7 +17,28 @@
 #include "GLGizmoUtils.hpp"
 
 
+#include <cstddef>
+#include <cassert>
+#include <algorithm>
+#include <array>
 #include <glad/gl.h>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Color.hpp"
+#include <imgui.h>
+#include <wx/colour.h>
+#include "libslic3r/TriangleSelector.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <memory>
+#include <wx/busycursor.h>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GLShader.hpp"
 
 namespace Slic3r::GUI {
 

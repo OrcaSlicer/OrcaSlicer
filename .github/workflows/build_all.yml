@@ -45,7 +45,7 @@ on:
 
 
   schedule:
-      - cron: '0 17 * * *' # run once a day at 1 AM Singapore time (UTC+8)
+      - cron: '15 2 * * *' # 10:15 AM Singapore time (UTC+8), when macOS runners are least busy
 
   workflow_dispatch: # allows for manual dispatch
     inputs:

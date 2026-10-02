@@ -1,6 +1,24 @@
 #ifndef slic3r_GLCanvas3D_hpp_
 #define slic3r_GLCanvas3D_hpp_
 
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <cstdlib>
+#include <map>
+#include <cmath>
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <array>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Model.hpp"
+#include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <stddef.h>
 #include <memory>
 #include <chrono>
@@ -25,6 +43,14 @@
 
 #include <float.h>
 
+#include <wx/setup.h>
+#include <wx/event.h>
+#include <utility>
+#include <vector>
+#include <string>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <wx/time.h>
 #include <wx/timer.h>
 
 class wxSizeEvent;

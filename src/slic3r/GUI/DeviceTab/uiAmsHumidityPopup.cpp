@@ -14,8 +14,14 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include <cmath>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
 #include <wx/grid.h>
+#include <wx/sizer.h>
 
 namespace Slic3r { namespace GUI {
 

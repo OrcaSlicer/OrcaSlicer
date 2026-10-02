@@ -2,6 +2,14 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 
+#include <cfloat>
+#include <cstddef>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <cassert>
+#include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
@@ -13,8 +21,27 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <limits>
+#include "libslic3r/Config.hpp"
 #include <memory>
 #include <optional>
+#include "slic3r/GUI/GLModel.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <queue>
 
 namespace Slic3r::GUI {
 

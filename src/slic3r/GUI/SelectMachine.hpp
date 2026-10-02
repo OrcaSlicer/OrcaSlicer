@@ -1,6 +1,24 @@
 #ifndef slic3r_GUI_SelectMachine_hpp_
 #define slic3r_GUI_SelectMachine_hpp_
 
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include "libslic3r/ProjectTask.hpp"
+#include <map>
+#include <wx/image.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <list>
+#include <memory>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "libslic3r/CommonDefs.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>

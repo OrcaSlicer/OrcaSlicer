@@ -9,9 +9,16 @@
 #include "Jobs/ProgressIndicator.hpp"
 #include "Downloader.hpp"
 
+#include <cstdint>
+#include <cstddef>
+#include <imgui.h>
 #include <libslic3r/ObjectID.hpp>
+#include "libslic3r/PrintBase.hpp"
 #include <libslic3r/Technologies.hpp>
 
+#include <wx/event.h>
+#include <limits>
+#include <memory>
 #include <wx/time.h>
 
 #include <string>
@@ -22,6 +29,7 @@
 #include <unordered_set>
 
 #include <libslic3r/Preset.hpp>
+#include <wx/utils.h>
 
 namespace Slic3r {
 namespace GUI {

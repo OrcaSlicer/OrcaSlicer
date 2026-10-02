@@ -2,7 +2,15 @@
 #define slic3r_GUI_DropDown_hpp_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <wx/event.h>
+#include <vector>
+#include <cstddef>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <wx/dc.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 #include "PopupWindow.hpp"
