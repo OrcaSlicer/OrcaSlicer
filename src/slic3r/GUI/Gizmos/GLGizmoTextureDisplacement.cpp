@@ -3362,6 +3362,8 @@ void GLGizmoTextureDisplacement::ensure_panel_icons()
         "texture_displacement_adjust.svg", "canvas_drag.svg", "texture_displacement_move_up.svg",
         "texture_displacement_move_down.svg", "texture_displacement_drag.svg",
         "texture_displacement_select_all.svg", "texture_displacement_erase_all.svg",
+        // Header help links: the video walkthrough and the wiki page.
+        "texture_displacement_video_guide.svg", "texture_displacement_wiki.svg",
     };
     std::vector<std::string> paths;
     paths.reserve(names.size());
@@ -5516,6 +5518,15 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::PopStyleVar(2);
         ImGui::GetWindowDrawList()->AddRect(seg_min, ImVec2(ImGui::GetItemRectMax().x, seg_min.y + frame_h),
                                             ImGui::GetColorU32(col_frame), style.FrameRounding);
+
+        ImGui::SameLine(0.f, gap_s);
+        if (icon_button(807, "texture_displacement_video_guide.svg", icon_sm, _L("Video guide"),
+                        _L("Watch the texture displacement walkthrough on YouTube. Opens in your browser.")))
+            wxLaunchDefaultBrowser("https://www.youtube.com/watch?v=D7w3tG1kdvE");
+        ImGui::SameLine(0.f, gap_s);
+        if (icon_button(808, "texture_displacement_wiki.svg", icon_sm, _L("Documentation"),
+                        _L("Open the texture displacement page of the OrcaSlicer wiki. Opens in your browser.")))
+            wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/print_prepare/prepare_texture_displacement.html");
 
         ImGui::SameLine(0.f, gap_s);
         if (icon_button(806, "canvas_drag.svg", icon_sm, m_undocked ? _L("Dock panel") : _L("Undock panel"),
