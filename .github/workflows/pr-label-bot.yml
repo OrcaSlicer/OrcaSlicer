@@ -35,6 +35,7 @@ jobs:
               // kind of change
               'crash',
               'bug-fix',
+              'SECURITY',
               'enhancement',
               'QoL',
               'optimization',
@@ -193,6 +194,7 @@ jobs:
               // kind of change
               'crash',
               'bug-fix',
+              'SECURITY',
               'enhancement',
               'QoL',
               'optimization',

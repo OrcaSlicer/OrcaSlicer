@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @RatRig",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "RatRig Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "ps7duiwT8adNshEO",
 	"filament_id": "OFQLcbps",

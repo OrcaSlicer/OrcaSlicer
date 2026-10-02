@@ -6546,8 +6546,11 @@ void GLCanvas3D::render_thumbnail_internal(ThumbnailData& thumbnail_data, const 
     //    glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
     BOOST_LOG_TRIVIAL(info) << boost::format("render_thumbnail: finished");
 
-    // Puts the canvas viewport back in place of the thumbnail one set above.
-    wxGetApp().plater()->get_camera().apply_viewport();
+    // Puts the canvas viewport back in place of the thumbnail one set above. The CLI renders
+    // thumbnails with no application and no plater, so there is no canvas viewport to restore.
+    if (wxTheApp != nullptr)
+        if (Plater *plater = wxGetApp().plater(); plater != nullptr)
+            plater->get_camera().apply_viewport();
 }
 
 void GLCanvas3D::render_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,

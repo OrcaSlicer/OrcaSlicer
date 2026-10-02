@@ -1,6 +1,7 @@
 {
 	"type": "process",
 	"name": "0.24mm Draft 0.4 nozzle @Blocks_Pro_S100",
+	"renamed_from": "0.24mm Draft 0.4 nozzle @Blocks",
 	"inherits": "fdm_process_blocks_common",
 	"from": "system",
 	"setting_id": "uALfEFHGmup6vBYI",
@@ -10,6 +11,5 @@
 	"top_shell_layers": "5",
 	"compatible_printers": [
 		"BLOCKS Pro S100 0.4 nozzle"
-	],
-	"renamed_from": "0.24mm Draft 0.4 nozzle @Blocks"
+	]
 }

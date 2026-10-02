@@ -489,6 +489,25 @@ TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "
     CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
 }
 
+// Some firmwares only scan the last N lines of the file for "estimated printing time", so it
+// must stay close to EOF regardless of the resolved-settings config block's size.
+TEST_CASE("The estimated printing time comment stays near the end of the file", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {});
+    const size_t config_block_end = gcode.find("; CONFIG_BLOCK_END");
+    const size_t filament_stats   = gcode.find("; filament used [mm]");
+    const size_t time_comment     = gcode.find("estimated printing time");
+    REQUIRE(config_block_end != std::string::npos);
+    REQUIRE(filament_stats != std::string::npos);
+    REQUIRE(time_comment != std::string::npos);
+    CHECK(filament_stats > config_block_end);
+    CHECK(time_comment > filament_stats);
+
+    const size_t line_start = gcode.rfind('\n', time_comment) + 1;
+    const size_t trailing_lines = std::count(gcode.begin() + line_start, gcode.end(), '\n');
+    CHECK(trailing_lines <= 5);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {

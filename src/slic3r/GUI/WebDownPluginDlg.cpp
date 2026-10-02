@@ -38,9 +38,7 @@ DownPluginFrame::DownPluginFrame(GUI_App *pGUI) : wxDialog((wxWindow *) (pGUI->m
 
     // set the frame icon
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
-    wxString TargetUrl    = from_u8((boost::filesystem::path(resources_dir()) / "web/guide/6/index.html").make_preferred().string());
-
-    TargetUrl = "file://" + TargetUrl;
+    wxString TargetUrl    = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/guide/6/index.html");
 
     // Create the webview
     m_browser = WebView::CreateWebView(this, TargetUrl);

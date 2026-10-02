@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Prusa MK3.5",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Prusa Generic PLA @MK3.5;Prusa Generic PLA MK3.5",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "5tDjTVPzE0lIEReK",
 	"filament_id": "OFDSrzZ8",

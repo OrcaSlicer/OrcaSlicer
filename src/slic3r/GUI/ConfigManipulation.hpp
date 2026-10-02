@@ -79,9 +79,9 @@ public:
     void    apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase*, ModelConfig*> const & configs);
 
     //BBS: FFF filament nozzle temperature range
-    void    check_nozzle_recommended_temperature_range(DynamicPrintConfig *config);
-    void    check_nozzle_temperature_range(DynamicPrintConfig* config);
-    void    check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config);
+    void    check_nozzle_recommended_temperature_range(DynamicPrintConfig *config, unsigned int variant_index);
+    void    check_nozzle_temperature_range(DynamicPrintConfig* config, unsigned int variant_index);
+    void    check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config, unsigned int variant_index);
     void    check_adaptive_pressure_advance_model(DynamicPrintConfig* config);
     void    check_filament_max_volumetric_speed(DynamicPrintConfig *config);
     void    check_chamber_temperature(DynamicPrintConfig* config);
@@ -104,7 +104,7 @@ public:
     int    show_spiral_mode_settings_dialog(bool is_object_config = false);
 
 private:
-    bool get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high);
+    bool get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high, unsigned int variant_index);
 };
 
 } // GUI

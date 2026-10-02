@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <wx/sizer.h>
+#include <wx/scrolwin.h>
 #include <wx/tglbtn.h>
 #include "Button.hpp"
 
@@ -164,6 +165,10 @@ public:
     void SetButtonCornerRadius(double radius);
     void SetButtonPadding(const wxSize &padding);
 
+    // Keep the switch exactly as wide as the buttons need instead of letting the layout stretch it.
+    // A layout with less room than that still squeezes it, and it scrolls its buttons then.
+    void SetFitToOptions(bool fit = true) { m_fit_to_options = fit; update_scroll_range(); }
+
     void Rescale();
 
 protected:
@@ -173,9 +178,20 @@ protected:
     bool send_selection_event();
 
 private:
+    // Height of the single button row, measured from the buttons themselves.
+    int  options_height() const;
+    void update_scroll_range();
+    int  scrollbar_height(int options_width) const;
+    void scroll_option_into_view(Button *btn);
+    void on_size(wxSizeEvent &evt);
+
     std::vector<Button *> btns;
-    wxBoxSizer           *sizer = nullptr;
-    int                   sel   = -1;
+    // The buttons are laid out inside this scrolled area so that a switch holding more options than
+    // the layout has room for scrolls instead of clipping its tail.
+    wxScrolledWindow     *m_scroll         = nullptr;
+    wxBoxSizer           *sizer            = nullptr;
+    bool                  m_fit_to_options = false;
+    int                   sel              = -1;
 
     StateColor m_bg_color;
     StateColor m_text_color;

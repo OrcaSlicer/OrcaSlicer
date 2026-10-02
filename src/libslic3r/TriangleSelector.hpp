@@ -297,8 +297,20 @@ public:
             std::fill(used_states.begin(), used_states.end(), false);
         }
 
-        // Update used states based on the bitstream. It just iterated over the bitstream from the bitstream_start_idx till the end.
-        void update_used_states(size_t bitstream_start_idx);
+        // Update used states from the triangle trees stored between bitstream_start_idx and the end of the bitstream.
+        // Returns false and leaves used states untouched if a tree is truncated or malformed.
+        bool update_used_states(size_t bitstream_start_idx);
+
+        // Read the 4-bit code at bit index ibit (LSB first) and advance ibit past it.
+        // Returns false without advancing when fewer than 4 bits remain.
+        bool read_nibble(int &ibit, int &nibble) const {
+            if (ibit < 0 || static_cast<size_t>(ibit) + 4 > bitstream.size())
+                return false;
+            nibble = 0;
+            for (int i = 0; i < 4; ++i)
+                nibble |= static_cast<int>(bitstream[ibit++]) << i;
+            return true;
+        }
 
     private:
         friend class cereal::access;
@@ -350,7 +362,14 @@ public:
     // Get facets at a given state. Don't triangulate T-joints.
     indexed_triangle_set get_facets(EnforcerBlockerType state) const;
     // Get facets at a given state. Triangulate T-joints.
-    indexed_triangle_set get_facets_strict(EnforcerBlockerType state) const;
+    // Sub-triangles in `state`, with the *whole* mesh's referenced vertex array (only .indices is
+    // filtered by state, so two calls with different states share one indexing).
+    //
+    // `out_source`, when given, is filled parallel to the returned .indices with the index of the
+    // original mesh triangle each sub-triangle came from. That is what lets a caller carry partial
+    // paint - the pieces of a triangle a brush stroke only partly covered - across a refinement of
+    // the same surface, instead of having to round each source triangle to wholly painted or not.
+    indexed_triangle_set get_facets_strict(EnforcerBlockerType state, std::vector<int> *out_source = nullptr) const;
     // Get edges around the selected area by seed fill.
     std::vector<Vec2i32> get_seed_fill_contour() const;
 

@@ -599,7 +599,7 @@ void ZUserLogin::OnScriptResponseMessage(wxCommandEvent &WXUNUSED(evt))
 
 bool  ZUserLogin::ShowErrorPage()
 {
-    wxString ErrortUrl = from_u8((boost::filesystem::path(resources_dir()) / "web\\login\\error.html").make_preferred().string());
+    wxString ErrortUrl = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/login/error.html");
     load_url(ErrortUrl);
 
     return true;

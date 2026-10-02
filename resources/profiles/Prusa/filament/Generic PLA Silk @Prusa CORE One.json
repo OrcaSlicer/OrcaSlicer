@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Silk @Prusa CORE One",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Prusa Generic PLA Silk @CORE One;Prusa Generic PLA Silk CORE One",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "F9lNHyhZwZi7aD74",
 	"filament_id": "OFesA6rF",

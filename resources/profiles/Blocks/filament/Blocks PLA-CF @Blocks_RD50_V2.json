@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Blocks PLA-CF @Blocks_RD50_V2",
+	"renamed_from": "Blocks Generic PLA-CF;Generic PLA-CF @Blocks",
 	"inherits": "Blocks PLA-CF @base",
 	"from": "system",
 	"setting_id": "lhBtMKP1DmOB3HOI",
@@ -9,6 +10,5 @@
 		"BLOCKS RD50 V2 0.4 nozzle",
 		"BLOCKS RD50 V2 0.6 nozzle",
 		"BLOCKS RD50 V2 0.8 nozzle"
-	],
-	"renamed_from": "Blocks Generic PLA-CF;Generic PLA-CF @Blocks"
+	]
 }
