@@ -1,8 +1,8 @@
 {
 	"type": "machine",
 	"name": "M3D Enabler D8500 0.4 nozzle",
-	"inherits": "fdm_machine_common",
 	"renamed_from": "M3D Enabler D8500 MM",
+	"inherits": "fdm_machine_common",
 	"from": "system",
 	"setting_id": "xdGprcdFiVkG5vT2",
 	"instantiation": "true",
@@ -38,33 +38,49 @@
 	"machine_load_filament_time": "0.5",
 	"machine_max_acceleration_e": [
 		"10000",
+		"10000",
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_x": [
+		"2000",
+		"2000",
 		"2000",
 		"2000"
 	],
 	"machine_max_acceleration_y": [
 		"2000",
+		"2000",
+		"2000",
 		"2000"
 	],
 	"machine_max_acceleration_z": [
+		"400",
+		"400",
 		"400",
 		"400"
 	],
 	"machine_max_speed_e": [
 		"30",
+		"30",
+		"30",
 		"30"
 	],
 	"machine_max_speed_x": [
+		"400",
+		"400",
 		"400",
 		"400"
 	],
 	"machine_max_speed_y": [
 		"300",
+		"300",
+		"300",
 		"300"
 	],
 	"machine_max_speed_z": [
+		"12",
+		"12",
 		"12",
 		"12"
 	],
@@ -86,7 +102,10 @@
 		"0.4",
 		"0.4"
 	],
-	"nozzle_type": "brass",
+	"nozzle_type": [
+		"brass",
+		"brass"
+	],
 	"print_host": "m3d-enabler.local",
 	"printable_area": [
 		"0x0",

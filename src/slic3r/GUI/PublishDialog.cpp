@@ -1,6 +1,21 @@
 #include "PublishDialog.hpp"
 #include "GUI_App.hpp"
 
+#include <wx/colour.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/intl.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/ProgressBar.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/event.h>
+#include "slic3r/GUI/Plater.hpp"
 #include <wx/wx.h> 
 #include <wx/sizer.h>
 #include <wx/statbox.h>

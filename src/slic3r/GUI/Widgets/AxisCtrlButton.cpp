@@ -2,8 +2,20 @@
 #include "Label.hpp"
 #include "libslic3r/libslic3r.h"
 
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/colour.h>
+#include <cmath>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <algorithm>
+#include <wx/dc.h>
+#include <wx/chartype.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/stattext.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/graphics.h>
 
 StateColor blank_bg(StateColor(std::make_pair(wxColour("#FFFFFF"), (int)StateColor::Normal)));
 static const wxColour BUTTON_BG_COL = wxColour("#EEEEEE");

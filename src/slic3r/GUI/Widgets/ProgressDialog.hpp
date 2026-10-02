@@ -7,6 +7,12 @@
 #include "wx/simplebook.h"
 #include "Button.hpp"
 #include "../wxExtensions.hpp"
+#include <wx/dlimpexp.h>
+#include <wx/string.h>
+#include <cstddef>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/translation.h>
 
 class WXDLLIMPEXP_FWD_CORE wxButton;
 class WXDLLIMPEXP_FWD_CORE wxEventLoop;

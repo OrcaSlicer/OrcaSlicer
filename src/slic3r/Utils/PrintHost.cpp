@@ -3,9 +3,13 @@
 #include <vector>
 #include <thread>
 #include <exception>
+#include <sstream>
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <wx/string.h>
 #include <wx/app.h>
@@ -115,10 +119,81 @@ std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
     return webui_url;
 }
 
+namespace {
+
+// Moonraker (Klipper's API server) reports a raised exception as { "error": { "code", "message", "traceback" } }
+// under every host type that connects to it, often with the cause only in the traceback. Returns the reason to show,
+// or empty for any other body.
+std::string moonraker_error_reason(const std::string &body)
+{
+    const auto root = nlohmann::json::parse(body, nullptr, false);
+    const auto err  = root.find("error");
+    if (err == root.end())
+        return {};
+    const auto message   = err->find("message");
+    const auto traceback = err->find("traceback");
+    if (message == err->end() || traceback == err->end() || !message->is_string() || !traceback->is_string())
+        return {};
+
+    const auto &msg = message->get_ref<const std::string &>();
+    const auto &tb  = traceback->get_ref<const std::string &>();
+    if (msg.empty())
+        return {};
+    const auto end = tb.find_last_not_of(" \t\r\n");
+    if (end == std::string::npos)
+        return msg;
+
+    // Chained exceptions each start a new traceback; the one that failed the request is the last.
+    const auto header = tb.rfind("Traceback (most recent call last):", end);
+
+    // Tornado renders a raised HTTPError as "HTTP <code>: <reason>[ (<detail>)]", and the detail may span lines.
+    const auto code = err->find("code");
+    if (code != err->end() && code->is_number_integer()) {
+        const std::string marker = "HTTP " + std::to_string(code->get<int>()) + ": ";
+        const auto        pos    = tb.rfind(marker, end);
+        if (pos != std::string::npos && (header == std::string::npos || pos > header) && pos + marker.size() <= end) {
+            const std::string reason = tb.substr(pos + marker.size(), end + 1 - pos - marker.size());
+            // An HTTPError whose detail equals its reason, like HTTPError(401, "Unauthorized"), renders the phrase twice.
+            return reason == msg + " (" + msg + ")" ? msg : reason;
+        }
+    }
+
+    // Any other exception's type and message are everything from the first unindented line after its frames.
+    auto begin = (header == std::string::npos) ? std::string::npos : tb.find('\n', header);
+    while (begin != std::string::npos && begin < end) {
+        ++begin;
+        if (tb[begin] != ' ' && tb[begin] != '\r' && tb[begin] != '\n')
+            break;
+        begin = tb.find('\n', begin);
+    }
+    if (begin == std::string::npos || begin > end) {
+        const auto nl = tb.rfind('\n', end);
+        begin         = (nl == std::string::npos) ? 0 : nl + 1;
+    }
+    return msg + " (" + tb.substr(begin, end + 1 - begin) + ")";
+}
+
+} // namespace
+
+int PrintHost::get_err_code_from_body(const std::string &body)
+{
+    boost::property_tree::ptree root;
+    std::istringstream iss(body);
+    try {
+        boost::property_tree::read_json(iss, root);
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(error) << "PrintHost: response is not valid JSON: " << ex.what();
+        return -1;
+    }
+
+    return root.get<int>("err", 0);
+}
+
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {
-        auto wxbody = wxString::FromUTF8(body.data());
+        const std::string reason = moonraker_error_reason(body);
+        auto wxbody = wxString::FromUTF8(reason.empty() ? body : reason);
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
         if (error.find("curl:Timeout was reached") != std::string::npos) {
@@ -357,12 +432,10 @@ void PrintHostJobQueue::priv::remove_source()
     source_to_remove.clear();
 }
 
-void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
+bool PrintHostJobQueue::upload_job(PrintHostJob &job, PrintHost::ProgressFn progress_fn, PrintHost::ErrorFn error_fn, PrintHost::InfoFn info_fn)
 {
-    emit_progress(0);   // Indicate the upload is starting
-
     // Captured before upload_data is moved into upload() below.
-    const std::string upload_filename = the_job.upload_data.source_path.filename().string();
+    const std::string upload_filename = job.upload_data.source_path.filename().string();
 
     {
         LifecycleEventContext ctx;
@@ -371,18 +444,36 @@ void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
         fire_lifecycle_event(LifecycleEvent::UploadStarted, ctx);
     }
 
-    bool success = the_job.printhost->upload(std::move(the_job.upload_data),
-        [this](Http::Progress progress, bool &cancel)   { this->progress_fn(std::move(progress), cancel); },
-        [this](wxString error)                          { this->error_fn(std::move(error)); },
-        [this](wxString tag, wxString host)             { this->info_fn(std::move(tag), std::move(host)); }
-    );
+    bool success = false;
+    std::string error;
+    // A throwing upload must not stop the worker, or later jobs would stay queued forever.
+    try {
+        success = job.printhost->upload(std::move(job.upload_data), std::move(progress_fn), error_fn, std::move(info_fn));
+    } catch (const std::exception &e) {
+        error = e.what();
+        error_fn(error);
+    }
 
     {
         LifecycleEventContext ctx;
         ctx.name  = upload_filename;
         ctx.code  = success ? LifecycleEvtCode::Ok : LifecycleEvtCode::Error;
+        ctx.msg   = error;
         fire_lifecycle_event(LifecycleEvent::UploadFinished, ctx);
     }
+
+    return success;
+}
+
+void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
+{
+    emit_progress(0);   // Indicate the upload is starting
+
+    bool success = PrintHostJobQueue::upload_job(the_job,
+        [this](Http::Progress progress, bool &cancel)   { this->progress_fn(std::move(progress), cancel); },
+        [this](wxString error)                          { this->error_fn(std::move(error)); },
+        [this](wxString tag, wxString host)             { this->info_fn(std::move(tag), std::move(host)); }
+    );
 
     if (success) {
         emit_progress(100);

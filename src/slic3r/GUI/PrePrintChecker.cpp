@@ -1,7 +1,20 @@
 #include "PrePrintChecker.hpp"
 #include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#include <algorithm>
+#include <functional>
 #include <set>
+#include <string>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/wx.h>
+#include <wx/colour.h>
+#include <vector>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/utils.h>
 
 
 namespace Slic3r { namespace GUI {
@@ -63,6 +76,7 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusRackReading: return "PrintStatusRackReading";
     case PrintStatusRackNozzleNumUnmeetWarning: return "PrintStatusRackNozzleNumUnmeetWarning";
     case PrintStatusHasUnreliableNozzleWarning: return "PrintStatusHasUnreliableNozzleWarning";
+    case PrintStatusOptionalPrinterModel: return "PrintStatusOptionalPrinterModel";
     case PrintStatusWarningExtFilamentNotMatch: return "PrintStatusWarningExtFilamentNotMatch";
     case PrintStatusFilamentWarningNozzleHRC: return "PrintStatusFilamentWarningNozzleHRC";
     case PrintStatusTPUUnsupportCaliOn: return "PrintStatusTPUUnsupportCaliOn";
@@ -104,6 +118,7 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusNeedConsistencyUpgrading: return _L("Cannot send the print job to a printer whose firmware must be updated.");
     case PrintStatusBlankPlate: return _L("Cannot send a print job for an empty plate.");
     case PrintStatusTimelapseNoSdcard: return _L("Storage needs to be inserted to record timelapse.");
+    case PrintStatusOptionalPrinterModel: return _L("The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending.");
     case PrintStatusMixAmsAndVtSlotWarning: return _L("You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing.");
     case PrintStatusTPUUnsupportAutoCali: return _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
     case PrintStatusWarningKvalueNotUsed: return _L("Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value.");
@@ -378,5 +393,4 @@ bool PrinterMsgPanel::UpdateInfos(const std::vector<prePrintInfo>& infos)
 
 }
 };
-
 

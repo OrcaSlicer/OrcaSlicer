@@ -9,6 +9,24 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
+#include <cmath>
+#include <math.h>
+#include <imgui.h>
+#include <cstddef>
+#include <vector>
+#include <stdexcept>
+#include <gp_Pnt.hxx>
+#include <gp_Dir.hxx>
+#include "libslic3r/CAD/GeometryEngine.hpp"
+#include <algorithm>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <utility>
+#include <exception>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS

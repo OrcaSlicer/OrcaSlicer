@@ -11,16 +11,44 @@
 #include "MainFrame.hpp"
 #include "Tab.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/PrintBase.hpp"
 #include "format.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/bind/placeholders.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/nowide/convert.hpp>
 
+#include <imgui.h>
+#include <cstddef>
+#include <cassert>
+#include <functional>
+#include <cwctype>
+#include <cstdint>
+#include <iomanip>
 #include <iostream>
 
+#include <string>
+#include <utility>
+#include "libslic3r/Preset.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <limits>
+#include <sstream>
+#include <vector>
+#include "slic3r/GUI/Downloader.hpp"
+#include <memory>
+#include <iterator>
+#include "libslic3r/Model.hpp"
+#include <wx/dataview.h>
+#include "slic3r/GUI/Plater.hpp"
 #include <wx/glcanvas.h>
+#include <wx/utils.h>
+#include <wx/time.h>
 
 #include "GUI_App.hpp"
 #include "FilamentMapDialog.hpp"
@@ -3084,7 +3112,9 @@ bool NotificationManager::push_notification_data(std::unique_ptr<NotificationMan
 	bool retval = false;
 	if (this->activate_existing(notification.get())) {
 		if (m_initialized && m_imgui_ready) {
-			if (notification->get_type() == NotificationType::SlicingWarning) {
+			// Precise Seam already aggregates all causes; replace it on repeated warning events.
+			if (notification->get_type() == NotificationType::SlicingWarning &&
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingPreciseSeamWarning) {
 				m_pop_notifications.back()->append(notification->get_data().ori_text);
 			} else {
                 m_pop_notifications.back()->update(notification->get_data());

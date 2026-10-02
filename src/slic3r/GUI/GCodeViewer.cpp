@@ -28,12 +28,59 @@
 #include "libslic3r/Layer.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
+#include <string>
+#include "libvgcode/include/Types.hpp"
+#include <vector>
+#include <utility>
+#include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/Point.hpp"
+#include <math.h>
+#include "libvgcode/include/Viewer.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
+#include <cassert>
+#include <cstdint>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include "slic3r/GUI/IMSlider.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <exception>
+#include <iterator>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
+#include "libvgcode/include/ColorRange.hpp"
+#include <optional>
+#include "libslic3r_version.h"
+#include <wx/busycursor.h>
+#include "libslic3r/Slicing.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <map>
+#include "libslic3r/PrintBase.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/slider.h>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <string_view>
+#include <functional>
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -1443,6 +1490,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed
             });
     m_paths_bounding_box = BoundingBoxf3(libvgcode::convert(bbox[0]).cast<double>(), libvgcode::convert(bbox[1]).cast<double>());
+    m_max_bounding_box = m_paths_bounding_box;
 
     if (wxGetApp().is_editor())
         m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);
@@ -1712,6 +1760,26 @@ void GCodeViewer::render_scene(int canvas_width, int canvas_height)
     m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
 }
 
+size_t GCodeViewer::shadow_casters_signature() const
+{
+    size_t hash = m_viewer.get_vertices_count();
+    const libvgcode::Interval& visible = m_viewer.get_view_visible_range();
+    const libvgcode::Interval& layers  = m_viewer.get_layers_view_range();
+    for (size_t value : { size_t(visible[0]), size_t(visible[1]), size_t(layers[0]), size_t(layers[1]) })
+        boost::hash_combine(hash, value);
+    for (double value : { m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y(), m_paths_bounding_box.min.z(),
+                          m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
+        boost::hash_combine(hash, value);
+    boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
+        boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Wipes));
+    for (float value : m_clipping_plane)
+        boost::hash_combine(hash, value);
+    return hash;
+}
+
 void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position)
 {
     if (!has_data())
@@ -1730,9 +1798,24 @@ void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view
         intensity, texel_size);
 }
 
+void GCodeViewer::set_light_top_dir(const Vec3d& direction)
+{
+    m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
+}
+
 void GCodeViewer::set_tone(float exposure, float saturation)
 {
     m_viewer.set_tone(exposure, saturation);
+}
+
+void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
+{
+    // Flipped to match ClippingPlane::distance().
+    const Vec3f normal = -plane.get_normal().cast<float>();
+    m_clipping_plane = plane.is_active() ?
+        std::array<float, 4>{ normal.x(), normal.y(), normal.z(), float(plane.get_offset()) } :
+        std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+    m_viewer.set_clipping_plane(m_clipping_plane);
 }
 
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)

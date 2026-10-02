@@ -3,9 +3,16 @@
 
 #include "I18N.hpp"
 
+#include <cstddef>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <memory>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/font.h>
 #include <wx/colour.h>
+#include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/simplebook.h>
 #include <wx/string.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>

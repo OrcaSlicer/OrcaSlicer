@@ -1,10 +1,18 @@
 #ifndef slic3r_GUI_wxExtensions_hpp_
 #define slic3r_GUI_wxExtensions_hpp_
 
+#include <string>
+#include <wx/anybutton.h>
+#include <cstddef>
 #include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/colourdata.h>
 #include <wx/combo.h>
 #include <wx/dataview.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/rtti.h>
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/bmpcbox.h>
@@ -17,6 +25,7 @@
 
 #include <vector>
 #include <functional>
+#include <wx/string.h>
 #include "BitmapCache.hpp"
 #include "Widgets/PopupWindow.hpp"
 

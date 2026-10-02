@@ -7,7 +7,13 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <optional>
+#include <string>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
 

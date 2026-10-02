@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "slic3r/GUI/Lazy.hpp"
 #include <string>
 
 #include <wx/event.h>

@@ -10,6 +10,19 @@
 #include "Lazy.hpp"
 
 #include "wx/button.h"
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/dc.h>
+#include <wx/event.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/scrolwin.h>
+#include <map>
+#include <string>
 
 namespace Slic3r { 
 namespace GUI {

@@ -7,6 +7,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include <string>
+#include "slic3r/GUI/StagedBuild.hpp"
+#include <wx/string.h>
+#include <wx/bookctrl.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 #if wxUSE_WEBVIEW_EDGE
 #include "wx/msw/webview_edge.h"

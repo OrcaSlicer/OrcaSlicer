@@ -4,6 +4,11 @@
 #include "Widgets/CheckList.hpp"
 #include "Widgets/DialogButtons.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/string.h>
+#include <wx/arrstr.h>
+#include <wx/dynarray.h>
+#include <wx/gdicmn.h>
 #include <wx/wx.h>
 #include <vector>
 #include <map>

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU 95A @Qidi Q1 Pro 0.8 nozzle",
-	"inherits": "Generic TPU 95A @Qidi",
 	"renamed_from": "Qidi Generic TPU 95A @Qidi Q1 Pro 0.8 nozzle;Qidi Generic TPU 95A Qidi Q1 Pro 0.8 nozzle",
+	"inherits": "Generic TPU 95A @Qidi",
 	"from": "system",
 	"setting_id": "lwRnIxnWLYp1Hww4",
 	"filament_id": "OFjiXpyf",

@@ -1,5 +1,13 @@
 #include "BBLStatusBarSend.hpp"
 
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <cstddef>
 #include <wx/timer.h>
 #include <wx/gauge.h>
 #include <wx/button.h>

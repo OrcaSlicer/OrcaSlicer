@@ -6,6 +6,13 @@
 #include "Label.hpp"
 #include "TextInput.hpp"
 
+#include <wx/arrstr.h>
+#include <wx/checklst.h>
+#include <wx/dynarray.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
 #include <wx/wx.h>
 #include <vector>
 #include <wx/scrolwin.h>

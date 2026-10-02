@@ -4,9 +4,29 @@
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../MsgDialog.hpp"
+#include "json_diff.hpp"
 
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/DeviceCore/DevFan.h"
+#include <boost/log/trivial.hpp>
+#include <cmath>
+#include <algorithm>
+#include <wx/panel.h>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <map>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/sizer.h>
 
 namespace Slic3r { namespace GUI {
 

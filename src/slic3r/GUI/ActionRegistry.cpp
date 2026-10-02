@@ -12,10 +12,19 @@
 #include "Tab.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include <cassert>
+#include <boost/filesystem/operations.hpp>
 #include <libslic3r/AppConfig.hpp>
 #include <libslic3r/Config.hpp>
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include <memory>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include <vector>
+#include <utility>
+#include <wx/app.h>
 #include <wx/thread.h>
 
 #include <boost/filesystem.hpp>

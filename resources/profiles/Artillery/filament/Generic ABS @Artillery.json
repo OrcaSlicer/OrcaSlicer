@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFY9muEs",
-	"setting_id": "DNgTEZpEz8bJoobJ",
 	"name": "Generic ABS @Artillery",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Artillery Generic ABS",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"setting_id": "DNgTEZpEz8bJoobJ",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.926"
 	],

@@ -12,6 +12,9 @@
 #include "DevFilaSystem.h"
 
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include <memory>
+#include <optional>
+#include <string>
 #include <unordered_map>
 
  // Forward declarations

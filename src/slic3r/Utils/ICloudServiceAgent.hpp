@@ -1,11 +1,11 @@
 #ifndef __I_CLOUD_SERVICE_AGENT_HPP__
 #define __I_CLOUD_SERVICE_AGENT_HPP__
 
+#include "ICameraSignalingChannel.hpp"
 #include "bambu_networking.hpp"
 #include "CloudProvider.hpp"
 #include "../../libslic3r/ProjectTask.hpp"
 #include <string>
-#include <string_view>
 #include <map>
 #include <vector>
 #include <functional>
@@ -327,6 +327,17 @@ public:
      * Request live camera streaming URL.
      */
     virtual int get_camera_url(std::string dev_id, std::function<void(std::string)> callback) = 0;
+
+    /**
+     * Create a camera signaling channel object for P2P camera streaming over WebRTC.
+     * 
+     */
+    virtual std::unique_ptr<ICameraSignalingChannel>
+    create_camera_signaling_channel(const std::string& dev_id)
+    {
+        (void) dev_id;
+        return nullptr;
+    }
 
     /**
      * Fetch staff-picked designs from model mall.

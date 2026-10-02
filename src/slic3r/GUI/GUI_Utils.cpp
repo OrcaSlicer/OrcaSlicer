@@ -4,8 +4,29 @@
 #include "I18N.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
+#include "libslic3r/Utils.hpp"
+#include <string>
+#include <functional>
+#include <wx/event.h>
+#include <wx/settings.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <boost/optional/optional.hpp>
+#include <vector>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <boost/lexical_cast/bad_lexical_cast.hpp>
+#include <ostream>
+#include <chrono>
+#include <cstdio>
+#include <wx/image.h>
+#include <cstring>
+#include <deque>
+#include <fstream>
 
 #ifdef _WIN32
     #include <Windows.h>
@@ -247,7 +268,9 @@ int get_dpi_for_window(const wxWindow *window)
 
         const HDC hdc = GetDC(hwnd);
         if (hdc == NULL) { return DPI_DEFAULT; }
-        return GetDeviceCaps(hdc, LOGPIXELSX);
+        const int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(hwnd, hdc); // GetDC's handle must be released, unlike GetWindowDC's
+        return dpi;
     }
 #elif defined __linux__
     // TODO

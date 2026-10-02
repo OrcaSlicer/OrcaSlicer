@@ -1,0 +1,242 @@
+diff --git a/src/slic3r/GUI/PresetNoteDialog.hpp b/src/slic3r/GUI/PresetNoteDialog.hpp
+new file mode 100644
+--- /dev/null
++++ b/src/slic3r/GUI/PresetNoteDialog.hpp
+@@ -0,0 +1,57 @@
++#pragma once
++
++#include "GUI_Utils.hpp"
++#include "Widgets/StaticBox.hpp"
++#include "Widgets/StateColor.hpp"
++
++#include <memory>
++
++class TextInput;
++
++namespace Slic3r { namespace GUI {
++
++wxDECLARE_EVENT(EVT_NOTE_CHIP_CLICKED, wxCommandEvent);
++
++// Rounded chip that shows a preset's note in the sidebar; clicking it opens the editor.
++class NoteChip : public StaticBox
++{
++public:
++    NoteChip(wxWindow* parent, const wxString& text);
++    void set_text(const wxString& text);
++    void Rescale();
++
++protected:
++    void doRender(wxDC& dc) override;
++
++private:
++    void on_left_down(wxMouseEvent& e);
++    void on_left_up(wxMouseEvent& e);
++    void on_capture_lost(wxMouseCaptureLostEvent& e);
++
++    wxString   m_text;
++    bool       m_pressed{false};
++    StateColor m_bg;
++};
++
++// Modal editor for the note attached to a preset.
++class PresetNoteDialog : public DPIDialog
++{
++public:
++    PresetNoteDialog(wxWindow* parent, const wxString& preset_name, const wxString& note);
++    wxString get_note() const;
++
++protected:
++    void on_dpi_changed(const wxRect& suggested_rect) override;
++
++private:
++    void update_preview();
++    void restore_original();
++
++    TextInput*    m_input{nullptr};
++    wxStaticText* m_preview{nullptr};
++    wxPanel*      m_options{nullptr};
++    wxString      m_original;
++    std::shared_ptr<bool> m_alive;
++};
++
++}} // namespace Slic3r::GUI
+diff --git a/src/slic3r/GUI/PresetNoteDialog.cpp b/src/slic3r/GUI/PresetNoteDialog.cpp
+new file mode 100644
+--- /dev/null
++++ b/src/slic3r/GUI/PresetNoteDialog.cpp
+@@ -0,0 +1,178 @@
++#include "PresetNoteDialog.hpp"
++
++#include "GUI_App.hpp"
++#include "I18N.hpp"
++#include "MsgDialog.hpp"
++#include "Widgets/CheckBox.hpp"
++#include "Widgets/DialogButtons.hpp"
++#include "Widgets/Label.hpp"
++#include "Widgets/TextInput.hpp"
++
++#include <wx/bmpbndl.h>
++#include <wx/statbmp.h>
++
++namespace Slic3r { namespace GUI {
++
++wxDEFINE_EVENT(EVT_NOTE_CHIP_CLICKED, wxCommandEvent);
++
++NoteChip::NoteChip(wxWindow* parent, const wxString& text)
++    : StaticBox(parent, wxID_ANY)
++    , m_text(text)
++{
++    m_bg = StateColor(std::pair{wxColour("#F1F1F1"), (int) StateColor::Normal},
++                      std::pair{wxColour("#DBDBDB"), (int) StateColor::Hovered},
++                      std::pair{wxColour("#CECECE"), (int) StateColor::Pressed});
++    SetBackgroundColor(m_bg);
++    SetCornerRadius(FromDIP(4));
++    SetMinSize(wxSize(-1, FromDIP(24)));
++
++    Bind(wxEVT_LEFT_DOWN, &NoteChip::on_left_down, this);
++    Bind(wxEVT_LEFT_UP, &NoteChip::on_left_up, this);
++    Bind(wxEVT_MOUSE_CAPTURE_LOST, &NoteChip::on_capture_lost, this);
++    Bind(wxEVT_SIZE, [this](wxSizeEvent e) {
++        Refresh();
++        e.Skip();
++    });
++}
++
++void NoteChip::set_text(const wxString& text)
++{
++    m_text = text;
++    Refresh();
++}
++
++void NoteChip::Rescale()
++{
++    SetMinSize(wxSize(-1, FromDIP(24)));
++    Refresh();
++}
++
++void NoteChip::doRender(wxDC& dc)
++{
++    StaticBox::doRender(dc);
++    dc.SetFont(Label::Body_12);
++    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
++    const wxSize ext = dc.GetTextExtent(m_text);
++    dc.DrawText(m_text, FromDIP(8), (GetSize().y - ext.y) / 2);
++}
++
++void NoteChip::on_left_down(wxMouseEvent& e)
++{
++    m_pressed = true;
++    if (!HasCapture())
++        CaptureMouse();
++    Refresh();
++}
++
++void NoteChip::on_left_up(wxMouseEvent& e)
++{
++    if (HasCapture())
++        ReleaseMouse();
++    if (m_pressed) {
++        m_pressed = false;
++        wxCommandEvent evt(EVT_NOTE_CHIP_CLICKED, GetId());
++        evt.SetEventObject(this);
++        GetEventHandler()->ProcessEvent(evt);
++    }
++    Refresh();
++}
++
++void NoteChip::on_capture_lost(wxMouseCaptureLostEvent& e)
++{
++    wxMouseEvent up(wxEVT_LEFT_UP);
++    on_left_up(up);
++}
++
++PresetNoteDialog::PresetNoteDialog(wxWindow* parent, const wxString& preset_name, const wxString& note)
++    : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY,
++                _("Preset note"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
++    , m_original(note)
++    , m_alive(std::make_shared<bool>(true))
++{
++    SetBackgroundColour(*wxWHITE);
++    SetFont(Label::Body_14);
++    auto* sizer = new wxBoxSizer(wxVERTICAL);
++
++    auto* icon = new wxStaticBitmap(this, wxID_ANY,
++        wxBitmapBundle::FromSVGFile(from_u8(resources_dir() + "/images/note.svg"), wxSize(16, 16)));
++    sizer->Add(icon, 0, wxALL, FromDIP(10));
++
++    m_input = new TextInput(this, note, wxEmptyString, wxEmptyString, wxDefaultPosition,
++                            wxSize(FromDIP(360), -1), wxTE_PROCESS_ENTER);
++    sizer->Add(m_input, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
++    m_input->GetTextCtrl()->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) {
++        update_preview();
++        e.Skip();
++    });
++    Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { EndModal(wxID_OK); }, m_input->GetId());
++
++    m_preview = new wxStaticText(this, wxID_ANY, wxEmptyString);
++    sizer->Add(m_preview, 0, wxEXPAND | wxALL, FromDIP(10));
++
++    m_options = new wxPanel(this);
++    m_options->SetBackgroundColour(*wxWHITE);
++    auto* opt_sizer = new wxBoxSizer(wxHORIZONTAL);
++    auto* pin = new ::CheckBox(m_options);
++    opt_sizer->Add(pin, 0, wxALIGN_CENTER_VERTICAL);
++    opt_sizer->Add(new wxStaticText(m_options, wxID_ANY, _L("Pin note to sidebar")), 0,
++                   wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
++    m_options->SetSizer(opt_sizer);
++    m_options->Enable(!note.empty());
++    sizer->Add(m_options, 0, wxALL, FromDIP(10));
++
++    auto* btns = new DialogButtons(this, {"OK", "Cancel"});
++    btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
++        if (m_input->GetTextCtrl()->GetValue().length() > 500) {
++            RichMessageDialog dlg(this, _L("The note is very long. Keep it anyway?"), _L("Preset note"),
++                                  wxYES_NO | wxICON_QUESTION);
++            dlg.SetYesNoLabels(_L("Keep"), _L("Shorten"));
++            if (dlg.ShowModal() != wxID_YES)
++                return;
++        }
++        EndModal(wxID_OK);
++    });
++    btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
++        restore_original();
++        EndModal(wxCANCEL);
++    });
++    sizer->Add(btns, 0, wxEXPAND);
++
++    SetSizerAndFit(sizer);
++    update_preview();
++    CenterOnParent();
++    wxGetApp().UpdateDlgDarkUI(this);
++}
++
++wxString PresetNoteDialog::get_note() const { return m_input->GetTextCtrl()->GetValue(); }
++
++void PresetNoteDialog::update_preview()
++{
++    m_preview->SetLabel(wxString::Format(_L("Shown in the sidebar as: %s"), get_note()));
++    m_preview->Wrap(FromDIP(360));
++
++    // Persist the draft a moment later, once typing settles.
++    std::weak_ptr<bool> alive = m_alive;
++    wxGetApp().CallAfter([this, alive] {
++        if (alive.expired() || IsBeingDeleted())
++            return;
++        wxGetApp().app_config->set("preset_note_draft", into_u8(get_note()));
++    });
++}
++
++void PresetNoteDialog::restore_original()
++{
++    m_input->GetTextCtrl()->ChangeValue(m_original);
++    wxGetApp().app_config->set("preset_note_draft", "");
++}
++
++void PresetNoteDialog::on_dpi_changed(const wxRect&)
++{
++    m_input->Rescale();
++    GetSizer()->SetSizeHints(this);
++    Refresh();
++}
++
++}} // namespace Slic3r::GUI

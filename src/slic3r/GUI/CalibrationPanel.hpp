@@ -4,7 +4,8 @@
 #include "CalibrationWizard.hpp"
 #include "Tabbook.hpp"
 #include "Lazy.hpp"
-//#include "Widgets/SideTools.hpp"
+#include "SelectMachinePop.hpp"
+#include "Widgets/SideTools.hpp"
 
 namespace Slic3r { namespace GUI {
 

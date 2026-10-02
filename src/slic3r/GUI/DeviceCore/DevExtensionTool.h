@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <optional>
 #include "libslic3r/CommonDefs.hpp"
 

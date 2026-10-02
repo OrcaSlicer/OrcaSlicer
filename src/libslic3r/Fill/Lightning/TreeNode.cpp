@@ -143,14 +143,7 @@ NodeSPtr Node::closestNode(const Point& loc)
 
 bool inside(const Polygons &polygons, const Point &p)
 {
-    int poly_count_inside = 0;
-    for (const Polygon &poly : polygons) {
-        const int is_inside_this_poly = ClipperLib::PointInPolygon(p, poly.points);
-        if (is_inside_this_poly == -1)
-            return true;
-        poly_count_inside += is_inside_this_poly;
-    }
-    return (poly_count_inside % 2) == 1;
+    return contains(polygons, p, true);
 }
 
 bool lineSegmentPolygonsIntersection(const Point& a, const Point& b, const EdgeGrid::Grid& outline_locator, Point& result, const coord_t within_max_dist)

@@ -1,6 +1,11 @@
 #ifndef slic3r_GUI_AboutDialog_hpp_
 #define slic3r_GUI_AboutDialog_hpp_
 
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <string>
+#include <vector>
+#include <wx/string.h>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/html/htmlwin.h>

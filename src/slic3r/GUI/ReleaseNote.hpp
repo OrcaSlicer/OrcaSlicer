@@ -1,6 +1,18 @@
 #ifndef slic3r_GUI_ReleaseNote_hpp_
 #define slic3r_GUI_ReleaseNote_hpp_
 
+#include "slic3r/GUI/Plater.hpp"
+#include <string>
+#include <vector>
+#include <wx/simplebook.h>
+#include <wx/toplevel.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/webrequest.h>
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/timer.h>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
@@ -315,12 +327,16 @@ public:
     Button* m_button_manual_setup{ nullptr };
     Label* m_tips_ip{ nullptr };
     Label* m_tips_access_code{ nullptr };
+    Label* m_tips_cafile{ nullptr };
+    Label* m_cafile_hint{ nullptr };
     Label* m_tips_sn{nullptr};
     Label* m_tips_modelID{nullptr};
     Label* m_test_right_msg{ nullptr };
     Label* m_test_wrong_msg{ nullptr };
     TextInput* m_input_ip{ nullptr };
     TextInput* m_input_access_code{ nullptr };
+    wxTextCtrl* m_input_cafile{ nullptr };
+    Button* m_button_cafile{ nullptr };
     TextInput* m_input_printer_name{ nullptr };
     TextInput* m_input_sn{ nullptr };
     ComboBox*  m_input_modelID{ nullptr };
@@ -344,7 +360,7 @@ public:
     void update_title(wxString title);
     void set_machine_obj(MachineObject* obj);
     void update_test_msg(wxString msg, bool connected);
-    bool isIp(std::string ipstr);
+    bool isValidEndpoint(std::string endpoint);
     void check_ip_address_failed(int result);
     void on_check_ip_address_failed(wxCommandEvent& evt);
     void on_ok(wxMouseEvent& evt);

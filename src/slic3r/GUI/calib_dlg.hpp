@@ -13,6 +13,8 @@
 #include "Widgets/RadioGroup.hpp"
 #include "GUI_App.hpp"
 #include "wx/hyperlink.h"
+#include <wx/checklst.h>
+#include <wx/event.h>
 #include <wx/radiobox.h>
 #include "libslic3r/calib.hpp"
 
