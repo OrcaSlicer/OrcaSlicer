@@ -65,6 +65,7 @@
 #include <boost/nowide/cstdio.hpp>
 #include <wx/valtext.h>
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrinterBedAssets.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
@@ -4069,6 +4070,11 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
             bundle_structure["printer_config"]  = printer_config;
             bundle_structure["filament_config"] = filament_configs;
             bundle_structure["process_config"]  = process_configs;
+
+            if (!append_printer_bed_assets(zip_archive, printer_preset->config, bundle_structure)) {
+                mz_zip_writer_end(&zip_archive);
+                return ExportCase::ADD_FILE_FAIL;
+            }
 
             std::string bundle_structure_str = bundle_structure.dump();
             status = mz_zip_writer_add_mem(&zip_archive, BUNDLE_STRUCTURE_JSON_NAME, bundle_structure_str.data(), bundle_structure_str.size(), MZ_DEFAULT_COMPRESSION);
