@@ -2272,6 +2272,10 @@ void GLGizmoMeasure::update_measurement_result()
 void GLGizmoMeasure::reset_all_pick()
 {
    std::map<GLVolume*, std::shared_ptr<PickRaycaster>>().swap(m_mesh_raycaster_map);
+   // register_single_mesh_pick() fills both maps in lockstep, so the measurings have to go with
+   // the raycasters; otherwise the entries keyed on the GLVolumes of the previous selection stay
+   // behind for the rest of the session.
+   std::map<GLVolume*, std::shared_ptr<Measure::Measuring>>().swap(m_mesh_measure_map);
    reset_gripper_pick(GripperType::UNDEFINE,true);
 }
 

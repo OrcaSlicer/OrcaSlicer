@@ -55,6 +55,8 @@ public:
 	static bool     parse_color(const std::string& scolor, unsigned char* rgb_out);
 	static bool     parse_color4(const std::string& scolor, unsigned char* rgba_out);
 
+	// Rasterizes the SVG into a freshly generated GL texture; the caller owns it and has to delete
+	// it (ImGuiWrapper::svg_texture() caches the result for the whole session).
 	static bool load_from_svg_file_change_color(const std::string &filename, unsigned width, unsigned height, ImTextureID &texture_id, const char *hexColor);
 
 

@@ -104,6 +104,14 @@ public:
     // Hash of every draw list's vertices, indices and commands.
     static ImGuiID draw_data_signature(const ImDrawData* draw_data);
 
+    // A GL texture holding an SVG icon rasterized at width x height, optionally recolored.
+    // Rasterizing an SVG is far too expensive to redo for every frame that draws the icon, and the
+    // texture the previous frame generated would leak, so the result is kept until the frame that
+    // finds the cache overgrown drops it (and rebuilds only what it still draws).
+    static ImTextureID svg_texture(const std::string& filename, unsigned width, unsigned height, const char* hex_color = nullptr);
+    // Deletes every texture svg_texture() handed out. Requires a current GL context.
+    static void destroy_svg_textures();
+
     float scaled(float x) const { return x * m_font_size; }
     ImVec2 scaled(float x, float y) const { return ImVec2(x * m_font_size, y * m_font_size); }
     /// <summary>

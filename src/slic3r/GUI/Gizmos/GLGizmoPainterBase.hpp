@@ -27,8 +27,7 @@ enum class PainterGizmoType {
     FDM_SUPPORTS,
     SEAM,
     MM_SEGMENTATION,
-    FUZZY_SKIN,
-    TEXTURE_DISPLACEMENT
+    FUZZY_SKIN
 };
 
 class TriangleSelectorGUI : public TriangleSelector {
@@ -102,7 +101,9 @@ class TriangleSelectorPatch : public TriangleSelectorGUI {
 public:
     explicit TriangleSelectorPatch(const TriangleMesh& mesh, const std::vector<ColorRGBA> ebt_colors, float edge_limit = 0.6f)
         : TriangleSelectorGUI(mesh, edge_limit), m_ebt_colors(ebt_colors) {}
-    virtual ~TriangleSelectorPatch() = default;
+    // Releases the VAO and the per-patch VBOs built by finalize_triangle_indices(). The base class
+    // already deletes GL buffers from its GLModel members here, so this needs no context of its own.
+    virtual ~TriangleSelectorPatch() { release_geometry(); }
 
     // Render current selection. Transformation matrices are supposed
     // to be already set.
