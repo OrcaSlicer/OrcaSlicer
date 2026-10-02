@@ -1,3 +1,13 @@
+#ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#endif
+
 #include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <catch2/generators/catch_generators.hpp>
@@ -11,15 +21,6 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#ifdef WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <Windows.h>
-#endif
 
 #include <catch2/catch_all.hpp>
 

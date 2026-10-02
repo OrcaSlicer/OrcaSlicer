@@ -3,6 +3,11 @@
 // several of them transitively include nanosvg.h without the implementation macro, and its include
 // guard would then suppress the implementation if the macro were defined afterwards. Same pattern as
 // the test mains.
+#define NANOSVG_IMPLEMENTATION
+#include "nanosvg/nanosvg.h"
+#define NANOSVGRAST_IMPLEMENTATION
+#include "nanosvg/nanosvgrast.h"
+
 #include <vector>
 #include <boost/filesystem/path.hpp>
 #include <map>
@@ -24,10 +29,6 @@
 #include <boost/program_options/value_semantic.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/program_options/errors.hpp>
-#define NANOSVG_IMPLEMENTATION
-#include "nanosvg/nanosvg.h"
-#define NANOSVGRAST_IMPLEMENTATION
-#include "nanosvg/nanosvgrast.h"
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode.hpp"

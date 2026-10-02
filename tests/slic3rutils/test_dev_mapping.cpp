@@ -3,11 +3,6 @@
 // makes std::byte a competing candidate (otherwise the Windows COM headers pulled in via
 // DeviceManager.hpp error with an ambiguous `byte`). wx/timer.h must precede DeviceManager.hpp,
 // which includes DeviceErrorDialog.hpp (uses wxTimerEvent) before its own wx/timer.h include.
-#include <catch2/catch_test_macros.hpp>
-#include "slic3r/GUI/DeviceCore/DevDefs.h"
-#include "libslic3r/ProjectTask.hpp"
-#include <vector>
-#include <catch2/catch_message.hpp>
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
@@ -17,6 +12,12 @@
     #endif
     #include <Windows.h>
 #endif
+
+#include <catch2/catch_test_macros.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/ProjectTask.hpp"
+#include <vector>
+#include <catch2/catch_message.hpp>
 
 #include <catch2/catch_all.hpp>
 

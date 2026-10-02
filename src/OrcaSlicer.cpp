@@ -1,3 +1,25 @@
+#ifdef WIN32
+    // Why?
+    #define _WIN32_WINNT 0x0502
+    // The standard Windows includes.
+    #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
+    #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <wchar.h>
+    #include <commctrl.h>
+    #ifdef SLIC3R_GUI
+    extern "C"
+    {
+        // Let the NVIDIA and AMD know we want to use their graphics card
+        // on a dual graphics card system.
+        __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+        __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+    }
+    #endif /* SLIC3R_GUI */
+#endif /* WIN32 */
+
 #include <map>
 #include <vector>
 #include "libslic3r/PrintBase.hpp"
@@ -40,27 +62,6 @@
 #include <cassert>
 #include <boost/filesystem/exception.hpp>
 #include <signal.h>
-#ifdef WIN32
-    // Why?
-    #define _WIN32_WINNT 0x0502
-    // The standard Windows includes.
-    #define WIN32_LEAN_AND_MEAN
-    #ifndef NOMINMAX
-    #define NOMINMAX
-    #endif
-    #include <Windows.h>
-    #include <wchar.h>
-    #include <commctrl.h>
-    #ifdef SLIC3R_GUI
-    extern "C"
-    {
-        // Let the NVIDIA and AMD know we want to use their graphics card
-        // on a dual graphics card system.
-        __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-        __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-    }
-    #endif /* SLIC3R_GUI */
-#endif /* WIN32 */
 
 #include <cstdio>
 #include <string>
