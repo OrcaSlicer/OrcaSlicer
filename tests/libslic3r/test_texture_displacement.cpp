@@ -1,5 +1,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <memory>
 #include <vector>
@@ -22,7 +24,6 @@
 #include <Eigen/Geometry>
 #include "libslic3r/libslic3r.h"
 #include <catch2/catch_message.hpp>
-#endif
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>

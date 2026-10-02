@@ -1,5 +1,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
 #include "libslic3r/Point.hpp"
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
@@ -21,7 +23,6 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include <cstdlib>
 #include <catch2/benchmark/catch_benchmark.hpp>
-#endif
 
 #include <catch2/catch_all.hpp>
 #include "test_utils.hpp"
