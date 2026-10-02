@@ -81,9 +81,7 @@ ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
     create_browser();
-    if (m_browser == nullptr)
-        return;
-    m_reset_on_show = wxGetApp().is_recreating_gui();
+    m_reset_on_show = WebView::NeedsRecreateOnShow();
     //m_browser->Hide();
     main_sizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
 
@@ -116,31 +114,18 @@ void ProjectPanel::shutdown()
 void ProjectPanel::create_browser()
 {
     m_browser = WebView::CreateWebView(this, m_project_home_url);
-    if (m_browser == nullptr) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("load web view of project page failed");
-        return;
-    }
     m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
     m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
-    Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this, m_browser->GetId());
+    m_browser->Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this);
 }
 
 void ProjectPanel::reset_browser()
 {
-    wxSizer* sizer = GetSizer();
-    if (m_browser) {
-        if (sizer)
-            sizer->Detach(m_browser);
-        m_browser->Destroy();
-        m_browser = nullptr;
-    }
+    m_browser->Destroy(); // also removes it from the sizer
     create_browser();
-    if (m_browser == nullptr)
-        return;
-    if (sizer) {
-        sizer->Insert(0, m_browser, wxSizerFlags().Expand().Proportion(1));
-        Layout();
-    }
+    GetSizer()->Insert(0, m_browser, wxSizerFlags().Expand().Proportion(1));
+    Layout();
+    m_web_init_completed.store(false, std::memory_order_release);
 }
 
 // Helper to convert newlines to <br>
@@ -307,12 +292,13 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
 
         wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', false, json::error_handler_t::ignore));
 
-        if (m_web_init_completed.load(std::memory_order_acquire) &&
-            !cancel_token->load(std::memory_order_acquire) && wxTheApp != nullptr && !wxGetApp().is_closing()) {
+        if (!cancel_token->load(std::memory_order_acquire) && wxTheApp != nullptr && !wxGetApp().is_closing()) {
             wxGetApp().CallAfter([this, cancel_token, strJS] {
                 if (cancel_token->load(std::memory_order_acquire) || wxTheApp == nullptr || wxGetApp().is_closing())
                     return;
-                RunScript(strJS.ToStdString());
+                m_info_script = strJS.ToStdString();
+                if (m_web_init_completed.load(std::memory_order_acquire))
+                    RunScript(m_info_script);
             });
         }
     });
@@ -353,6 +339,11 @@ void ProjectPanel::OnScriptMessage(wxWebViewEvent& evt)
         }
         else if (strCmd == "request_3mf_info") {
             m_web_init_completed.store(true, std::memory_order_release);
+            // Replay the stored info after each page load.
+            CallAfter([this] {
+                if (!m_info_script.empty())
+                    RunScript(m_info_script);
+            });
         }
         else if (strCmd == "edit_project_info") {
             show_info_editor(true);
@@ -409,6 +400,8 @@ void ProjectPanel::clear_model_info()
     wxGetApp().CallAfter([this, cancel_token, strJS] {
         if (cancel_token->load(std::memory_order_acquire) || wxTheApp == nullptr || wxGetApp().is_closing())
             return;
+        // Runs after any store queued by an earlier reload pass, so stale info is never replayed.
+        m_info_script.clear();
         RunScript(strJS.ToStdString());
     });
 }
@@ -551,12 +544,8 @@ void ProjectPanel::RunScript(std::string content)
 
 bool ProjectPanel::Show(bool show)
 {
-    // Recover from a wedged WebView2 backend created during a GUI rebuild by
-    // recreating the control the first time the panel is actually shown.
-    if (show && m_reset_on_show) {
-        m_reset_on_show = false;
+    if (show && std::exchange(m_reset_on_show, false))
         reset_browser();
-    }
     if (show) update_model_data();
     return wxPanel::Show(show);
 }

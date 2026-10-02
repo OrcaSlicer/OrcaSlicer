@@ -120,19 +120,11 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
 
       // Create the webview
     create_browser();
-    if (m_browser == nullptr)
-        return;
-
-    // A PrinterWebView built during a GUI rebuild (language switch) can come up
-    // with a wedged WebView2 backend that silently drops every navigation. Flag
-    // it so we recreate the backend the first time the tab is opened.
-    m_reset_on_show = wxGetApp().is_recreating_gui();
+    m_reset_on_show = WebView::NeedsRecreateOnShow();
 
     SetSizer(topsizer);
 
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-
-    update_mode();
 
     // Log backend information
     /* m_browser->GetUserAgent() may lead crash
@@ -168,10 +160,6 @@ PrinterWebView::~PrinterWebView()
 void PrinterWebView::create_browser()
 {
     m_browser = WebView::CreateWebView(this, "");
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
 
 #ifdef __linux__
     inject_vue_resize_workaround(m_browser);
@@ -187,59 +175,46 @@ void PrinterWebView::create_browser()
     m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
     m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PrinterWebView::OnNewWindow, this);
     m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PrinterWebView::OnScriptMessage, this);
+    update_mode();
 }
 
 void PrinterWebView::reset_browser()
 {
-    wxSizer* topsizer = GetSizer();
-    if (m_browser) {
-        if (topsizer)
-            topsizer->Detach(m_browser);
-        m_browser->Destroy();
-        m_browser = nullptr;
-    }
-    m_apikey_sent = false;
-
+    m_browser->Destroy(); // also removes it from the sizer
     create_browser();
-    if (m_browser == nullptr)
-        return;
-    if (topsizer) {
-        topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-        Layout();
-    }
-    update_mode();
+    GetSizer()->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+    Layout();
+
+    // OnLoaded may have cleared m_url_deferred already, so requeue the last url for Show().
+    m_apikey_sent  = false;
+    m_url_deferred = m_url;
 }
 
 void PrinterWebView::load_url(wxString& url, wxString apikey)
 {
 //    this->Show();
 //    this->Raise();
-    if (m_browser == nullptr)
-        return;
+    m_url = url;
     m_apikey = apikey;
     m_apikey_sent = false;
     m_handler = create_printer_webview_handler(*this);
 
-    // Always remember the requested URL as a fallback. If the immediate load
-    // below is dropped (e.g. the webview backend is not ready yet right after
-    // recreate_GUI on a language switch), Show() will retry it. OnLoaded clears
-    // m_url_deferred once the page actually finishes loading.
-    m_url_deferred = url;
-    if (this->IsShown())
+    if (this->IsShown()) {
+        //ORCA: m_url_deferred will be cleared on load success
+        //m_url_deferred.clear();
         m_browser->LoadURL(url);
+    } else {
+        m_url_deferred = url;
+    }
     //m_browser->SetFocus();
     UpdateState();
 }
 
 bool PrinterWebView::Show(bool show)
 {
-    // Recover from a wedged WebView2 backend created during a GUI rebuild by
-    // recreating the control the first time the tab is actually opened.
-    if (show && m_reset_on_show) {
-        m_reset_on_show = false;
+    if (show && std::exchange(m_reset_on_show, false))
         reset_browser();
-    }
-    if (show && !m_url_deferred.empty() && m_browser) {
+    if (show && !m_url_deferred.empty()) {
         m_browser->LoadURL(m_url_deferred);
         //ORCA: m_url_deferred will be cleared on load success
         //m_url_deferred.clear();
