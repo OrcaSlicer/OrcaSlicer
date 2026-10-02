@@ -9,6 +9,8 @@
 
 #include <cstdint>
 
+#include "libnest2d/common.hpp"
+#include "libnest2d/geometry_traits_nfp.hpp"
 #include <libnest2d/libnest2d.hpp>
 #include <libnest2d/utils/rotcalipers.hpp>
 

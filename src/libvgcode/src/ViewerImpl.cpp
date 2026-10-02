@@ -9,14 +9,26 @@
 #include "OpenGLUtils.hpp"
 #include "Utils.hpp"
 
+#include <cstdint>
+#include "../include/Types.hpp"
+#include <array>
+#include "../include/PathVertex.hpp"
+#include "Bitset.hpp"
+#include "../include/ColorPrint.hpp"
+#include <cfloat>
+#include <iterator>
 #include <map>
 #include <assert.h>
+#include <optional>
 #include <stdexcept>
 #include <cstdio>
 #include <string>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <type_traits>
+#include <vector>
+#include <utility>
 
 namespace libvgcode {
 

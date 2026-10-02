@@ -1,6 +1,11 @@
 // recompute_mixed_slot_colors lives in libslic3r_gui; this is the only suite that links it.
 // Same Windows include prologue as test_dev_mapping.cpp (wx pulls in <windows.h>; keep
 // WIN32_LEAN_AND_MEAN / NOMINMAX ahead of the Catch2 headers).
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN

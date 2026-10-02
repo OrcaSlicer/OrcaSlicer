@@ -1,11 +1,15 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <catch2/catch_message.hpp>
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
 
 #include <boost/filesystem.hpp>
 
+#include "libslic3r/Config.hpp"
 #include <memory>
 #include <set>
 #include <string>

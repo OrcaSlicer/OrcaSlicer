@@ -17,6 +17,9 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Arachne/WallToolPaths.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidation.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
@@ -31,6 +34,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <utility>
+#include <math.h>
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/PerimeterGenerator.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Arachne;

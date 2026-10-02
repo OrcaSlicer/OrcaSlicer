@@ -1,5 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
 #include "libslic3r/LocalesUtils.hpp"
@@ -13,9 +18,16 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include <map>
+#include <iterator>
 #include <nlohmann/json.hpp>
 
+#include <set>
 #include <sstream>
+#include <vector>
+#include <utility>
 
 using namespace Slic3r;
 

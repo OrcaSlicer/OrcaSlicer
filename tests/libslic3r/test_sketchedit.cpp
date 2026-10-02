@@ -1,9 +1,16 @@
+#include <TopAbs_ShapeEnum.hxx>
+#include <TopoDS_Wire.hxx>
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include <cmath>
 #include <algorithm>
 #include <TopExp_Explorer.hxx>
 #include <TopAbs.hxx>
+#include <math.h>
+#include <vector>
 
 using namespace Slic3r;
 

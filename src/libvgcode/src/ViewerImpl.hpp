@@ -8,6 +8,12 @@
 #include "Settings.hpp"
 #include "SegmentTemplate.hpp"
 #include "OptionTemplate.hpp"
+#include "../include/Types.hpp"
+#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <array>
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include "CogMarker.hpp"
 #include "ToolMarker.hpp"

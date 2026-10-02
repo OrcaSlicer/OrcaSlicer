@@ -1,4 +1,13 @@
 // Orca: This suite links libslic3r_gui; navigation raycasts need no wx application or GL context.
+#include <catch2/catch_test_macros.hpp>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <catch2/generators/catch_generators_range.hpp>
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN

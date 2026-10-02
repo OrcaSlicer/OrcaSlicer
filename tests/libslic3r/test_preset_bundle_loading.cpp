@@ -1,9 +1,19 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include <cstddef>
 #include <fstream>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ParallelResolve.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -17,6 +27,19 @@
 #include <algorithm>
 #include <iostream>
 #include <initializer_list>
+#include <vector>
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PublishSettings.hpp"
+#include <set>
+#include "libslic3r/TriangleSelector.hpp"
+#include <iterator>
+#include <miniz.h>
 
 #ifndef _WIN32
 #include <unistd.h> // geteuid

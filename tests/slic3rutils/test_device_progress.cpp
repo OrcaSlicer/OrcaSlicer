@@ -2,6 +2,8 @@
 // ambiguity in the Windows COM headers.
 // why: wx/timer.h must precede DeviceManager.hpp because
 // DeviceErrorDialog.hpp uses wxTimerEvent.
+#include <catch2/catch_test_macros.hpp>
+#include "libslic3r/ProjectTask.hpp"
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN

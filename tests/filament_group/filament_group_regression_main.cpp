@@ -11,13 +11,19 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 #include "fg_test_serialization.hpp"
 #include "fg_test_evaluator.hpp"
 #include "fg_test_utils.hpp"
 
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include "libslic3r/FilamentGroup.hpp"
 #include <string>
 #include <vector>
 #include <algorithm>
