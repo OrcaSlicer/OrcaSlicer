@@ -4,8 +4,27 @@
 #include "Plater.hpp"
 #include "Widgets/MultiNozzleSync.hpp" // manuallySetNozzleCount producer for extruder_nozzle_stats
 #include <algorithm>
+#include <wx/colour.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include <cstddef>
+#include <string>
+#include <wx/chartype.h>
+#include "slic3r/GUI/DragDropPanel.hpp"
+#include <cassert>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/object.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/gdicmn.h>
 #include <wx/utils.h>
+#include <wx/window.h>
 #include "wx/graphics.h"
 
 namespace Slic3r { namespace GUI {
@@ -185,6 +204,12 @@ std::vector<int> FilamentMapManualPanel::GetFilamentVolumeMaps() const
     auto preset_bundle        = wxGetApp().preset_bundle;
     auto proj_config          = preset_bundle->project_config;
     auto nozzle_volume_values = proj_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+    // The high-flow panel of the right extruder also holds an E3D High Flow nozzle; keep that type
+    // instead of writing plain High Flow, which the extruder does not have.
+    const int  right_extruder_id      = 1;
+    const bool right_e3d_high_flow    = nozzle_volume_values.size() > right_extruder_id &&
+                                        nozzle_volume_values[right_extruder_id] == static_cast<int>(NozzleVolumeType::nvtE3DHighFlow);
+    const int  right_high_flow_volume = static_cast<int>(right_e3d_high_flow ? NozzleVolumeType::nvtE3DHighFlow : NozzleVolumeType::nvtHighFlow);
 
     for (int i = 0; i < (int) volume_map.size(); ++i) {
         int filament_id = i + 1;
@@ -199,7 +224,7 @@ std::vector<int> FilamentMapManualPanel::GetFilamentVolumeMaps() const
             }
         }
         else if (std::find(right_high_flow_filaments.begin(), right_high_flow_filaments.end(), filament_id) != right_high_flow_filaments.end()) {
-            volume_map[i] = static_cast<int>(NozzleVolumeType::nvtHighFlow);
+            volume_map[i] = right_high_flow_volume;
         }
         else if (std::find(right_standard_filaments.begin(), right_standard_filaments.end(), filament_id) != right_standard_filaments.end()) {
             volume_map[i] = static_cast<int>(NozzleVolumeType::nvtStandard);

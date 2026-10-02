@@ -5,7 +5,15 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <string>
+#include <boost/log/trivial.hpp>
+#include <memory>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/HttpServer.hpp"
+#include <chrono>
+#include <exception>
 #include <thread>
+#include <wx/event.h>
 
 namespace Slic3r {
 namespace GUI {

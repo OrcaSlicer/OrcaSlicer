@@ -6,6 +6,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <string>
+#include <wx/gdicmn.h>
+#include <boost/filesystem/path.hpp>
 
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"

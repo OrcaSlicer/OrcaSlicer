@@ -5,9 +5,25 @@
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
+#include "Http.hpp"
+#include "json_diff.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
+#include <unordered_set>
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <fstream>
+#include <ostream>
+#include <wx/string.h>
+#include <vector>
+#include <cstdio>
+#include <wx/image.h>
+#include <mutex>
+#include <ctime>
 
 static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";

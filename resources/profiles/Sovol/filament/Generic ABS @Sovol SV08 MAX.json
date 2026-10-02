@@ -1,10 +1,13 @@
 {
 	"type": "filament",
-	"setting_id": "7julgReKEcp5tg0d",
 	"name": "Generic ABS @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic ABS @System",
+	"from": "system",
+	"setting_id": "7julgReKEcp5tg0d",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

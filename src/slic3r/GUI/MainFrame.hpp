@@ -3,16 +3,28 @@
 
 #include "libslic3r/PrintConfig.hpp"
 
+#include <cstdint>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Lazy.hpp"
+#include <wx/event.h>
+#include <functional>
+#include <cstddef>
+#include <deque>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/filehistory.h>
+#include <wx/timer.h>
 #ifdef __APPLE__
 #include <wx/taskbar.h>
 #endif // __APPLE__
 
 #include <string>
 #include <map>
+#include <vector>
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
@@ -430,6 +442,14 @@ public:
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);
+    // Orca: the print/export actions the current printer offers, in the order the dropdown lists them.
+    // The dropdown is built from this, and a remembered action is only restored if it appears here.
+    std::vector<PrintSelectType> available_print_actions() const;
+    // Orca: apply an action picked from the print dropdown to the print button
+    void        select_print_action(PrintSelectType select_type);
+    // Orca: remember the user's preferred print/export action across sessions (see "remember_print_action" preference)
+    void        remember_print_select(PrintSelectType select_type);
+    bool        get_remembered_print_select(PrintSelectType& out) const;
 
     bool can_save() const;
     bool can_save_as() const;

@@ -1,6 +1,31 @@
 #include <algorithm>
+#include <string>
+#include <wx/dialog.h>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/RammingChart.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/FlushVolPredictor.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/filename.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/spinctrl.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
 #include "libslic3r/FlushVolCalc.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI.hpp"
@@ -464,7 +489,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
-        wxString url = wxFileSystem::FileNameToURL(fn);
+        wxString url = file_url_from_path(filepath);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "File exists and load url " << url.ToStdString();
         m_webview->LoadURL(url);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "Successfully loaded url: " << url.ToStdString();

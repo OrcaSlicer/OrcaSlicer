@@ -180,6 +180,7 @@ src/slic3r/GUI/PrivacyUpdateDialog.cpp
 src/slic3r/GUI/PublishDialog.cpp
 src/slic3r/GUI/PublishSettingsDialog.cpp
 src/slic3r/GUI/SavePresetDialog.cpp
+src/slic3r/GUI/SceneBenchmark.cpp
 src/slic3r/GUI/Search.cpp
 src/slic3r/GUI/SettingsIndex.cpp
 src/slic3r/GUI/SpeedDialDialog.cpp
@@ -213,6 +214,7 @@ src/slic3r/Utils/Process.cpp
 src/libslic3r/GCode.cpp
 src/libslic3r/GCodeWriter.cpp
 src/libslic3r/GCode/ToolOrdering.cpp
+src/libslic3r/GCode/SeamPlacer.cpp
 src/libslic3r/ExtrusionEntity.cpp
 src/libslic3r/Flow.cpp
 src/libslic3r/Format/AMF.cpp

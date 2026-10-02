@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include "../ClipperUtils.hpp"
-#include "../Clipper2Utils.hpp"
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
 #include "../Geometry/Circle.hpp"
@@ -2734,11 +2733,8 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
 
     if (polylines.empty())
     return;
-    // Convert source polylines to Clipper2 paths
-    Clipper2Lib::Paths64 subject_paths = Slic3rPolylines_to_Paths64(polylines);
 
-    const double miter_limit = 2.0;
-    const int    rings       = n_lines / 2;
+    const int rings = n_lines / 2;
 
     // Compute offsets (in units of spacing)
     std::vector<double> offsets;
@@ -2757,10 +2753,6 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
             offsets.push_back(start + i * spacing);
     }
 
-    // Process each offset 
-    Clipper2Lib::ClipperOffset offsetter(miter_limit);
-    offsetter.AddPaths(subject_paths, Clipper2Lib::JoinType::Round, Clipper2Lib::EndType::Round);
-
     for (double t : offsets) {
         if (t == 0.0) {
             // Center line (only applies when n_lines is odd)
@@ -2768,22 +2760,11 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
             continue;
         }
 
-        // ClipperOffset with current offset distance (union is not needed here)
-        Clipper2Lib::Paths64 offset_paths;
-        offsetter.Execute(scale_(t), offset_paths);
-        if (offset_paths.empty())
-            continue;
-
-        // Convert back to polylines
-        Polylines new_polylines = Paths64_to_polylines(offset_paths);
-
-        for (Polyline& pl : new_polylines) {
-            if (pl.points.size() < 3)
-                continue;
-            if (pl.points.front() != pl.points.back())
-                pl.points.push_back(pl.points.front());
-            all_polylines.emplace_back(std::move(pl));
-        }
+        const float delta = float(scale_(t));
+        // Arc tolerance of 1/500 of the offset, Clipper2's default.
+        for (const Polygon &ring : offset(polylines, delta, jtRound, 0.002 * delta, etOpenRound))
+            if (ring.size() >= 3)
+                all_polylines.emplace_back(ring.split_at_first_point());
     }
 
     polylines = std::move(all_polylines);

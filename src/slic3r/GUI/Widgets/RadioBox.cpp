@@ -1,6 +1,8 @@
 #include "RadioBox.hpp"
 
 #include "../wxExtensions.hpp"
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

@@ -6,7 +6,20 @@
 #include "Plater.hpp"
 #include "Widgets/ComboBox.hpp"
 
+#include "libslic3r/Technologies.hpp"
+#include <wx/dataview.h>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <vector>
+#include <cstddef>
+#include <cstdlib>
 #include <wx/dc.h>
+#include <wx/setup.h>
+#include <wx/rtti.h>
+#include <wx/object.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/event.h>
 #ifdef wxHAS_GENERIC_DATAVIEWCTRL
 #include "wx/generic/private/markuptext.h"
 #include "wx/generic/private/rowheightcache.h"

@@ -14,6 +14,23 @@
 
 #include "I18N.hpp"
 
+#include "slic3r/GUI/GUI_ObjectSettings.hpp"
+#include <wx/sizer.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/Field.hpp"
+#include <cmath>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cstddef>
+#include <functional>
+#include <wx/types.h>
+#include <wx/textctrl.h>
+#include <wx/utils.h>
+#include "libslic3r/LocalesUtils.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include <wx/wupdlock.h>
 
 namespace Slic3r

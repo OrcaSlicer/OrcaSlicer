@@ -1,6 +1,24 @@
 #ifndef slic3r_GLCanvas3D_hpp_
 #define slic3r_GLCanvas3D_hpp_
 
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <cstdlib>
+#include <map>
+#include <cmath>
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <array>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Model.hpp"
+#include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <stddef.h>
 #include <memory>
 #include <chrono>
@@ -19,12 +37,21 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
 
 #include <float.h>
 
+#include <wx/setup.h>
+#include <wx/event.h>
+#include <utility>
+#include <vector>
+#include <string>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <wx/time.h>
 #include <wx/timer.h>
 
 class wxSizeEvent;
@@ -593,6 +620,19 @@ private:
     std::array<ClippingPlane, 2> m_clipping_planes;
     ClippingPlane m_camera_clipping_plane;
     bool m_use_clipping_planes;
+    struct SectionView
+    {
+        explicit SectionView(const GLCanvas3D* owner) : owner(owner) {}
+        double ratio{ 0. }; // 0 = off
+        double last_ratio{ 0. }; // before it was switched off
+        Vec3d  normal{ Vec3d::Zero() }; // zero until first aimed
+        bool   panel_open{ false };
+        const GLCanvas3D* owner; // whose objects place the plane
+    };
+    std::shared_ptr<SectionView> m_section_view{ std::make_shared<SectionView>(this) };
+    std::map<const GLVolume*, MeshClipper> m_section_view_caps;
+    // Its release would open the hidden window menu on Windows.
+    bool m_alt_wheel_used{ false };
     std::array<SlaCap, 2> m_sla_caps;
     std::string m_sidebar_field;
     // when true renders an extra frame by not resetting m_dirty to false
@@ -675,6 +715,8 @@ private:
     bool m_reload_delayed;
 
     RenderStats m_render_stats;
+    FrameProfiler m_frame_profiler;
+    bool m_benchmarking{ false };
     std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
@@ -807,6 +849,10 @@ public:
     unsigned int m_shadow_map_size{ 0 };
     Transform3d  m_shadow_light_vp{ Transform3d::Identity() };
     bool         m_shadow_map_valid{ false };
+    // Casters and light frustum the map was last rendered for, under a static light. 0 when none.
+    size_t       m_shadow_map_key{ 0 };
+    // Plate rectangle a shadow can reach, min xy then max xy.
+    std::array<float, 4> m_shadow_plate_bounds{ { 0.0f, 0.0f, 0.0f, 0.0f } };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -916,6 +962,14 @@ public:
     void set_use_color_clip_plane(bool use) { m_volumes.set_use_color_clip_plane(use); }
     void set_color_clip_plane(const Vec3d& cp_normal, double offset) { m_volumes.set_color_clip_plane(cp_normal, offset); }
     void set_color_clip_plane_colors(const std::array<ColorRGBA, 2>& colors) { m_volumes.set_color_clip_plane_colors(colors); }
+
+    bool is_section_view_active() const { return m_section_view->ratio > 0.; }
+    double get_section_view_ratio() const { return m_section_view->ratio; }
+    const Vec3d& get_section_view_normal() const { return m_section_view->normal; }
+    void set_section_view_ratio(double ratio);
+    void toggle_section_view();
+    void align_section_view_to_camera();
+    void share_section_view(const GLCanvas3D& owner) { m_section_view = owner.m_section_view; }
 
     void toggle_world_axes_visibility(bool force_show = false);
     void refresh_camera_scene_box();
@@ -1225,6 +1279,10 @@ public:
 
     void schedule_extra_frame(int milliseconds);
 
+    // The scene benchmark draws every frame itself, without picking or the FPS and timings overlays.
+    void set_benchmarking(bool benchmarking) { m_benchmarking = benchmarking; }
+    FrameProfiler& get_frame_profiler() { return m_frame_profiler; }
+
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
     void force_main_toolbar_right_action(int item_id) { m_main_toolbar.force_right_action(item_id, *this); }
@@ -1338,6 +1396,12 @@ private:
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
+    bool _is_render_timings_enabled() const;
+    enum class EShadowMode { Off, Static, Orbit };
+    EShadowMode _shadow_mode() const;
+    // Direction to the static shadow light in eye space, when it lights the scene.
+    std::optional<Vec3d> _static_light_dir_eye() const;
+    size_t _shadow_casters_signature(bool toolpath_casters) const;
     bool _is_scene_cache_enabled() const;
     bool _is_scene_cacheable() const;
     bool _is_frame_skipping_enabled() const;
@@ -1366,6 +1430,7 @@ private:
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    void _render_section_view_caps();
     void _render_wireframe_overlay();
     bool _is_xray_view_active() const;
     void _render_xray_volumes();
@@ -1392,6 +1457,7 @@ private:
     void _render_assemble_view_toolbar() const;
     void _render_return_toolbar() const;
     void _render_canvas_toolbar();
+    void _render_section_view_panel(const ImVec2& bottom_left);
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
     void _render_collapse_toolbar() const;
@@ -1423,6 +1489,11 @@ private:
         Gesture
     };
 
+    void _on_section_view_changed();
+    // In the ClippingPlane::is_point_clipped() convention.
+    ClippingPlane _get_section_view_plane() const;
+    // In the volume shaders' convention: the open gizmo's own plane, else the section view's.
+    ClippingPlane _get_volumes_clipping_plane() const;
     // Orca: These helpers keep clipping, orbit pivots, and perspective-pan depth selection consistent.
     ClippingPlane get_raycaster_clipping_plane() const;
     bool is_bed_visible() const;

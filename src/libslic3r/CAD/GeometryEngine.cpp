@@ -15,6 +15,8 @@
 #include <TopExp.hxx>
 #include <TopTools.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
+#include <TopTools_ListOfShape.hxx>
+#include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <Poly_Triangulation.hxx>
 #include <gp_Ax2.hxx>
 #include <gp_Dir.hxx>

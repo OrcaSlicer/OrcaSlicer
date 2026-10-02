@@ -8,7 +8,38 @@
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "libslic3r/Config.hpp"
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <vector>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <array>
+#include <cstdlib>
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <algorithm>
+#include <wx/arrstr.h>
+#include <set>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <cstddef>
+#include <cstdint>
 #include <wx/gbsizer.h>
+#include <wx/gdicmn.h>
+#include <wx/tglbtn.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Plater.hpp"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -818,12 +849,14 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
     if (support_nozzle_volume(curr_obj)) {
         Label *nozzle_name_title = new Label(top_panel, _L("Nozzle"));
         m_comboBox_nozzle_type   = new ::ComboBox(top_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, NEW_HISTORY_DIALOG_INPUT_SIZE, 0, nullptr, wxCB_READONLY);
-        wxArrayString          nozzle_items;
+        // The labels are in display order, not enum order (E3D High Flow is 5 but the fifth label), so each
+        // item carries its NozzleVolumeType as client data.
         const ConfigOptionDef *nozzle_volume_type_def = print_config_def.get("nozzle_volume_type");
         if (nozzle_volume_type_def && nozzle_volume_type_def->enum_keys_map) {
-            for (auto item : nozzle_volume_type_def->enum_labels) { nozzle_items.push_back(_L(item)); }
+            for (size_t i = 0; i < nozzle_volume_type_def->enum_labels.size(); ++i)
+                m_comboBox_nozzle_type->Append(_L(nozzle_volume_type_def->enum_labels[i]), wxNullBitmap,
+                                               (void *) (intptr_t) nozzle_volume_type_def->enum_keys_map->at(nozzle_volume_type_def->enum_values[i]));
         }
-        m_comboBox_nozzle_type->Set(nozzle_items);
         m_comboBox_nozzle_type->SetSelection(-1);
         flex_sizer->Add(nozzle_name_title);
         flex_sizer->Add(m_comboBox_nozzle_type);
@@ -891,7 +924,7 @@ int NewCalibrationHistoryDialog::get_nozzle_combo_id_code() const
 
 void NewCalibrationHistoryDialog::on_select_nozzle_pos(wxCommandEvent &event)
 {
-    // Mirror the picked hotend's flow onto the (Orca index-based) nozzle-type combo.
+    // Mirror the picked hotend's flow onto the nozzle-type combo.
     if (!curr_obj || !m_comboBox_nozzle_id || !m_comboBox_nozzle_type || !curr_obj->GetNozzleSystem())
         return;
 
@@ -902,7 +935,9 @@ void NewCalibrationHistoryDialog::on_select_nozzle_pos(wxCommandEvent &event)
     DevNozzle nozzle = curr_obj->GetNozzleSystem()->GetNozzleByPosId(pos);
     if (nozzle.IsNormal()) {
         NozzleVolumeType volume_type = DevNozzle::ToNozzleVolumeType(nozzle.GetNozzleFlowType());
-        m_comboBox_nozzle_type->SetSelection(static_cast<int>(volume_type));
+        for (unsigned int i = 0; i < m_comboBox_nozzle_type->GetCount(); ++i)
+            if (NozzleVolumeType(intptr_t(m_comboBox_nozzle_type->GetClientData(i))) == volume_type)
+                m_comboBox_nozzle_type->SetSelection(i);
     }
 }
 
@@ -949,7 +984,7 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
             msg_dlg.ShowModal();
             return;
         }
-        m_new_result.nozzle_volume_type = NozzleVolumeType(m_comboBox_nozzle_type->GetSelection());
+        m_new_result.nozzle_volume_type = NozzleVolumeType(intptr_t(m_comboBox_nozzle_type->GetClientData(m_comboBox_nozzle_type->GetSelection())));
     }
 
     auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];

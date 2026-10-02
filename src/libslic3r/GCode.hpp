@@ -281,6 +281,8 @@ public:
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
     std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
+    // Sets the pressure advance of the filament's extruder variant, if enabled for it.
+    std::string     set_filament_pressure_advance(unsigned int filament_id);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 
@@ -294,6 +296,9 @@ public:
     // resolver keys filament-indexed arrays, the nozzle resolver keys (extruder x volume-type)
     // slot arrays. Both degenerate to filament_id / extruder index on single-volume printers.
     size_t get_filament_config_index(int filament_id) const;
+    // The filament resolver for a given layer, for the export pipeline stages after the generator,
+    // which run behind the current layer and concurrently with the generator.
+    size_t get_filament_config_index(int filament_id, size_t layer_id) const;
     size_t get_nozzle_config_index(int filament_id) const;
 
     // Object and support extrusions of the same PrintObject at the same print_z.
@@ -445,19 +450,19 @@ private:
                                                            double &y_acceleration_limit_res, double &accumulated_mass_res);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string extrude_entity(const ExtrusionEntity&      entity,
-                               const std::string&          description       = "",
-                               double                      speed             = -1.,
-                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                               const WipeInwardSupport*     wipe_support      = nullptr);
+    std::string extrude_entity(const ExtrusionEntity&                     entity,
+                               const std::string&                         description       = "",
+                               double                                     speed             = -1.,
+                               const std::vector<const ExtrusionEntity*>& region_perimeters = {},
+                               const WipeInwardSupport*                   wipe_support      = nullptr);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string extrude_loop(const ExtrusionLoop&        loop,
-                             const std::string&          description,
-                             double                      speed             = -1.,
-                             const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                             const Point*                start_point       = nullptr,
-                             const WipeInwardSupport*     wipe_support      = nullptr);
+    std::string extrude_loop(const ExtrusionLoop&                       loop,
+                             const std::string&                         description,
+                             double                                     speed             = -1.,
+                             const std::vector<const ExtrusionEntity*>& region_perimeters = {},
+                             const Point*                               start_point       = nullptr,
+                             const WipeInwardSupport*                   wipe_support      = nullptr);
     std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
     std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
 
@@ -488,10 +493,9 @@ private:
         {
             struct Region {
             	// Non-owned references to LayerRegion::perimeters::entities
-            	// std::vector<const ExtrusionEntity*> would be better here, but there is no way in C++ to convert from std::vector<T*> std::vector<const T*> without copying.
-                ExtrusionEntitiesPtr perimeters;
+                std::vector<const ExtrusionEntity*> perimeters;
             	// Non-owned references to LayerRegion::fills::entities
-                ExtrusionEntitiesPtr infills;
+                std::vector<const ExtrusionEntity*> infills;
 
                 std::vector<const WipingExtrusions::ExtruderPerCopy*> infills_overrides;
                 std::vector<const WipingExtrusions::ExtruderPerCopy*> perimeters_overrides;

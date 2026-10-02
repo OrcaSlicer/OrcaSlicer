@@ -1,7 +1,11 @@
 #include "RoundedRectangle.hpp"
 #include "../wxExtensions.hpp"
+#include <wx/colour.h>
+#include <wx/checklst.h>
 #include <wx/dcgraph.h>
 #include <wx/dcclient.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 
 BEGIN_EVENT_TABLE(RoundedRectangle, wxWindow)
 EVT_PAINT(RoundedRectangle::OnPaint)

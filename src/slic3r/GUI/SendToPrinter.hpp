@@ -1,6 +1,19 @@
 #ifndef slic3r_GUI_SendToSDcard_hpp_
 #define slic3r_GUI_SendToSDcard_hpp_
 
+#include <string>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include <vector>
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <wx/datetime.h>
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <cstddef>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
@@ -181,7 +194,6 @@ public:
     void reset_timeout();
     void update_user_printer();
     void update_show_status();
-    bool is_blocking_printing(MachineObject* obj_);
     void prepare(int print_plate_idx);
     void check_focus(wxWindow* window);
     void check_fcous_state(wxWindow* window);

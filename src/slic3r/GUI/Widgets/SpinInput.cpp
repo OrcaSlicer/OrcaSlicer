@@ -3,7 +3,19 @@
 #include "Button.hpp"
 #include "TextCtrl.h"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/timer.h>
+#include <wx/spinctrl.h>
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

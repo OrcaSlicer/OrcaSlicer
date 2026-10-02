@@ -12,13 +12,13 @@ struct MeshSlicingParams
 {
     enum class SlicingMode : uint32_t {
         // Regular slicing, maintain all contours and their orientation.
-        // slice_mesh_ex() applies ClipperLib::pftNonZero rule to the result of slice_mesh().
+        // slice_mesh_ex() applies pftNonZero rule to the result of slice_mesh().
         Regular,
         // For slicing 3DLabPrints plane models (aka to be compatible with S3D default strategy).
-        // slice_mesh_ex() applies ClipperLib::pftEvenOdd rule. slice_mesh() slices EvenOdd as Regular.
+        // slice_mesh_ex() applies pftEvenOdd rule. slice_mesh() slices EvenOdd as Regular.
         EvenOdd,
         // Maintain all contours, orient all contours CCW.
-        // slice_mesh_ex() applies ClipperLib::pftNonZero rule, thus holes will be closed.
+        // slice_mesh_ex() applies pftNonZero rule, thus holes will be closed.
         Positive,
         // Orient all contours CCW and keep only the contour with the largest area.
         // This mode is useful for slicing complex objects in vase mode.

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG HF @Prusa MINIIS 0.6",
-	"inherits": "Generic PETG HF @Prusa base",
 	"renamed_from": "Prusa Generic PETG HF @MINIIS 0.6;Prusa Generic PETG HF MINIIS 0.6",
+	"inherits": "Generic PETG HF @Prusa base",
 	"from": "system",
 	"setting_id": "nF8YzRMvaT4D8LBD",
 	"instantiation": "true",

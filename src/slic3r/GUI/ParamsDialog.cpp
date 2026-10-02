@@ -6,6 +6,16 @@
 #include "Tab.hpp"
 
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/bookctrl.h>
+#include <wx/sizer.h>
+#include <cstddef>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include "slic3r/GUI/Event.hpp"
 
 namespace pt = boost::property_tree;
 typedef pt::ptree JSON;

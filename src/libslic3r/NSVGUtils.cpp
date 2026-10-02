@@ -500,26 +500,26 @@ Polylines to_dashes(const Polyline &polyline, const DashesParam& param)
 HealedExPolygons stroke_to_expolygons(const LinesPath &lines_path, const NSVGshape &shape, const NSVGLineParams &param)
 {
     // convert stroke to polygon
-    ClipperLib::JoinType join_type = ClipperLib::JoinType::jtSquare;
+    JoinType join_type = jtSquare;
     switch (static_cast<NSVGlineJoin>(shape.strokeLineJoin)) {
-    case NSVGlineJoin::NSVG_JOIN_BEVEL: join_type = ClipperLib::JoinType::jtSquare; break;
-    case NSVGlineJoin::NSVG_JOIN_MITER: join_type = ClipperLib::JoinType::jtMiter; break;
-    case NSVGlineJoin::NSVG_JOIN_ROUND: join_type = ClipperLib::JoinType::jtRound; break;
+    case NSVGlineJoin::NSVG_JOIN_BEVEL: join_type = jtSquare; break;
+    case NSVGlineJoin::NSVG_JOIN_MITER: join_type = jtMiter; break;
+    case NSVGlineJoin::NSVG_JOIN_ROUND: join_type = jtRound; break;
     }
 
     double mitter = shape.miterLimit * param.scale;
-    if (join_type == ClipperLib::JoinType::jtRound) {
+    if (join_type == jtRound) {
         // mitter is used as ArcTolerance
         // http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/ArcTolerance.htm
         mitter = std::pow(param.tesselation_tolerance, 1/3.);
     }
     float stroke_width = static_cast<float>(shape.strokeWidth * param.scale);
 
-    ClipperLib::EndType end_type = ClipperLib::EndType::etOpenButt;
+    EndType end_type = etOpenButt;
     switch (static_cast<NSVGlineCap>(shape.strokeLineCap)) {
-    case NSVGlineCap::NSVG_CAP_BUTT: end_type = ClipperLib::EndType::etOpenButt; break;
-    case NSVGlineCap::NSVG_CAP_ROUND: end_type = ClipperLib::EndType::etOpenRound; break;
-    case NSVGlineCap::NSVG_CAP_SQUARE: end_type = ClipperLib::EndType::etOpenSquare; break;
+    case NSVGlineCap::NSVG_CAP_BUTT: end_type = etOpenButt; break;
+    case NSVGlineCap::NSVG_CAP_ROUND: end_type = etOpenRound; break;
+    case NSVGlineCap::NSVG_CAP_SQUARE: end_type = etOpenSquare; break;
     }
 
     Polygons result;

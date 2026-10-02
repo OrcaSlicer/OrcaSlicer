@@ -6,6 +6,8 @@
     "setting_id": "GFSU98_04",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
+        "100",
+        "100",
         "100"
     ],
     "eng_plate_temp": [
@@ -18,9 +20,13 @@
         "40"
     ],
     "fan_max_speed": [
+        "50",
+        "50",
         "50"
     ],
     "fan_min_speed": [
+        "10",
+        "10",
         "10"
     ],
     "filament_cooling_before_tower": [

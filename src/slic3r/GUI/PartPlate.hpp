@@ -1,11 +1,27 @@
 #ifndef __part_plate_hpp_
 #define __part_plate_hpp_
 
+#include <cmath>
+#include "libslic3r/Config.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include <map>
+#include <cstddef>
+#include <cereal/access.hpp>
+#include <cereal/specialize.hpp>
 #include <vector>
 #include <set>
 #include <array>
 #include <thread>
 #include <mutex>
+#include <wx/types.h>
 
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"

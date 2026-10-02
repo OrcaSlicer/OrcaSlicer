@@ -1,12 +1,25 @@
 #include "TaskManager.hpp"
 
+#include "bambu_networking.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "nlohmann/json.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include <chrono>
+#include <boost/chrono/duration.hpp>
+#include <algorithm>
+#include <cstdint>
 #include <exception>
+#include <wx/event.h>
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 using namespace nlohmann;
 

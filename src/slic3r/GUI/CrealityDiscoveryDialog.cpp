@@ -4,10 +4,19 @@
 #include "I18N.hpp"
 #include "Widgets/DialogButtons.hpp"
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/listbase.h>
+#include <vector>
+#include <wx/busycursor.h>
+#include <utility>
+#include <cstddef>
 #include <wx/sizer.h>
 #include <wx/button.h>
 #include <wx/listctrl.h>
 #include <wx/stattext.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 
 #include <boost/log/trivial.hpp>

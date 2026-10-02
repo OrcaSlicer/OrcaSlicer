@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "RWcQPhlCtjoh9xec",
 	"name": "Generic ABS @Elegoo",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic ABS @base",
+	"from": "system",
+	"setting_id": "RWcQPhlCtjoh9xec",
+	"instantiation": "true",
 	"cool_plate_temp": [
 		"100"
 	],

@@ -282,7 +282,7 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     return true;
 }
 
-bool CrealityPrintAgent::fetch_filament_info(std::string dev_id)
+bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     if (device_info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)

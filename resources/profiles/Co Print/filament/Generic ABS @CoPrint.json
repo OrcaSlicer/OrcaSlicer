@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @CoPrint",
-	"inherits": "Generic PLA @CoPrint",
 	"renamed_from": "CoPrint Generic ABS",
+	"inherits": "Generic PLA @CoPrint",
 	"from": "system",
 	"setting_id": "T6mJwfI7n1YDmDzv",
 	"filament_id": "OFY9muEs",

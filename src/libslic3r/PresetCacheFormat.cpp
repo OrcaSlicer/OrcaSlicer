@@ -400,46 +400,24 @@ bool write_cache_blob(const std::string& path, const std::string& blob)
 {
     boost::crc_32_type crc;
     crc.process_bytes(blob.data(), blob.size());
-    // Written beside the target and moved into place, as AppConfig::save does:
-    // a cache is truncated and rewritten in full, so a write that dies partway
-    // would otherwise leave a header claiming more body than the file holds.
-    // The PID suffix also keeps two instances writing the same vendor from
-    // interleaving.
-    const std::string tmp_path = path + "." + std::to_string(get_current_pid()) + ".tmp";
+    // Written beside the target and moved into place: a cache is truncated and
+    // rewritten in full, so a write that dies partway would otherwise leave a
+    // header claiming more body than the file holds.
     try {
         boost::filesystem::create_directories(boost::filesystem::path(path).parent_path());
-        {
-            boost::nowide::ofstream ofs(tmp_path, std::ios::binary | std::ios::trunc);
-            if (!ofs.is_open()) {
-                BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: cannot open for writing: " << tmp_path;
-                return false;
-            }
-            CacheFileHeader fhdr;
-            fhdr.magic     = CACHE_MAGIC;
-            fhdr.version   = CACHE_VERSION;
-            fhdr.data_size = static_cast<uint64_t>(blob.size());
-            fhdr.crc32     = crc.checksum();
-            ofs.write(reinterpret_cast<const char*>(&fhdr), sizeof(fhdr));
-            ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
-            ofs.close();   // flush; close() raises failbit on error
-            if (! ofs.good()) {
-                BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: write failed (" << tmp_path << ")";
-                boost::system::error_code ec;
-                boost::filesystem::remove(tmp_path, ec);
-                return false;
-            }
-        }
-        if (const std::error_code ec = rename_file(tmp_path, path)) {
-            BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: could not move " << tmp_path << " into place: " << ec.message();
-            boost::system::error_code rm;
-            boost::filesystem::remove(tmp_path, rm);
+        CacheFileHeader fhdr;
+        fhdr.magic     = CACHE_MAGIC;
+        fhdr.version   = CACHE_VERSION;
+        fhdr.data_size = static_cast<uint64_t>(blob.size());
+        fhdr.crc32     = crc.checksum();
+        const std::string_view header(reinterpret_cast<const char*>(&fhdr), sizeof(fhdr));
+        if (const std::error_code ec = write_file_atomically(path, { header, std::string_view(blob) }, /*binary=*/true)) {
+            BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: write failed (" << path << "): " << ec.message();
             return false;
         }
         return true;
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(warning) << "VendorCacheFile: write failed (" << path << "): " << e.what();
-        boost::system::error_code ec;
-        boost::filesystem::remove(tmp_path, ec);
         return false;
     }
 }

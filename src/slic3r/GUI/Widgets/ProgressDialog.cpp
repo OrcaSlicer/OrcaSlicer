@@ -1,4 +1,14 @@
 #include "wx/wxprec.h"
+#include <cstddef>
+#include <wx/time.h>
+#include <wx/dialog.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/progdlg.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/translation.h>
+#include <wx/debug.h>
 
 #ifndef WX_PRECOMP
 #include "wx/utils.h"

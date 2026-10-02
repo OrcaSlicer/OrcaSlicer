@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_AxisCtrlButton_hpp_
 #define slic3r_GUI_AxisCtrlButton_hpp_
 
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/event.h>
+#include <wx/dc.h>
 #include <wx/stattext.h>
 #include <wx/vlbox.h>
 #include <wx/combo.h>
