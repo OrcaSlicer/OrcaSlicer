@@ -44,6 +44,31 @@ TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
     }
 }
 
+TEST_CASE("Remembered checkbox settings retain both selections", "[AppConfig][Regression]") {
+    AppConfig config;
+    const bool checked = GENERATE(false, true);
+
+    config.set("recent", "checkbox", checked ? "1" : "0");
+    CHECK(config.get("recent", "checkbox") == (checked ? "1" : "0"));
+}
+
+TEST_CASE("Boolean setters retain their established encoding", "[AppConfig][Regression]") {
+    AppConfig config;
+    const bool value = GENERATE(false, true);
+
+    config.set("recent", "flag", value);
+    CHECK(config.get("recent", "flag") == (value ? "true" : "false"));
+}
+
+TEST_CASE("Boolean reads use only the requested section", "[AppConfig][Regression]") {
+    AppConfig config;
+    const bool value = GENERATE(false, true);
+    config.set("recent", "flag", std::string(value ? "1" : "0"));
+    config.set("app", "flag", std::string(value ? "0" : "1"));
+
+    CHECK(config.get_bool("recent", "flag") == value);
+}
+
 TEST_CASE("AppConfig Speed Dial recent count defaults, clamps and parses", "[AppConfig]") {
     AppConfig config;
 
