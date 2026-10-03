@@ -1,4 +1,30 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
+#include <boost/uuid/name_generator_sha1.hpp>
+#include <boost/optional/optional.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/erase.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <cassert>
+#include <string>
+#include <cstddef>
+#include <iterator>
+#include <vector>
+#include <map>
+#include <utility>
+#include <cstdlib>
+#include <ostream>
+#include <system_error>
+#include <set>
+#include <exception>
+#include <cstdio>
+#include <functional>
+#include <optional>
+#include <deque>
+#include <regex>
+#include <initializer_list>
 
 #include "Config.hpp"
 #include "Exception.hpp"
@@ -7,6 +33,9 @@
 #include "AppConfig.hpp"
 #include "LocalesUtils.hpp"
 #include "ParallelResolve.hpp"
+#include "Semver.hpp"
+#include "PrintConfig.hpp"
+#include "libslic3r_version.h"
 
 #ifdef _MSC_VER
     #define WIN32_LEAN_AND_MEAN

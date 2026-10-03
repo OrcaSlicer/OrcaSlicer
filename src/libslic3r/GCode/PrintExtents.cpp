@@ -10,7 +10,16 @@
 #include "../Print.hpp"
 
 #include "PrintExtents.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "WipeTower.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <Eigen/Geometry>
+#include <vector>
+#include <cstddef>
 
 namespace Slic3r {
 

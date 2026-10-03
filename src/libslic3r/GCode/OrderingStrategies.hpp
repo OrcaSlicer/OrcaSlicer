@@ -5,6 +5,8 @@
 
 #include "../libslic3r.h"
 #include "../Point.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
 
 #ifndef SLIC3R_TEST_HARNESS
 #include "../Print.hpp"

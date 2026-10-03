@@ -1,10 +1,16 @@
 #include "TextureBakeRepair.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
+#include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace TextureBake {

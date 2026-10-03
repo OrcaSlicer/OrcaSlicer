@@ -3,10 +3,14 @@
 
 #include "libslic3r.h"
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 #include "PrintConfig.hpp"
 
 namespace Slic3r {

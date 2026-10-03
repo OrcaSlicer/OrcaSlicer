@@ -1,8 +1,28 @@
 #include "SVG.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <cstdio>
+#include "BoundingBox.hpp"
+#include "libslic3r.h"
+#include "Line.hpp"
+#include "Point.hpp"
+#include <cmath>
+#include "ExPolygon.hpp"
+#include "Polygon.hpp"
+#include "Surface.hpp"
+#include "Polyline.hpp"
+#include "MultiPoint.hpp"
+#include <cstddef>
+#include <algorithm>
 #include <iostream>
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

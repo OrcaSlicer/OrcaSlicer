@@ -1,9 +1,23 @@
 #ifndef slic3r_Utils_hpp_
 #define slic3r_Utils_hpp_
 
+#include <cstddef>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cstdint>
+#include <cstdio>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <algorithm>
 #include <iomanip>
+#include <limits>
 #include <locale>
 #include <set>
+#include <string>
+#include <sstream>
+#include <stdexcept>
 #include <utility>
 #include <functional>
 #include <type_traits>
@@ -19,6 +33,7 @@
 #include "boost/date_time/posix_time/ptime.hpp"
 
 #include <openssl/md5.h>
+#include <vector>
 
 #include "libslic3r.h"
 #include "Semver.hpp"

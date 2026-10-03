@@ -1,3 +1,10 @@
+#include <array>
+#include <cstddef>
+#include <cmath>
+#include <cstdlib>
+#include <cstdint>
+#include <algorithm>
+#include <iterator>
 #include <limits>
 
 #include <libslic3r/SLA/Rotfinder.hpp>
@@ -8,12 +15,19 @@
 #include <libslic3r/Optimize/BruteforceOptimizer.hpp>
 #include <libslic3r/Optimize/NLoptOptimizer.hpp>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Execution/Execution.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Optimize/Optimizer.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include <libslic3r/Geometry.hpp>
 
 #include <thread>
+#include <vector>
 
 namespace Slic3r { namespace sla {
 

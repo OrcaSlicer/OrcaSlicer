@@ -1,6 +1,15 @@
 //#include "igl/random_points_on_mesh.h"
 //#include "igl/AABB.h"
 
+#include <functional>
+#include <cstddef>
+#include <cassert>
+#include <cmath>
+#include <math.h>
+#include <algorithm>
+#include <numeric>
+#include <cstdlib>
+#include <limits>
 #include <tbb/parallel_for.h>
 
 #include "SupportPointGenerator.hpp"
@@ -8,6 +17,9 @@
 #include "Concurrency.hpp"
 #include "Model.hpp"
 #include "ExPolygon.hpp"
+#include "libslic3r/SLA/IndexedMesh.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "SVG.hpp"
 #include "Point.hpp"
 #include "ClipperUtils.hpp"
@@ -17,6 +29,9 @@
 
 #include <iostream>
 #include <random>
+#include <vector>
+#include <utility>
+#include <unordered_map>
 
 namespace Slic3r {
 namespace sla {

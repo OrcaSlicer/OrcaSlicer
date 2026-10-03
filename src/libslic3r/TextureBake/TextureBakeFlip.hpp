@@ -16,6 +16,7 @@
 // flat regions cost nothing; a non-planar quad (a model crease) is never touched, nor is one whose
 // triangles belong to different source faces or straddle the painted boundary.
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 

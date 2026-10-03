@@ -1,16 +1,20 @@
 #ifndef slic3r_CadDocument_hpp_
 #define slic3r_CadDocument_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"   // FaceGroup
 #include "libslic3r/Color.hpp"            // ColorRGBA (per-body display colour override)
 
+#include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Wire.hxx>
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
+#include <cstdint>
+#include <cstddef>
 #include <map>
 #include <cereal/types/map.hpp>
 #include <string>

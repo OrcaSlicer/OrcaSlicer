@@ -1,9 +1,20 @@
 #ifndef slic3r_SupportParameters_hpp_
 #define slic3r_SupportParameters_hpp_
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <cassert>
+#include <math.h>
+#include <limits>
 #include "../libslic3r.h"
 #include "../Flow.hpp"
+#include "../Layer.hpp"
+#include "../Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
 
 namespace Slic3r {
 

@@ -2,8 +2,14 @@
 #define slic3r_GCodeWriter_hpp_
 
 #include "libslic3r.h"
+#include <cstddef>
+#include <cassert>
+#include <array>
+#include <cmath>
+#include <cstring>
 #include <string>
 #include <charconv>
+#include <vector>
 #include "Extruder.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"

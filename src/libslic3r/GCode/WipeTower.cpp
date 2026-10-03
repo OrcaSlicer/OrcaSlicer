@@ -1,16 +1,39 @@
 #include "WipeTower.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
 #include <iostream>
+#include <map>
+#include <string>
+#include <utility>
+#include <limits>
+#include <math.h>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include "libslic3r/Circle.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "GCodeProcessor.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "libslic3r/Line.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "Triangulation.hpp"
+#include "libslic3r/libslic3r.h"
 
 
 namespace Slic3r
