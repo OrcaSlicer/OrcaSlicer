@@ -27,6 +27,7 @@
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "Print.hpp"
+#include "TangentialHoleBridging.hpp"
 //BBS
 #include "PrintConfig.hpp"
 #include "PrintBase.hpp"
@@ -881,6 +882,9 @@ void PrintObject::slice()
 
     // BBS: the actual first layer slices stored in layers are re-sorted by volume group and will be used to generate brim
     groupingVolumesForBrim(this, m_layers, firstLayerReplacedBy);
+
+    // ORCA: Apply tangential sacrificial bridging pre-processing
+    TangentialHoleBridging::apply(this);
 
     // Update bounding boxes, back up raw slices of complex models.
     tbb::parallel_for(

@@ -518,7 +518,7 @@ enum class GCodeThumbnailsFormat {
 };
 
 enum CounterboreHoleBridgingOption {
-    chbNone, chbBridges, chbFilled
+    chbNone, chbBridges, chbFilled, chbTangential
 };
 
  enum WipeTowerWallType {
