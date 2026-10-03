@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <boost/any.hpp>
 
 #include "libslic3r/GCode/SmallAreaInfillFlowCompensationModel.hpp"
 #include "libslic3r/Preset.hpp"
