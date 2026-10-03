@@ -12,6 +12,7 @@
 #include <memory>
 #include "slic3r/GUI/HintNotification.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS

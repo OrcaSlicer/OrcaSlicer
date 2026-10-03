@@ -158,7 +158,7 @@ public:
     //BBS: add m_loaded_print logic
     bool is_loaded() const { return (m_loaded_print != nullptr); }
     //BBS
-    void on_tick_changed(Type type);
+    void on_tick_changed(CustomGCode::Type type);
 
     void show_sliders(bool show = true);
     void show_moves_sliders(bool show = true);

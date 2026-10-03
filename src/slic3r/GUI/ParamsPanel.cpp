@@ -16,6 +16,7 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/Button.hpp"
 #include "GUI_Factories.hpp"
+#include "I18N.hpp"
 #include "libslic3r/Config.hpp"
 #include <string>
 #include <map>

@@ -11,6 +11,7 @@
 #include <map>
 #include <variant>
 #include <vector>
+#include <cstdint>
 
 #include "GUI_Utils.hpp"
 #include <wx/simplebook.h>

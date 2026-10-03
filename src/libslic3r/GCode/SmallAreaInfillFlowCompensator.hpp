@@ -4,6 +4,7 @@
 #include "../PrintConfig.hpp"
 #include <memory>
 #include <vector>
+#include <cstdint>
 
 class PchipInterpolatorHelper;
 namespace Slic3r { enum ExtrusionRole : uint8_t; }

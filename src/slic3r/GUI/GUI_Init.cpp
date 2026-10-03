@@ -6,6 +6,7 @@
 #include "slic3r/GUI/InstanceCheck.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 // To show a message box if GUI initialization ends up with an exception thrown.
 #include <vector>

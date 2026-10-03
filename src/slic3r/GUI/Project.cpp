@@ -16,6 +16,7 @@
 #include <string>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Auxiliary.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <cstddef>
 #include <memory>
 #include <map>

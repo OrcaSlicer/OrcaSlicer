@@ -26,6 +26,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
 namespace GUI {
