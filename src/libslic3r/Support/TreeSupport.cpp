@@ -1857,37 +1857,15 @@ coordf_t TreeSupport::get_radius(const SupportNode* node)
     return node->radius;
 }
 
-ExPolygons TreeSupport::get_avoidance(coordf_t radius, size_t obj_layer_nr)
+// Orca: these are hit up to several times per node per layer in drop_nodes(), so hand out a
+// reference into the TreeSupportData cache instead of copying the ExPolygons out of it.
+const ExPolygons& TreeSupport::get_avoidance(coordf_t radius, size_t obj_layer_nr)
 {
-#if USE_SUPPORT_3D
-    if (m_model_volumes) {
-        bool on_build_plate = m_object_config->support_on_build_plate_only.value;
-        const Polygons& avoid_polys = m_model_volumes->getAvoidance(radius, obj_layer_nr, TreeSupport3D::TreeModelVolumes::AvoidanceType::FastSafe, on_build_plate, true);
-        ExPolygons expolys;
-        for (auto& poly : avoid_polys)
-            expolys.emplace_back(std::move(poly));
-        return expolys;
-    }
-    return ExPolygons();
-#else
     return m_ts_data->get_avoidance(radius, obj_layer_nr);
-#endif
 }
-ExPolygons TreeSupport::get_collision(coordf_t radius, size_t layer_nr)
+const ExPolygons& TreeSupport::get_collision(coordf_t radius, size_t layer_nr)
 {
-#if USE_SUPPORT_3D
-    if (m_model_volumes) {
-        bool on_build_plate = m_object_config->support_on_build_plate_only.value;
-        const Polygons& collision_polys = m_model_volumes->getCollision(radius, layer_nr, true);
-        ExPolygons expolys;
-        for (auto& poly : collision_polys)
-            expolys.emplace_back(std::move(poly));
-        return expolys;
-    }
-#else
     return m_ts_data->get_collision(radius, layer_nr);
-#endif
-    return ExPolygons();
 }
 Polygons TreeSupport::get_collision_polys(coordf_t radius, size_t layer_nr)
 {
@@ -2676,7 +2654,11 @@ void TreeSupport::draw_circles()
 #endif  // SUPPORT_TREE_DEBUG_TO_SVG
 
     SupportLayerPtrs& ts_layers = m_object->support_layers();
-    auto iter = std::remove_if(ts_layers.begin(), ts_layers.end(), [](SupportLayer* ts_layer) { return ts_layer->height < EPSILON; });
+    // Orca: the vector owns its layers, so the dropped ones have to be deleted, not just unlinked.
+    // std::stable_partition (unlike std::remove_if) leaves exactly the dropped layers in the tail.
+    auto iter = std::stable_partition(ts_layers.begin(), ts_layers.end(), [](SupportLayer* ts_layer) { return ts_layer->height >= EPSILON; });
+    for (auto it = iter; it != ts_layers.end(); ++it)
+        delete *it;
     ts_layers.erase(iter, ts_layers.end());
     for (int layer_nr = 0; layer_nr < ts_layers.size(); layer_nr++) {
         ts_layers[layer_nr]->upper_layer = layer_nr != ts_layers.size() - 1 ? ts_layers[layer_nr + 1] : nullptr;
@@ -2919,7 +2901,7 @@ void TreeSupport::drop_nodes()
                     //Insert a completely new node and let both original nodes fade.
                     Point next_position = (node.position + neighbours[0]) / 2; //Average position of the two nodes.
                     coordf_t next_radius = calc_radius(node.dist_mm_to_top+height_next);
-                    auto avoid_layer = get_avoidance(next_radius, obj_layer_nr_next);
+                    const ExPolygons& avoid_layer = get_avoidance(next_radius, obj_layer_nr_next);
                     if (group_index == 0)
                     {
                         //Avoid collisions.
@@ -3106,7 +3088,7 @@ void TreeSupport::drop_nodes()
                 }
 #endif
                 coordf_t next_radius = calc_radius(node.dist_mm_to_top + height_next);
-                auto avoidance_next = get_avoidance(next_radius, obj_layer_nr_next);
+                const ExPolygons& avoidance_next = get_avoidance(next_radius, obj_layer_nr_next);
 
                 Point  to_outside         = projection_onto(avoidance_next, node.position);
                 Point  direction_to_outer = to_outside - node.position;
@@ -3160,7 +3142,7 @@ void TreeSupport::drop_nodes()
                         if (is_outside) { next_layer_vertex = candidate_vertex; }
                     }
                 }
-                auto              next_collision = get_collision(0, obj_layer_nr_next);
+                const ExPolygons& next_collision = get_collision(0, obj_layer_nr_next);
                 const bool   to_buildplate  = !is_inside_ex(m_ts_data->m_layer_outlines[obj_layer_nr_next], next_layer_vertex);
                 // don't increase radius if next node will collide partially with the object (STUDIO-7883)
                 to_outside             = projection_onto(next_collision, next_layer_vertex);
