@@ -36,6 +36,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "libslic3r_version.h"
 
 #include <string>

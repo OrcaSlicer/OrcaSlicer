@@ -20,6 +20,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include <cmath>
+#include <cstdint>
 #if ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "GUI_Init.hpp"
 #endif // ENABLE_OPENGL_AUTO_AA_SAMPLES

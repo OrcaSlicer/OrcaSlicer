@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
 #include <memory>
 #include <functional>
 #include <string>

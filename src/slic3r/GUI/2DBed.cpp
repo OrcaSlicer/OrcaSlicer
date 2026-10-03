@@ -3,6 +3,7 @@
 
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
+#include "I18N.hpp"
 
 #include <vector>
 #include "libslic3r/Polyline.hpp"

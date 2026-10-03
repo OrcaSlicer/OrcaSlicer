@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cstddef>
 #include <list>
+#include <cstdint>
 #include <cassert>
 #include <algorithm>
 #include <cstdlib>
