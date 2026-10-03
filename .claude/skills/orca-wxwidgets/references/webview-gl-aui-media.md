@@ -88,6 +88,7 @@ available; GTK2/WebKit1 is an opt-out configuration the GUI does not support.
 24. ImGui text uses `_u8L`; ImGui sizes are physical pixels (scale by `GLCanvas3D::get_scale()`);
     a font atlas must fit `GL_MAX_TEXTURE_SIZE`. §[ImGui boundary](#the-imgui-layer-boundary)
 25. After `AddPane` or any `wxAuiPaneInfo` change, call `wxAuiManager::Update()` once for the batch.
+    Keep a docked pane hidden until the managed window has been laid out.
     §[AUI](#wxauimanager-and-orcas-docking)
 26. Give every pane a unique, stable `Name()` free of layout delimiters (`|`, `;`, `=`, `\`).
     §[AUI](#wxauimanager-and-orcas-docking)
@@ -920,6 +921,16 @@ widgets beside the canvas (a sibling, not a child over it), or in a popup.
 - **Update.** "Update() must be invoked after AddPane() or InsertPane() … any number of changes may be
   made to wxAuiPaneInfo structures (retrieved with wxAuiManager::GetPane), but to realize the changes,
   Update() must be called" (`interface/wx/aui/framemanager.h:747-756`). Batch, then `Update()` once.
+- **Dock size** [source]. The docs limit "any new dock" to a `SetDockSizeConstraint` fraction of the
+  window (`interface/wx/aui/framemanager.h:660-672`). The source applies it to the managed window's client
+  size at the `Update()` that creates the dock, sizing the dock from its panes' `best_size` and then
+  raising it to their `min_size` (`src/aui/framemanager.cpp:2748-2848`); a dock with a resizable pane
+  keeps that size (`2674-2677`), and resizing the managed window only re-lays the docks out
+  (`4542-4546`). A pane first shown before its managed window is laid out — a `wxDefaultSize` window is
+  20×20 until its first sizer layout (`references/sizers-layout.md`) — docks at that width or its
+  `min_size` and stays there. Hiding a dock's last shown pane empties it, and the next `Update()`
+  removes it (`2733-2738`) with any `dock_size` a `LoadPerspective` restored, so the pane comes back
+  at its `best_size`.
 - **Names** [source]. A duplicate `Name()` hits `wxFAIL` (silent in Orca); duplicate and empty names
   get a random identifier (`src/aui/framemanager.cpp:949-1010`), which `LoadPerspective` can never
   match. `AddPane` rejects a null window, but its "already managed" check looks up `paneInfo.window`
@@ -953,11 +964,12 @@ widgets beside the canvas (a sibling, not a child over it), or in a popup.
 - `wxAuiNotebook` (not used by Orca): page indices are logical; use `GetPagePosition()` for on-screen
   order (`docs/changes.txt:121-126`); the default tab art changed (`35-37`).
 
-**OrcaSlicer.** `Plater::priv` owns `AuiMgr m_aui_mgr`, a `wxAuiManager` whose `CreateFloatingFrame`
-returns `FloatFrame : wxAuiFloatingFrame` (applies `UpdateFrameDarkUI`).
-- Setup: `SetManagedWindow(q)` (the Plater), `SetDockSizeConstraint(1, 1)`; on Wayland clears
-  `wxAUI_MGR_ALLOW_FLOATING` (`disable_wayland_floating`); dock-art metrics set here, colours in the
-  dark-mode update (`Plater::priv::apply_color_mode`).
+**OrcaSlicer.** Orca's docks use `AuiMgr` (`AuiMgr.hpp`), a `wxAuiManager` whose `CreateFloatingFrame`
+returns a `wxAuiFloatingFrame` that applies `UpdateFrameDarkUI`. `init(window)` calls
+`SetManagedWindow(window)` and `SetDockSizeConstraint(1, 1)`, clears `wxAUI_MGR_ALLOW_FLOATING` on
+Wayland and sets the dock-art metrics and colours; `apply_color_mode()` re-colours captions, sashes and
+borders and is called from the owner's theme-switch handler. `Plater::priv::m_aui_mgr` manages the
+Plater (Prepare and Preview); `DesignPanel::m_aui` manages the Design tab's body below its toolbar.
 - Panes: `"sidebar"` (left, no close button, not top/bottom dockable, `BestSize` in em units),
   `"uv_editor"` (right, hidden; forced hidden again after a layout load), `"main"`
   (`CenterPane().PaneBorder(false)`, holding `panel_3d` with View3D, Preview and AssembleView in one
@@ -966,8 +978,8 @@ returns `FloatFrame : wxAuiFloatingFrame` (applies `UpdateFrameDarkUI`).
   `window_layout` app-config string goes through `sanitize_window_layout_for_wayland` (strips
   floating/floatable bits on Wayland) and `LoadPerspective(layout, false)`, falling back to the default
   on failure; then one `Update()`. `Plater::priv::reset` saves `SavePerspective()` back to
-  `window_layout`. An idle handler copies the docked sidebar width into `BestSize` (wxAUI does not record
-  a dragged sash there), so the width persists. `Plater::priv::reset_window_layout` is the model for
+  `window_layout`. `AuiMgr::track_docked_size` copies a docked pane's size into `BestSize` on idle
+  (wxAUI does not record a dragged sash there), so the width persists. `Plater::priv::reset_window_layout` is the model for
   re-establishing panes after a load: it loads the default perspective, then re-shows each plugin pane
   the perspective does not list.
 - Plugin panes: `Plater::add_dock_pane(window, name, caption, dock, size, on_close)` (window must be a
@@ -977,13 +989,29 @@ returns `FloatFrame : wxAuiFloatingFrame` (applies `UpdateFrameDarkUI`).
   `Destroy()`s without running `on_close`; `show_dock_pane` toggles and updates. Pane names come from
   `plugin_pane_name` (`DockPanel.cpp`), which replaces `|`, `;`, `=`, `\` — the perspective-string
   delimiters.
+- Other pages: a page outside the Plater docks through its own `AuiMgr` member, since the Plater's
+  manages only the Plater. Its managed window is a body panel below the page's toolbar; a sidebar
+  takes `AuiMgr::sidebar_pane_info()`; the layout has its own app-config key, is reset from
+  `Plater::reset_window_layout`, and is saved by a `shutdown()` called from `MainFrame::shutdown`,
+  which also detaches a floating pane (Lifetime below). Where floating is disabled it forces
+  `Dock().Floatable(false)` after loading, as plugin panes do. A `LazyPage` builds its panel at 20×20
+  and lays it out only as the tab shows, so the sidebar stays hidden until the tab is first shown (Dock
+  size above). `DesignPanel` is the model
+  (`docs/HLSD/design-tab.md`). A `GLCanvas3D` beside such a sidebar gets that sidebar's collapse
+  button with `set_collapse_toolbar`; without it the canvas falls back to the Plater's button, which
+  collapses Prepare's sidebar.
 - Lifetime: no explicit `UnInit`. `m_aui_mgr` is a `Plater::priv` member, so it is destroyed in
   `~Plater`, before `~wxWindow` destroys the Plater's children (`wxWindowBase::DestroyChildren`,
   `src/common/wincmn.cpp:586-609`); a floating frame is such a child (`CreateFloatingFrame(m_frame, …)`,
   `src/aui/framemanager.cpp:3151`), so a pane still floating at that point outlives the manager [source].
-  Plugin panes are removed earlier (`MainFrame::shutdown` → `Plater::remove_dock_panes`). The sidebar
-  `GetPane()` reference captured by the idle lambda is safe across `AddPane`; never `DetachPane` a pane
-  whose reference is captured.
+  Plugin panes are removed earlier (`MainFrame::shutdown` → `Plater::remove_dock_panes`). A handler
+  that can outlive its pane looks the pane up when it runs, as `track_docked_size` does: an idle
+  handler bound on the pane's window outlives the `DetachPane` in `DesignPanel::shutdown`. Never detach
+  a pane whose `GetPane()` reference is captured (Pane references above). `DesignPanel::shutdown` is
+  the model for a member manager: it detaches a
+  floating sidebar, which `Destroy()`s the frame into the pending-delete list, and the main frame's
+  deletion deletes pending top-level children before its own children (`~wxTopLevelWindowBase`,
+  `src/common/toplvcmn.cpp:67-93`), while the panel and its manager are still alive [source].
 
 **Pitfalls.**
 - **Rule:** Call `Update()` once after a batch of `AddPane`/`wxAuiPaneInfo` changes.

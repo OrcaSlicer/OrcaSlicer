@@ -117,6 +117,9 @@ that keep it survivable are:
 `Import` features embed the imported solid as an OCCT BRep string inside the recipe rather than
 referencing the source file, so a project opens without the STEP or mesh it was built from.
 The cost is that saved projects are coupled to an OCCT BRep revision.
+A Text feature follows the same rule: it stores the outlines it was vectorised into alongside
+its string, font and height, so the project opens identically on a machine that lacks the font;
+the three parameters are only what an edit reopens the dialog with.
 
 ## The interaction contract
 
@@ -144,18 +147,71 @@ explicit selection, the sketch ribbon's Cancel, which asks first, or `Ctrl+Z`. A
 *session* is deliberately not a `Tool` level; it is the environment the `Idle` level lives in,
 which makes the destructive path unrepresentable rather than merely unlikely.
 
-Right-click is read at button-up against two independent budgets — 3 px of drift and 200 ms —
-because drift alone still popped a menu at the end of a slow, careful orbit. The raycast uses
-the press position, not the release. An armed sketch tool that already consumed the right
+Right-click is read at button-up against one budget, 3 px of drift, applied to the whole press
+rather than to its end points: a press that wandered past the budget at any moment is
+navigation, even if it comes back to where it started, which is what stops a slow, careful
+orbit from ending in a menu. There is no time budget — a gesture that means something different
+when it is slow is exactly what the interaction charter rules out. The raycast uses the press
+position, not the release. An armed sketch tool that already consumed the right
 button (to terminate a chain, say) declines to also open a menu, through a read-and-clear flag.
 Past either budget the event is navigation, and navigation does not transition the state
 machine.
+
+Navigation itself is Prepare's: the camera reads the drag actions set in Preferences > Control
+for each button. The left button is shared with picking, so a whole body is swept with a
+rectangle on plain left-drag only while no camera action is assigned to it, and with
+Shift+left-drag otherwise — Prepare's own rectangle selection.
 
 Entering a sketch changes three things at once so the mode is legible: a banner above the
 canvas (a sibling of the canvas, not a child over it — on GTK a child window over a
 `wxGLCanvas` is a native window and does not reliably stack over GL), the printer bed muted so
 a plate grid is never read as a sketch grid, and `N` to look normal to the plane. Code that
 changes any of the three belongs with a change to this section.
+
+## Rendering the bodies
+
+The tab draws its bodies through the same `GLCanvas3D` object path as Prepare, so how they look
+is decided in the shared object shader, not in the tab. The slicer's two lights both sit near
+the camera, which leaves the sides of a part in nearly one tone; the Design canvas asks for a
+studio model instead — a world-space sky/ground hemisphere, a key and a fill light, a
+plastic-like highlight and a darker silhouette — through `GLCanvas3D::set_studio_lighting()`
+and the phong shader's `lighting_model` uniform. The program is shared by every canvas, so each
+use sets the uniform (0 for the slicer's canvases) rather than relying on a default: a canvas
+that left it alone would inherit whatever the last canvas chose.
+
+The B-rep edges of every body are drawn over it by the sketch overlay as thin view-facing
+ribbons, depth tested and pulled a few pixels toward the eye so they win against the faces that
+meet at them and still hide behind faces in front; lines are not used because they do not
+rasterise under the software GL context the tab also supports. Seams of closed surfaces and
+degenerate edges are left out (`GeometryEngine::display_edges`), and the polylines are sampled
+once per shape, keyed by its `TShape`, because a recompute that leaves a body unchanged is the
+common case.
+
+## Following the app
+
+The tab is a page of Orca's main window and answers to the same settings as Prepare.
+
+- **Theme.** Its chrome is coloured from a table of light/dark token pairs. A theme switch
+  reaches `DesignPanel::on_sys_color_changed` from `MainFrame`, which moves every colour that is
+  one theme's token onto the other theme's and then runs the app's own dark pass; the icons are
+  Orca's sidebar grey, which the icon cache maps per theme, so they are re-rasterised rather
+  than re-tinted.
+- **Scale.** Sizes are in DIP, and a DPI change reaches `DesignPanel::msw_rescale`, which
+  re-rasterises every icon (button faces, flyout rows, card headers, the tree's image list).
+- **Viewport text.** The status line and the active tool's values are drawn by the canvas in
+  its ImGui pass, so they go with the canvas: a top-level window over GL does not follow its
+  frame and was left floating over other applications.
+- **Undo.** The tab keeps its own history (the recipe is not part of Prepare's snapshots), but
+  it has no Undo/Redo of its own: the top bar, `Ctrl+Z` and Edit drive it while the tab is
+  shown, greyed to what an undo would actually do.
+- **Docking.** The sidebar docks like Prepare's — either side, floating, resized, or collapsed
+  with the canvas's collapse button or `Shift+Tab` — through its own AUI manager under the
+  toolbar, because Prepare's manages the Plater and the Plater is not on this page. The button is
+  the canvas's own toolbar rather than Prepare's, which collapses Prepare's sidebar. The layout,
+  collapse included, is kept apart from Prepare's (`design_window_layout`) and starts where
+  Prepare's sidebar is, at its width, so the canvas edge holds still across the tab switch until
+  the user moves one of them. A floating sidebar is a top-level window, so it is hidden with the
+  tab rather than left over the other pages, and View > Reset Window Layout resets both tabs.
 
 ## The offer is generated, not hand-written
 

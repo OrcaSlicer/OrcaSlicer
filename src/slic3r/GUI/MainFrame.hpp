@@ -507,7 +507,12 @@ public:
     // through LazyInstance's statics, and show_device() only moves pages in and out of the book.
 #ifdef SLIC3R_CAD
     LazyPage<DesignPanel>* m_design_page { nullptr };
+    // The Design panel when its tab is the one on screen, else null. Edit > Undo/Redo act on
+    // the tab that is shown: its own history when that is Design, the plater's otherwise.
+    DesignPanel*           shown_design_panel() const;
 #endif
+    // The top bar's Undo/Redo, for a tab that keeps its own history (Design).
+    void set_undo_redo_enabled(bool undo, bool redo);
     //BBS: GUI refactor
     LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
