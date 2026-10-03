@@ -1,6 +1,14 @@
 #ifndef slic3r_Print_hpp_
 #define slic3r_Print_hpp_
 
+#include "Config.hpp"
+#include "Model.hpp"
+#include "Polygon.hpp"
+#include "Fill/FillBase.hpp"
+#include "Polyline.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Geometry.hpp"
+#include "CommonDefs.hpp"
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
@@ -9,7 +17,9 @@
 #include "ExtrusionEntityCollection.hpp"
 #include "Flow.hpp"
 #include "Point.hpp"
+#include "PrintConfig.hpp"
 #include "Slicing.hpp"
+#include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "GCode/ToolOrdering.hpp"
 #include "GCode/WipeTower.hpp"
@@ -18,13 +28,25 @@
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
 #include "ObjectID.hpp"
+#include "TriangleSelector.hpp"
 #include "libslic3r.h"
 
 #include <Eigen/Geometry>
 
+#include <cstddef>
+#include <cmath>
+#include <algorithm>
 #include <functional>
+#include <memory>
+#include <map>
+#include <math.h>
+#include <optional>
 #include <set>
+#include <string>
+#include <tuple>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "calib.hpp"
 

@@ -25,6 +25,7 @@
 #include "libslic3r/Geometry.hpp"
 #include <wx/intl.h>
 #include "libslic3r/Model.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
 
 namespace Slic3r {

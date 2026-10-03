@@ -1,6 +1,11 @@
 #ifndef slic3r_GCode_hpp_
 #define slic3r_GCode_hpp_
 
+#include "ExtrusionEntity.hpp"
+#include "Polygon.hpp"
+#include "Config.hpp"
+#include "ExtrusionEntityCollection.hpp"
+#include "Print.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "GCodeWriter.hpp"
@@ -28,12 +33,20 @@
 #include "GCode/AdaptivePAProcessor.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
+#include "libslic3r_version.h"
 
+#include <cstddef>
+#include <limits>
+#include <cstdio>
+#include <array>
+#include <cstdlib>
 #include <memory>
 #include <map>
 #include <set>
 #include <string>
 #include <cfloat>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -850,6 +863,10 @@ private:
 };
 
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order = false);
+
+// The overhang data ExtrusionQualityEstimator needs for the object layers in `layers`, computed ahead of the generator;
+// `overhang_fan` says whether the overhang fan can switch on for any filament.
+std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan);
 
 }
 

@@ -1,8 +1,13 @@
 #include "TextureBakeDecimate.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <limits>
 #include <queue>
 
@@ -10,6 +15,7 @@
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
+#include <vector>
 
 namespace Slic3r {
 namespace TextureBake {

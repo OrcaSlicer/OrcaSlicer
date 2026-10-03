@@ -16,6 +16,7 @@
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 
+#include <wx/containr.h>
 #include <wx/event.h>
 #include <map>
 #include <string>

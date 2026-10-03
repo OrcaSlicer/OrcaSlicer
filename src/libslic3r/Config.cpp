@@ -1,4 +1,6 @@
 #include "Config.hpp"
+#include "Exception.hpp"
+#include "Point.hpp"
 #include "format.hpp"
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
@@ -6,7 +8,20 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <cmath>
+#include <boost/algorithm/string/join.hpp>
+#include <cstdlib>
+#include <exception>
+#include <cctype>
+#include <boost/algorithm/string/trim.hpp>
 #include <fstream>
+#include <functional>
+#include <set>
+#include <initializer_list>
+#include <map>
+#include <list>
+#include <optional>
+#include <memory>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -26,8 +41,15 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/format.hpp>
+#include <stdexcept>
 #include <string.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <system_error>
 //BBS: add json support
+#include "libslic3r.h"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
 using namespace nlohmann;
@@ -847,19 +869,6 @@ ConfigSubstitutions ConfigBase::load_from_json(const std::string &file, ForwardC
 
     ret = load_from_json(file, substitutions_ctxt, true, key_values, reason);
     return std::move(substitutions_ctxt.substitutions);
-}
-
-// Case-insensitive compare of a JSON key against a fixed ASCII one, without
-// boost::iequals, whose std::locale() takes a lock the whole process shares in the
-// MSVC runtime.
-static bool ascii_iequals(const std::string &key, const char *literal)
-{
-    auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
-    size_t i = 0;
-    for (; i < key.size() && literal[i] != '\0'; ++ i)
-        if (lower(key[i]) != lower(literal[i]))
-            return false;
-    return i == key.size() && literal[i] == '\0';
 }
 
 int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason)

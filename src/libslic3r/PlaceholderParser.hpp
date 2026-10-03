@@ -1,8 +1,10 @@
 #ifndef slic3r_PlaceholderParser_hpp_
 #define slic3r_PlaceholderParser_hpp_
 
+#include "Config.hpp"
 #include "libslic3r.h"
 #include <map>
+#include <memory>
 #include <random>
 #include <set>
 #include <string>

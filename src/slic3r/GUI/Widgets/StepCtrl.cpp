@@ -1,6 +1,7 @@
 #include "StepCtrl.hpp"
 #include "Label.hpp"
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <utility>

@@ -1,12 +1,25 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRep_Tool.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepLProp_SLProps.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <cstddef>
+#include <algorithm>
+#include <GeomAbs_SurfaceType.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Standard_Handle.hxx>
+#include <cstdint>
+#include <Poly_Triangle.hxx>
+#include <GeomAbs_CurveType.hxx>
 #include <gp_Cylinder.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
+#include <math.h>
+#include <gp_Mat.hxx>
 #include <stdexcept>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
@@ -43,6 +56,9 @@
 #include <array>
 #include <map>
 #include <cmath>
+#include <vector>
+#include <string>
+#include <utility>
 
 namespace Slic3r {
 

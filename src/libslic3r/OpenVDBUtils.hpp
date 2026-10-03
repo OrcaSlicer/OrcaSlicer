@@ -1,7 +1,10 @@
 #ifndef OPENVDBUTILS_HPP
 #define OPENVDBUTILS_HPP
 
+#include "Point.hpp"
 #include <libslic3r/TriangleMesh.hpp>
+#include <openvdb/Types.h>
+#include <openvdb/math/Transform.h>
 
 #ifdef _MSC_VER
 // Suppress warning C4146 in include/gmp.h(2177,31): unary minus operator applied to unsigned type, result still unsigned 

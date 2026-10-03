@@ -15,6 +15,7 @@
 #include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <wx/arrstr.h>
 #include <wx/event.h>
 #include <memory>
 #include <cstddef>

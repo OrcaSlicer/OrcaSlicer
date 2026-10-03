@@ -2,6 +2,7 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include <wx/anybutton.h>
 #include <wx/string.h>
 #include <wx/arrstr.h>
 #include "slic3r/GUI/GUI_Utils.hpp"

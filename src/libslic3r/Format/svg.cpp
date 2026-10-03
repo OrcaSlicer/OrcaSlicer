@@ -1,3 +1,5 @@
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "../libslic3r.h"
 #include "../Model.hpp"
@@ -6,9 +8,23 @@
 #include "svg.hpp"
 #include "nanosvg/nanosvg.h"
 
+#include <cstdlib>
+#include <cstddef>
+#include <TopAbs_ShapeEnum.hxx>
+#include <TopLoc_Location.hxx>
+#include <Standard_Handle.hxx>
+#include <Poly_Triangulation.hxx>
+#include <BRep_Tool.hxx>
+#include <cstdint>
+#include <Standard_TypeDef.hxx>
+#include <gp_Trsf.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 #include "BRepBuilderAPI_MakeWire.hxx"
 #include "BRepBuilderAPI_MakeEdge.hxx"

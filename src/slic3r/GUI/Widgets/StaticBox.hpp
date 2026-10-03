@@ -4,6 +4,7 @@
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"

@@ -4,7 +4,18 @@
 // #define PRUSASLICER_TRIANGLE_SELECTOR_DEBUG
 
 
+#include <array>
+#include <cassert>
+#include <cereal/access.hpp>
+#include <algorithm>
 #include <cfloat>
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include <memory>
+#include <utility>
+#include <optional>
+#include <functional>
 #include "Point.hpp"
 #include "TriangleMesh.hpp"
 

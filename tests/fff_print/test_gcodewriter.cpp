@@ -1,14 +1,28 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
 #include <cstdlib>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/libslic3r.h"
 #include <map>
 #include <memory>
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "nlohmann/json.hpp"
 
 #include "libslic3r/GCodeReader.hpp"

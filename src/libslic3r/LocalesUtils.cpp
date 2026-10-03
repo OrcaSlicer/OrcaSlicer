@@ -1,4 +1,10 @@
 #include "LocalesUtils.hpp"
+#include <locale.h>
+#include <cstdio>
+#include <string_view>
+#include <cstddef>
+#include <string>
+#include <ios>
 
 #ifdef _WIN32
     #include <charconv>
@@ -76,6 +82,19 @@ double string_to_double_decimal_point(const std::string_view str, size_t* pos /*
     if (pos)
         *pos = p;
     return out;
+}
+
+double atof_decimal_point(std::string_view str)
+{
+    size_t i = 0;
+    while (i < str.size() && (str[i] == ' ' || (str[i] >= '\t' && str[i] <= '\r')))
+        ++i;
+    if (i < str.size() && str[i] == '+') {
+        ++i;
+        if (i < str.size() && str[i] == '-')
+            return 0.;
+    }
+    return string_to_double_decimal_point(str.substr(i));
 }
 
 std::string float_to_string_decimal_point(double value, int precision/* = -1*/)

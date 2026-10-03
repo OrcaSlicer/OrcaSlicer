@@ -1,9 +1,18 @@
 #include "UndoRedo.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <cstdint>
+#include <cereal/specialize.hpp>
+#include <boost/log/trivial.hpp>
 #include <iostream>
 #include <fstream>
+#include <map>
+#include "libslic3r/Exception.hpp"
 #include <memory>
+#include <string>
+#include <sstream>
+#include <type_traits>
 #include <typeinfo>
 #include <cassert>
 #include <cstddef>
@@ -14,6 +23,8 @@
 #include <cereal/types/utility.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
+#include <vector>
+#include <utility>
 #define CEREAL_FUTURE_EXPERIMENTAL
 #include <cereal/archives/adapters.hpp>
 

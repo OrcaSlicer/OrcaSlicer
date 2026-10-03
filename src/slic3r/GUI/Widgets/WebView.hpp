@@ -23,6 +23,10 @@ public:
     // Marks "wx" as registered so CreateWebView's deferred add skips the duplicate.
     static void MarkScriptMessageHandlerAdded(wxWebView * webView);
 
+    // On Windows, a WebView2 backend created during a GUI rebuild (language switch) can come up
+    // ignoring every navigation. A panel that gets true here recreates its view on first Show().
+    static bool NeedsRecreateOnShow();
+
     static void RecreateAll();
 };
 

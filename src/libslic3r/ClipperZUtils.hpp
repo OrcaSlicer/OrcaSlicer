@@ -1,8 +1,13 @@
 #ifndef slic3r_ClipperZUtils_hpp_
 #define slic3r_ClipperZUtils_hpp_
 
+#include "libslic3r.h"
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
 #include <functional>
 #include <numeric>
+#include <utility>
 #include <vector>
 
 #include <libslic3r/ClipperUtils.hpp>

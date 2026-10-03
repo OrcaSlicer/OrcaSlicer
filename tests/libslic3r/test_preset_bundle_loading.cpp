@@ -1,9 +1,19 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include <cstddef>
 #include <fstream>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ParallelResolve.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -17,6 +27,19 @@
 #include <algorithm>
 #include <iostream>
 #include <initializer_list>
+#include <vector>
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PublishSettings.hpp"
+#include <set>
+#include "libslic3r/TriangleSelector.hpp"
+#include <iterator>
+#include <miniz.h>
 
 #ifndef _WIN32
 #include <unistd.h> // geteuid
@@ -5789,6 +5812,131 @@ TEST_CASE("A system preset no vendor lists is not resolved", "[Preset][Bundle]")
     CHECK_FALSE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Unknown Printer",
                                              ForwardCompatibilitySubstitutionRule::EnableSilent, error));
     CHECK_FALSE(error.empty());
+}
+
+namespace {
+
+// Writes each vendor's preset cache into dir, then deletes its profile JSONs: what a release build installs.
+void reduce_vendors_to_caches(const fs::path &dir, const std::vector<std::string> &vendor_ids)
+{
+    const std::string lib(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    PresetBundle      library;
+    if (fs::exists(dir / (lib + ".json"))) {
+        library.set_generate_vendor_caches(true);
+        library.load_vendor_configs_from_json(dir.string(), lib, PresetBundle::LoadSystem,
+                                              ForwardCompatibilitySubstitutionRule::EnableSilent);
+    }
+    for (const std::string &vendor_id : vendor_ids) {
+        if (vendor_id == lib)
+            continue;
+        PresetBundle writer;
+        writer.set_generate_vendor_caches(true);
+        writer.load_vendor_configs_from_json(dir.string(), vendor_id, PresetBundle::LoadSystem,
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, &library);
+    }
+    for (const std::string &vendor_id : vendor_ids) {
+        REQUIRE(fs::exists(dir / (vendor_id + ".opc")));
+        fs::remove(dir / (vendor_id + ".json"));
+        fs::remove_all(dir / vendor_id);
+    }
+}
+
+// The filament library with one abstract base filament, and an "Acme" vendor whose one filament inherits it.
+void write_library_and_acme_filament(const fs::path &root)
+{
+    const std::string lib(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    fs::create_directories(root / lib / "filament");
+    std::ofstream((root / (lib + ".json")).string())
+        << R"({"version":"1.0.0","name":")" << lib << R"(",)"
+        << R"("filament_list":[{"name":"Generic PLA","sub_path":"filament/generic_pla.json"}]})";
+    std::ofstream((root / lib / "filament" / "generic_pla.json").string())
+        << R"({"type":"filament","name":"Generic PLA","from":"system","instantiation":"false","filament_id":"GFL99","filament_cost":"27"})";
+    fs::create_directories(root / "Acme" / "filament");
+    std::ofstream((root / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","filament_list":[{"name":"Acme PLA","sub_path":"filament/pla.json"}]})";
+    std::ofstream((root / "Acme" / "filament" / "pla.json").string())
+        << R"({"type":"filament","name":"Acme PLA","from":"system","instantiation":"true","inherits":"Generic PLA"})";
+}
+
+} // namespace
+
+TEST_CASE("A read-only load resolves a user preset against vendors installed as their cache alone", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     data   = temp_dir.path() / "data";
+    const fs::path     system = data / PRESET_SYSTEM_DIR;
+    ScopedDataDir      scoped_data(data);
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(system, 33.);
+    reduce_vendors_to_caches(system, {"Acme"});
+
+    fs::create_directories(data / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_PRINTER_NAME);
+    std::ofstream((data / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_PRINTER_NAME / "My Acme.json").string())
+        << R"({"type":"machine","name":"My Acme","from":"User","version":"2.3.0.0","inherits":"Acme Printer","printable_height":"123"})";
+
+    AppConfig    app_config;
+    PresetBundle bundle;
+    std::string  errors;
+    bundle.load_presets(app_config, ForwardCompatibilitySubstitutionRule::EnableSilent, PresetBundle::PresetPreferences(),
+                        &errors, true);
+    CHECK(errors.empty());
+    const Preset *preset = bundle.printers.find_preset("My Acme");
+    REQUIRE(preset != nullptr);
+    CHECK_THAT(preset->config.opt_float("printable_height"), Catch::Matchers::WithinAbs(123., 1e-6));
+    CHECK_THAT(preset->config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A read-only load writes no preset cache", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     system = temp_dir.path() / "data" / PRESET_SYSTEM_DIR;
+    ScopedDataDir      scoped_data(temp_dir.path() / "data");
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    write_acme_printer_vendor(system, 33.);
+
+    AppConfig    app_config;
+    PresetBundle bundle;
+    std::string  errors;
+    bundle.load_presets(app_config, ForwardCompatibilitySubstitutionRule::EnableSilent, PresetBundle::PresetPreferences(),
+                        &errors, true);
+    CHECK(errors.empty());
+    CHECK(bundle.printers.find_preset("Acme Printer") != nullptr);
+    CHECK_FALSE(fs::exists(system / "Acme.opc"));
+}
+
+TEST_CASE("A vendor updated over the air resolves against the library installed as its cache alone", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir temp_dir;
+    const fs::path     system = temp_dir.path() / "data" / PRESET_SYSTEM_DIR;
+    ScopedDataDir      scoped_data(temp_dir.path() / "data");
+    ScopedResourcesDir scoped_resources(temp_dir.path() / "resources");
+    // System presets are found by name through the bundled profiles.
+    write_library_and_acme_filament(temp_dir.path() / "resources" / PRESET_PROFILES_DIR);
+    // The release install, then an update that brings Acme back as JSONs while the library stays a cache.
+    write_library_and_acme_filament(system);
+    reduce_vendors_to_caches(system, {PresetBundle::ORCA_FILAMENT_LIBRARY, "Acme"});
+    write_library_and_acme_filament(temp_dir.path() / "update");
+    fs::copy_file(temp_dir.path() / "update" / "Acme.json", system / "Acme.json");
+    fs::create_directories(system / "Acme" / "filament");
+    fs::copy_file(temp_dir.path() / "update" / "Acme" / "filament" / "pla.json", system / "Acme" / "filament" / "pla.json");
+
+    SECTION("by name") {
+        PresetBundle       bundle;
+        DynamicPrintConfig config;
+        std::string        error;
+        REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_FILAMENT, "Acme PLA",
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+        CHECK_THAT(config.opt<ConfigOptionFloats>("filament_cost")->values.front(), Catch::Matchers::WithinAbs(27., 1e-6));
+    }
+    SECTION("by its source file") {
+        PresetBundle       bundle;
+        DynamicPrintConfig config;
+        config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "Generic PLA";
+        std::string error;
+        REQUIRE(bundle.resolve_preset_config(config, Preset::TYPE_FILAMENT, (system / "Acme" / "filament" / "pla.json").string(),
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+        CHECK_THAT(config.opt<ConfigOptionFloats>("filament_cost")->values.front(), Catch::Matchers::WithinAbs(27., 1e-6));
+    }
 }
 
 namespace {

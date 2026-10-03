@@ -1,12 +1,28 @@
 #include "Layer.hpp"
 #include "ClipperUtils.hpp"
+#include "Polygon.hpp"
+#include "Point.hpp"
+#include "ExPolygon.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Exception.hpp"
+#include "Flow.hpp"
 #include "Print.hpp"
 #include "Fill/Fill.hpp"
+#include "PrintConfig.hpp"
 #include "ShortestPath.hpp"
 #include "SVG.hpp"
 #include "BoundingBox.hpp"
+#include "Surface.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <cstddef>
+#include <utility>
+#include <cassert>
+#include <map>
 
 namespace Slic3r {
 

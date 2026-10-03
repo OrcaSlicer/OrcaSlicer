@@ -16,10 +16,13 @@
 #ifndef slic3r_PrintConfig_hpp_
 #define slic3r_PrintConfig_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
 #include "Config.hpp"
 #include "Polygon.hpp"
+#include <boost/container_hash/hash.hpp>
+#include <algorithm>
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -27,6 +30,19 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
+#include <set>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
+#include <cstddef>
+#include <cassert>
+#include <cstdint>
+#include <cereal/access.hpp>
+#include <cmath>
+#include <cereal/specialize.hpp>
+#include <stdexcept>
 
 namespace Slic3r {
 

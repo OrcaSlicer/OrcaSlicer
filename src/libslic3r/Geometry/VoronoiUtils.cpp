@@ -1,4 +1,5 @@
 #include <boost/log/trivial.hpp>
+#include <iterator>
 #include <libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp>
 #include <libslic3r/MultiMaterialSegmentation.hpp>
 #include <libslic3r/Geometry.hpp>
@@ -10,6 +11,10 @@
 #include <cstdlib>
 
 #include "VoronoiUtils.hpp"
+#include "libslic3r/Geometry/Voronoi.hpp"
+#include "libslic3r/Arachne/utils/PolygonsPointIndex.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Line.hpp"
 

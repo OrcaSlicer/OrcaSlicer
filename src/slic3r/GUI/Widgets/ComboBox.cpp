@@ -8,6 +8,7 @@
 #include <vector>
 #include <wx/arrstr.h>
 #include <cstddef>
+#include <wx/containr.h>
 #include <wx/dcgraph.h>
 #include <wx/textctrl.h>
 #include <wx/string.h>

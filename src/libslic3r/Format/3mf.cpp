@@ -10,10 +10,37 @@
 #include "../Time.hpp"
 
 #include "../I18N.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/SLA/Hollowing.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r_version.h"
+#include "libslic3r/PrintConfig.hpp"
 
 #include "3mf.hpp"
 
+#include <cstring>
+#include <boost/spirit/home/qi/parse.hpp>
+#include <boost/spirit/home/qi/numeric/int.hpp>
+#include <cstdlib>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstddef>
+#include <boost/optional/optional.hpp>
+#include <cassert>
+#include <algorithm>
+#include <exception>
+#include <cstdio>
+#include <iomanip>
+#include <cstdint>
+#include <boost/spirit/home/karma/generate.hpp>
+#include <boost/spirit/home/support/common_terminals.hpp>
+#include <boost/spirit/home/karma.hpp>
 #include <limits>
+#include <miniz.h>
+#include <map>
+#include <sstream>
 #include <stdexcept>
 
 #include <boost/algorithm/string/classification.hpp>
@@ -28,6 +55,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
+#include <string>
+#include <vector>
+#include <utility>
 namespace pt = boost::property_tree;
 
 #include <expat.h>

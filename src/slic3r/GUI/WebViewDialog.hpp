@@ -113,9 +113,15 @@ public:
     int  get_model_mall_detail_url(std::string *url, std::string id);
 
     void update_mode();
+
+    bool Show(bool show = true) override;
 private:
+    void create_browser();
+    void reset_browser();
 
     wxWebView* m_browser;
+    wxString m_home_url;
+    bool m_reset_on_show{false};
     wxButton *  m_button_stop;
     wxTextCtrl *m_url;
 #if !BBL_RELEASE_TO_PUBLIC

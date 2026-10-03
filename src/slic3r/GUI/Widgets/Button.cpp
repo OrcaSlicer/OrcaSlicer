@@ -3,6 +3,7 @@
 
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <utility>
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <vector>
 #include <wx/colour.h>
