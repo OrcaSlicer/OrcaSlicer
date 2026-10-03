@@ -1393,8 +1393,6 @@ public:
     void request_extra_frame() { m_extra_frame_requested = true; }
     // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
     bool is_user_interacting() const;
-    // a wheel step is over before the next frame, so it holds the preview's reduced set for a settle time
-    void note_preview_interaction();
 
     void schedule_extra_frame(int milliseconds);
 

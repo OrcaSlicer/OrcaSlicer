@@ -1328,7 +1328,6 @@ static bool is_hidden_in_shell(EGCodeExtrusionRole role)
 }
 #endif // ENABLE_OPENGL_ES
 
-
 void ViewerImpl::update_enabled_entities()
 {
     if (m_vertices.empty())
@@ -1661,23 +1660,6 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     m_settings.update_enabled_entities = true;
 }
 
-// Both decide which vertices land in the reduced set, so the sets are rebuilt.
-void ViewerImpl::set_reduced_detail_mode(EReducedDetailMode mode)
-{
-    if (m_settings.reduced_detail_mode == mode)
-        return;
-    m_settings.reduced_detail_mode = mode;
-    m_settings.update_enabled_entities = true;
-}
-
-void ViewerImpl::set_reduced_detail_hide_infill(bool value)
-{
-    if (m_settings.reduced_detail_hide_infill == value)
-        return;
-    m_settings.reduced_detail_hide_infill = value;
-    m_settings.update_enabled_entities = true;
-}
-
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
 void ViewerImpl::set_dim_previous_layers(bool value)
 {
@@ -1701,6 +1683,23 @@ void ViewerImpl::set_dim_previous_layers_brightness(float value)
     if (m_settings.dim_previous_layers_brightness == value)
         return;
     m_settings.dim_previous_layers_brightness = value;
+}
+
+// Both decide which vertices land in the reduced set, so the sets are rebuilt.
+void ViewerImpl::set_reduced_detail_mode(EReducedDetailMode mode)
+{
+    if (m_settings.reduced_detail_mode == mode)
+        return;
+    m_settings.reduced_detail_mode = mode;
+    m_settings.update_enabled_entities = true;
+}
+
+void ViewerImpl::set_reduced_detail_hide_infill(bool value)
+{
+    if (m_settings.reduced_detail_hide_infill == value)
+        return;
+    m_settings.reduced_detail_hide_infill = value;
+    m_settings.update_enabled_entities = true;
 }
 
 std::vector<ETimeMode> ViewerImpl::get_time_modes() const

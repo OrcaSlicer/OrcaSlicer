@@ -124,36 +124,6 @@ bool Viewer::is_dim_previous_layers() const
     return m_impl->is_dim_previous_layers();
 }
 
-void Viewer::set_reduced_detail(bool value)
-{
-    m_impl->set_reduced_detail(value);
-}
-
-bool Viewer::is_reduced_detail() const
-{
-    return m_impl->is_reduced_detail();
-}
-
-EReducedDetailMode Viewer::get_reduced_detail_mode() const
-{
-    return m_impl->get_reduced_detail_mode();
-}
-
-void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
-{
-    m_impl->set_reduced_detail_mode(mode);
-}
-
-bool Viewer::get_reduced_detail_hide_infill() const
-{
-    return m_impl->get_reduced_detail_hide_infill();
-}
-
-void Viewer::set_reduced_detail_hide_infill(bool value)
-{
-    m_impl->set_reduced_detail_hide_infill(value);
-}
-
 void Viewer::set_dim_previous_layers(bool value)
 {
     m_impl->set_dim_previous_layers(value);
@@ -177,6 +147,26 @@ bool Viewer::is_translucent_filaments() const
 void Viewer::set_translucent_filaments(bool value)
 {
     m_impl->set_translucent_filaments(value);
+}
+
+void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
+{
+    m_impl->set_reduced_detail_mode(mode);
+}
+
+void Viewer::set_reduced_detail_hide_infill(bool value)
+{
+    m_impl->set_reduced_detail_hide_infill(value);
+}
+
+void Viewer::set_reduced_detail(bool value)
+{
+    m_impl->set_reduced_detail(value);
+}
+
+bool Viewer::is_reduced_detail() const
+{
+    return m_impl->is_reduced_detail();
 }
 
 bool Viewer::is_option_visible(EOptionType type) const

@@ -2795,11 +2795,6 @@ void GCodeViewer::set_interacting(bool interacting)
 void GCodeViewer::read_reduced_detail_preferences()
 {
     m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
-    apply_reduced_detail_settings();
-}
-
-void GCodeViewer::apply_reduced_detail_settings()
-{
     m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
 }
 
@@ -2807,8 +2802,16 @@ void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
 {
     const bool was_solid = solid_model_enabled();
     m_reduced_detail_mode = reduced_detail_mode_from_string(mode);
-    apply_reduced_detail_settings();
-    reload_shells_if_solid_model_changed(was_solid);
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
+
+    // Only the prime tower comes and goes with the solid model: a full reload would drop the shells
+    // whenever the print has moved on since they were loaded, leaving the solid model nothing to draw.
+    if (was_solid == solid_model_enabled() || m_shells.print_id == -1 || wxGetApp().plater() == nullptr)
+        return;
+    // the shells are loaded from the current plate's print, which is not the plater's own
+    const Print& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
+    if (static_cast<int>(print.id().id) == m_shells.print_id)
+        update_shell_wipe_tower(print, m_gl_data_initialized);
 }
 
 libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
@@ -2818,21 +2821,6 @@ libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const
     if (mode == "shell")
         return libvgcode::EReducedDetailMode::ShellOnly;
     return libvgcode::EReducedDetailMode::Off;
-}
-
-void GCodeViewer::reload_shells_if_solid_model_changed(bool was_enabled)
-{
-    if (was_enabled == solid_model_enabled() || m_shells.print_id == -1)
-        return;
-    // only the prime tower comes and goes with the mode: a full reload would drop the shells
-    // whenever the print has moved on since they were loaded, leaving the solid model nothing to draw
-    if (wxGetApp().plater() == nullptr)
-        return;
-    // the shells are loaded from the current plate's print, which is not the plater's own
-    const Print& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
-    if (static_cast<int>(print.id().id) != m_shells.print_id)
-        return;
-    update_shell_wipe_tower(print, m_gl_data_initialized);
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)
@@ -3581,41 +3569,83 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     // opened it. There a quad in the cut plane, in the body's own colour darkened, stands in for
     // the material, so that a sparse layer on the cut shows a solid inside between its lines
     // rather than whatever lies further down.
-    const bool bottom_cut = layers[0] > 0;
-    // the count needs every face of a body the range does not cut, its bottom included
-    m_shells.volumes.set_z_range(bottom_cut ? z_bottom : -FLT_MAX, z_top);
-    glsafe(::glEnable(GL_STENCIL_TEST));
-    for (const GLVolume* volume : m_shells.volumes.volumes) {
+    GLShaderProgram* cap_shader = wxGetApp().get_shader("flat");
+    if (cap_shader != nullptr) {
+        const bool bottom_cut = layers[0] > 0;
+        auto init_cap = [this](GLModel& cap, float z) {
+            const float margin = 1.0f;
+            const Vec3f min(static_cast<float>(m_paths_bounding_box.min.x()) - margin, static_cast<float>(m_paths_bounding_box.min.y()) - margin, z + m_z_offset);
+            const Vec3f max(static_cast<float>(m_paths_bounding_box.max.x()) + margin, static_cast<float>(m_paths_bounding_box.max.y()) + margin, z + m_z_offset);
+            GLModel::Geometry data;
+            data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+            data.reserve_vertices(4);
+            data.reserve_indices(6);
+            data.add_vertex(min);
+            data.add_vertex(Vec3f(max.x(), min.y(), min.z()));
+            data.add_vertex(max);
+            data.add_vertex(Vec3f(min.x(), max.y(), min.z()));
+            data.add_triangle(0, 1, 2);
+            data.add_triangle(0, 2, 3);
+            cap.init_from(std::move(data));
+        };
+        GLModel top_cap;
+        GLModel bottom_cap;
+        if (z_top > -FLT_MAX)
+            init_cap(top_cap, z_top);
+        if (bottom_cut)
+            init_cap(bottom_cap, z_bottom);
+
+        // the count needs every face of a body the range does not cut, its bottom included
+        const std::array<float, 2> count_z_range = { bottom_cut ? z_bottom : -FLT_MAX, z_top };
+        glsafe(::glEnable(GL_STENCIL_TEST));
+        for (GLVolume* volume : m_shells.volumes.volumes) {
+            glsafe(::glStencilMask(0xFF));
+            glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+            glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
+            glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
+            glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+            glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+            glsafe(::glDepthMask(GL_FALSE));
+            glsafe(::glDisable(GL_DEPTH_TEST));
+            // The body is drawn directly, on the uniforms the pass above left on the program: the
+            // collection's render would build the full preset config and sort every volume, per body.
+            shader->start_using();
+            shader->set_uniform("z_range", count_z_range);
+            const Transform3d world_matrix = volume->world_matrix();
+            shader->set_uniform("volume_world_matrix", world_matrix);
+            shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
+            glsafe(::glDisable(GL_CULL_FACE));
+            volume->render();
+            glsafe(::glEnable(GL_CULL_FACE));
+            shader->stop_using();
+            glsafe(::glEnable(GL_DEPTH_TEST));
+            glsafe(::glDepthMask(GL_TRUE));
+            glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+            glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
+            glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+            glsafe(::glStencilMask(0x00));
+
+            // the tower draws itself in its own colours and leaves the volume's at the default
+            ColorRGBA inside = volume->color;
+            if (const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume); tower != nullptr && !tower->colors().empty())
+                inside = tower->colors().front();
+            inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
+            cap_shader->start_using();
+            cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+            cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+            glsafe(::glDisable(GL_CULL_FACE));
+            for (GLModel* cap : { &top_cap, &bottom_cap }) {
+                if (cap->is_initialized()) {
+                    cap->set_color(inside);
+                    cap->render();
+                }
+            }
+            glsafe(::glEnable(GL_CULL_FACE));
+            cap_shader->stop_using();
+        }
         glsafe(::glStencilMask(0xFF));
-        glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
-        glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
-        glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
-        glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
-        glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
-        glsafe(::glDepthMask(GL_FALSE));
-        glsafe(::glDisable(GL_DEPTH_TEST));
-        shader->start_using();
-        m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, true, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height},
-            [volume](const GLVolume& v) { return &v == volume; });
-        shader->stop_using();
-        glsafe(::glEnable(GL_DEPTH_TEST));
-        glsafe(::glDepthMask(GL_TRUE));
-        glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
-        glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
-        glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
-        glsafe(::glStencilMask(0x00));
-        // the tower draws itself in its own colours and leaves the volume's at the default
-        ColorRGBA inside = volume->color;
-        if (const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume); tower != nullptr && !tower->colors().empty())
-            inside = tower->colors().front();
-        inside.r(0.55f * inside.r());
-        inside.g(0.55f * inside.g());
-        inside.b(0.55f * inside.b());
-        inside.a(1.0f);
-        render_solid_model_caps(z_bottom, z_top, bottom_cut, inside);
+        glsafe(::glDisable(GL_STENCIL_TEST));
     }
-    glsafe(::glStencilMask(0xFF));
-    glsafe(::glDisable(GL_STENCIL_TEST));
 
     m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
     size_t k = 0;
@@ -3623,51 +3653,6 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         volume->color.a(alphas[k++]);
         volume->set_render_color();
     }
-}
-
-// A quad over the print in each cut plane, drawn where the stencil says the cut opened a model
-void GCodeViewer::render_solid_model_caps(float z_bottom, float z_top, bool bottom_cut, const ColorRGBA& inside)
-{
-    GLShaderProgram* shader = wxGetApp().get_shader("flat");
-    if (shader == nullptr)
-        return;
-    const BoundingBoxf3& box = m_paths_bounding_box;
-    const float margin = 1.0f;
-    const Vec2f min(static_cast<float>(box.min.x()) - margin, static_cast<float>(box.min.y()) - margin);
-    const Vec2f max(static_cast<float>(box.max.x()) + margin, static_cast<float>(box.max.y()) + margin);
-    auto build = [&](float z) {
-        GLModel::Geometry data;
-        data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
-        data.reserve_vertices(4);
-        data.reserve_indices(6);
-        data.add_vertex(Vec3f(min.x(), min.y(), z));
-        data.add_vertex(Vec3f(max.x(), min.y(), z));
-        data.add_vertex(Vec3f(max.x(), max.y(), z));
-        data.add_vertex(Vec3f(min.x(), max.y(), z));
-        data.add_triangle(0, 1, 2);
-        data.add_triangle(0, 2, 3);
-        GLModel model;
-        model.init_from(std::move(data));
-        return model;
-    };
-
-    const Camera& camera = wxGetApp().plater()->get_camera();
-    shader->start_using();
-    shader->set_uniform("view_model_matrix", camera.get_view_matrix());
-    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
-    glsafe(::glDisable(GL_CULL_FACE));
-    if (z_top > -FLT_MAX) {
-        GLModel top = build(z_top + m_z_offset);
-        top.set_color(inside);
-        top.render();
-    }
-    if (bottom_cut) {
-        GLModel bottom = build(z_bottom + m_z_offset);
-        bottom.set_color(inside);
-        bottom.render();
-    }
-    glsafe(::glEnable(GL_CULL_FACE));
-    shader->stop_using();
 }
 
 //BBS

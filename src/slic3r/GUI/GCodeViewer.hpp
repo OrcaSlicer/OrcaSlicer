@@ -352,17 +352,14 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
-    // the reduced-detail preferences, pushed to libvgcode by apply_reduced_detail_settings()
+    // what the preview draws while the user drags, as the preference has it
     libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
     void read_reduced_detail_preferences();
-    void apply_reduced_detail_settings();
     static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
     // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
     bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
     void render_solid_model(int canvas_width, int canvas_height);
-    void render_solid_model_caps(float z_bottom, float z_top, bool bottom_cut, const ColorRGBA& inside);
     // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
-    void reload_shells_if_solid_model_changed(bool was_enabled);
     void update_shell_wipe_tower(const Print& print, bool initialized);
 
     float m_legend_height;

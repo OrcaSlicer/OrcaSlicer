@@ -4562,9 +4562,10 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
         return;
     }
 
-    // only a wheel the panels did not take moves the camera
+    // only a wheel the panels did not take moves the camera; a wheel step is over before the next
+    // frame, so it holds the preview's reduced set for a settle time
     if (m_canvas_type == CanvasPreview)
-        note_preview_interaction();
+        m_preview_interaction_until = std::chrono::steady_clock::now() + std::chrono::milliseconds(150);
 
 #ifdef __WXMSW__
 	// For some reason the Idle event is not being generated after the mouse scroll event in case of scrolling with the two fingers on the touch pad,
@@ -4660,11 +4661,6 @@ void GLCanvas3D::on_fps_overlay_timer(wxTimerEvent& evt)
     m_fps_overlay_tick = true;
     _set_overlay_as_dirty();
     wxWakeUpIdle();
-}
-
-void GLCanvas3D::note_preview_interaction()
-{
-    m_preview_interaction_until = std::chrono::steady_clock::now() + std::chrono::milliseconds(150);
 }
 
 void GLCanvas3D::schedule_extra_frame(int milliseconds)

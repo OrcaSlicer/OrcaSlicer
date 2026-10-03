@@ -121,9 +121,11 @@ public:
     // 0.0 = black
     bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
     void set_dim_previous_layers(bool value);
-    //
-    // Draw from the reduced set; it is already built, so this is just a buffer binding.
-    //
+    float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
+    void set_dim_previous_layers_brightness(float value);
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    void set_reduced_detail_hide_infill(bool value);
+    // draw from the reduced set; it is already built, so this is just a buffer binding
     void set_reduced_detail(bool value) {
 #ifdef ENABLE_OPENGL_ES
         // no reduced set is built on OpenGL ES
@@ -132,12 +134,6 @@ public:
         m_settings.reduced_detail = value;
     }
     bool is_reduced_detail() const { return m_settings.reduced_detail; }
-    EReducedDetailMode get_reduced_detail_mode() const { return m_settings.reduced_detail_mode; }
-    void set_reduced_detail_mode(EReducedDetailMode mode);
-    bool get_reduced_detail_hide_infill() const { return m_settings.reduced_detail_hide_infill; }
-    void set_reduced_detail_hide_infill(bool value);
-    float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
-    void set_dim_previous_layers_brightness(float value);
 
     // ORCA: whether the filament colors keep their opacity, see get_vertex_alpha()
     bool is_translucent_filaments() const { return m_settings.translucent_filaments; }

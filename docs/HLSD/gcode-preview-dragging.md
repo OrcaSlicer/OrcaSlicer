@@ -12,7 +12,7 @@ let go.
 | `preview_reduced_detail_mode` | `off`, `solid`, `shell` | what is drawn while dragging |
 
 libvgcode (`src/libvgcode`) builds and binds the reduced toolpath set, `GCodeViewer` maps the
-preferences onto it and draws the solid model, and `GLCanvas3D` decides when the user is dragging.
+preference onto it and draws the solid model, and `GLCanvas3D` decides when the user is dragging.
 The OpenGL ES path keeps a single set and ignores the preference.
 
 ## Two sets, one walk
