@@ -84,7 +84,10 @@ if [ -z "$VER_PURE" ]; then
 fi
 VER="V${VER_PURE}"
 GIT_COMMIT_HASH=$(git rev-parse HEAD)
-BUNDLE_NAME="OrcaSlicer-Linux-flatpak_${VER}_${ARCH}.flatpak"
+# Standardized asset naming: OrcaSlicer_Linux_Flatpak_<arch>_<version>.flatpak
+# (x86_64 -> x86-64 to match the CI asset names).
+ARCH_STD="${ARCH/x86_64/x86-64}"
+BUNDLE_NAME="OrcaSlicer_Linux_Flatpak_${ARCH_STD}_${VER}.flatpak"
 
 echo "=== OrcaSlicer Flatpak Build ==="
 echo "  Version:    ${VER} (${VER_PURE})"
