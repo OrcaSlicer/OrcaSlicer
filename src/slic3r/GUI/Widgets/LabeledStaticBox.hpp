@@ -18,6 +18,10 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
+
 class LabeledStaticBox : public wxStaticBox
 {
 public:
@@ -57,6 +61,9 @@ public:
 
 private:
     void PickDC(wxDC& dc);
+#ifdef __WXGTK__
+    static gboolean GtkDrawCallback(GtkWidget* widget, cairo_t* cr, gpointer data);
+#endif
 
 protected:
     StateHandler state_handler;
