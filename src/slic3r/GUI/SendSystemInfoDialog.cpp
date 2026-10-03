@@ -1,4 +1,5 @@
 #include "SendSystemInfoDialog.hpp"
+#include "libslic3r/Semver.hpp"
 #include <string>
 #include <wx/string.h>
 #include <wx/gdicmn.h>

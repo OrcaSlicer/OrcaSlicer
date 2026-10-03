@@ -1,5 +1,6 @@
 #include "ExtrusionEntityCollection.hpp"
 #include "ExtrusionEntity.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "ShortestPath.hpp"
 #include <algorithm>

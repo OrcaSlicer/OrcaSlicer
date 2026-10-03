@@ -3,6 +3,7 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include <boost/filesystem/path.hpp>
 #include <memory>
 #include <cassert>
 #include <miniz.h>

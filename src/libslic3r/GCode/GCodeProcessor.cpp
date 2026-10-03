@@ -1,3 +1,4 @@
+#include "libslic3r/ArcFitter.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Exception.hpp"
