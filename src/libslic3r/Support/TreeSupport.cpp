@@ -2000,6 +2000,8 @@ void TreeSupport::draw_circles()
     {
         size_t skirt_layers = print->has_infinite_skirt() ? object->layer_count() : std::min(size_t(print_config.skirt_height.value), object->layer_count());
         brim_skirt_layers = std::max(brim_skirt_layers, skirt_layers);
+        if (has_brim)
+            brim_skirt_layers = std::max(brim_skirt_layers, size_t(object->config().brim_layers.value));
     }
 
     // generate areas
