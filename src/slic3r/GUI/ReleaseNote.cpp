@@ -70,6 +70,14 @@
 #include "DeviceCore/DevStorage.h"
 #include "../Utils/Http.hpp"
 #include "md4c/src/md4c-html.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;

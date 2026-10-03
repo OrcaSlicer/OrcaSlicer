@@ -47,6 +47,12 @@
 
 #include "libslic3r/ObjColorUtils.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 

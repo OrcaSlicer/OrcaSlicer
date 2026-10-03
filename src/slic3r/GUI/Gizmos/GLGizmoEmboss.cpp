@@ -1583,6 +1583,13 @@ void GLGizmoEmboss::draw_window(float x, float y)
  }
 
 #include "imgui/imgui_internal.h" // scroll bar existence
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoRotate.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/Utils/RaycastManager.hpp"
 
 void GLGizmoEmboss::draw_text_input()
 {

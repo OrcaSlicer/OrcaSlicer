@@ -4,9 +4,7 @@
 #include "../Point.hpp"
 #include "../PrintConfig.hpp"
 #include "../enum_bitmask.hpp"
-#include "libslic3r/Config.hpp"
 #include "ThumbnailData.hpp"
-#include "../enum_bitmask.hpp"
 
 #include <cstddef>
 #include <string>
@@ -16,6 +14,8 @@
 #include <string_view>
 
 #include <boost/beast/core/detail/base64.hpp>
+
+namespace Slic3r { class ConfigBase; }
 
 namespace Slic3r {
     enum class ThumbnailError : int { InvalidVal, OutOfRange, InvalidExt };

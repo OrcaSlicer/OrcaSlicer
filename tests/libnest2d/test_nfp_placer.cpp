@@ -9,6 +9,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libnest2d_test_utils.hpp"
+#include "libnest2d/backends/libslic3r/geometries.hpp"
+#include "libnest2d/nester.hpp"
+#include "libnest2d/placers/nfpplacer.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
 
 using namespace libnest2d;
 

@@ -3,7 +3,6 @@
 
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
-#include "libslic3r.h"
 #include "Surface.hpp"
 #include <cstddef>
 #include <initializer_list>

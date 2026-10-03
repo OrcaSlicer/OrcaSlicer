@@ -17,6 +17,7 @@
 #include <string>
 #include <wx/utils.h>
 #include <vector>
+#include "libslic3r/AppConfig.hpp"
 
 using json = nlohmann::json;
 

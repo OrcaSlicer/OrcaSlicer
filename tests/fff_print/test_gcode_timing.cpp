@@ -4,7 +4,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/catch_message.hpp>
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -15,7 +14,6 @@
 #include <cstddef>
 #include <fstream>
 #include <iomanip>
-#include "libslic3r/ExtrusionEntity.hpp"
 #include <ios>
 #include <map>
 #include <math.h>
@@ -23,6 +21,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "libslic3r/Config.hpp"
+
+namespace Slic3r { enum ExtrusionRole : uint8_t; }
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;

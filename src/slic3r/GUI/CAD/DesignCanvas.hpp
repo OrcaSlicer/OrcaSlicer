@@ -3,7 +3,6 @@
 
 #include <vector>
 #include "libslic3r/Point.hpp"
-#include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/Color.hpp"
 #include <utility>
 #include <wx/colour.h>
@@ -22,8 +21,14 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 
+class wxActivateEvent;
+class wxEvent;
+class wxIconizeEvent;
+class wxPopupWindow;
+class wxWindow;
+namespace Slic3r { struct CadBody; }
+
 class wxGLCanvas;
-class wxFrame;
 class wxStaticText;
 
 namespace Slic3r {

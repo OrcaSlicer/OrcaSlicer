@@ -43,6 +43,8 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/utils.h>
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 namespace Slic3r { namespace GUI {
 

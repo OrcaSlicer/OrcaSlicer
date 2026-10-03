@@ -13,7 +13,6 @@
 #include <wx/frame.h>
 #include <wx/statline.h>
 
-#include "GUI_App.hpp"
 
 #include "I18N.hpp"
 

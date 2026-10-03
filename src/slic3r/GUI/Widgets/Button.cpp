@@ -16,6 +16,8 @@
 #include <wx/gdicmn.h>
 #include <wx/event.h>
 #include <wx/tipwin.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #ifdef __APPLE__
 #include "libslic3r/MacUtils.hpp"
 #endif

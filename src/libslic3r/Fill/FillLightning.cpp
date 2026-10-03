@@ -1,6 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../Print.hpp"
-#include "../ShortestPath.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Fill/Lightning/Layer.hpp"
 #include "FillBase.hpp"
@@ -13,6 +12,7 @@
 #include "libslic3r/libslic3r.h"
 #include <algorithm>
 #include <functional>
+#include "libslic3r/Fill/FillLightning.hpp"
 
 namespace Slic3r::FillLightning {
 

@@ -54,6 +54,11 @@
 #include "DeviceCore/DevManager.h"
 
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevHMS.h"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/HMS.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
 
 namespace Slic3r {
 namespace GUI {

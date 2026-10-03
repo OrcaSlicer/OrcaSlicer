@@ -3,10 +3,8 @@
 #ifndef slic3r_OrderingStrategies_hpp_
 #define slic3r_OrderingStrategies_hpp_
 
-#include "../libslic3r.h"
 #include "../Point.hpp"
 #include <cstddef>
-#include "libslic3r/PrintConfig.hpp"
 
 #ifndef SLIC3R_TEST_HARNESS
 #include "../Print.hpp"
@@ -16,6 +14,8 @@
 #include <limits>
 #include <utility>
 #include <vector>
+
+namespace Slic3r { enum class PrintOrder; }
 
 namespace Slic3r {
 

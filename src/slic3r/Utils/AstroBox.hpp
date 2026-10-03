@@ -8,6 +8,8 @@
 
 #include "PrintHost.hpp"
 
+namespace boost { template <class T> class optional; }
+
 namespace Slic3r {
 
 class DynamicPrintConfig;

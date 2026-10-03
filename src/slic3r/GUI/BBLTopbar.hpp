@@ -10,6 +10,7 @@
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 using namespace Slic3r::GUI;
 

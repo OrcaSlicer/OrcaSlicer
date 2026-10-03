@@ -7,6 +7,12 @@
 #include <wx/timer.h>
 #include <wx/webview.h>
 
+class wxTimer;
+class wxTimerEvent;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+
 
 namespace Slic3r { namespace GUI {
 

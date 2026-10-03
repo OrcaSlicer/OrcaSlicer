@@ -10,10 +10,9 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Layer.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "SeamPlacer.hpp"
+
+namespace Slic3r { class Layer; }
 
 // CURRENT STATUS:
 // Strong modifiers (Center/Left/Right): only one intersection per perimeter is supported,

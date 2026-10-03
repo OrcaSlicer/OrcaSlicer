@@ -28,6 +28,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include "libnest2d/backends/libslic3r/geometries.hpp"
 
 using namespace Slic3r;
 

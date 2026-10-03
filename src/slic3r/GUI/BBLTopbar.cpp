@@ -28,6 +28,7 @@
 #include "PartPlate.hpp"
 
 #include <boost/log/trivial.hpp>
+#include "libslic3r/AppConfig.hpp"
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>

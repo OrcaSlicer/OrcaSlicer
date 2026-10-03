@@ -34,9 +34,6 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 
-#include "GUI_App.hpp"
-#include "libslic3r/PresetBundle.hpp"
-#include "slic3r/Utils/PresetUpdater.hpp"
 
 #include <atomic>
 #include <memory>
@@ -46,6 +43,16 @@
 #include <nlohmann/json.hpp>
 
 #include <boost/thread.hpp>
+#include "libslic3r/AppConfig.hpp"
+
+class wxCommandEvent;
+class wxIdleEvent;
+class wxWebView;
+class wxWebViewEvent;
+namespace Slic3r { class PresetBundle; }
+namespace Slic3r { class PresetUpdater; }
+namespace Slic3r::GUI { class GUI_App; }
+namespace boost { class thread; }
 
 namespace Slic3r { namespace GUI {
 

@@ -64,6 +64,8 @@
 #include <vector>
 #include <utility>
 
+class Geom_TrimmedCurve;
+
 namespace Slic3r {
 
 // Single source of truth for the weld tolerance the viewport and the kernel share.

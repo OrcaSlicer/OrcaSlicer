@@ -40,6 +40,9 @@
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/Utils/json_diff.hpp"
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;

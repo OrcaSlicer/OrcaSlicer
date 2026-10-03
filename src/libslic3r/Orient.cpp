@@ -32,6 +32,7 @@
 
 #include <boost/multiprecision/integer.hpp>
 #include <boost/rational.hpp>
+#include "BoundingBox.hpp"
 
 #undef MAX3
 #define MAX3(a,b,c) std::max(std::max(a,b),c)

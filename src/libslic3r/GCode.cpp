@@ -132,6 +132,14 @@ using namespace std::literals::string_view_literals;
 #endif
 
 #include <assert.h>
+#include "AABBTreeLines.hpp"
+#include "Extruder.hpp"
+#include "ExtrusionEntityCollection.hpp"
+#include "FilamentMixer.hpp"
+#include "Format/STEP.hpp"
+#include "Model.hpp"
+#include "MultiNozzleUtils.hpp"
+#include "Slicing.hpp"
 
 namespace fs = boost::filesystem;
 

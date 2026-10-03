@@ -25,6 +25,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

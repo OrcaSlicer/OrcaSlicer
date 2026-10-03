@@ -14,6 +14,7 @@
 #include <optional>
 #include <tuple>
 #include <utility>
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 

@@ -18,6 +18,10 @@
 #include <cmath>
 #include <cctype>
 #include <string>
+#include "libslic3r/GCode/AdaptivePAProcessor.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 
