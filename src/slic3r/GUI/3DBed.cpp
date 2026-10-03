@@ -15,11 +15,27 @@
 #include "Plater.hpp"
 #include "Camera.hpp"
 
+#include <boost/version.hpp>
+#include <cstddef>
+#include <array>
 #include <glad/gl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GLModel.hpp"
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <math.h>
+#include <tuple>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 
 #if BOOST_VERSION >= 107800
 #include <boost/timer/timer.hpp>

@@ -27,6 +27,8 @@
         "100"
     ],
     "fan_max_speed": [
+        "40",
+        "40",
         "40"
     ],
     "filament_cooling_before_tower": [

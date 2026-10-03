@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_Utils_Serial_hpp_
 #define slic3r_GUI_Utils_Serial_hpp_
 
+#include <utility>
+#include <boost/asio/serial_port.hpp>
+#include <boost/asio/io_service.hpp>
 #include <vector>
 #include <string>
 #include <boost/system/error_code.hpp>

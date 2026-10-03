@@ -6,6 +6,7 @@
     "setting_id": "GFSU02_00",
     "instantiation": "true",
     "fan_max_speed": [
+        "40",
         "40"
     ],
     "filament_retraction_length": [

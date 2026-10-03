@@ -1,16 +1,29 @@
 #include "ClipperUtils.hpp"
+#include "ExPolygon.hpp"
 #include "Geometry.hpp"
+#include "Point.hpp"
+#include "Line.hpp"
+#include "MultiPoint.hpp"
+#include "Polygon.hpp"
 #include "Tesselate.hpp"
 #include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 // BBS
 #include "MeshBoolean.hpp"
+#include "libslic3r.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdint>
+#include <cstddef>
 #include <deque>
 #include <queue>
+#include <iterator>
+#include <limits>
+#include <functional>
+#include <map>
 #include <mutex>
 #include <tuple>
 #include <utility>
@@ -18,6 +31,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <tbb/parallel_for.h>
+#include <vector>
 
 #ifndef NDEBUG
 //    #define EXPENSIVE_DEBUG_CHECKS
@@ -1062,6 +1076,23 @@ inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
             }
         }
     );
+    // As in slice_make_lines(): the facet loop is parallel, so the per-slab line order depends on
+    // thread scheduling, and make_slab_loops() derives loop order and start vertices from it.
+    // Sort canonically; edge_type and flags only break ties, std::sort being unstable.
+    auto sort_canonically = [](std::vector<IntersectionLines> &lines_per_slab) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, lines_per_slab.size()),
+            [&lines_per_slab](const tbb::blocked_range<size_t> &range) {
+                for (size_t i = range.begin(); i < range.end(); ++ i)
+                    std::sort(lines_per_slab[i].begin(), lines_per_slab[i].end(), [](const IntersectionLine &l, const IntersectionLine &r) {
+                        return std::make_tuple(l.edge_a_id, l.edge_b_id, l.a_id, l.b_id, l.a.x(), l.a.y(), l.b.x(), l.b.y(), l.edge_type, l.flags) <
+                               std::make_tuple(r.edge_a_id, r.edge_b_id, r.a_id, r.b_id, r.a.x(), r.a.y(), r.b.x(), r.b.y(), r.edge_type, r.flags);
+                    });
+            });
+    };
+    for (SlabLines *slab_lines : { &lines_top, &lines_bottom }) {
+        sort_canonically(slab_lines->at_slice);
+        sort_canonically(slab_lines->between_slices);
+    }
     return out;
 }
 
@@ -1839,7 +1870,7 @@ static ExPolygons make_expolygons_simple(std::vector<IntersectionLine> &lines)
     return slices;
 }
 
-static void make_expolygons(const Polygons &loops, const float closing_radius, const float extra_offset, ClipperLib::PolyFillType fill_type, ExPolygons* slices)
+static void make_expolygons(const Polygons &loops, const float closing_radius, const float extra_offset, PolyFillType fill_type, ExPolygons* slices)
 {
     /*
         Input loops are not suitable for evenodd nor nonzero fill types, as we might get
@@ -2139,8 +2170,8 @@ std::vector<ExPolygons> slice_mesh_ex(
                 const auto this_mode = layer_id < params.slicing_mode_normal_below_layer ? params.mode_below : params.mode;
                 Slic3r::make_expolygons(
                     layers_p[layer_id], params.closing_radius, params.extra_offset,
-                    this_mode == MeshSlicingParams::SlicingMode::EvenOdd ? ClipperLib::pftEvenOdd : 
-                    this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour ? ClipperLib::pftPositive : ClipperLib::pftNonZero,
+                    this_mode == MeshSlicingParams::SlicingMode::EvenOdd ? pftEvenOdd : 
+                    this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour ? pftPositive : pftNonZero,
                     &expolygons);
                 //FIXME simplify
                 if (this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour)

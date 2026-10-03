@@ -4,9 +4,13 @@
 #include "../Point.hpp"
 #include "../PrintConfig.hpp"
 #include "../enum_bitmask.hpp"
+#include "libslic3r/Config.hpp"
 #include "ThumbnailData.hpp"
 #include "../enum_bitmask.hpp"
 
+#include <cstddef>
+#include <string>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <string_view>

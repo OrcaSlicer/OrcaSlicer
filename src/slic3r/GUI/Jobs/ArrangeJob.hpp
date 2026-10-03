@@ -2,7 +2,11 @@
 #define ARRANGEJOB_HPP
 
 
+#include <map>
+#include "libslic3r/Polygon.hpp"
+#include <exception>
 #include <optional>
+#include <vector>
 
 #include "Job.hpp"
 #include "libslic3r/Arrange.hpp"

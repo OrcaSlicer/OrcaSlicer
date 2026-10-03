@@ -8,8 +8,49 @@
 #include "I18N.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <cstdlib>
+#include <cstdio>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <unordered_map>
+#include <wx/arrstr.h>
+#include <set>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <cstddef>
+#include <climits>
+#include "libslic3r/PrintConfig.hpp"
+#include <cmath>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/colordlg.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <wx/colourdata.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/textctrl.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include <wx/sizer.h>
+#include <wx/peninfobase.h>
 #include "CalibUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "EncodedFilament.hpp"
@@ -1000,11 +1041,12 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 
 
                 // update if nozzle_temperature_range is found
+                const int variant_index = get_filament_variant_index(*filament_it, nozzle_diameter_str);
                 ConfigOption *opt_min = filament_it->config.option("nozzle_temperature_range_low");
                 if (opt_min) {
                     ConfigOptionInts *opt_min_ints = dynamic_cast<ConfigOptionInts *>(opt_min);
                     if (opt_min_ints) {
-                        wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(0));
+                        wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(variant_index));
                         m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
                     }
                 }
@@ -1012,7 +1054,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
                 if (opt_max) {
                     ConfigOptionInts *opt_max_ints = dynamic_cast<ConfigOptionInts *>(opt_max);
                     if (opt_max_ints) {
-                        wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(0));
+                        wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(variant_index));
                         m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
                     }
                 }
@@ -1218,6 +1260,21 @@ void AMSMaterialsSetting::on_select_cali_result(wxCommandEvent &evt)
     }
 }
 
+int AMSMaterialsSetting::get_filament_variant_index(const Preset &filament, const std::string &nozzle_diameter_str)
+{
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    if (!obj || !preset_bundle)
+        return 0;
+    const std::set<std::string> printer_names =
+        preset_bundle->get_printer_names_by_printer_type_and_nozzle(DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str);
+    const Preset *printer = printer_names.empty() ? nullptr : preset_bundle->printers.find_preset(*printer_names.begin());
+    if (!printer)
+        return 0;
+    const int extruder_id = obj->get_extruder_id_by_ams_id(std::to_string(ams_id));
+    return PresetBundle::get_filament_variant_index(filament.config, printer->config, obj->get_preset_extruder_index(extruder_id),
+                                                    DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id)));
+}
+
 void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
 {
     // Get the flag whether to open the filament setting dialog from the device page
@@ -1249,11 +1306,12 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
                 if (it->filament_id != filament_id)
                     continue;
                 // ) if nozzle_temperature_range is found
+                const int variant_index = get_filament_variant_index(*it, nozzle_diameter_str);
                 ConfigOption* opt_min = it->config.option("nozzle_temperature_range_low");
                 if (opt_min) {
                     ConfigOptionInts* opt_min_ints = dynamic_cast<ConfigOptionInts*>(opt_min);
                     if (opt_min_ints) {
-                        wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(0));
+                        wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(variant_index));
                         m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
                     }
                 }
@@ -1261,7 +1319,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
                 if (opt_max) {
                     ConfigOptionInts* opt_max_ints = dynamic_cast<ConfigOptionInts*>(opt_max);
                     if (opt_max_ints) {
-                        wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(0));
+                        wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(variant_index));
                         m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
                     }
                 }

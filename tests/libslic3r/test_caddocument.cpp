@@ -1,4 +1,23 @@
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <Standard_TypeDef.hxx>
+#include <algorithm>
+#include <TopAbs_ShapeEnum.hxx>
+#include <GeomAbs_CurveType.hxx>
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
+#include <vector>
+#include <math.h>
+#include <utility>
+#include <sstream>
+#include <cstdint>
+#include <ios>
+#include <iterator>
+#include "libslic3r/TriangleMesh.hpp"
+#include <exception>
+#include <string>
 
 // Substring assertions, spelled so this file compiles UNCHANGED on both forks.
 // Catch2 v2 (Snapmaker) spells it Matchers::Contains; v3 (orca_cad / mainline) spells it

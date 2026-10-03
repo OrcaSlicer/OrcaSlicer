@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include "json_diff.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -6,7 +8,13 @@
 #include "slic3r/GUI/UserNotification.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include <string>
+#include <cassert>
+#include "libslic3r/calib.hpp"
+#include <chrono>
+#include <vector>
 #include <wx/dir.h>
+#include <wx/string.h>
 #include "fast_float/fast_float.h"
 
 #include "DevCalib.h"

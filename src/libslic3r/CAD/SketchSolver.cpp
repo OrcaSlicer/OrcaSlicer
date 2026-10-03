@@ -1,5 +1,7 @@
 #include "libslic3r/CAD/SketchSolver.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
 
+#include <math.h>
 #include <slvs.h>
 
 #include <cmath>
@@ -7,6 +9,8 @@
 #include <functional>
 #include <map>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

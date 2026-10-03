@@ -1,9 +1,13 @@
 #ifndef slic3r_SurfaceCollection_hpp_
 #define slic3r_SurfaceCollection_hpp_
 
+#include "Polygon.hpp"
+#include "ExPolygon.hpp"
 #include "libslic3r.h"
 #include "Surface.hpp"
+#include <cstddef>
 #include <initializer_list>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {

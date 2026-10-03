@@ -11,6 +11,7 @@
 		"0"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"chamber_temperatures": [
@@ -124,9 +125,11 @@
 		"100"
 	],
 	"fan_max_speed": [
+		"100",
 		"100"
 	],
 	"fan_min_speed": [
+		"100",
 		"100"
 	],
 	"filament_adhesiveness_category": [
@@ -171,6 +174,7 @@
 		"12"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_notes": "File Version:2.7 - V.Pack:18_05_2026",
@@ -299,9 +303,11 @@
 		"235"
 	],
 	"nozzle_temperature_range_high": [
+		"240",
 		"240"
 	],
 	"nozzle_temperature_range_low": [
+		"190",
 		"190"
 	],
 	"overhang_fan_speed": [

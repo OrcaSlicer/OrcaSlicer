@@ -135,6 +135,7 @@ set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee3
 set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
 set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
 set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
+set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "74e443f8004022dde57a1bd0d10c097830f9ea8feb4ec927db52cd5d805c2f48")
 set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
 
 # Version-scoped cache dir so a version bump invalidates the cached binary.
@@ -173,7 +174,10 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
                 set(ORCA_UV_ARCH "x86_64-unknown-linux-gnu")
             endif()
         elseif(_orca_uv_proc MATCHES "aarch64|arm64|ARM64")
-            if(APPLE)
+            if(WIN32)
+                set(ORCA_UV_ARCH "aarch64-pc-windows-msvc")
+                set(ORCA_UV_EXT "zip")
+            elseif(APPLE)
                 set(ORCA_UV_ARCH "aarch64-apple-darwin")
             else()
                 set(ORCA_UV_ARCH "aarch64-unknown-linux-gnu")
@@ -819,7 +823,9 @@ if(SLIC3R_STATIC)
     set(TBB_STATIC 1)
 endif()
 set(TBB_DEBUG 1)
-set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" OR MSVC)
+    set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
+endif()
 find_package(TBB REQUIRED)
 # include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 # add_definitions(${TBB_DEFINITIONS})
@@ -833,6 +839,37 @@ find_package(TBB REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Freetype REQUIRED)
+
+if (SLIC3R_GUI)
+    # LibDataChannel's installed export references its bundled dependencies,
+    # but does not install their CMake targets. Recreate those targets from
+    # the same dependency prefix before loading the LibDataChannel config.
+    if (NOT TARGET Usrsctp::usrsctp)
+        find_library(_ORCA_USRSCTP_LIBRARY NAMES usrsctp
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_USRSCTP_LIBRARY)
+            add_library(Usrsctp::usrsctp UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(Usrsctp::usrsctp PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_USRSCTP_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    if (NOT TARGET LibJuice::LibJuice)
+        find_library(_ORCA_LIBJUICE_LIBRARY NAMES juice
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_LIBJUICE_LIBRARY)
+            add_library(LibJuice::LibJuice UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(LibJuice::LibJuice PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_LIBJUICE_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    find_package(LibDataChannel CONFIG REQUIRED)
+endif()
 
 
 add_library(libcurl INTERFACE)
@@ -1114,6 +1151,7 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
     endif ()
     file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
             ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
             ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
             ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
@@ -1126,6 +1164,7 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/WebView2Loader.dll
 
         ${_out_dir}/freetype.dll
+        ${_out_dir}/avformat-61.dll
         ${_out_dir}/avcodec-61.dll
         ${_out_dir}/swresample-5.dll
         ${_out_dir}/swscale-8.dll
@@ -1149,7 +1188,10 @@ function(orcaslicer_copy_sos target config postfix output_sos)
         set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
     endif ()
 
-    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
             ${CMAKE_PREFIX_PATH}/lib/libavutil.so
@@ -1164,6 +1206,9 @@ function(orcaslicer_copy_sos target config postfix output_sos)
          DESTINATION ${_out_dir})
 
     set(${output_sos}
+        ${_out_dir}/libavformat.so
+        ${_out_dir}/libavformat.so.61
+        ${_out_dir}/libavformat.so.61.1.100
         ${_out_dir}/libavcodec.so
         ${_out_dir}/libavcodec.so.61
         ${_out_dir}/libavcodec.so.61.3.100
@@ -1262,6 +1307,14 @@ if (WIN32)
     endif()
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
+    # A missing MSVC runtime is an error because an installer without it cannot start on a clean machine.
+    set(_orca_runtime_names ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+    list(TRANSFORM _orca_runtime_names REPLACE "^.*/" "")
+    if (MSVC AND (NOT "msvcp140.dll" IN_LIST _orca_runtime_names OR NOT "vcruntime140.dll" IN_LIST _orca_runtime_names))
+        set(_orca_runtime_error "CMake ${CMAKE_VERSION} did not find msvcp140.dll and vcruntime140.dll for MSVC ${MSVC_VERSION}. Update CMake to a release that supports this Visual Studio.")
+        message(WARNING "${_orca_runtime_error}")
+        install(CODE "message(FATAL_ERROR \"${_orca_runtime_error}\")")
+    endif ()
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
 elseif (SLIC3R_FHS)
     # CMAKE_INSTALL_FULL_DATAROOTDIR: read-only architecture-independent data root (share)
@@ -1293,6 +1346,8 @@ endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavformat.so.61
+    ${LIBDIR_BIN}/libavformat.so.61.1.100
     ${LIBDIR_BIN}/libavcodec.so.61
     ${LIBDIR_BIN}/libavcodec.so.61.3.100
     ${LIBDIR_BIN}/libavutil.so.59

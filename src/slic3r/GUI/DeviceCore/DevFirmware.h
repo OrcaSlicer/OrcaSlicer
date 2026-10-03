@@ -3,6 +3,7 @@
 #include "slic3r/Utils/json_diff.hpp"
 
 #include <nlohmann/json.hpp>
+#include <string>
 #include <wx/string.h>
 #include "slic3r/Utils/json_diff.hpp"
 

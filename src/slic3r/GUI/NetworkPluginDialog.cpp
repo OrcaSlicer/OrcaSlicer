@@ -9,9 +9,20 @@
 #include "wxExtensions.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
+#include <string>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/collpane.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
 
 #define BORDER_W     FromDIP(20)
 #define TEXT_WRAP    FromDIP(400)

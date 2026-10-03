@@ -4,8 +4,27 @@
 #include "Plater.hpp"
 #include "Widgets/MultiNozzleSync.hpp" // manuallySetNozzleCount producer for extruder_nozzle_stats
 #include <algorithm>
+#include <wx/colour.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include <cstddef>
+#include <string>
+#include <wx/chartype.h>
+#include "slic3r/GUI/DragDropPanel.hpp"
+#include <cassert>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <wx/object.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/gdicmn.h>
 #include <wx/utils.h>
+#include <wx/window.h>
 #include "wx/graphics.h"
 
 namespace Slic3r { namespace GUI {

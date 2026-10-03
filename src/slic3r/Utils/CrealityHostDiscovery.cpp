@@ -4,9 +4,13 @@
 #include "Http.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <exception>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <string>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

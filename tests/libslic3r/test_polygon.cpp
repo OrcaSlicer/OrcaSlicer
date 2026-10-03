@@ -1,5 +1,9 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 

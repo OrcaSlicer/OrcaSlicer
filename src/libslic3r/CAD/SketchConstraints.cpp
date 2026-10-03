@@ -1,6 +1,11 @@
 #include "libslic3r/CAD/SketchConstraints.hpp"
+#include "libslic3r/Point.hpp"
+#include <Eigen/Core>
 #include <Eigen/Dense>
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <vector>
 
 namespace Slic3r {
 

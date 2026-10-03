@@ -1,6 +1,15 @@
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <map>
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <wx/event.h>
+#include <boost/smart_ptr/weak_ptr.hpp>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
 #include <wx/webrequest.h>

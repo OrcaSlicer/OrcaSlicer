@@ -12,20 +12,47 @@
 #include "BuildVolume.hpp"
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "Fill/Fill.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 #include "Layer.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
 #include "Print.hpp"
 #include "MultiPoint.hpp"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 #include "MutablePolygon.hpp"
+#include "libslic3r/Support/TreeSupportCommon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Support/TreeModelVolumes.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Support/SupportLayer.hpp"
 #include "SupportCommon.hpp"
+#include "libslic3r/Surface.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "TreeSupport.hpp"
 #include "I18N.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Utils.hpp"
 
+#include <algorithm>
+#include <Eigen/Geometry>
+#include <atomic>
 #include <cassert>
 #include <chrono>
+#include <cstdint>
+#include <functional>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
+#include <memory>
+#include <math.h>
+#include <mutex>
+#include <numeric>
+#include <iterator>
 #include <optional>
 #include <stdio.h>
 #include <string>
@@ -36,6 +63,10 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/spin_mutex.h>
+#include <vector>
+#include <utility>
+#include <unordered_set>
+#include <tuple>
 
 #if defined(TREE_SUPPORT_SHOW_ERRORS) && defined(_WIN32)
     #define TREE_SUPPORT_SHOW_ERRORS_WIN32
@@ -68,7 +99,7 @@ static inline void validate_range(const Point &pt)
 {
     static constexpr const int32_t hi = 65536 * 16384;
     if (pt.x() > hi || pt.y() > hi || -pt.x() > hi || -pt.y() > hi)
-      throw ClipperLib::clipperException("Coordinate outside allowed range");
+      throw RuntimeError("Coordinate outside allowed range");
 }
 
 static inline void validate_range(const Points &points)
@@ -832,16 +863,16 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
     }
     // offset in steps
     for (int i = 0; i < steps; ++ i) {
-        ret = diff(offset(ret, step_size, ClipperLib::jtRound, scaled<float>(0.01)), collision_trimmed());
+        ret = diff(offset(ret, step_size, jtRound, scaled<float>(0.01)), collision_trimmed());
         // ensure that if many offsets are done the performance does not suffer extremely by the new vertices of jtRound.
         if (i % 10 == 7)
-            ret = polygons_simplify(ret, scaled<double>(0.015), polygons_strictly_simple);
+            ret = polygons_simplify(ret, scaled<double>(0.015));
     }
     // offset the remainder
     float last_offset = distance - steps * step_size;
     if (last_offset > SCALED_EPSILON)
-        ret = offset(ret, distance - steps * step_size, ClipperLib::jtRound, scaled<float>(0.01));
-    ret = polygons_simplify(ret, scaled<double>(0.015), polygons_strictly_simple);
+        ret = offset(ret, distance - steps * step_size, jtRound, scaled<float>(0.01));
+    ret = polygons_simplify(ret, scaled<double>(0.015));
 
     if (do_final_difference)
         ret = diff(ret, collision_trimmed());
@@ -1622,8 +1653,8 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
                 safe_movement_distance, safe_movement_distance + radius, 1);
         }
         if (settings.no_error && settings.move)
-            // as ClipperLib::jtRound has to be used for offsets this simplify is VERY important for performance.
-            polygons_simplify(increased, scaled<float>(0.025), polygons_strictly_simple);
+            // as jtRound has to be used for offsets this simplify is VERY important for performance.
+            polygons_simplify(increased, scaled<float>(0.025));
     } else
         // if no movement is done the areas keep parent area as no move == offset(0)
         increased = parent.influence_area;
@@ -4145,7 +4176,7 @@ void organic_draw_branches(
                 base_layer_polygons = smooth_outward(union_(base_layer_polygons), config.support_line_width); //FIXME was .smooth(50);
                 //smooth_outward(closing(std::move(bottom), closing_distance + minimum_island_radius, closing_distance, SUPPORT_SURFACES_OFFSET_PARAMETERS), smoothing_distance) :
                 // simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
-                base_layer_polygons = polygons_simplify(base_layer_polygons, std::min(scaled<double>(0.03), double(config.resolution)), polygons_strictly_simple);
+                base_layer_polygons = polygons_simplify(base_layer_polygons, std::min(scaled<double>(0.03), double(config.resolution)));
             }
 
             // Subtract top contact layer polygons from support base.

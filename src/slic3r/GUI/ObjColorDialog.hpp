@@ -5,6 +5,15 @@
 #include "Camera.hpp"
 #include "GuiColor.hpp"
 #include "libslic3r/Format/OBJ.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include <string>
+#include <functional>
+#include <wx/colour.h>
+#include <wx/scrolwin.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include <unordered_map>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>

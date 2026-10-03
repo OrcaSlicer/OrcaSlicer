@@ -6,7 +6,58 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/RadioBox.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/MultiTaskManagerPage.hpp"
+#include <map>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <utility>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include <wx/arrstr.h>
+#include <wx/chartype.h>
+#include <wx/layout.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/BitmapCache.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <wx/image.h>
+#include <cstdio>
+#include "slic3r/GUI/Auxiliary.hpp"
+#include <cstddef>
+#include <cstring>
 #include <wx/listimpl.cpp>
+#include <wx/scrolwin.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/tglbtn.h>
+#include <wx/valtext.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/wxcrt.h>
+#include <wx/simplebook.h>
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
@@ -738,7 +789,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
 
         if (obj && obj->is_online() && !obj->can_abort() && !obj->is_in_upgrading() && it->second->get_state_selected() == 1 && it->second->state_printable <= 2) {
 
-            if (!it->second->is_blocking_printing(obj)) {
+            if (!wxGetApp().is_blocking_printing(obj)) {
                 PrintParams params = request_params(obj);
                 print_params.push_back(params);
             }

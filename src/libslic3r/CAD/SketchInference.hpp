@@ -1,7 +1,9 @@
 #ifndef slic3r_SketchInference_hpp_
 #define slic3r_SketchInference_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include <math.h>
 #include <vector>
 #include <optional>
 #include <cmath>

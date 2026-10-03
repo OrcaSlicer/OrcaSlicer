@@ -7,11 +7,20 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/FilamentMixer.hpp"
+#include <cstddef>
 #include <limits>
 
+#include <wx/colour.h>
+#include <vector>
+#include <utility>
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/geometry.h>
 #include <wx/settings.h>
 
 namespace Slic3r {

@@ -1,11 +1,30 @@
 #include "HttpServer.hpp"
+#include <boost/asio/socket_base.hpp>
+#include <boost/beast/core/error.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/basic_endpoint.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
+#include "CloudProvider.hpp"
 #include "GUI_App.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "libslic3r/Thread.hpp"
+#include <cstddef>
+#include <istream>
+#include <memory>
+#include <iostream>
+#include <functional>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <ostream>
+#include <utility>
 
 using json = nlohmann::json;
 

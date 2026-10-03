@@ -1,4 +1,33 @@
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <boost/log/trivial.hpp>
+#include "libslic3r/Thread.hpp"
+#include <memory>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include "slic3r/GUI/Widgets/SideTools.hpp"
+#include <cstddef>
+#include "slic3r/GUI/Tabbook.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/CalibrationWizard.hpp"
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include "slic3r/GUI/CalibrationWizardPresetPage.hpp"
+#include "slic3r/GUI/CalibrationWizardSavePage.hpp"
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/popupwin.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
+#include <wx/timer.h>
+#include <wx/notebook.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -328,7 +357,7 @@ void SelectMObjectPopup::update_user_devices()
     }
 
     m_bind_machine_list.clear();
-    m_bind_machine_list = dev->get_my_machine_list();
+    m_bind_machine_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
     //sort list
     std::vector<std::pair<std::string, MachineObject*>> user_machine_list;

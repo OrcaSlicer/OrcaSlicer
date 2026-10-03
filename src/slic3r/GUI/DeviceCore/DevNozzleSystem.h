@@ -6,6 +6,10 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "slic3r/Utils/json_diff.hpp"
 
+#include "libslic3r/PrintConfig.hpp"
+#include <string>
+#include <vector>
+#include <optional>
 #include <wx/string.h>
 #include <map>
 #include <memory>

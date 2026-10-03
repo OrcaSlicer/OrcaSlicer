@@ -42,6 +42,7 @@ add_executable(${_TEST_NAME}_tests
     test_stl.cpp
     test_triangle_selector.cpp
     test_meshboolean.cpp
+    test_trianglemesh_slicer.cpp
     test_marchingsquares.cpp
     test_lay_on_face.cpp
     test_model.cpp
@@ -56,6 +57,8 @@ add_executable(${_TEST_NAME}_tests
     test_ordering_strategies.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
+    test_texture_displacement.cpp
+    test_instance_lock.cpp
     ../libnest2d/printer_parts.cpp
     )
 
