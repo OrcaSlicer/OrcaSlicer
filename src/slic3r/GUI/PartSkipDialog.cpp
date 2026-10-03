@@ -62,6 +62,8 @@
 
 #include "DeviceCore/DevManager.h"
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r { namespace GUI {
 
 extern wxString hide_passwd(wxString url, std::vector<wxString> const &passwords);

@@ -108,6 +108,8 @@
 
 #include "IPrinterAgent.hpp"
 
+namespace fs = boost::filesystem;
+
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms
 #define TIME_OUT  5000       //ms

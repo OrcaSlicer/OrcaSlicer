@@ -376,8 +376,8 @@ public:
     // BBS: check snapshot
     bool up_to_date(bool saved, bool backup);
 
-    bool open_3mf_file(const fs::path &file_path);
-    int  get_3mf_file_count(std::vector<fs::path> paths);
+    bool open_3mf_file(const boost::filesystem::path &file_path);
+    int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
     bool add_model(bool imperial_units = false, std::string fname = "");

@@ -79,6 +79,8 @@
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
 
+namespace fs = boost::filesystem;
+
 using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
