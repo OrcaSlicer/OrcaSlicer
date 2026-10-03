@@ -171,24 +171,8 @@ struct PadSkeleton { ExPolygons inner, outer; };
 
 PadSkeleton divide_blueprint(const ExPolygons &bp)
 {
-    ClipperLib::PolyTree ptree = union_pt(bp);
-
     PadSkeleton ret;
-    ret.inner.reserve(size_t(ptree.Total()));
-    ret.outer.reserve(size_t(ptree.Total()));
-
-    for (ClipperLib::PolyTree::PolyNode *node : ptree.Childs) {
-        ExPolygon poly;
-        poly.contour.points = std::move(node->Contour);
-        for (ClipperLib::PolyTree::PolyNode *child : node->Childs) {
-            poly.holes.emplace_back(std::move(child->Contour));
-
-            traverse_pt(child->Childs, &ret.inner);
-        }
-
-        ret.outer.emplace_back(poly);
-    }
-    
+    ret.outer = top_level_expolygons(bp, &ret.inner);
     return ret;
 }
 
@@ -257,7 +241,7 @@ public:
         auto model_bp_offs =
             offset_ex(model_blueprint,
                       scaled<float>(cfg.embed_object.object_gap_mm),
-                      ClipperLib::jtMiter, 1);
+                      jtMiter, 1);
 
         ExPolygons fullcvh =
             wafflized_concave_hull(support_blueprint, model_bp_offs, cfg, thr);

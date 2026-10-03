@@ -6,6 +6,7 @@
 #include "Label.hpp"
 #include "TextInput.hpp"
 
+#include <wx/anybutton.h>
 #include <wx/arrstr.h>
 #include <wx/checklst.h>
 #include <wx/dynarray.h>

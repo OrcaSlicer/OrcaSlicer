@@ -16,6 +16,7 @@
 #include <boost/log/trivial.hpp>
 #include <cstddef>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
 #include <wx/popupwin.h>
 #include <wx/sizer.h>
 #include <wx/timer.h>

@@ -4,6 +4,12 @@
 ///|/
 #include "../include/Viewer.hpp"
 #include "ViewerImpl.hpp"
+#include <string>
+#include <utility>
+#include "../include/Types.hpp"
+#include <cstddef>
+#include <vector>
+#include <cstdint>
 
 namespace libvgcode {
 
@@ -50,6 +56,11 @@ void Viewer::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& proj
 void Viewer::set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size)
 {
     m_impl->set_shadow_map(texture_unit, light_view_projection, intensity, texel_size);
+}
+
+void Viewer::set_light_top_dir(const Vec3& direction)
+{
+    m_impl->set_light_top_dir(direction);
 }
 
 void Viewer::set_tone(float exposure, float saturation)

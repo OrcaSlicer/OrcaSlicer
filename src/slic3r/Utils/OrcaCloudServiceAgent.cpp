@@ -1,21 +1,37 @@
 #include "OrcaCloudServiceAgent.hpp"
+#include "CloudProvider.hpp"
 #include "Http.hpp"
+#include "bambu_networking.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include <atomic>
 #include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/uuid/name_generator_sha1.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <chrono>
+#include <cstdio>
 #include <exception>
+#include <functional>
 #include <iostream>
+#include <iterator>
 #include <libslic3r/Platform.hpp>
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/ProjectTask.hpp"
 #include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -32,7 +48,11 @@
 #include <sstream>
 
 #include <string>
+#include <system_error>
+#include <thread>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 #include <wx/filename.h>
 #include <wx/filefn.h>
 #include <wx/secretstore.h>

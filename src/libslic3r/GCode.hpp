@@ -301,6 +301,24 @@ public:
     size_t get_filament_config_index(int filament_id, size_t layer_id) const;
     size_t get_nozzle_config_index(int filament_id) const;
 
+    // Holds the last slot a resolver returned without locking, so only the G-code generator may
+    // call the resolvers.
+    struct ConfigIndexCache
+    {
+        bool   valid{false};
+        int    filament_id{0};
+        size_t layer_idx{0};
+        size_t generation{0};
+        size_t index{0};
+
+        template<class Lookup> size_t get(int filament, size_t layer, size_t gen, Lookup &&lookup)
+        {
+            if (!valid || filament_id != filament || layer_idx != layer || generation != gen)
+                *this = {true, filament, layer, gen, size_t(lookup())};
+            return index;
+        }
+    };
+
     // Object and support extrusions of the same PrintObject at the same print_z.
     // public, so that it could be accessed by free helper functions from GCode.cpp
     struct LayerToPrint
@@ -784,6 +802,8 @@ private:
     // Object layer id of the layer being generated; keys the per-filament config-slot
     // resolvers. Distinct from m_layer_index (an export progress counter starting at -1).
     size_t m_cur_layer_idx{0};
+    mutable ConfigIndexCache m_filament_index_cache;
+    mutable ConfigIndexCache m_nozzle_index_cache;
 
     std::set<unsigned int>                  m_initial_layer_extruders;
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;

@@ -7,9 +7,15 @@ CheckOptions:
   misc-include-cleaner.UnusedIncludes: false
   # Headers that declare a symbol but are not the one to include: per-platform
   # implementations of wxWidgets and Boost.Thread (a Linux run would suggest the
-  # GTK or pthread one), library internals and forward declarations, CPython's
-  # headers behind Python.h, curl's behind curl.h, oneTBB's behind tbb/, and
+  # GTK or pthread one), library internals and forward declarations (MSVC's STL
+  # __msvc_* and the Windows UCRT's corecrt_* included), CPython's headers behind
+  # Python.h (python3.x/ on Linux and macOS, libpython/include/ on Windows),
+  # curl's behind curl.h, oneTBB's behind tbb/, and
   # admesh's stl.h, which the include path also exposes without its directory.
+  # Clipper's own clipper.hpp is only included through libslic3r/clipper.hpp or
+  # clipper_z.hpp, which configure it first, and Boost.Polygon's headers only
+  # work through boost/polygon/polygon.hpp or voronoi.hpp. minilzo's config
+  # headers are internal to minilzo.h.
   # FFmpeg's C headers are left alone because they are only included inside
   # extern "C", which an inserted include would miss. OS-specific headers (GLib,
   # GTK, D-Bus, POSIX, the Windows SDK) are only used inside platform #if blocks,
@@ -23,7 +29,11 @@ CheckOptions:
     .*[/\\]impl[/\\].*;
     .*_fwd\.hpp;
     python3\.[0-9]+[/\\].*;
+    libpython[/\\]include[/\\].*;
     bits[/\\].*;
+    corecrt_.*\.h;
+    __msvc_.*\.hpp;
+    boost[/\\]multiprecision[/\\]fwd\.hpp;
     imconfig\.h;
     expat_external\.h;
     admesh[/\\]stl\.h;
@@ -44,4 +54,9 @@ CheckOptions:
     fcntl\.h;
     termios\.h;
     [/\\](um|shared)[/\\].*;
-    sal\.h
+    sal\.h;
+    clipper[/\\]clipper\.hpp;
+    png(lib)?conf\.h;
+    mcut[/\\]platform\.h;
+    boost[/\\]polygon[/\\].*;
+    lzo(conf|defs)\.h

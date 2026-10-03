@@ -12,6 +12,7 @@
 #include "slic3r/GUI/DeviceCore/DevConfig.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <wx/event.h>
 #include "slic3r/GUI/Event.hpp"

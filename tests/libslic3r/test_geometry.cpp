@@ -1,5 +1,8 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -17,7 +20,14 @@
 
 #include "../libnest2d/printer_parts.hpp"
 
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include <cstdlib>
+#include <math.h>
+#include <functional>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 using namespace Slic3r;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <wx/control.h>
 #include <wx/scrolwin.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>

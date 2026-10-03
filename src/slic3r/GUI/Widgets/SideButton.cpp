@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/colour.h>
 #include <wx/dc.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>

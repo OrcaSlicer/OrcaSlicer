@@ -70,7 +70,7 @@ double Polygon::area() const
 
 bool Polygon::is_counter_clockwise() const
 {
-    return ClipperLib::Orientation(this->points);
+    return this->area() >= 0.;
 }
 
 bool Polygon::is_clockwise() const
@@ -678,7 +678,7 @@ void remove_collinear(Polygons &polys)
 		remove_collinear(poly);
 }
 
-Polygons polygons_simplify(const Polygons &source_polygons, double tolerance, bool strictly_simple /* = true */)
+Polygons polygons_simplify(const Polygons &source_polygons, double tolerance)
 {
     Polygons out;
     out.reserve(source_polygons.size());
@@ -687,13 +687,15 @@ Polygons polygons_simplify(const Polygons &source_polygons, double tolerance, bo
         Points simplified = MultiPoint::_douglas_peucker(to_polyline(source_polygon).points, tolerance);
         // then remove the last (repeated) point.
         simplified.pop_back();
-        // Simplify the decimated contour by ClipperLib.
-        bool ccw = ClipperLib::Area(simplified) > 0.;
-        for (Points &path : ClipperLib::SimplifyPolygons(ClipperUtils::SinglePathProvider(simplified), ClipperLib::pftNonZero, strictly_simple)) {
+        // Simplify the decimated contour by a union.
+        bool ccw = Polygon::area(simplified) > 0.;
+        Polygons decimated(1);
+        decimated.front().points = std::move(simplified);
+        for (Polygon &polygon : union_(decimated)) {
             if (! ccw)
-                // ClipperLib likely reoriented negative area contours to become positive. Reverse holes back to CW.
-                std::reverse(path.begin(), path.end());
-            out.emplace_back(std::move(path));
+                // The union reorients negative area contours to become positive. Reverse holes back to CW.
+                polygon.reverse();
+            out.emplace_back(std::move(polygon));
         }
     }
     return out;
@@ -728,9 +730,40 @@ bool overlaps(const Polygons& polys1, const Polygons& polys2)
     return false;
 }
 
+// Clipper1's PointInPolygon(): 1 inside, 0 outside, -1 on the boundary.
+static int point_in_polygon(const Point &pt, const Points &path)
+{
+    int result = 0;
+    size_t cnt = path.size();
+    if (cnt < 3) return 0;
+    Point ip = path[0];
+    for (size_t i = 1; i <= cnt; ++i) {
+        Point ipNext = (i == cnt ? path[0] : path[i]);
+        if (ipNext.y() == pt.y() && ((ipNext.x() == pt.x()) || (ip.y() == pt.y() && ((ipNext.x() > pt.x()) == (ip.x() < pt.x())))))
+            return -1;
+        if ((ip.y() < pt.y()) != (ipNext.y() < pt.y())) {
+            if (ip.x() >= pt.x()) {
+                if (ipNext.x() > pt.x())
+                    result = 1 - result;
+                else {
+                    int64_t d = int64_t(ip.x() - pt.x()) * int64_t(ipNext.y() - pt.y()) - int64_t(ipNext.x() - pt.x()) * int64_t(ip.y() - pt.y());
+                    if (! d) return -1;
+                    if ((d > 0) == (ipNext.y() > ip.y())) result = 1 - result;
+                }
+            } else if (ipNext.x() > pt.x()) {
+                int64_t d = int64_t(ip.x() - pt.x()) * int64_t(ipNext.y() - pt.y()) - int64_t(ipNext.x() - pt.x()) * int64_t(ip.y() - pt.y());
+                if (! d) return -1;
+                if ((d > 0) == (ipNext.y() > ip.y())) result = 1 - result;
+            }
+        }
+        ip = ipNext;
+    }
+    return result;
+}
+
 bool contains(const Polygon &polygon, const Point &p, bool border_result)
 {
-    if (const int poly_count_inside = ClipperLib::PointInPolygon(p, polygon.points); 
+    if (const int poly_count_inside = point_in_polygon(p, polygon.points); 
         poly_count_inside == -1)
         return border_result;
     else
@@ -741,7 +774,7 @@ bool contains(const Polygons &polygons, const Point &p, bool border_result)
 {
     int poly_count_inside = 0;
     for (const Polygon &poly : polygons) {
-        const int is_inside_this_poly = ClipperLib::PointInPolygon(p, poly.points);
+        const int is_inside_this_poly = point_in_polygon(p, poly.points);
         if (is_inside_this_poly == -1)
             return border_result;
         poly_count_inside += is_inside_this_poly;

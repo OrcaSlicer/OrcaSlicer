@@ -24,6 +24,7 @@
 #include "slic3r/GUI/GLShader.hpp"
 #include <utility>
 #include "libslic3r/Geometry.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
 
 namespace Slic3r {

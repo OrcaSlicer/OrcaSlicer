@@ -25,7 +25,6 @@ struct RegionExpansionParameters
 
     // Accuracy of the offsetter for wave propagation.
     double                 arc_tolerance;
-    double                 shortest_edge_length;
 
     static RegionExpansionParameters build(
         // Scaled expansion value

@@ -4334,9 +4334,9 @@ size_t GCode::get_extruder_id(unsigned int filament_id) const
 
 size_t GCode::get_filament_config_index(int filament_id) const
 {
-    if (m_print) {
-        return m_print->get_filament_config_indx(filament_id, m_cur_layer_idx);
-    }
+    if (m_print)
+        return m_filament_index_cache.get(filament_id, m_cur_layer_idx, m_print->config_index_generation(),
+                                          [&] { return m_print->get_filament_config_indx(filament_id, m_cur_layer_idx); });
     // Orca: without a Print the filament-indexed arrays are unexpanded, so the
     // filament id itself is the only meaningful column.
     return filament_id;
@@ -4350,9 +4350,9 @@ size_t GCode::get_filament_config_index(int filament_id, size_t layer_id) const
 
 size_t GCode::get_nozzle_config_index(int filament_id) const
 {
-    if (m_print) {
-        return m_print->get_nozzle_config_index(filament_id, m_cur_layer_idx);
-    }
+    if (m_print)
+        return m_nozzle_index_cache.get(filament_id, m_cur_layer_idx, m_print->config_index_generation(),
+                                        [&] { return m_print->get_nozzle_config_index(filament_id, m_cur_layer_idx); });
     // Orca: same reasoning; degenerate to the filament's extruder column.
     return get_extruder_id(filament_id);
 }
@@ -8059,28 +8059,36 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     unsigned int acceleration_i = 0;
     double jerk = 0;
     // adjust acceleration
-    if (NOZZLE_CONFIG(default_acceleration) > 0) {
+    const size_t nozzle = get_nozzle_config_index(m_writer.filament()->id());
+    if (m_config.default_acceleration.get_at(nozzle) > 0) {
+        const ExtrusionRole role = path.role();
+        const double bridge_acceleration = is_bridge(role) ?
+            m_config.bridge_acceleration.get_at(nozzle).get_abs_value(m_config.outer_wall_acceleration.get_at(nozzle)) : 0.;
+        const double sparse_infill_acceleration = role == erInternalInfill ?
+            m_config.sparse_infill_acceleration.get_at(nozzle).get_abs_value(m_config.default_acceleration.get_at(nozzle)) : 0.;
+        const double internal_solid_infill_acceleration = role == erSolidInfill ?
+            m_config.internal_solid_infill_acceleration.get_at(nozzle).get_abs_value(m_config.default_acceleration.get_at(nozzle)) : 0.;
         double acceleration;
-        if (this->on_first_layer() && NOZZLE_CONFIG(initial_layer_acceleration) > 0) {
-            acceleration = NOZZLE_CONFIG(initial_layer_acceleration);
+        if (this->on_first_layer() && m_config.initial_layer_acceleration.get_at(nozzle) > 0) {
+            acceleration = m_config.initial_layer_acceleration.get_at(nozzle);
 #if 0
         } else if (this->object_layer_over_raft() && m_config.first_layer_acceleration_over_raft.value > 0) {
             acceleration = m_config.first_layer_acceleration_over_raft.value;
 #endif
-        } else if (m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && is_bridge(path.role())) {
-            acceleration = m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erInternalInfill)) {
-            acceleration = m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erSolidInfill)) {
-            acceleration = m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (NOZZLE_CONFIG(outer_wall_acceleration) > 0 && is_external_perimeter(path.role())) {
-            acceleration = NOZZLE_CONFIG(outer_wall_acceleration);
-        } else if (NOZZLE_CONFIG(inner_wall_acceleration) > 0 && is_internal_perimeter(path.role())) {
-            acceleration = NOZZLE_CONFIG(inner_wall_acceleration);
-        } else if (NOZZLE_CONFIG(top_surface_acceleration) > 0 && is_top_surface(path.role())) {
-            acceleration = NOZZLE_CONFIG(top_surface_acceleration);
+        } else if (bridge_acceleration > 0) {
+            acceleration = bridge_acceleration;
+        } else if (sparse_infill_acceleration > 0) {
+            acceleration = sparse_infill_acceleration;
+        } else if (internal_solid_infill_acceleration > 0) {
+            acceleration = internal_solid_infill_acceleration;
+        } else if (m_config.outer_wall_acceleration.get_at(nozzle) > 0 && is_external_perimeter(role)) {
+            acceleration = m_config.outer_wall_acceleration.get_at(nozzle);
+        } else if (m_config.inner_wall_acceleration.get_at(nozzle) > 0 && is_internal_perimeter(role)) {
+            acceleration = m_config.inner_wall_acceleration.get_at(nozzle);
+        } else if (m_config.top_surface_acceleration.get_at(nozzle) > 0 && is_top_surface(role)) {
+            acceleration = m_config.top_surface_acceleration.get_at(nozzle);
         } else {
-            acceleration = NOZZLE_CONFIG(default_acceleration);
+            acceleration = m_config.default_acceleration.get_at(nozzle);
         }
         acceleration_i = (unsigned int)floor(acceleration + 0.5);
     }
@@ -8181,7 +8189,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(speed));
             }
         } else if(path.role() == erInternalBridgeInfill) {
-            speed = m_config.get_abs_value_at("internal_bridge_speed", get_nozzle_config_index(m_writer.filament()->id()));
+            speed = m_config.internal_bridge_speed.get_at(nozzle).get_abs_value(m_config.bridge_speed.get_at(nozzle));
         } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {
@@ -8193,7 +8201,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         } else if (path.role() == erIroning) {
             const size_t filament_idx = get_filament_config_index(m_writer.filament()->id());
             speed = m_config.filament_ironing_speed.is_nil(filament_idx)
-                ? m_config.get_abs_value("ironing_speed")
+                ? m_config.ironing_speed.value
                 : m_config.filament_ironing_speed.get_at(filament_idx);
         } else if (path.role() == erBottomSurface) {
             speed = NOZZLE_CONFIG(initial_layer_infill_speed);
@@ -8254,7 +8262,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
     // Override skirt speed if set
     if (path.role() == erSkirt) {
-        const double skirt_speed = m_config.get_abs_value("skirt_speed");
+        const double skirt_speed = m_config.skirt_speed.value;
         if (skirt_speed > 0.0)
         speed = skirt_speed;
     }

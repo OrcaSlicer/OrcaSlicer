@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iterator>
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "libslic3r/Config.hpp"
 #include <cstddef>

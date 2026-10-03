@@ -6,6 +6,7 @@
 #include "../MsgDialog.hpp"
 #include "json_diff.hpp"
 
+#include <wx/anybutton.h>
 #include <wx/event.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>

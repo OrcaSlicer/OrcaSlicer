@@ -1,3 +1,5 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
@@ -5,19 +7,32 @@
 #include <cereal/archives/binary.hpp>
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <functional>
+#include <ios>
+#include <iterator>
+#include "libslic3r/Semver.hpp"
+#include "libslic3r/Config.hpp"
 #include <memory>
 #include <numeric>
 #include <random>
 #include <set>
 #include <sstream>
 
+#include <string>
+#include <stdexcept>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
+#include <vector>
+#include <utility>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
 #include "libslic3r/Preset.hpp"

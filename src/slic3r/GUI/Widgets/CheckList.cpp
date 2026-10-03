@@ -2,6 +2,7 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include <wx/anybutton.h>
 #include <wx/arrstr.h>
 #include <wx/checklst.h>
 #include <wx/sizer.h>

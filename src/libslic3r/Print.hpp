@@ -1073,9 +1073,9 @@ public:
 
     // Logical (extruder, nozzle) grouping result produced by ToolOrdering during reorder.
     // Consumed by GCode via get_layered_nozzle_group_result()->get_nozzle_id(filament, layer) etc.
-    void set_nozzle_group_result(std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> result) { m_nozzle_group_result = result; }
+    void set_nozzle_group_result(std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> result);
     std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> get_nozzle_group_result() const { return m_nozzle_group_result; }
-    std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> get_layered_nozzle_group_result() const;
+    std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> get_layered_nozzle_group_result() const { return m_layered_nozzle_group_result; }
 
     // True only when the project opts into the per-layer filament selector
     // (enable_filament_dynamic_map) in auto-for-flush mode on a multi-extruder machine. Gates the
@@ -1226,6 +1226,9 @@ public:
     // pipeline's cooling stage, which runs concurrently with the generator stage filling it.
     int get_filament_config_indx(int filament_id, int layer_id, bool use_cache = true);
     int get_nozzle_config_index(int filament_id, int layer_id);
+    // Changes with the grouping result and the filament maps, so a caller may reuse a resolved slot
+    // until it changes.
+    size_t config_index_generation() const { return m_config_index_generation; }
 
     // Orca: Implement prusa's filament shrink compensation approach
     // Returns if all used filaments have same shrinkage compensations.
@@ -1352,6 +1355,9 @@ private:
 
     // Logical (extruder, nozzle) grouping result, set by ToolOrdering during reorder.
     std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
+    // m_nozzle_group_result narrowed to the layer-aware type; only set_nozzle_group_result() assigns
+    // either.
+    std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> m_layered_nozzle_group_result;
 
     // Sequential (by-object) selector plans, keyed by object; see sequential_dynamic_orderings().
     // Rebuilt (or cleared) on every process().
@@ -1361,6 +1367,7 @@ private:
     FilamentIndexMap m_filament_index_map;
     // Used to cache printer and process parameter information
     PrintIndexMap m_nozzle_index_map;
+    size_t        m_config_index_generation{0};
     // Orca: filament ids already reported as missing a nozzle-group entry this slice. get_config_index()
     // falls back per-filament/per-layer in the g-code hot path, so this dedupes its log to once per
     // filament instead of flooding thousands of identical error lines. Cleared with the caches each slice.
