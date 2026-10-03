@@ -11938,7 +11938,12 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             "skeleton_infill_line_width"};
         for (size_t i = 0; i < sizeof(widths) / sizeof(widths[i]); ++ i) {
             std::string key(widths[i]);
-            double abs_width = cfg.get_abs_value(key, max_nozzle_diameter);
+            // A percentage width is a share of the nozzle that prints the road. Resolve it against the
+            // same nozzle it is then compared with, otherwise a 100% bridge width on a printer with
+            // two nozzle sizes resolves against the larger nozzle and is refused against the smaller.
+            // Absolute widths are returned as written, so their limits do not change.
+            double reference = (key == "bridge_line_width") ? min_nozzle_diameter : max_nozzle_diameter;
+            double abs_width = cfg.get_abs_value(key, reference);
             double allowed_max = (key == "bridge_line_width") ? min_nozzle_diameter : MAX_LINE_WIDTH_MULTIPLIER * max_nozzle_diameter;
             if (abs_width > allowed_max) {
                 if (key == "bridge_line_width")
