@@ -23,6 +23,10 @@ class ImGuiWrapper;
 class Selection;
 class GLCanvas3D;
 
+// Zeroes components whose magnitude is below 0.001 degrees so small
+// negative residues don't print as "-0.00" (shared with GLGizmoCut).
+void delete_negative_sign(Vec3d& value);
+
 class GizmoObjectManipulation
 {
 public:
