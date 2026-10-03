@@ -1719,7 +1719,7 @@ TEST_CASE("split by face round-trip serialization", "[CadDocument][cut]")
     std::vector<std::pair<Vec3d, Vec3d>> bboxes;
     for (const auto& b : doc.bodies) {
         Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
     }
@@ -1740,7 +1740,7 @@ TEST_CASE("split by face round-trip serialization", "[CadDocument][cut]")
 
     for (size_t i = 0; i < saved_nb; ++i) {
         Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
         REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
@@ -2203,6 +2203,34 @@ TEST_CASE("a v5 project still opens", "[CadDocument][recipe]")
     REQUIRE(doc.error.find("older version") == std::string::npos);
     REQUIRE(doc.error.find("newer version") == std::string::npos);
     REQUIRE_FALSE(doc.features.empty());
+}
+
+// OCCT 7.6 wrote cad_brep_occt76.brep, so do NOT regenerate it. It holds a 30 x 30 x 5 plate
+// with a 3 x 3 grid of r3 holes, their rims filleted r0.5.
+TEST_CASE("an Import solid written by OCCT 7.6 still loads", "[CadDocument][recipe]")
+{
+    using Catch::Matchers::WithinRel;
+    std::ifstream ifs(std::string(TEST_DATA_DIR) + "/cad_brep_occt76.brep", std::ios::binary);
+    REQUIRE(ifs.is_open());
+    const std::string brep((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+
+    const TopoDS_Shape shape = brep_from_string(brep);
+    REQUIRE_FALSE(shape.IsNull());
+
+    int faces = 0;
+    for (TopExp_Explorer it(shape, TopAbs_FACE); it.More(); it.Next())
+        ++faces;
+    CHECK(faces == 6 + 9 + 9); // box, hole walls, rim fillets
+
+    // Each rim fillet removes the corner between a quarter circle and its square, swept around the
+    // hole, so its volume is that area times the path of the corner's centroid (Pappus).
+    const double hole_r = 3.0, fillet_r = 0.5;
+    const double corner_area     = fillet_r * fillet_r * (1 - M_PI / 4);
+    const double corner_centroid = hole_r + fillet_r * (10 - 3 * M_PI) / (3 * (4 - M_PI));
+    const double expected        = 30.0 * 30.0 * 5.0 - 9 * M_PI * hole_r * hole_r * 5.0 - 9 * corner_area * 2 * M_PI * corner_centroid;
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(shape, props);
+    CHECK_THAT(props.Mass(), WithinRel(expected, 1e-4));
 }
 
 TEST_CASE("a v5 round trip is exact", "[CadDocument][recipe]")
@@ -3437,7 +3465,7 @@ TEST_CASE("thicken flip offsets against face normal", "[CadDocument]")
     doc2.add_thicken(0, tf2, 3.0, false, "PlateFwd");
     REQUIRE(doc2.recompute());
     Bnd_Box bb_fwd; BRepBndLib::Add(doc2.bodies[1].shape, bb_fwd);
-    Standard_Real x0, y0, z0, x1, y1, z1;
+    double x0, y0, z0, x1, y1, z1;
     bb_fwd.Get(x0, y0, z0, x1, y1, z1);
 
     // flipped: plate grows below the face plane (z < 10)
@@ -3456,7 +3484,7 @@ TEST_CASE("thicken flip offsets against face normal", "[CadDocument]")
     doc3.add_thicken(0, tf3, 3.0, true, "PlateRev");
     REQUIRE(doc3.recompute());
     Bnd_Box bb_rev; BRepBndLib::Add(doc3.bodies[1].shape, bb_rev);
-    Standard_Real rx0, ry0, rz0, rx1, ry1, rz1;
+    double rx0, ry0, rz0, rx1, ry1, rz1;
     bb_rev.Get(rx0, ry0, rz0, rx1, ry1, rz1);
 
     // forward plate bbox z > 10 (source face at z=10, +3 offset = z in (10,13))
@@ -3564,7 +3592,7 @@ TEST_CASE("thicken round-trip serialization", "[CadDocument]")
     std::vector<std::pair<Vec3d, Vec3d>> bboxes;
     for (const auto& b : doc.bodies) {
         Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
     }
@@ -3584,7 +3612,7 @@ TEST_CASE("thicken round-trip serialization", "[CadDocument]")
 
     for (size_t i = 0; i < nb; ++i) {
         Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
         REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
@@ -3750,7 +3778,7 @@ TEST_CASE("project round-trip serialization", "[CadDocument][project]")
     std::vector<std::pair<Vec3d, Vec3d>> bboxes;
     for (const auto& b : doc.bodies) {
         Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
     }
@@ -3770,7 +3798,7 @@ TEST_CASE("project round-trip serialization", "[CadDocument][project]")
 
     for (size_t i = 0; i < saved_nb; ++i) {
         Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
         REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
@@ -4839,7 +4867,7 @@ TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
     std::vector<std::pair<Vec3d, Vec3d>> bboxes;
     for (const auto& b : doc.bodies) {
         Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
     }
@@ -4856,7 +4884,7 @@ TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
 
     for (size_t i = 0; i < bboxes.size(); ++i) {
         Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
         REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
@@ -4961,7 +4989,7 @@ TEST_CASE("hole: round-trip preserves styled counterbore hole", "[CadDocument][h
     std::vector<std::pair<Vec3d, Vec3d>> bboxes;
     for (const auto& b : doc.bodies) {
         Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         bboxes.emplace_back(Vec3d(x0, y0, z0), Vec3d(x1, y1, z1));
     }
@@ -4976,7 +5004,7 @@ TEST_CASE("hole: round-trip preserves styled counterbore hole", "[CadDocument][h
 
     for (size_t i = 0; i < bboxes.size(); ++i) {
         Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
-        Standard_Real x0, y0, z0, x1, y1, z1;
+        double x0, y0, z0, x1, y1, z1;
         bb.Get(x0, y0, z0, x1, y1, z1);
         REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
         REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
@@ -5280,9 +5308,9 @@ TEST_CASE("surface round-trip serialize/deserialize", "[CadDocument][surface]")
 
     Bnd_Box fresh_bb;
     BRepBndLib::Add(fresh.bodies.back().shape, fresh_bb);
-    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
+    double ox0, oy0, oz0, ox1, oy1, oz1;
     orig_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
-    Standard_Real fx0, fy0, fz0, fx1, fy1, fz1;
+    double fx0, fy0, fz0, fx1, fy1, fz1;
     fresh_bb.Get(fx0, fy0, fz0, fx1, fy1, fz1);
     REQUIRE_THAT(double(fx0), WithinAbs(double(ox0), 1e-6));
     REQUIRE_THAT(double(fy0), WithinAbs(double(oy0), 1e-6));
@@ -5321,8 +5349,8 @@ TEST_CASE("thicken-surface makes a solid from a sheet", "[CadDocument][surface]"
 
     Bnd_Box thick_bb;
     BRepBndLib::Add(doc.bodies.back().shape, thick_bb);
-    Standard_Real sx0, sy0, sz0, sx1, sy1, sz1;
-    Standard_Real tx0, ty0, tz0, tx1, ty1, tz1;
+    double sx0, sy0, sz0, sx1, sy1, sz1;
+    double tx0, ty0, tz0, tx1, ty1, tz1;
     sheet_bb.Get(sx0, sy0, sz0, sx1, sy1, sz1);
     thick_bb.Get(tx0, ty0, tz0, tx1, ty1, tz1);
     REQUIRE_THAT(double(tx0), WithinAbs(double(sx0), 2.1));
@@ -5439,8 +5467,8 @@ TEST_CASE("surface-offset creates another sheet shifted outward", "[CadDocument]
 
     Bnd_Box off_bb;
     BRepBndLib::Add(doc.bodies.back().shape, off_bb);
-    Standard_Real sx0, sy0, sz0, sx1, sy1, sz1;
-    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
+    double sx0, sy0, sz0, sx1, sy1, sz1;
+    double ox0, oy0, oz0, ox1, oy1, oz1;
     src_bb.Get(sx0, sy0, sz0, sx1, sy1, sz1);
     off_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
     REQUIRE(std::abs(double(ox0) - double(sx0)) > 1e-3);
@@ -5493,8 +5521,8 @@ TEST_CASE("thicken-surface round-trip serialize/deserialize", "[CadDocument][sur
 
     Bnd_Box fresh_bb;
     BRepBndLib::Add(fresh.bodies.back().shape, fresh_bb);
-    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
-    Standard_Real fx0, fy0, fz0, fx1, fy1, fz1;
+    double ox0, oy0, oz0, ox1, oy1, oz1;
+    double fx0, fy0, fz0, fx1, fy1, fz1;
     orig_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
     fresh_bb.Get(fx0, fy0, fz0, fx1, fy1, fz1);
     REQUIRE_THAT(double(fx0), WithinAbs(double(ox0), 1e-6));
@@ -5615,8 +5643,8 @@ TEST_CASE("surface-loft round-trip serialize/deserialize", "[CadDocument][surfac
 
     Bnd_Box fresh_bb;
     BRepBndLib::Add(fresh.bodies.back().shape, fresh_bb);
-    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
-    Standard_Real fx0, fy0, fz0, fx1, fy1, fz1;
+    double ox0, oy0, oz0, ox1, oy1, oz1;
+    double fx0, fy0, fz0, fx1, fy1, fz1;
     orig_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
     fresh_bb.Get(fx0, fy0, fz0, fx1, fy1, fz1);
     REQUIRE_THAT(double(fx0), WithinAbs(double(ox0), 1e-6));
@@ -8310,6 +8338,70 @@ TEST_CASE("A sketch-only document recomputes and round-trips", "[CadDocument]")
     bad.add_extrude(0, 0.0, false, BooleanMode::New, "ZeroDepth");
     REQUIRE_FALSE(bad.recompute());
     REQUIRE_FALSE(bad.error.empty());
+}
+
+TEST_CASE("A zero-depth extrude is an error on every path", "[CadDocument]")
+{
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    REQUIRE(sk == 0);
+
+    // nz = 1 picks the box's +z face, nz = -1 its -z face.
+    auto add_box_and_find_face = [&](double nz) {
+        doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+        REQUIRE(doc.recompute());
+        const TopoDS_Shape& box = doc.bodies[0].shape;
+        for (int i = 0; i < GeometryEngine::face_count(box); ++i)
+            if (GeometryEngine::face_normal_world(GeometryEngine::face_by_index(box, i)).z() * nz > 0.9)
+                return i;
+        return -1;
+    };
+
+    SECTION("blind") { doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth"); }
+    SECTION("tapered")
+    {
+        doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth");
+        doc.features.back().taper_deg = 8.0;
+    }
+    SECTION("symmetric") { doc.add_extrude(sk, 0.0, true, BooleanMode::New, "ZeroDepth"); }
+    SECTION("two-sided")
+    {
+        doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth");
+        doc.features.back().extrude_end = ExtrudeEnd::TwoSided;
+    }
+    SECTION("up to a vertex in the sketch plane")
+    {
+        doc.add_extrude(sk, 10.0, false, BooleanMode::New, "ZeroDepth");
+        doc.features.back().extrude_end = ExtrudeEnd::UpToVertex;
+        doc.features.back().up_to_point = Vec3d(5, 5, 0);
+    }
+    SECTION("up to a face in the sketch plane")
+    {
+        const int bottom = add_box_and_find_face(-1.0);
+        REQUIRE(bottom >= 0);
+        doc.add_extrude(sk, 10.0, false, BooleanMode::Add, "ZeroDepth");
+        doc.features.back().extrude_end = ExtrudeEnd::UpToFace;
+        doc.features.back().up_to_face  = bottom;
+    }
+    SECTION("from a body face")
+    {
+        const int top = add_box_and_find_face(1.0);
+        REQUIRE(top >= 0);
+        doc.add_extrude_face(top, 0.0, false, BooleanMode::Add, "ZeroDepth");
+    }
+    SECTION("imported text or SVG regions")
+    {
+        CadFeature art;
+        art.type             = CadFeatureType::Sketch;
+        art.plane            = SketchPlane::XY();
+        art.imported_regions = {{ {Vec2d(0, 0), Vec2d(10, 0), Vec2d(10, 10), Vec2d(0, 10)} }};
+        doc.features.push_back(art);
+        doc.add_extrude(int(doc.features.size()) - 1, 0.0, false, BooleanMode::New, "ZeroDepth");
+    }
+    SECTION("surface") { doc.add_surface_extrude(sk, 0.0, "ZeroDepth"); }
+
+    REQUIRE_FALSE(doc.recompute());
+    CHECK_CONTAINS(doc.error, "zero");
 }
 
 // A body is NOT the feature that created it. Reported 2026-08-23, in these words: "you have

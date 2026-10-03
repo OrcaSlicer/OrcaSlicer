@@ -37,10 +37,9 @@
 #include <cstdint>
 #include <cereal/cereal.hpp>
 #include <gp_Pln.hxx>
-#include <TopTools_ListOfShape.hxx>
+#include <NCollection_List.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
-#include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
@@ -53,7 +52,7 @@
 #include <Geom_ConicalSurface.hxx>
 #include <Geom2d_TrimmedCurve.hxx>
 #include <GeomAbs_Shape.hxx>        // SurfaceFill: GeomAbs_C0
-#include <GCE2d_MakeSegment.hxx>
+#include <GC_MakeSegment2d.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopAbs.hxx>
@@ -105,7 +104,7 @@ static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
     // In the surface (u,v) parametrization u is the angle, v the axial height.
     gp_Pnt2d p0(0.0, 0.0);
     gp_Pnt2d p1(2.0 * M_PI * turns, height);
-    Handle(Geom2d_TrimmedCurve) seg = GCE2d_MakeSegment(p0, p1);
+    Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
     TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
     BRepLib::BuildCurves3d(e);
     return BRepBuilderAPI_MakeWire(e).Wire();
@@ -147,14 +146,14 @@ static TopoDS_Wire make_helix_spine(const CadFeature& f, std::string& err)
         double u1 = f.helix_left_handed ? -2.0 * M_PI * turns : 2.0 * M_PI * turns;
         gp_Pnt2d p0(0.0, 0.0);
         gp_Pnt2d p1(u1, H);
-        Handle(Geom2d_TrimmedCurve) seg = GCE2d_MakeSegment(p0, p1);
+        Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
         e = BRepBuilderAPI_MakeEdge(seg, cone).Edge();
     } else {
         Handle(Geom_CylindricalSurface) cyl = new Geom_CylindricalSurface(ax3, R);
         double u1 = f.helix_left_handed ? -2.0 * M_PI * turns : 2.0 * M_PI * turns;
         gp_Pnt2d p0(0.0, 0.0);
         gp_Pnt2d p1(u1, H);
-        Handle(Geom2d_TrimmedCurve) seg = GCE2d_MakeSegment(p0, p1);
+        Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
         e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
     }
     BRepLib::BuildCurves3d(e);
@@ -193,7 +192,7 @@ static TopoDS_Wire make_thread_profile(const gp_Pnt& origin, const gp_Dir& xdir,
     gp_Pnt top (origin.XYZ() + (vx * inner).XYZ() + (vz * ( half)).XYZ());
     gp_Pnt bot (origin.XYZ() + (vx * inner).XYZ() + (vz * (-half)).XYZ());
     gp_Pnt apex(origin.XYZ() + (vx * crest).XYZ());
-    BRepBuilderAPI_MakePolygon poly(top, bot, apex, Standard_True);
+    BRepBuilderAPI_MakePolygon poly(top, bot, apex, true);
     return poly.Wire();   // closed triangle, swept by MakePipeShell with a fixed binormal
 }
 
@@ -2368,10 +2367,12 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         TopoDS_Wire wire = build_sketch_wire(sk);
         if (wire.IsNull()) throw std::runtime_error("surface-extrude: empty profile");
         gp_Dir nrm(sk.plane.normal.x(), sk.plane.normal.y(), sk.plane.normal.z());
-        gp_Vec v(nrm.XYZ() * f.distance);
-        TopoDS_Shape shell = BRepPrimAPI_MakePrism(wire, v, false, true).Shape();
-        if (shell.IsNull()) throw std::runtime_error("surface-extrude: prism failed");
-        result = shell; have_body = true;
+        try {
+            result = SketchEngine::make_prism(wire, gp_Vec(nrm.XYZ() * f.distance));
+        } catch (const std::exception& e) {
+            throw std::runtime_error(std::string("surface-extrude: ") + (*e.what() ? e.what() : "prism failed"));
+        }
+        have_body = true;
         break;
     }
     case CadFeatureType::SurfaceRevolve: {
@@ -2584,7 +2585,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         double h = f.rib_thickness * 0.5;
         Vec2d q0 = a + perp*h, q1 = b + perp*h, q2 = b - perp*h, q3 = a - perp*h;
         auto w3 = [&](const Vec2d& p){ Vec3d w = pl.to_world(p); return gp_Pnt(w.x(),w.y(),w.z()); };
-        BRepBuilderAPI_MakePolygon poly(w3(q0), w3(q1), w3(q2), w3(q3), Standard_True);
+        BRepBuilderAPI_MakePolygon poly(w3(q0), w3(q1), w3(q2), w3(q3), true);
         if (!poly.IsDone()) throw std::runtime_error("rib: profile failed");
         TopoDS_Shape wall = SketchEngine::make_extrude(poly.Wire(), pl, f.rib_depth, false, 0.0);
         if (wall.IsNull()) throw std::runtime_error("rib: extrude failed");
@@ -2746,7 +2747,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (!have_body) throw std::runtime_error("shell needs a body");
         // Hollow the body to a wall thickness; the picked face (if any) is removed so the
         // shell is open there. MakeThickSolidByJoin with a NEGATIVE offset shells inward.
-        TopTools_ListOfShape remove;
+        NCollection_List<TopoDS_Shape> remove;
         if (f.shell_face >= 0) {
             TopoDS_Face fc = GeometryEngine::face_by_index(result, f.shell_face);
             if (!fc.IsNull()) remove.Append(fc);
@@ -2769,7 +2770,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         // ponytail: neutral plane / pull direction fixed to world up; pick-based neutral plane
         // deferred (same as the datum-plane pick types, dgv).
         Bnd_Box bb; BRepBndLib::Add(result, bb);
-        Standard_Real xmin, ymin, zmin, xmax, ymax, zmax;
+        double xmin, ymin, zmin, xmax, ymax, zmax;
         bb.Get(xmin, ymin, zmin, xmax, ymax, zmax);
         gp_Dir pull(0, 0, 1);
         gp_Pln neutral(gp_Pnt(0, 0, zmin), pull);
@@ -2850,7 +2851,7 @@ void CadDocument::apply_boolean(std::vector<CadBody>& bodies, const CadFeature& 
     const TopoDS_Shape B = bodies[tool].shape;         // tool, consumed unless kept
     if (A.IsNull() || B.IsNull()) return;
 
-    TopTools_ListOfShape args, tools;
+    NCollection_List<TopoDS_Shape> args, tools;
     args.Append(A);
     tools.Append(B);
     auto run = [&](BRepAlgoAPI_BooleanOperation& bop) -> TopoDS_Shape {
@@ -3091,7 +3092,7 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
     int n_faces = 0;
     for (TopExp_Explorer fe(sheet, TopAbs_FACE); fe.More(); fe.Next()) ++n_faces;
 
-    TopTools_ListOfShape caps;
+    NCollection_List<TopoDS_Shape> caps;
     if (n_faces > 1) {
         ShapeAnalysis_FreeBounds fb(sheet);
         for (TopExp_Explorer we(fb.GetClosedWires(), TopAbs_WIRE); we.More(); we.Next()) {
@@ -3113,7 +3114,7 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
     } else {
         BRepBuilderAPI_Sewing sewer(1.0e-3);
         sewer.Add(sheet);
-        for (TopTools_ListIteratorOfListOfShape it(caps); it.More(); it.Next())
+        for (NCollection_List<TopoDS_Shape>::Iterator it(caps); it.More(); it.Next())
             sewer.Add(it.Value());
         sewer.Perform();
 
@@ -3674,13 +3675,8 @@ bool CadDocument::recompute()
                 if (b.source_feature < 0)
                     b.source_feature = int(fi);
         }
-    } catch (const Standard_Failure& e) {
-        // OCCT raises Standard_Failure (NOT a std::exception) — must be caught
-        // here or it escapes the event handler and terminates the app.
-        error = e.GetMessageString() ? e.GetMessageString() : "OCCT operation failed";
-        return false;
     } catch (const std::exception& e) {
-        error = e.what();
+        error = *e.what() ? e.what() : "OCCT operation failed";
         return false;
     } catch (...) {
         error = "unknown geometry error";
@@ -3782,11 +3778,8 @@ bool CadDocument::preview(const CadFeature& candidate, TriangleMesh& out_mesh,
     std::vector<CadBody> tmp = bodies;     // start from the current committed bodies
     try {
         route_feature(tmp, candidate);     // candidate may append a new body or mutate one
-    } catch (const Standard_Failure& e) {
-        err = e.GetMessageString() ? e.GetMessageString() : "OCCT operation failed";
-        return false;
     } catch (const std::exception& e) {
-        err = e.what();
+        err = *e.what() ? e.what() : "OCCT operation failed";
         return false;
     } catch (...) {
         err = "unknown geometry error";
@@ -3986,13 +3979,9 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
         error = "saved with an older version of the Design tab (format v"
               + std::to_string(v) + "); this project cannot be opened by this build";
         return false;
-    } catch (const Standard_Failure& e) {
-        const char* what = e.GetMessageString();
-        error = std::string("CAD data could not be read")
-              + (what && *what ? ": " + std::string(what) : "");
-        return false;
     } catch (const std::exception& e) {
-        error = std::string("CAD data could not be read: ") + e.what();
+        error = std::string("CAD data could not be read")
+              + (*e.what() ? ": " + std::string(e.what()) : "");
         return false;
     } catch (...) {
         error = "CAD data could not be read";
@@ -4034,11 +4023,8 @@ bool CadDocument::export_step(const std::string& path,
             err = "cannot write STEP file";
             return false;
         }
-    } catch (const Standard_Failure& e) {
-        err = e.GetMessageString() ? e.GetMessageString() : "OCCT failed to write STEP";
-        return false;
     } catch (const std::exception& e) {
-        err = e.what();
+        err = *e.what() ? e.what() : "OCCT failed to write STEP";
         return false;
     }
     return true;
@@ -4109,8 +4095,7 @@ std::vector<CadDocument::Interference> CadDocument::check_interference(double mi
             if (bodies[j].shape.IsNull() || is_sheet_shape(bodies[j].shape)) continue;
 
             double v = 0;
-            // A boolean that blows up on one pair must not lose the report for the others,
-            // and OCCT signals those as Standard_Failure, which is NOT a std::exception.
+            // A boolean that fails on one pair must not lose the report for the others.
             try {
                 BRepAlgoAPI_Common common(bodies[i].shape, bodies[j].shape);
                 common.Build();
