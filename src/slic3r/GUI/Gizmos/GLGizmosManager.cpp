@@ -430,7 +430,7 @@ void GLGizmosManager::refresh_on_off_state()
 
 void GLGizmosManager::reset_all_states()
 {
-    if (! m_enabled || m_serializing)
+    if (! m_enabled || m_serializing || m_gizmos.empty())
         return;
 
     const EType current = get_current_type();
