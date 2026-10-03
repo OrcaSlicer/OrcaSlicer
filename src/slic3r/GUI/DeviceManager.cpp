@@ -3230,6 +3230,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 if (jj.contains("support_flow_calibration") && jj["support_flow_calibration"].is_boolean())
                 {
                     is_support_pa_calibration = jj["support_flow_calibration"].get<bool>();
+                    is_support_flow_calibration =jj["support_flow_calibration"].get<bool>();
                 }
 
                 if (jj.contains("support_send_to_sd")) {

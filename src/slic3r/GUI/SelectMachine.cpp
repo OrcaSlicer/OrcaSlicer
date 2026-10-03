@@ -3130,7 +3130,8 @@ void SelectMachineDialog::update_option_opts(MachineObject *obj)
             m_checkbox_list["flow_cali"]->update_options(ops_no_auto, _L("This process determines the dynamic flow values to improve overall print quality."));
         }
     }
-    m_checkbox_list["flow_cali"]->Show(obj->is_support_pa_calibration);
+    m_checkbox_list["flow_cali"]->Show(obj->is_support_pa_calibration || obj->is_support_flow_calibration);
+
 
     update_options_layout();
 }
