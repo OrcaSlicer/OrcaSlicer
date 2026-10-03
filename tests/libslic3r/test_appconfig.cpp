@@ -13,6 +13,8 @@
 #include <ios>
 #include <string>
 
+#include <string>
+
 using namespace Slic3r;
 
 TEST_CASE("Full collision-volume previews are opt-in and retain the user's preference", "[AppConfig][ExclusionVolume]")
@@ -306,3 +308,27 @@ TEST_CASE("A backup without the checksum line is not restored", "[AppConfig][Reg
     CHECK(config.get("k").empty());
 }
 #endif
+
+TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]") {
+    AppConfig config;
+    const std::string key = "preview_reduced_detail_mode";
+
+    SECTION("a missing value becomes off") {
+        config.set_defaults();
+        REQUIRE(config.get(key) == "off");
+    }
+
+    SECTION("a known mode is kept") {
+        const std::string mode = GENERATE("off", "solid", "shell");
+        config.set(key, mode);
+        config.set_defaults();
+        REQUIRE(config.get(key) == mode);
+    }
+
+    SECTION("an unknown mode falls back to off") {
+        const std::string mode = GENERATE("layers", "outer_walls", "");
+        config.set(key, mode);
+        config.set_defaults();
+        REQUIRE(config.get(key) == "off");
+    }
+}
