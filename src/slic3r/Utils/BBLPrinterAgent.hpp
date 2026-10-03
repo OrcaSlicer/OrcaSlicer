@@ -106,6 +106,7 @@ public:
     static std::string from_orca_payload(std::string json_text);
 
 private:
+    // why: the lan/cloud DECISION stays machine-side; keep this mechanical branch in sync with publish_json.
     int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);
 };
 

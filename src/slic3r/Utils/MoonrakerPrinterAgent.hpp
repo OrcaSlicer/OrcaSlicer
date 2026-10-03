@@ -9,10 +9,47 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <chrono>
+#include <condition_variable>
+#include <deque>
+#include <functional>
 
 #include <nlohmann/json.hpp>
 
 namespace Slic3r {
+
+class Http;
+
+bool moonraker_is_light_name(const std::string& name);
+
+class MoonrakerWebsocket
+{
+public:
+    enum class ReadResult
+    {
+        message,
+        timeout,
+        closed,
+        error,
+    };
+
+    MoonrakerWebsocket(bool secure, std::string api_key, std::string ca_file);
+    ~MoonrakerWebsocket();
+
+    void connect(const std::string& host, const std::string& port, std::chrono::seconds timeout);
+    void tls_handshake(const std::string& host);
+    void handshake(const std::string& host, const std::string& target);
+    void text(bool enabled);
+    void write(const std::string& body);
+    ReadResult read(std::string& payload, std::string& error_message);
+    void close();
+    void expires_after(std::chrono::seconds timeout);
+    void abort();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
@@ -59,12 +96,20 @@ public:
     int set_on_local_connect_fn(OnLocalConnectedFn fn) override;
     int set_on_local_message_fn(OnMessageFn fn) override;
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
-
-    // Pull-mode agent (on-demand filament sync)
-    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+    CameraStreamMode get_camera_stream_mode() const override;
+    std::string get_camera_url() const override;
 
 protected:
+    struct ConnectionSettings
+    {
+        std::string dev_id;
+        std::string base_url;
+        std::string api_key;
+        bool        use_ssl = false;
+        std::string ca_file;
+    };
+
     struct MoonrakerDeviceInfo
     {
         std::string dev_id;
@@ -76,7 +121,9 @@ protected:
         std::string dev_name;
         std::string version;
         std::string klippy_state;
+        float       nozzle_diameter = 0.0f;
         bool        use_ssl = false;
+        std::string ca_file;
     } device_info;
 
     // Tray data for AMS payload building
@@ -94,11 +141,20 @@ protected:
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
 
     // Methods that derived classes may need to override or access
-    virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
-    virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+    virtual bool init_device_info(const PrinterConnectionParams& params);
+    virtual bool fetch_device_info(const ConnectionSettings& connection, MoonrakerDeviceInfo& info, std::string& error) const;
+    ConnectionSettings get_connection_settings() const;
+    void configure_http(Http& http, const ConnectionSettings& connection) const;
+    static float parse_nozzle_diameter(const nlohmann::json& response);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
+
+    // Counts detached fetch_filament_info() background threads currently touching `this`
+    // (see QidiPrinterAgent::fetch_filament_info). Those threads hold a raw `this` with no
+    // other lifetime protection, so the destructor waits for this to reach 0 before any part
+    // of the object is torn down — see ~MoonrakerPrinterAgent().
+    std::atomic<int> filament_fetch_in_flight{0};
 
     // Helpers
     bool        is_numeric(const std::string& value);
@@ -112,13 +168,29 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
+    // Send a G-code script via Moonraker (/printer/gcode/script)
+    bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
+    bool send_gcode(const std::string& dev_id, const std::string& gcode,
+                    const ConnectionSettings& connection) const;
+    bool post_print_action(const std::string& action) const;
+    bool post_print_action(const std::string& action,
+                           const ConnectionSettings& connection) const;
+
+    bool send_ws_rpc(const std::string& method, const nlohmann::json& params);
+
+    virtual void on_status_loop_tick(const std::string& dev_id) {}
+
+    // Queue work that may use agent state. The command worker is joined during
+    // destruction, so queued commands cannot outlive the agent.
+    void enqueue_command(std::function<void()> fn);
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
-    bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
-    bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
+    bool fetch_object_list(const ConnectionSettings& connection, std::set<std::string>& objects, std::string& error) const;
+    bool query_printer_status(const ConnectionSettings& connection, nlohmann::json& status, std::string& error) const;
     bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
     void send_gcode_async(const std::string& dev_id, const std::string& gcode,
                           std::function<void(bool)> on_result = {}) const;
@@ -127,10 +199,11 @@ private:
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
     void dispatch_printer_connected(const std::string& dev_id);
     void dispatch_message(const std::string& dev_id, const std::string& payload);
-    void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
+    void start_status_stream(const std::string& dev_id, ConnectionSettings connection);
     void stop_status_stream();
-    void run_status_stream(std::string dev_id, std::string base_url, std::string api_key);
-    void handle_ws_message(const std::string& dev_id, const std::string& payload);
+    void run_status_stream(std::string dev_id, ConnectionSettings connection);
+    void handle_ws_message(std::string dev_id, std::string payload, ConnectionSettings connection);
+    void refresh_thumbnail_url(const ConnectionSettings& connection);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
@@ -141,22 +214,28 @@ private:
 
     // File upload
     bool upload_gcode(const std::string& local_path, const std::string& filename,
-                      const std::string& base_url, const std::string& api_key,
+                      const ConnectionSettings& connection,
                       OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 
-    // JSON-RPC helper
-    bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,
-                              const nlohmann::json& request, std::string& response) const;
+    // Start a print of a previously uploaded G-code file (path relative to the
+    // Moonraker gcodes root).
+    bool start_print_file(const ConnectionSettings& connection,
+                          const std::string& filename, std::string& error_msg) const;
 
     // Connection thread management
     void perform_connection_async(const std::string& dev_id,
-                                   const std::string& base_url,
-                                   const std::string& api_key,
+                                   ConnectionSettings connection,
                                    uint64_t generation);
 
+    // why: a printer with no /server/webcams/list entry can still name its stream directly;
+    // subclasses (e.g. printers with a fixed webcam path) can override this instead.
+    virtual std::string webcam_stream_override(const std::string& base_url) const { return {}; }
+    void refresh_webcam_info() const;
+    bool fetch_webcam_info(const ConnectionSettings& connection, uint64_t generation) const;
+
     // System-specific filament fetch methods
-    bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
-    bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_hh_filament_info(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_moonraker_filament_data(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
@@ -182,14 +261,37 @@ private:
 
     mutable std::recursive_mutex payload_mutex;
     nlohmann::json     status_cache;
+    // note: guarded by payload_mutex; filled by refresh_thumbnail_url(), empty url = looked up, none found
+    std::string        thumbnail_filename;
+    std::string        thumbnail_url;
+    mutable std::string        webcam_stream_url;
+    mutable CameraStreamMode   webcam_stream_mode = CameraStreamMode::none;
+    mutable uint64_t            webcam_info_last_lookup_ms = 0;
+    mutable uint64_t            webcam_info_generation = 0;
+    unsigned            thumbnail_lookup_attempts = 0;
+
+    static constexpr uint64_t WEBCAM_INFO_REFRESH_INTERVAL_MS = 1000;
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection
+    bool                   assumed_light_on = false;
 
     std::atomic<bool>   ws_stop{false};
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection
     std::atomic<uint64_t> ws_last_emit_ms{0};
     std::thread         ws_thread;
+
+    // stop_status_stream() invokes ws_abort_io to wake a blocked synchronous
+    // ws.read()/ws.write()/handshake in run_status_stream(): ws_stop is only
+    // observed between reads, and Beast's expires_after() does not bound
+    // synchronous operations.
+    std::mutex             ws_abort_mutex;
+    std::function<void()>  ws_abort_io;  // guarded by ws_abort_mutex
+
+    // AMS/filament refresh cadence, independent of telemetry dispatch so a steady
+    // stream of status updates can't starve it (ws_last_emit_ms is reset by those).
+    static constexpr uint64_t AMS_REFRESH_INTERVAL_MS = 10000;
+    std::atomic<uint64_t> ams_last_fetch_ms{0};
 
     // Throttling configuration for WebSocket updates
     // Critical changes (state transitions) dispatch immediately; telemetry is throttled
@@ -200,7 +302,14 @@ private:
     // Connection thread management
     std::atomic<uint64_t>  connect_generation{0};
     std::thread            connect_thread;
-    std::recursive_mutex   connect_mutex;
+    mutable std::recursive_mutex connect_mutex;
+
+    void run_command_worker();
+    std::thread cmd_thread;
+    std::deque<std::function<void()>> cmd_queue;
+    std::mutex cmd_mutex;
+    std::condition_variable cmd_cv;
+    bool cmd_stop = false;
 };
 
 } // namespace Slic3r

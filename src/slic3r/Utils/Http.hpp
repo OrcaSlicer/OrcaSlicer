@@ -11,6 +11,8 @@
 #include "libslic3r/Exception.hpp"
 #include "libslic3r_version.h"
 
+typedef struct ssl_ctx_st SSL_CTX;
+
 #define MAX_SIZE_TO_FILE    3*1024
 
 namespace Slic3r {
@@ -198,6 +200,10 @@ public:
     // Return empty string on success or error message on fail.
     static std::string tls_global_init();
     static std::string tls_system_cert_store();
+    // Add platform root certificates to a standalone OpenSSL context. This
+    // supplements set_default_verify_paths() on platforms where OpenSSL does
+    // not use the native certificate store.
+    static void add_platform_root_certificates(SSL_CTX* ssl_context);
 
 	// converts the given string to an url_encoded_string
 	static std::string url_encode(const std::string &str);
