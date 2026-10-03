@@ -164,6 +164,9 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     }
 }
 
+// Orca: Infill patterns graded by the "tpms_adaptive" option.
+inline bool is_tpms_adaptive_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
+
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
 // than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
@@ -246,6 +249,13 @@ enum class SurfaceFillOrder {
     Outward,
     Inward,
     Count,
+};
+
+// Orca: how the adaptive TPMS density changes from the object surface to its deepest point.
+enum class TpmsAdaptiveGradient {
+    Linear,
+    Quadratic,
+    Exponential,
 };
 
 //BBS
@@ -740,6 +750,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TpmsAdaptiveGradient)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1396,6 +1407,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
     ((ConfigOptionBool,                 gyroid_optimized))
+    ((ConfigOptionBool,                 tpms_adaptive))
+    ((ConfigOptionPercent,              tpms_interior_density))
+    ((ConfigOptionEnum<TpmsAdaptiveGradient>, tpms_adaptive_gradient))
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
     ((ConfigOptionEnum<InfillPattern>, ironing_pattern))

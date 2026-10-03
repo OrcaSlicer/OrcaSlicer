@@ -32,6 +32,7 @@
 namespace Slic3r {
 
 class Surface;
+class TpmsRadialField;
 enum InfillPattern : int;
 
 namespace FillAdaptive {
@@ -89,6 +90,11 @@ struct FillParams
 
     // For Gyroid: when true, use the parameterized "optimized" variant.
     bool        gyroid_optimized { false };
+
+    // For TPMS: grade the density from the surface to the interior of the object. Density fraction.
+    bool                 tpms_adaptive { false };
+    float                tpms_interior_density { 0.f };
+    TpmsAdaptiveGradient tpms_adaptive_gradient { TpmsAdaptiveGradient::Linear };
 
     // Orca: corner smoothing factor in the range [0, 1].
     double      smooth_factor { 0. };
@@ -152,6 +158,9 @@ public:
 
     // Octree builds on mesh for usage in the adaptive cubic infill
     FillAdaptive::Octree* adapt_fill_octree = nullptr;
+
+    // Depth inside the object for the adaptive TPMS infill
+    const TpmsRadialField* tpms_radial_field = nullptr;
 
     // PrintConfig and PrintObjectConfig are used by infills that use Arachne (Concentric and FillEnsuring).
     // Orca: also used by gap fill function.
