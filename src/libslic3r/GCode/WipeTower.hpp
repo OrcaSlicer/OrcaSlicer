@@ -113,27 +113,27 @@ public:
 	struct ToolChangeResult
 	{
 		// Print heigh of this tool change.
-		float					print_z;
-		float 					layer_height;
+		float					print_z { 0.f };
+		float 					layer_height { 0.f };
 		// G-code section to be directly included into the output G-code.
 		std::string				gcode;
 		// For path preview.
 		std::vector<Extrusion> 	extrusions;
 		// Initial position, at which the wipe tower starts its action.
 		// At this position the extruder is loaded and there is no Z-hop applied.
-		Vec2f						start_pos;
+		Vec2f						start_pos { Vec2f::Zero() };
 		// Last point, at which the normal G-code generator of Slic3r shall continue.
 		// At this position the extruder is loaded and there is no Z-hop applied.
-		Vec2f						end_pos;
+		Vec2f						end_pos { Vec2f::Zero() };
 		// Time elapsed over this tool change.
 		// This is useful not only for the print time estimation, but also for the control of layer cooling.
-		float  				    elapsed_time;
+		float  				    elapsed_time { 0.f };
 
         // Is this a priming extrusion? (If so, the wipe tower rotation & translation will not be applied later)
-        bool                    priming;
+        bool                    priming { false };
 
 		bool                    is_tool_change{false};
-		Vec2f                   tool_change_start_pos;
+		Vec2f                   tool_change_start_pos { Vec2f::Zero() };
 
         // Pass a polyline so that normal G-code generator can do a wipe for us.
         // The wipe cannot be done by the wipe tower because it has to pass back
@@ -146,10 +146,10 @@ public:
         float purge_volume = 0.f;
 
         // Initial tool
-        int initial_tool;
+        int initial_tool { -1 };
 
         // New tool
-        int new_tool;
+        int new_tool { -1 };
 
         // BBS: in bbl filament_change_gcode, toolhead will be moved to the wipe tower automatically.
         // But if finish_layer_tcr is before tool_change_tcr, we have to travel to the wipe tower before
@@ -562,7 +562,7 @@ private:
     float m_bed_width; // width of the bed bounding box
     Vec2f m_bed_bottom_left; // bottom-left corner coordinates (for rectangular beds)
 
-    float m_first_layer_flow_ratio;
+    float m_first_layer_flow_ratio { 1.f };
 	float m_perimeter_width = 0.4f * Width_To_Nozzle_Ratio; // Width of an extrusion line, also a perimeter spacing for 100% infill.
     float m_nozzle_change_perimeter_width = 0.4f * Width_To_Nozzle_Ratio;
 	float m_extrusion_flow = 0.038f; //0.029f;// Extrusion flow is derived from m_perimeter_width, layer height and filament diameter.

@@ -457,3 +457,26 @@ TEST_CASE("A tower printed without a tool change is still validated against the 
     CHECK(print.wipe_tower_data(1).depth > 0.f);
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
 }
+
+// A tower level that lays nothing is merged without a travel from an undefined position, so repeated slices agree.
+// The out of range reads this guards against return whatever the allocator last left, so the
+// first slices of a process can agree; slice several times with fresh Print objects.
+TEST_CASE("Slicing one project repeatedly gives the same Type 1 tower", "[WipeTower]")
+{
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    // Keep the tower well inside the bed: the footprint check runs when the tower is generated.
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" }, { "wipe_tower_fillet_wall", "1" },
+                                    { "wipe_tower_x", "20" }, { "wipe_tower_y", "20" } });
+
+    std::vector<std::string> towers;
+    for (int i = 0; i < 6; ++i) {
+        Print print;
+        Model model;
+        init_print({ cube(12) }, print, model, config);
+        print.apply(model, config);
+        towers.emplace_back(wipe_tower_regions(gcode(print)));
+    }
+    REQUIRE_FALSE(towers.front().empty());
+    for (size_t i = 1; i < towers.size(); ++i)
+        CHECK(towers[i] == towers.front());
+}
