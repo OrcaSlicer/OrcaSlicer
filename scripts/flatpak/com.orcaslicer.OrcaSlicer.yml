@@ -229,10 +229,10 @@ modules:
         sha256: 1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30
         dest: external-packages/SLVS
 
-      # Blosc 1.17.0 (tamasmeszaros fork)
+      # Blosc 1.21.6 (tamasmeszaros fork)
       - type: file
-        url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
-        sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
+        url: https://github.com/Blosc/c-blosc/archive/refs/tags/v1.21.6.zip
+        sha256: 1919c97d55023c04aa8771ea8235b63e9da3c22e3d2a68340b33710d19c2a2eb
         dest: external-packages/Blosc
 
       # OpenEXR v2.5.5
