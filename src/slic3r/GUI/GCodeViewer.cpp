@@ -1646,6 +1646,20 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             m_belt_layer_zs.clear();
     }
 
+    // The solid model is cut at the heights of the layer range's ends, which bound the range only
+    // if the layers never drop: printed object by object, the heights start over with each object.
+    // Two layers may share a height, as layers of objects with different layer heights can.
+    m_layers_z_rising = true;
+    float prev_z = 0.0f;
+    for (size_t i = 0; i < m_viewer.get_layers_count() && m_layers_z_rising; ++i) {
+        const float z = m_viewer.get_layer_z(i);
+        // a layer with no extrusion has no height
+        if (z == 0.0f)
+            continue;
+        m_layers_z_rising = z >= prev_z;
+        prev_z = z;
+    }
+
 // #if !VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 //     const size_t vertices_count = m_viewer.get_vertices_count();
 //     m_cog.reset();
@@ -2786,9 +2800,9 @@ void GCodeViewer::update_layers_slider_mode()
 void GCodeViewer::set_interacting(bool interacting)
 {
     // with the mode off nothing changes while dragging, and with no shells to stand in for the
-    // toolpaths the solid model would leave only the end layers
+    // toolpaths, or no single height to cut them at, the solid model would misrepresent the print
     const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
-                        (!solid_model_enabled() || !m_shells.volumes.empty());
+                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising));
     m_viewer.set_reduced_detail(interacting && usable);
 }
 

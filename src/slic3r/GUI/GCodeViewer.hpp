@@ -358,6 +358,8 @@ private:
     static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
     // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
     bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
+    // whether no layer is lower than the one before, as the solid model's cut needs
+    bool m_layers_z_rising{ true };
     void render_solid_model(int canvas_width, int canvas_height);
     // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
     void update_shell_wipe_tower(const Print& print, bool initialized);
