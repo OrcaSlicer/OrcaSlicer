@@ -150,6 +150,16 @@ static bool is_bambu_x2d_printer(const FullPrintConfig &config)
     return config.printer_model.value == "Bambu Lab X2D";
 }
 
+// Bambu dual-nozzle H2D family. Its machine start/change-filament templates reference the *_hotend
+// placeholders, so those values must follow BambuStudio's semantics (NOZZLE_ID_FOR_GCODE): the real
+// nozzle id only while a dynamic nozzle map is in use, else -1. Handing an explicit hotend index to a
+// printer without a Filament Track Switch makes the firmware reject the job (HMS 0700-8029).
+static bool is_h2d_family_printer(const FullPrintConfig &config)
+{
+    const std::string &model = config.printer_model.value;
+    return model == "Bambu Lab H2D" || model == "Bambu Lab H2D Pro";
+}
+
 // Multi-nozzle printer predicate: an extruder carries a nozzle cluster (extruder_max_nozzle_count
 // entry > 1). Today only H2C profiles trip it, so every existing single- and dual-extruder printer
 // is excluded and keeps its historic placeholder values.
@@ -171,6 +181,9 @@ static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int ho
 //    The dynamic branch is dormant today: the selector create() overload that sets the flag has no
 //    callers yet (deferred with the nozzle-assignment pipeline), so H2C currently resolves to -1.
 //  - X2D: keeps its historic -1 (single-nozzle -> falls through to the fallback helper).
+//  - H2D family (H2D / H2D Pro): consumes the *_hotend placeholders in its templates, so it takes the
+//    same rule as multi-nozzle (dynamic nozzle map -> real nozzle id, static -> -1) to match
+//    BambuStudio.
 //  - every other (existing single-nozzle) printer: keeps its historic extruder-id value, so
 //    existing g-code stays byte-identical.
 // group_result may be null on slicing paths that don't populate it -> the dynamic branch is simply
@@ -181,7 +194,7 @@ static int hotend_id_for_gcode_placeholder(const FullPrintConfig                
                                            int                                                               extruder_id,
                                            int                                                               layer_id = -1)
 {
-    if (is_multi_nozzle_printer(config)) {
+    if (is_multi_nozzle_printer(config) || is_h2d_family_printer(config)) {
         if (group_result && group_result->is_support_dynamic_nozzle_map() && filament_id >= 0)
             return group_result->get_nozzle_id(filament_id, layer_id);
         return -1;
@@ -202,15 +215,15 @@ static int nozzle_id_for_gcode_placeholder(const std::shared_ptr<MultiNozzleUtil
 // Init variants: the start-gcode init sites (first_non_support_hotend / initial_no_support_hotend /
 // current_hotend / initial_nozzle_id / filament_start current_nozzle_id) use get_first_nozzle_for_filament
 // (the nozzle a filament FIRST uses) rather than the layer-based get_nozzle_id. Same hotend-value semantics
-// as hotend_id_for_gcode_placeholder above (multi-nozzle static -> -1; dynamic branch dormant;
-// existing printers -> extruder id; X2D -> -1); they differ from the layer-based helper only on the dormant
+// as hotend_id_for_gcode_placeholder above (multi-nozzle static -> -1; H2D family static -> -1;
+// dynamic branch dormant; existing printers -> extruder id; X2D -> -1); they differ from the layer-based helper only on the dormant
 // dynamic path for a filament first used after layer 0.
 static int first_hotend_id_for_gcode_placeholder(const FullPrintConfig                                             &config,
                                                  const std::shared_ptr<MultiNozzleUtils::LayeredNozzleGroupResult> &group_result,
                                                  int                                                               filament_id,
                                                  int                                                               extruder_id)
 {
-    if (is_multi_nozzle_printer(config)) {
+    if (is_multi_nozzle_printer(config) || is_h2d_family_printer(config)) {
         if (group_result && group_result->is_support_dynamic_nozzle_map() && filament_id >= 0) {
             auto nozzle = group_result->get_first_nozzle_for_filament(filament_id);
             if (nozzle)
