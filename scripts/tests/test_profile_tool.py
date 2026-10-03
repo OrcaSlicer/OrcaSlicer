@@ -640,7 +640,8 @@ class TestCheck(TreeCase):
         self.run_command("update-index")
         rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)  # normalization also rejects the obsolete key
-        self.assertIn("Obsolete key: 'silent_mode' found in V/filament/A.json", out)
+        path = os.path.join("V", "filament", "A.json")
+        self.assertIn(f"Obsolete key: 'silent_mode' found in {path}", out)
         self.assertIn("Files with warnings : 1", out)
 
     def test_a_default_material_must_exist_somewhere(self):
@@ -940,6 +941,22 @@ class TestNormalized(TreeCase):
 # ---------------------------------------------------------------------------
 
 class TestFixVariant(TreeCase):
+    def test_filament_flow_overrides_require_one_value_per_declared_variant(self):
+        keys = ("filament_top_solid_infill_flow_ratio", "filament_set_other_flow_ratios")
+        for width in (1, 2, 3):
+            with self.subTest(width=width):
+                self.preset("filament/F.json", instantiation="true",
+                            filament_extruder_variant=["Direct Drive Standard", "Direct Drive High Flow"],
+                            **{key: ["1"] * width for key in keys})
+                apt.load_vendor_configs.cache_clear()
+                errors, out = self.width_errors()
+                self.assertEqual(errors, 0 if width == 2 else len(keys), out)
+        rc, out = self.run_command("fix-variant")
+        self.assertEqual(rc, 0, out)
+        for key in keys:
+            self.assertEqual(self.t.read("V", "filament/F.json")[key], ["1", "1"])
+        self.assertEqual(self.width_errors()[0], 0)
+
     def test_cooling_arrays_require_one_value_per_declared_variant(self):
         keys = ("fan_min_speed", "fan_max_speed", "additional_cooling_fan_speed")
         variants = ["Direct Drive Standard", "Direct Drive High Flow", "Bowden Standard"]

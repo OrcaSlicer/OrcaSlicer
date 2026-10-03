@@ -194,19 +194,33 @@ def _variant_scheme():
     initializers DynamicPrintConfig::get_parameter_size sizes by, so membership is
     the engine's own and not guessable from names. Each holds one value per variant;
     printer_options_with_variant_2, the machine_max_* limits, holds a (normal,
-    silent) pair per variant, stride 2.
+    silent) pair per variant, stride 2. Flow override keys added by
+    with_filament_flow_overrides come from PrintConfig.hpp.
     """
     with open(PRINT_CONFIG_CPP, encoding="utf-8") as f:
         source = f.read()
 
     def members(name):
-        match = re.search(r"std::set<std::string>\s+" + name + r"\s*=\s*\{(.*?)\};",
-                          source, re.DOTALL)
+        match = re.search(
+            r"std::set<std::string>\s+" + name + r"\s*=\s*"
+            r"(?:(with_filament_flow_overrides)\(\s*std::set<std::string>\s*)?"
+            r"\{(.*?)\}\s*\)?\s*;", source, re.DOTALL)
         if match is None:
             raise RuntimeError(f"{PRINT_CONFIG_CPP} no longer defines {name}")
         # An initializer can carry a commented-out entry (filament_extruder_id).
-        body = re.sub(r"//[^\n]*|/\*.*?\*/", "", match.group(1), flags=re.DOTALL)
-        return sorted(set(re.findall(r'"([^"\n]+)"', body)))
+        body = re.sub(r"//[^\n]*|/\*.*?\*/", "", match.group(2), flags=re.DOTALL)
+        keys = set(re.findall(r'"([^"\n]+)"', body))
+        if match.group(1):
+            header_path = os.path.splitext(PRINT_CONFIG_CPP)[0] + ".hpp"
+            with open(header_path, encoding="utf-8") as f:
+                header = f.read()
+            overrides = re.search(r"\bflow_ratio_overrides\s*=\s*\{\{(.*?)\}\};",
+                                  header, re.DOTALL)
+            if overrides is None:
+                raise RuntimeError(f"{header_path} no longer defines flow_ratio_overrides")
+            body = re.sub(r"//[^\n]*|/\*.*?\*/", "", overrides.group(1), flags=re.DOTALL)
+            keys.update("filament_" + key for key in re.findall(r'\{\s*"([^"\n]+)"\s*,', body))
+        return sorted(keys)
 
     return {
         "machine": ("printer_extruder_variant", {

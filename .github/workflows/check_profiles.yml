@@ -14,9 +14,10 @@ on:
     # this workflow.
     - 'resources/printers/**'
     - 'scripts/**'
-    # orca_profile_tool.py reads the variant key sets from PrintConfig.cpp, and its
+    # orca_profile_tool.py reads the variant key sets from PrintConfig.cpp/.hpp, and its
     # tests the obsolete keys, so a PR changing either must be checked against the profiles.
     - 'src/libslic3r/PrintConfig.cpp'
+    - 'src/libslic3r/PrintConfig.hpp'
     - ".github/workflows/check_profiles.yml"
 
   workflow_dispatch:
