@@ -15,7 +15,6 @@
 #include "libslic3r/Color.hpp"
 #include <string>
 #include <cstddef>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcbuffer.h>
 #include <wx/event.h>
@@ -28,6 +27,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

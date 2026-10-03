@@ -4,13 +4,19 @@
 #include "wx/aui/auibar.h"
 
 #include "SelectMachine.hpp"
-#include "DeviceManager.hpp"
 
 #include <wx/control.h>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+
+class wxFrame;
+class wxMenuEvent;
+class wxMenuItem;
+class wxMouseCaptureLostEvent;
+class wxMouseEvent;
+class wxWindow;
 
 using namespace Slic3r::GUI;
 

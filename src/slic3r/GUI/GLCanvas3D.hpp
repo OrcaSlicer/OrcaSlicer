@@ -15,11 +15,8 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Model.hpp"
 #include "libvgcode/include/Types.hpp"
-#include "libvgcode/include/PathVertex.hpp"
-#include "libslic3r/Color.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Line.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <stddef.h>
 #include <memory>
 #include <chrono>
@@ -33,7 +30,6 @@
 #include "GUI_ObjectLayers.hpp"
 #include "GLSelectionRectangle.hpp"
 #include "MeshUtils.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
@@ -54,6 +50,14 @@
 #include <wx/colour.h>
 #include <wx/time.h>
 #include <wx/timer.h>
+
+namespace Slic3r { class ColorRGBA; }
+namespace Slic3r { class DynamicPrintConfig; }
+namespace Slic3r { class GLShaderProgram; }
+namespace Slic3r { struct GCodeProcessorResult; }
+namespace Slic3r::GUI { class ImGuiWrapper; }
+namespace libvgcode { struct PathVertex; }
+struct ImVec2;
 
 class wxSizeEvent;
 class wxIdleEvent;

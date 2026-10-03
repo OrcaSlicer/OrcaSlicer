@@ -3,16 +3,11 @@
 
 #include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/StaticBox.hpp"
 #include "Widgets/WebView.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
@@ -63,7 +58,6 @@
 #include <wx/webrequest.h>
 #include <wx/timer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DeviceCore/DevManager.h"
@@ -79,6 +73,8 @@
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+
+namespace Slic3r::GUI { class Plater; }
 
 namespace fs = boost::filesystem;
 

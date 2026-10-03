@@ -120,7 +120,6 @@
 
 #include <Shiny/Shiny.h>
 
-#include "miniz_extension.hpp"
 
 using namespace std::literals::string_view_literals;
 

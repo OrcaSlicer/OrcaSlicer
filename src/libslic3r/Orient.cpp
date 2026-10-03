@@ -15,7 +15,6 @@
 #include "Model.hpp"
 #include "PrintConfig.hpp"
 #include <numeric>
-#include <ClipperUtils.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/log/trivial.hpp>
 #include <string>

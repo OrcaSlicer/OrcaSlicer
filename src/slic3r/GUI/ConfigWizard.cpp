@@ -64,7 +64,6 @@
 #include <wx/msw/dark_mode.h>
 #endif // _MSW_DARK_MODE
 
-#include "libslic3r/Platform.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/libslic3r.h"

@@ -1,4 +1,3 @@
-#include "libslic3r/libslic3r.h"
 #include "GLGizmosManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/3DScene.hpp"
@@ -56,9 +55,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoSketch.hpp"
 #endif
 
-#include "libslic3r/format.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PresetBundle.hpp"
 
 #include <boost/functional/hash.hpp>
 

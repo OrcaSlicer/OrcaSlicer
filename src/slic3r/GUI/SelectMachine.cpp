@@ -9,7 +9,6 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
@@ -133,6 +132,8 @@
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+
+namespace Slic3r { class PrintBase; }
 
 namespace fs = boost::filesystem;
 

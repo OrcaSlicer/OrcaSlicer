@@ -6,7 +6,6 @@
 #include "../ExPolygon.hpp"
 #include "../Geometry.hpp"
 #include "../ClipperUtils.hpp"
-#include "../SVG.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"

@@ -42,7 +42,6 @@
 #include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
@@ -51,17 +50,12 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Tab.hpp"
 #include "libslic3r_version.h"
-#include "wxExtensions.hpp"
 #include "PrintHostDialogs.hpp"
-#include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Flashforge.hpp"
 #include "../Utils/UndoRedo.hpp"
-#include "RemovableDriveManager.hpp"
-#include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
 #include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"

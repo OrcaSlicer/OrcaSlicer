@@ -2,14 +2,12 @@
 #include "I18N.hpp"
 
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include <wx/event.h>
 #include <wx/colour.h>
@@ -57,7 +55,6 @@
 #include <wx/toplevel.h>
 #include <wx/wrapsizer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "BindDialog.hpp"
 #include "FilamentBitmapUtils.hpp"
 

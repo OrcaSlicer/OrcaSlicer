@@ -45,11 +45,9 @@
 
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/Http.hpp"
-#include "slic3r/Utils/PresetUpdater.hpp"
 
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
-#include "I18N.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
@@ -74,6 +72,8 @@
 
 #include <atomic>
 #include <thread>
+
+class wxWindow;
 
 #ifdef _WIN32
     #include <windows.h>

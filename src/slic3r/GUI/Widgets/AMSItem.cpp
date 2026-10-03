@@ -1,6 +1,5 @@
 #include "AMSItem.hpp"
 #include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../FilamentBitmapUtils.hpp"
@@ -15,7 +14,6 @@
 #include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <wx/event.h>
-#include "slic3r/GUI/Event.hpp"
 #include <string>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
@@ -46,6 +44,8 @@
 
 #include "CalibUtils.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+
+namespace Slic3r::GUI { struct SimpleEvent; }
 
 
 

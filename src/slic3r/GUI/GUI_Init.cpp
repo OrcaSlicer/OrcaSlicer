@@ -2,13 +2,10 @@
 
 #include "libslic3r/AppConfig.hpp"
 
-#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/InstanceCheck.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "slic3r/GUI/Plater.hpp"
 
 // To show a message box if GUI initialization ends up with an exception thrown.
 #include <vector>
@@ -17,7 +14,6 @@
 #include "libslic3r/Exception.hpp"
 #include <boost/log/trivial.hpp>
 #include <ostream>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <exception>
 #include <wx/msgdlg.h>
 

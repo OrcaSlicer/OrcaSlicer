@@ -1,4 +1,3 @@
-#include "../libslic3r.h"
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
 #include "../TexturePainting.hpp"
