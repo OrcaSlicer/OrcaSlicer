@@ -1460,6 +1460,7 @@ private:
     void _render_section_view_panel(const ImVec2& bottom_left);
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
+    bool _is_mouse_over_separator_toolbar(const Vec2d& mouse_pos) const;
     void _render_collapse_toolbar() const;
     // BBS
     //void _render_view_toolbar() const;
