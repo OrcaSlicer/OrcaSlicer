@@ -1,3 +1,18 @@
+#include "ExtrusionEntity.hpp"
+#include <vector>
+#include <utility>
+#include <cstddef>
+#include "Point.hpp"
+#include <limits>
+#include <algorithm>
+#include <memory>
+#include "ExPolygon.hpp"
+#include "BoundingBox.hpp"
+#include <Eigen/Core>
+#include "Polyline.hpp"
+#include <iterator>
+#include "Line.hpp"
+#include "libslic3r.h"
 #if 0
 	#pragma optimize("", off)
 	#undef NDEBUG

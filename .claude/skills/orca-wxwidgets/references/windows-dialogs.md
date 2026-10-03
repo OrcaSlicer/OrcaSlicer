@@ -6,10 +6,9 @@ port; what Orca's `DPIDialog`/`DPIFrame` add; the Orca dialog recipe; and the `M
 Read it before writing or reviewing any dialog, frame, close handler, `Destroy()`/`delete`, or code
 that keeps a pointer to a window across an event, a `CallAfter` or a modal loop.
 
-wx cites are relative to the pinned wx 3.3.2 tree (`find deps -maxdepth 5 -type d -path
-'*dep_wxWidgets-prefix/src/dep_wxWidgets'`). wx is built with `wxBUILD_DEBUG_LEVEL=0` and
-`libslic3r_gui` with `wxDEBUG_LEVEL=0`: every wx assert quoted below is compiled out, so misuse
-fails silently (dropped call, stuck loop, freed memory), never with an assert dialog. "GTK" below
+wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth). wx is
+built with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`: every wx assert
+quoted below is compiled out, so misuse fails silently (dropped call, stuck loop, freed memory), never with an assert dialog. "GTK" below
 means wxGTK as Orca builds it on Linux: GTK3 by default (X11 or Wayland); GTK2 is only an opt-out.
 
 Contents: [Rules](#rules) · [1 Creating and parenting](#1-creating-and-parenting-windows) ·

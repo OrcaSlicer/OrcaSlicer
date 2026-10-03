@@ -5,6 +5,7 @@
 #include "../GUI_App.hpp"
 #include "../DeviceCore/DevFilaSystem.h"
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/StepCtrl.hpp"

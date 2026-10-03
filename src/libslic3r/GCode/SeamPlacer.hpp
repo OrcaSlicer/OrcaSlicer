@@ -1,12 +1,17 @@
 #ifndef libslic3r_SeamPlacer_hpp_
 #define libslic3r_SeamPlacer_hpp_
 
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <optional>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <atomic>
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Polygon.hpp"

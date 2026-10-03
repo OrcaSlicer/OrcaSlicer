@@ -1,8 +1,18 @@
 #include "SurfaceCollection.hpp"
 #include "BoundingBox.hpp"
+#include "ExPolygon.hpp"
+#include "Polygon.hpp"
+#include "Point.hpp"
 #include "SVG.hpp"
+#include "Surface.hpp"
 
+#include <initializer_list>
+#include <algorithm>
+#include <cstddef>
+#include <cstdio>
 #include <map>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

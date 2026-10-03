@@ -8,9 +8,12 @@
 // The 1->4 case is what keeps the tessellation regular - its children are similar to the parent. An
 // irregular one shows up after displacement as adjacent triangles tilting alternately, i.e. noise.
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <vector>
 
+#include "libslic3r/Point.hpp"
 #include "TextureBakeIndex.hpp"
 
 namespace Slic3r {

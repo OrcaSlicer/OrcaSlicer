@@ -1,12 +1,30 @@
 #ifndef SLASUPPORTTREEALGORITHM_H
 #define SLASUPPORTTREEALGORITHM_H
 
+#include "libslic3r/Point.hpp"
+#include <cmath>
+#include <array>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/SLA/Concurrency.hpp"
+#include <climits>
+#include <cassert>
+#include "libslic3r/SLA/SupportTree.hpp"
+#include "libslic3r/SLA/IndexedMesh.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/SLA/Pad.hpp"
 #include <cstdint>
+#include <cstdlib>
+#include <mutex>
+#include <map>
 #include <optional>
 
 #include <libslic3r/SLA/SupportTreeBuilder.hpp>
 #include <libslic3r/SLA/Clustering.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
+#include <utility>
+#include <tuple>
+#include <vector>
 
 namespace Slic3r {
 namespace sla {

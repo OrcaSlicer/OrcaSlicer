@@ -1,11 +1,27 @@
 #include "Thumbnails.hpp"
 #include "../miniz_extension.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/enum_bitmask.hpp"
 #include "format.hpp"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <qoi/qoi.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstddef>
+#include <cstdint>
+#include <ios>
 #include <jpeglib.h>
 #include <jerror.h>
+#include <miniz.h>
+#include <string_view>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <utility>
 #include <vector>
 #include <boost/algorithm/string.hpp>
 

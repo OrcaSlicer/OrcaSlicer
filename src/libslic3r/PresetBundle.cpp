@@ -1,16 +1,45 @@
 #include <atomic>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/optional/optional.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <cassert>
+#include <cctype>
 #include <chrono>
+#include <cstdio>
+#include <cstdint>
+#include <cmath>
 #include <ctime>
+#include <optional>
+#include <exception>
+#include <memory>
+#include <initializer_list>
+#include <map>
+#include <iterator>
+#include <functional>
+#include <limits>
 #include <sstream>
 
 #include "PresetBundle.hpp"
 
+#include "Config.hpp"
+#include "Exception.hpp"
+#include "AppConfig.hpp"
 #include "ParallelResolve.hpp"
+#include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
 #include "FilamentMixer.hpp"
+#include "Semver.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
@@ -25,6 +54,11 @@
 #include <numeric>
 #include <set>
 #include <fstream>
+#include <string>
+#include <tuple>
+#include <stdexcept>
+#include <unordered_map>
+#include <system_error>
 #include <unordered_set>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
@@ -43,6 +77,8 @@
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
 #include <tbb/partitioner.h>
+#include <vector>
+#include <utility>
 
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
@@ -590,13 +626,15 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
         return it->second.get();
 
     // The library loads with no base of its own, so the tree a vendor inherits from
-    // is the same one that resolves the library's own presets.
-    const std::string   library_file = std::string(ORCA_FILAMENT_LIBRARY);
-    const PresetBundle *library      = nullptr;
-    if (vendor_id != ORCA_FILAMENT_LIBRARY &&
-        (boost::filesystem::is_regular_file(root_dir / (library_file + ".json")) ||
-         (allow_cache && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"))))) {
-        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache);
+    // is the same one that resolves the library's own presets. It is only a base, so
+    // it comes from its cache whenever that is all that is installed, even when the
+    // vendor itself is parsed (a vendor updated over the air).
+    const std::string   library_file       = std::string(ORCA_FILAMENT_LIBRARY);
+    const bool          library_json       = boost::filesystem::is_regular_file(root_dir / (library_file + ".json"));
+    const bool          library_cache_only = !library_json && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"));
+    const PresetBundle *library            = nullptr;
+    if (vendor_id != ORCA_FILAMENT_LIBRARY && (library_json || library_cache_only)) {
+        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache || library_cache_only);
         if (library == nullptr) {
             error = "OrcaFilamentLibrary contains invalid presets";
             return nullptr;
@@ -2540,7 +2578,7 @@ void PresetBundle::clear_printer_hold_aliases()
 
 //BBS: add json related logic, load system presets from json
 std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_presets_from_json(
-    ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache)
+    ForwardCompatibilitySubstitutionRule compatibility_rule, bool write_caches)
 {
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, compatibility_rule %1%")%compatibility_rule;
@@ -2560,14 +2598,14 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     // The vendors below are loaded whole and against each other — the filament
     // library first, then every other vendor with it as the base — so each parse
     // is complete enough to be worth caching.
-    m_generate_vendor_caches = allow_cache && (m_generate_vendor_caches || !validation_mode);
+    m_generate_vendor_caches = write_caches && (m_generate_vendor_caches || !validation_mode);
 
     // Sorted, so any duplicate-preset warning comes out in the same order on every run.
     std::vector<VendorSource> vendors;
     for (const std::string& name : vendor_names_in(dir))
         if (name == ORCA_FILAMENT_LIBRARY || !(validation_mode && !vendor_to_validate.empty() && name != vendor_to_validate))
             vendors.push_back({ name, dir });
-    auto result = this->load_vendors(vendors, compatibility_rule, allow_cache);
+    auto result = this->load_vendors(vendors, compatibility_rule, true);
 
 	this->update_system_maps();
 
@@ -5274,7 +5312,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
 
 
 //convert the old filament preset to new one after split
-static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
+void PresetBundle::convert_filament_preset_name(const std::string& machine_name, std::string& filament_name)
 {
     auto machine_iter = filament_preset_convert.find(machine_name);
     if (machine_iter != filament_preset_convert.end())

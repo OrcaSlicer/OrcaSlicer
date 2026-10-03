@@ -184,7 +184,8 @@ class MainFrame : public DPIFrame
         std::string m_name{ "prepare_layout" };
         wxSize      m_laid_out_size;
     } m_prepare_layout_prebuild{ *this };
-    // Every LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    // Every built-in LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    // Plugin pages stay out: PluginPages destroys them at runtime.
     std::vector<LazyBase*> m_lazy_pages;
     // The latest EVT_LOAD_PRINTER_URL, applied when the web Device view is built.
     wxString              m_printer_url;

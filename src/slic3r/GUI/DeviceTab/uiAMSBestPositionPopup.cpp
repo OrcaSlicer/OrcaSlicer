@@ -13,6 +13,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/colour.h>
 #include <wx/dcclient.h>

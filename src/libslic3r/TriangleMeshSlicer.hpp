@@ -1,8 +1,14 @@
 #ifndef slic3r_TriangleMeshSlicer_hpp_
 #define slic3r_TriangleMeshSlicer_hpp_
 
+#include <cstdint>
+#include <cstddef>
 #include <functional>
+#include <utility>
 #include <vector>
+#include <admesh/stl.h>
+
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
 

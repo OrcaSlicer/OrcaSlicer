@@ -1,16 +1,23 @@
 #ifndef slic3r_PresetBundle_hpp_
 #define slic3r_PresetBundle_hpp_
 
+#include "Config.hpp"
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
+#include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
+#include "Semver.hpp"
 #include "enum_bitmask.hpp"
 
+#include <climits>
+#include <functional>
+#include <cstddef>
 #include <memory>
 #include <map>
 #include <set>
 #include <shared_mutex>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <optional>
@@ -18,6 +25,8 @@
 #include <atomic>
 #include <boost/filesystem/path.hpp>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 
 #define DEFAULT_USER_FOLDER_NAME "default"
 #define BUNDLE_STRUCTURE_JSON_NAME "bundle_structure.json"
@@ -238,6 +247,9 @@ public:
     // Keys a project keeps when its presets are loaded: those listed in its escaped
     // "different_settings_to_system" entry for the preset, plus the preset bookkeeping keys.
     static std::set<std::string> project_different_keys(const std::string &different_settings);
+    // A project filament saved under a name the current presets split per nozzle (e.g. H2D 0.6) is loaded from
+    // the preset that now holds its values.
+    static void convert_filament_preset_name(const std::string& machine_name, std::string& filament_name);
 
     PresetBundle();
     PresetBundle(const PresetBundle &rhs);
@@ -839,7 +851,9 @@ private:
 
     //std::pair<PresetsConfigSubstitutions, std::string> load_system_presets(ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json related logic
-    std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache = true);
+    // Reads each vendor from its preset cache where one covers the profile, as every load does.
+    // write_caches = false keeps a read-only load from writing caches into the data directory.
+    std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule, bool write_caches = true);
     // Update the multicolor information for filaments.
     void update_filament_multi_color();
     // Update renamed_from and alias maps of system profiles.

@@ -67,6 +67,7 @@
 #include <functional>
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/arrstr.h>
 #include <wx/dc.h>
 #include <wx/gdicmn.h>
 #include <wx/colour.h>

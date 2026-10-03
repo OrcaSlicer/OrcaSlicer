@@ -9,6 +9,7 @@
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/AmsMappingPopup.hpp"
 #include <string>
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <vector>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"

@@ -1,6 +1,10 @@
 #include "OctoPrint.hpp"
 
 #include <algorithm>
+#include <boost/optional/optional.hpp>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Exception.hpp"
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -14,8 +18,14 @@
 
 #include <curl/curl.h>
 
+#include <string>
+#include <utility>
+#include <wx/arrstr.h>
+#include <vector>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 
+#include "PrintHost.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"

@@ -381,6 +381,17 @@ void WebView::MarkScriptMessageHandlerAdded(wxWebView * webView)
     if (WebViewRef *ref = webview_ref(webView))
         ref->m_script_handler_added = true;
 }
+
+bool WebView::NeedsRecreateOnShow()
+{
+    const bool recreating = Slic3r::GUI::wxGetApp().is_recreating_gui();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": is_recreating_gui = " << recreating;
+#ifdef __WIN32__
+    return recreating;
+#else
+    return false;
+#endif
+}
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
 {

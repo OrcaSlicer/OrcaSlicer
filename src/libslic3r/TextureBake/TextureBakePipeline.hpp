@@ -13,10 +13,12 @@
 // Decimation and repair are export-only - decimation drops the output-to-input face mapping a bake
 // needs to carry per-face data forward.
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <vector>
 
+#include "libslic3r/Point.hpp"
 #include "TextureBakeDecimate.hpp"
 #include "TextureBakeDisplace.hpp"
 #include "TextureBakeIndex.hpp"

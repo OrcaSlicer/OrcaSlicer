@@ -11,6 +11,7 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/AmsMappingPopup.hpp"

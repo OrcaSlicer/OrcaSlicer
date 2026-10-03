@@ -7,7 +7,10 @@
 
 #include "Types.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace libvgcode {
 

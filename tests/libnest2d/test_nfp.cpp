@@ -1,5 +1,17 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include "libnest2d/libnest2d.hpp"
+#include <vector>
+#include "libnest2d/geometry_traits.hpp"
+#include "libnest2d/backends/libslic3r/geometries.hpp"
+#include "libnest2d/geometry_traits_nfp.hpp"
+#include "libnest2d/utils/boost_alg.hpp"
+#include "libnest2d/placers/nfpplacer.hpp"
+#include <iterator>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libnest2d_test_utils.hpp"
 
 using namespace libnest2d;

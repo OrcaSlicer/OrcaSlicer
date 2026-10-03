@@ -2,9 +2,11 @@
 #define slic3r_PreciseSeam_hpp_
 
 #include <atomic>
+#include <cstddef>
 #include <optional>
 #include <vector>
 #include <unordered_map>
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Model.hpp"

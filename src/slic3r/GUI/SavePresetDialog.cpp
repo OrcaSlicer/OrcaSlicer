@@ -21,6 +21,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>

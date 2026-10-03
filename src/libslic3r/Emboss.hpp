@@ -1,11 +1,19 @@
 #ifndef slic3r_Emboss_hpp_
 #define slic3r_Emboss_hpp_
 
+#include <string>
+#include <map>
+#include <utility>
+#include <cassert>
+#include <cstddef>
+#include <functional>
+#include <cstdint>
 #include <vector>
 #include <set>
 #include <optional>
 #include <memory>
 #include <admesh/stl.h> // indexed_triangle_set
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
 #include "EmbossShape.hpp" // ExPolygonsWithIds

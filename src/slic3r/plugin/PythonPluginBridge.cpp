@@ -3,15 +3,19 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
 #include <mutex>
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
 #include <unordered_map>
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <vector>
+#include <utility>
 
 #include "PythonInterpreter.hpp"
 #include "PluginFsUtils.hpp"
@@ -23,6 +27,8 @@
 #include "pluginTypes/pages/PagesPluginCapability.hpp"
 #include "pluginTypes/script/ScriptPluginCapability.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/gil.h>
 
 namespace py = pybind11;
 

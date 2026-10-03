@@ -78,8 +78,9 @@ Contents: [Rules](#rules) · [The wx build Orca uses](#the-wx-build-orca-uses) �
   `references/colours-dark-mode.md`.
 - The checked-out source is the tree that every wx citation in this skill refers to:
   `deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets` on macOS and
-  `deps/build/dep_wxWidgets-prefix/src/dep_wxWidgets` on Linux. Find it with
-  `find deps -maxdepth 5 -type d -path '*dep_wxWidgets-prefix/src/dep_wxWidgets'`. On macOS its
+  `deps/<tree>/dep_wxWidgets-prefix/src/dep_wxWidgets` on Linux and Windows (`deps/build` for a
+  release build; `build_win.bat` names the others). Locate it with the bash or PowerShell lookup in
+  `SKILL.md` §Ground truth. On macOS its
   `src/osx/cocoa/colour.mm` already has the patch applied.
 - **Flatpak builds wx separately.** `deps/CMakeLists.txt` leaves `dep_wxWidgets` out of the deps
   target when `FLATPAK` is set. Instead, `scripts/flatpak/com.orcaslicer.OrcaSlicer.yml` has its own

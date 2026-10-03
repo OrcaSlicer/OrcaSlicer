@@ -1,16 +1,36 @@
 #include "GCodeWriter.hpp"
+#include "Config.hpp"
 #include "CustomGCode.hpp"
+#include "Extruder.hpp"
 #include "I18N.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "PrintConfig.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry/ArcWelder.hpp"
 #include "Line.hpp"
+#include "libslic3r.h"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <array>
+#include <cstdint>
+#include <charconv>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
+#include <limits>
 #include <map>
 #include <assert.h>
 #include <GCode/GCodeProcessor.hpp>
+#include <string>
+#include <vector>
+#include <utility>
+#include <sstream>
+#include <stdexcept>
+#include <math.h>
 
 #ifdef __APPLE__
     #include <boost/spirit/include/karma.hpp>
@@ -445,31 +465,30 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
     if (EXTRUDER_LIMIT(m_max_acceleration) > 0 && acceleration > EXTRUDER_LIMIT(m_max_acceleration))
         acceleration = EXTRUDER_LIMIT(m_max_acceleration);
     
-    bool is_empty = true;
-    std::ostringstream gcode;
-    gcode << "SET_VELOCITY_LIMIT";
-    if (acceleration != 0 && acceleration != m_last_acceleration) {
-        gcode << " ACCEL=" << acceleration;
-        if (this->config.accel_to_decel_enable) {
-            gcode << " ACCEL_TO_DECEL=" << acceleration * this->config.accel_to_decel_factor / 100;
-        }
-        m_last_acceleration = acceleration;
-        is_empty = false;
-    }
     // Clamp the jerk to the allowed maximum.
     if (EXTRUDER_LIMIT(m_max_jerk_x) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_x))
         jerk = EXTRUDER_LIMIT(m_max_jerk_x);
     if (EXTRUDER_LIMIT(m_max_jerk_y) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_y))
         jerk = EXTRUDER_LIMIT(m_max_jerk_y);
 
-    if (jerk > 0.01 && !is_approx(jerk, m_last_jerk)) {
+    const bool set_acceleration = acceleration != 0 && acceleration != m_last_acceleration;
+    const bool set_jerk         = jerk > 0.01 && !is_approx(jerk, m_last_jerk);
+    if (!set_acceleration && !set_jerk)
+        return std::string();
+
+    std::ostringstream gcode;
+    gcode << "SET_VELOCITY_LIMIT";
+    if (set_acceleration) {
+        gcode << " ACCEL=" << acceleration;
+        if (this->config.accel_to_decel_enable) {
+            gcode << " ACCEL_TO_DECEL=" << acceleration * this->config.accel_to_decel_factor / 100;
+        }
+        m_last_acceleration = acceleration;
+    }
+    if (set_jerk) {
         gcode << " SQUARE_CORNER_VELOCITY=" << jerk;
         m_last_jerk = jerk;
-        is_empty = false;
     }
-
-    if(is_empty)
-        return std::string();
 
     if (GCodeWriter::full_gcode_comment)
         gcode << " ; adjust VELOCITY_LIMIT(accel/jerk)";

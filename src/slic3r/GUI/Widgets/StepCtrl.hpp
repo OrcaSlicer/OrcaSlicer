@@ -2,6 +2,7 @@
 #define slic3r_GUI_StepCtrlBase_hpp_
 
 #include "StaticBox.hpp"
+#include <wx/anybutton.h>
 #include <wx/event.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <vector>

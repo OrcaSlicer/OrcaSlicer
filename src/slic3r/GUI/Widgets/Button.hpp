@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/anybutton.h>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/string.h>

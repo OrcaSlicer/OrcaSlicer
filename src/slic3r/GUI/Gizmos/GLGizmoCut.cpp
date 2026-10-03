@@ -32,6 +32,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Line.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"

@@ -1,10 +1,17 @@
 #ifndef slic3r_ClipperUtils_hpp_
 #define slic3r_ClipperUtils_hpp_
 
+#include "Point.hpp"
+#include "Polyline.hpp"
+#include "Line.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
 #include "Surface.hpp"
+#include <cstddef>
+#include <iterator>
+#include <cassert>
+#include <vector>
 
 namespace Slic3r {
 

@@ -1,12 +1,31 @@
 #include "TriangleSelector.hpp"
+#include "Geometry.hpp"
 #include "Model.hpp"
 #include "AABBTreeIndirect.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
+#include "TriangleMesh.hpp"
 
+#include <algorithm>
+#include <array>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
+#include <cmath>
+#include <cassert>
 #include <cstddef>
+#include <cstring>
+#include <cstdint>
+#include <cstdlib>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <tbb/parallel_for.h>
+#include <utility>
+#include <vector>
+#include <queue>
 
 #ifndef NDEBUG
 //    #define EXPENSIVE_DEBUG_CHECKS

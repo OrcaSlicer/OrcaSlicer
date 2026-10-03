@@ -1,5 +1,14 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Utils.hpp"
 
 #include "test_utils.hpp"
@@ -8,10 +17,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <fstream>
+#include <ios>
+#include <iterator>
 #include <string>
 #include <thread>
 #include <system_error>
+#include <utility>
 
 #ifndef _WIN32
 #include <unistd.h>     // getuid
@@ -495,4 +508,16 @@ TEST_CASE("is_safe_to_open_file_name rejects programs and anything it does not k
         "readme", "pdf", "data.xyz", "", "...", "Manual.pdf.", "Manual.pdf ", "setup.exe:note.txt", "dir.pdf/readme");
     INFO(unsafe);
     CHECK_FALSE(is_safe_to_open_file_name(unsafe));
+}
+
+TEST_CASE("ascii_iequals compares ASCII letters regardless of case", "[Utils]") {
+    CHECK(ascii_iequals("set_velocity_limit", "SET_VELOCITY_LIMIT"));
+    CHECK(ascii_iequals("G28", "g28"));
+    CHECK(ascii_iequals("", ""));
+    CHECK_FALSE(ascii_iequals("G28", "G29"));
+    CHECK_FALSE(ascii_iequals("G2", "G28"));
+    CHECK_FALSE(ascii_iequals("G28", "G2"));
+    // Non-letters 0x20 apart are not equal.
+    CHECK_FALSE(ascii_iequals("[", "{"));
+    CHECK_FALSE(ascii_iequals("@", "`"));
 }
