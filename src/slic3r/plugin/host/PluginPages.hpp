@@ -1,5 +1,6 @@
 #pragma once
 
+#include <slic3r/GUI/LazyPage.hpp>
 #include <slic3r/GUI/WebPanel.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/pages/PagesPluginCapability.hpp>
@@ -29,8 +30,6 @@ public:
 
     void detach_capability();
     void push_message(const std::string& message);
-    void set_icon(const wxBitmap& icon) { m_icon = icon; }
-    const wxBitmap& icon() const { return m_icon; }
 
 protected:
     std::optional<std::string> page_html() override;
@@ -41,7 +40,6 @@ private:
 
     std::shared_ptr<PagesPluginCapability> m_cap;
     std::shared_ptr<std::atomic<PluginPage*>> m_lifetime;
-    wxBitmap m_icon;
 };
 
 class PluginPages
@@ -73,7 +71,13 @@ private:
     void show_overflow_menu();
     static wxString page_tab_id(const PluginCapabilityId& id);
 
-    std::map<PluginCapabilityId, PluginPage*> m_pages;
+    struct Page
+    {
+        GUI::LazyPage<PluginPage>* page{nullptr};
+        wxBitmap                   icon;
+    };
+
+    std::map<PluginCapabilityId, Page> m_pages;
     std::vector<PluginCapabilityId> m_order;
     Notebook* m_parent{nullptr};
 
