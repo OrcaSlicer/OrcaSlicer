@@ -1268,21 +1268,12 @@ void mark_boundary_segments_touching_infill(
 void Fill::connect_infill(Polylines &&infill_ordered, const ExPolygon &boundary_src, Polylines &polylines_out, const double spacing, const FillParams &params)
 {
 	assert(! boundary_src.contour.points.empty());
-    auto polygons_src = reserve_vector<const Polygon*>(boundary_src.holes.size() + 1);
-    polygons_src.emplace_back(&boundary_src.contour);
-    for (const Polygon &polygon : boundary_src.holes)
-        polygons_src.emplace_back(&polygon);
-
-    connect_infill(std::move(infill_ordered), polygons_src, get_extents(boundary_src.contour), polylines_out, spacing, params);
+    connect_infill(std::move(infill_ordered), to_polygon_ptrs(boundary_src), get_extents(boundary_src.contour), polylines_out, spacing, params);
 }
 
 void Fill::connect_infill(Polylines &&infill_ordered, const Polygons &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)
 {
-    auto polygons_src = reserve_vector<const Polygon*>(boundary_src.size());
-    for (const Polygon &polygon : boundary_src)
-        polygons_src.emplace_back(&polygon);
-
-    connect_infill(std::move(infill_ordered), polygons_src, bbox, polylines_out, spacing, params);
+    connect_infill(std::move(infill_ordered), to_polygon_ptrs(boundary_src), bbox, polylines_out, spacing, params);
 }
 
 static constexpr auto boundary_idx_unconnected = std::numeric_limits<size_t>::max();
@@ -1454,7 +1445,7 @@ static inline void mark_boundary_segments_overlapping_infill(
     }
 }
 
-BoundaryInfillGraph create_boundary_infill_graph(const Polylines &infill_ordered, const std::vector<const Polygon*> &boundary_src, const BoundingBox &bbox, const double spacing)
+BoundaryInfillGraph create_boundary_infill_graph(const Polylines &infill_ordered, const ConstPolygonPtrs &boundary_src, const BoundingBox &bbox, const double spacing)
 {
     BoundaryInfillGraph out;
     out.boundary.assign(boundary_src.size(), Points());
@@ -1602,7 +1593,7 @@ BoundingBox Fill::extended_object_bounding_box() const
     return out.scaled(sqrt(2.));
 }
 
-void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Polygon*> &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)
+void Fill::connect_infill(Polylines &&infill_ordered, const ConstPolygonPtrs &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)
 {
 	assert(! infill_ordered.empty());
     assert(params.anchor_length     >= 0.);
@@ -2269,7 +2260,7 @@ static inline std::vector<SupportArcCost> evaluate_support_arches(Polylines &inf
 }
 
 // Both the poly_with_offset and polylines_out are rotated, so the infill lines are strictly vertical.
-void Fill::connect_base_support(Polylines &&infill_ordered, const std::vector<const Polygon*> &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)
+void Fill::connect_base_support(Polylines &&infill_ordered, const ConstPolygonPtrs &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)
 {
 //    assert(! infill_ordered.empty());
     assert(params.anchor_length     >= 0.);
@@ -2728,11 +2719,7 @@ void Fill::connect_base_support(Polylines &&infill_ordered, const std::vector<co
 
 void Fill::connect_base_support(Polylines &&infill_ordered, const Polygons &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params)
 {
-    auto polygons_src = reserve_vector<const Polygon*>(boundary_src.size());
-    for (const Polygon &polygon : boundary_src)
-        polygons_src.emplace_back(&polygon);
-
-    connect_base_support(std::move(infill_ordered), polygons_src, bbox, polylines_out, spacing, params);
+    connect_base_support(std::move(infill_ordered), to_polygon_ptrs(boundary_src), bbox, polylines_out, spacing, params);
 }
 
 // Fill Multiline -Clipper2 version

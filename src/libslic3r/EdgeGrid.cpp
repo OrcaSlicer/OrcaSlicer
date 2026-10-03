@@ -48,7 +48,7 @@ void EdgeGrid::Grid::create(const Polygons &polygons, coord_t resolution)
 	create_from_m_contours(resolution);
 }
 
-void EdgeGrid::Grid::create(const std::vector<const Polygon*> &polygons, coord_t resolution)
+void EdgeGrid::Grid::create(const ConstPolygonPtrs &polygons, coord_t resolution)
 {
 	// Collect the contours.
 	m_contours.clear();
