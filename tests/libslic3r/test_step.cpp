@@ -65,7 +65,7 @@ TEST_CASE("A security classification assignment does not crash import", "[Step]"
     REQUIRE(step.mesh(&model, cancel, false) == Step::Step_Status::MESH_SUCCESS);
 
     REQUIRE(model.objects.size() == 1);
-    CHECK(model.objects.front()->volumes.size() == 1);
+    REQUIRE(model.objects.front()->volumes.size() == 1);
     CHECK(model.objects.front()->volumes.front()->mesh().facets_count() == 4); // a tetrahedron
 }
 
