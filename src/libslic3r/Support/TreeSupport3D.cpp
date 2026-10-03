@@ -12,6 +12,7 @@
 #include "BuildVolume.hpp"
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
+#include "libslic3r/Exception.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "Fill/Fill.hpp"
 #include "libslic3r/Flow.hpp"

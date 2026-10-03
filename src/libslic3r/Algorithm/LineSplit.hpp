@@ -2,6 +2,7 @@
 #define SRC_LIBSLIC3R_ALGORITHM_LINE_SPLIT_HPP_
 
 #include "ClipperZUtils.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include <cstdint>
 #include <cstddef>

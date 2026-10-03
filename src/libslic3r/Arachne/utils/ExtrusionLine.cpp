@@ -10,6 +10,7 @@
 
 #include "ExtrusionLine.hpp"
 #include "../../VariableWidth.hpp"
+#include "libslic3r/ClipperZUtils.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"

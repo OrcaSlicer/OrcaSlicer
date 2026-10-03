@@ -1,6 +1,7 @@
 #include "LineSplit.hpp"
 
 #include "AABBTreeLines.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ClipperZUtils.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Line.hpp"

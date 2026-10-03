@@ -31,7 +31,6 @@
 #include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Format/STL.hpp"
-#include "clipper2/clipper.offset.h"
 #include "format.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
