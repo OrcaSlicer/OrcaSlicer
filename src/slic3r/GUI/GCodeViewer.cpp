@@ -2450,6 +2450,8 @@ size_t GCodeViewer::shadow_casters_signature() const
                           m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
         boost::hash_combine(hash, value);
     boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    // the casters are drawn from the reduced set while dragging
+    boost::hash_combine(hash, m_viewer.is_reduced_detail());
     for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
         boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
     boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
@@ -2783,8 +2785,10 @@ void GCodeViewer::update_layers_slider_mode()
 
 void GCodeViewer::set_interacting(bool interacting)
 {
-    // with no shells to stand in for the toolpaths, the solid model would leave only the end layers
-    const bool usable = !solid_model_enabled() || !m_shells.volumes.empty();
+    // with the mode off nothing changes while dragging, and with no shells to stand in for the
+    // toolpaths the solid model would leave only the end layers
+    const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
+                        (!solid_model_enabled() || !m_shells.volumes.empty());
     m_viewer.set_reduced_detail(interacting && usable);
 }
 
