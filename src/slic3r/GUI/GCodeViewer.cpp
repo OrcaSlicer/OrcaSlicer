@@ -3540,9 +3540,11 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     // The range's end layers are drawn as toolpaths, so the solid runs from the top of the bottom
     // one to the bottom of the top one. A face of the model in either layer's plane would otherwise
     // fight the toolpaths for the same pixels and flicker while dragging.
+    // The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
+    // they are in the shells' frame as they are.
     const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
-    const float z_top = (layers[1] > 0) ? m_viewer.get_layer_z(layers[1] - 1) - m_z_offset - 0.001f : -FLT_MAX;
-    const float z_bottom = m_viewer.get_layer_z(layers[0]) - m_z_offset + 0.001f;
+    const float z_top = (layers[1] > 0) ? m_viewer.get_layer_z(layers[1] - 1) - 0.001f : -FLT_MAX;
+    const float z_bottom = m_viewer.get_layer_z(layers[0]) + 0.001f;
 
     std::vector<float> alphas;
     alphas.reserve(m_shells.volumes.volumes.size());
@@ -3574,8 +3576,8 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         const bool bottom_cut = layers[0] > 0;
         auto init_cap = [this](GLModel& cap, float z) {
             const float margin = 1.0f;
-            const Vec3f min(static_cast<float>(m_paths_bounding_box.min.x()) - margin, static_cast<float>(m_paths_bounding_box.min.y()) - margin, z + m_z_offset);
-            const Vec3f max(static_cast<float>(m_paths_bounding_box.max.x()) + margin, static_cast<float>(m_paths_bounding_box.max.y()) + margin, z + m_z_offset);
+            const Vec3f min(static_cast<float>(m_paths_bounding_box.min.x()) - margin, static_cast<float>(m_paths_bounding_box.min.y()) - margin, z);
+            const Vec3f max(static_cast<float>(m_paths_bounding_box.max.x()) + margin, static_cast<float>(m_paths_bounding_box.max.y()) + margin, z);
             GLModel::Geometry data;
             data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
             data.reserve_vertices(4);
