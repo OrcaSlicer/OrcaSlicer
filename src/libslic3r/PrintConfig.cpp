@@ -11076,7 +11076,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coStrings:
             {
                 ConfigOptionStrings * opt = this->option<ConfigOptionStrings>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<std::string> new_values;
 
                 new_values.resize(variant_count * stride);
@@ -11091,7 +11091,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coInts:
             {
                 ConfigOptionInts * opt = this->option<ConfigOptionInts>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<int> new_values;
 
                 new_values.resize(variant_count * stride);
@@ -11106,7 +11106,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coFloats:
             {
                 ConfigOptionFloats * opt = this->option<ConfigOptionFloats>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<double> new_values;
 
                 new_values.resize(variant_count * stride);
@@ -11121,7 +11121,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coPercents:
             {
                 ConfigOptionPercents * opt = this->option<ConfigOptionPercents>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<double> new_values;
 
                 new_values.resize(variant_count * stride);
@@ -11136,7 +11136,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coFloatsOrPercents:
             {
                 ConfigOptionFloatsOrPercents * opt = this->option<ConfigOptionFloatsOrPercents>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<FloatOrPercent> new_values;
 
                 new_values.resize(variant_count * stride);
@@ -11151,7 +11151,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coBools:
             {
                 ConfigOptionBools * opt = this->option<ConfigOptionBools>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<unsigned char> new_values;
 
                 new_values.resize(variant_count * stride);
@@ -11166,7 +11166,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             case coEnums:
             {
                 ConfigOptionEnumsGeneric * opt = this->option<ConfigOptionEnumsGeneric>(key);
-                if (!opt) continue;
+                if (!opt || opt->values.empty()) continue;
                 std::vector<int> new_values;
 
                 new_values.resize(variant_count * stride);
