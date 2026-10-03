@@ -27,6 +27,10 @@ allocated.
 Whatever the mode leaves out, the bottom and top layers of the visible range are kept whole: they
 are the faces the range cuts open, and the top is what the user is looking at.
 
+The realistic view's shadow-caster pass draws whichever set is bound, so the key of the static
+shadow map includes whether the reduced set is: a map built during a drag is rebuilt on release.
+With the mode off the reduced flag is never raised, and a drag changes nothing in the preview.
+
 ### Modes
 
 - `EndLayersOnly` (`solid` in the preference) keeps only the two end layers. `GCodeViewer` then
