@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CurveEditorPanel.hpp"
-#include <utility>
+#include <memory>
 #include <wx/dialog.h>
 #include "Widgets/TextInput.hpp"
 
@@ -11,34 +11,22 @@ class wxTextCtrl;
 
 namespace Slic3r::GUI {
 
-// Text rows preserve user precision, malformed input, and unchanged serialized values.
+// Reusable presentation and interaction for a wx-independent CurveModel.
 class CurveEditorDialog : public wxDialog
 {
 public:
-    using Row = std::pair<wxString, wxString>;
-    using Rows = std::vector<Row>;
+    using Rows = CurveModel::Rows;
     ~CurveEditorDialog() override;
+    const std::string& get_parameters() const { return m_model->serialized_parameters(); }
+    bool is_modified() const { return m_model->is_modified(); }
 
 protected:
     CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help,
-                      const CurveEditorAppearance& appearance);
-    // Call at the end of the derived constructor, once its model is initialized.
-    void initialize(const Rows& rows);
-    // Numeric parsing is shared; the model supplies any ordering and endpoint rules.
-    virtual wxString validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const = 0;
-    virtual CurveEditorPanel::Interpolator make_interpolator(const std::vector<double>& x, const std::vector<double>& y) const = 0;
-    virtual CurveEditorView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const = 0;
-    // Return bounds within the viewport; equal bounds lock an axis for this point.
-    virtual CurveEditorView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,
-                                       const CurveEditorView& view) const = 0;
-    virtual Rows default_rows() const = 0;
-    virtual Rows seed_rows() const = 0;
-    virtual void accept_rows(const Rows& rows) = 0;
-    virtual wxString empty_message() const { return {}; }
-    virtual wxString validate_view(const CurveEditorView&) const { return {}; }
+                      const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model);
 
 private:
     void load_points(const Rows& rows);
+    Rows read_rows() const;
     bool read_points(std::vector<double>& x, std::vector<double>& y);
     void finish_edit();
     void update_preview();
@@ -49,6 +37,7 @@ private:
     void sync_chart_range();
 
     CurveEditorAppearance m_appearance;
+    std::unique_ptr<CurveModel> m_model;
     CurveEditorPanel* m_chart;
     wxGrid* m_grid;
     wxStaticText* m_status;
