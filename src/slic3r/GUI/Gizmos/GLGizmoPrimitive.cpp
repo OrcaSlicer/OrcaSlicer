@@ -6,6 +6,16 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "libslic3r/Model.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
+#include <TopoDS_Solid.hxx>
+#include <TopoDS_Shape.hxx>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <utility>
+#include <algorithm>
+#include <imgui.h>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS

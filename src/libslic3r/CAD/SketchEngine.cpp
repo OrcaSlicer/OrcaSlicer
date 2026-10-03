@@ -1,7 +1,18 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
+#include <Standard_Handle.hxx>
+#include <GeomAbs_SurfaceType.hxx>
+#include <GeomAbs_JoinType.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <Standard_TypeDef.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
+#include <TopAbs_State.hxx>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 
 #include <BRepBuilderAPI_MakeWire.hxx>
@@ -47,8 +58,11 @@
 #include <TopoDS_Wire.hxx>
 #include <GeomAPI_IntCS.hxx>
 #include <map>
+#include <math.h>
 #include <tuple>
 #include <stdexcept>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

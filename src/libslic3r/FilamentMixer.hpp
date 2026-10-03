@@ -1,6 +1,7 @@
 #ifndef SLIC3R_FILAMENT_MIXER_HPP
 #define SLIC3R_FILAMENT_MIXER_HPP
 
+#include <cstddef>
 #include <limits>
 #include <map>
 #include <set>

@@ -6,9 +6,15 @@
 #include "libslic3r.h"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/Line.hpp"
+#include <Eigen/Core>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <tuple>
+#include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {

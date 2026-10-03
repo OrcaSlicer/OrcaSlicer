@@ -5,9 +5,16 @@
 #include "../../PyPluginTrampoline.hpp"
 
 #include "IPrinterAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include "pybind11/pybind11.h"
+#include <exception>
+#include <functional>
+#include <pybind11/pytypes.h>
+#include <boost/log/trivial.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include "slic3r/plugin/PythonInterpreter.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <stdexcept>
 #include <string>
 
 #include <type_traits>

@@ -5,9 +5,17 @@
 #include "GLCanvas3D.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
+#include <array>
 #include <igl/project.h>
 
 #include <glad/gl.h>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <utility>
+#include "libslic3r/Color.hpp"
 
 namespace Slic3r {
 namespace GUI {

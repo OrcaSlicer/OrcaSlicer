@@ -1,7 +1,18 @@
 #include "StepMeshDialog.hpp"
 
+#include "libslic3r/Format/STEP.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Thread.hpp"
 #include <thread>
+#include <wx/dialog.h>
+#include <wx/colour.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
@@ -13,6 +24,9 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include <chrono>
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/valtext.h>
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;

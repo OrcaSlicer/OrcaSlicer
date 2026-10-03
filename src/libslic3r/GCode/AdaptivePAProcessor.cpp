@@ -4,11 +4,20 @@
 // Implementation of the AdaptivePAProcessor class, responsible for processing G-code layers with adaptive pressure advance.
 
 #include "../GCode.hpp"
+#include "libslic3r/GCode/AdaptivePAInterpolator.hpp"
+#include "libslic3r/libslic3r.h"
 #include "AdaptivePAProcessor.hpp"
+#include <memory>
+#include <cstddef>
+#include <regex>
+#include <iosfwd>
+#include <algorithm>
+#include <exception>
 #include <sstream>
 #include <iostream>
 #include <cmath>
 #include <cctype>
+#include <string>
 
 namespace Slic3r {
 

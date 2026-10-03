@@ -3,6 +3,12 @@
  *
  */
 
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <numeric>
 #include <libslic3r/SLA/SupportTree.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
@@ -18,6 +24,8 @@
 #include <libnest2d/optimizers/nlopt/subplex.hpp>
 #include <boost/log/trivial.hpp>
 #include <libslic3r/I18N.hpp>
+#include <vector>
+#include <utility>
 
 //! macro used to mark string used at localization,
 //! return same string

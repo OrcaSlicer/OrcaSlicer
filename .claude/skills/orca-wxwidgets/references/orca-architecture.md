@@ -332,7 +332,9 @@ indices: pages come and go per printer and per feature flag.
   pages depending on the printer and on `use_printer_agents`; a removed page stays registered but is
   not prebuilt (its `LazyPage::in_book()` is false).
 - Plugin pages are appended by `PluginPages::initialize` (`plugin/host/PluginPages.hpp`) with
-  namespaced ids (`plugin.<plugin_key>.<name>`) that cannot collide with `TAB_ID_*`.
+  namespaced ids (`plugin.<plugin_key>.<name>`) that cannot collide with `TAB_ID_*`. Each is a
+  `LazyPage<PluginPage>` with order −1, destroyed when its capability goes away.
+  → [Deferred construction](#deferred-construction-lazy-lazypage-stagedbuild-idlescheduler)
 
 ### Preset tabs
 
@@ -529,6 +531,32 @@ the main frame does nothing to a panel after creating it.
   m_idle.add(m_diff_dialog);
   ```
   Cite: `IdleScheduler::tick`, `docs/HLSD/deferred-page-construction.md`.
+- **Rule:** A lazy page that can be destroyed while the main frame lives takes a negative order and
+  stays out of `m_lazy_pages`.
+  **Why:** `m_lazy_pages` and `PrebuildQueue` hold raw `LazyBase*` and nothing removes one
+  (`PrebuildQueue` has only `add` and `clear`). The queue calls `pending()` on every task each slice,
+  and `prebuild_pages_when_idle` reads every entry of `m_lazy_pages`, so a page destroyed while still
+  listed can be read after it is freed. A page only taken out of the book is fine: it stays registered
+  and its `pending()` is false (`MainFrame::show_device`).
+  ```cpp
+  // Right (PluginPages::create_page): order -1, and no m_lazy_pages.push_back
+  auto* page = new GUI::LazyPage<PluginPage>(m_parent, name, -1, [capability](wxWindow* parent) {
+      return new PluginPage(parent, capability);
+  });
+  ```
+  Cite: `PluginPages::create_page`, `PluginPages::remove_page`.
+- **Rule:** Remove several lazy pages from a book left to right.
+  **Why:** removing the selected page selects and shows the page before it
+  (`references/controls-dataview.md` §Book controls), and showing an unbuilt `LazyPage` while the frame
+  is shown builds it. In any other order the page before the selected one can be one removed next,
+  built only to be destroyed; left to right it is one that stays (unless the selected page is the
+  book's first).
+  ```cpp
+  // Right (PluginPages::shutdown): m_order is the tabs' left-to-right order
+  for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
+      remove_page(id);
+  ```
+  Cite: `PluginPages::shutdown`, `PluginPages::relayout`, `PluginPages::on_plugin_deregister`.
 
 ## Plater and Sidebar
 

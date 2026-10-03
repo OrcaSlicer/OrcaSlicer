@@ -15,7 +15,10 @@
 #include "../ClipperUtils.hpp"
 #include "../Flow.hpp"
 #include "../Config.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>

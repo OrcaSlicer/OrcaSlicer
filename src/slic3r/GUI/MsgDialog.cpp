@@ -1,5 +1,28 @@
 #include "MsgDialog.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/font.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <string>
+#include <vector>
+#include <utility>
+#include <cstddef>
+#include <wx/chartype.h>
+#include <wx/html/htmltag.h>
+#include <wx/dcclient.h>
+#include <functional>
+#include <cmath>
+#include <cassert>
+#include <wx/panel.h>
+#include "libslic3r/Semver.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <boost/log/trivial.hpp>
 #include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -16,6 +39,10 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
+#include <wx/toplevel.h>
+#include <wx/utils.h>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
@@ -23,6 +50,7 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
+#include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
 #include "slic3r/GUI/MainFrame.hpp"

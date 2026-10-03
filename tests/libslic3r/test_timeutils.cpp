@@ -1,10 +1,13 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Time.hpp"
 
+#include <ctime>
 #include <sstream>
 #include <iomanip>
 #include <locale>
+#include <string>
 
 using namespace Slic3r;
 

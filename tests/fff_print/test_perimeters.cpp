@@ -1,5 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Layer.hpp"
@@ -10,8 +15,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "test_helpers.hpp"

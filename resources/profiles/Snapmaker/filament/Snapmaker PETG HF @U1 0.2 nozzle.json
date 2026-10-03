@@ -6,24 +6,30 @@
 	"setting_id": "Ujul2YTBwfldFiFd",
 	"instantiation": "true",
 	"filament_extruder_variant": [
-		"Direct Drive Standard"
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	],
 	"filament_max_volumetric_speed": [
-		"1"
+		"1",
+		"2"
 	],
 	"filament_ramming_travel_time": [
+		"0",
 		"0"
 	],
 	"long_retractions_when_ec": [
+		"0",
 		"0"
 	],
 	"retraction_distances_when_ec": [
+		"0",
 		"0"
 	],
 	"compatible_printers": [
 		"Snapmaker U1 (0.2 nozzle)"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"eng_plate_temp": [
@@ -36,27 +42,34 @@
 		"20"
 	],
 	"fan_max_speed": [
+		"60",
 		"60"
 	],
 	"fan_min_speed": [
+		"30",
 		"30"
 	],
 	"filament_end_gcode": [
 		"\n\n"
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
+		"3",
 		"3"
 	],
 	"filament_multitool_ramming_volume": [
+		"5",
 		"5"
 	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
 	],
 	"filament_retraction_length": [
+		"1.5",
 		"1.5"
 	],
 	"filament_start_gcode": [
@@ -72,12 +85,15 @@
 		"80"
 	],
 	"nozzle_temperature": [
+		"245",
 		"245"
 	],
 	"nozzle_temperature_initial_layer": [
-		"245"
+		"245",
+		"230"
 	],
 	"nozzle_temperature_range_low": [
+		"230",
 		"230"
 	],
 	"overhang_fan_speed": [
@@ -102,6 +118,15 @@
 		"80"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
+	],
+	"pressure_advance": [
+		"0.03",
+		"0.0525"
+	],
+	"filament_flow_ratio": [
+		"0.95",
+		"0.955"
 	]
 }

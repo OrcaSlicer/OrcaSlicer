@@ -6,18 +6,40 @@
 #include "../Layer.hpp"
 #include "../Print.hpp"
 #include "../ShortestPath.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 
 #include "FillAdaptive.hpp"
 
 // for indexed_triangle_set
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <admesh/stl.h>
 
+#include <array>
+#include <cassert>
+#include <boost/geometry/core/cs.hpp>
+#include <boost/geometry/index/parameters.hpp>
+#include <boost/geometry/index/predicates.hpp>
+#include <boost/geometry/core/access.hpp>
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
 #include <functional>
+#include <math.h>
+#include <limits>
+#include <iterator>
 #include <numeric>
+#include <optional>
 #include <tuple>
+#include <vector>
+#include <utility>
 
 // Boost pool: Don't use mutexes to synchronize memory allocation.
 #define BOOST_POOL_NO_MT

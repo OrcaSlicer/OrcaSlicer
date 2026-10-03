@@ -1,5 +1,12 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/miniz_extension.hpp"
 
 #include "test_utils.hpp"
@@ -7,8 +14,11 @@
 #include <boost/filesystem.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <ios>
 #include <iterator>
+#include <miniz.h>
 #include <string>
 #include <utility>
 #include <vector>

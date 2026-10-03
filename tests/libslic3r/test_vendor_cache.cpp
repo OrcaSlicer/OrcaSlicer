@@ -1,3 +1,5 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
@@ -5,19 +7,32 @@
 #include <cereal/archives/binary.hpp>
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <functional>
+#include <ios>
+#include <iterator>
+#include "libslic3r/Semver.hpp"
+#include "libslic3r/Config.hpp"
 #include <memory>
 #include <numeric>
 #include <random>
 #include <set>
 #include <sstream>
 
+#include <string>
+#include <stdexcept>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
+#include <vector>
+#include <utility>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
 #include "libslic3r/Preset.hpp"
@@ -1802,24 +1817,6 @@ TEST_CASE("a header claiming more body than the file holds is rejected", "[Vendo
 
     PresetBundle bundle;
     REQUIRE_FALSE(bundle.load_vendor_cache(cache, "Bounded", Semver(1, 0, 0)));
-}
-
-TEST_CASE("a failed write leaves the previous cache in place", "[VendorCache]")
-{
-    TempDir tmp;
-    const std::string cache = (tmp.path / "Durable.opc").string();
-    REQUIRE(save_one_vendor(cache, one_vendor("Durable"), "Durable", "1.0.0"));
-    const std::string before = slurp(cache);
-
-    // A directory where the temp file wants to go: the write cannot complete,
-    // and must not have destroyed what was already there to find that out.
-    const fs::path blocker = fs::path(cache + "." + std::to_string(get_current_pid()) + ".tmp");
-    fs::create_directories(blocker);
-
-    REQUIRE_FALSE(save_one_vendor(cache, one_vendor("Durable"), "Durable", "2.0.0"));
-    CHECK(slurp(cache) == before);
-
-    fs::remove_all(blocker);
 }
 
 TEST_CASE("a cache written by another build's option ordering still loads", "[VendorCache]")

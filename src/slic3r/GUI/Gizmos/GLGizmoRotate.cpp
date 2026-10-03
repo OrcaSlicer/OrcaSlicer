@@ -10,7 +10,28 @@
 
 #include "libslic3r/PresetBundle.hpp"
 
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstddef>
 #include <glad/gl.h>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include <utility>
+#include <string>
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <math.h>
+#include <imgui.h>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <memory>
 
 namespace Slic3r {
 namespace GUI {

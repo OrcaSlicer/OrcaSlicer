@@ -94,12 +94,9 @@ set(lisbslic3r_sources
     calib.hpp
     Circle.cpp
     Circle.hpp
-    clipper.cpp
-    clipper.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
-    Clipper2Utils.cpp
-    Clipper2Utils.hpp
+    ClipperZUtils.cpp
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
@@ -306,6 +303,8 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    InstanceLock.cpp
+    InstanceLock.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
@@ -714,7 +713,6 @@ target_link_libraries(libslic3r
         ${OCCT_LIBS}
         boost_libs
         cereal::cereal
-        clipper
         Clipper2
         draco::draco
         glu-libtess

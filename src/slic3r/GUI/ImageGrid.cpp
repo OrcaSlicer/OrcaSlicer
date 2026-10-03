@@ -6,9 +6,27 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 
+#include <utility>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <wx/colour.h>
+#include <cstddef>
+#include <wx/dcclient.h>
+#include <cstring>
+#include <wx/dc.h>
+#include <cmath>
+#include <wx/chartype.h>
+#include <algorithm>
+#include <ctime>
+#include <wx/arrstr.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/timer.h>
+#include <wx/string.h>
+#include <wx/image.h>
+#include <wx/dcmemory.h>
 
 wxDEFINE_EVENT(EVT_ITEM_ACTION, wxCommandEvent);
 

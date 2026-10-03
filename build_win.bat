@@ -282,11 +282,7 @@ if "%install_deps%" == "ON" (
         call :note_failed "Visual Studio" !errorlevel!
     )
 
-    REM CMake 4 dropped pre-3.5 policy support and ships incomplete ASM_ARMASM
-    REM linker modules, which breaks Boost.Context on ARM64. CI pins the same way.
-    set "cmake_version_flag="
-    if /I "%arch%" == "ARM64" set "cmake_version_flag=--version 3.31.8"
-    call :print_and_run winget install !winget_args! --id=Kitware.CMake !cmake_version_flag!
+    call :print_and_run winget install !winget_args! --id=Kitware.CMake
     call :note_failed CMake !errorlevel!
     call :print_and_run winget install !winget_args! --id=StrawberryPerl.StrawberryPerl
     call :note_failed Perl !errorlevel!

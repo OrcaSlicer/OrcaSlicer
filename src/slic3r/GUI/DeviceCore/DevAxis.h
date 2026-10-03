@@ -1,5 +1,7 @@
 #pragma once
+#include <memory>
 #include <nlohmann/json.hpp>
+#include <string>
 #include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {

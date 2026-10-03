@@ -1,12 +1,26 @@
 #include "../GCode.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Circle.hpp"
 #include "CoolingBuffer.hpp"
+#include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <cstdlib>
+#include <cmath>
+#include <charconv>
+#include <cstring>
+#include <cstdio>
 #include <iostream>
 #include <float.h>
+#include <string>
 #include <system_error>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #if 0
     #define DEBUG

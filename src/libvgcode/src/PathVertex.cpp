@@ -3,6 +3,7 @@
 ///|/ libvgcode is released under the terms of the AGPLv3 or higher
 ///|/
 #include "../include/PathVertex.hpp"
+#include "../include/Types.hpp"
 
 namespace libvgcode {
 

@@ -11,11 +11,37 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/AMSDryControl.hpp"
+#include <wx/scrolwin.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <cstddef>
+#include <wx/event.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include <utility>
+#include <cassert>
+#include <memory>
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <cstdlib>
+#include <algorithm>
+#include <tuple>
+#include <wx/font.h>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
 #include <wx/artprov.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
 
 #include "CalibUtils.hpp"
 

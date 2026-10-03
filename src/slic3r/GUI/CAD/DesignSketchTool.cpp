@@ -5,6 +5,11 @@
 #include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <Eigen/Core>
+#include <TopoDS_Shape.hxx>
+#include <TopoDS_Face.hxx>
+#include <TopoDS_Edge.hxx>
+#include <Eigen/Geometry>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include "libslic3r/BuildVolume.hpp"
@@ -15,6 +20,19 @@
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <GL/glew.h>
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include <math.h>
+#include "libslic3r/CAD/SketchSolver.hpp"
+#include "libslic3r/Line.hpp"
+#include <string>
+#include "libslic3r/CAD/SketchInference.hpp"
+#include <utility>
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <initializer_list>
 #include <wx/gdicmn.h>
 #include <algorithm>
 #include <climits>

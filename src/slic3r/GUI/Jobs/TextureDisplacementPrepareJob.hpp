@@ -1,6 +1,7 @@
 #ifndef slic3r_TextureDisplacementPrepareJob_hpp_
 #define slic3r_TextureDisplacementPrepareJob_hpp_
 
+#include <exception>
 #include <functional>
 #include <string>
 #include <vector>

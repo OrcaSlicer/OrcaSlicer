@@ -16,6 +16,25 @@
 #include "slic3r/Utils/FileTransferUtils.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "NetworkAgent.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <functional>
+#include <cstddef>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <wx/string.h>
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <memory>
+#include <exception>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <algorithm>
+#include <regex>
+#include <tuple>
+#include <boost/chrono/duration.hpp>
+#include "slic3r/GUI/DeviceCore/DevStorage.h"
+#include <wx/event.h>
 
 namespace Slic3r {
 namespace GUI {

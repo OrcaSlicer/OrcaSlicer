@@ -1,10 +1,21 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include <cstddef>
 #include <fstream>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ParallelResolve.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -16,6 +27,23 @@
 #include <algorithm>
 #include <iostream>
 #include <initializer_list>
+#include <vector>
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/PublishSettings.hpp"
+#include <set>
+#include "libslic3r/TriangleSelector.hpp"
+#include <iterator>
+#include <miniz.h>
+
+#ifndef _WIN32
+#include <unistd.h> // geteuid
+#endif
 
 using namespace Slic3r;
 
@@ -5956,3 +5984,214 @@ TEST_CASE("A filament's variant index follows the extruder type and nozzle volum
     // the filament defines no Bowden High Flow variant
     CHECK(PresetBundle::get_filament_variant_index(filament, printer, 1, nvtHighFlow) == 0);
 }
+
+TEST_CASE("A user preset saved over by another instance while its directory loads is read again under the lock", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.config.option<ConfigOptionFloat>("layer_height", true)->value = 0.24;
+    parent.is_system = true;
+
+    // Fewer than one batch, so every file is read before the first one is committed.
+    constexpr int  children = 8;
+    static_assert(children <= int(resolve_batch_size));
+    const fs::path dir      = temp_dir.path() / PRESET_PRINT_NAME;
+    for (int i = 0; i < children; ++ i)
+        write_minimal_child(dir / ("Child " + std::to_string(i) + ".json"), "Child " + std::to_string(i), "Parent Process");
+
+    // The first commit stands in for another instance saving every other preset after
+    // they were read and before they are committed.
+    std::string first;
+    auto save_the_others = [&](Preset &preset) {
+        if (! first.empty())
+            return;
+        first = preset.name;
+        for (int i = 0; i < children; ++ i) {
+            const std::string name = "Child " + std::to_string(i);
+            if (name != first)
+                std::ofstream((dir / (name + ".json")).string())
+                    << R"({"type":"process","name":")" << name
+                    << R"(","from":"User","version":"1.0.0","inherits":"Parent Process","layer_height":"0.3"})";
+        }
+    };
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable, save_the_others);
+
+    REQUIRE_FALSE(first.empty());
+    CHECK(coll.error_count() == 0);
+    for (int i = 0; i < children; ++ i) {
+        const std::string name  = "Child " + std::to_string(i);
+        const Preset     *child = coll.find_preset(name);
+        REQUIRE(child != nullptr);
+        CHECK_THAT(child->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(name == first ? 0.24 : 0.3, 1e-9));
+    }
+}
+
+TEST_CASE("A user preset removed by another instance while its directory loads is not installed", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.is_system = true;
+
+    // Fewer than one batch, so every file is read before the first one is committed.
+    constexpr int  children = 8;
+    static_assert(children <= int(resolve_batch_size));
+    const fs::path dir      = temp_dir.path() / PRESET_PRINT_NAME;
+    for (int i = 0; i < children; ++ i)
+        write_minimal_child(dir / ("Child " + std::to_string(i) + ".json"), "Child " + std::to_string(i), "Parent Process");
+
+    std::string first;
+    auto remove_the_others = [&](Preset &preset) {
+        if (! first.empty())
+            return;
+        first = preset.name;
+        for (int i = 0; i < children; ++ i)
+            if (const std::string name = "Child " + std::to_string(i); name != first)
+                fs::remove(dir / (name + ".json"));
+    };
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable, remove_the_others);
+
+    REQUIRE_FALSE(first.empty());
+    CHECK(coll.error_count() == 0);
+    CHECK(coll.size() == 3); // the default preset, the parent and the first child
+    CHECK(coll.find_preset(first) != nullptr);
+}
+
+TEST_CASE("Without the instance lock a user preset loads but its file is not written back", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data_dir_scope(temp_dir.path());
+    // A directory where the lock file belongs, so the lock cannot be taken.
+    fs::create_directories(fs::path(user_presets_lock_path()));
+    PresetBundle       bundle;
+    const fs::path     file = temp_dir.path() / PRESET_FILAMENT_NAME / "My PLA @Test Printer.json";
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+    const std::string before = read_file(file);
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{ "Test Printer" });
+    CHECK(read_file(file) == before);
+}
+
+#ifndef _WIN32
+// File permissions stop reading only on POSIX.
+TEST_CASE("A user preset that cannot be read under the instance lock is counted and removed", "[Preset][Bundle][InstanceLock]")
+{
+    if (::geteuid() == 0)
+        SKIP("file permissions do not stop root");
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.is_system = true;
+    const fs::path file = temp_dir.path() / PRESET_PRINT_NAME / "Unreadable.json";
+    write_minimal_child(file, "Unreadable", "Parent Process");
+    fs::permissions(file, fs::no_perms);
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Unreadable") == nullptr);
+    CHECK_FALSE(fs::exists(file));
+}
+#endif
+
+#ifndef _WIN32
+// Creating a symlink needs no privilege only on POSIX.
+TEST_CASE("A user preset that is a symlink to itself is counted and removed while the rest still load", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    Preset &parent = add_inmemory_preset(coll, "Parent Process");
+    parent.is_system = true;
+    const fs::path dir = temp_dir.path() / PRESET_PRINT_NAME;
+    write_minimal_child(dir / "Good A.json", "Good A", "Parent Process");
+    write_minimal_child(dir / "Good B.json", "Good B", "Parent Process");
+    const fs::path loop = dir / "Loop.json";
+    fs::create_symlink(loop.filename(), loop);
+
+    PresetsConfigSubstitutions substitutions;
+    REQUIRE_NOTHROW(coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                                      ForwardCompatibilitySubstitutionRule::Disable));
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Good A") != nullptr);
+    CHECK(coll.find_preset("Good B") != nullptr);
+    CHECK(coll.find_preset("Loop") == nullptr);
+    boost::system::error_code ec;
+    CHECK(fs::symlink_status(loop, ec).type() == fs::file_not_found);
+}
+#endif
+
+#ifndef _WIN32
+// Creating a symlink needs no privilege only on POSIX.
+TEST_CASE("A user preset symlinked to a missing target is counted but the link is kept", "[Preset][Bundle][InstanceLock]")
+{
+    ScopedTemporaryDir   temp_dir;
+    ScopedDataDir        data_dir_scope(temp_dir.path());
+    RenameTestCollection coll;
+
+    const fs::path dir  = temp_dir.path() / PRESET_PRINT_NAME;
+    const fs::path link = dir / "Linked.json";
+    fs::create_directories(dir);
+    fs::create_symlink(temp_dir.path() / "unmounted" / "Linked.json", link);
+
+    PresetsConfigSubstitutions substitutions;
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                      ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(coll.error_count() == 1);
+    CHECK(coll.find_preset("Linked") == nullptr);
+    boost::system::error_code ec;
+    CHECK(fs::symlink_status(link, ec).type() == fs::symlink_file);
+}
+#endif
+
+#ifndef _WIN32
+// The read-only bit on a directory stops file creation only on POSIX.
+TEST_CASE("A user filament whose derived compatible printer cannot be written back still loads with the failure counted", "[Preset][Bundle]")
+{
+    if (::geteuid() == 0)
+        SKIP("a read-only directory does not stop root");
+    ScopedTemporaryDir temp_dir;
+    PresetBundle       bundle;
+    const fs::path     dir  = temp_dir.path() / PRESET_FILAMENT_NAME;
+    const fs::path     file = dir / "My PLA @Test Printer.json";
+    write_preset_with_inherits(bundle.filaments.default_preset().config, file, "My PLA @Test Printer", std::string());
+    const std::string before = read_file(file);
+
+    fs::permissions(file, fs::owner_read);
+    fs::permissions(dir, fs::owner_read | fs::owner_exe);
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+    // Restored before any assertion, so a failure never leaves an unremovable directory behind.
+    fs::permissions(dir, fs::owner_all);
+    fs::permissions(file, fs::owner_read | fs::owner_write);
+
+    const Preset *preset = bundle.filaments.find_preset("My PLA @Test Printer");
+    REQUIRE(preset != nullptr);
+    CHECK(preset->config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{ "Test Printer" });
+    CHECK(bundle.filaments.error_count() == 1);
+    CHECK(read_file(file) == before);
+}
+#endif

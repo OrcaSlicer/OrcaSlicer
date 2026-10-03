@@ -1,14 +1,26 @@
 #include "FixModelByCgal.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <exception>
+#include <cstddef>
+#include "libslic3r/Exception.hpp"
 #include <limits>
 #include <mutex>
+#include "slic3r/GUI/Widgets/ProgressDialog.hpp"
+#include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
+#include <wx/string.h>
 
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/Model.hpp"

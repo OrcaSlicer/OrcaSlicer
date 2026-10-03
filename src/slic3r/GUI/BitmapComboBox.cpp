@@ -5,6 +5,8 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 
+#include <wx/bmpcbox.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
