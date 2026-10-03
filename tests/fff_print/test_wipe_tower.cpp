@@ -22,6 +22,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_helpers.hpp"
@@ -456,4 +457,48 @@ TEST_CASE("A tower printed without a tool change is still validated against the 
     REQUIRE(print.has_wipe_tower());
     CHECK(print.wipe_tower_data(1).depth > 0.f);
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
+}
+
+TEST_CASE("The first travel to the tower does not drag the start G-code's purge line", "[WipeTower]")
+{
+    // A start G-code that ends like many real ones: primed, not retracted, just above the end of a purge line.
+    const double start_z = 1.2;
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin2");
+    config.set_deserialize_strict({
+        { "machine_start_gcode", "G28\nG1 Z0.8 F1200\nG1 X150 Y10 F3000\nG1 X190 E10 F300\nG1 Z1.2\n; PURGE_LINE_END\n" },
+        { "retract_when_changing_layer", "1,1" } });
+    const std::string gcode = slice_with_prime_tower(config);
+    REQUIRE(gcode.find("\nT1") != std::string::npos);
+    const size_t start = gcode.find("\n; PURGE_LINE_END\n");
+    REQUIRE(start != std::string::npos);
+    INFO(gcode.substr(start, 600));
+
+    // Follow the slicer's moves from the end of the start G-code to the first Z move after the first XY travel.
+    GCodeReader reader;
+    bool   retracted = false, travelled = false, done = false;
+    double lowest_z_before_travel = start_z, z_after_travel = -1.;
+    reader.parse_buffer(gcode.substr(start + 1), [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (done || (!line.cmd_is("G1") && !line.cmd_is("G0")))
+            return;
+        const bool xy = line.has(X) || line.has(Y);
+        if (!travelled) {
+            if (line.has(E) && line.e() < 0. && !xy)
+                retracted = true;
+            if (line.has(Z) && !xy)
+                lowest_z_before_travel = std::min(lowest_z_before_travel, double(line.z()));
+            if (xy && !(line.has(E) && line.e() > 0.))
+                travelled = true;
+        } else if (line.has(Z)) {
+            z_after_travel = line.z();
+            done = true;
+        }
+    });
+
+    REQUIRE(travelled);
+    // Retract before moving away, and stay at the start height until the head is over the tower.
+    CHECK(retracted);
+    CHECK(lowest_z_before_travel >= start_z - EPSILON);
+    // Then lower to the first layer there.
+    CHECK(z_after_travel > 0.);
+    CHECK(z_after_travel < start_z);
 }

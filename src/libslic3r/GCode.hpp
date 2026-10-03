@@ -41,6 +41,7 @@
 #include <array>
 #include <cstdlib>
 #include <memory>
+#include <optional>
 #include <map>
 #include <set>
 #include <string>
@@ -135,6 +136,8 @@ public:
     }
 
     std::string prime(GCode &gcodegen);
+    // Where the first tower block starts, in object coordinates.
+    std::optional<Point> first_block_start(GCode &gcodegen) const;
     void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; }
     std::string tool_change(GCode &gcodegen, int extruder_id, bool finish_layer);
     bool is_empty_wipe_tower_gcode(GCode &gcodegen, int extruder_id, bool finish_layer);

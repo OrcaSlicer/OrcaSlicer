@@ -1979,6 +1979,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode_out;
     }
 
+    std::optional<Point> WipeTowerIntegration::first_block_start(GCode &gcodegen) const
+    {
+        if (m_tool_changes.empty() || m_tool_changes.front().empty())
+            return std::nullopt;
+        const WipeTower::ToolChangeResult &tcr = m_tool_changes.front().front();
+        Vec2f pos = tcr.start_pos;
+        if (!tcr.priming) {
+            if (gcodegen.wipe_tower_type() == WipeTowerType::Type2)
+                pos = transform_wt2_pt(pos);
+            else
+                pos = Eigen::Rotation2Df(m_wipe_tower_rotation / 180.f * float(M_PI)) * pos + m_wipe_tower_pos + m_rib_offset;
+        }
+        return wipe_tower_point_to_object_point(gcodegen, pos + Vec2f(m_plate_origin(0), m_plate_origin(1)));
+    }
+
     std::string WipeTowerIntegration::prime(GCode &gcodegen)
     {
         std::string gcode;
@@ -4063,6 +4078,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 m_wipe_tower->set_wipe_tower_depth(print.get_wipe_tower_depth());
                 m_wipe_tower->set_wipe_tower_bbx(print.get_wipe_tower_bbx());
                 m_wipe_tower->set_rib_offset(print.get_rib_offset());
+                // The start G-code often ends just above a fresh purge line. Dropping to the first layer
+                // here, before any retract, pushes the nozzle into it and the travel to the tower drags it.
+                // When layer changes retract, retract first, travel to the tower at the start G-code's
+                // height and lower there.
+                const bool type2_priming = wipe_tower_type == WipeTowerType::Type2 && print.config().single_extruder_multi_material_priming;
+                const std::optional<Point> tower_start = !type2_priming && m_writer.filament() != nullptr &&
+                                                                 FILAMENT_CONFIG(retract_when_changing_layer) ?
+                                                             m_wipe_tower->first_block_start(*this) :
+                                                             std::nullopt;
+                if (tower_start) {
+                    file.write(m_writer.retract());
+                    file.write(m_writer.travel_to_xy(this->point_to_gcode(*tower_start), "Travel to the prime tower"));
+                    this->set_last_pos(*tower_start);
+                }
                 //BBS
                 file.write(m_writer.travel_to_z(initial_layer_print_height + m_config.z_offset.value, "Move to the first layer height"));
 
