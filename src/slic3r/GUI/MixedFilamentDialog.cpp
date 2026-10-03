@@ -2,16 +2,36 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <set>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dc.h>
+#include <wx/dcmemory.h>
+#include <utility>
+#include <wx/chartype.h>
+#include <tuple>
+#include <wx/arrstr.h>
 #include <wx/image.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/toplevel.h>
+#include <wx/window.h>
+#include <wx/tglbtn.h>
 #include <wx/wrapsizer.h>
 #include <wx/tokenzr.h>
 

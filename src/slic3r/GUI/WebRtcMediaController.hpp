@@ -3,6 +3,9 @@
 #include "IMediaController.hpp"
 #include <slic3r/Utils/ICameraSignalingChannel.hpp>
 
+#include <wx/gdicmn.h>
+#include <string>
+#include <utility>
 #include <wx/image.h>
 
 #include <atomic>
@@ -16,6 +19,8 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <wx/uri.h>
+#include <wx/mediactrl.h>
 
 namespace rtc {
 class DataChannel;

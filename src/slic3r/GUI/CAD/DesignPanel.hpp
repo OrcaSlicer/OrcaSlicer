@@ -1,8 +1,17 @@
 #ifndef slic3r_DesignPanel_hpp_
 #define slic3r_DesignPanel_hpp_
 
+#include <string>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <wx/accel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/treebase.h>   // wxTreeItemId
 
 #include <vector>

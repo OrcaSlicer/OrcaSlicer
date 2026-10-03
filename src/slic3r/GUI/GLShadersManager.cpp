@@ -6,7 +6,13 @@
 
 #include <cassert>
 #include <algorithm>
+#include <string>
+#include <initializer_list>
+#include <memory>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Technologies.hpp"
 #include <string_view>
+#include <utility>
 using namespace std::literals;
 
 #include <glad/gl.h>

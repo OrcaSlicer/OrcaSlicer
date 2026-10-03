@@ -1,6 +1,11 @@
 #include "TextureBakeMesh.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <algorithm>
+#include <vector>
+#include <cstdint>
+#include <cstddef>
 
 namespace Slic3r {
 namespace TextureBake {

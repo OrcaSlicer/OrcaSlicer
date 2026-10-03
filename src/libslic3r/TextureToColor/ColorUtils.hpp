@@ -1,7 +1,12 @@
 #pragma once
 
 #include "Callbacks.hpp"
+#include "libslic3r/Point.hpp"
 #include "TriMesh.hpp"
+#include <array>
+#include <cstddef>
+#include <vector>
+#include <functional>
 
 namespace Slic3r { namespace tex2color {
 

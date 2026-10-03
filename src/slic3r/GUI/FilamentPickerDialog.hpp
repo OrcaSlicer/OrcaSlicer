@@ -7,7 +7,11 @@
 #include "FilamentBitmapUtils.hpp"
 #include "Widgets/Button.hpp"
 #include "EncodedFilament.hpp"
+#include <wx/colourdata.h>
 #include <wx/dialog.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/wx.h>
 #include <wx/scrolwin.h>
 #include <wx/bitmap.h>

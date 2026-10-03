@@ -5,7 +5,11 @@
 #include <boost/polygon/polygon.hpp>
 #include <cassert>
 #include <cmath>
+#include <utility>
+#include <cstddef>
 
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "VoronoiOffset.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"

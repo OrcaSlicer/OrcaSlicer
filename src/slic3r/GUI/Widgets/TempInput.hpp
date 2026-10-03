@@ -2,6 +2,16 @@
 #define slic3r_GUI_TempInput_hpp_
 
 #include "../wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include <wx/containr.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/string.h>
+#include <wx/popupwin.h>
+#include <string>
+#include <wx/checklst.h>
+#include <wx/dc.h>
 #include <wx/textctrl.h>
 #include <wx/stattext.h>
 #include "StaticBox.hpp"

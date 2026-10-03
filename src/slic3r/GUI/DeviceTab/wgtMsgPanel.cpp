@@ -6,7 +6,14 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 
+#include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/hyperlink.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/utils.h>
 
 namespace Slic3r::GUI
 {

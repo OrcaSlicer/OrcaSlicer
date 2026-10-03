@@ -7,6 +7,14 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#include <wx/setup.h>
+#include <string>
+#include "slic3r/GUI/StagedBuild.hpp"
+#include <wx/string.h>
+#include <wx/bookctrl.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 #if wxUSE_WEBVIEW_EDGE
 #include "wx/msw/webview_edge.h"
@@ -72,9 +80,14 @@ private:
     AuxiliaryPanel*   m_auxiliary{nullptr};
     wxString   m_project_home_url;
     wxString   m_root_dir;
+    // Last show_3mf_info script, also sent whenever the page asks for it.
+    std::string m_info_script;
+    bool       m_reset_on_show{false};
     static inline std::atomic<int> m_sequence_id{8000};
 
     void show_info_editor(bool show);
+    void create_browser();
+    void reset_browser();
     
 
 public:

@@ -1,6 +1,16 @@
 #ifndef SLIC3R_GUI_FIELD_HPP
 #define SLIC3R_GUI_FIELD_HPP
 
+#include <string>
+#include <wx/string.h>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include <wx/colour.h>
+#include <wx/sizer.h>
+#include <wx/event.h>
+#include <climits>
+#include <wx/arrstr.h>
+#include <cstddef>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
     #include <wx/wx.h>

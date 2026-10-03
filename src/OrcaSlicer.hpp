@@ -1,7 +1,14 @@
 #ifndef SLIC3R_HPP
 #define SLIC3R_HPP
 
+#include <map>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
 #include <set>
+#include <string>
+#include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"

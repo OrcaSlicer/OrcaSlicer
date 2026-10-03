@@ -1,6 +1,15 @@
 #include "../ClipperUtils.hpp"
 #include "../Layer.hpp"
 #include "../Polyline.hpp"
+#include "libslic3r/Surface.hpp"
+#include <vector>
+#include "libslic3r/AABBTreeIndirect.hpp"
+#include <cstddef>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cassert>
+#include "libslic3r/Polygon.hpp"
 
 #include "RetractWhenCrossingPerimeters.hpp"
 

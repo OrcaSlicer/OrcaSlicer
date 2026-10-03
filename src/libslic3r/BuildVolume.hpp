@@ -5,9 +5,13 @@
 #include "Geometry/Circle.hpp"
 #include "Polygon.hpp"
 #include "BoundingBox.hpp"
+#include "libslic3r.h"
 #include <admesh/stl.h>
 
+#include <array>
 #include <string_view>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 

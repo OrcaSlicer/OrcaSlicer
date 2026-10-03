@@ -5,6 +5,7 @@
 #include "SegmentTemplate.hpp"
 #include "OpenGLUtils.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <array>
 

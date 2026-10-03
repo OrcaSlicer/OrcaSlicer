@@ -2,6 +2,16 @@
 #define slic3r_Auxiliary_hpp_
 
 #include "Tabbook.hpp"
+#include <array>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <boost/filesystem/path.hpp>
+#include <wx/bookctrl.h>
+#include <wx/event.h>
+#include <wx/dynarray.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <string>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -10,6 +20,7 @@
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/artprov.h>
+#include <wx/wrapsizer.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/string.h>
 #include <wx/stattext.h>

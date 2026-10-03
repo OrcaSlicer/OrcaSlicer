@@ -1,6 +1,7 @@
 #ifndef __BAMBU_NETWORKING_HPP__
 #define __BAMBU_NETWORKING_HPP__
 
+#include <cstddef>
 #include <string>
 #include <functional>
 #include <map>

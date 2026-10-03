@@ -1,8 +1,23 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <cstddef>
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 #include <string>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"

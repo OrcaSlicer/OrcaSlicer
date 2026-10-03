@@ -4,8 +4,29 @@
 #include "I18N.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
+#include "libslic3r/Utils.hpp"
+#include <string>
+#include <functional>
+#include <wx/event.h>
+#include <wx/settings.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <boost/optional/optional.hpp>
+#include <vector>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <boost/lexical_cast/bad_lexical_cast.hpp>
+#include <ostream>
+#include <chrono>
+#include <cstdio>
+#include <wx/image.h>
+#include <cstring>
+#include <deque>
+#include <fstream>
 
 #ifdef _WIN32
     #include <Windows.h>

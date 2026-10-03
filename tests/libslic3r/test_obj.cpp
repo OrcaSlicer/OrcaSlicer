@@ -1,9 +1,16 @@
+#include <array>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/OBJ.hpp"
 
 #include <boost/nowide/fstream.hpp>
+#include <string>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
 
 #include "test_utils.hpp"
 

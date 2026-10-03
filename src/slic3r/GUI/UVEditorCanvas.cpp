@@ -1,14 +1,38 @@
 #include "UVEditorCanvas.hpp"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <cstdint>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
 #include <limits>
+#include <string>
+#include <math.h>
+#include "slic3r/GUI/GLModel.hpp"
 #include <unordered_map>
 
 #include <glad/gl.h>
 
+#include <vector>
+#include <utility>
+#include <wx/colour.h>
 #include <wx/dcbuffer.h>
+#include <wx/gdicmn.h>
+#include <wx/glcanvas.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include <wx/image.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
 #include <wx/statbmp.h>
+#include <wx/window.h>
+#include <wx/utils.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/tglbtn.h>
 
 #include "3DScene.hpp"
 #include "BitmapCache.hpp"

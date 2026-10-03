@@ -6,6 +6,10 @@
 
 #include "PresetHints.hpp"
 
+#include <string>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <wx/intl.h> 
 
 #include "GUI.hpp"

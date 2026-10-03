@@ -1,9 +1,27 @@
 #include "CalibrationWizardCaliPage.hpp"
+#include "CalibUtils.hpp"
 #include "MainFrame.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <cstddef>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/StatusPanel.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <boost/log/trivial.hpp>
+#include <cassert>
+#include <string>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Utils.hpp"
+#include <wx/panel.h>
 
 namespace Slic3r { namespace GUI {
 

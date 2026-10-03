@@ -1,8 +1,14 @@
 #include "DevPrintOptions.h"
 #include "DevUtil.h"
 
+#include <boost/log/trivial.hpp>
 #include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <string>
+#include <ctime>
+#include <exception>
 
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 
 namespace Slic3r

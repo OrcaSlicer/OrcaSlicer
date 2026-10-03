@@ -1,9 +1,23 @@
 #include "calib.hpp"
 #include "BoundingBox.hpp"
 #include "Config.hpp"
+#include "Flow.hpp"
+#include "GCodeWriter.hpp"
+#include "GCode/GCodeProcessor.hpp"
+#include "CustomGCode.hpp"
 #include "Model.hpp"
 #include "GCode.hpp"
+#include "PrintConfig.hpp"
+#include <algorithm>
+#include "Point.hpp"
+#include "libslic3r.h"
 #include <cmath>
+#include <string>
+#include <sstream>
+#include <math.h>
+#include <iomanip>
+#include <vector>
+#include <cstddef>
 
 namespace Slic3r {
 

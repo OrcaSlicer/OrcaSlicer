@@ -1,10 +1,13 @@
 #ifndef slic3r_TextureDisplacement_hpp_
 #define slic3r_TextureDisplacement_hpp_
 
+#include <cstddef>
+#include <Eigen/Core>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <cereal/cereal.hpp>

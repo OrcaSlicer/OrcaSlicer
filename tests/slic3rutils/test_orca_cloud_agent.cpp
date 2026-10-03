@@ -1,3 +1,5 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
@@ -6,6 +8,7 @@
 #include <memory>
 #include <string>
 
+#include <catch2/catch_test_macros.hpp>
 #include "slic3r/Utils/OrcaCloudServiceAgent.hpp"
 #include "test_utils.hpp"
 

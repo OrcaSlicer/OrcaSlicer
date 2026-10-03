@@ -1,16 +1,23 @@
 #ifndef slic3r_PresetBundle_hpp_
 #define slic3r_PresetBundle_hpp_
 
+#include "Config.hpp"
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
+#include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
+#include "Semver.hpp"
 #include "enum_bitmask.hpp"
 
+#include <climits>
+#include <functional>
+#include <cstddef>
 #include <memory>
 #include <map>
 #include <set>
 #include <shared_mutex>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <optional>
@@ -18,6 +25,8 @@
 #include <atomic>
 #include <boost/filesystem/path.hpp>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 
 #define DEFAULT_USER_FOLDER_NAME "default"
 #define BUNDLE_STRUCTURE_JSON_NAME "bundle_structure.json"

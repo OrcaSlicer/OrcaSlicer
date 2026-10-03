@@ -1,5 +1,11 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/GCode/ExtrusionProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
@@ -9,7 +15,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Model.hpp"
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace Slic3r;

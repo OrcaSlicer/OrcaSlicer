@@ -1,5 +1,16 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
+#include "libslic3r/PrintConfig.hpp"
+#include <string>
+#include <cstddef>
+#include "libslic3r/Model.hpp"
+#include <vector>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/PrintBase.hpp"
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/Print.hpp"

@@ -1,6 +1,7 @@
 #ifndef slic3r_GeometryEngine_hpp_
 #define slic3r_GeometryEngine_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -8,6 +9,8 @@
 #include <BRepPrimAPI_MakeSphere.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeTorus.hxx>
+#include <TopoDS_Shape.hxx>
+#include <array>
 #include <gp_Ax2.hxx>
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_Face.hxx>

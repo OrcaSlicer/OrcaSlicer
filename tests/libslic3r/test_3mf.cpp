@@ -1,4 +1,9 @@
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
@@ -14,6 +19,15 @@
 
 #include "test_utils.hpp"
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <cstddef>
+#include <miniz.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <memory>
+#include <cstdint>
+#include <ios>
 #include <nlohmann/json.hpp>
 
 #include <boost/filesystem/operations.hpp>
@@ -25,8 +39,12 @@
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <string>
+#include <sstream>
 #include <type_traits> // for std::enable_if_t
 #include <typeinfo>    // for typeid
+#include <vector>
+#include <utility>
 
 namespace Catch {
     template <typename T>

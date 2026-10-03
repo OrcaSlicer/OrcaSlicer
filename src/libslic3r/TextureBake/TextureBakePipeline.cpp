@@ -1,8 +1,21 @@
 #include "TextureBakePipeline.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <math.h>
+#include <ratio>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TextureBake/TextureBakeDisplace.hpp"
+#include "libslic3r/TextureBake/TextureBakeSubdivide.hpp"
+#include "libslic3r/TextureBake/TextureBakeRegularize.hpp"
+#include "libslic3r/TextureBake/TextureBakeRelocate.hpp"
+#include "libslic3r/TextureBake/TextureBakeFlip.hpp"
+#include "libslic3r/TextureBake/TextureBakeDecimate.hpp"
+#include "libslic3r/TextureBake/TextureBakeRepair.hpp"
 #include "TextureBakeDebug.hpp"
 
 #include <algorithm>
@@ -11,6 +24,8 @@
 #include <string>
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace TextureBake {

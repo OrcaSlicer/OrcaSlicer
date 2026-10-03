@@ -21,7 +21,9 @@
 #include <vector>
 
 #include <wx/bitmap.h>
+#include <wx/event.h>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
 
 namespace Slic3r { namespace GUI {
 

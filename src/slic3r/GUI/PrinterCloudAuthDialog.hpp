@@ -1,6 +1,8 @@
 #ifndef slic3r_GUI_PrinterCloudAuthDialog_hpp_
 #define slic3r_GUI_PrinterCloudAuthDialog_hpp_
 
+#include <wx/setup.h>
+#include <string>
 #include <wx/wx.h>
 #include <wx/font.h>
 #include <wx/colour.h>

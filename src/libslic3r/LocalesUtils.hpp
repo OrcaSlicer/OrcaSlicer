@@ -1,6 +1,7 @@
 #ifndef slic3r_LocalesUtils_hpp_
 #define slic3r_LocalesUtils_hpp_
 
+#include <cstddef>
 #include <string>
 #include <clocale>
 #include <iomanip>

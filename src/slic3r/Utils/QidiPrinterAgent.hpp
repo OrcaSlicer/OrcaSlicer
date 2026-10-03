@@ -1,6 +1,7 @@
 #ifndef __QIDI_PRINTER_AGENT_HPP__
 #define __QIDI_PRINTER_AGENT_HPP__
 
+#include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 
 #include <map>
