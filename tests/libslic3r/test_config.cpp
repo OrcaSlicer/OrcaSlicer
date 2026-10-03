@@ -29,6 +29,8 @@
 #include <vector>
 #include <utility>
 
+namespace fs = boost::filesystem;
+
 using namespace Slic3r;
 
 SCENARIO("Generic config validation performs as expected.", "[Config]") {

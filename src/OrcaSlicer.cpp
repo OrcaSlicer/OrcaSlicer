@@ -141,6 +141,8 @@ using namespace nlohmann;
 #include "slic3r/GUI/GuiColor.hpp"
 #include <GLFW/glfw3.h>
 
+namespace fs = boost::filesystem;
+
 #ifdef __WXGTK__
 #if __has_include(<X11/Xlib.h>)
 #include <X11/Xlib.h>

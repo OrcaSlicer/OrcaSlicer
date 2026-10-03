@@ -58,6 +58,8 @@
 #include <set>
 #include <string>
 
+namespace fs = boost::filesystem;
+
 using namespace Slic3r;
 namespace po = boost::program_options;
 

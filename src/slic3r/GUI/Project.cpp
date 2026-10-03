@@ -57,6 +57,8 @@
 #include "MainFrame.hpp"
 #include <slic3r/GUI/Widgets/WebView.hpp>
 
+namespace fs = boost::filesystem;
+
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_PROJECT_RELOAD, wxCommandEvent);

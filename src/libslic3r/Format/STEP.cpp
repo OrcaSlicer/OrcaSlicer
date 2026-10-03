@@ -60,6 +60,8 @@
 #include "BRepTools.hxx"
 #include <IMeshTools_Parameters.hxx>
 
+namespace fs = boost::filesystem;
+
 
 namespace Slic3r {
 

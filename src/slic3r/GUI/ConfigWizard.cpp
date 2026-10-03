@@ -83,6 +83,8 @@
 #include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
+namespace fs = boost::filesystem;
+
 #if defined(__linux__) && defined(__WXGTK3__)
 #define wxLinux_gtk3 true
 #else
