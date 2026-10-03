@@ -9,6 +9,7 @@
 #include <wx/sizer.h>
 
 #include "Lazy.hpp"
+#include <wx/notebook.h>
 
 namespace Slic3r { namespace GUI {
 

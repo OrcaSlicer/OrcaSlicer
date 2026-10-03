@@ -48,6 +48,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Flow.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {

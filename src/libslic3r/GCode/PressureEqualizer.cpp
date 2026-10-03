@@ -13,9 +13,7 @@
 #include <algorithm>
 #include <string>
 
-#include "../libslic3r.h"
 #include "../PrintConfig.hpp"
-#include "../LocalesUtils.hpp"
 #include "../GCode.hpp"
 
 #include "PressureEqualizer.hpp"
@@ -23,6 +21,8 @@
 #include "libslic3r/Exception.hpp"
 #include "fast_float/fast_float.h"
 #include "GCodeWriter.hpp"
+#include "libslic3r/GCode/PressureEqualizer.hpp"
+#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 

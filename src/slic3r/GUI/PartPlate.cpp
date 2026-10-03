@@ -75,7 +75,6 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
-#include "libslic3r/Tesselate.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
@@ -106,6 +105,15 @@
 #include <wx/event.h>
 #include <wx/image.h>
 #include <wx/gdicmn.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/SLA/Pad.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+
+class wxFont;
+namespace boost { template <class T> class optional; }
 using boost::optional;
 namespace fs = boost::filesystem;
 

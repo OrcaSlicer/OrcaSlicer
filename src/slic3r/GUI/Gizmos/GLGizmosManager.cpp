@@ -63,6 +63,13 @@
 #include <boost/functional/hash.hpp>
 
 #include <wx/glcanvas.h>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "slic3r/GUI/GLToolbar.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {

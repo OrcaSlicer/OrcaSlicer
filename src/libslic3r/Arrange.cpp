@@ -45,6 +45,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/multiprecision/integer.hpp>
 #include <boost/rational.hpp>
+#include "MultiMaterialSegmentation.hpp"
 
 namespace libnest2d {
 #if !defined(_MSC_VER) && defined(__SIZEOF_INT128__) && !defined(__APPLE__)

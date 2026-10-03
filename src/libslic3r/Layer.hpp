@@ -3,19 +3,22 @@
 
 #include "Polyline.hpp"
 #include "Polygon.hpp"
-#include "ExtrusionEntity.hpp"
 #include "Line.hpp"
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
 #include "Flow.hpp"
 #include "SurfaceCollection.hpp"
 #include "ExtrusionEntityCollection.hpp"
-#include "BoundingBox.hpp"
 #include <vector>
 #include <cstddef>
 #include <algorithm>
 #include <string>
 #include <functional>
+#include "ExPolygon.hpp"
+
+namespace Slic3r { class ExtrusionLoop; }
+namespace Slic3r { class ExtrusionMultiPath; }
+namespace Slic3r { class ExtrusionPath; }
 namespace Slic3r {
 
 class ExPolygon;

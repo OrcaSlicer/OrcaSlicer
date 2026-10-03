@@ -1,5 +1,4 @@
 #include "libslic3r/Point.hpp"
-#include "libslic3r/libslic3r.h"
 
 #include "GLToolbar.hpp"
 
@@ -11,7 +10,6 @@
 #include <boost/container_hash/hash.hpp>
 #include <boost/functional/hash.hpp>
 
-#include "slic3r/GUI/Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include <cassert>
 #include <cstddef>
@@ -22,6 +20,11 @@
 #include <wx/dcmemory.h>
 #include <wx/settings.h>
 #include <wx/glcanvas.h>
+#include "slic3r/GUI/GLTexture.hpp"
+
+class wxFont;
+namespace Slic3r::GUI { struct IntEvent; }
+namespace Slic3r::GUI { struct SimpleEvent; }
 
 namespace Slic3r {
 namespace GUI {

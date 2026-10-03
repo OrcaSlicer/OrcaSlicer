@@ -16,6 +16,9 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
 
+namespace cereal { class BinaryInputArchive; }
+namespace cereal { class BinaryOutputArchive; }
+
 namespace Slic3r {
 
 // How the preset cache writes a DynamicPrintConfig.

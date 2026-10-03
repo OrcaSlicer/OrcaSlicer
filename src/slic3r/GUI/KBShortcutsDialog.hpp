@@ -13,9 +13,17 @@
 #include <vector>
 
 #include "GUI_Utils.hpp"
-#include "Shortcuts.hpp"
-#include "wxExtensions.hpp"
 #include <wx/simplebook.h>
+
+class ScalableButton;
+class wxKeyEvent;
+class wxPanel;
+class wxSimplebook;
+class wxStaticText;
+class wxWindow;
+namespace Slic3r::GUI { enum class Shortcut : uint8_t; }
+namespace Slic3r::GUI { enum class ShortcutContext : uint8_t; }
+namespace Slic3r::GUI { enum class ShortcutSection : uint8_t; }
 
 class Button;
 class Label;

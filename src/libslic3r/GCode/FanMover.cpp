@@ -33,6 +33,8 @@
 #include <boost/log/trivial.hpp>
 #include <string>
 #include <string_view>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 */
 
 

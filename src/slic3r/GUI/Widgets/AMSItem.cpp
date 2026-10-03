@@ -45,6 +45,7 @@
 #include <wx/sizer.h>
 
 #include "CalibUtils.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 
 

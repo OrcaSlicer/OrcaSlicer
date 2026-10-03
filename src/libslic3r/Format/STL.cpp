@@ -7,6 +7,7 @@
 #include <cstring>
 #include <string>
 #include <utility>
+#include "libslic3r/Format/STL.hpp"
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'

@@ -6,8 +6,11 @@
 // hand-rolled SketchConstraints: full constraint set, real DoF counting, and
 // over-constrained (bad-constraint) detection. Solves on a fixed 2D XY workplane.
 
-#include "libslic3r/CAD/SketchEngine.hpp"
 #include <vector>
+
+namespace Slic3r { enum class SketchPointRole; }
+namespace Slic3r { struct SketchEntity; }
+namespace Slic3r { struct SketchEntityConstraintDef; }
 
 namespace Slic3r {
 

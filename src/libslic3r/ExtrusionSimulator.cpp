@@ -25,6 +25,7 @@
 #include "ExtrusionEntity.hpp"
 #include "libslic3r.h"
 #include "ExtrusionSimulator.hpp"
+#include "Polyline.hpp"
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795

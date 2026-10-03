@@ -12,17 +12,10 @@
 
 #include <boost/nowide/cstdio.hpp>
 
-#include "../libslic3r.h"
 #include "../Exception.hpp"
 #include "../Model.hpp"
-#include "../GCode.hpp"
-#include "../PrintConfig.hpp"
-#include "../Utils.hpp"
-#include "../I18N.hpp"
 #include "../Geometry.hpp"
-#include "../CustomGCode.hpp"
 #include "../LocalesUtils.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 

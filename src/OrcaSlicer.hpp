@@ -5,7 +5,6 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
-#include "libslic3r/GCode/ThumbnailData.hpp"
 #include <set>
 #include <string>
 #include <vector>
@@ -13,6 +12,10 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/AssembleList.hpp"
+
+namespace Slic3r { class Preset; }
+namespace Slic3r { struct PlateBBoxData; }
+namespace Slic3r { struct ThumbnailData; }
 
 namespace Slic3r {
 

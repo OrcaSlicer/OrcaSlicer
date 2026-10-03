@@ -42,6 +42,7 @@
 #include <wx/time.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
 namespace GUI {

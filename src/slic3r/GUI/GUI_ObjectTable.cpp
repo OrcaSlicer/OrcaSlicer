@@ -50,6 +50,11 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/toplevel.h>
 #include <wx/textctrl.h>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/GUI_ObjectTableSettings.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/defs.h>
 
 //use wxGridWindow to compute position
 //#include "wx/generic/private/grid.h"

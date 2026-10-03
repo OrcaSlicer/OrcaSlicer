@@ -11,7 +11,6 @@
 class wxTimer;
 class wxGauge;
 class wxButton;
-class wxTimerEvent;
 class wxStatusBar;
 class wxWindow;
 class wxFrame;

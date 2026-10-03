@@ -24,7 +24,6 @@
 #include "../Geometry.hpp"
 #include "../Surface.hpp"
 #include "../ShortestPath.hpp"
-#include "../VariableWidth.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Fill/FillBase.hpp"

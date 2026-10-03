@@ -42,6 +42,11 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstdlib>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+
+class TopoDS_Shape;
 
 namespace Slic3r {
 namespace GUI {

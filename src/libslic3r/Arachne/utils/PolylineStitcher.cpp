@@ -4,7 +4,6 @@
 #include "PolylineStitcher.hpp"
 
 #include "ExtrusionLine.hpp"
-#include "libslic3r/Point.hpp"
 #include "libslic3r/Arachne/utils/PolygonsPointIndex.hpp"
 #include "libslic3r/Polygon.hpp"
 

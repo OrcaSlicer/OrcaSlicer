@@ -5,8 +5,6 @@
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/Format/OBJ.hpp"
-#include "libslic3r/Format/STL.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -488,6 +486,14 @@ std::vector<std::string> role_sequence(const std::string &gcode, const std::vect
 } } // namespace Slic3r::Test
 
 #include <catch2/catch_all.hpp>
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Model.hpp"
 
 SCENARIO("init_print functionality", "[test_helpers]") {
 	GIVEN("A default config") {

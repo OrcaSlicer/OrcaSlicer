@@ -3,7 +3,6 @@
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/CommonDefs.hpp"
-#include "libslic3r/ArcFitter.hpp"
 #include "ExtrusionEntity.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "GCodeWriter.hpp"
@@ -73,6 +72,8 @@
 #include <chrono>
 
 #include "Geometry/ArcWelder.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
 
 static const float DEFAULT_TOOLPATH_WIDTH = 0.4f;
 static const float DEFAULT_TOOLPATH_HEIGHT = 0.2f;

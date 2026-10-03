@@ -32,6 +32,7 @@
 #include <wx/version.h>
 
 #include "GUI_Init.hpp"
+#include "slic3r/GUI/GLShadersManager.hpp"
 
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"

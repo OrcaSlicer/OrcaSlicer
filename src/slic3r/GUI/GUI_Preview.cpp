@@ -49,6 +49,11 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "NotificationManager.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 #ifdef _WIN32
 #include "BitmapComboBox.hpp"
