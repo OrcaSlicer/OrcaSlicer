@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <wx/dcgraph.h>
 
 namespace Slic3r {
 namespace GUI {

@@ -12,6 +12,7 @@
 #include <wx/dc.h>
 #include <wx/peninfobase.h>
 #include <algorithm>
+#include <wx/dcgraph.h>
 
 LabeledStaticBox::LabeledStaticBox()
     : state_handler(this)

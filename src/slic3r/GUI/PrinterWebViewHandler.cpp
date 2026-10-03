@@ -22,6 +22,7 @@
 #include <wx/string.h>
 #include <wx/webview.h>
 #include <wx/utils.h>
+#include <wx/buffer.h>
 
 using json = nlohmann::json;
 

@@ -53,6 +53,7 @@
 #include <wx/colour.h>
 #include <wx/time.h>
 #include <wx/timer.h>
+#include <imgui.h>
 
 class wxSizeEvent;
 class wxIdleEvent;

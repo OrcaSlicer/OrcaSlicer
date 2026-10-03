@@ -31,6 +31,9 @@
 #include "ProgressDialog.hpp"
 #include "wx/evtloop.h"
 #include "Label.hpp"
+#include <wx/event.h>
+#include <wx/gauge.h>
+#include <wx/sizer.h>
 
 // ----------------------------------------------------------------------------
 // constants

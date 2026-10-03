@@ -35,6 +35,7 @@
 #include <vector>
 #include <string_view>
 #include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}

@@ -57,6 +57,7 @@
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <wx/textctrl.h>
 
 namespace Slic3r { namespace GUI {
 

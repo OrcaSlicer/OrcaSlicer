@@ -61,6 +61,7 @@
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include <wx/dcgraph.h>
 
 namespace Slic3r {
 namespace GUI {

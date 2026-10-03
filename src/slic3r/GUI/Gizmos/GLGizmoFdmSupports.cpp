@@ -45,6 +45,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r::GUI {
 

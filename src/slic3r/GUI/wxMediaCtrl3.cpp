@@ -20,6 +20,7 @@
 #include <wx/gdicmn.h>
 #include <wx/mediactrl.h>
 #include <wx/string.h>
+#include <wx/image.h>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/log.h>

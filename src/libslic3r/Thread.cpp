@@ -23,6 +23,7 @@
 
 #include "Thread.hpp"
 #include "Utils.hpp"
+#include <cstring>
 
 namespace Slic3r {
 
