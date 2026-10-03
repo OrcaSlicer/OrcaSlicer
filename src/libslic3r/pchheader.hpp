@@ -110,19 +110,7 @@
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
 
-#include "BoundingBox.hpp"
-#include "ClipperUtils.hpp"
-#include "Config.hpp"
-#include "enum_bitmask.hpp"
-#include "format.hpp"
-#include "I18N.hpp"
-#include "MultiPoint.hpp"
-#include "Point.hpp"
-#include "Polygon.hpp"
-#include "Polyline.hpp"
-#include "SVG.hpp"
 
-#include "libslic3r.h"
 #include "libslic3r_version.h"
 
 #include <Shiny/Shiny.h>

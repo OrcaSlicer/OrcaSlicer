@@ -10,9 +10,6 @@
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
-#include "Tab.hpp"
-#include "PartPlate.hpp"
-#include "I18N.hpp"
 #include "MainFrame.hpp"
 #include <chrono>
 #include <wx/string.h>

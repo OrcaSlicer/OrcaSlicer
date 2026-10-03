@@ -1,20 +1,15 @@
 #include "wx/clipbrd.h"
 #include "wx/display.h"
 
-#include "SelectMachine.hpp"
 #include "I18N.hpp"
 
-#include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 //#include "libslic3r/Model.hpp"
 //#include "Plater.hpp"
 #include "Widgets/Label.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Tab.hpp"
-#include "format.hpp"
-#include "BitmapCache.hpp"
 #include "GUI_ObjectTable.hpp"
 #include "GUI_ObjectList.hpp"
 #include <wx/gdicmn.h>

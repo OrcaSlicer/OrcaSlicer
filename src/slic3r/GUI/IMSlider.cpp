@@ -1,5 +1,4 @@
 #include "IMSlider.hpp"
-#include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
@@ -24,7 +23,6 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <set>
 #include <wx/string.h>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <cstring>
 #include <cctype>
 #include <cstdlib>

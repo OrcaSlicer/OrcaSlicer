@@ -29,7 +29,6 @@
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include <numeric>
-#include <ClipperUtils.hpp>
 
 #include <boost/geometry/index/rtree.hpp>
 #include <utility>

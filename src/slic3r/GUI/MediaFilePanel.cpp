@@ -8,7 +8,6 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "Plater.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/SwitchButton.hpp"
 #include "Widgets/Label.hpp"
 #include "Printer/PrinterFileSystem.h"
 #include "MsgDialog.hpp"

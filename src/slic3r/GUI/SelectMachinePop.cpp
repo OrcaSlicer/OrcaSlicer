@@ -10,7 +10,6 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
@@ -53,7 +52,6 @@
 #include <wx/string.h>
 #include "Plater.hpp"
 #include "Notebook.hpp"
-#include "BitmapCache.hpp"
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"

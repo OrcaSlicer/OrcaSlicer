@@ -1,5 +1,4 @@
 #include "OptionsGroup.hpp"
-#include "ConfigExceptions.hpp"
 #include "Plater.hpp"
 #include "SettingsIndex.hpp"
 #include "GUI_App.hpp"
@@ -7,7 +6,6 @@
 #include "OG_CustomCtrl.hpp"
 #include "MsgDialog.hpp"
 #include "PluginPickerDialog.hpp"
-#include "format.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/LabeledStaticBox.hpp"
 
@@ -34,8 +32,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include "libslic3r/Exception.hpp"
-#include "libslic3r/Utils.hpp"
-#include "libslic3r/AppConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "I18N.hpp"
 #include <algorithm>

@@ -54,7 +54,6 @@
 #include "Semver.hpp"
 #include "format.hpp"
 #include "Platform.hpp"
-#include "Time.hpp"
 #include "libslic3r.h"
 // For the vendor-installation helpers: the vendor profile version
 // (get_version_from_json) and the preset cache stamp (VendorCacheFile).
@@ -120,6 +119,8 @@
 // We are using quite an old TBB 2017 U7, which does not support global control API officially.
 // Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
 #include <tbb/tbb.h>
+
+namespace boost::posix_time { class ptime; }
 #if ! defined(TBB_VERSION_MAJOR)
     #include <tbb/version.h>
 #endif

@@ -16,10 +16,6 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "Widgets/RoundedRectangle.hpp"
-#include "Widgets/StaticBox.hpp"
 
 #include <list>
 #include <vector>
@@ -41,7 +37,6 @@
 #include <optional>
 #include <wx/wx.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevFilaSwitch.h"

@@ -17,14 +17,11 @@
 #include <sstream>
 //#include "libslic3r/FlushVolCalc.hpp"
 #include "ObjColorDialog.hpp"
-#include "BitmapCache.hpp"
-#include "GUI.hpp"//for ICON_SIZE
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/Button.hpp"
 #include "MainFrame.hpp"
-#include "libslic3r/Config.hpp"
 #include "BitmapComboBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -53,6 +50,8 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/Widgets/DropDown.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
+
+class wxBitmap;
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 
