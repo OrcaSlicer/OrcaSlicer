@@ -875,7 +875,8 @@ inline int UnsavedChangesDialog::ShowModal()
         return 0;
     }
     int r = DPIDialog::ShowModal();
-    if (r != wxID_CANCEL && dynamic_cast<::CheckBox*>(FindWindowById(wxID_APPLY))->GetValue()) {
+    // Other open dialogs may also use wxID_APPLY.
+    if (r != wxID_CANCEL && static_cast<::CheckBox*>(FindWindowById(wxID_APPLY, this))->GetValue()) {
         wxGetApp().app_config->set(choise_key, std::to_string(int(m_exit_action)));
     }
     return r;

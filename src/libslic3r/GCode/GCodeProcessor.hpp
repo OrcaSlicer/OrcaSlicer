@@ -12,6 +12,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/GCode/HeatingTime.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -88,11 +89,18 @@ class Print;
         {
             float time;
             float prepare_time;
+            // Separate from `time` so the G-code estimate stays unchanged; waits count parallel heating once.
+            float heating_nozzle_time;
+            float heating_bed_time;
+            float heating_wait_time;
             std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> custom_gcode_times;
 
             void reset() {
                 time = 0.0f;
                 prepare_time = 0.0f;
+                heating_nozzle_time = 0.0f;
+                heating_bed_time = 0.0f;
+                heating_wait_time = 0.0f;
                 custom_gcode_times.clear();
                 custom_gcode_times.shrink_to_fit();
             }
@@ -1179,6 +1187,11 @@ class Print;
         ExtruderTemps m_extruder_temps;
         bool  m_is_XL_printer = false;
         int m_highest_bed_temp;
+        std::vector<HeatingEvent> m_heating_events;
+        bool m_heating_first_extrusion_seen{false};
+        HeaterCurve m_nozzle_heating_curve;
+        HeaterCurve m_bed_heating_curve;
+        float m_heating_ambient_temperature{26.f};
         float m_extruded_last_z;
         float m_first_layer_height; // mm
         float m_zero_layer_height; // mm
@@ -1276,6 +1289,7 @@ class Print;
         void finalize(bool post_process);
 
         float get_time(PrintEstimatedStatistics::ETimeMode mode) const;
+        HeatingTimes get_heating_times(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_prepare_time(PrintEstimatedStatistics::ETimeMode mode) const;
         std::string get_time_dhm(PrintEstimatedStatistics::ETimeMode mode) const;
         std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> get_custom_gcode_times(PrintEstimatedStatistics::ETimeMode mode, bool include_remaining) const;
@@ -1390,6 +1404,14 @@ class Print;
         void process_M900(const GCodeReader::GCodeLine& line);
         void process_M572(const GCodeReader::GCodeLine &line);
         void process_SET_PRESSURE_ADVANCE(const GCodeReader::GCodeLine& line);
+        void process_SET_HEATER_TEMPERATURE(const GCodeReader::GCodeLine& line);
+        void process_TEMPERATURE_WAIT(const GCodeReader::GCodeLine& line);
+        void record_heating_event(HeatingEvent::Heater heater, int index, std::optional<double> target,
+                                  std::optional<double> wait_for, bool settle);
+        void record_heating_mcode(const GCodeReader::GCodeLine& line, HeatingEvent::Heater heater, bool wait);
+        void apply_heating_config(const ConfigOptionFloat* ambient, const ConfigOptionPoints* nozzle_ramp,
+                                  const ConfigOptionPoints* nozzle_settle, const ConfigOptionPoints* bed_ramp,
+                                  const ConfigOptionPoints* bed_settle);
 
         // Set tool (Sailfish)
         void process_M108(const GCodeReader::GCodeLine& line);

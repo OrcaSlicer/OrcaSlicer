@@ -57,6 +57,7 @@
 #include <set>
 #include <sstream>
 #include <charconv>
+#include <cmath>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -2781,17 +2782,17 @@ void GCodeProcessor::register_commands()
         {"M82", [this](const GCodeReader::GCodeLine& line) { process_M82(line); }}, // Set extruder to absolute mode
         {"M83", [this](const GCodeReader::GCodeLine& line) { process_M83(line); }}, // Set extruder to relative mode
 
-        {"M104", [this](const GCodeReader::GCodeLine& line) { process_M104(line); }}, // Set extruder temperature
+        {"M104", [this](const GCodeReader::GCodeLine& line) { process_M104(line); record_heating_mcode(line, HeatingEvent::Heater::Nozzle, false); }}, // Set extruder temperature
         {"M106", [this](const GCodeReader::GCodeLine& line) { process_M106(line); }}, // Set fan speed
         {"M107", [this](const GCodeReader::GCodeLine& line) { process_M107(line); }}, // Disable fan
         {"M108", [this](const GCodeReader::GCodeLine& line) { process_M108(line); }}, // Set tool (Sailfish)
-        {"M109", [this](const GCodeReader::GCodeLine& line) { process_M109(line); }}, // Set extruder temperature and wait
+        {"M109", [this](const GCodeReader::GCodeLine& line) { process_M109(line); record_heating_mcode(line, HeatingEvent::Heater::Nozzle, true); }}, // Set extruder temperature and wait
 
         {"M132", [this](const GCodeReader::GCodeLine& line) { process_M132(line); }}, // Recall stored home offsets
         {"M135", [this](const GCodeReader::GCodeLine& line) { process_M135(line); }}, // Set tool (MakerWare)
 
-        {"M140", [this](const GCodeReader::GCodeLine& line) { process_M140(line); }}, // Set bed temperature
-        {"M190", [this](const GCodeReader::GCodeLine& line) { process_M190(line); }}, // Wait bed temperature
+        {"M140", [this](const GCodeReader::GCodeLine& line) { process_M140(line); record_heating_mcode(line, HeatingEvent::Heater::Bed, false); }}, // Set bed temperature
+        {"M190", [this](const GCodeReader::GCodeLine& line) { process_M190(line); record_heating_mcode(line, HeatingEvent::Heater::Bed, true); }}, // Wait bed temperature
         {"M191", [this](const GCodeReader::GCodeLine& line) { process_M191(line); }}, // Wait chamber temperature
 
         {"M201", [this](const GCodeReader::GCodeLine& line) { process_M201(line); }}, // Set max printing acceleration
@@ -3116,6 +3117,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_time_processor.filament_load_times = static_cast<float>(config.machine_load_filament_time.value);
     m_time_processor.filament_unload_times = static_cast<float>(config.machine_unload_filament_time.value);
     m_time_processor.machine_tool_change_time = static_cast<float>(config.machine_tool_change_time.value);
+    apply_heating_config(&config.heating_ambient_temperature, &config.nozzle_heating_ramp, &config.nozzle_heating_settle,
+                         &config.bed_heating_ramp, &config.bed_heating_settle);
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         float max_acceleration = get_option_value(m_time_processor.machine_limits.machine_max_acceleration_extruding, i);
@@ -3433,6 +3436,12 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     if (machine_tool_change_time != nullptr)
         m_time_processor.machine_tool_change_time = static_cast<float>(machine_tool_change_time->value);
 
+    apply_heating_config(config.option<ConfigOptionFloat>("heating_ambient_temperature"),
+                         config.option<ConfigOptionPoints>("nozzle_heating_ramp"),
+                         config.option<ConfigOptionPoints>("nozzle_heating_settle"),
+                         config.option<ConfigOptionPoints>("bed_heating_ramp"),
+                         config.option<ConfigOptionPoints>("bed_heating_settle"));
+
     if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfKlipper) {
         const ConfigOptionFloats* machine_max_acceleration_x = config.option<ConfigOptionFloats>("machine_max_acceleration_x");
         if (machine_max_acceleration_x != nullptr)
@@ -3650,6 +3659,11 @@ void GCodeProcessor::reset()
     m_has_filament_switcher = false;
 
     m_highest_bed_temp = 0;
+    m_heating_events.clear();
+    m_heating_first_extrusion_seen = false;
+    m_nozzle_heating_curve = HeaterCurve();
+    m_bed_heating_curve = HeaterCurve();
+    m_heating_ambient_temperature = 26.f;
 
     m_extruded_last_z = 0.0f;
     m_zero_layer_height = 0.0f;
@@ -4016,6 +4030,16 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         if (boost::iequals(cmd, "SET_PRESSURE_ADVANCE"))
         {
             process_SET_PRESSURE_ADVANCE(line);
+            return;
+        }
+        if (boost::iequals(cmd, "SET_HEATER_TEMPERATURE"))
+        {
+            process_SET_HEATER_TEMPERATURE(line);
+            return;
+        }
+        if (boost::iequals(cmd, "TEMPERATURE_WAIT"))
+        {
+            process_TEMPERATURE_WAIT(line);
             return;
         }
     }
@@ -7093,6 +7117,8 @@ void GCodeProcessor::process_filament_change(int id)
 
 void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)
 {
+    if (type == EMoveType::Extrude)
+        m_heating_first_extrusion_seen = true;
     int filament_id = get_filament_id();
     const auto normal_mode = PrintEstimatedStatistics::ETimeMode::Normal;
     const size_t normal_mode_id = static_cast<size_t>(normal_mode);
@@ -7555,6 +7581,7 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
     unsigned int inserted_actual_speed_moves_count = 0;
     std::vector<GCodeProcessorResult::MoveVertex> new_moves;
     std::map<unsigned int, unsigned int> id_map;
+    std::vector<std::pair<unsigned int, unsigned int>> heating_insertions;
     for (auto it = actual_speed_moves.begin(); it != actual_speed_moves.end(); ++it) {
         const unsigned int base_id = it->move_id + inserted_actual_speed_moves_count;
         if (it->position.has_value()) {
@@ -7578,6 +7605,8 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
         else {
             result.moves.insert(result.moves.begin() + base_id, new_moves.begin(), new_moves.end());
             id_map[it->move_id] = base_id + new_moves.size();
+            if (!m_heating_events.empty() && !new_moves.empty())
+                heating_insertions.emplace_back(it->move_id, static_cast<unsigned int>(new_moves.size()));
             // update move actual speed
             result.moves[base_id + new_moves.size()].actual_feedrate = it->actual_feedrate;
             inserted_actual_speed_moves_count += new_moves.size();
@@ -7589,6 +7618,15 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
             }
             new_moves.clear();
         }
+    }
+    size_t insertion = 0;
+    unsigned int offset = 0;
+    for (HeatingEvent &event : m_heating_events) {
+        while (insertion < heating_insertions.size() && heating_insertions[insertion].first <= event.move_id) {
+            offset += heating_insertions[insertion].second;
+            ++insertion;
+        }
+        event.move_id += offset;
     }
 
     // synchronize blocks' move_ids with after moves for actual speed insertion
@@ -7612,6 +7650,11 @@ void GCodeProcessor::update_estimated_times_stats()
         data.time = get_time(mode);
         data.prepare_time = get_prepare_time(mode);
         data.custom_gcode_times = get_custom_gcode_times(mode, true);
+
+        const HeatingTimes heating = get_heating_times(mode);
+        data.heating_nozzle_time = float(heating.nozzle);
+        data.heating_bed_time = float(heating.bed);
+        data.heating_wait_time = float(heating.wait);
     };
 
     update_mode(PrintEstimatedStatistics::ETimeMode::Normal);
@@ -7627,6 +7670,138 @@ void GCodeProcessor::update_estimated_times_stats()
     m_result.print_statistics.flush_per_filament      = m_used_filaments.flush_per_filament;
     m_result.print_statistics.used_filaments_per_role   = m_used_filaments.filaments_per_role;
     m_result.print_statistics.total_volumes_per_extruder = m_used_filaments.total_volumes_per_filament;
+}
+
+HeatingTimes GCodeProcessor::get_heating_times(PrintEstimatedStatistics::ETimeMode mode) const
+{
+    if (m_heating_events.empty())
+        return {};
+    std::vector<HeatingEvent> events = m_heating_events;
+    double clock = 0.;
+    size_t move_id = 0;
+    for (HeatingEvent& event : events) {
+        for (; move_id < event.move_id && move_id < m_result.moves.size(); ++move_id)
+            clock += m_result.moves[move_id].time[static_cast<size_t>(mode)];
+        event.machine_time = clock;
+    }
+    for (; move_id < m_result.moves.size() && m_result.moves[move_id].type != EMoveType::Extrude; ++move_id)
+        clock += m_result.moves[move_id].time[static_cast<size_t>(mode)];
+    return estimate_heating_times(events, m_nozzle_heating_curve, m_bed_heating_curve, m_heating_ambient_temperature, clock);
+}
+
+void GCodeProcessor::apply_heating_config(const ConfigOptionFloat* ambient, const ConfigOptionPoints* nozzle_ramp,
+                                          const ConfigOptionPoints* nozzle_settle, const ConfigOptionPoints* bed_ramp,
+                                          const ConfigOptionPoints* bed_settle)
+{
+    if (ambient != nullptr)
+        m_heating_ambient_temperature = float(ambient->value);
+    auto points = [](const ConfigOptionPoints* option) { return option != nullptr ? option->values : std::vector<Vec2d>(); };
+    m_nozzle_heating_curve = HeaterCurve(points(nozzle_ramp), points(nozzle_settle));
+    m_bed_heating_curve = HeaterCurve(points(bed_ramp), points(bed_settle));
+}
+
+void GCodeProcessor::record_heating_event(HeatingEvent::Heater heater, int index, std::optional<double> target,
+                                          std::optional<double> wait_for, bool settle)
+{
+    if (m_heating_first_extrusion_seen || index < 0 ||
+        (heater == HeatingEvent::Heater::Nozzle && static_cast<size_t>(index) >= m_nozzle_diameter.size()))
+        return;
+    if (!(heater == HeatingEvent::Heater::Bed ? m_bed_heating_curve : m_nozzle_heating_curve).valid())
+        return;
+    HeatingEvent event;
+    event.heater = heater;
+    event.index = static_cast<unsigned int>(index);
+    event.target = target;
+    event.wait_for = wait_for;
+    event.settle = settle;
+    event.move_id = m_result.moves.size();
+    m_heating_events.push_back(event);
+}
+
+void GCodeProcessor::record_heating_mcode(const GCodeReader::GCodeLine& line, HeatingEvent::Heater heater, bool wait)
+{
+    float temperature;
+    if (m_flavor == gcfKlipper) {
+        if (!line.has_value('S', temperature))
+            temperature = 0.f;
+    } else if (wait && heater == HeatingEvent::Heater::Nozzle) {
+        if (!line.has_value('R', temperature) && !line.has_value('S', temperature))
+            return;
+    } else if (!line.has_value('S', temperature) && !(wait && line.has_value('R', temperature))) {
+        return;
+    }
+    if (!std::isfinite(temperature))
+        return;
+    int index = 0;
+    if (heater == HeatingEvent::Heater::Nozzle) {
+        float tool;
+        if (line.has_value('T', tool)) {
+            if (!std::isfinite(tool) || tool < 0 || tool >= m_nozzle_diameter.size())
+                return;
+            index = int(tool);
+        } else {
+            index = get_extruder_id();
+        }
+    }
+    record_heating_event(heater, index, double(temperature), wait ? std::optional<double>(temperature) : std::nullopt, true);
+}
+
+static std::optional<std::pair<HeatingEvent::Heater, int>> klipper_heater(const std::string& name)
+{
+    if (boost::iequals(name, "heater_bed"))
+        return std::make_pair(HeatingEvent::Heater::Bed, 0);
+    if (!boost::istarts_with(name, "extruder"))
+        return std::nullopt;
+    const char *first = name.data() + 8;
+    const char *last = name.data() + name.size();
+    if (first == last)
+        return std::make_pair(HeatingEvent::Heater::Nozzle, 0);
+    int index = 0;
+    const auto [end, error] = std::from_chars(first, last, index);
+    if (error != std::errc{} || end != last)
+        return std::nullopt;
+    return std::make_pair(HeatingEvent::Heater::Nozzle, index);
+}
+
+static std::optional<std::string> klipper_param(const std::string& raw, const char* name)
+{
+    const std::regex pattern(std::string("\\s") + name + "\\s*=\\s*(\\S+)", std::regex::icase);
+    std::smatch      match;
+    if (std::regex_search(raw.cbegin(), raw.cbegin() + std::min(raw.find(';'), raw.size()), match, pattern))
+        return match[1].str();
+    return std::nullopt;
+}
+
+static std::optional<double> klipper_float_param(const std::optional<std::string>& value)
+{
+    double temperature;
+    if (!value || !parse_number(*value, temperature) || !std::isfinite(temperature))
+        return std::nullopt;
+    return temperature;
+}
+
+void GCodeProcessor::process_SET_HEATER_TEMPERATURE(const GCodeReader::GCodeLine& line)
+{
+    const std::string& raw = line.raw();
+    const std::optional<std::string> name = klipper_param(raw, "HEATER");
+    const auto heater = name ? klipper_heater(*name) : std::nullopt;
+    if (!heater)
+        return;
+    const auto target = klipper_param(raw, "TARGET");
+    const auto temperature = target ? klipper_float_param(target) : std::optional<double>(0.);
+    if (!temperature)
+        return;
+    record_heating_event(heater->first, heater->second, *temperature, std::nullopt, true);
+}
+
+void GCodeProcessor::process_TEMPERATURE_WAIT(const GCodeReader::GCodeLine& line)
+{
+    const std::string& raw = line.raw();
+    const std::optional<std::string> name = klipper_param(raw, "SENSOR");
+    const auto heater = name ? klipper_heater(*name) : std::nullopt;
+    const std::optional<double> minimum = klipper_float_param(klipper_param(raw, "MINIMUM"));
+    if (heater && minimum)
+        record_heating_event(heater->first, heater->second, std::nullopt, minimum, false);
 }
 
 double GCodeProcessor::extract_absolute_position_on_axis(Axis axis, const GCodeReader::GCodeLine& line, double area_filament_cross_section)

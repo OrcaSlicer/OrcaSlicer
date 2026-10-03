@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "HeatingCalibrationDialog.hpp"
 
 #include <wx/event.h>
 #include "slic3r/GUI/Event.hpp"
@@ -695,6 +696,10 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         //}
     #endif
 
+        if (m_heating_calib_dlg && !m_heating_calib_dlg->stop_for_shutdown(event.CanVeto())) {
+            event.Veto();
+            return;
+        }
         MarkdownTip::ExitTip();
         // Prevent queued selection/UI refresh work from running as normal during reset.
         wxGetApp().set_closing(true);
@@ -3508,6 +3513,10 @@ void MainFrame::init_menubar_as_editor()
         [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibrate heating"), _L("Measure nozzle and bed heating times"),
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Heating); }, "", nullptr,
+        [this]() {return m_plater->is_view3D_shown();; }, this);
+
     // help
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"), [](wxCommandEvent &)
                      { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr, [this]()
@@ -3612,6 +3621,10 @@ void MainFrame::init_menubar_as_editor()
     // VFA
     append_menu_item(calib_menu, wxID_ANY, _L("VFA"), _L("VFA"),
         [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
+        [this]() {return m_plater->is_view3D_shown();; }, this);
+
+    append_menu_item(calib_menu, wxID_ANY, _L("Calibrate heating"), _L("Measure nozzle and bed heating times"),
+        [this](wxCommandEvent&) { run_calibration(CalibKind::Heating); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     // help
     append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
@@ -4537,6 +4550,12 @@ void MainFrame::run_calibration(CalibKind calib_kind)
         if (!m_vfa_test_dlg)
             m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
         m_vfa_test_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::Heating: {
+        if (!m_heating_calib_dlg)
+            m_heating_calib_dlg = new HeatingCalibrationDialog(this);
+        m_heating_calib_dlg->show_for_current_printer();
         break;
     }
     }

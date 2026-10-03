@@ -57,6 +57,8 @@ using t_back_to_init = std::function<void(const std::string&)>;
 wxString double_to_string(double const value, const int max_precision = 4);
 wxString get_thumbnail_string(const Vec2d& value);
 wxString get_thumbnails_string(const std::vector<Vec2d>& values);
+wxString get_heating_curve_string(const std::vector<Vec2d>& values);
+bool is_heating_curve_option(const std::string& opt_key);
 wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_option_key& id);
 
 class UndoValueUIManager

@@ -291,6 +291,8 @@ std::vector<NativeCommand> build_command_catalog()
     add_with_icon("calib_input_shaping_damp", _u8L("Input Shaping Damping Calibration"), _u8L("Calibration"), "param_resonance_avoidance",
         [](const std::string&) { return calib_command(CalibKind::InputShapingDamp); });
     add_with_icon("calib_vfa", _u8L("VFA Calibration"), _u8L("Calibration"), "param_speed", [](const std::string&) { return calib_command(CalibKind::VFA); });
+    add_with_icon("calib_heating", _u8L("Heating Calibration"), _u8L("Calibration"), "param_temperature",
+        [](const std::string&) { return calib_command(CalibKind::Heating); });
 
     // ---- View ----
     // Titles are built with _u8L here (not via a variable) so xgettext can extract them.

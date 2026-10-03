@@ -67,6 +67,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
+    GUI/HeatingCalibrationDialog.cpp
+    GUI/HeatingCalibrationDialog.hpp
     GUI/Calibration.cpp
     GUI/Calibration.hpp
     GUI/CalibrationPanel.cpp
@@ -792,6 +794,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/MoonrakerPrinterAgent.hpp
     Utils/Moonraker.cpp
     Utils/Moonraker.hpp
+    Utils/HeatingCalibration.cpp
+    Utils/HeatingCalibration.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp

@@ -1135,7 +1135,8 @@ void add_correct_opts_to_options_list(const std::string &opt_key, std::map<std::
 std::string Tab::options_list_storage_key(const std::string& opt_key) const
 {
     if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" ||
-        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area")
+        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area" ||
+        is_heating_curve_option(opt_key))
         return opt_key;
 
     if (m_config == nullptr || !m_config->has(opt_key))
@@ -5256,6 +5257,14 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("extruder_clearance_dist_to_rod", "printer_basic_information_extruder_clearance#distance-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_rod", "printer_basic_information_extruder_clearance#height-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_lid", "printer_basic_information_extruder_clearance#height-to-lid");
+
+        optgroup = page->new_optgroup(L("Heating time"), "param_temperature");
+        optgroup->append_single_option_line("heating_ambient_temperature");
+        for (const char *key : {"nozzle_heating_ramp", "nozzle_heating_settle", "bed_heating_ramp", "bed_heating_settle"}) {
+            Option option = optgroup->get_option(key);
+            option.opt.full_width = true;
+            optgroup->append_single_option_line(option);
+        }
 
         optgroup = page->new_optgroup(L("Adaptive bed mesh"), "param_adaptive_mesh");
         optgroup->append_single_option_line("bed_mesh_min", "printer_basic_information_adaptive_bed_mesh#bed-mesh");

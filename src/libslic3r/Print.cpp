@@ -312,7 +312,13 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filament_notes",
         "process_notes",
         "printer_notes",
-        "use_3mf"
+        "use_3mf",
+        // These options only affect the viewer estimate, not sliced G-code.
+        "heating_ambient_temperature",
+        "nozzle_heating_ramp",
+        "nozzle_heating_settle",
+        "bed_heating_ramp",
+        "bed_heating_settle"
     };
 
     static std::unordered_set<std::string> steps_ignore;

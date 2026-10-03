@@ -3,6 +3,7 @@
 #include "I18N.hpp"
 #include "Field.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
@@ -133,6 +134,36 @@ wxString get_thumbnails_string(const std::vector<Vec2d>& values)
 		ret_str += wxString::Format((i == 0) ? "%ix%i" : ", %ix%i", int(el[0]), int(el[1]));
 	}
     return ret_str;
+}
+
+wxString get_heating_curve_string(const std::vector<Vec2d>& values)
+{
+    auto format_coordinate = [](double value) {
+        std::string text = float_to_string_decimal_point(value, 4);
+        const size_t dot = text.find('.');
+        if (dot != std::string::npos) {
+            text.erase(text.find_last_not_of('0') + 1);
+            if (text.back() == '.')
+                text.pop_back();
+        }
+        if (text == "-0")
+            text = "0";
+        return from_u8(text);
+    };
+
+    wxString result;
+    for (const Vec2d& point : values) {
+        if (!result.empty())
+            result += ", ";
+        result += format_coordinate(point[0]) + "x" + format_coordinate(point[1]);
+    }
+    return result;
+}
+
+bool is_heating_curve_option(const std::string& opt_key)
+{
+    return opt_key == "nozzle_heating_ramp" || opt_key == "nozzle_heating_settle" ||
+           opt_key == "bed_heating_ramp" || opt_key == "bed_heating_settle";
 }
 
 ThumbnailErrors validate_thumbnails_string(wxString& str, const wxString& def_ext = "PNG")
@@ -777,8 +808,17 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
 
     case coPoints: {
         std::vector<Vec2d> out_values;
+        const bool heating_curve = is_heating_curve_option(m_opt.opt_key);
         str.Replace(" ", wxEmptyString, true);
         if (!str.IsEmpty()) {
+            auto parse_coordinate = [heating_curve](const wxString& text, double& value) {
+                if (!heating_curve)
+                    return text.ToDouble(&value);
+                const std::string input = into_u8(text);
+                size_t consumed = 0;
+                value = string_to_double_decimal_point(input, &consumed);
+                return consumed != 0 && consumed == input.size() && std::isfinite(value);
+            };
             bool invalid_val = false;
             wxStringTokenizer thumbnails(str, ",");
             while (thumbnails.HasMoreTokens()) {
@@ -787,9 +827,9 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 wxStringTokenizer thumbnail(token, "x");
                 if (thumbnail.HasMoreTokens()) {
                     wxString x_str = thumbnail.GetNextToken();
-                    if (x_str.ToDouble(&x) && thumbnail.HasMoreTokens()) {
+                    if (parse_coordinate(x_str, x) && thumbnail.HasMoreTokens()) {
                         wxString y_str = thumbnail.GetNextToken();
-                        if (y_str.ToDouble(&y) && !thumbnail.HasMoreTokens()) {
+                        if (parse_coordinate(y_str, y) && !thumbnail.HasMoreTokens()) {
                             out_values.push_back(Vec2d(x, y));
                             continue;
                         }
@@ -802,9 +842,13 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             if (invalid_val) {
                 wxString text_value;
                 if (!m_value.empty())
-                    text_value = get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));
+                    text_value = heating_curve
+                        ? get_heating_curve_string(boost::any_cast<std::vector<Vec2d>>(m_value))
+                        : get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));
                 set_value(text_value, true);
                 show_error(m_parent, format_wxstr(_L("Invalid format. Expected vector format: \"%1%\""),"XxY, XxY, ..." ));
+                if (heating_curve)
+                    break;
             }
         }
 
@@ -992,7 +1036,9 @@ void TextCtrl::BUILD() {
         text_value = get_thumbnail_string(m_opt.get_default_value<ConfigOptionPoint>()->value);
         break;
     case coPoints:
-        text_value = get_thumbnails_string(m_opt.get_default_value<ConfigOptionPoints>()->values);
+        text_value = is_heating_curve_option(m_opt.opt_key)
+            ? get_heating_curve_string(m_opt.get_default_value<ConfigOptionPoints>()->values)
+            : get_thumbnails_string(m_opt.get_default_value<ConfigOptionPoints>()->values);
         break;
 	default:
 		break;

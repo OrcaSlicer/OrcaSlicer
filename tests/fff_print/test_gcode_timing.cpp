@@ -622,3 +622,127 @@ TEST_CASE("How fast a corner is taken does not depend on how much is extruded th
                      Catch::Matchers::WithinRel(marlin, 0.02));
     }
 }
+
+namespace {
+
+// Test curves: nozzle 2 °C/s, bed 0.1 °C/s, ambient 20 °C.
+FullPrintConfig make_heating_config()
+{
+    FullPrintConfig config = make_config(0.0, 0.0, 0.0);
+    config.gcode_flavor.value = gcfKlipper;
+    config.heating_ambient_temperature.value = 20.;
+    config.nozzle_heating_ramp.values = {Vec2d(0., 0.), Vec2d(300., 150.)};
+    config.bed_heating_ramp.values = {Vec2d(0., 0.), Vec2d(300., 3000.)};
+    return config;
+}
+
+} // namespace
+
+TEST_CASE("Heating before the first extrusion is estimated without changing the G-code time", "[GCodeTiming][Heating]")
+{
+    const char* gcode =
+        "M83\n"
+        "M104 S150\n"
+        "M140 S60\n"
+        "M190 S60\n"
+        "G1 X10 Y10 F6000\n"
+        "G1 X20 Y10 F6000\n"
+        "M109 S220\n"
+        "G1 X30 Y10 E2 F1200\n"
+        "G1 X40 Y10 E2\n"
+        "M109 S250\n"
+        "G1 X50 Y10 E2\n"
+        "G1 X60 Y10 E2\n";
+
+    GCodeProcessor calibrated;
+    run_processor(calibrated, make_heating_config(), gcode);
+    const PrintEstimatedStatistics::Mode& heated = calibrated.get_result().print_statistics.modes[NORMAL];
+
+    FullPrintConfig uncalibrated_config = make_heating_config();
+    uncalibrated_config.nozzle_heating_ramp.values.clear();
+    uncalibrated_config.bed_heating_ramp.values.clear();
+    GCodeProcessor uncalibrated;
+    run_processor(uncalibrated, uncalibrated_config, gcode);
+    const PrintEstimatedStatistics::Mode& plain = uncalibrated.get_result().print_statistics.modes[NORMAL];
+
+    CHECK_THAT(heated.heating_bed_time, WithinAbs(400.0, 1e-3));
+    CHECK_THAT(heated.heating_nozzle_time, WithinAbs(65.0 + 35.0, 1e-3));
+    CHECK_THAT(heated.heating_wait_time, WithinAbs(400.0 + 35.0, 1e-3));
+    CHECK_THAT(heated.time, WithinAbs(plain.time, 1e-6));
+
+    CHECK(plain.heating_bed_time == 0.0f);
+    CHECK(plain.heating_nozzle_time == 0.0f);
+    CHECK(plain.heating_wait_time == 0.0f);
+}
+
+TEST_CASE("Klipper TEMPERATURE_WAIT releases when the temperature is crossed", "[GCodeTiming][Heating]")
+{
+    const char* gcode =
+        "M83\n"
+        "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=60\n"
+        "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=220\n"
+        "TEMPERATURE_WAIT SENSOR=extruder MINIMUM=215\n"
+        "TEMPERATURE_WAIT SENSOR=heater_bed MINIMUM=55\n"
+        "G1 X30 Y10 E2 F1200\n"
+        "G1 X40 Y10 E2\n";
+
+    FullPrintConfig config = make_heating_config();
+    config.nozzle_heating_settle.values = {Vec2d(100., 10.), Vec2d(300., 10.)};
+    GCodeProcessor processor;
+    run_processor(processor, config, gcode);
+    const PrintEstimatedStatistics::Mode& mode = processor.get_result().print_statistics.modes[NORMAL];
+
+    CHECK_THAT(mode.heating_wait_time, WithinAbs(350.0, 1e-3));
+    CHECK_THAT(mode.heating_bed_time, WithinAbs(350.0, 1e-3));
+    CHECK_THAT(mode.heating_nozzle_time, WithinAbs(100.0 + 10.0, 1e-3));
+}
+
+TEST_CASE("Heaters still warming at first extrusion stop counting there", "[GCodeTiming][Heating]")
+{
+    const char* gcode =
+        "M83\n"
+        "M104 S250\n"
+        "M140 S80\n"
+        "M104 T1 S260\n"
+        "M109 T2147483647 S260\n"
+        "SET_HEATER_TEMPERATURE HEATER=extruder2147483647 TARGET=260\n"
+        "TEMPERATURE_WAIT SENSOR=extruder2147483647 MINIMUM=260\n"
+        "G1 X10 Y10 F600\n"
+        "G1 X20 Y10 F600\n"
+        "G1 X30 Y10 E2 F1200\n"
+        "G1 X40 Y10 E2\n";
+
+    GCodeProcessor processor;
+    run_processor(processor, make_heating_config(), gcode);
+    const GCodeProcessorResult& result = processor.get_result();
+    const auto& mode = result.print_statistics.modes[NORMAL];
+    double before_extrusion = 0.;
+    for (const auto& move : result.moves) {
+        if (move.type == EMoveType::Extrude)
+            break;
+        before_extrusion += move.time[NORMAL];
+    }
+    REQUIRE(before_extrusion > 0.);
+    CHECK_THAT(mode.heating_nozzle_time, WithinAbs(before_extrusion, 1e-3));
+    CHECK_THAT(mode.heating_bed_time, WithinAbs(before_extrusion, 1e-3));
+    CHECK(mode.heating_wait_time == 0.);
+}
+
+TEST_CASE("Klipper ignores heating parameters in comments", "[GCodeTiming][Heating]")
+{
+    const char* gcode =
+        "M83\n"
+        "SET_HEATER_TEMPERATURE HEATER=extruder ; TARGET=230\n"
+        "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=60\n"
+        "TEMPERATURE_WAIT SENSOR=heater_bed ; MINIMUM=55\n"
+        "G1 X10 Y10 F600\n"
+        "G1 X20 Y10 E2 F1200\n";
+
+    GCodeProcessor processor;
+    run_processor(processor, make_heating_config(), gcode);
+    const auto& mode = processor.get_result().print_statistics.modes[NORMAL];
+
+    CHECK(mode.heating_nozzle_time == 0.f);
+    CHECK(mode.heating_wait_time == 0.f);
+    CHECK(mode.heating_bed_time > 0.f);
+}

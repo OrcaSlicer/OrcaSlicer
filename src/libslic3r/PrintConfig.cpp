@@ -3042,6 +3042,43 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
 
+    def = this->add("heating_ambient_temperature", coFloat);
+    def->label = L("Ambient temperature");
+    def->tooltip = L("Starting temperature for nozzle and bed heating estimates.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(26.));
+
+    def = this->add("nozzle_heating_ramp", coPoints);
+    def->label = L("Nozzle heating ramp");
+    def->tooltip = L("Full-power nozzle heating as \"temperature x seconds\" points. Empty disables the nozzle estimate.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionPoints());
+
+    def = this->add("nozzle_heating_settle", coPoints);
+    def->label = L("Nozzle settle time");
+    def->tooltip = L("Nozzle wait time after reaching a target, as \"target x seconds\" points.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionPoints());
+
+    def = this->add("bed_heating_ramp", coPoints);
+    def->label = L("Bed heating ramp");
+    def->tooltip = L("Full-power bed heating as \"temperature x seconds\" points. Empty disables the bed estimate.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionPoints());
+
+    def = this->add("bed_heating_settle", coPoints);
+    def->label = L("Bed settle time");
+    def->tooltip = L("Bed wait time after reaching a target, as \"target x seconds\" points.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionPoints());
+
 
     def = this->add("support_object_skip_flush", coBool);
     def->set_default_value(new ConfigOptionBool(false));

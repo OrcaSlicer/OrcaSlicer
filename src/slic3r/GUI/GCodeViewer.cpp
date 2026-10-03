@@ -2910,7 +2910,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
                 }
             }
             const PrintEstimatedStatistics::Mode& plate_time_mode = plate_print_statistics.modes[static_cast<size_t>(m_viewer.get_time_mode())];
-            total_time_all_plates += plate_time_mode.time;
+            total_time_all_plates += plate_time_mode.time + plate_time_mode.heating_wait_time;
 
             Print     *print;
             plate->get_print((PrintBase **) &print, nullptr, nullptr);
@@ -4840,7 +4840,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::string prepare_str = _u8L("Prepare time");
     std::string print_str = _u8L("Model printing time");
     std::string total_str = _u8L("Total time");
-    float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
+    std::string heating_nozzle_str = _u8L("Nozzle heating");
+    std::string heating_bed_str = _u8L("Bed heating");
+    const float label_offset = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
+    float max_len = label_offset;
     if (m_viewer.get_layers_count() == 0)
         max_len += ImGui::CalcTextSize(total_str.c_str()).x;
     else {
@@ -4853,6 +4856,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             max_len += std::max(ImGui::CalcTextSize(print_str.c_str()).x,
                 (std::max(ImGui::CalcTextSize(prepare_str.c_str()).x, ImGui::CalcTextSize(total_str.c_str()).x)));
     }
+    if (m_viewer.get_layers_count() != 0)
+        max_len = std::max(max_len, label_offset + std::max(ImGui::CalcTextSize(heating_nozzle_str.c_str()).x,
+                                                            ImGui::CalcTextSize(heating_bed_str.c_str()).x));
     if (m_viewer.get_view_type() == libvgcode::EViewType::FeatureType) {
         //BBS display filament cost
         ImGui::Dummy({ window_padding, window_padding });
@@ -4884,14 +4890,27 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, "%.2f", ps.total_cost);
         imgui.text(buf);
     }
+    // The G-code time is unchanged; add blocked heating time only in the viewer.
+    const float prepare_time = time_mode.prepare_time + time_mode.heating_wait_time;
     //BBS: start gcode is mostly same with prepeare time
-    if (time_mode.prepare_time != 0.0f) {
+    if (prepare_time != 0.0f) {
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         imgui.text(prepare_str + ":");
         ImGui::SameLine(max_len);
-        imgui.text(short_time(get_time_dhms(time_mode.prepare_time)));
+        imgui.text(short_time(get_time_dhms(prepare_time)));
     }
+    auto show_heating_time = [&](const std::string& label, float time) {
+        if (time <= 0.0f)
+            return;
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        imgui.text(label + ":");
+        ImGui::SameLine(max_len);
+        imgui.text(short_time(get_time_dhms(time)));
+    };
+    show_heating_time(heating_nozzle_str, time_mode.heating_nozzle_time);
+    show_heating_time(heating_bed_str, time_mode.heating_bed_time);
     ImGui::Dummy({ window_padding, window_padding });
     ImGui::SameLine();
     imgui.text(print_str + ":");
@@ -4901,7 +4920,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::SameLine();
     imgui.text(total_str + ":");
     ImGui::SameLine(max_len);
-    imgui.text(short_time(get_time_dhms(time_mode.time)));
+    imgui.text(short_time(get_time_dhms(time_mode.time + time_mode.heating_wait_time)));
 
     auto show_mode_button = [this, &imgui, can_show_mode_button](const std::string& label, libvgcode::ETimeMode mode) {
         if (can_show_mode_button(mode)) {

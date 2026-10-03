@@ -15,6 +15,7 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp
+    test_heating_time.cpp
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
     test_drc.cpp
