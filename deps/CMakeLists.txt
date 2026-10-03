@@ -1,5 +1,5 @@
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "4.0")
-    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
 endif()
 
 #
@@ -24,7 +24,7 @@ endif()
 # therefore, unfortunately, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
 #
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 if (APPLE)
     # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 12.0 (the lowest Xcode 27 accepts)
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
