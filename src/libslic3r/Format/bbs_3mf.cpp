@@ -967,6 +967,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             MetadataList metadata;
             VolumeMetadataList volumes;
+            bool auto_drop { true };
         };
 
         struct CutObjectInfo
@@ -1342,7 +1343,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _handle_start_text_configuration(const char** attributes, unsigned int num_attributes);
         bool _handle_start_shape_configuration(const char **attributes, unsigned int num_attributes);
 
-        bool _create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, const bool auto_drop, unsigned int recur_counter);
+        bool _create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, unsigned int recur_counter);
 
         void _apply_transform(ModelInstance& instance, const Transform3d& transform);
 
@@ -2217,6 +2218,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             IdToMetadataMap::iterator obj_metadata = m_objects_metadata.find(object.first.second);
             if (obj_metadata != m_objects_metadata.end()) {
                 // config data has been found, this model was saved using slic3r pe
+
+                model_object->auto_drop = obj_metadata->second.auto_drop;
 
                 // apply object's name and config data
                 for (const Metadata& metadata : obj_metadata->second.metadata) {
@@ -4024,9 +4027,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string path = bbs_get_attribute_value_string(attributes, num_attributes, PPATH_ATTR);
         Transform3d transform = bbs_get_transform_from_3mf_specs_string(bbs_get_attribute_value_string(attributes, num_attributes, TRANSFORM_ATTR));
         int printable = bbs_get_attribute_value_bool(attributes, num_attributes, PRINTABLE_ATTR);
-        int auto_drop = bbs_get_attribute_value_bool(attributes, num_attributes, AUTO_DROP_ATTR);
-
-        return !m_load_model || _create_object_instance(path, object_id, transform, printable, auto_drop, 1);
+        return !m_load_model || _create_object_instance(path, object_id, transform, printable, 1);
     }
 
     bool _BBS_3MF_Importer::_handle_end_item()
@@ -4254,7 +4255,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
-    bool _BBS_3MF_Importer::_create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, const bool auto_drop, unsigned int recur_counter)
+    bool _BBS_3MF_Importer::_create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, unsigned int recur_counter)
     {
         static const unsigned int MAX_RECURSIONS = 10;
 
@@ -4291,7 +4292,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return false;
             }
             instance->printable = printable;
-            instance->auto_drop = auto_drop;    
 
             m_instances.emplace_back(instance, transform);
 
@@ -4324,7 +4324,6 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return false;
             }
             instance->printable = printable;
-            instance->auto_drop = auto_drop;    
 
             m_instances.emplace_back(instance, transform);
         }
@@ -4395,7 +4394,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Added because of github #3435, currently not used by PrusaSlicer
         // int instances_count_id = bbs_get_attribute_value_int(attributes, num_attributes, INSTANCESCOUNT_ATTR);
 
-        m_objects_metadata.insert({ object_id, ObjectMetadata() });
+        ObjectMetadata metadata;
+        metadata.auto_drop = bbs_get_attribute_value_bool(attributes, num_attributes, AUTO_DROP_ATTR);
+        m_objects_metadata.insert({ object_id, std::move(metadata) });
         m_curr_config.object_id = object_id;
         return true;
     }
@@ -6003,14 +6004,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             unsigned int id;
             Transform3d transform;
             bool printable;
-            bool auto_drop;
 
-            BuildItem(std::string const & path, unsigned int id, const Transform3d& transform, const bool printable, const bool auto_drop)
+            BuildItem(std::string const & path, unsigned int id, const Transform3d& transform, const bool printable)
                 : path(path)
                 , id(id)
                 , transform(transform)
                 , printable(printable)
-                , auto_drop(auto_drop)
             {
             }
         };
@@ -7222,7 +7221,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // instance_id is just a 1 indexed index in build_items.
                     //assert(m_skip_static || curr_id == build_items.size() + 1);
 
-                    build_items.emplace_back("", object_it->second.object_id, t, instance->printable, instance->auto_drop);
+                    build_items.emplace_back("", object_it->second.object_id, t, instance->printable);
                     count++;
                 }
 
@@ -7658,8 +7657,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "\" " << PPATH_ATTR << "=\"" << xml_escape(item.path);
             stream << "\" " << TRANSFORM_ATTR << "=\"";
             add_transformation(stream, item.transform);
-            stream << "\" " << PRINTABLE_ATTR << "=\"" << item.printable;
-            stream << "\" " << AUTO_DROP_ATTR << "=\"" << item.auto_drop << "\"/>\n";
+            stream << "\" " << PRINTABLE_ATTR << "=\"" << item.printable << "\"/>\n";
         }
 
         stream << " </" << BUILD_TAG << ">\n";
@@ -8061,7 +8059,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (obj != nullptr) {
                 // Output of instances count added because of github #3435, currently not used by PrusaSlicer
                 //stream << "  <"  << OBJECT_TAG << " " << ID_ATTR << "=\"" << obj_metadata.first << "\" " << INSTANCESCOUNT_ATTR << "=\"" << obj->instances.size() << "\">\n";
-                stream << "  <" << OBJECT_TAG << " " << ID_ATTR << "=\"" << object_data.object_id << "\">\n";
+                stream << "  <" << OBJECT_TAG << " " << ID_ATTR << "=\"" << object_data.object_id
+                       << "\" " << AUTO_DROP_ATTR << "=\"" << obj->auto_drop << "\">\n";
 
                 // stores object's name
                 if (!obj->name.empty())
