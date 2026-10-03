@@ -912,7 +912,7 @@ void Tab::update_label_colours()
             else
                 color = &m_modified_label_clr;
         }
-        if (opt.first == "printable_area"            ||
+        if (opt.first == "printable_area" || opt.first == "small_area_infill_flow_compensation_model" ||
             opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ) {
             if (Line* line = get_line(opt.first))
                 line->set_label_colour(color);
@@ -956,7 +956,7 @@ void Tab::decorate()
         Field*      field = nullptr;
         bool        option_without_field = false;
 
-        if (opt.first == "printable_area" ||
+        if (opt.first == "printable_area" || opt.first == "small_area_infill_flow_compensation_model" ||
             opt.first == "compatible_prints" || opt.first == "compatible_printers")
             option_without_field = true;
 

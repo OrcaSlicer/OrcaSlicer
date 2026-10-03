@@ -4,15 +4,11 @@
 #include <optional>
 #include <vector>
 #include <wx/panel.h>
+#include "libslic3r/CurveModel.hpp"
 
 namespace Slic3r::GUI {
 
-struct CurveEditorView {
-    double min_x = 0.0;
-    double max_x = 1.0;
-    double min_y = 0.0;
-    double max_y = 1.0;
-};
+using CurveEditorView = CurveView;
 
 struct CurveEditorAppearance {
     wxString x_label;
@@ -27,7 +23,7 @@ struct CurveEditorAppearance {
 class CurveEditorPanel : public wxPanel
 {
 public:
-    using Interpolator = std::function<double(double)>;
+    using Interpolator = CurveModel::Interpolator;
     CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance);
     void set_data(const std::vector<double>& x, const std::vector<double>& y,
                   const std::vector<wxString>& tooltips, Interpolator interpolate);
