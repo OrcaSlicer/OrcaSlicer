@@ -7,6 +7,7 @@
 #include "libslic3r/libslic3r.h"
 #include <numeric>
 #include <iostream>
+#include <utility>
 #include <boost/filesystem.hpp>
 #include <vector>
 
@@ -298,4 +299,91 @@ TEST_CASE("Top level expolygons of an even-odd union", "[ClipperUtils]") {
     REQUIRE(nested.size() == 2);
     REQUIRE(area_sum == Catch::Approx(area(top_level) + area(nested)));
     REQUIRE(top_level_expolygons(reference).size() == 1);
+}
+
+// Rings flattened to x,y,x,y... and sorted, with each ring rotated to start at its lowest point: two
+// encodings of the same geometry compare equal however the pieces came back or wherever a ring started.
+static std::vector<std::vector<coord_t>> canonical_rings(const ExPolygons &expolygons)
+{
+    std::vector<std::vector<coord_t>> rings;
+    const auto add = [&rings](const Polygon &poly) {
+        if (poly.points.empty())
+            return;
+        Points pts = poly.points;
+        std::rotate(pts.begin(),
+                    std::min_element(pts.begin(), pts.end(), [](const Point &a, const Point &b) {
+                        return std::make_pair(a.x(), a.y()) < std::make_pair(b.x(), b.y());
+                    }),
+                    pts.end());
+        std::vector<coord_t> flat;
+        flat.reserve(pts.size() * 2);
+        for (const Point &p : pts) {
+            flat.emplace_back(p.x());
+            flat.emplace_back(p.y());
+        }
+        rings.emplace_back(std::move(flat));
+    };
+    for (const ExPolygon &expoly : expolygons) {
+        add(expoly.contour);
+        for (const Polygon &hole : expoly.holes)
+            add(hole);
+    }
+    std::sort(rings.begin(), rings.end());
+    return rings;
+}
+
+// The same rings, every coordinate within `tolerance`.
+static bool same_rings(const ExPolygons &a, const ExPolygons &b, coord_t tolerance)
+{
+    const std::vector<std::vector<coord_t>> ra = canonical_rings(a), rb = canonical_rings(b);
+    return std::equal(ra.begin(), ra.end(), rb.begin(), rb.end(), [tolerance](const std::vector<coord_t> &x, const std::vector<coord_t> &y) {
+        return std::equal(x.begin(), x.end(), y.begin(), y.end(), [tolerance](coord_t u, coord_t v) { return std::abs(u - v) <= tolerance; });
+    });
+}
+
+TEST_CASE("Tiled diff and intersection return the same polygons as the plain calls", "[ClipperUtils]") {
+    // A grid of disjoint framed squares, enough of them to be split into several tiles.
+    const int  n    = 40;
+    const coord_t cell = scaled<coord_t>(2.), side = scaled<coord_t>(1.5), frame = scaled<coord_t>(0.3);
+    ExPolygons subject;
+    for (int y = 0; y < n; ++ y)
+        for (int x = 0; x < n; ++ x) {
+            const Point o(x * cell, y * cell);
+            ExPolygon square(Polygon({ o, o + Point(side, 0), o + Point(side, side), o + Point(0, side) }));
+            Polygon hole({ o + Point(frame, frame), o + Point(frame, side - frame), o + Point(side - frame, side - frame), o + Point(side - frame, frame) });
+            square.holes.emplace_back(std::move(hole));
+            subject.emplace_back(std::move(square));
+        }
+    // Clip polygons crossing many squares, one of them large with holes of its own.
+    Polygons clip;
+    const coord_t span = n * cell;
+    for (int i = 0; i < 8; ++ i) {
+        const coord_t y0 = coord_t(i) * span / 8, y1 = y0 + scaled<coord_t>(0.9);
+        clip.emplace_back(Polygon({ Point(- cell, y0), Point(span, y0 + cell * 3), Point(span, y1 + cell * 3), Point(- cell, y1) }));
+    }
+    ExPolygon big(Polygon({ Point(span / 4, span / 4), Point(3 * span / 4, span / 4), Point(3 * span / 4, 3 * span / 4), Point(span / 4, 3 * span / 4) }));
+    for (int i = 0; i < 4; ++ i) {
+        const Point o(span / 4 + scaled<coord_t>(3.1) + i * scaled<coord_t>(9.7), span / 4 + scaled<coord_t>(5.3));
+        big.holes.emplace_back(Polygon({ o, o + Point(0, scaled<coord_t>(20.)), o + Point(scaled<coord_t>(5.), scaled<coord_t>(20.)), o + Point(scaled<coord_t>(5.), 0) }));
+    }
+    polygons_append(clip, to_polygons(big));
+
+    const ApplySafetyOffset safety = GENERATE(ApplySafetyOffset::No, ApplySafetyOffset::Yes);
+
+    // The point of the fixture: below 128 pieces the helpers fall back to a single tile and the tiled
+    // path under test is never taken.
+    REQUIRE(ClipperUtils::tile_expolygons(subject, 32).size() > 1);
+
+    // With the safety offset a tile unites fewer clip polygons, so Clipper2 can round a crossing 1 unit differently.
+    const coord_t tolerance = safety == ApplySafetyOffset::Yes ? 1 : 0;
+
+    const ExPolygons diff_plain = diff_ex(subject, clip, safety);
+    const ExPolygons diff_tiled = diff_ex_by_piece(subject, clip, safety);
+    REQUIRE(area(diff_plain) > 0.);
+    CHECK(same_rings(diff_tiled, diff_plain, tolerance));
+
+    const ExPolygons intersection_plain = intersection_ex(subject, clip, safety);
+    const ExPolygons intersection_tiled = intersection_ex_by_piece(subject, clip, safety);
+    REQUIRE(area(intersection_plain) > 0.);
+    CHECK(same_rings(intersection_tiled, intersection_plain, tolerance));
 }
