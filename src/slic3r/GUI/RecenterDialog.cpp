@@ -1,10 +1,20 @@
 #include "RecenterDialog.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include <slic3r/GUI/I18N.hpp>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <slic3r/GUI/Widgets/DialogButtons.hpp>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
 
 #define BORDER FromDIP(25)
 #define DRAW_PANEL_SIZE wxSize(FromDIP(475), FromDIP(100))

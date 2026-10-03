@@ -23,10 +23,7 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-// Arrange on a finite bed, not an unbounded InfiniteBed: the latter places items
-// near INT64_MIN/4 (~2.3e18), which reaches ClipperLib's coordinate limit and throws
-// "Coordinate outside allowed range" on Windows/arm64. A 500x500 bed keeps coordinates
-// small while still covering large printers.
+// Arrange on a 500x500 bed, which keeps coordinates small while still covering large printers.
 static void arrange_objects_on_test_bed(Model &model, const DynamicPrintConfig &config)
 {
     const BoundingBox bed{Point::new_scale(0., 0.), Point::new_scale(500., 500.)};

@@ -1,11 +1,20 @@
 #ifndef slic3r_OptionsGroup_hpp_
 #define slic3r_OptionsGroup_hpp_
 
+#include <exception>
+#include <wx/sizer.h>
+#include <memory>
+#include <string>
+#include <cstddef>
+#include <vector>
+#include <utility>
+#include <boost/any.hpp>
 #include <wx/stattext.h>
 #include <wx/settings.h>
 
 #include <map>
 #include <functional>
+#include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -112,7 +121,7 @@ public:
     bool split_multi_line{false};
     bool option_label_at_right{false};
     // BBS: new layout
-    wxWindow *     stb;
+    wxWindow *     stb{ nullptr };
     const wxString  icon;
     const wxString  title;
     bool            m_labels_hidden{false};

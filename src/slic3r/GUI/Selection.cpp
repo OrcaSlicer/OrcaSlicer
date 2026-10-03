@@ -14,6 +14,32 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include <string>
+#include <vector>
+#include <cstdlib>
+#include "slic3r/GUI/Event.hpp"
+#include <set>
+#include <utility>
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <optional>
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include <cfloat>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/Geometry/Circle.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <map>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <array>
+#include "libslic3r/Config.hpp"
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
 #include "libslic3r/BuildVolume.hpp"
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
@@ -67,7 +93,7 @@ bool Selection::Clipboard::is_sla_compliant() const
             return false;
 
         for (const ModelVolume* v : o->volumes) {
-            if (v->is_modifier())
+            if (v->is_modifier() || v->is_precise_seam()) // Precise Seam not supported in SLA
                 return false;
         }
     }

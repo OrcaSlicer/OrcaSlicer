@@ -1,9 +1,20 @@
+#include <boost/nowide/fstream.hpp>
+#include <boost/log/trivial.hpp>
+#include <cctype>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <set>
+#include <string>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 #include "DevFilaBlackList.h"
+#include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "DevFilaSystem.h"

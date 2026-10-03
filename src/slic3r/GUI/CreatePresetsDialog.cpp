@@ -1,15 +1,69 @@
 #include "CreatePresetsDialog.hpp"
+#include <algorithm>
+#include <any>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <cctype>
+#include "libslic3r/LocalesUtils.hpp"
+#include <cstddef>
+#include "libslic3r/Preset.hpp"
+#include <deque>
+#include <exception>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include "libslic3r/Config.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <memory>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/RadioBox.hpp"
+#include <cstdio>
+#include <map>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <cstdlib>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cassert>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "libslic3r/Utils.hpp"
+#include <cmath>
+#include "libslic3r/Point.hpp"
+#include <miniz.h>
+#include "slic3r/GUI/ParamsDialog.hpp"
 #include <vector>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <openssl/md5.h>
 #include <openssl/evp.h>
+#include <wx/anybutton.h>
+#include <wx/colour.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/tglbtn.h>
+#include <wx/filedlg.h>
+#include <wx/dirdlg.h>
 #include <wx/tooltip.h>
+#include <wx/treebase.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 #include <boost/nowide/cstdio.hpp>
+#include <wx/valtext.h>
 #include "libslic3r/PresetBundle.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
@@ -699,7 +753,7 @@ CreateFilamentPresetDialog::CreateFilamentPresetDialog(wxWindow *parent)
     m_scrolled_preset_panel = new wxScrolledWindow(this, wxID_ANY);
     m_scrolled_preset_panel->SetMaxSize(wxSize(-1, FromDIP(350)));
     m_scrolled_preset_panel->SetBackgroundColour(*wxWHITE);
-    m_scrolled_preset_panel->SetScrollRate(5, 5);
+    m_scrolled_preset_panel->SetScrollRate(5, FromDIP(20));
     m_scrolled_sizer = new wxBoxSizer(wxVERTICAL);
     m_scrolled_sizer->Add(create_item(FilamentOptionType::PRESET_FOR_PRINTER), 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(5));
     m_scrolled_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
@@ -1593,7 +1647,7 @@ CreatePrinterPresetDialog::CreatePrinterPresetDialog(wxWindow *parent)
 
     m_page1 = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_page1->SetBackgroundColour(*wxWHITE);
-    m_page1->SetScrollRate(5, 5);
+    m_page1->SetScrollRate(5, FromDIP(20));
     m_page2 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);    m_page2->SetBackgroundColour(*wxWHITE);
 
     create_printer_page1(m_page1);
@@ -2652,7 +2706,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
     wxBoxSizer *vertical_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_scrolled_preset_window = new wxScrolledWindow(parent);
-    m_scrolled_preset_window->SetScrollRate(5, 5);
+    m_scrolled_preset_window->SetScrollRate(5, FromDIP(20));
     m_scrolled_preset_window->SetBackgroundColour(*wxWHITE);
     //m_scrolled_preset_window->SetMinSize(wxSize(FromDIP(1500), FromDIP(-1)));
     m_scrolled_preset_window->SetMaxSize(wxSize(FromDIP(1500), FromDIP(-1)));
@@ -4297,7 +4351,7 @@ wxBoxSizer *ExportConfigsDialog::create_select_printer(wxWindow *parent)
     optionSizer->SetMinSize(OPTION_SIZE);
     horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
     m_scrolled_preset_window = new wxScrolledWindow(parent);
-    m_scrolled_preset_window->SetScrollRate(5, 5);
+    m_scrolled_preset_window->SetScrollRate(5, FromDIP(20));
     m_scrolled_preset_window->SetBackgroundColour(*wxWHITE);
     m_scrolled_preset_window->SetMaxSize(wxSize(FromDIP(660), FromDIP(400)));
     m_scrolled_preset_window->SetSize(wxSize(FromDIP(660), FromDIP(400)));
@@ -4736,7 +4790,7 @@ wxBoxSizer *EditFilamentPresetDialog::create_preset_tree_sizer()
 {
     wxBoxSizer *filament_preset_tree_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_preset_tree_window = new wxScrolledWindow(this);
-    m_preset_tree_window->SetScrollRate(5, 5);
+    m_preset_tree_window->SetScrollRate(5, FromDIP(20));
     m_preset_tree_window->SetBackgroundColour(PRINTER_LIST_COLOUR);
     m_preset_tree_window->SetMinSize(wxSize(-1, FromDIP(400)));
     m_preset_tree_window->SetMaxSize(wxSize(-1, FromDIP(300)));

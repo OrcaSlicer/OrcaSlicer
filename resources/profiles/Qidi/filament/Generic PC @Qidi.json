@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Qidi",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "Qidi Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "m1fBauBqqvKdIAAr",
 	"filament_id": "OFLakOUI",

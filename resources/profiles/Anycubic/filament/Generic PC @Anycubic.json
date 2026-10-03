@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Anycubic",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "Anycubic Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "3jP8aWkWw2dT2fNM",
 	"filament_id": "OFLakOUI",

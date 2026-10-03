@@ -2,9 +2,13 @@
 #define _BaseTransparentDPIFrame_H_
 
 #include <future>
+#include "slic3r/GUI/Event.hpp"
 #include <thread>
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
 #include <wx/timer.h>
 
 class Button;

@@ -7,6 +7,19 @@
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
 #include "MsgDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <numeric>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/FilamentMapPanel.hpp"
 
 namespace Slic3r { namespace GUI {
 

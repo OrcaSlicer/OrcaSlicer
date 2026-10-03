@@ -1,6 +1,9 @@
 #pragma once
 
+#include <map>
 #include <optional>
+#include <string>
+#include <vector>
 #include <wx/string.h>
 #include "slic3r/Utils/json_diff.hpp"
 

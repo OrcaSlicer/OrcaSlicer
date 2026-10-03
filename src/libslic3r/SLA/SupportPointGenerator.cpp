@@ -186,8 +186,8 @@ static std::vector<SupportPointGenerator::MyLayer> make_layers(
                   // Produce 2 bands around the island, a safe band for dangling overhangs
                   // and an unsafe band for sloped overhangs.
                   // These masks include the original island
-                  auto dangl_mask = expand(bottom_polygons, between_layers_offset, ClipperLib::jtSquare);
-                  auto overh_mask = expand(bottom_polygons, slope_offset, ClipperLib::jtSquare);
+                  auto dangl_mask = expand(bottom_polygons, between_layers_offset, jtSquare);
+                  auto overh_mask = expand(bottom_polygons, slope_offset, jtSquare);
 
                   // Absolutely hopeless overhangs are those outside the unsafe band
                   top.overhangs = diff_ex(*top.polygon, overh_mask);

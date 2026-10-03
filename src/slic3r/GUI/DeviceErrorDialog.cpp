@@ -7,8 +7,28 @@
 #include "ReleaseNote.hpp"
 #include "wxExtensions.hpp"
 
+#include <unordered_set>
+#include <string>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <boost/log/trivial.hpp>
+#include <wx/image.h>
+#include <utility>
+#include <vector>
+#include "slic3r/GUI/Monitor.hpp"
 #include <wx/mstream.h>
 #include <wx/dcmemory.h>
+#include <wx/statbmp.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/webrequest.h>
+#include <wx/timer.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r {
 namespace GUI
@@ -39,7 +59,7 @@ DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWin
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
 
     m_scroll_area = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_scroll_area->SetScrollRate(0, 5);
+    m_scroll_area->SetScrollRate(0, FromDIP(20));
     m_scroll_area->SetBackgroundColour(*wxWHITE);
     m_scroll_area->SetMinSize(wxSize(FromDIP(320), FromDIP(250)));
 

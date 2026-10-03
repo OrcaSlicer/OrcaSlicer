@@ -5,13 +5,32 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
+#include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include "slic3r/GUI/Field.hpp"
+#include <cstddef>
+#include "slic3r/GUI/SelectMachinePop.hpp"
+#include "slic3r/GUI/HMSPanel.hpp"
+#include "slic3r/GUI/Tabbook.hpp"
+#include "slic3r/GUI/StatusPanel.hpp"
+#include "slic3r/GUI/UpgradePanel.hpp"
+#include "slic3r/GUI/Widgets/SideTools.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <wx/app.h>
+#include <wx/bookctrl.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
@@ -33,6 +52,8 @@
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 namespace GUI {
@@ -265,6 +286,7 @@ void MonitorPanel::msw_rescale()
 
 void MonitorPanel::select_machine(std::string machine_sn)
 {
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: MonitorPanel::select_machine queueing machine_sn=" << machine_sn;
     wxCommandEvent *event = new wxCommandEvent(wxEVT_COMMAND_CHOICE_SELECTED);
     event->SetString(machine_sn);
     wxQueueEvent(this, event);
@@ -273,7 +295,10 @@ void MonitorPanel::select_machine(std::string machine_sn)
 
 void MonitorPanel::on_timer(wxTimerEvent& event)
 {
-    if (update_flag) {
+    // MediaPlayCtrl may yield the event loop while it joins its camera worker
+    // during window teardown. Do not let a queued monitor refresh touch panels
+    // that are already being destroyed.
+    if (!wxGetApp().is_closing() && update_flag) {
         update_all();
         //Layout();
     }
@@ -282,13 +307,20 @@ void MonitorPanel::on_timer(wxTimerEvent& event)
 void MonitorPanel::on_select_printer(wxCommandEvent& event)
 {
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+    const std::string requested_dev_id = event.GetString().ToStdString();
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: MonitorPanel::on_select_printer requested_dev_id="
+                            << requested_dev_id << " device_manager=" << (dev ? "set" : "null");
     if (!dev) return;
 
     if ( dev->get_selected_machine() && (dev->get_selected_machine()->get_dev_id() != event.GetString().ToStdString()) && m_hms_panel) {
         m_hms_panel->clear_hms_tag();
     }
 
-    if (!dev->set_selected_machine(event.GetString().ToStdString()))
+    const bool selected = dev->set_selected_machine(requested_dev_id);
+    BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: MonitorPanel::on_select_printer set_selected_machine result="
+                            << selected << " selected_dev_id="
+                            << (dev->get_selected_machine() ? dev->get_selected_machine()->get_dev_id() : "<null>");
+    if (!selected)
         return;
 
     set_default();

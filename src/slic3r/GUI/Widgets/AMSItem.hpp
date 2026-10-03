@@ -8,11 +8,27 @@
 #include "../DeviceManager.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/AmsMappingPopup.hpp"
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <map>
+#include <cstddef>
+#include <wx/dcclient.h>
+#include <utility>
 #include <wx/simplebook.h>
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
 #include <optional>
+#include <wx/string.h>
+#include <wx/timer.h>
+#include <wx/sizer.h>
 
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h" // Orca: DevFilaSwitch::SwitchPos for inlet-aware AMS placement
 

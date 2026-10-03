@@ -464,6 +464,16 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
         }
     }
 
+    g.fuzzy_supported_area.reset();
+    if ((g.has_fuzzy_skin || g.has_fuzzy_hole) && g.lower_slices != nullptr) {
+        coord_t max_thickness = 0;
+        for (const auto& region : regions)
+            if (should_fuzzify(region.config, g.layer_id, 0, true) || should_fuzzify(region.config, g.layer_id, 0, false))
+                max_thickness = std::max(max_thickness, region.config.thickness);
+        // Walls farther than a line width plus the noise amplitude from the layer below are bridging; keep them smooth.
+        g.fuzzy_supported_area = offset_ex(*g.lower_slices, float(g.ext_perimeter_flow.scaled_width() + max_thickness));
+    }
+
     if (regions.size() == 1) { // optimization
         g.regions_by_fuzzify.push_back({regions.front().config, {}});
         return;
@@ -560,13 +570,23 @@ static std::vector<MergedFuzzyRegion> collect_merged_fuzzy_regions(const std::ve
     return merged_regions;
 }
 
+// Afterwards an empty region means nothing to fuzzify, no longer full coverage.
+static void restrict_to_supported(std::vector<MergedFuzzyRegion>& merged_regions, const std::optional<ExPolygons>& supported)
+{
+    if (!supported)
+        return;
+    for (auto& merged_region : merged_regions)
+        merged_region.expolygons = merged_region.expolygons.empty() ? *supported : intersection_ex(merged_region.expolygons, *supported);
+}
+
 Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perimeter_generator, const size_t loop_idx, const bool is_contour)
 {
     Polygon fuzzified;
 
     const auto  slice_z = perimeter_generator.slice_z;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    if (regions.size() == 1) { // optimization
+    const auto& supported = perimeter_generator.fuzzy_supported_area;
+    if (regions.size() == 1 && !supported) { // optimization
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, loop_idx, is_contour);
         if (!fuzzify) {
@@ -590,7 +610,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
     // Fast path: single merged region — apply directly without splitting
     if (merged_regions.size() == 1) {
         const auto& mr = merged_regions.front();
-        if (mr.expolygons.empty()) {
+        if (mr.expolygons.empty() && !supported) {
             fuzzified = polygon;
             fuzzy_polyline(fuzzified.points, true, slice_z, *mr.config);
             return fuzzified;
@@ -625,6 +645,8 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         for (size_t j = i + 1; j < merged_regions.size(); ++j)
             if (!merged_regions[i].expolygons.empty() && !merged_regions[j].expolygons.empty())
                 merged_regions[i].expolygons = diff_ex(merged_regions[i].expolygons, merged_regions[j].expolygons);
+
+    restrict_to_supported(merged_regions, supported);
 
     // Split the loops into lines with different config, and fuzzy them separately
     fuzzified = polygon;
@@ -689,7 +711,8 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
     const auto  slice_z = perimeter_generator.slice_z;
     const auto  layer_height = perimeter_generator.layer_height;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    if (regions.size() == 1) { // optimization
+    const auto& supported = perimeter_generator.fuzzy_supported_area;
+    if (regions.size() == 1 && !supported) { // optimization
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
         if (fuzzify)
@@ -703,7 +726,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
         if (!merged_regions.empty()) {
 
             // Fast path: single merged region — apply directly without splitting
-            if (merged_regions.size() == 1 && merged_regions.front().expolygons.empty()) {
+            if (merged_regions.size() == 1 && merged_regions.front().expolygons.empty() && !supported) {
                 fuzzy_extrusion_line(extrusion->junctions, slice_z, perimeter_generator.layer_height, *merged_regions.front().config, closed);
                 return;
             }
@@ -752,6 +775,8 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 for (size_t j = i + 1; j < merged_regions.size(); ++j)
                     if (!merged_regions[i].expolygons.empty() && !merged_regions[j].expolygons.empty())
                         merged_regions[i].expolygons = diff_ex(merged_regions[i].expolygons, merged_regions[j].expolygons);
+
+            restrict_to_supported(merged_regions, supported);
 
             // Split the loops into lines with different config, and fuzzy them separately
             for (const auto& r : merged_regions) {

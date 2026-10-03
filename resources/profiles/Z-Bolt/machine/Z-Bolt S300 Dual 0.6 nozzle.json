@@ -23,9 +23,11 @@
 		"0.12"
 	],
 	"retraction_length": [
+		"1.4",
 		"1.4"
 	],
 	"retraction_minimum_travel": [
+		"2",
 		"2"
 	]
 }

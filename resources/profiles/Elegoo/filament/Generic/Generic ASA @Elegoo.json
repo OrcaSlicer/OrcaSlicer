@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "U5sKORLsVPcldRY9",
 	"name": "Generic ASA @Elegoo",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic ASA @base",
+	"from": "system",
+	"setting_id": "U5sKORLsVPcldRY9",
+	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"
 	],

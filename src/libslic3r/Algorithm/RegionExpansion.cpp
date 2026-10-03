@@ -10,7 +10,7 @@
 namespace Slic3r {
 namespace Algorithm {
 
-// Calculating radius discretization according to ClipperLib offsetter code, see void ClipperOffset::DoOffset(double delta)
+// Calculating radius discretization according to the Clipper offsetter code, see ClipperOffset::DoGroupOffset()
 inline double clipper_round_offset_error(double offset, double arc_tolerance)
 {
     static constexpr const double def_arc_tolerance = 0.25;
@@ -61,7 +61,6 @@ RegionExpansionParameters RegionExpansionParameters::build(
 
     // Accuracy of the offsetter for wave propagation.
     out.arc_tolerance        = scaled<double>(0.1);
-    out.shortest_edge_length = out.initial_step * ClipperOffsetShortestEdgeFactor;
 
     // Maximum inflation of seed contours over the boundary. Used to trim boundary to speed up
     // clipping during wave propagation. Needs to be in sync with the offsetter accuracy.
@@ -75,25 +74,20 @@ RegionExpansionParameters RegionExpansionParameters::build(
 
 // similar to expolygons_to_zpaths(), but each contour is expanded before converted to zpath.
 // The expanded contours are then opened (the first point is repeated at the end).
-static ClipperLib_Z::Paths expolygons_to_zpaths_expanded_opened(
+static ClipperZUtils::ZPaths expolygons_to_zpaths_expanded_opened(
     const ExPolygons &src, const float expansion, coord_t &base_idx)
 {
-    ClipperLib_Z::Paths out;
+    ClipperZUtils::ZPaths out;
     out.reserve(2 * std::accumulate(src.begin(), src.end(), size_t(0),
         [](const size_t acc, const ExPolygon &expoly) { return acc + expoly.num_contours(); }));
-    ClipperLib::ClipperOffset offsetter;
-    offsetter.ShortestEdgeLength = expansion * ClipperOffsetShortestEdgeFactor;
-    ClipperLib::Paths expansion_cache;
     for (const ExPolygon &expoly : src) {
         for (size_t icontour = 0; icontour < expoly.num_contours(); ++ icontour) {
-            // Execute reorients the contours so that the outer most contour has a positive area. Thus the output
-            // contours will be CCW oriented even though the input paths are CW oriented.
-            // Offset is applied after contour reorientation, thus the signum of the offset value is reversed.
-            offsetter.Clear();
-            offsetter.AddPath(expoly.contour_or_hole(icontour).points, ClipperLib::jtSquare, ClipperLib::etClosedPolygon);
-            expansion_cache.clear();
-            offsetter.Execute(expansion_cache, icontour == 0 ? expansion : -expansion);
-            append(out, ClipperZUtils::to_zpaths<true>(expansion_cache, base_idx));
+            // Orient CCW, then grow the contour and shrink the holes. The output contours are CCW.
+            Polygon contour = expoly.contour_or_hole(icontour);
+            if (! contour.is_counter_clockwise())
+                contour.reverse();
+            for (const Polygon &expanded : offset(contour, icontour == 0 ? expansion : -expansion, jtSquare))
+                out.emplace_back(ClipperZUtils::to_zpath<true>(expanded.points, base_idx));
         }
         ++ base_idx;
     }
@@ -104,21 +98,21 @@ static ClipperLib_Z::Paths expolygons_to_zpaths_expanded_opened(
 // Thus some pieces of the clipped polygons may now become split at the ends of the source polygons.
 // Those ends are sorted lexicographically in "splits".
 // Reconnect those split pieces.
-static inline void merge_splits(ClipperLib_Z::Paths &paths, std::vector<std::pair<ClipperLib_Z::IntPoint, int>> &splits)
+static inline void merge_splits(ClipperZUtils::ZPaths &paths, std::vector<std::pair<ClipperZUtils::ZPoint, int>> &splits)
 {
     for (auto it_path = paths.begin(); it_path != paths.end(); ) {
-        ClipperLib_Z::Path &path = *it_path;
+        ClipperZUtils::ZPath &path = *it_path;
         assert(path.size() >= 2);
         bool merged = false;
         if (path.size() >= 2) {
-            const ClipperLib_Z::IntPoint &front = path.front();
-            const ClipperLib_Z::IntPoint &back  = path.back();
+            const ClipperZUtils::ZPoint &front = path.front();
+            const ClipperZUtils::ZPoint &back  = path.back();
             // The path before clipping was supposed to cross the clipping boundary or be fully out of it.
             // Thus the clipped contour is supposed to become open, with one exception: The anchor expands into a closed hole.
             if (front.x() != back.x() || front.y() != back.y()) {
                 // Look up the ends in "splits", possibly join the contours.
                 // "splits" maps into the other piece connected to the same end point.
-                auto find_end = [&splits](const ClipperLib_Z::IntPoint &pt) -> std::pair<ClipperLib_Z::IntPoint, int>* {
+                auto find_end = [&splits](const ClipperZUtils::ZPoint &pt) -> std::pair<ClipperZUtils::ZPoint, int>* {
                     auto it = std::lower_bound(splits.begin(), splits.end(), pt,
                         [](const auto &l, const auto &r){ return ClipperZUtils::zpoint_lower(l.first, r); });
                     return it != splits.end() && it->first == pt ? &(*it) : nullptr;
@@ -136,7 +130,7 @@ static inline void merge_splits(ClipperLib_Z::Paths &paths, std::vector<std::pai
                         end->second = int(it_path - paths.begin());
                     } else {
                         // Open end was found and matched with end->second
-                        ClipperLib_Z::Path &other_path = paths[end->second];
+                        ClipperZUtils::ZPath &other_path = paths[end->second];
                         polylines_merge(other_path, other_path.front() == end->first, std::move(path), end_front);
                         if (std::next(it_path) == paths.end()) {
                             paths.pop_back();
@@ -212,36 +206,29 @@ std::vector<WaveSeed> wave_seeds(
     using Intersection  = ClipperZUtils::ClipperZIntersectionVisitor::Intersection;
     using Intersections = ClipperZUtils::ClipperZIntersectionVisitor::Intersections;
 
-    ClipperLib_Z::Paths segments;
-    Intersections       intersections;
+    ClipperZUtils::ZPaths segments;
+    Intersections         intersections;
 
-    coord_t             idx_boundary_begin = 1;
-    coord_t             idx_boundary_end   = idx_boundary_begin;
-    coord_t             idx_src_end;
+    coord_t               idx_boundary_begin = 1;
+    coord_t               idx_boundary_end   = idx_boundary_begin;
+    coord_t               idx_src_end;
 
     {
-        ClipperLib_Z::Clipper zclipper;
         ClipperZUtils::ClipperZIntersectionVisitor visitor(intersections);
-        zclipper.ZFillFunction(visitor.clipper_callback());
         // as closed contours
-        zclipper.AddPaths(ClipperZUtils::expolygons_to_zpaths(boundary, idx_boundary_end), ClipperLib_Z::ptClip, true);
+        ClipperZUtils::ZPaths zboundary = ClipperZUtils::expolygons_to_zpaths(boundary, idx_boundary_end);
         // as open contours
-        std::vector<std::pair<ClipperLib_Z::IntPoint, int>> zsrc_splits;
-        {
-            idx_src_end = idx_boundary_end;
-            ClipperLib_Z::Paths zsrc = expolygons_to_zpaths_expanded_opened(src, tiny_expansion, idx_src_end);
-            zclipper.AddPaths(zsrc, ClipperLib_Z::ptSubject, false);
-            zsrc_splits.reserve(zsrc.size());
-            for (const ClipperLib_Z::Path &path : zsrc) {
-                assert(path.size() >= 2);
-                assert(path.front() == path.back());
-                zsrc_splits.emplace_back(path.front(), -1);
-            }
-            std::sort(zsrc_splits.begin(), zsrc_splits.end(), [](const auto &l, const auto &r){ return ClipperZUtils::zpoint_lower(l.first, r.first); });
+        std::vector<std::pair<ClipperZUtils::ZPoint, int>> zsrc_splits;
+        idx_src_end = idx_boundary_end;
+        ClipperZUtils::ZPaths zsrc = expolygons_to_zpaths_expanded_opened(src, tiny_expansion, idx_src_end);
+        zsrc_splits.reserve(zsrc.size());
+        for (const ClipperZUtils::ZPath &path : zsrc) {
+            assert(path.size() >= 2);
+            assert(path.front() == path.back());
+            zsrc_splits.emplace_back(path.front(), -1);
         }
-        ClipperLib_Z::PolyTree polytree;
-        zclipper.Execute(ClipperLib_Z::ctIntersection, polytree, ClipperLib_Z::pftNonZero, ClipperLib_Z::pftNonZero);
-        ClipperLib_Z::PolyTreeToPaths(std::move(polytree), segments);
+        std::sort(zsrc_splits.begin(), zsrc_splits.end(), [](const auto &l, const auto &r){ return ClipperZUtils::zpoint_lower(l.first, r.first); });
+        segments = ClipperZUtils::clip_zpaths(ctIntersection, zsrc, true, zboundary, visitor.clipper_callback());
         merge_splits(segments, zsrc_splits);
     }
 
@@ -256,10 +243,10 @@ std::vector<WaveSeed> wave_seeds(
     WaveSeeds out;
     out.reserve(segments.size());
     int iseed = 0;
-    for (const ClipperLib_Z::Path &path : segments) {
+    for (const ClipperZUtils::ZPath &path : segments) {
         assert(path.size() >= 2);
-        ClipperLib_Z::IntPoint front = path.front();
-        ClipperLib_Z::IntPoint back  = path.back();
+        ClipperZUtils::ZPoint front = path.front();
+        ClipperZUtils::ZPoint back  = path.back();
         // Both ends of a seed segment are supposed to be inside a single boundary expolygon.
         // Thus as long as the seed contour is not closed, it should be open at a boundary point.
         assert((front == back && front.z() >= idx_boundary_end && front.z() < idx_src_end) || 
@@ -280,7 +267,7 @@ std::vector<WaveSeed> wave_seeds(
             // boundary ID is not directly available).
             coord_t src_z = -1, boundary_z = -1;
             // Scan all path points for the information we need.
-            for (const ClipperLib_Z::IntPoint &point : path) {
+            for (const ClipperZUtils::ZPoint &point : path) {
                 if (point.z() >= idx_boundary_end && point.z() < idx_src_end && src_z < 0)
                     src_z = point.z();
                 else if (point.z() >= idx_boundary_begin && point.z() < idx_boundary_end && boundary_z < 0)
@@ -311,7 +298,7 @@ std::vector<WaveSeed> wave_seeds(
             // See https://github.com/prusa3d/PrusaSlicer/issues/12469.
             // Segement is open, yet its first point seems to be part of boundary polygon.
             // Take the first point with src polygon index.
-            for (const ClipperLib_Z::IntPoint &point : path) {
+            for (const ClipperZUtils::ZPoint &point : path) {
                 if (point.z() >= idx_boundary_end) {
                     front = point;
                     back = point;
@@ -360,17 +347,13 @@ std::vector<WaveSeed> wave_seeds(
     return out;
 }
 
-static ClipperLib::Paths wavefront_initial(ClipperLib::ClipperOffset &co, const ClipperLib::Paths &polylines, float offset)
+static Polygons wavefront_initial(const VecOfPoints &polylines, float offset, double arc_tolerance)
 {
-    ClipperLib::Paths out;
+    Polygons out;
     out.reserve(polylines.size());
-    ClipperLib::Paths out_this;
-    for (const ClipperLib::Path &path : polylines) {
+    for (const Points &path : polylines) {
         assert(path.size() >= 2);
-        co.Clear();
-        co.AddPath(path, jtRound, path.front() == path.back() ? ClipperLib::etClosedLine : ClipperLib::etOpenRound);
-        co.Execute(out_this, offset);
-        append(out, std::move(out_this));
+        append(out, Slic3r::offset(Polyline(path), offset, jtRound, arc_tolerance, path.front() == path.back() ? etClosedLine : etOpenRound));
     }
     return out;
 }
@@ -378,43 +361,24 @@ static ClipperLib::Paths wavefront_initial(ClipperLib::ClipperOffset &co, const 
 // Input polygons may consist of multiple expolygons, even nested expolygons.
 // After inflation some polygons may thus overlap, however the overlap is being resolved during the successive
 // clipping operation, thus it is not being done here.
-static ClipperLib::Paths wavefront_step(ClipperLib::ClipperOffset &co, const ClipperLib::Paths &polygons, float offset)
+static Polygons wavefront_step(const Polygons &polygons, float offset, double arc_tolerance)
 {
-    ClipperLib::Paths out;
+    Polygons out;
     out.reserve(polygons.size());
-    ClipperLib::Paths out_this;
-    for (const ClipperLib::Path &polygon : polygons) {
-        co.Clear();
-        // Execute reorients the contours so that the outer most contour has a positive area. Thus the output
-        // contours will be CCW oriented even though the input paths are CW oriented.
-        // Offset is applied after contour reorientation, thus the signum of the offset value is reversed.
-        co.AddPath(polygon, jtRound, ClipperLib::etClosedPolygon);
-        bool ccw = ClipperLib::Orientation(polygon);
-        co.Execute(out_this, ccw ? offset : - offset);
-        if (! ccw) {
-            // Reverse the resulting contours.
-            for (ClipperLib::Path &path : out_this)
-                std::reverse(path.begin(), path.end());
-        }
-        append(out, std::move(out_this));
-    }
+    for (const Polygon &polygon : polygons)
+        // CCW contours grow, CW holes shrink.
+        append(out, Slic3r::offset(polygon, offset, jtRound, arc_tolerance));
     return out;
 }
 
-static ClipperLib::Paths wavefront_clip(const ClipperLib::Paths &wavefront, const Polygons &clipping)
+static Polygons wavefront_clip(const Polygons &wavefront, const Polygons &clipping)
 {
-    ClipperLib::Clipper clipper;
-    clipper.AddPaths(wavefront, ClipperLib::ptSubject, true);
-    clipper.AddPaths(ClipperUtils::PolygonsProvider(clipping),  ClipperLib::ptClip, true);
-    ClipperLib::Paths out;
-    clipper.Execute(ClipperLib::ctIntersection, out, ClipperLib::pftPositive, ClipperLib::pftPositive);
-    return out;
+    return intersection(wavefront, clipping, pftPositive);
 }
 
 static Polygons propagate_wave_from_boundary(
-    ClipperLib::ClipperOffset   &co,
     // Seed of the wave: Open polylines very close to the boundary.
-    const ClipperLib::Paths     &seed,
+    const VecOfPoints           &seed,
     // Boundary inside which the waveform will propagate.
     const ExPolygon             &boundary,
     // How much to inflate the seed lines to produce the first wave area.
@@ -425,25 +389,24 @@ static Polygons propagate_wave_from_boundary(
     const size_t                 num_other_steps,
     // Maximum inflation of seed contours over the boundary. Used to trim boundary to speed up
     // clipping during wave propagation.
-    const float                  max_inflation)
+    const float                  max_inflation,
+    // Accuracy of the round offsets.
+    const double                 arc_tolerance)
 {
     assert(! seed.empty() && seed.front().size() >= 2);
     Polygons clipping = ClipperUtils::clip_clipper_polygons_with_subject_bbox(boundary, get_extents<true>(seed).inflated(max_inflation));
-    ClipperLib::Paths polygons = wavefront_clip(wavefront_initial(co, seed, initial_step), clipping);
+    Polygons polygons = wavefront_clip(wavefront_initial(seed, initial_step, arc_tolerance), clipping);
     // Now offset the remaining 
     for (size_t ioffset = 0; ioffset < num_other_steps; ++ ioffset)
-        polygons = wavefront_clip(wavefront_step(co, polygons, other_step), clipping);
-    return to_polygons(polygons);
+        polygons = wavefront_clip(wavefront_step(polygons, other_step, arc_tolerance), clipping);
+    return polygons;
 }
 
 // Resulting regions are sorted by boundary id and source id.
 std::vector<RegionExpansion> propagate_waves(const WaveSeeds &seeds, const ExPolygons &boundary, const RegionExpansionParameters &params)
 {
     std::vector<RegionExpansion> out;
-    ClipperLib::Paths            paths;
-    ClipperLib::ClipperOffset co;
-    co.ArcTolerance       = params.arc_tolerance;
-    co.ShortestEdgeLength = params.shortest_edge_length;
+    VecOfPoints                  paths;
     for (auto it_seed = seeds.begin(); it_seed != seeds.end();) {
         auto it = it_seed;
         paths.clear();
@@ -452,7 +415,7 @@ std::vector<RegionExpansion> propagate_waves(const WaveSeeds &seeds, const ExPol
         // Propagate the wavefront while clipping it with the trimmed boundary.
         // Collect the expanded polygons, merge them with the source polygons.
         RegionExpansion re;
-        for (Polygon &polygon : propagate_wave_from_boundary(co, paths, boundary[it_seed->boundary], params.initial_step, params.other_step, params.num_other_steps, params.max_inflation))
+        for (Polygon &polygon : propagate_wave_from_boundary(paths, boundary[it_seed->boundary], params.initial_step, params.other_step, params.num_other_steps, params.max_inflation, params.arc_tolerance))
             out.push_back({ std::move(polygon), it_seed->src, it_seed->boundary });
         it_seed = it;
     }

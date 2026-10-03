@@ -7,7 +7,11 @@
 #include <exception>
 #include <string>
 
+#include <wx/event.h>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
+#include <wx/toplevel.h>
 #include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
