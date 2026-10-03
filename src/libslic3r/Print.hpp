@@ -631,7 +631,7 @@ private:
     // SoftFever
     // 
     // object id
-    size_t               m_id;
+    size_t               m_id{0};
     void apply_conical_overhang();
 
  public:
