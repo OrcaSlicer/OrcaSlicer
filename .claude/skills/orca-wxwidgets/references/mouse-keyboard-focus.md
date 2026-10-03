@@ -10,7 +10,7 @@ wx asserts are compiled out in Orca (`wxDEBUG_LEVEL=0`), so every misuse below t
 an assert fails silently. "GTK" means wxGTK3, Orca's Linux default (X11 and Wayland); GTK2 is only
 an opt-out build (`-DDEP_WX_GTK3=OFF`), noted where it differs. Paths starting `interface/`,
 `include/`, `src/`, `docs/` are in the wx tree
-(`find deps -maxdepth 5 -type d -path '*dep_wxWidgets-prefix/src/dep_wxWidgets'`); Orca paths are
+(located as in `SKILL.md` §Ground truth); Orca paths are
 relative to `src/slic3r/GUI/`.
 
 Contents: [Rules](#rules) · [Mouse capture](#mouse-capture) · [Mouse events](#mouse-events) ·

@@ -1,11 +1,17 @@
 #ifndef slic3r_FillHoneycomb_hpp_
 #define slic3r_FillHoneycomb_hpp_
 
+#include <cstddef>
 #include <map>
+#include <utility>
+#include <math.h>
 
 #include "../libslic3r.h"
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 

@@ -1,10 +1,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <catch2/catch_message.hpp>
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 
+#include <wx/accel.h>
+#include <string>
+#include <vector>
+#include <cstddef>
+#include <optional>
 #include <wx/event.h>
 
 using namespace Slic3r;

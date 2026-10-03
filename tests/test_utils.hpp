@@ -1,6 +1,9 @@
 #ifndef SLIC3R_TEST_UTILS
 #define SLIC3R_TEST_UTILS
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/BoundingBox.hpp"
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/Format/OBJ.hpp>
 #include <libslic3r/SVG.hpp>

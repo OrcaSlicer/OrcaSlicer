@@ -4,10 +4,15 @@
 #define slic3r_KDTreeIndirect_hpp_
 
 #include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <array>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "Utils.hpp" // for next_highest_power_of_2()
+#include "libslic3r.h"
 
 namespace Slic3r {
 

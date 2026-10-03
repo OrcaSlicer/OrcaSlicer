@@ -1,6 +1,13 @@
 #ifndef SLA_SUPPORTPOINTGENERATOR_HPP
 #define SLA_SUPPORTPOINTGENERATOR_HPP
 
+#include "libslic3r/ExPolygon.hpp"
+#include <functional>
+#include "libslic3r/Polygon.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <cstdint>
 #include <random>
 
 #include <libslic3r/SLA/SupportPoint.hpp>
@@ -11,6 +18,9 @@
 #include <libslic3r/Point.hpp>
 
 #include <boost/container/small_vector.hpp>
+#include <vector>
+#include <unordered_map>
+#include <utility>
 
 // #define SLA_SUPPORTPOINTGEN_DEBUG
 

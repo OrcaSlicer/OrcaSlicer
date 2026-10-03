@@ -1,10 +1,18 @@
 #include "../ClipperUtils.hpp"
 #include "../Print.hpp"
 #include "../ShortestPath.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Fill/Lightning/Layer.hpp"
 #include "FillBase.hpp"
 #include "FillCornerSmoothing.hpp"
 #include "FillLightning.hpp"
 #include "Lightning/Generator.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <functional>
 
 namespace Slic3r::FillLightning {
 

@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include "libslic3r/CAD/SketchEngine.hpp"

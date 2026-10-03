@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <wx/anybutton.h>
 #include <wx/event.h>
 #include <wx/checklst.h>
 #include <wx/colour.h>

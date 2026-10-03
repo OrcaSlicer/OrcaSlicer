@@ -1,20 +1,44 @@
+#include "Flow.hpp"
+#include "Config.hpp"
+#include "ExPolygon.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Exception.hpp"
 #include "Layer.hpp"
 #include "BridgeDetector.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
+#include "Line.hpp"
 #include "PerimeterGenerator.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
 #include "Print.hpp"
+#include "PrintConfig.hpp"
 #include "Surface.hpp"
 #include "BoundingBox.hpp"
 #include "SVG.hpp"
 #include "Algorithm/RegionExpansion.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
 
+#include <cmath>
+#include <array>
+#include <cstddef>
+#include <initializer_list>
+#include <algorithm>
+#include <cstdint>
+#include <optional>
+#include <iterator>
+#include <stdexcept>
+#include <math.h>
+#include <cassert>
 #include <string>
 #include <map>
 
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/clamp.hpp>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

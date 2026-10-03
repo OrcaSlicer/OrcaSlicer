@@ -12,6 +12,7 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/TextInput.hpp"
 #include <string>
+#include <wx/anybutton.h>
 #include <wx/sizer.h>
 #include <wx/checklst.h>
 #include <vector>

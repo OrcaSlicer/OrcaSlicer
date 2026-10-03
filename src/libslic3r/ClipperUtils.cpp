@@ -1,5 +1,9 @@
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <cassert>
 #include <cmath>
 #include <limits>
 #include <numeric>
@@ -8,10 +12,20 @@
 #include <tbb/parallel_for.h>
 
 #include "ClipperUtils.hpp"
+#include "BoundingBox.hpp"
+#include "ExPolygon.hpp"
 #include "Geometry.hpp"
+#include "Point.hpp"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
+#include "Line.hpp"
 #include "ShortestPath.hpp"
+#include "libslic3r.h"
+#include "Surface.hpp"
 
 #include <clipper2/clipper.h>
+#include <utility>
+#include <vector>
 
 // #define CLIPPER_UTILS_DEBUG
 

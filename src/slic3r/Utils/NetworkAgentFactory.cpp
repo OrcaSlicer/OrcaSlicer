@@ -1,4 +1,5 @@
 #include "NetworkAgentFactory.hpp"
+#include "CloudProvider.hpp"
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "BBLPrinterAgent.hpp"
@@ -13,13 +14,18 @@
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <map>
+#include <memory>
 #include <mutex>
+#include <string>
 #include <utility>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/I18N.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <vector>
+#include <wx/app.h>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace {

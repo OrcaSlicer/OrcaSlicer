@@ -1,4 +1,11 @@
 #include "FontConfigHelp.hpp"
+#include <optional>
+#include <string>
+#include <wx/string.h>
+#include <wx/buffer.h>
+#include <wx/chartype.h>
+#include <wx/font.h>
+#include <cstddef>
 
 #ifdef EXIST_FONT_CONFIG_INCLUDE
 

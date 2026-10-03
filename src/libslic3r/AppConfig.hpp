@@ -5,8 +5,11 @@
 #include <chrono>
 #include <map>
 #include <string>
+#include "LocalesUtils.hpp"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string/trim_all.hpp>
+#include <utility>
+#include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"

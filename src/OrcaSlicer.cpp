@@ -20,6 +20,49 @@
     #endif /* SLIC3R_GUI */
 #endif /* WIN32 */
 
+#include <map>
+#include <vector>
+#include "libslic3r/PrintBase.hpp"
+#include "slic3r/Utils/json_diff.hpp"
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <cerrno>
+#include <utility>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include "libslic3r/LocalesUtils.hpp"
+#include <fstream>
+#include <exception>
+#include <set>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include <algorithm>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <cstdlib>
+#include <stdlib.h>
+#include <stdexcept>
+#include "libslic3r/Point.hpp"
+#include "libslic3r_version.h"
+#include "libslic3r/Semver.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include <memory>
+#include <sstream>
+#include <iomanip>
+#include <iterator>
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/GCode/WipeTowerEstimate.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <functional>
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include <cassert>
+#include <boost/filesystem/exception.hpp>
+#include <signal.h>
+
 #include <cstdio>
 #include <string>
 #include <cstring>

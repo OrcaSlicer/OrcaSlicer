@@ -8,6 +8,7 @@
 #include <wx/gdicmn.h>
 #include <wx/dcclient.h>
 #include <wx/panel.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include "Button.hpp"
 #include "Label.hpp"

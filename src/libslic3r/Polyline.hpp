@@ -1,10 +1,16 @@
 #ifndef slic3r_Polyline_hpp_
 #define slic3r_Polyline_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Line.hpp"
 #include "MultiPoint.hpp"
+#include <initializer_list>
+#include <cstddef>
+#include <algorithm>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 //BBS: new necessary header file
 #include "ArcFitter.hpp"

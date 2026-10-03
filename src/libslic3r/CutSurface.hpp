@@ -1,6 +1,8 @@
 #ifndef slic3r_CutSurface_hpp_
 #define slic3r_CutSurface_hpp_
 
+#include "libslic3r/BoundingBox.hpp"
+#include <string>
 #include <vector>
 #include <admesh/stl.h> // indexed_triangle_set
 #include "ExPolygon.hpp"

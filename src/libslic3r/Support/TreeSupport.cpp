@@ -1,6 +1,31 @@
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <cassert>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <map>
+#include <list>
+#include <cstdlib>
+#include <cmath>
+#include <deque>
+#include <iterator>
 #include <math.h>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Utils.hpp"
 #include "format.hpp"
 #include "ClipperUtils.hpp"
 #include "Fill/FillBase.hpp"
@@ -14,10 +39,17 @@
 #include "TreeSupportCommon.hpp"
 #include "TreeSupport.hpp"
 #include "TreeSupport3D.hpp"
+#include "libslic3r/libslic3r.h"
 #include <libnest2d/backends/libslic3r/geometries.hpp>
 #include <libnest2d/placers/nfpplacer.hpp>
 
 
+#include <string>
+#include <sstream>
+#include <ratio>
+#include <memory>
+#include <set>
+#include <mutex>
 #include <tbb/blocked_range.h>
 #include <tbb/concurrent_unordered_set.h>
 #include <tbb/concurrent_vector.h>
@@ -26,6 +58,11 @@
 
 #include <boost/log/trivial.hpp>
 #include <algorithm>
+#include <vector>
+#include <unordered_set>
+#include <utility>
+#include <tuple>
+#include <unordered_map>
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795

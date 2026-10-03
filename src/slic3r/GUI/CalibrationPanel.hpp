@@ -6,6 +6,24 @@
 #include "Lazy.hpp"
 #include "SelectMachinePop.hpp"
 #include "Widgets/SideTools.hpp"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <cstddef>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
+#include <wx/timer.h>
+#include <vector>
+#include <string>
+#include <memory>
+#include <map>
+#include "slic3r/GUI/StagedBuild.hpp"
 
 namespace Slic3r { namespace GUI {
 

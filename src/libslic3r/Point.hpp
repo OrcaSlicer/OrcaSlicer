@@ -2,7 +2,18 @@
 #define slic3r_Point_hpp_
 
 #include "libslic3r.h"
+#include <Eigen/Core>
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
+#include <cstdint>
+#include <type_traits>
+#include <iterator>
+#include <ostream>
+#include <utility>
+#include <limits>
+#include <optional>
+#include <functional>
 #include <vector>
 #include <cmath>
 #include <string>

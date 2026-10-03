@@ -1,6 +1,8 @@
 #include "MaterialType.hpp"
 
 #include <algorithm>
+#include <vector>
+#include <string>
 
 namespace Slic3r {
 namespace {

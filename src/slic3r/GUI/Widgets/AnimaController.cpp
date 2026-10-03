@@ -1,5 +1,6 @@
 #include "AnimaController.hpp"
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <vector>
 #include <string>

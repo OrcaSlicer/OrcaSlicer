@@ -1,7 +1,12 @@
 #include "3DPrinterOS.hpp"
 
 #include <algorithm>
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include <boost/optional/optional.hpp>
 #include <sstream>
+#include <string>
 #include <system_error>
 #include <exception>
 #include <boost/format.hpp>
@@ -11,12 +16,16 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <nlohmann/json.hpp>
 
+#include <wx/arrstr.h>
+#include <wx/gdicmn.h>
+#include <utility>
 #include <wx/progdlg.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/dialog.h>
 #include <wx/radiobut.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -30,6 +39,8 @@
 
 #include "Http.hpp"
 #include <wx/busyinfo.h>
+#include <wx/timer.h>
+#include <wx/utils.h>
 
 
 using json = nlohmann::json;

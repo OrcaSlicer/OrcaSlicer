@@ -1,3 +1,4 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <atomic>
@@ -6,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/InstanceLock.hpp"
 #include "test_utils.hpp"
 

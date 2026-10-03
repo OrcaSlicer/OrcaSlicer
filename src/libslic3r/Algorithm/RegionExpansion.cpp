@@ -1,11 +1,25 @@
 #include "RegionExpansion.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Polygon.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cassert>
+#include <iterator>
+#include <cstdint>
 #include <libslic3r/AABBTreeIndirect.hpp>
 #include <libslic3r/ClipperZUtils.hpp>
 #include <libslic3r/ClipperUtils.hpp>
 #include <libslic3r/Utils.hpp>
 
+#include <math.h>
 #include <numeric>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace Algorithm {

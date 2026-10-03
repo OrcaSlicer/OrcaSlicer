@@ -1,11 +1,43 @@
 #include "Utils.hpp"
+#include "Exception.hpp"
 #include "I18N.hpp"
 
 #include <atomic>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/keywords/severity.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <cstdio>
+#include <boost/log/keywords/file_name.hpp>
+#include <boost/log/keywords/rotation_size.hpp>
+#include <boost/log/keywords/format.hpp>
+#include <boost/log/expressions/formatters/stream.hpp>
+#include <boost/log/expressions/attr.hpp>
+#include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/log/attributes/current_thread_id.hpp>
+#include <boost/log/expressions/message.hpp>
+#include <boost/log/keywords/auto_flush.hpp>
+#include <initializer_list>
+#include <boost/filesystem/file_status.hpp>
+#include <cstdint>
+#include <boost/filesystem/directory.hpp>
+#include <fstream>
+#include <iosfwd>
+#include <cstring>
+#include <cassert>
+#include <boost/locale/conversion.hpp>
+#include <iterator>
+#include <functional>
+#include <exception>
 #include <locale>
 #include <ctime>
 #include <cstdarg>
 #include <iostream>
+#include <map>
+#include <openssl/md5.h>
+#include <set>
 #include <stdio.h>
 #include <filesystem>
 #include <sstream>
@@ -14,7 +46,12 @@
 #include <iomanip>
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <system_error>
+#include <string_view>
+#include <vector>
 
+#include "Semver.hpp"
 #include "format.hpp"
 #include "Platform.hpp"
 #include "Time.hpp"
@@ -23,6 +60,7 @@
 // (get_version_from_json) and the preset cache stamp (VendorCacheFile).
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
+#include "libslic3r_version.h"
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
