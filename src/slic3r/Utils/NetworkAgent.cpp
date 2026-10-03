@@ -115,8 +115,8 @@ void NetworkAgent::add_cloud_agent(const std::string& provider, std::shared_ptr<
 void NetworkAgent::set_printer_agent(std::shared_ptr<IPrinterAgent> printer_agent)
 {
     m_user_machine_list_generation.fetch_add(1);
-
-    // Disconnect all callbacks from the old agent
+    // Invalidate queued discovery even when a cached agent instance is reused.
+    m_discovery_session = std::make_shared<int>(0);
     auto old_printer_agent = m_printer_agent;
 
     m_printer_agent    = std::move(printer_agent);
@@ -142,7 +142,7 @@ void NetworkAgent::apply_printer_callbacks(const std::shared_ptr<IPrinterAgent>&
         return;
     }
 
-    printer_agent->set_on_ssdp_msg_fn(callbacks.on_ssdp_msg_fn);
+    apply_discovery_callback(printer_agent, callbacks);
     printer_agent->set_on_printer_connected_fn(callbacks.on_printer_connected_fn);
     printer_agent->set_on_subscribe_failure_fn(callbacks.on_subscribe_failure_fn);
     printer_agent->set_on_message_fn(callbacks.on_message_fn);
@@ -151,6 +151,26 @@ void NetworkAgent::apply_printer_callbacks(const std::shared_ptr<IPrinterAgent>&
     printer_agent->set_on_local_message_fn(callbacks.on_local_message_fn);
     printer_agent->set_queue_on_main_fn(callbacks.queue_on_main_fn);
     printer_agent->set_server_callback(callbacks.on_server_err_fn);
+}
+
+int NetworkAgent::apply_discovery_callback(const std::shared_ptr<IPrinterAgent>& printer_agent,
+                                          const PrinterCallbacks& callbacks)
+{
+    if (!callbacks.on_ssdp_msg_fn)
+        return printer_agent->set_on_ssdp_msg_fn(nullptr);
+
+    const std::weak_ptr<int> session = m_discovery_session;
+    return printer_agent->set_on_ssdp_msg_fn(
+        [session, fn = callbacks.on_ssdp_msg_fn, queue = callbacks.queue_on_main_fn](std::string payload) {
+            // Without a UI queue this would run on the agent's thread, so drop it.
+            if (session.expired() || !queue)
+                return;
+            queue([session, fn, payload = std::move(payload)] {
+                // The agent may have changed while this event waited on the UI queue.
+                if (!session.expired())
+                    fn(payload);
+            });
+        });
 }
 
 std::shared_ptr<ICloudServiceAgent> NetworkAgent::get_cloud_agent(const std::string& provider) const
@@ -172,8 +192,10 @@ int NetworkAgent::set_queue_on_main_fn(QueueOnMainFn fn, const std::string& prov
     int ret = -1;
     if (cloud_agent)
         ret = cloud_agent->set_queue_on_main_fn(fn);
-    if (m_printer_agent)
+    if (m_printer_agent) {
         m_printer_agent->set_queue_on_main_fn(fn);
+        apply_discovery_callback(m_printer_agent, m_printer_callbacks);
+    }
     return ret;
 }
 
@@ -724,9 +746,10 @@ int NetworkAgent::get_mw_user_4ulist(int seed, int limit, std::function<void(std
 
 int NetworkAgent::set_on_ssdp_msg_fn(OnMsgArrivedFn fn)
 {
+    m_discovery_session = std::make_shared<int>(0);
     m_printer_callbacks.on_ssdp_msg_fn = fn;
     if (m_printer_agent)
-        return m_printer_agent->set_on_ssdp_msg_fn(fn);
+        return apply_discovery_callback(m_printer_agent, m_printer_callbacks);
     return -1;
 }
 
