@@ -56,6 +56,28 @@ SCENARIO("Generic config validation performs as expected.", "[Config]") {
     }
 }
 
+TEST_CASE("Validation rejects an outer volumetric limit above the filament's own limit", "[Config]")
+{
+    auto [max_limits, outer_limits, valid] = GENERATE(table<const char*, const char*, bool>({
+        {"20", "0", true},
+        {"20", "8", true},
+        {"20", "20", true},
+        {"20", "21", false},
+        // Each filament is checked against its own limit.
+        {"20,10", "12,8", true},
+        {"20,10", "8,12", false},
+    }));
+    CAPTURE(max_limits, outer_limits);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"filament_max_volumetric_speed", max_limits},
+        {"filament_max_outer_volumetric_speed", outer_limits},
+    });
+
+    CHECK(config.validate().count("filament_max_outer_volumetric_speed") == (valid ? 0 : 1));
+}
+
 SCENARIO("Config accessor functions perform as expected.", "[Config]") {
     GIVEN("A config generated from default options") {
         Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
