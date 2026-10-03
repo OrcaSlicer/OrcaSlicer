@@ -3959,6 +3959,8 @@ void GLCanvas3D::bind_event_handlers()
                 // a drag cut short never sees its button release, which would leave the reduced set drawn
                 if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
                     mouse_up_cleanup();
+                // nor does the navigator's, whose flag holds for as long as the button is known to be down
+                m_navigator_dragging = false;
                 render();
                 evt.Skip();
             });
@@ -3972,10 +3974,14 @@ void GLCanvas3D::bind_event_handlers()
                     for (bool& down : io.MouseDown)
                         down = false;
                 }
-                m_navigator_dragging = false;
                 // a drag cut short never sees its button release, which would leave the solid model drawn
                 if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
                     mouse_up_cleanup();
+                if (m_navigator_dragging) {
+                    m_navigator_dragging = false;
+                    m_dirty = true;
+                    wxWakeUpIdle();
+                }
                 render();
             });
         m_event_handlers_bound = true;
@@ -6935,7 +6941,10 @@ void GLCanvas3D::_render_3d_navigator()
         request_extra_frame();
     }
 
-    m_navigator_dragging = result.dragging;
+    // The navigator reports a drag only on a frame the mouse moved in, which would drop the flag on
+    // every still frame of a drag and leave it up after a release with no motion; it holds for as
+    // long as the button does.
+    m_navigator_dragging = result.dragging || (m_navigator_dragging && io.MouseDown[0]);
 }
 
 #define ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT 0
@@ -8680,7 +8689,9 @@ bool GLCanvas3D::_is_scene_cacheable() const
 // the rectangle selection or a preview slider.
 bool GLCanvas3D::is_user_interacting() const
 {
-    return m_mouse.dragging || m_navigator_dragging || m_gizmos.is_dragging() || m_rectangle_selection.is_dragging() ||
+    // the navigator's flag is cleared by the overlay, later in the frame than this is asked
+    const bool navigator_dragging = m_navigator_dragging && GImGui != nullptr && ImGui::GetIO().MouseDown[0];
+    return m_mouse.dragging || navigator_dragging || m_gizmos.is_dragging() || m_rectangle_selection.is_dragging() ||
            m_gcode_viewer.is_slider_dragging();
 }
 
