@@ -299,7 +299,8 @@ else
 fi
 
 has_host_runtime_library() {
-    local lib_name path
+    local lib_name="\$1"
+    local path
 
     if command -v ldconfig >/dev/null 2>&1; then
         if ldconfig -p 2>/dev/null | grep -Fq " \$lib_name"; then
