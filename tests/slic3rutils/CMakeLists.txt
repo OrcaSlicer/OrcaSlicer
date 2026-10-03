@@ -54,6 +54,7 @@ add_executable(${_TEST_NAME}_tests
     test_texture_island_view.cpp
     test_timelapse_codecs.cpp
     test_file_url.cpp
+    test_small_area_infill_flow_compensation.cpp
     test_imgui_wrapper.cpp
     test_user_manager.cpp
     test_sequential_clearance.cpp

@@ -141,10 +141,7 @@ void CurveEditorPanel::set_data(const std::vector<double>& x, const std::vector<
 
 void CurveEditorPanel::set_view(const CurveEditorView& view)
 {
-    wxCHECK_RET(std::isfinite(view.min_x) && std::isfinite(view.max_x) &&
-                std::isfinite(view.min_y) && std::isfinite(view.max_y) &&
-                view.min_x < view.max_x && view.min_y < view.max_y &&
-                std::isfinite(view.max_x - view.min_x) && std::isfinite(view.max_y - view.min_y), "Invalid curve viewport");
+    wxCHECK_RET(CurveModel::valid_view(view), "Invalid curve viewport");
     finish_drag();
     m_view = view;
     m_hovered_point = -1;
