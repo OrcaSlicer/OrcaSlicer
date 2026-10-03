@@ -5,6 +5,26 @@
 #include "I18N.hpp"
 
 #include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include <vector>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include "libslic3r/Point.hpp"
+#include <exception>
+#include <wx/log.h>
+#include <cassert>
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstddef>
+#include <wx/utils.h>
+#include <utility>
+#include <boost/filesystem/operations.hpp>
+#include <wx/string.h>
 #ifdef __APPLE__
 #include "slic3r/Utils/MacDarkMode.hpp"
 #endif

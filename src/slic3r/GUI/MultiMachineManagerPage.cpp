@@ -3,6 +3,34 @@
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/Monitor.hpp"
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <utility>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/timer.h>
+#include <map>
+#include <algorithm>
+#include <cmath>
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {

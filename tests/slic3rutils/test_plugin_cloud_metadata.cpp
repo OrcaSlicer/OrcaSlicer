@@ -1,5 +1,8 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <ios>
 #include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -8,6 +11,8 @@
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "plugin_test_utils.hpp"
 
 #include <boost/filesystem.hpp>

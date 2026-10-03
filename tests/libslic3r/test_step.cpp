@@ -1,7 +1,11 @@
 #include <catch2/catch_all.hpp>
 
 #include <boost/nowide/fstream.hpp>
+#include <string>
+#include <ios>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "test_utils.hpp"

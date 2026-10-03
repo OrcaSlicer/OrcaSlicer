@@ -3,6 +3,7 @@
 #include "libslic3r/ProjectTask.hpp"
 
 #include "slic3r/Utils/json_diff.hpp"
+#include <vector>
 #include <wx/string.h>
 
 namespace Slic3r

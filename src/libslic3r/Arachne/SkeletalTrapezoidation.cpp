@@ -10,10 +10,18 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <math.h>
+#include <list>
+#include <memory>
 #include <utility>
 #include <cassert>
 #include <cstdlib>
+#include <vector>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 #include "libslic3r/Geometry/VoronoiUtils.hpp"
 #include "ankerl/unordered_dense.h"
 #include "libslic3r/Arachne/SkeletalTrapezoidationEdge.hpp"

@@ -1,8 +1,17 @@
 #include "TextureLibrary.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/operations.hpp>
+#include <cstddef>
+#include <boost/filesystem/directory.hpp>
+#include <cstdint>
 #include <fstream>
+#include <ios>
+#include <iterator>
 #include <limits>
+#include <string>
+#include <optional>
+#include <memory>
 #include <unordered_map>
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -11,6 +20,9 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <vector>
+#include <wx/gdicmn.h>
+#include <utility>
 #include <wx/image.h>
 #include <wx/mstream.h>
 

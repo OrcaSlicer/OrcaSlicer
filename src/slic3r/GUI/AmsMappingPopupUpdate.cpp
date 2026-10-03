@@ -21,6 +21,17 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 
+#include <list>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <string>
+#include <cstdlib>
+#include <exception>
+#include <map>
+#include "libslic3r/Config.hpp"
+#include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
@@ -28,6 +39,7 @@
 #include <miniz.h>
 #include <algorithm>
 #include <optional>
+#include <wx/wx.h>
 #include "Plater.hpp"
 #include "BitmapCache.hpp"
 

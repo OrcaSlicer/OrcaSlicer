@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_Utils_hpp_
 #define slic3r_GUI_Utils_hpp_
 
+#include <deque>
+#include <cstddef>
+#include <cmath>
+#include <boost/optional/optional.hpp>
 #include <memory>
 #include <string>
 #include <ostream>
@@ -9,11 +13,14 @@
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <type_traits>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
 #include <wx/gdicmn.h>
+#include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/dcclient.h>
 #include <wx/debug.h>
@@ -23,6 +30,9 @@
 #include <wx/inspector/inspector.h>
 
 #include <chrono>
+#include <wx/version.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
 #include "Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"

@@ -1,12 +1,15 @@
 #ifndef __NETWORK_Agent_HPP__
 #define __NETWORK_Agent_HPP__
 
+#include "CloudProvider.hpp"
+#include "ICameraSignalingChannel.hpp"
 #include "bambu_networking.hpp"
 
 #include "libslic3r/ProjectTask.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "IPrinterAgent.hpp"
 
+#include <functional>
 #include <map>
 #include <atomic>
 #include <cstdint>

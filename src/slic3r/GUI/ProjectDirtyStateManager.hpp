@@ -2,6 +2,11 @@
 #define slic3r_ProjectDirtyStateManager_hpp_
 
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <array>
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {

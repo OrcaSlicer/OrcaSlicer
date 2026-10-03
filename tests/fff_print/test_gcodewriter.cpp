@@ -1,21 +1,38 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
 #include <cstdlib>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/libslic3r.h"
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "nlohmann/json.hpp"
 
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
 #include "test_helpers.hpp"
@@ -23,10 +40,7 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-// Arrange on a finite bed, not an unbounded InfiniteBed: the latter places items
-// near INT64_MIN/4 (~2.3e18), which reaches ClipperLib's coordinate limit and throws
-// "Coordinate outside allowed range" on Windows/arm64. A 500x500 bed keeps coordinates
-// small while still covering large printers.
+// Arrange on a 500x500 bed, which keeps coordinates small while still covering large printers.
 static void arrange_objects_on_test_bed(Model &model, const DynamicPrintConfig &config)
 {
     const BoundingBox bed{Point::new_scale(0., 0.), Point::new_scale(500., 500.)};
@@ -98,6 +112,22 @@ SCENARIO("Origin manipulation", "[GCodeWriter]") {
     		REQUIRE(gcodegen.origin() == Vec2d(15,5));
     	}
     }
+}
+
+TEST_CASE("A cached config slot is looked up again whenever its key changes", "[GCodeWriter]")
+{
+    GCode::ConfigIndexCache cache;
+    int lookups = 0;
+    auto slot = [&](int filament, size_t layer, size_t generation) {
+        return cache.get(filament, layer, generation, [&] { ++lookups; return filament * 100 + int(layer) * 10 + int(generation); });
+    };
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(lookups == 1);
+    REQUIRE(slot(4, 2, 3) == 423);
+    REQUIRE(slot(4, 5, 3) == 453);
+    REQUIRE(slot(4, 5, 6) == 456);
+    REQUIRE(lookups == 4);
 }
 
 // Verify that emit_machine_limits_to_gcode emits the correct max value across
@@ -874,4 +904,47 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(custom_gcode_pos != std::string::npos);
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}
+
+TEST_CASE("Percent accelerations resolve against the option they are a percentage of", "[GCodeWriter]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                       "marlin" },
+        { "machine_max_acceleration_extruding", "20000,20000" },
+        { "default_acceleration",               "4000" },
+        { "initial_layer_acceleration",         "0" },
+        { "outer_wall_acceleration",            "3000" },
+        { "bridge_acceleration",                "50%" },
+        { "sparse_infill_acceleration",         "25%" },
+        { "internal_solid_infill_acceleration", "60%" },
+        { "sparse_infill_density",              "20%" },
+    });
+    // get_abs_value_at() resolves each percentage through the ratio_over in the config definitions.
+    const std::map<std::string, int> expected = {
+        { "Bridge",                int(config.get_abs_value_at("bridge_acceleration", 0)) },
+        { "Sparse infill",         int(config.get_abs_value_at("sparse_infill_acceleration", 0)) },
+        { "Internal solid infill", int(config.get_abs_value_at("internal_solid_infill_acceleration", 0)) },
+    };
+    REQUIRE(expected.at("Bridge") == 1500);
+    REQUIRE(expected.at("Sparse infill") == 1000);
+    REQUIRE(expected.at("Internal solid infill") == 2400);
+
+    std::map<std::string, std::set<int>> accelerations_by_role;
+    std::string role;
+    int         acceleration = 0;
+    GCodeReader reader;
+    reader.parse_buffer(Slic3r::Test::slice({ TestMesh::bridge }, config), [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        float value;
+        if (boost::starts_with(line.raw(), ";TYPE:"))
+            role = line.raw().substr(6);
+        else if (line.cmd_is("M204") && line.has_value('S', value))
+            acceleration = int(value);
+        else if (line.extruding(self) && line.dist_XY(self) > 0)
+            accelerations_by_role[role].insert(acceleration);
+    });
+    for (const auto &[role_name, value] : expected) {
+        INFO(role_name);
+        REQUIRE(accelerations_by_role[role_name] == std::set<int>{ value });
+    }
 }

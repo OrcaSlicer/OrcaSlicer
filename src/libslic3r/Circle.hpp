@@ -3,6 +3,8 @@
 
 #include "Point.hpp"
 #include "Line.hpp"
+#include "libslic3r.h"
+#include <cmath>
 
 namespace Slic3r {
 

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Point.hpp"
+#include "libslic3r.h"
 
 namespace Slic3r {
 

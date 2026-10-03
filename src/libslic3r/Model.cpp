@@ -1,4 +1,21 @@
 #include "Model.hpp"
+#include "calib.hpp"
+#include "Format/STEP.hpp"
+#include "TriangleMesh.hpp"
+#include "Semver.hpp"
+#include "Format/OBJ.hpp"
+#include "Config.hpp"
+#include "Format/STL.hpp"
+#include "Format/objparser.hpp"
+#include "CustomGCode.hpp"
+#include "PrintConfig.hpp"
+#include "ObjectID.hpp"
+#include "BoundingBox.hpp"
+#include "Point.hpp"
+#include "Utils.hpp"
+#include "Polygon.hpp"
+#include "SLA/SupportPoint.hpp"
+#include "TextureDisplacement.hpp"
 #include "libslic3r.h"
 #include "BuildVolume.hpp"
 #include "TexturePainting.hpp"
@@ -23,7 +40,17 @@
 
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <cstdlib>
+#include <ctime>
+#include <boost/filesystem/operations.hpp>
+#include <boost/lexical_cast.hpp>
+#include <exception>
+#include <cmath>
+#include <array>
 #include <float.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -35,6 +62,21 @@
 #include "SVG.hpp"
 #include <Eigen/Dense>
 #include <functional>
+#include <vector>
+#include <string>
+#include <map>
+#include <utility>
+#include <memory>
+#include <iterator>
+#include <limits>
+#include <sstream>
+#include <iomanip>
+#include <set>
+#include <optional>
+#include <iostream>
+#include <ios>
+#include <ostream>
+#include <initializer_list>
 #include "GCodeWriter.hpp"
 
 // BBS: for segment

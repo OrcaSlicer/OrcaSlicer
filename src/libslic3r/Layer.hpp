@@ -1,12 +1,21 @@
 #ifndef slic3r_Layer_hpp_
 #define slic3r_Layer_hpp_
 
+#include "Polyline.hpp"
+#include "Polygon.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Line.hpp"
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
 #include "Flow.hpp"
 #include "SurfaceCollection.hpp"
 #include "ExtrusionEntityCollection.hpp"
 #include "BoundingBox.hpp"
+#include <vector>
+#include <cstddef>
+#include <algorithm>
+#include <string>
+#include <functional>
 namespace Slic3r {
 
 class ExPolygon;

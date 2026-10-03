@@ -1,6 +1,14 @@
 #include "TextureDisplacementBakeJob.hpp"
 
 #include <algorithm>
+#include <functional>
+#include <utility>
+#include <string>
+#include "libslic3r/TextureDisplacement.hpp"
+#include <exception>
+#include <cstddef>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <memory>
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/format.hpp"

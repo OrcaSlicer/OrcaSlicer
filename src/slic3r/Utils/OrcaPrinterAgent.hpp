@@ -3,6 +3,7 @@
 
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "OrcaMqttConnection.hpp"
 #include <atomic>

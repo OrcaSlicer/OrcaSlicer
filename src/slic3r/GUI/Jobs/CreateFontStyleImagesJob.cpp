@@ -1,6 +1,7 @@
 #include "CreateFontStyleImagesJob.hpp"
 
 // rasterization of ExPoly
+#include "EmbossStyleManager.hpp"
 #include "libslic3r/SLA/AGGRaster.hpp"
 #include "slic3r/GUI/3DScene.hpp" // ::glsafe
 
@@ -8,6 +9,19 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include <utility>
+#include <cassert>
+#include <vector>
+#include "libslic3r/ExPolygon.hpp"
+#include <cstddef>
+#include "libslic3r/Emboss.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <cmath>
+#include "libslic3r/SLA/RasterBase.hpp"
+#include "libslic3r/libslic3r.h"
+#include <memory>
+#include <exception>
+#include <cstdint>
 
 using namespace Slic3r;
 using namespace Slic3r::Emboss;

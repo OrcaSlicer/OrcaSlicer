@@ -2,8 +2,13 @@
 #define slic3r_Geometry_Circle_hpp_
 
 #include "../Point.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <cassert>
+#include <cstddef>
+#include <utility>
 
 namespace Slic3r { namespace Geometry {
 

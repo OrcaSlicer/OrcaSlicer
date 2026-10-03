@@ -1,14 +1,38 @@
 #ifndef slic3r_Plater_hpp_
 #define slic3r_Plater_hpp_
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <map>
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <functional>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
+#include <atomic>
 #include <memory>
+#include "slic3r/GUI/Event.hpp"
+#include <string>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/arrstr.h>
 #include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
 // BBS
 #include <wx/notebook.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Selection.hpp"
 
@@ -319,6 +343,7 @@ public:
     bool is_presets_dirty() const;
     void set_plater_dirty(bool is_dirty);
     void update_project_dirty_from_presets();
+    void normalize_bed_types(bool printer_setting_changed);
     int  save_project_if_dirty(const wxString& reason);
     void reset_project_dirty_after_save();
     void reset_project_dirty_initial_presets();

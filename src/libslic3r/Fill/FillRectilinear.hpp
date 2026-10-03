@@ -3,7 +3,18 @@
 
 #include "../libslic3r.h"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <initializer_list>
+#include <cstddef>
+#include <vector>
+#include <utility>
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 

@@ -1,8 +1,15 @@
+#include <array>
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "test_utils.hpp"
 
+#include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include <cmath>
 #include <libslic3r/SLA/IndexedMesh.hpp>
 #include <libslic3r/SLA/Hollowing.hpp>
+#include <utility>
 
 #include "sla_test_utils.hpp"
 

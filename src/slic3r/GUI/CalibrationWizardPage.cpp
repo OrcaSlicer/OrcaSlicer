@@ -1,9 +1,35 @@
 #include "CalibrationWizardPage.hpp"
+#include "CalibUtils.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include <wx/event.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include <string>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/PresetComboBoxes.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <wx/utils.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include <memory>
+#include <wx/scrolwin.h>
 
 namespace Slic3r { namespace GUI {
 

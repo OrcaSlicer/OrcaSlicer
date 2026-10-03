@@ -10,6 +10,13 @@
 
 #include "libslic3r/PrintConfig.hpp"
 #include "Field.hpp"
+#include <functional>
+#include <string>
+#include <wx/string.h>
+#include <boost/any.hpp>
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <map>
 
 namespace Slic3r {
 
@@ -84,6 +91,7 @@ public:
     void    check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config, unsigned int variant_index);
     void    check_adaptive_pressure_advance_model(DynamicPrintConfig* config);
     void    check_filament_max_volumetric_speed(DynamicPrintConfig *config);
+    void    check_filament_ironing_spacing(DynamicPrintConfig *config);
     void    check_chamber_temperature(DynamicPrintConfig* config);
     void    check_chamber_minimal_temperature(DynamicPrintConfig* config);
     bool    check_layer_height(DynamicPrintConfig* config);

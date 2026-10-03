@@ -5,12 +5,17 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <exception>
 #include <limits>
+#include <map>
 #include <set>
 #include <sstream>
 #include <numeric>
 
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <vector>
+#include <utility>
 
 #include "ColorDecomposeRecipe.hpp"
 #include "FilamentMixerModel.hpp"

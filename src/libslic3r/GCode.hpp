@@ -1,6 +1,11 @@
 #ifndef slic3r_GCode_hpp_
 #define slic3r_GCode_hpp_
 
+#include "ExtrusionEntity.hpp"
+#include "Polygon.hpp"
+#include "Config.hpp"
+#include "ExtrusionEntityCollection.hpp"
+#include "Print.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "GCodeWriter.hpp"
@@ -28,12 +33,20 @@
 #include "GCode/AdaptivePAProcessor.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
+#include "libslic3r_version.h"
 
+#include <cstddef>
+#include <limits>
+#include <cstdio>
+#include <array>
+#include <cstdlib>
 #include <memory>
 #include <map>
 #include <set>
 #include <string>
 #include <cfloat>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -301,6 +314,24 @@ public:
     size_t get_filament_config_index(int filament_id, size_t layer_id) const;
     size_t get_nozzle_config_index(int filament_id) const;
 
+    // Holds the last slot a resolver returned without locking, so only the G-code generator may
+    // call the resolvers.
+    struct ConfigIndexCache
+    {
+        bool   valid{false};
+        int    filament_id{0};
+        size_t layer_idx{0};
+        size_t generation{0};
+        size_t index{0};
+
+        template<class Lookup> size_t get(int filament, size_t layer, size_t gen, Lookup &&lookup)
+        {
+            if (!valid || filament_id != filament || layer_idx != layer || generation != gen)
+                *this = {true, filament, layer, gen, size_t(lookup())};
+            return index;
+        }
+    };
+
     // Object and support extrusions of the same PrintObject at the same print_z.
     // public, so that it could be accessed by free helper functions from GCode.cpp
     struct LayerToPrint
@@ -450,19 +481,19 @@ private:
                                                            double &y_acceleration_limit_res, double &accumulated_mass_res);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string extrude_entity(const ExtrusionEntity&      entity,
-                               const std::string&          description       = "",
-                               double                      speed             = -1.,
-                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                               const WipeInwardSupport*     wipe_support      = nullptr);
+    std::string extrude_entity(const ExtrusionEntity&                     entity,
+                               const std::string&                         description       = "",
+                               double                                     speed             = -1.,
+                               const std::vector<const ExtrusionEntity*>& region_perimeters = {},
+                               const WipeInwardSupport*                   wipe_support      = nullptr);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string extrude_loop(const ExtrusionLoop&        loop,
-                             const std::string&          description,
-                             double                      speed             = -1.,
-                             const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
-                             const Point*                start_point       = nullptr,
-                             const WipeInwardSupport*     wipe_support      = nullptr);
+    std::string extrude_loop(const ExtrusionLoop&                       loop,
+                             const std::string&                         description,
+                             double                                     speed             = -1.,
+                             const std::vector<const ExtrusionEntity*>& region_perimeters = {},
+                             const Point*                               start_point       = nullptr,
+                             const WipeInwardSupport*                   wipe_support      = nullptr);
     std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
     std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
 
@@ -493,10 +524,9 @@ private:
         {
             struct Region {
             	// Non-owned references to LayerRegion::perimeters::entities
-            	// std::vector<const ExtrusionEntity*> would be better here, but there is no way in C++ to convert from std::vector<T*> std::vector<const T*> without copying.
-                ExtrusionEntitiesPtr perimeters;
+                std::vector<const ExtrusionEntity*> perimeters;
             	// Non-owned references to LayerRegion::fills::entities
-                ExtrusionEntitiesPtr infills;
+                std::vector<const ExtrusionEntity*> infills;
 
                 std::vector<const WipingExtrusions::ExtruderPerCopy*> infills_overrides;
                 std::vector<const WipingExtrusions::ExtruderPerCopy*> perimeters_overrides;
@@ -785,6 +815,8 @@ private:
     // Object layer id of the layer being generated; keys the per-filament config-slot
     // resolvers. Distinct from m_layer_index (an export progress counter starting at -1).
     size_t m_cur_layer_idx{0};
+    mutable ConfigIndexCache m_filament_index_cache;
+    mutable ConfigIndexCache m_nozzle_index_cache;
 
     std::set<unsigned int>                  m_initial_layer_extruders;
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;
@@ -831,6 +863,10 @@ private:
 };
 
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order = false);
+
+// The overhang data ExtrusionQualityEstimator needs for the object layers in `layers`, computed ahead of the generator;
+// `overhang_fan` says whether the overhang fan can switch on for any filament.
+std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan);
 
 }
 

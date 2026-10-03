@@ -3,11 +3,17 @@
 #include "Geometry.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "Model.hpp"
+#include "Point.hpp"
 #include "TriangleMesh.hpp"
+#include "libslic3r.h"
 
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <numeric>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
