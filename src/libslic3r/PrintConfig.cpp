@@ -393,9 +393,16 @@ static t_config_enum_values s_keys_map_SeamPosition {
     { "aligned",        spAligned },
     { "aligned_back",   spAlignedBack },
     { "back",           spRear },
-    { "random",         spRandom }
+    { "random",         spRandom },
+    { "custom",         spCustom }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamPosition)
+
+static t_config_enum_values s_keys_map_SeamSide {
+    { "closest",  ssClosest },
+    { "farthest", ssFarthest }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamSide)
 
 // Orca
 static t_config_enum_values s_keys_map_SeamScarfType{
@@ -6202,20 +6209,60 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_position", coEnum);
     def->label = L("Seam position");
     def->category = L("Quality");
-    def->tooltip = L("This is the starting position for each part of the outer wall.");
+    def->tooltip = L("This is the starting position for each part of the outer wall. "
+                     "The custom point can be set in Expert mode.");
     def->enum_keys_map = &ConfigOptionEnum<SeamPosition>::get_enum_values();
     def->enum_values.push_back("nearest");
     def->enum_values.push_back("aligned");
     def->enum_values.push_back("aligned_back");
     def->enum_values.push_back("back");
     def->enum_values.push_back("random");
+    def->enum_values.push_back("custom");
     def->enum_labels.push_back(L("Nearest"));
     def->enum_labels.push_back(L("Aligned"));
     def->enum_labels.push_back(L("Aligned back"));
     def->enum_labels.push_back(L("Back"));
     def->enum_labels.push_back(L("Random"));
+    def->enum_labels.push_back(L("Center/custom point"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamPosition>(spAligned));
+
+    def = this->add("seam_position_x", coFloat);
+    def->label = L("Custom point X");
+    def->category = L("Quality");
+    def->tooltip = L("X offset of the custom point from the object's center. Moving the object on the build "
+                     "plate does not change it.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("seam_position_y", coFloat);
+    def->label = L("Custom point Y");
+    def->category = L("Quality");
+    def->tooltip = L("Y offset of the custom point from the object's center. Moving the object on the build "
+                     "plate does not change it.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("seam_position_ref", coEnum);
+    def->label = L("Seam side");
+    def->category = L("Quality");
+    def->tooltip = L("Place the seam at the wall point closest to or farthest from the custom point.");
+    def->enum_keys_map = &ConfigOptionEnum<SeamSide>::get_enum_values();
+    def->enum_values.push_back("closest");
+    def->enum_values.push_back("farthest");
+    def->enum_labels.push_back(L("Closest to point"));
+    def->enum_labels.push_back(L("Farthest from point"));
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionEnum<SeamSide>(ssClosest));
+
+    def = this->add("seam_position_align", coBool);
+    def->label = L("Align seams across layers");
+    def->category = L("Quality");
+    def->tooltip = L("Align the seams of consecutive layers into a vertical line.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");

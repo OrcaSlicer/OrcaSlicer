@@ -139,6 +139,9 @@ public:
   // When searching for seam clusters for alignment:
   // following value describes, how much worse score can point have and still be picked into seam cluster instead of original seam point on the same layer
   static constexpr float seam_align_score_tolerance = 0.3f;
+  // For the positional seam modes (Back, Center/custom point): how much farther from the target (in mm) a point can be
+  // and still be picked into the seam cluster
+  static constexpr float seam_align_position_tolerance = seam_align_score_tolerance * 5.0f;
   // seam_align_tolerable_dist_factor - how far to search for seam from current position, final dist is seam_align_tolerable_dist_factor * flow_width
   static constexpr float seam_align_tolerable_dist_factor = 4.0f;
   // minimum number of seams needed in cluster to make alignment happen
