@@ -5123,19 +5123,25 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
 
 void StatusBasePanel::remove_controls()
 {
+    // Wrapped in a function: WebView::RunScript() runs it at global scope, where a repeated top-level
+    // const would throw.
     const std::string js_cleanup_video_element = R"(
-        document.body.style.overflow='hidden';
-        const video = document.querySelector('video');
-        video.setAttribute('style', 'width: 100% !important;');
-        video.removeAttribute('controls');
-        video.addEventListener('leavepictureinpicture', () => {
-            window.wx.postMessage('leavepictureinpicture');
-        });
-        video.addEventListener('enterpictureinpicture', () => {
-            window.wx.postMessage('enterpictureinpicture');
-        });
+        (() => {
+            document.body.style.overflow='hidden';
+            const video = document.querySelector('video');
+            video.setAttribute('style', 'width: 100% !important;');
+            video.removeAttribute('controls');
+            video.addEventListener('leavepictureinpicture', () => {
+                window.wx.postMessage('leavepictureinpicture');
+            });
+            video.addEventListener('enterpictureinpicture', () => {
+                window.wx.postMessage('enterpictureinpicture');
+            });
+        })();
     )";
-    m_custom_camera_view->RunScript(js_cleanup_video_element);
+    // Fire and forget: wxWebView::RunScript() spins in wxYield() until the result arrives, which may
+    // never happen here and hangs startup; RunScriptAsync() calls back into a view that may be gone.
+    WebView::RunScript(m_custom_camera_view, js_cleanup_video_element);
 }
 
 void StatusPanel::on_camera_leave(wxMouseEvent& event)
