@@ -7,6 +7,7 @@
 // one incident face on one side, which a slicer reads as an open boundary. This splits the offending
 // face into a fan so every on-edge vertex becomes a real corner.
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 

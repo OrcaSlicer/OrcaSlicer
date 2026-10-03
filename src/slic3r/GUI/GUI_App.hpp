@@ -1,9 +1,22 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <atomic>
+#include <boost/optional/optional.hpp>
 #include <chrono>
+#include <cstdint>
+#include <cstddef>
 #include <functional>
+#include <map>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Semver.hpp"
 #include <memory>
+#include <set>
+#include "slic3r/GUI/GLShader.hpp"
 #include <string>
 #include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
@@ -11,15 +24,23 @@
 #include "OpenGLManager.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "../Utils/PrintHost.hpp"
 
+#include <vector>
+#include <utility>
 #include <wx/app.h>
 #include <wx/colour.h>
+#include <wx/event.h>
 #include <wx/font.h>
+#include <wx/strconv.h>
+#include <wx/setup.h>
+#include <wx/intl.h>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/snglinst.h>
 #include <wx/msgdlg.h>

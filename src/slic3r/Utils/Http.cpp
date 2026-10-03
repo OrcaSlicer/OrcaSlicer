@@ -1,8 +1,23 @@
 #include "Http.hpp"
+#include "libslic3r_version.h"
 
+#include <algorithm>
 #include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <cassert>
 #include <cstdlib>
+#include <curl/curlver.h>
+#include <fstream>
 #include <functional>
+#include <memory>
+#include <string>
+#include <stdlib.h>
+#include <map>
+#include <mutex>
+#include <ios>
+#include "libslic3r/Exception.hpp"
+#include <iterator>
+#include <ostream>
 #include <thread>
 #include <deque>
 #include <sstream>
@@ -14,6 +29,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <curl/curl.h>
+#include <utility>
 
 #ifdef OPENSSL_CERT_OVERRIDE
 #include <openssl/x509.h>

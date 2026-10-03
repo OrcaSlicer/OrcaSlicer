@@ -1,7 +1,10 @@
 #include "TextureDisplacement.hpp"
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -11,10 +14,13 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <memory>
+#include <math.h>
 #include <mutex>
 #include <numeric>
 #include <optional>
 #include <queue>
+#include <ratio>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -27,11 +33,16 @@
 #include <tbb/parallel_sort.h>
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
 
 #include "AABBTreeIndirect.hpp"
 #include "MeshBoolean.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
+#include "Point.hpp"
+#include "TriangleMesh.hpp"
+#include "TextureBake/TextureBakeDisplace.hpp"
 #include "TriangleSelector.hpp"
 #include "TextureBake/TextureBakeDebug.hpp"
 #include "TextureBake/TextureBakeMesh.hpp"

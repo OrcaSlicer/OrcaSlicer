@@ -9,16 +9,30 @@
 
 #include <algorithm>
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
+#include <memory>
+#include <exception>
+#include <cstddef>
 #include <nlohmann/json.hpp>
 
+#include "slic3r/plugin/pluginTypes/pages/PagesPluginCapability.hpp"
+#include "slic3r/GUI/WebPanel.hpp"
+#include <optional>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <stdexcept>
+#include <string>
+#include <wx/app.h>
+#include <vector>
 #include <wx/bookctrl.h>
+#include <wx/event.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
 #include <utility>
+#include <wx/webview.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace {

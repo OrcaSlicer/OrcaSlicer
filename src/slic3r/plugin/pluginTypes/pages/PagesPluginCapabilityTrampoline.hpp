@@ -3,8 +3,14 @@
 #include "PagesPluginCapability.hpp"
 #include "../../PluginFsUtils.hpp"
 #include "../../PyPluginTrampoline.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/pybind11.h>
 
 #include <nlohmann/json.hpp>
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
+#include <stdexcept>
 
 namespace Slic3r {
 

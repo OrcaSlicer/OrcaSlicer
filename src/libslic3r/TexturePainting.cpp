@@ -1,9 +1,15 @@
 #include "TexturePainting.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <map>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/matx.hpp>
 #include <set>
+#include <string>
 #include <utility>
 
 #include <opencv2/core.hpp>
@@ -11,11 +17,15 @@
 #include <opencv2/imgproc.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <vector>
 
+#include "Point.hpp"
+#include "TextureToColor/Callbacks.hpp"
 #include "TextureToColor/TextureToColor.hpp"
 #include "TextureToColor/ColorUtils.hpp"
 
 #include "Model.hpp"
+#include "TextureToColor/TriMesh.hpp"
 #include "TriangleMesh.hpp"
 #include "TriangleSelector.hpp"
 

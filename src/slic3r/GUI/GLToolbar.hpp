@@ -1,9 +1,11 @@
 #ifndef slic3r_GLToolbar_hpp_
 #define slic3r_GLToolbar_hpp_
 
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
+#include <wx/event.h>
 
 #include "GLTexture.hpp"
 #include "Event.hpp"

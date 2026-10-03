@@ -11,7 +11,17 @@
 #ifndef slic3r_FillAdaptive_hpp_
 #define slic3r_FillAdaptive_hpp_
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <memory>
+#include <utility>
+#include <Eigen/Geometry>
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
 
 struct indexed_triangle_set;
 

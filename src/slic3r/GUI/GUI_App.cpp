@@ -1,4 +1,7 @@
+#include "CloudProvider.hpp"
 #include "ExportPresetBundleDialog.hpp"
+#include "ICloudServiceAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
@@ -21,12 +24,96 @@
 #include "libslic3r_version.h"
 #include "BuildCommit.hpp"
 #include "Downloader.hpp"
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/assert/source_location.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <atomic>
+#include <boost/asio/ip/basic_endpoint.hpp>
 #include <boost/chrono/duration.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/format/exceptions.hpp>
+#include <boost/filesystem/file_status.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/exception.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <boost/log/detail/native_typeof.hpp>
+#include <iomanip>
+#include <iostream>
+#include <cassert>
+#include <filesystem>
+#include <ctime>
+#include "libslic3r/AppConfig.hpp"
+#include <ios>
+#include <chrono>
+#include <functional>
+#include <boost/optional/optional.hpp>
+#include <fstream>
+#include <boost/none.hpp>
+#include <cstring>
+#include <cmath>
+#include <climits>
+#include <cctype>
+#include <cstdio>
 #include <libslic3r/Config.hpp>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <ostream>
+#include <new>
+#include "libslic3r/Exception.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include <memory>
+#include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <miniz.h>
+#include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <optional>
+#include "slic3r/GUI/UserNotification.hpp"
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include <set>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/PrinterWebView.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <wx/dcclient.h>
+#include <wx/chartype.h>
+#include <utility>
+#include <wx/app.h>
+#include <wx/busycursor.h>
+#include <wx/debug.h>
+#include <wx/anybutton.h>
+#include <wx/clntdata.h>
+#include <unordered_set>
+#include <stdio.h>
+#include <wx/arrstr.h>
 #include <wx/event.h>
+#include <wx/strconv.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/frame.h>
+#include <wx/filename.h>
+#include <wx/translation.h>
+#include <wx/msgdlg.h>
+#include <wx/setup.h>
+#include <wx/timer.h>
+#include <wx/snglinst.h>
+#include <wx/image.h>
+#include <wx/settings.h>
+#include <wx/font.h>
+#include <wx/platinfo.h>
+#include <wx/language.h>
+#include <wx/localedefs.h>
+#include <wx/eventfilter.h>
+#include <wx/toplevel.h>
 
 // Localization headers: include libslic3r version first so everything in this file
 // uses the slic3r/GUI version (the macros will take precedence over the functions).
@@ -6648,8 +6735,10 @@ void GUI_App::reload_settings()
                 tab->reload_config();
                 tab->update_changed_ui();
             }
-            if (plater_)
+            if (plater_) {
                 plater_->sidebar().update_all_preset_comboboxes();
+                plater_->normalize_bed_types(false);
+            }
         };
         if (is_main_thread_active())
             refresh_synced_ui();
@@ -8544,8 +8633,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
 {
     // Render settings the canvas reads every frame; a change needs one redraw to show.
     static constexpr const char* opengl_render_setting_keys[] = {
-        SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SCENE_CACHE,
-        SETTING_OPENGL_SKIP_IDENTICAL_FRAMES
+        SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
+        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)

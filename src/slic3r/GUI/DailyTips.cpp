@@ -1,5 +1,18 @@
 #include "DailyTips.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include <functional>
+#include <imgui.h>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <cstdint>
+#include <cstddef>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <memory>
+#include "slic3r/GUI/HintNotification.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS

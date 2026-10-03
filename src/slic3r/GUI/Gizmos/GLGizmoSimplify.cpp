@@ -11,9 +11,32 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 
+#include <functional>
+#include <cstddef>
+#include <cstdint>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <glad/gl.h>
 
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <iterator>
+#include <mutex>
+#include <imgui.h>
+#include <memory>
+#include <limits>
+#include <optional>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include <thread>
+#include <vector>
+#include <wx/event.h>
+#include <utility>
 
 namespace Slic3r::GUI {
 

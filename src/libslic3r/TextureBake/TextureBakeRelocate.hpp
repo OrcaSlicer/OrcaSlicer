@@ -21,6 +21,7 @@
 // Vertices in flat regions have no gradient to speak of and are left alone, so the pass costs nothing
 // where there is nothing to align.
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <vector>

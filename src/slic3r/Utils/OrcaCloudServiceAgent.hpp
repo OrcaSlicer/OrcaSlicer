@@ -1,9 +1,12 @@
 #ifndef __ORCA_CLOUD_SERVICE_AGENT_HPP__
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
+#include "CloudProvider.hpp"
 #include "ICameraSignalingChannel.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
 #include <cstdlib>
+#include "libslic3r/ProjectTask.hpp"
 #include <string>
 #include <map>
 #include <mutex>
@@ -13,6 +16,7 @@
 #include <memory>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 

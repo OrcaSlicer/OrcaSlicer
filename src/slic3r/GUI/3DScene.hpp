@@ -16,8 +16,17 @@
 #include "GLShader.hpp"
 #include "MeshUtils.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cmath>
 #include <functional>
+#include <map>
+#include "libslic3r/BoundingBox.hpp"
+#include <memory>
 #include <optional>
+#include <vector>
+#include <string>
+#include <utility>
 
 #ifndef NDEBUG
 #define HAS_GLSAFE

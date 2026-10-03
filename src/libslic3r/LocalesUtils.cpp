@@ -1,4 +1,10 @@
 #include "LocalesUtils.hpp"
+#include <locale.h>
+#include <cstdio>
+#include <string_view>
+#include <cstddef>
+#include <string>
+#include <ios>
 
 #ifdef _WIN32
     #include <charconv>

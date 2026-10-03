@@ -6,10 +6,9 @@ port; what Orca's `DPIDialog`/`DPIFrame` add; the Orca dialog recipe; and the `M
 Read it before writing or reviewing any dialog, frame, close handler, `Destroy()`/`delete`, or code
 that keeps a pointer to a window across an event, a `CallAfter` or a modal loop.
 
-wx cites are relative to the pinned wx 3.3.2 tree (`find deps -maxdepth 5 -type d -path
-'*dep_wxWidgets-prefix/src/dep_wxWidgets'`). wx is built with `wxBUILD_DEBUG_LEVEL=0` and
-`libslic3r_gui` with `wxDEBUG_LEVEL=0`: every wx assert quoted below is compiled out, so misuse
-fails silently (dropped call, stuck loop, freed memory), never with an assert dialog. "GTK" below
+wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth). wx is
+built with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`: every wx assert
+quoted below is compiled out, so misuse fails silently (dropped call, stuck loop, freed memory), never with an assert dialog. "GTK" below
 means wxGTK as Orca builds it on Linux: GTK3 by default (X11 or Wayland); GTK2 is only an opt-out.
 
 Contents: [Rules](#rules) · [1 Creating and parenting](#1-creating-and-parenting-windows) ·
@@ -428,7 +427,8 @@ this function does *not* show it", top-level windows only (`interface/wx/window.
 since 3.3 (`docs/changes.txt:144-146`). **[source]** MSW = `::SetForegroundWindow`, subject to the
 foreground lock — Windows may only flash the taskbar button (`src/msw/toplevel.cpp:650-655`); GTK =
 `gtk_window_present` only if shown (`src/gtk/toplevel.cpp:1301-1310`; during a deferred X11 first show it
-already counts as shown); macOS = `makeKeyAndOrderFront` only if shown (`src/osx/nonownedwnd_osx.cpp:289-295`, `src/osx/cocoa/nonownedwnd.mm:896-899`).
+already counts as shown); macOS = `makeKeyAndOrderFront` only if shown (`src/osx/nonownedwnd_osx.cpp:289-295`, `src/osx/cocoa/nonownedwnd.mm:897-899`),
+which also makes a `wxPopupWindow` the key window — never `Raise()` a popup (`references/popups-menus.md` §5, §10).
 
 **Enable.** `Enable(false)` on a parent disables children logically: `IsEnabled()` reflects ancestors,
 `IsThisEnabled()` the window's own flag (`interface/wx/window.h:3060-3070, 3116-3138`). **[source]** On MSW/macOS wx

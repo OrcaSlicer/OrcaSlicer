@@ -2,12 +2,18 @@
 ///|/
 ///|/ PrusaSlicer is released under the terms of the AGPLv3 or higher
 ///|/
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <iterator>
 #include <cassert>
 #include <cinttypes>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <vector>
 
 #include "libslic3r/libslic3r.h"
 #include "LibVGCodeWrapper.hpp"

@@ -1,3 +1,8 @@
+#include "Technologies.hpp"
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+#include "calib.hpp"
+#include "Semver.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Format/DRC.hpp"
@@ -9,9 +14,18 @@
 #include "LocalesUtils.hpp"
 #include "Thread.hpp"
 #include "format.hpp"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <string>
+#include <exception>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <system_error>
+#include <chrono>
+#include <map>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -304,6 +318,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
 
+    if (get(SETTING_OPENGL_SHOW_RENDER_TIMINGS).empty())
+        set_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS, false);
+
     if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
         set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
 
@@ -316,8 +333,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 
-    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
-        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+    // Replaces the on/off setting, whose shadows turned with the camera.
+    if (get(SETTING_OPENGL_REALISTIC_SHADOWS).empty())
+        set(SETTING_OPENGL_REALISTIC_SHADOWS, get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) ? "orbit" : "off");
 
     if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
         set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);

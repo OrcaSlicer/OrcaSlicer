@@ -1,5 +1,6 @@
 #include "WipeTowerEstimate.hpp"
 
+#include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
 #include "WipeTower2.hpp"
 #include "../Config.hpp"
@@ -8,7 +9,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <set>
+#include <vector>
 
 namespace Slic3r {
 

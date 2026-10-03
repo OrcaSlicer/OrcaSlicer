@@ -2,8 +2,22 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "InterlockingGenerator.hpp"
+#include "libslic3r/Feature/Interlocking/VoxelUtils.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "Layer.hpp"
+#include <functional>
+#include <cstddef>
+#include <utility>
+#include <algorithm>
+#include <unordered_set>
+#include <vector>
 
 namespace std {
 template<> struct hash<Slic3r::GridPoint3>

@@ -10,6 +10,15 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <exception>
+#include "libslic3r/PrintConfig.hpp"
+#include <utility>
 #include <wx/filename.h>
 
 namespace Slic3r { namespace GUI {

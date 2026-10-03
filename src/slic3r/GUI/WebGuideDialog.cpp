@@ -1,12 +1,34 @@
 #include "WebGuideDialog.hpp"
 #include "ConfigWizard.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <map>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <memory>
+#include <exception>
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include <set>
+#include <ostream>
+#include <iterator>
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/ParamsDialog.hpp"
+#include "libslic3r/Semver.hpp"
+#include <ios>
+#include <stdexcept>
+#include <sstream>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -18,10 +40,24 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r_version.h"
 
+#include <string>
+#include <vector>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/log.h>
+#include <wx/settings.h>
+#include <wx/event.h>
+#include <wx/setup.h>
+#include <unordered_set>
+#include <system_error>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/strconv.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/weakref.h>
 #include <wx/display.h>
@@ -35,6 +71,7 @@
 #include <unordered_map>
 
 #include "MainFrame.hpp"
+#include "Plater.hpp"
 #include <boost/dll.hpp>
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/Utils/Http.hpp>
@@ -1125,6 +1162,8 @@ bool GuideFrame::run()
 
         app.app_config->set_legacy_datadir(false);
         app.update_mode();
+        if (Plater *plater = app.plater())
+            plater->normalize_bed_types(false);
         // BBS
         //app.obj_manipul()->update_ui_from_settings();
         BOOST_LOG_TRIVIAL(info) << "GuideFrame applied";

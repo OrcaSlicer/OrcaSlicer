@@ -1,9 +1,15 @@
 #ifndef slic3r_DeviceManager_hpp_
 #define slic3r_DeviceManager_hpp_
 
+#include <cstdint>
+#include <ctime>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <atomic>
+#include <tuple>
+#include <set>
+#include <utility>
 #include <vector>
 #include <string>
 #include <memory>
@@ -27,6 +33,7 @@
 #include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/colour.h>
 

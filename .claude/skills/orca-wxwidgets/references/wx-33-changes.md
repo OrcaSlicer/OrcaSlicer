@@ -14,7 +14,7 @@ Contents: [Rules](#rules) · [1 Reading the change logs](#1-reading-the-change-l
 [8 Migration done in Orca](#8-migration-already-done-in-orca)
 
 All `docs/`, `interface/`, `include/`, `src/`, `build/` cites are relative to the pinned wx tree
-(`find deps -maxdepth 5 -type d -path '*dep_wxWidgets-prefix/src/dep_wxWidgets'`), except paths
+(located as in `SKILL.md` §Ground truth), except paths
 explicitly called Orca's (`deps/…`, Orca's `src/CMakeLists.txt`) and bare Orca file + symbol cites.
 
 ## Rules

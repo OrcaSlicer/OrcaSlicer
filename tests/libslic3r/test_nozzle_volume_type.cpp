@@ -1,5 +1,9 @@
 #include <catch2/catch_all.hpp>
+#include <set>
+#include "libslic3r/Config.hpp"
+#include <vector>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/PrintConfig.hpp"
 
 using namespace Slic3r;

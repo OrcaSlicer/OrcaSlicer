@@ -5,11 +5,19 @@
 
 #include "../libslic3r.h"
 
+#include <cstdint>
+#include <cstddef>
+#include <algorithm>
 #include <functional>
 #include <map>
+#include <tuple>
+#include <set>
+#include <unordered_map>
+#include <string>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
+#include <vector>
 #include "../FilamentGroup.hpp"
 #include "../FilamentMixer.hpp"
 #include "../MultiNozzleUtils.hpp"

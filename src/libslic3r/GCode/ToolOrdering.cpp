@@ -1,4 +1,9 @@
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Config.hpp"
 #include "ExtrusionEntity.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/FilamentGroup.hpp"
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
 #include "Layer.hpp"
@@ -9,11 +14,23 @@
 #include "MultiNozzleUtils.hpp"
 #include "FilamentMixer.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "Utils.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <optional>
+#include <functional>
+#include <exception>
+#include <memory>
+#include <tuple>
+#include <iostream>
 
 // #define SLIC3R_DEBUG
 

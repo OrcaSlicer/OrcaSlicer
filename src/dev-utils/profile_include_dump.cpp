@@ -11,13 +11,19 @@
 #include "libslic3r/Utils.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <exception>
 #include <iostream>
+#include "libslic3r/Config.hpp"
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 

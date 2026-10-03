@@ -4,11 +4,29 @@
 #include "DevNozzleSystem.h"
 #include "DevUtil.h"
 
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PrintConfig.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include <string>
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <cassert>
+#include <memory>
+#include <map>
+#include <vector>
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include <utility>
+#include <exception>
+#include <unordered_map>
+#include <optional>
+#include <cmath>
 
 namespace Slic3r
 {

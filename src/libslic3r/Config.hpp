@@ -3,6 +3,11 @@
 
 #include <assert.h>
 #include <algorithm>
+#include <boost/container_hash/hash.hpp>
+#include <cctype>
+#include <initializer_list>
+#include <limits>
+#include <cmath>
 #include <map>
 #include <climits>
 #include <cfloat>
@@ -10,10 +15,15 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <optional>
+#include <sstream>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+#include "LocalesUtils.hpp"
 #include "libslic3r.h"
 #include "clonable_ptr.hpp"
 #include "Exception.hpp"

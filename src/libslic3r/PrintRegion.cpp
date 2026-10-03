@@ -1,5 +1,13 @@
+#include "Config.hpp"
 #include "Exception.hpp"
+#include "Flow.hpp"
 #include "Print.hpp"
+#include <cstddef>
+#include "PrintConfig.hpp"
+#include "libslic3r.h"
+#include <cmath>
+#include <vector>
+#include <algorithm>
 
 namespace Slic3r {
 

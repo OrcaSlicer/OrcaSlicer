@@ -2,7 +2,14 @@
 #define slic3r_GUI_IMSlider_hpp_
 
 #include "TickCode.hpp"
+#include <cstddef>
+#include <functional>
+#include <array>
 #include <imgui/imgui.h>
+#include <vector>
+#include "libslic3r/CustomGCode.hpp"
+#include <string>
+#include <wx/event.h>
 #include <wx/slider.h>
 
 #include <set>

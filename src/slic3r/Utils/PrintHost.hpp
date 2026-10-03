@@ -1,12 +1,14 @@
 #ifndef slic3r_PrintHost_hpp_
 #define slic3r_PrintHost_hpp_
 
+#include <cstddef>
 #include <memory>
 #include <set>
 #include <string>
 #include <functional>
 #include <boost/filesystem/path.hpp>
 
+#include <utility>
 #include <wx/string.h>
 
 #include <libslic3r/enum_bitmask.hpp>

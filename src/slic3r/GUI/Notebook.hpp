@@ -3,12 +3,21 @@
 
 //#ifdef _WIN32
 
+#include <cstddef>
 #include <initializer_list>
 #include <string>
 #include <vector>
 #include <wx/bookctrl.h>
 #include <wx/bitmap.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/debug.h>
+#include <wx/chartype.h>
+#include <wx/object.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/withimages.h>
+#include <wx/window.h>
 
 class ScalableButton;
 class Button;
