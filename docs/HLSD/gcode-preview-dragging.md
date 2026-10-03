@@ -66,7 +66,9 @@ translucent shells, and stays out of their bounding box. Supports have no mesh a
 and `load_shells()` drops every non-model-part volume, so a negative volume is not cut out.
 
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
-only the end layers.
+only the end layers. So does a print whose layers do not rise in height from one to the next, as
+when it is printed object by object: the cut is a single height range for the whole plate, which
+the ends of the layer range then do not bound.
 
 ## Deciding that the user is dragging
 
