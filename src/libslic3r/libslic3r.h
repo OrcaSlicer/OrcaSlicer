@@ -38,7 +38,6 @@
 #include <boost/container/deque.hpp>
 #endif // _WIN32
 
-#include "Technologies.hpp"
 #include "Semver.hpp"
 
 #if 0

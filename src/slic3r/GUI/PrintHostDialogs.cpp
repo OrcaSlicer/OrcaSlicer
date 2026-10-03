@@ -80,6 +80,11 @@
 #include "wxExtensions.hpp"
 
 #include <nlohmann/json.hpp>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/defs.h>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;

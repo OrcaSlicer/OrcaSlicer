@@ -4,6 +4,8 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "FillBase.hpp"
 
+namespace Slic3r { class Surface; }
+
 namespace Slic3r {
 
 class FillConcentricInternal : public Fill

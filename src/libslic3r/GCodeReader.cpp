@@ -25,6 +25,7 @@
 #include <vector>
 #include <string_view>
 #include <sstream>
+#include "Config.hpp"
 
 namespace Slic3r {
 

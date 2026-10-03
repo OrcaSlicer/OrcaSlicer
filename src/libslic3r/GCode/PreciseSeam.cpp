@@ -18,6 +18,10 @@
 #include <tbb/parallel_for.h>
 #include <vector>
 #include <utility>
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Slicing.hpp"
 
 namespace Slic3r {
 namespace PreciseSeam {

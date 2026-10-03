@@ -11,6 +11,8 @@
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 
+class wxDC;
+
 
 class AxisCtrlButton : public wxWindow
 {

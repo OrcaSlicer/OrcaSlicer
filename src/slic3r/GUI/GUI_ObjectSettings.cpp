@@ -1,19 +1,16 @@
 #include "GUI_ObjectSettings.hpp"
 #include "GUI_ObjectList.hpp"
-#include "GUI_Factories.hpp"
 #include "Tab.hpp"
 #include "MainFrame.hpp"
 
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
-#include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string.hpp>
 
-#include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
 #include <memory>
@@ -26,6 +23,12 @@
 #include "libslic3r/Config.hpp"
 #include <string>
 #include <wx/wupdlock.h>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+namespace Slic3r { class ObjectBase; }
 
 namespace Slic3r
 {

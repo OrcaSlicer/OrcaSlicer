@@ -1,6 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
@@ -18,6 +17,7 @@
 #include <cstddef>
 #include <type_traits>
 #include "FillPlanePath.hpp"
+#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 

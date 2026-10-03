@@ -1,5 +1,4 @@
 #include "IMSlider.hpp"
-#include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
@@ -24,7 +23,6 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <set>
 #include <wx/string.h>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <cstring>
 #include <cctype>
 #include <cstdlib>
@@ -36,6 +34,15 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 

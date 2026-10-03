@@ -1,7 +1,6 @@
 #include <catch2/catch_all.hpp>
 
 #include <exception>
-#include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
@@ -20,6 +19,7 @@
 
 #include <memory>
 #include <string>
+#include <pybind11/cast.h>
 
 namespace py = pybind11;
 using namespace Slic3r;

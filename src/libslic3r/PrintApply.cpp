@@ -30,6 +30,10 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <mutex>
+#include "MultiNozzleUtils.hpp"
+#include "ObjectID.hpp"
+#include "PlaceholderParser.hpp"
+#include "TriangleMesh.hpp"
 
 namespace Slic3r {
 

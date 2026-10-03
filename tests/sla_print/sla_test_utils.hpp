@@ -3,7 +3,6 @@
 
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "test_utils.hpp"
 
 // Debug
 #include <cstddef>
@@ -12,7 +11,6 @@
 #include <cstdint>
 #include <fstream>
 #include <string>
-#include "libslic3r/SLA/SupportTree.hpp"
 #include "libslic3r/SLA/Hollowing.hpp"
 #include <unordered_map>
 #include <random>
@@ -23,20 +21,17 @@
 #include <vector>
 #include <utility>
 
-#include "libslic3r/libslic3r.h"
-#include "libslic3r/Format/OBJ.hpp"
-#include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/TriangleMesh.hpp"
-#include "libslic3r/SLA/Pad.hpp"
 #include "libslic3r/SLA/SupportTreeBuilder.hpp"
 #include "libslic3r/SLA/SupportTreeBuildsteps.hpp"
 #include "libslic3r/SLA/SupportPointGenerator.hpp"
-#include "libslic3r/SLA/AGGRaster.hpp"
-#include "libslic3r/SLA/ConcaveHull.hpp"
-#include "libslic3r/MTUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
-#include "libslic3r/SVG.hpp"
-#include "libslic3r/Format/OBJ.hpp"
+namespace Slic3r::sla { class RasterGrayscaleAA; }
+namespace Slic3r::sla { struct PadConfig; }
+namespace Slic3r::sla { struct SupportTreeConfig; }
+
 
 using namespace Slic3r;
 

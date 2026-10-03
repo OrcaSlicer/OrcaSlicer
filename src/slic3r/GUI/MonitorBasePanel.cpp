@@ -6,8 +6,6 @@
 ///////////////////////////////////////////////////////////////////////////
 
 #include "MonitorBasePanel.h"
-#include "Printer/PrinterFileSystem.h"
-#include "Widgets/Label.hpp"
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
@@ -19,6 +17,8 @@
 #include <wx/stattext.h>
 #include <wx/font.h>
 #include "slic3r/GUI/Widgets/StaticLine.hpp"
+
+class wxWindow;
 
 ///////////////////////////////////////////////////////////////////////////
 using namespace Slic3r::GUI;
@@ -291,7 +291,6 @@ VideoMonitoringBasePanel::~VideoMonitoringBasePanel()
 // PLEASE DO *NOT* EDIT THIS FILE!
 ///////////////////////////////////////////////////////////////////////////
 
-#include "MonitorBasePanel.h"
 
 ///////////////////////////////////////////////////////////////////////////
 using namespace Slic3r::GUI;

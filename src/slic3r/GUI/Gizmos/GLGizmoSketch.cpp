@@ -1,9 +1,7 @@
 #include "GLGizmoSketch.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
-#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "libslic3r/Model.hpp"
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -32,6 +30,9 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 #define UL(s) Slic3r::GUI::I18N::translate_utf8((s)).c_str()
 

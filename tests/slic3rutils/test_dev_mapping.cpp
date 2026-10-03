@@ -28,6 +28,8 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 
 #include <nlohmann/json.hpp>
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
 
 using json = nlohmann::json;
 using namespace Slic3r;

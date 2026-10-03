@@ -16,7 +16,6 @@
 #include "libslic3r/Preset.hpp"
 #include <libslic3r/PresetBundle.hpp>
 #include <memory>
-#include <slic3r/plugin/PluginLoader.hpp>
 #include <string>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <utility>
@@ -30,6 +29,8 @@
 #include <thread>
 #include <tuple>
 #include <unordered_map>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/plugin/PluginDescriptor.hpp"
 
 namespace Slic3r {
 

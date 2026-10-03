@@ -14,6 +14,11 @@
 #include <wx/toplevel.h>
 #include <wx/webview.h>
 
+class wxCommandEvent;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // Shared shell for local HTML dialogs that communicate through window.wx.postMessage().

@@ -1,5 +1,4 @@
 #include "BoundingBox.hpp"
-#include "Exception.hpp"
 #include "TriangleMesh.hpp"
 #include "Polygon.hpp"
 #include "TriangleMeshSlicer.hpp"
@@ -10,9 +9,7 @@
 #include "Point.hpp"
 #include "Execution/ExecutionTBB.hpp"
 #include "Execution/ExecutionSeq.hpp"
-#include "CutUtils.hpp"
 #include "Utils.hpp"
-#include "Format/STL.hpp"
 #include "libslic3r.h"
 #include <cstddef>
 #include <cstdint>
@@ -46,6 +43,7 @@
 #include <Eigen/Dense>
 
 #include <assert.h>
+#include "ExtrusionEntity.hpp"
 
 namespace Slic3r {
 

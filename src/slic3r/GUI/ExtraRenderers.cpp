@@ -20,6 +20,8 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/event.h>
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Widgets/DropDown.hpp"
 #ifdef wxHAS_GENERIC_DATAVIEWCTRL
 #include "wx/generic/private/markuptext.h"
 #include "wx/generic/private/rowheightcache.h"

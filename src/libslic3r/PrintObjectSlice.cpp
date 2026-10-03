@@ -38,6 +38,8 @@
 #include "Surface.hpp"
 #include "Utils.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
+#include "Config.hpp"
+#include "SurfaceCollection.hpp"
 
 //! macro used to mark string used at localization, return same string
 #define L(s) Slic3r::I18N::translate(s)

@@ -6,7 +6,6 @@
 #include "wx/hashmap.h"
 #include "wx/vector.h"
 
-#include "I18N.hpp"
 
 #include <boost/filesystem.hpp>
 #include <wx/dynarray.h>

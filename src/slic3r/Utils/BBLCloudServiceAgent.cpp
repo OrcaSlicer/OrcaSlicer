@@ -3,7 +3,6 @@
 
 #include <boost/log/trivial.hpp>
 #include "CloudProvider.hpp"
-#include "Http.hpp"
 #include "bambu_networking.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -17,6 +16,7 @@
 #include <string>
 #include <wx/utils.h>
 #include <vector>
+#include "libslic3r/AppConfig.hpp"
 
 using json = nlohmann::json;
 

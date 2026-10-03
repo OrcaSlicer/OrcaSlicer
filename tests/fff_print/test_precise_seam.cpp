@@ -13,12 +13,14 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/Layer.hpp"
 #include <vector>
 #include <utility>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode/SeamPlacer.hpp"
 #include <cstddef>
+#include "libslic3r/Slicing.hpp"
+
+namespace Slic3r { class Layer; }
 
 using namespace Slic3r;
 

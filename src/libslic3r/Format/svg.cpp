@@ -37,6 +37,7 @@
 #include "TopoDS.hxx"
 #include "BRepExtrema_SelfIntersection.hxx"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 const double STEP_TRANS_CHORD_ERROR = 0.005;

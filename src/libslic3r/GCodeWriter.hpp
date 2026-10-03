@@ -14,7 +14,7 @@
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "PrintConfig.hpp"
-#include "GCode/CoolingBuffer.hpp"
+#include "Config.hpp"
 
 namespace Slic3r {
 

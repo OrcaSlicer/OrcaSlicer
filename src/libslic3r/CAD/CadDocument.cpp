@@ -91,6 +91,10 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+
+class Geom2d_TrimmedCurve;
 
 namespace Slic3r {
 
