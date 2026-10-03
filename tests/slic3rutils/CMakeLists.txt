@@ -37,6 +37,7 @@ add_executable(${_TEST_NAME}_tests
     test_file_url.cpp
     test_user_manager.cpp
     ../fff_print/test_helpers.cpp
+    test_printago.cpp
     )
 
 if (MSVC)

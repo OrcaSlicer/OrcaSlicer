@@ -1515,6 +1515,14 @@ void MainFrame::init_tabpanel() {
     // (plugin.<plugin_key>.<name>) so they can't collide with the built-in TAB_ID_* constants.
     m_plugin_pages.initialize(m_tabpanel);
 
+    // Printago: a web tab hosting the Printago app, present while the Printago integration is
+    // enabled. The user signs in inside the tab (app.printago.io), and the webview keeps that
+    // session across launches.
+    m_printago_view = new PrinterWebView(m_tabpanel);
+    m_printago_view->Hide();
+    if (wxGetApp().is_printago_enabled())
+        show_printago(true);
+
     if (m_plater) {
         // load initial config
         auto full_config = wxGetApp().preset_bundle->full_config();
@@ -1661,6 +1669,60 @@ bool MainFrame::is_prepare_or_preview_tab() const
 {
     const wxString tab = m_tabpanel->GetSelectedPageName();
     return tab == TAB_ID_PREPARE || tab == TAB_ID_PREVIEW;
+}
+
+// Printago: show/hide the Printago web tab. Kept as the last tab so it does not disturb the
+// positional logic in show_device(). The tab hosts the embedded Printago app: it loads the
+// relaunch/login URL and intercepts the orcaslicer:// auth callback to capture the session token.
+void MainFrame::show_printago(bool show, bool select_tab)
+{
+    if (!m_printago_view)
+        return;
+
+    int  idx        = m_tabpanel->FindPage(m_printago_view);
+    bool just_added = false;
+    if (show) {
+        if (idx == wxNOT_FOUND) {
+            m_printago_view->set_navigation_intercept(
+                [](const wxString& url) { return wxGetApp().printago_handle_nav(url); });
+            m_printago_view->Show(false);
+            m_tabpanel->AddPage(m_printago_view, _L("Printago"), std::string("tab_printago_active"),
+                                std::string("tab_printago_active"), false);
+            // Install the Printago "Edit in Orca Slicer" bridge before the app URL loads so the
+            // printago message channel exists when the page boots.
+            m_printago_view->enable_printago_bridge(m_plater);
+            // The Printago web app is a modern SPA that renders blank under the default BBL-Slicer
+            // User-Agent (it omits the Safari/Version tokens on macOS). Give the tab a standard
+            // browser UA so it loads, matching the Send dialog's plain webview.
+#ifdef __WXMSW__
+            m_printago_view->set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+#elif defined(__WXMAC__)
+            m_printago_view->set_user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15");
+#else
+            m_printago_view->set_user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+#endif
+            idx = m_tabpanel->FindPage(m_printago_view);
+            just_added = true;
+        }
+        if (select_tab && idx != wxNOT_FOUND)
+            m_tabpanel->SetSelection(idx);
+        // Navigate LAST — after the page exists and (optionally) is selected — and load immediately
+        // rather than via load_url()'s deferred path. That path parks the URL until Show(true), but
+        // OnLoaded() clears the parked URL on any successful load (including the webview's initial
+        // about:blank), which at startup wiped it and left the tab blank until Printago was toggled
+        // off/on. Only navigate when the page was just added, so re-syncing (e.g. on Preferences
+        // close) does not reload the tab out from under the user.
+        if (just_added && idx != wxNOT_FOUND)
+            m_printago_view->load_url_now(wxGetApp().printago_tab_url());
+    } else if (idx != wxNOT_FOUND) {
+        // Leave the Printago tab before removing it: removing the active page makes the custom
+        // Notebook re-select and can crash in the tab-button rendering.
+        if (m_tabpanel->GetSelection() == idx)
+            m_tabpanel->SetSelection(0);
+        m_printago_view->Show(false);
+        m_tabpanel->RemovePage(idx);
+    }
+    fit_tab_labels();
 }
 
 void MainFrame::fit_tab_labels()
@@ -2367,6 +2429,174 @@ wxBoxSizer* MainFrame::create_side_tools()
                     });
                 p->append_button(btn);
             }
+            else {
+                //Orca Slicer Buttons
+                SideButton* print_plate_btn = new SideButton(p, _L("Print plate"), "");
+                print_plate_btn->SetCornerRadius(0);
+
+                SideButton* send_to_printer_btn = new SideButton(p, _L("Send"), "");
+                send_to_printer_btn->SetCornerRadius(0);
+
+                SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
+                export_sliced_file_btn->SetCornerRadius(0);
+
+                SideButton* export_all_sliced_file_btn = new SideButton(p, _L("Export all sliced file"), "");
+                export_all_sliced_file_btn->SetCornerRadius(0);
+
+                print_plate_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Print plate"));
+                    m_print_select = ePrintPlate;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                    });
+
+                SideButton* print_all_btn = new SideButton(p, _L("Print all"), "");
+                print_all_btn->SetCornerRadius(0);
+                print_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Print all"));
+                    m_print_select = ePrintAll;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                    });
+
+                send_to_printer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Send"));
+                    m_print_select = eSendToPrinter;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                    });
+
+                SideButton* send_to_printer_all_btn = new SideButton(p, _L("Send all"), "");
+                send_to_printer_all_btn->SetCornerRadius(0);
+                send_to_printer_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Send all"));
+                    m_print_select = eSendToPrinterAll;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                    });
+
+                export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Export plate sliced file"));
+                    m_print_select = eExportSlicedFile;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                    });
+
+                export_all_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Export all sliced file"));
+                    m_print_select = eExportAllSlicedFile;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                    });
+
+                bool support_send = true;
+                bool support_print_all = true;
+
+                const auto preset_bundle = wxGetApp().preset_bundle;
+                if (preset_bundle) {
+                    if (preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
+                        // BBL network support everything
+                    } else {
+                        support_send = false; // All 3rd print hosts do not have the send options
+
+                        auto cfg = preset_bundle->printers.get_edited_preset().config;
+                        const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
+
+                        // Only simply print support uploading all plates
+                        support_print_all = host_type == PrintHostType::htSimplyPrint;
+                    }
+                }
+
+                p->append_button(print_plate_btn);
+                if (support_print_all) {
+                    p->append_button(print_all_btn);
+                }
+                if (support_send) {
+                    p->append_button(send_to_printer_btn);
+                    p->append_button(send_to_printer_all_btn);
+                }
+                if (enable_multi_machine) {
+                    SideButton* print_multi_machine_btn = new SideButton(p, _L("Send to Multi-device"), "");
+                    print_multi_machine_btn->SetCornerRadius(0);
+                    print_multi_machine_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                        m_print_btn->SetLabel(_L("Send to Multi-device"));
+                        m_print_select = ePrintMultiMachine;
+                        m_print_enable = get_enable_print_status();
+                        m_print_btn->Enable(m_print_enable);
+                        this->Layout();
+                        fit_tab_labels(); // ORCA on label change
+                        p->Dismiss();
+                    });
+                    p->append_button(print_multi_machine_btn);
+                }
+                p->append_button(export_sliced_file_btn);
+                p->append_button(export_all_sliced_file_btn);
+                SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
+                export_gcode_btn->SetCornerRadius(0);
+                export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Export G-code file"));
+                    m_print_select = eExportGcode;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                });
+                p->append_button(export_gcode_btn);
+            }
+
+            // Printago is an immediate action (export project + open the Send dialog), not a print
+            // mode, so it invokes directly rather than setting m_print_select. Shown for all vendors
+            // while the integration is enabled.
+            if (wxGetApp().is_printago_enabled()) {
+                // While the current project is a downloaded Printago part being edited, the two actions
+                // become "Replace ..." and push the edits back to that part; otherwise they open the
+                // Save-to-Printago dialog for a brand-new part.
+                const bool editing     = !wxGetApp().printago_edit_part().empty();
+                wxString   save_label  = editing ? _L("Replace in Printago") : _L("Save to Printago");
+                wxString   queue_label = editing ? _L("Replace & Queue in Printago") : _L("Save & Queue to Printago");
+
+                SideButton* save_to_printago_btn = new SideButton(p, save_label, "");
+                save_to_printago_btn->SetCornerRadius(0);
+                save_to_printago_btn->Bind(wxEVT_BUTTON, [this, p, editing](wxCommandEvent&) {
+                    p->Dismiss();
+                    if (editing)
+                        wxGetApp().printago_request_replace("save");
+                    else if (m_plater)
+                        m_plater->send_to_printago(wxGetApp().printago_send_url());
+                });
+                p->append_button(save_to_printago_btn);
+
+                SideButton* queue_to_printago_btn = new SideButton(p, queue_label, "");
+                queue_to_printago_btn->SetCornerRadius(0);
+                queue_to_printago_btn->Bind(wxEVT_BUTTON, [this, p, editing](wxCommandEvent&) {
+                    p->Dismiss();
+                    if (editing)
+                        wxGetApp().printago_request_replace("queue");
+                    else if (m_plater)
+                        m_plater->send_to_printago(wxGetApp().printago_queue_url());
+                });
+                p->append_button(queue_to_printago_btn);
+            }
+
             p->Popup(m_print_btn);
         }
     );
