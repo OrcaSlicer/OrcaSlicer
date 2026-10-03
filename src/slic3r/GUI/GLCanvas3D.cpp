@@ -64,6 +64,7 @@
 #include <string_view>
 #include "slic3r/GUI/Selection.hpp"
 #include "GLCanvas3D.hpp"
+#include "SequentialPrintClearance.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"   // Design tab: interactive 2D sketch tool
 #endif
@@ -5956,17 +5957,16 @@ void GLCanvas3D::update_sequential_clearance()
     //BBS: add the height logic
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     Polygons polygons;
-    std::vector<std::pair<Polygon, float>> height_polygons;
     polygons.reserve(instances_count);
-    height_polygons.reserve(instances_count);
-    std::vector<struct height_info> convex_and_bounding_boxes;
-    struct height_info
-    {
-        double         instance_height;
-        BoundingBox    bounding_box;
-        Polygon        hull_polygon;
-    };
+    std::vector<SequentialClearanceInstance> convex_and_bounding_boxes;
+    convex_and_bounding_boxes.reserve(instances_count);
+    std::map<ObjectID, int> print_order;
+    for (const PrintObject* print_object : fff_print()->objects())
+        for (const PrintInstance& instance : print_object->instances())
+            print_order.emplace(instance.model_instance->id(), instance.model_instance->arrange_order);
+
     for (size_t i = 0; i < instance_transforms.size(); ++i) {
+        const size_t first_instance = convex_and_bounding_boxes.size();
         const auto& instances = instance_transforms[i];
         double rotation_z0 = instances.front()->get_rotation().z();
         int index = 0;
@@ -5986,96 +5986,20 @@ void GLCanvas3D::update_sequential_clearance()
             Polygon convex_hull(std::move(inst_pts));
             BoundingBox bouding_box = convex_hull.bounding_box();
             BoundingBox plate_bb = plate->get_bounding_box_crd();
+            const ObjectID instance_id = m_model->objects[i]->instances[index]->id();
             double instance_height = m_model->objects[i]->get_instance_max_z(index++);
             //skip the object for not current plate
             if (!plate_bb.overlap(bouding_box))
                 continue;
-            convex_and_bounding_boxes.push_back({instance_height, bouding_box, convex_hull});
+            convex_and_bounding_boxes.push_back({instance_height, bouding_box, convex_hull, instance_id});
             polygons.emplace_back(std::move(convex_hull));
         }
+        sort_sequential_clearance_instances(convex_and_bounding_boxes.begin() + first_instance, convex_and_bounding_boxes.end(), print_order);
     }
 
-    //sort the print instance
-    std::sort(convex_and_bounding_boxes.begin(), convex_and_bounding_boxes.end(),
-        [](auto &l, auto &r) {
-            auto ly1 = l.bounding_box.min.y();
-            auto ly2 = l.bounding_box.max.y();
-            auto ry1 = r.bounding_box.min.y();
-            auto ry2 = r.bounding_box.max.y();
-            auto inter_min = std::max(ly1, ry1);
-            auto inter_max = std::min(ly2, ry2);
-            auto lx = l.bounding_box.min.x();
-            auto rx = r.bounding_box.min.x();
-            if (inter_max - inter_min > 0)
-                return (lx < rx) || ((lx == rx)&&(ly1 < ry1));
-            else
-                return (ly1 < ry1);
-        });
-
-    /*bool has_interlaced_objects = false;
-    for (int k = 0; k < bounding_box_count; k++)
-    {
-        Polygon& convex = convex_and_bounding_boxes[k].hull_polygon;
-        BoundingBox& bbox = convex_and_bounding_boxes[k].bounding_box;
-        auto iy1 = bbox.min.y();
-        auto iy2 = bbox.max.y();
-
-        for (int i = k+1; i < bounding_box_count; i++)
-        {
-            Polygon&     next_convex = convex_and_bounding_boxes[i].hull_polygon;
-            BoundingBox& next_bbox   = convex_and_bounding_boxes[i].bounding_box;
-            auto py1 = next_bbox.min.y();
-            auto py2 = next_bbox.max.y();
-            auto inter_min = std::max(iy1, py1); // min y of intersection
-            auto inter_max = std::min(iy2, py2); // max y of intersection. length=max_y-min_y>0 means intersection exists
-            if (inter_max - inter_min > 0) {
-                has_interlaced_objects = true;
-                break;
-            }
-        }
-        if (has_interlaced_objects)
-            break;
-    }*/
-
-    int bounding_box_count = convex_and_bounding_boxes.size();
-    double printable_height = fff_print()->config().printable_height;
-    double hc1 = fff_print()->config().extruder_clearance_height_to_lid;
-    double hc2 = fff_print()->config().extruder_clearance_height_to_rod;
-    for (int k = 0; k < bounding_box_count; k++)
-    {
-        Polygon& convex = convex_and_bounding_boxes[k].hull_polygon;
-        BoundingBox& bbox = convex_and_bounding_boxes[k].bounding_box;
-        auto iy1 = bbox.min.y();
-        auto iy2 = bbox.max.y();
-        double height = (k == (bounding_box_count - 1))?printable_height:hc1;
-
-        /*if (has_interlaced_objects) {
-            if ((k < (bounding_box_count - 1)) && (convex_and_bounding_boxes[k].instance_height > hc2)) {
-                height_polygons.emplace_back(std::make_pair(convex, hc2));
-            }
-        }
-        else {
-            if ((k < (bounding_box_count - 1)) && (convex_and_bounding_boxes[k].instance_height > hc1)) {
-                height_polygons.emplace_back(std::make_pair(convex, hc1));
-            }
-        }*/
-
-        for (int i = k+1; i < bounding_box_count; i++)
-        {
-            Polygon&     next_convex = convex_and_bounding_boxes[i].hull_polygon;
-            BoundingBox& next_bbox   = convex_and_bounding_boxes[i].bounding_box;
-            auto py1 = next_bbox.min.y();
-            auto py2 = next_bbox.max.y();
-            auto inter_min = std::max(iy1, py1); // min y of intersection
-            auto inter_max = std::min(iy2, py2); // max y of intersection. length=max_y-min_y>0 means intersection exists
-            if (inter_max - inter_min > 0) {
-                height = hc2;
-                break;
-            }
-        }
-        if (height < convex_and_bounding_boxes[k].instance_height)
-            height_polygons.emplace_back(std::make_pair(convex, height));
-    }
+    const auto& config = fff_print()->config();
+    const auto height_polygons = sequential_clearance_height_polygons(convex_and_bounding_boxes, config.printable_height,
+        config.extruder_clearance_height_to_lid, config.extruder_clearance_height_to_rod);
 
     // sends instances 2d hulls to be rendered
     set_sequential_print_clearance_visible(true);
