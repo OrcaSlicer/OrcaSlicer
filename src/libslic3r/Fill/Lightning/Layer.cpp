@@ -3,16 +3,31 @@
 
 #include "Layer.hpp" //The class we're implementing.
 
+#include "libslic3r/BoundingBox.hpp"
 #include "DistanceField.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/EdgeGrid.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "TreeNode.hpp"
 
 #include "../../ClipperUtils.hpp"
 #include "../../Geometry.hpp"
 #include "Utils.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <cassert>
+#include <functional>
+#include <cstddef>
+#include <limits>
+#include <algorithm>
+#include <optional>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range2d.h>
 #include <mutex>
+#include <utility>
+#include <vector>
 
 namespace Slic3r::FillLightning {
 

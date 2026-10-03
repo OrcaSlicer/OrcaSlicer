@@ -1,10 +1,12 @@
 #include "PluginHost.hpp"
 #include "PluginHostBindings.hpp"
 #include "PluginHostUi.hpp"
+#include <pybind11/pybind11.h>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 
 #include <stdexcept>
+#include <string>
 
 namespace Slic3r {
 

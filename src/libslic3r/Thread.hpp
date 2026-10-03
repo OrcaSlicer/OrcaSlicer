@@ -1,6 +1,7 @@
 #ifndef GUI_THREAD_HPP
 #define GUI_THREAD_HPP
 
+#include <optional>
 #include <utility>
 #include <string>
 #include <thread>

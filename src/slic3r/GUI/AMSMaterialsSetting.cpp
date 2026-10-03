@@ -12,6 +12,7 @@
 #include <sstream>
 #include <ios>
 #include <iomanip>
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"

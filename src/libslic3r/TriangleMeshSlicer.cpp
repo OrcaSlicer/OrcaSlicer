@@ -1,16 +1,29 @@
 #include "ClipperUtils.hpp"
+#include "ExPolygon.hpp"
 #include "Geometry.hpp"
+#include "Point.hpp"
+#include "Line.hpp"
+#include "MultiPoint.hpp"
+#include "Polygon.hpp"
 #include "Tesselate.hpp"
 #include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 // BBS
 #include "MeshBoolean.hpp"
+#include "libslic3r.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdint>
+#include <cstddef>
 #include <deque>
 #include <queue>
+#include <iterator>
+#include <limits>
+#include <functional>
+#include <map>
 #include <mutex>
 #include <tuple>
 #include <utility>
@@ -18,6 +31,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <tbb/parallel_for.h>
+#include <vector>
 
 #ifndef NDEBUG
 //    #define EXPENSIVE_DEBUG_CHECKS
@@ -1856,7 +1870,7 @@ static ExPolygons make_expolygons_simple(std::vector<IntersectionLine> &lines)
     return slices;
 }
 
-static void make_expolygons(const Polygons &loops, const float closing_radius, const float extra_offset, ClipperLib::PolyFillType fill_type, ExPolygons* slices)
+static void make_expolygons(const Polygons &loops, const float closing_radius, const float extra_offset, PolyFillType fill_type, ExPolygons* slices)
 {
     /*
         Input loops are not suitable for evenodd nor nonzero fill types, as we might get
@@ -2156,8 +2170,8 @@ std::vector<ExPolygons> slice_mesh_ex(
                 const auto this_mode = layer_id < params.slicing_mode_normal_below_layer ? params.mode_below : params.mode;
                 Slic3r::make_expolygons(
                     layers_p[layer_id], params.closing_radius, params.extra_offset,
-                    this_mode == MeshSlicingParams::SlicingMode::EvenOdd ? ClipperLib::pftEvenOdd : 
-                    this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour ? ClipperLib::pftPositive : ClipperLib::pftNonZero,
+                    this_mode == MeshSlicingParams::SlicingMode::EvenOdd ? pftEvenOdd : 
+                    this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour ? pftPositive : pftNonZero,
                     &expolygons);
                 //FIXME simplify
                 if (this_mode == MeshSlicingParams::SlicingMode::PositiveLargestContour)

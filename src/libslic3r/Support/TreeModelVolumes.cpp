@@ -7,6 +7,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "TreeModelVolumes.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "TreeSupportCommon.hpp"
 
 #include "../BuildVolume.hpp"
@@ -18,13 +20,26 @@
 #include "../PrintConfig.hpp"
 #include "../Utils.hpp"
 #include "../format.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <limits>
+#include <functional>
+#include <chrono>
+#include <optional>
+#include <numeric>
+#include <cmath>
 #include <string_view>
 
 #include <boost/log/trivial.hpp>
 
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
+#include <vector>
+#include <unordered_map>
+#include <utility>
 
 namespace Slic3r::TreeSupport3D
 {
@@ -112,7 +127,7 @@ TreeModelVolumes::TreeModelVolumes(
         tbb::parallel_for(tbb::blocked_range<size_t>(num_raft_layers, num_layers, std::min<size_t>(1, std::max<size_t>(16, num_layers / (8 * tbb::this_task_arena::max_concurrency())))),
             [&](const tbb::blocked_range<size_t> &range) {
             for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx)
-                outlines[layer_idx] = polygons_simplify(to_polygons(print_object.get_layer(layer_idx - num_raft_layers)->lslices), mesh_settings.resolution, polygons_strictly_simple);
+                outlines[layer_idx] = polygons_simplify(to_polygons(print_object.get_layer(layer_idx - num_raft_layers)->lslices), mesh_settings.resolution);
         });
     }
 #endif
@@ -462,7 +477,7 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
                     // if a key does not exist when it is accessed it is added!
                     collision_areas_offsetted[layer_idx] = offset_value == 0 ?
                             union_(collision_areas) :
-                            offset(union_ex(collision_areas), offset_value, ClipperLib::jtMiter, 1.2);
+                            offset(union_ex(collision_areas), offset_value, jtMiter, 1.2);
                     if(throw_on_cancel)
                         throw_on_cancel();
                 }
@@ -515,16 +530,16 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
                                     // the conditional -0.5 ensures that plastic can never touch on the diagonal
                                     // downward when the z_distance_top_layers = 1. It is assumed to be better to
                                     // not support an overhang<90 degree than to risk fusing to it.
-                                append(collisions, offset(union_ex(collision_areas_original), radius + required_range_x, ClipperLib::jtMiter, 1.2));
+                                append(collisions, offset(union_ex(collision_areas_original), radius + required_range_x, jtMiter, 1.2));
                             }
                         collisions = processing_last_mesh && layer_idx < int(anti_overhang.size()) ? 
-                                union_(collisions, offset(union_ex(anti_overhang[layer_idx]), radius, ClipperLib::jtMiter, 1.2)) : 
+                                union_(collisions, offset(union_ex(anti_overhang[layer_idx]), radius, jtMiter, 1.2)) : 
                                 union_(collisions);
                         auto &dst = data[layer_idx];
                         if (processing_last_mesh) {
                             if (! dst.empty())
                                 collisions = union_(collisions, dst);
-                            dst = polygons_simplify(collisions, min_resolution, polygons_strictly_simple);
+                            dst = polygons_simplify(collisions, min_resolution);
                         } else
                             append(dst, std::move(collisions));
                         if (throw_on_cancel)
@@ -552,7 +567,7 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
                         if (processing_last_mesh) {
                             if (! dst.empty())
                                 placable = union_(placable, dst);
-                            dst = polygons_simplify(placable, min_resolution, polygons_strictly_simple);
+                            dst = polygons_simplify(placable, min_resolution);
                         } else
                             append(dst, placable);
                         if (throw_on_cancel)
@@ -601,8 +616,8 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::vector<RadiusLayerP
                     // this union is important as otherwise holes(in form of lines that will increase to holes in a later step) can get unioned onto the area.
                     data.emplace_back(RadiusLayerPair(radius, layer_idx), polygons_simplify(
                         offset(union_ex(this->getCollision(m_increase_until_radius, layer_idx, false)),
-                            5 - increase_radius_ceil, ClipperLib::jtRound, m_min_resolution),
-                        m_min_resolution, polygons_strictly_simple));
+                            5 - increase_radius_ceil, jtRound, m_min_resolution),
+                        m_min_resolution));
                     if (throw_on_cancel)
                         throw_on_cancel();
                 }
@@ -689,10 +704,10 @@ void TreeModelVolumes::calculateAvoidance(const std::vector<RadiusLayerPair> &ke
                     latest_avoidance = union_(current_layer_collisions,
                         offset(latest_avoidance,
                             istep + 1 == move_steps ? - last_move_step : - move_step,
-                            ClipperLib::jtRound, m_min_resolution));
+                            jtRound, m_min_resolution));
                 if (task.to_model)
                     latest_avoidance = diff(latest_avoidance, getPlaceableAreas(task.radius, layer_idx, throw_on_cancel));
-                latest_avoidance = polygons_simplify(latest_avoidance, m_min_resolution, polygons_strictly_simple);
+                latest_avoidance = polygons_simplify(latest_avoidance, m_min_resolution);
                 data.emplace_back(RadiusLayerPair{task.radius, layer_idx}, latest_avoidance);
                 if (throw_on_cancel)
                     throw_on_cancel();
@@ -815,12 +830,12 @@ void TreeModelVolumes::calculateWallRestrictions(const std::vector<RadiusLayerPa
                     data[layer_idx - min_layer_bottom] = polygons_simplify(
                         // radius contains m_current_min_xy_dist_delta already if required
                         intersection(getCollision(0, layer_idx, false), getCollision(radius, layer_idx - 1, true)),
-                        m_min_resolution, polygons_strictly_simple);
+                        m_min_resolution);
                     if (! data_min.empty())
                         data_min[layer_idx - min_layer_bottom] = 
                             polygons_simplify(
                                 intersection(getCollision(0, layer_idx, true), getCollision(radius, layer_idx - 1, true)),
-                                m_min_resolution, polygons_strictly_simple);
+                                m_min_resolution);
                     if (throw_on_cancel)
                         throw_on_cancel();
                 }

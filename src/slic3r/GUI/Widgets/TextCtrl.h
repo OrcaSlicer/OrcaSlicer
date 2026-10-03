@@ -1,3 +1,5 @@
+#include <wx/textctrl.h>
+
 #ifdef __WXMSW__
 class TextCtrl : public wxTextCtrl
 {

@@ -87,6 +87,7 @@
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "Plater.hpp"
+#include "ParamsDialog.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "UnsavedChangesDialog.hpp"
@@ -3301,6 +3302,11 @@ void TabPrint::toggle_options()
     }
 
     m_config_manipulation.toggle_print_fff_options(m_config, int(intptr_t(m_extruder_switch->GetClientData())), m_type < Preset::TYPE_COUNT);
+
+    if (m_type == Preset::TYPE_PLATE) {
+        const auto &printer_config = m_preset_bundle->printers.get_edited_preset().config;
+        toggle_option("curr_bed_type", m_preset_bundle->is_bbl_vendor() || printer_config.opt_bool("support_multi_bed_types"));
+    }
 
     Field *field = m_active_page->get_field("support_style");
     auto   support_type = m_config->opt_enum<SupportType>("support_type");
@@ -7023,6 +7029,15 @@ bool Tab::select_preset(
             wxGetApp().plater()->sidebar().on_filament_count_change(m_preset_bundle->filament_presets.size());
         }
         load_current_preset();
+
+        // Wait for the settings dialog to close; its edits are still provisional.
+        if (printer_tab && is_selected) {
+            Plater *plater = wxGetApp().plater();
+            ParamsDialog *dialog = wxGetApp().params_dialog();
+            if (plater && !plater->is_loading_project() &&
+                (!dialog || !dialog->IsShown()))
+                plater->normalize_bed_types(false);
+        }
 
         {
             Slic3r::LifecycleEventContext ctx;

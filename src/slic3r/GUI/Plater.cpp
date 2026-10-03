@@ -6,6 +6,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
+#include <boost/assert/source_location.hpp>
 #include <boost/optional/optional.hpp>
 #include <cmath>
 #include <boost/algorithm/string/join.hpp>
@@ -7401,7 +7402,8 @@ struct Plater::priv
     std::vector<size_t> load_files(const std::vector<fs::path>& input_files,
                                    LoadStrategy strategy,
                                    bool ask_multi      = false,
-                                   bool* published_out = nullptr);
+                                   bool* published_out = nullptr,
+                                   bool* config_loaded_out = nullptr);
     std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
 
     // Texture-to-color import: a mesh loaded with UVs + a texture map gets its faces clustered
@@ -7891,6 +7893,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     view3D = new View3D(panel_3d, bed, &model, config, &background_process);
     //BBS: use partplater's gcode
     preview = new Preview(panel_3d, bed, &model, config, &background_process, partplate_list.get_current_slice_result(), [this]() { schedule_background_process(); });
+    preview->get_canvas3d()->share_section_view(*view3D->get_canvas3d());
 
     assemble_view = new AssembleView(panel_3d, bed, &model, config, &background_process);
 
@@ -8871,8 +8874,12 @@ void read_binary_stl(const std::string& filename, std::string& model_id, std::st
 std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files,
                                              LoadStrategy strategy,
                                              bool ask_multi,
-                                             bool* published_out)
+                                             bool* published_out,
+                                             bool* config_loaded_out)
 {
+    if (config_loaded_out != nullptr)
+        *config_loaded_out = false;
+
     std::vector<size_t> empty_result;
     bool dlg_cont = true;
     bool is_user_cancel = false;
@@ -9557,6 +9564,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                         id = agent->to_orca_filament_id(id);
                             }
                             preset_bundle->load_config_model(filename.string(), std::move(config), file_version, &published_config);
+                            if (config_loaded_out != nullptr)
+                                *config_loaded_out = true;
 
                             // Mixed-filament definitions that collided with one of the
                             // receiver's real slots were relocated during the preset load.
@@ -12779,6 +12788,8 @@ void Plater::priv::on_select_bed_type(wxCommandEvent &evt)
 
                 // update plater with new config
                 q->on_config_change(wxGetApp().preset_bundle->full_config());
+                if (auto *plate_tab = dynamic_cast<TabPrintPlate *>(wxGetApp().get_plate_tab()))
+                    plate_tab->update_model_config();
 
                 // update app_config
                 AppConfig* app_config = wxGetApp().app_config;
@@ -15478,6 +15489,38 @@ void Plater::reset_project_dirty_initial_presets() { p->reset_project_dirty_init
 void Plater::render_project_state_debug_window() const { p->render_project_state_debug_window(); }
 #endif // ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW
 
+void Plater::normalize_bed_types(bool printer_setting_changed)
+{
+    if (only_gcode_mode() || is_gcode_3mf())
+        return;
+
+    auto &preset_bundle = *wxGetApp().preset_bundle;
+    // Keep FFF plate settings intact while an SLA printer is selected.
+    if (preset_bundle.printers.get_edited_preset().printer_technology() != ptFFF)
+        return;
+
+    const auto &printer_config = preset_bundle.printers.get_edited_preset().config;
+
+    const bool supports_multiple_bed_types =
+        preset_bundle.is_bbl_vendor() || printer_config.opt_bool("support_multi_bed_types");
+    // Clear local overrides for single-bed printers.
+    const bool overrides_reset = !supports_multiple_bed_types &&
+        !p->partplate_list.check_all_plate_local_bed_type({});
+
+    if (overrides_reset) {
+        set_plater_dirty(true);
+        show_info(this,
+                  _L("The selected printer does not support multiple bed types.\nBed type overrides were reset to the global bed type."),
+                  _L("Plate bed types reset"));
+    }
+
+    // Refresh the controls after a capability change, even when no override was reset.
+    if (printer_setting_changed || overrides_reset) {
+        sidebar().update_all_preset_comboboxes();
+        wxGetApp().obj_list()->update_and_show_object_settings_item();
+    }
+}
+
 std::vector<size_t> Plater::mixed_filament_config_indices() const
 {
     std::vector<size_t> indices;
@@ -16057,6 +16100,9 @@ void Plater::load_project(wxString const& filename2,
     else
         p->dirty_state.update_from_undo_redo_stack(true);
     up_to_date(true, true);
+
+    // Clear plate overrides that are incompatible with the selected printer.
+    normalize_bed_types(false);
 
     wxGetApp().params_panel()->switch_to_object_if_has_object_configs();
 
@@ -17690,7 +17736,11 @@ std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files,
     p->m_slice_all_only_has_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
-    return p->load_files(input_files, strategy, ask_multi, published_out);
+    bool config_loaded = false;
+    std::vector<size_t> result = p->load_files(input_files, strategy, ask_multi, published_out, &config_loaded);
+    if (config_loaded && !is_loading_project())
+        normalize_bed_types(false);
+    return result;
 }
 
 bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)

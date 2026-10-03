@@ -5,6 +5,8 @@
 
 #include "TextureBakeIndex.hpp"
 #include "../TriangleMesh.hpp"
+#include <vector>
+#include <cstdint>
 
 namespace Slic3r {
 namespace TextureBake {

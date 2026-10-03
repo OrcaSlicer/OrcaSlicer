@@ -2,6 +2,7 @@
 #define slic3r_GUI_TempInput_hpp_
 
 #include "../wxExtensions.hpp"
+#include <wx/anybutton.h>
 #include <wx/event.h>
 #include <wx/containr.h>
 #include <wx/gdicmn.h>

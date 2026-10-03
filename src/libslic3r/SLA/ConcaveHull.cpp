@@ -1,3 +1,10 @@
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <iterator>
+#include "libslic3r/Polygon.hpp"
+#include <cmath>
+#include "libslic3r/ExPolygon.hpp"
 #include <libslic3r/SLA/ConcaveHull.hpp>
 #include <libslic3r/SLA/SpatIndex.hpp>
 
@@ -5,6 +12,8 @@
 #include <libslic3r/ClipperUtils.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <limits>
+#include <vector>
 
 namespace Slic3r {
 namespace sla {
@@ -135,7 +144,7 @@ ExPolygons offset_waffle_style_ex(const ConcaveHull &hull, coord_t delta)
 Polygons offset_waffle_style(const ConcaveHull &hull, coord_t delta)
 {
     auto arc_tolerance = scaled<double>(0.01);
-    Polygons res = closing(hull.polygons(), 2 * delta, delta, ClipperLib::jtRound, arc_tolerance);
+    Polygons res = closing(hull.polygons(), 2 * delta, delta, jtRound, arc_tolerance);
 
     auto it = std::remove_if(res.begin(), res.end(), [](Polygon &p) { return p.is_clockwise(); });
     res.erase(it, res.end());

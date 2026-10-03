@@ -7,6 +7,13 @@
 #include "../../BoundingBox.hpp"
 #include "../../Point.hpp"
 #include "../../Polygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+#include <functional>
+#include <limits>
+#include <cassert>
 
 //#define LIGHTNING_DISTANCE_FIELD_DEBUG_OUTPUT
 

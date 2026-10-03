@@ -3,6 +3,7 @@
 
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include <vector>
 
 namespace Slic3r {
 

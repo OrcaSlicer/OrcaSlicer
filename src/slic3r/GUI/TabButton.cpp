@@ -2,6 +2,7 @@
 #include "Widgets/Label.hpp"
 
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <utility>
 #include "slic3r/GUI/wxExtensions.hpp"

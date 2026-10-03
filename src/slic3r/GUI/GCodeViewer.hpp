@@ -260,6 +260,8 @@ mutable bool m_no_render_path { false };
     bool m_is_dark = false;
 
     libvgcode::Viewer m_viewer;
+    // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
+    std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool m_loaded_as_preview{ false };
 
 public:
@@ -300,6 +302,9 @@ public:
     // ORCA: tone applied to the shaded toolpaths, paying back the light the lighting term,
     // the shadow and the SSAO pass each take off. 1.0/1.0 is a no-op.
     void set_tone(float exposure, float saturation);
+    // ORCA: section view
+    void set_clipping_plane(const ClippingPlane& plane);
+    void set_light_top_dir(const Vec3d& direction);
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
@@ -322,6 +327,10 @@ public:
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
+    size_t get_vertices_count() const { return m_viewer.get_vertices_count(); }
+    size_t get_layers_count() const { return m_viewer.get_layers_count(); }
+    // ORCA: realistic view. Changes whenever the toolpaths casting shadows do.
+    size_t shadow_casters_signature() const;
 
     const SequentialView& get_sequential_view() const { return m_sequential_view; }
     void update_sequential_view_current(unsigned int first, unsigned int last);

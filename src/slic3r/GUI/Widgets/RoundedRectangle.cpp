@@ -1,5 +1,6 @@
 #include "RoundedRectangle.hpp"
 #include "../wxExtensions.hpp"
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <wx/checklst.h>
 #include <wx/dcgraph.h>

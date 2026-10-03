@@ -119,32 +119,12 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
 
       // Create the webview
-    m_browser = WebView::CreateWebView(this, "");
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
-
-#ifdef __linux__
-    inject_vue_resize_workaround(m_browser);
-
-    auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
-    auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
-    auto wv_ctx = webkit_web_view_get_context(wv);
-    auto cookieManager = webkit_web_context_get_cookie_manager(wv_ctx);
-    webkit_cookie_manager_set_persistent_storage(cookieManager, cookiesPath.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
-#endif
-
-    m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PrinterWebView::OnError, this);
-    m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
-    m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PrinterWebView::OnNewWindow, this);
-    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PrinterWebView::OnScriptMessage, this);
+    create_browser();
+    m_reset_on_show = WebView::NeedsRecreateOnShow();
 
     SetSizer(topsizer);
 
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-
-    update_mode();
 
     // Log backend information
     /* m_browser->GetUserAgent() may lead crash
@@ -177,12 +157,44 @@ PrinterWebView::~PrinterWebView()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " End";
 }
 
+void PrinterWebView::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, "");
+
+#ifdef __linux__
+    inject_vue_resize_workaround(m_browser);
+
+    auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
+    auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
+    auto wv_ctx = webkit_web_view_get_context(wv);
+    auto cookieManager = webkit_web_context_get_cookie_manager(wv_ctx);
+    webkit_cookie_manager_set_persistent_storage(cookieManager, cookiesPath.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+#endif
+
+    m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PrinterWebView::OnError, this);
+    m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
+    m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PrinterWebView::OnNewWindow, this);
+    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PrinterWebView::OnScriptMessage, this);
+    update_mode();
+}
+
+void PrinterWebView::reset_browser()
+{
+    m_browser->Destroy(); // also removes it from the sizer
+    create_browser();
+    GetSizer()->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+    Layout();
+
+    // OnLoaded may have cleared m_url_deferred already, so requeue the last url for Show().
+    m_apikey_sent  = false;
+    m_url_deferred = m_url;
+}
+
 void PrinterWebView::load_url(wxString& url, wxString apikey)
 {
 //    this->Show();
 //    this->Raise();
-    if (m_browser == nullptr)
-        return;
+    m_url = url;
     m_apikey = apikey;
     m_apikey_sent = false;
     m_handler = create_printer_webview_handler(*this);
@@ -200,6 +212,8 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
 
 bool PrinterWebView::Show(bool show)
 {
+    if (show && std::exchange(m_reset_on_show, false))
+        reset_browser();
     if (show && !m_url_deferred.empty()) {
         m_browser->LoadURL(m_url_deferred);
         //ORCA: m_url_deferred will be cleared on load success

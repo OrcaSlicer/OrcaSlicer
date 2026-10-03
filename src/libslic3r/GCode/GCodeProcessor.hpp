@@ -1,6 +1,11 @@
 #ifndef slic3r_GCodeProcessor_hpp_
 #define slic3r_GCodeProcessor_hpp_
 
+#include "libslic3r/CommonDefs.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -8,8 +13,17 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 
+#include <cstddef>
+#include <cassert>
 #include <cstdint>
 #include <array>
+#include <unordered_map>
+#include <utility>
+#include <map>
+#include <memory>
+#include <functional>
+#include <cstdlib>
+#include <set>
 #include <vector>
 #include <mutex>
 #include <string>

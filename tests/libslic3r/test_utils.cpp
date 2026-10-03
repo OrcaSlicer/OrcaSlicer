@@ -1,5 +1,14 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Utils.hpp"
 
 #include "test_utils.hpp"
@@ -8,10 +17,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <fstream>
+#include <ios>
+#include <iterator>
 #include <string>
 #include <thread>
 #include <system_error>
+#include <utility>
 
 #ifndef _WIN32
 #include <unistd.h>     // getuid

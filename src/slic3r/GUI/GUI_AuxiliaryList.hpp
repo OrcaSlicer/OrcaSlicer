@@ -6,10 +6,14 @@
 #include <set>
 
 #include <wx/bitmap.h>
+#include <wx/button.h>
 #include <wx/dataview.h>
+#include <wx/event.h>
 #include <wx/menu.h>
 #include <wx/file.h>
 #include <wx/dir.h>
+#include <wx/window.h>
+#include <wx/string.h>
 
 #include "AuxiliaryDataViewModel.hpp"
 
