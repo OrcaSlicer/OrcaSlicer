@@ -1,9 +1,14 @@
+#include <cstring>
+#include <cstddef>
 #include <exception>
 
 #include "Exception.hpp"
 #include "Zipper.hpp"
 #include "miniz_extension.hpp"
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <miniz.h>
+#include <utility>
 #include "I18N.hpp"
 
 //! macro used to mark string used at localization,

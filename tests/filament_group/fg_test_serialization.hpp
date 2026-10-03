@@ -1,6 +1,7 @@
 #ifndef FG_TEST_SERIALIZATION_HPP
 #define FG_TEST_SERIALIZATION_HPP
 
+#include <cstdio>
 #include <nlohmann/json.hpp>
 #include <libslic3r/FilamentGroup.hpp>
 #include <libslic3r/FilamentGroupUtils.hpp>
@@ -10,6 +11,7 @@
 #include <fstream>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <set>
 #include <map>

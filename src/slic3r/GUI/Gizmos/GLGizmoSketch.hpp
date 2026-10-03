@@ -4,7 +4,13 @@
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include <cereal/archives/binary.hpp>
+#include <TopoDS_Shape.hxx>
 #include <imgui/imgui.h>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include "libslic3r/Point.hpp"
 
 namespace Slic3r {
 namespace GUI {

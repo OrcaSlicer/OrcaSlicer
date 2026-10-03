@@ -1,5 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "test_utils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -12,7 +17,13 @@
 
 #include <algorithm>
 #include <array>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <cstddef>
+#include "libslic3r/Geometry.hpp"
+#include <miniz.h>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;

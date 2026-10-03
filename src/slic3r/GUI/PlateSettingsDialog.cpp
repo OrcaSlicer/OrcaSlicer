@@ -1,6 +1,32 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include <climits>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/colour.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <wx/textctrl.h>
+#include <string>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/ParameterUtils.hpp"
+#include <cstddef>
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;
@@ -405,8 +431,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         }
     }
 
-    if (!wxGetApp().preset_bundle->is_bbl_vendor())
-      m_bed_type_choice->Disable();
+    auto &preset_bundle = *wxGetApp().preset_bundle;
+    const auto &printer_config = preset_bundle.printers.get_edited_preset().config;
+    m_bed_type_choice->Enable(preset_bundle.is_bbl_vendor() || printer_config.opt_bool("support_multi_bed_types"));
 
     wxStaticText* m_bed_type_txt = new wxStaticText(this, wxID_ANY, _L("Bed type"));
     m_bed_type_txt->SetFont(Label::Body_14);

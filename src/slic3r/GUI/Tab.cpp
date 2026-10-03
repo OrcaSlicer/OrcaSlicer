@@ -13,13 +13,60 @@
 #include "Search.hpp"
 #include "OG_CustomCtrl.hpp"
 
+#include "libslic3r/Config.hpp"
+#include <boost/any.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <cassert>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <memory>
+#include "slic3r/GUI/Field.hpp"
+#include <map>
+#include <set>
+#include <initializer_list>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Preset.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/anybutton.h>
+#include <cstdint>
+#include <iterator>
+#include <functional>
+#include "libslic3r/ParameterUtils.hpp"
+#include <climits>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <cstring>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <boost/algorithm/string/erase.hpp>
+#include <cmath>
+#include "libslic3r/enum_bitmask.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <deque>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/app.h>
+#include <wx/bookctrl.h>
+#include <wx/arrstr.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include <wx/dataview.h>
+#include <wx/dynarray.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/timer.h>
+#include <wx/string.h>
+#include <wx/treebase.h>
+#include <wx/tglbtn.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
@@ -40,6 +87,7 @@
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "Plater.hpp"
+#include "ParamsDialog.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "UnsavedChangesDialog.hpp"
@@ -3255,6 +3303,11 @@ void TabPrint::toggle_options()
 
     m_config_manipulation.toggle_print_fff_options(m_config, int(intptr_t(m_extruder_switch->GetClientData())), m_type < Preset::TYPE_COUNT);
 
+    if (m_type == Preset::TYPE_PLATE) {
+        const auto &printer_config = m_preset_bundle->printers.get_edited_preset().config;
+        toggle_option("curr_bed_type", m_preset_bundle->is_bbl_vendor() || printer_config.opt_bool("support_multi_bed_types"));
+    }
+
     Field *field = m_active_page->get_field("support_style");
     auto   support_type = m_config->opt_enum<SupportType>("support_type");
     if (auto choice = dynamic_cast<Choice*>(field)) {
@@ -4911,6 +4964,7 @@ void TabFilament::update()
         return; // ys_FIXME
 
     m_config_manipulation.check_filament_max_volumetric_speed(m_config);
+    m_config_manipulation.check_filament_ironing_spacing(m_config);
 
     m_update_cnt++;
 
@@ -6975,6 +7029,15 @@ bool Tab::select_preset(
             wxGetApp().plater()->sidebar().on_filament_count_change(m_preset_bundle->filament_presets.size());
         }
         load_current_preset();
+
+        // Wait for the settings dialog to close; its edits are still provisional.
+        if (printer_tab && is_selected) {
+            Plater *plater = wxGetApp().plater();
+            ParamsDialog *dialog = wxGetApp().params_dialog();
+            if (plater && !plater->is_loading_project() &&
+                (!dialog || !dialog->IsShown()))
+                plater->normalize_bed_types(false);
+        }
 
         {
             Slic3r::LifecycleEventContext ctx;

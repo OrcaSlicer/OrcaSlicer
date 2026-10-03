@@ -6,10 +6,54 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <vector>
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/dataobj.h>
+#include <wx/buffer.h>
+#include <cctype>
+#include <wx/chartype.h>
+#include <wx/datetime.h>
+#include "libslic3r/Config.hpp"
+#include <wx/arrstr.h>
+#include <wx/filefn.h>
+#include <map>
+#include <cstdio>
+#include <stdio.h>
+#include <algorithm>
+#include <boost/algorithm/string/trim_all.hpp>
+#include <cmath>
+#include <string>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <fstream>
+#include <ios>
+#include <boost/log/trivial.hpp>
+#include <exception>
+#include <utility>
+#include <ctime>
+#include <boost/filesystem/file_status.hpp>
+#include <cstdint>
+#include <wx/filedlg.h>
+#include <wx/dirdlg.h>
+#include <wx/dir.h>
 #include <wx/filename.h>
+#include <wx/sizer.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
 #include <wx/stdpaths.h>
 #include <wx/display.h>
+#include <wx/string.h>
+#include <wx/utils.h>
+#include <wx/strconv.h>
 #include <wx/wfstream.h>
+#include "libslic3r_version.h"
 #include "wx/clipbrd.h"
 
 #include "libslic3r/libslic3r.h"
@@ -19,6 +63,9 @@
 #include "libslic3r/Preset.hpp"
 
 #include <nlohmann/json.hpp>
+#include <wx/wx.h>
+#include <wx/zipstrm.h>
+#include <wx/window.h>
 
 #ifdef __WINDOWS__
 #include <windows.h>

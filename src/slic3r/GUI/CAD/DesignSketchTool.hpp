@@ -8,7 +8,10 @@
 #include "libslic3r/CAD/SketchSolver.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"   // left-drag rubber band over the committed bodies
+#include <Eigen/Core>
 #include <functional>
+#include "libslic3r/Color.hpp"
+#include <math.h>
 #include <vector>
 #include <string>
 #include <utility>

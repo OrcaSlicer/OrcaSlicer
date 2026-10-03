@@ -1,7 +1,20 @@
 #include "ProcessRunner.hpp"
 
+#include <boost/process/cmd.hpp>
+#include <boost/process/args.hpp>
 #include <boost/process/env.hpp>
 #include <boost/process.hpp>
+#include <wx/event.h>
+#include <wx/timer.h>
+#include <string>
+#include <utility>
+#include <mutex>
+#include <vector>
+#include <system_error>
+#include <memory>
+#include <boost/process/pipe.hpp>
+#include <boost/process/io.hpp>
+#include <exception>
 #ifdef _WIN32
 #include <boost/process/windows.hpp>
 #endif

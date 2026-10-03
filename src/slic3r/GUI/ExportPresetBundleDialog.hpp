@@ -6,12 +6,20 @@
 #include "Widgets/WebViewHostDialog.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
 #include <slic3r/GUI/GUI.hpp>
+#include <wx/chartype.h>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <utility>
 #include <wx/dataview.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/language.h>
 #include <wx/string.h>
 #include <wx/fswatcher.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r { namespace GUI {
 

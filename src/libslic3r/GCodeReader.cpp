@@ -1,18 +1,30 @@
 #include "GCodeReader.hpp"
+#include <Shiny/ShinyMacros.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <cassert>
+#include <cstddef>
+#include <cstdio>
+#include <cctype>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include "PrintConfig.hpp"
 #include "Utils.hpp"
 
 #include "LocalesUtils.hpp"
+#include "libslic3r.h"
 
 #include <Shiny/Shiny.h>
 #include <fast_float/fast_float.h>
+#include <utility>
+#include <vector>
+#include <string_view>
+#include <sstream>
 
 namespace Slic3r {
 

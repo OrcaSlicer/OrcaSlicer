@@ -1,8 +1,11 @@
 #ifndef slic3r_UVEditorCanvas_hpp_
 #define slic3r_UVEditorCanvas_hpp_
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
 #include <functional>
+#include "libslic3r/Color.hpp"
 #include <utility>
 #include <vector>
 
@@ -10,9 +13,12 @@
 // pulls in the platform's real GL/gl.h, and glad/gl.h errors out if that happens first (it wants
 // to be the one to define the standard include guards GL/gl.h itself defines).
 #include <glad/gl.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
 #include <wx/panel.h>
 #include <wx/button.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 #include <wx/stattext.h>
 #include <wx/statbmp.h>

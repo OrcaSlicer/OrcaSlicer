@@ -1,7 +1,10 @@
 #ifndef slic3r_TextureDisplacementBakeJob_hpp_
 #define slic3r_TextureDisplacementBakeJob_hpp_
 
+#include <exception>
+#include <cstdint>
 #include <functional>
+#include "libslic3r/Point.hpp"
 #include <vector>
 
 #include "libslic3r/Color.hpp"

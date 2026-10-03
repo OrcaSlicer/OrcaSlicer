@@ -4,6 +4,8 @@
 #include "../../PythonPluginInterface.hpp"
 
 #include "IPrinterAgent.hpp"
+#include <pybind11/pybind11.h>
+#include "slic3r/Utils/bambu_networking.hpp"
 
 #include <memory>
 #include <string>

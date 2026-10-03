@@ -1,24 +1,38 @@
 #include "PluginConfig.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <exception>
 #include <libslic3r/Config.hpp>
+#include "libslic3r/Preset.hpp"
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include <optional>
+#include <set>
+#include <mutex>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/libslic3r.h"
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/I18N.hpp>
 #include <slic3r/GUI/format.hpp>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <stdexcept>
 
+#include <string>
+#include <utility>
+#include <system_error>
+#include <vector>
 #include <wx/app.h>
+#include <wx/busycursor.h>
 #include <wx/utils.h>
 
 namespace Slic3r {
@@ -249,21 +263,10 @@ bool PluginConfig::save()
         return false;
     }
 
-    // Write to a PID-suffixed file and rename it into place, so a crash mid-write cannot truncate an
-    // existing config. Same approach as AppConfig::save().
-    const std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
-
-    boost::nowide::ofstream file;
-    file.open(path_pid, std::ios::out | std::ios::trunc);
-    file << root.dump(1, '\t') << std::endl;
-    file.close();
-    if (file.fail()) {
-        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to write " << path_pid << "; keeping the existing config";
-        return false;
-    }
-
-    if (const std::error_code rename_ec = rename_file(path_pid, path)) {
-        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to move " << path_pid << " onto " << path << ": " << rename_ec.message();
+    // Written beside the target and moved into place, so a crash mid-write cannot truncate an
+    // existing config.
+    if (const std::error_code ec = write_file_atomically(path, root.dump(1, '\t') + "\n")) {
+        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to write " << path << ": " << ec.message() << "; keeping the existing config";
         return false;
     }
 

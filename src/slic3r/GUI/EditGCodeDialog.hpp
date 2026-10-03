@@ -1,8 +1,13 @@
 #ifndef slic3r_EditGCodeDialog_hpp_
 #define slic3r_EditGCodeDialog_hpp_
 
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <utility>
 #include <vector>
 
+#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <slic3r/GUI/Widgets/Button.hpp>
 
@@ -11,6 +16,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <wx/srchctrl.h>
+#include <wx/variant.h>
 
 class wxListBox;
 class wxTextCtrl;

@@ -1,6 +1,11 @@
 #include "WebDownPluginDlg.hpp"
 #include "ConfigWizard.hpp"
 
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <exception>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -8,10 +13,17 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r_version.h"
 
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/setup.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>

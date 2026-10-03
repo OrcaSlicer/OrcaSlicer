@@ -1,5 +1,15 @@
 #include "IconManager.hpp"
+#include <cassert>
+#include <algorithm>
+#include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <cmath>
+#include <cstdio>
+#include <cstddef>
+#include <memory>
+#include <cstring>
+#include <imgui.h>
+#include <cstdint>
 #include <numeric>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
@@ -10,6 +20,9 @@
 
 #include "3DScene.hpp" // glsafe
 #include <glad/gl.h>
+#include <vector>
+#include <utility>
+#include <string>
 
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "imgui/imstb_rectpack.h" // distribute rectangles

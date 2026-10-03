@@ -1,12 +1,23 @@
 #include "PresetUpdater.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <exception>
 #include <functional>
 #include <atomic>
+#include "libslic3r/Exception.hpp"
+#include <map>
+#include <ios>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 #include <set>
 #include <string>
 #include <thread>
@@ -24,8 +35,10 @@
 
 #include <vector>
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/msgdlg.h>
 
+#include "json_diff.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"

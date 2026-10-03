@@ -45,7 +45,7 @@ on:
 
 
   schedule:
-      - cron: '0 17 * * *' # run once a day at 1 AM Singapore time (UTC+8)
+      - cron: '15 2 * * *' # 10:15 AM Singapore time (UTC+8), when macOS runners are least busy
 
   workflow_dispatch: # allows for manual dispatch
     inputs:
@@ -56,7 +56,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Pushes don't cancel a running build, because only a finished branch build
+  # saves caches every pull request can restore.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
   
 
 jobs:

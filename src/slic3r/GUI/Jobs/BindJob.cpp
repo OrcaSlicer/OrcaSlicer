@@ -1,5 +1,6 @@
 #include "BindJob.hpp"
 
+#include "bambu_networking.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -9,6 +10,13 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
+#include <wx/event.h>
+#include <string>
+#include <functional>
+#include <wx/datetime.h>
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <exception>
 
 namespace Slic3r {
 namespace GUI {

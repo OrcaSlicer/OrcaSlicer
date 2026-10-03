@@ -3,7 +3,11 @@
 #include <chrono>
 
 #include <boost/log/trivial.hpp>
+#include <functional>
+#include <utility>
+#include <string>
 #include <wx/evtloop.h>
+#include <wx/timer.h>
 
 #include "libslic3r/Utils.hpp"
 

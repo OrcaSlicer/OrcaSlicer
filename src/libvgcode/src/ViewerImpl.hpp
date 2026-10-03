@@ -8,6 +8,12 @@
 #include "Settings.hpp"
 #include "SegmentTemplate.hpp"
 #include "OptionTemplate.hpp"
+#include "../include/Types.hpp"
+#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <array>
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include "CogMarker.hpp"
 #include "ToolMarker.hpp"
@@ -89,6 +95,9 @@ public:
     // caller decides which of the two it varies with the realistic view setting.
     //
     void set_tone(float exposure, float saturation);
+    // ORCA: section view, see Viewer::set_clipping_plane()
+    void set_clipping_plane(const std::array<float, 4>& plane) { m_clipping_plane = plane; }
+    void set_light_top_dir(const Vec3& direction) { m_light_top_dir = direction; }
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -262,9 +271,10 @@ private:
     //
     std::vector<uint32_t> m_layer_first_vertex;
     //
-    // Scratch buffer for update_colors_texture(), kept alive across slider steps
+    // ORCA: whether the layer ids never decrease along the vertices, so that each layer's vertices
+    // follow m_layer_first_vertex. Not so for a print by object, whose layers start over per object.
     //
-    std::vector<float> m_colors_scratch;
+    bool m_layers_in_vertex_order{ false };
     //
     // Detected travel moves times
     //
@@ -347,6 +357,9 @@ private:
     // OpenGL shaders ids
     //
     unsigned int m_segments_shader_id{ 0 };
+    // ORCA: realistic view. Depth-only ribbons for the shadow caster pass, and the empty vertex array they draw with.
+    unsigned int m_segments_caster_shader_id{ 0 };
+    unsigned int m_segments_caster_vao_id{ 0 };
     unsigned int m_options_shader_id{ 0 };
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     unsigned int m_cog_marker_shader_id{ 0 };
@@ -355,24 +368,44 @@ private:
     //
     // Caches for OpenGL uniforms id for segments shader 
     //
-    int m_uni_segments_view_matrix_id{ -1 };
-    int m_uni_segments_projection_matrix_id{ -1 };
-    int m_uni_segments_camera_position_id{ -1 };
-    int m_uni_segments_positions_tex_id{ -1 };
-    int m_uni_segments_height_width_angle_tex_id{ -1 };
-    int m_uni_segments_colors_tex_id{ -1 };
-    int m_uni_segments_segment_index_tex_id{ -1 };
-    int m_uni_segments_reverse_order_id{ -1 };
-    int m_uni_segments_instance_count_id{ -1 };
+    // ORCA: the ones the shaded and the shadow caster programs share.
+    struct SegmentsUniforms
+    {
+        int view_matrix{ -1 };
+        int projection_matrix{ -1 };
+        int camera_position{ -1 };
+        int positions_tex{ -1 };
+        int height_width_angle_tex{ -1 };
+        int colors_tex{ -1 };
+        int segment_index_tex{ -1 };
+        int reverse_order{ -1 };
+        int instances_count{ -1 };
+        int clipping_plane{ -1 };
+
+        void init(unsigned int shader_id);
+    };
+    SegmentsUniforms m_uni_segments;
+    SegmentsUniforms m_uni_segments_caster;
     int m_uni_segments_shadow_map_id{ -1 };
     int m_uni_segments_shadow_light_vp_id{ -1 };
     int m_uni_segments_shadow_intensity_id{ -1 };
     int m_uni_segments_shadow_map_texel_id{ -1 };
     int m_uni_segments_exposure_id{ -1 };
     int m_uni_segments_saturation_id{ -1 };
-    int m_uni_segments_bias_scale_id{ -1 };
+    int m_uni_segments_light_top_dir_id{ -1 };
+    // ORCA: the layers greyed or dimmed around the one the sliders show, in the segments and options shaders.
+    struct LayerColorsUniforms
+    {
+        int lit_layers{ -1 };
+        int grey_below_layer{ -1 };
+        int dim_brightness{ -1 };
+        int kept_vertex{ -1 };
+
+        void init(unsigned int shader_id);
+    };
+    LayerColorsUniforms m_uni_segments_layer_colors;
     //
-    // Caches for OpenGL uniforms id for options shader 
+    // Caches for OpenGL uniforms id for options shader
     //
     int m_uni_options_view_matrix_id{ -1 };
     int m_uni_options_projection_matrix_id{ -1 };
@@ -380,6 +413,8 @@ private:
     int m_uni_options_height_width_angle_tex_id{ -1 };
     int m_uni_options_colors_tex_id{ -1 };
     int m_uni_options_segment_index_tex_id{ -1 };
+    int m_uni_options_clipping_plane_id{ -1 };
+    LayerColorsUniforms m_uni_options_layer_colors;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     //
     // Caches for OpenGL uniforms id for cog marker shader 
@@ -403,8 +438,8 @@ private:
     {
     public:
         void init(size_t vertices_count);
-        void set_positions(const std::vector<Vec3>& positions);
-        void set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles);
+        void set_positions(const std::vector<Vec4>& positions);
+        void set_heights_widths_angles(const std::vector<Vec4>& heights_widths_angles);
         void set_colors(const std::vector<float>& colors);
         void set_enabled_segments(const std::vector<uint32_t>& enabled_segments);
         void set_enabled_options(const std::vector<uint32_t>& enabled_options);
@@ -512,8 +547,7 @@ private:
 
     //
     // ORCA: realistic view. Shadow map state set by set_shadow_map(), consumed by the segments
-    // shader. m_rendering_shadow_casters forces the intensity to 0 for the depth pass, which
-    // must not sample the very map it is writing.
+    // shader. m_rendering_shadow_casters switches render_segments() to the depth-only program.
     //
     // Defaults past the four texture units render_segments() binds itself, so the sampler never
     // aliases one of the buffer textures before the owner of the map has said where it lives.
@@ -529,6 +563,11 @@ private:
     //
     float m_exposure{ 1.0f };
     float m_saturation{ 1.0f };
+    // ORCA: the light the segments shader shades with, in eye space.
+    Vec3 m_light_top_dir{ -0.4574957f, 0.4574957f, 0.7624929f };
+
+    // ORCA: section view
+    std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
 
     void apply_pending_updates();
     void update_view_full_range();
@@ -536,6 +575,8 @@ private:
     void update_heights_widths();
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    // ORCA: the program using uni must be current.
+    void set_layer_colors(const LayerColorsUniforms& uni) const;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     void render_cog_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
     void render_tool_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);

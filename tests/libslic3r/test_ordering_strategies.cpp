@@ -1,4 +1,12 @@
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
+#include <vector>
+#include <cstddef>
+#include <math.h>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <cstdint>
+#include <limits>
 
 #define SLIC3R_TEST_HARNESS
 

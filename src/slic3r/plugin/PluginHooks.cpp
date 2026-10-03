@@ -13,7 +13,10 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <exception>
+#include <cstddef>
 #include <memory>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <string>
 #include <stdexcept>
 

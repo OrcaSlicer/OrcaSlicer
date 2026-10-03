@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 
@@ -12,6 +15,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Print.hpp"
 #include <limits>
 #include <optional>
 #include <set>

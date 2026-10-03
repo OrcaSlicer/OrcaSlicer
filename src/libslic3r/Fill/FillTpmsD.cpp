@@ -1,10 +1,15 @@
 #include <cmath>
 #include <algorithm>
+#include <utility>
+#include <math.h>
+#include <cstddef>
 #include <vector>
 //#include <cstddef>
 
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Point.hpp"

@@ -1,4 +1,10 @@
 #include "ExPolygonsIndex.hpp"
+#include "ExPolygon.hpp"
+#include <cstdint>
+#include <cassert>
+#include <vector>
+#include <utility>
+#include <algorithm>
 using namespace Slic3r;
 
 // IMPROVE: use one dimensional vector for polygons offset with searching by std::lower_bound

@@ -1,3 +1,4 @@
+#include "json_diff.hpp"
 #include "libslic3r/libslic3r.h"
 #include "UserManager.hpp"
 #include "DeviceManager.hpp"
@@ -9,6 +10,8 @@
 #include "MsgDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <string>
+#include <wx/string.h>
 
 
 namespace Slic3r {

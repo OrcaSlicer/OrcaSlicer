@@ -1,6 +1,7 @@
 #ifndef slic3r_FillConcentricInternal_hpp_
 #define slic3r_FillConcentricInternal_hpp_
 
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "FillBase.hpp"
 
 namespace Slic3r {

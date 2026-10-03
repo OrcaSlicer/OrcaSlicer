@@ -1,3 +1,7 @@
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <cmath>
 #include <glad/gl.h>
 
 #include "3DScene.hpp"
@@ -25,6 +29,30 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <optional>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
+#include <set>
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Exception.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +64,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <Eigen/Dense>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef HAS_GLSAFE
 void glAssertRecentCallImpl(const char* file_name, unsigned int line, const char* function_name)
@@ -1096,8 +1127,17 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
         );
     }
     else if (type == GLVolumeCollection::ERenderType::Opaque && list.size() > 1) {
+        // Orca: nearest first after the selected ones, so the depth test skips shading hidden surfaces.
+        for (GLVolumeWithIdAndZ& volume : list) {
+            volume.second.second = volume.first->transformed_bounding_box().transformed(view_matrix).max(2);
+        }
+
         std::sort(list.begin(), list.end(),
-            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool { return v1.first->selected && !v2.first->selected; }
+            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool {
+                if (v1.first->selected != v2.first->selected)
+                    return v1.first->selected;
+                return v1.second.second > v2.second.second;
+            }
         );
     }
 
