@@ -4,6 +4,7 @@
 #include <wx/button.h>
 #include <wx/sizer.h>
 #include <wx/dataview.h>
+#include <wx/string.h>
 #include <wx/variant.h>
 
 
