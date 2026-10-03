@@ -3556,9 +3556,16 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     // fight the toolpaths for the same pixels and flicker while dragging.
     // The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
     // they are in the shells' frame as they are.
+    // A layer with no extrusion has no height of its own; the nearest one below stands in for it.
+    auto layer_top = [this](size_t id) {
+        float z = m_viewer.get_layer_z(id);
+        while (z == 0.0f && id > 0)
+            z = m_viewer.get_layer_z(--id);
+        return z;
+    };
     const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
-    const float z_top = (layers[1] > 0) ? m_viewer.get_layer_z(layers[1] - 1) - 0.001f : -FLT_MAX;
-    const float z_bottom = m_viewer.get_layer_z(layers[0]) + 0.001f;
+    const float z_top = (layers[1] > 0) ? layer_top(layers[1] - 1) - 0.001f : -FLT_MAX;
+    const float z_bottom = layer_top(layers[0]) + 0.001f;
 
     std::vector<float> alphas;
     alphas.reserve(m_shells.volumes.volumes.size());
