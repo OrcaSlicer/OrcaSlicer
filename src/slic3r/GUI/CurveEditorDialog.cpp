@@ -1,16 +1,17 @@
 #include "CurveEditorDialog.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <locale>
 #include <sstream>
+#include <utility>
 #include <wx/grid.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "I18N.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -28,16 +29,14 @@ std::string format_number(double value)
 
 bool read_number(wxString text, double& value)
 {
-    text.Trim().Trim(false);
-    text.Replace(",", ".");
-    return text.ToCDouble(&value) && std::isfinite(value);
+    return CurveModel::read_number(into_u8(text), value);
 }
 } // namespace
 
 CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help_text,
-                                     const CurveEditorAppearance& appearance)
+                                     const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model)
     : wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-      m_appearance(appearance)
+      m_appearance(appearance), m_model(std::move(model))
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -63,7 +62,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     sizer->Add(m_chart, 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(16));
 
     auto* ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
-    ranges->AddGrowableCol(1, wxHORIZONTAL); // only input areas has dynamic size to support longer translations on buttons and labels
+    ranges->AddGrowableCol(1, wxHORIZONTAL); // Let inputs shrink while labels and translated buttons retain their width.
     ranges->AddGrowableCol(2, wxHORIZONTAL);
 
     auto* apply_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -88,11 +87,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         for (int bound = 0; bound < 2; ++bound) {
             auto* field = new TextInput(this, "", "", "", wxDefaultPosition, FromDIP(wxSize(-1, -1)), wxTE_PROCESS_ENTER);
             m_range_fields[axis * 2 + bound] = field;
-            wxTextValidator validator(wxFILTER_DIGITS);
-            field->GetTextCtrl()->SetValidator(validator);
             field->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { apply_chart_range(); });
-            field->GetTextCtrl()->Bind(wxEVT_SET_FOCUS,  [this](wxFocusEvent &e) {apply_chart_range();e.Skip();});
-            field->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &e) {apply_chart_range();e.Skip();});
             field->SetToolTip(_L("Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."));
             ranges->Add(field, 1, wxEXPAND);
         }
@@ -104,7 +99,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     apply_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { apply_chart_range(); });
     apply_btn_sizer->Add(apply_range, 1, wxEXPAND);
 
-    auto* fit_range = new Button(this, _L("Show entire curve"));
+    auto* fit_range = new Button(this, _L("Fit curve"));
     fit_range->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     fit_range->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
@@ -156,7 +151,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         finish_edit();
         const int count = m_grid->GetNumberRows();
         if (count == 0) {
-            load_points(seed_rows());
+            load_points(m_model->seed_rows());
         } else {
             std::vector<double> x, y;
             const bool valid = read_points(x, y) && count > 1;
@@ -182,7 +177,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     actions->AddStretchSpacer();
     add_button(_L("Reset to defaults"), [this](wxCommandEvent&) {
         finish_edit();
-        load_points(default_rows());
+        load_points(m_model->default_rows());
         update_preview();
     });
     sizer->Add(actions, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(16));
@@ -208,12 +203,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         finish_edit();
         std::vector<double> x, y;
         if (!read_points(x, y)) return;
-        Rows rows;
-        for (int row = 0; row < m_grid->GetNumberRows(); ++row)
-            rows.emplace_back(m_grid->GetCellValue(row, 0), m_grid->GetCellValue(row, 1));
-        accept_rows(rows);
+        m_model->accept_rows(read_rows());
         EndModal(wxID_OK);
     }, wxID_OK);
+
+    load_points(m_model->rows());
+    update_preview();
+    fit_chart();
+    CentreOnParent();
 }
 
 CurveEditorDialog::~CurveEditorDialog()
@@ -222,14 +219,6 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->before_drag = {};
     m_chart->on_select = {};
     m_chart->on_move = {};
-}
-
-void CurveEditorDialog::initialize(const Rows& rows)
-{
-    load_points(rows);
-    update_preview();
-    fit_chart();
-    CentreOnParent();
 }
 
 void CurveEditorDialog::finish_edit()
@@ -248,31 +237,28 @@ void CurveEditorDialog::load_points(const Rows& rows)
         m_grid->DeleteRows(0, m_grid->GetNumberRows());
     if (!rows.empty()) m_grid->AppendRows(rows.size());
     for (size_t row = 0; row < rows.size(); ++row) {
-        m_grid->SetCellValue(row, 0, rows[row].first);
-        m_grid->SetCellValue(row, 1, rows[row].second);
+        m_grid->SetCellValue(row, 0, wxString::FromUTF8(rows[row].first));
+        m_grid->SetCellValue(row, 1, wxString::FromUTF8(rows[row].second));
     }
+}
+
+CurveEditorDialog::Rows CurveEditorDialog::read_rows() const
+{
+    Rows rows;
+    for (int row = 0; row < m_grid->GetNumberRows(); ++row)
+        rows.emplace_back(into_u8(m_grid->GetCellValue(row, 0)), into_u8(m_grid->GetCellValue(row, 1)));
+    return rows;
 }
 
 bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>& y)
 {
-    x.clear();
-    y.clear();
-    wxString error;
     int error_row = -1;
-    for (int row = 0; row < m_grid->GetNumberRows(); ++row) {
-        double vx, vy;
-        if (!read_number(m_grid->GetCellValue(row, 0), vx) || !read_number(m_grid->GetCellValue(row, 1), vy)) {
-            error = _L("Enter a finite number in each cell.");
-            error_row = row;
-            break;
-        }
-        x.push_back(vx);
-        y.push_back(vy);
-    }
-    if (error.empty()) error = validate_points(x, y, error_row);
+    const char* message = m_model->read_points(read_rows(), x, y, error_row);
+    wxString error = message == nullptr ? wxString() : _L(message);
     if (!error.empty() && error_row >= 0)
         error = wxString::Format(_L("Row %d: "), error_row + 1) + error;
-    m_status->SetLabel(error.empty() && x.empty() ? empty_message() : error);
+    const char* empty_message = m_model->empty_message();
+    m_status->SetLabel(error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error);
     m_status->Wrap(FromDIP(640));
     m_status->Show(!m_status->GetLabel().empty());
     Layout();
@@ -285,7 +271,7 @@ void CurveEditorDialog::refresh_chart_data(const std::vector<double>& x, const s
     for (size_t row = 0; row < x.size(); ++row)
         tooltips.push_back(m_appearance.x_label + ": " + m_grid->GetCellValue(row, 0).Trim().Trim(false) + "\n" +
                            m_appearance.y_label + ": " + m_grid->GetCellValue(row, 1).Trim().Trim(false));
-    m_chart->set_data(x, y, tooltips, x.empty() ? CurveEditorPanel::Interpolator{} : make_interpolator(x, y));
+    m_chart->set_data(x, y, tooltips, x.empty() ? CurveEditorPanel::Interpolator{} : m_model->make_interpolator(x, y));
     m_chart->select_point(m_grid->GetGridCursorRow());
 }
 
@@ -303,7 +289,7 @@ void CurveEditorDialog::move_point(int row, double proposed_x, double proposed_y
 {
     std::vector<double> x, y;
     if (!read_points(x, y) || row < 0 || row >= int(x.size())) return;
-    const CurveEditorView bounds = drag_bounds(row, x, y, m_chart->view());
+    const CurveEditorView bounds = m_model->drag_bounds(row, x, y, m_chart->view());
     if (bounds.min_x > bounds.max_x || bounds.min_y > bounds.max_y) return;
     auto set_value = [this, row](int column, double value, double lower, double upper, double& current) {
         value = std::clamp(value, lower, upper);
@@ -341,7 +327,7 @@ void CurveEditorDialog::fit_chart()
         x.clear();
         y.clear();
     }
-    m_chart->set_view(fitted_view(x, y));
+    m_chart->set_view(m_model->fitted_view(x, y));
     sync_chart_range();
 }
 
@@ -352,13 +338,13 @@ void CurveEditorDialog::apply_chart_range()
     for (int i = 0; i < 4; ++i)
         valid = read_number(m_range_fields[i]->GetTextCtrl()->GetValue(), values[i]) && valid;
     if (valid)
-        valid = values[0] < values[1] && values[2] < values[3] &&
-                std::isfinite(values[1] - values[0]) && std::isfinite(values[3] - values[2]);
+        valid = CurveModel::valid_view({values[0], values[1], values[2], values[3]});
     wxString error;
     CurveEditorView view;
     if (valid) {
         view = {values[0], values[1], values[2], values[3]};
-        error = validate_view(view);
+        if (const char* message = m_model->validate_view(view))
+            error = _L(message);
     } else
         error = _L("Enter finite bounds with minimum less than maximum.");
     if (!error.empty()) {
