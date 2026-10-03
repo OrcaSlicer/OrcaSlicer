@@ -68,7 +68,8 @@ and `load_shells()` drops every non-model-part volume, so a negative volume is n
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
 only the end layers. So does a print whose layers do not rise in height from one to the next, as
 when it is printed object by object: the cut is a single height range for the whole plate, which
-the ends of the layer range then do not bound.
+the ends of the layer range then do not bound. And so does a preview with a section view active:
+the section cuts the toolpaths open to show their inside, which a solid would cover.
 
 ## Deciding that the user is dragging
 

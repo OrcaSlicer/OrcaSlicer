@@ -2799,10 +2799,12 @@ void GCodeViewer::update_layers_slider_mode()
 
 void GCodeViewer::set_interacting(bool interacting)
 {
-    // with the mode off nothing changes while dragging, and with no shells to stand in for the
-    // toolpaths, or no single height to cut them at, the solid model would misrepresent the print
+    // With the mode off nothing changes while dragging. The solid model needs shells to stand in
+    // for the toolpaths and a single height to cut them at, and it would cover what a section view
+    // cuts the toolpaths open to show.
+    const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
     const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
-                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising));
+                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising && !sectioned));
     m_viewer.set_reduced_detail(interacting && usable);
 }
 

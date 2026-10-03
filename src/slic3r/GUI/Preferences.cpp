@@ -2175,7 +2175,7 @@ void PreferencesDialog::create_items()
            "Off: the full toolpaths.\n"
            "Solid model: the sliced objects and the prime tower as solid shapes in their filament colors, cut to the visible layer range, "
            "with its bottom and top layers drawn as toolpaths. Supports are not shown, and negative volumes are not cut out. "
-           "A print made object by object keeps its full toolpaths.\n"
+           "A print made object by object, or one cut open by the section view, keeps its full toolpaths.\n"
            "Shell only: every layer without its sparse infill, internal solid infill, internal bridges and gap fill, which lie under the walls and skins. "
            "Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so the print looks the same from outside.\n"
            "The bottom and top of the visible layer range are always drawn whole."),
