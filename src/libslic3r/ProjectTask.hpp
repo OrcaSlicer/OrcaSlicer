@@ -1,6 +1,7 @@
 #ifndef slic3r_ProjectTask_hpp_
 #define slic3r_ProjectTask_hpp_
 
+#include <functional>
 #include <map>
 #include <vector>
 #include <string>

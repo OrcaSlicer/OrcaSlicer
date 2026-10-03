@@ -1,6 +1,7 @@
 #ifndef slic3r_LocalesUtils_hpp_
 #define slic3r_LocalesUtils_hpp_
 
+#include <cstddef>
 #include <string>
 #include <clocale>
 #include <iomanip>
@@ -19,8 +20,13 @@ class CNumericLocalesSetter {
 public:
     CNumericLocalesSetter();
     ~CNumericLocalesSetter();
+    // A copy would restore the locale twice, and count down once more than up.
+    CNumericLocalesSetter(const CNumericLocalesSetter&) = delete;
+    CNumericLocalesSetter& operator=(const CNumericLocalesSetter&) = delete;
 
 private:
+    // Inside another setter on this thread, which does the setting and restoring.
+    bool m_nested { false };
 #ifdef _WIN32
     std::string m_orig_numeric_locale;
 #else

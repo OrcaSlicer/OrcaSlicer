@@ -1,10 +1,44 @@
 #include "BindDialog.hpp"
 #include "GUI_App.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/intl.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/simplebook.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <cstddef>
+#include <wx/utils.h>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/wrapsizer.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <wx/tglbtn.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarBind.hpp"
+#include "slic3r/GUI/Jobs/BindJob.hpp"
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
+#include "slic3r/GUI/GUI.hpp"
+#include <wx/image.h>
+#include <wx/stattext.h>
 #include <wx/wx.h>
 #include <wx/mstream.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
+#include "bambu_networking.hpp"
+#include "Http.hpp"
 #include "wx/evtloop.h"
 #include <wx/tokenzr.h>
 #include <wx/richmsgdlg.h>
@@ -468,7 +502,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_link_privacy_title->SetFont(Label::Head_13);
      m_link_privacy_title->SetMaxSize(wxSize(FromDIP(450), -1));
      m_link_privacy_title->Wrap(FromDIP(450));
-     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
+     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [](auto& e) {
          std::string url;
          std::string country_code = Slic3r::GUI::wxGetApp().app_config->get_country_code();
 
@@ -558,7 +592,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      //show bind failed info
      m_sw_bind_failed_info = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(450), FromDIP(300)), wxVSCROLL);
      m_sw_bind_failed_info->SetBackgroundColour(*wxWHITE);
-     m_sw_bind_failed_info->SetScrollRate(5, 5);
+     m_sw_bind_failed_info->SetScrollRate(5, FromDIP(20));
      m_sw_bind_failed_info->SetMinSize(wxSize(FromDIP(450), FromDIP(90)));
      m_sw_bind_failed_info->SetMaxSize(wxSize(FromDIP(450), FromDIP(90)));
 
@@ -893,7 +927,7 @@ void BindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
             }).perform();
         }
@@ -1099,7 +1133,7 @@ void UnBindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
                 }).perform();
 

@@ -1,5 +1,13 @@
 #ifndef SKIPPARTCANVAS_H
 #define SKIPPARTCANVAS_H
+#include <wx/event.h>
+#include <array>
+#include <string>
+#include <cstdint>
+#include <wx/gdicmn.h>
+#include <opencv2/core/mat.hpp>
+#include <unordered_map>
+#include <opencv2/core/types.hpp>
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 #include <opencv2/opencv.hpp>
@@ -87,7 +95,6 @@ private:
     std::unordered_map < uint32_t, std::vector<std::vector<FloatPoint>>> parts_triangles_;
     std::unordered_map < uint32_t, std::vector<std::vector<cv::Point>>> pick_parts_;
     std::unordered_map<uint32_t, PartState> parts_state_;
-    bool gl_inited_{false};
     int zoom_percent_{100};
     wxPoint offset_{0,0};
     wxPoint drag_start_offset_{0,0};

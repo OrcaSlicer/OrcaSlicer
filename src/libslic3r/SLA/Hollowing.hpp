@@ -1,9 +1,17 @@
 #ifndef SLA_HOLLOWING_HPP
 #define SLA_HOLLOWING_HPP
 
+#include "libslic3r/Point.hpp"
+#include <array>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/ExPolygon.hpp"
+#include <functional>
 #include <memory>
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/SLA/JobController.hpp>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -44,9 +52,6 @@ struct DrainHole
         : pos(p), normal(n), radius(r), height(h), failed(fl)
     {}
 
-    DrainHole(const DrainHole& rhs) :
-        DrainHole(rhs.pos, rhs.normal, rhs.radius, rhs.height, rhs.failed) {}
-    
     bool operator==(const DrainHole &sp) const;
     
     bool operator!=(const DrainHole &sp) const { return !(sp == (*this)); }

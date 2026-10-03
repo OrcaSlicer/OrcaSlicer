@@ -6,6 +6,15 @@
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/TextInput.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <vector>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
 
 namespace Slic3r { 
 namespace GUI {
@@ -79,7 +88,6 @@ private:
     wxBoxSizer*             m_main_sizer{nullptr};
     wxBoxSizer*             m_sizer_machine_list{nullptr};
     wxScrolledWindow*       m_machine_list{ nullptr };
-    wxStaticText*           m_selected_num{ nullptr };
 
     // table head
     wxPanel*                m_table_head_panel{ nullptr };
@@ -88,7 +96,6 @@ private:
     Button*                 m_task_name{ nullptr };
     Button*                 m_status{ nullptr };
     Button*                 m_action{ nullptr };
-    Button*                 m_stop_all_botton{nullptr};
 
     // tip when no device
     wxStaticText*           m_tip_text{ nullptr };
@@ -100,8 +107,6 @@ private:
     int                         m_total_count{ 0 };
     int                         m_count_page_item{ 10 };
 
-    bool                        prev{ false };
-    bool                        next{ false };
     Button*                     btn_last_page{ nullptr };
     Button*                     btn_next_page{ nullptr };
     wxStaticText*               st_page_number{ nullptr };

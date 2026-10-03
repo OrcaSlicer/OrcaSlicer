@@ -8,5 +8,5 @@
 	"bed_model": "mk3.5_bed.stl",
 	"bed_texture": "mk3.5.svg",
 	"hotend_model": "",
-	"default_materials": "Prusa Generic PLA-CF @MK3.5;Prusa Generic PC @MK3.5;Prusa Generic PVA @MK3.5;Prusa Generic PA @MK3.5;Prusa Generic PA-CF @MK3.5;Prusa Generic ABS @MK3.5;Prusa Generic PLA @MK3.5;Prusa Generic PLA @MK3.5 0.6;Prusa Generic PLA @MK3.5 0.8;Prusa Generic PETG @MK3.5;Prusa Generic PETG @MK3.5 0.6;Prusa Generic PETG @MK3.5 0.8;Prusa Generic TPU @MK3.5;Prusa Generic ASA @MK3.5;"
+	"default_materials": "Generic PLA-CF @Prusa MK3.5;Generic PC @Prusa MK3.5;Generic PVA @Prusa MK3.5;Generic PA @Prusa MK3.5;Generic PA-CF @Prusa MK3.5;Generic ABS @Prusa MK3.5;Generic PLA @Prusa MK3.5;Generic PLA @Prusa MK3.5 0.6;Generic PLA @Prusa MK3.5 0.8;Generic PETG @Prusa MK3.5;Generic PETG @Prusa MK3.5 0.6;Generic PETG @Prusa MK3.5 0.8;Generic TPU @Prusa MK3.5;Generic ASA @Prusa MK3.5;"
 }

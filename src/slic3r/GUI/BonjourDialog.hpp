@@ -2,11 +2,14 @@
 #define slic3r_BonjourDialog_hpp_
 
 #include <cstddef>
+#include "libslic3r/Config.hpp"
 #include <memory>
 
 #include <boost/asio/ip/address.hpp>
 
+#include <vector>
 #include <wx/dialog.h>
+#include <wx/event.h>
 #include <wx/string.h>
 
 #include "libslic3r/PrintConfig.hpp"

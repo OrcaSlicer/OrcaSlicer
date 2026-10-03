@@ -1,6 +1,32 @@
 #include "EmbossJob.hpp"
 
+#include <optional>
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include <exception>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Emboss.hpp"
+#include <cstddef>
+#include <cassert>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <memory>
+#include "slic3r/GUI/SurfaceDrag.hpp"
+#include <Eigen/Geometry>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include <cmath>
+#include <math.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Utils.hpp"
+#include <functional>
+#include <limits>
+#include <algorithm>
+#include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <boost/log/trivial.hpp>
 
@@ -9,6 +35,9 @@
 #include <libslic3r/CutSurface.hpp> // use surface cuts
 #include <libslic3r/BuildVolume.hpp> // create object
 #include <libslic3r/SLA/ReprojectPointsOnMesh.hpp>
+#include <vector>
+#include <utility>
+#include <wx/dataview.h>
 
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/Plater.hpp"

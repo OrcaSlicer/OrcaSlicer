@@ -4,13 +4,36 @@
 
 #include "TextShape.hpp"
 
+#include <map>
+#include <Standard_Handle.hxx>
+#include <TColStd_SequenceOfHAsciiString.hxx>
+#include <cstddef>
+#include <Font_SystemFont.hxx>
+#include <Font_FontAspect.hxx>
+#include <gp_Ax3.hxx>
+#include <gp.hxx>
+#include <gp_Pnt.hxx>
+#include <Graphic3d_HorizontalTextAlignment.hxx>
+#include <Graphic3d_VerticalTextAlignment.hxx>
+#include <Font_StrictLevel.hxx>
+#include <Font_TextFormatter.hxx>
+#include <NCollection_UtfIterator.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <Poly_Triangulation.hxx>
+#include <cstdint>
+#include <gp_Trsf.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "libslic3r/Point.hpp"
 #include "Standard_TypeDef.hxx"
 #include "STEPCAFControl_Reader.hxx"
 #include "BRepMesh_IncrementalMesh.hxx"
 #include "Interface_Static.hxx"
+#include "libslic3r/Utils.hpp"
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
 #include "XCAFApp_Application.hxx"

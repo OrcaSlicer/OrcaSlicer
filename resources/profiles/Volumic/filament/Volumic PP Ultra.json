@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
-	"setting_id": "UA91pv54dzbBRkFe",
 	"name": "Volumic PP Ultra",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pp",
+	"from": "system",
+	"setting_id": "UA91pv54dzbBRkFe",
+	"filament_id": "OFsFo7ms",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.24"
 	],

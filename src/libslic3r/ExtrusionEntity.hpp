@@ -1,13 +1,19 @@
 #ifndef slic3r_ExtrusionEntity_hpp_
 #define slic3r_ExtrusionEntity_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
 #include <assert.h>
+#include <cstdint>
+#include <string>
+#include <cstddef>
 #include <string_view>
 #include <numeric>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -454,6 +460,10 @@ class ExtrusionLoop : public ExtrusionEntity
 {
 public:
     ExtrusionPaths paths;
+    // ORCA: Set on a loop extruded entirely in mid air and out of reach of the layer below: it has
+    // nothing to lean on until this layer is bridged, so the G-code writer holds it back until the
+    // infill is down. See defer_unsupported_loops() in PerimeterGenerator.cpp.
+    bool print_after_infill = false;
 
     ExtrusionLoop(ExtrusionLoopRole role = elrDefault) : m_loop_role(role) {}
     ExtrusionLoop(const ExtrusionPaths &paths, ExtrusionLoopRole role = elrDefault) : paths(paths), m_loop_role(role) {}

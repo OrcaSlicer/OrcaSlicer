@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Wood @ECC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Wood @base",
 	"from": "system",
 	"setting_id": "7D7QoTRo7U4HGaZB",
 	"instantiation": "true",

@@ -4,17 +4,53 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 
+#include <vector>
+#include <string>
+#include <memory>
+#include <boost/filesystem/path.hpp>
+#include "slic3r/GUI/Project.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <iterator>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Tabbook.hpp"
+#include <ctime>
+#include <map>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/app.h>
+#include <wx/bookctrl.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/image.h>
+#include <wx/dcclient.h>
+#include <wx/notebook.h>
+#include <wx/chartype.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 #include <wx/filedlg.h>
+#include <wx/wrapsizer.h>
 #include <wx/wupdlock.h>
 #include <wx/dataview.h>
 #include <wx/tokenzr.h>
@@ -428,7 +464,7 @@ void AuFile::on_dclick(wxMouseEvent &evt)
     if (m_type == AddFileButton)
         return;
     else
-        wxLaunchDefaultApplication(m_file_path.wstring(), 0);
+        desktop_open_project_attachment(this, m_file_path);
 }
 
 void AuFile::on_mouse_left_up(wxMouseEvent &evt)
@@ -606,7 +642,7 @@ AuFolderPanel::AuFolderPanel(wxWindow *parent, AuxiliaryFolderType type, wxWindo
     wxBoxSizer *sizer_main = new wxBoxSizer(wxVERTICAL);
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(5, 5);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
     wxBoxSizer *sizer_body = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *sizer_top  = new wxBoxSizer(wxHORIZONTAL);
 
@@ -863,17 +899,27 @@ void AuxiliaryPanel::init_tabpanel()
     m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF"));
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [](wxBookCtrlEvent &e) { /* Event handling */ });
 
-    m_designer_panel          = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
-    m_pictures_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
-    m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
-    m_assembly_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
-    m_others_panel            = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
-
-    m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
-    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
-    m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
-    m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
-    m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
+    add_build_step([this] {
+        m_designer_panel = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
+        m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), true);
+    });
+    add_build_step([this] {
+        m_pictures_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
+        m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), false);
+    });
+    add_build_step([this] {
+        m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
+        m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), false);
+    });
+    add_build_step([this] {
+        m_assembly_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
+        m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), false);
+    });
+    add_build_step([this] {
+        m_others_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
+        m_tabpanel->AddPage(m_others_panel, _L("Others"), false);
+        Layout();
+    });
 }
 
 wxWindow *AuxiliaryPanel::create_side_tools()

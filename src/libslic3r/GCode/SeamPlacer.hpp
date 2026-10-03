@@ -1,12 +1,17 @@
 #ifndef libslic3r_SeamPlacer_hpp_
 #define libslic3r_SeamPlacer_hpp_
 
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <optional>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <atomic>
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -18,6 +23,7 @@
 namespace Slic3r {
 
 class PrintObject;
+namespace PreciseSeam { struct PreciseSeamWarnings; }
 class ExtrusionLoop;
 class Print;
 class Layer;
@@ -41,7 +47,7 @@ enum class EnforcedBlockedSeamPoint {
 // struct representing single perimeter loop
 struct Perimeter {
   size_t start_index{};
-  size_t end_index{}; //inclusive!
+  size_t end_index{}; //exclusive (one-past-the-end)
   size_t seam_index{};
   float flow_width{};
 
@@ -50,6 +56,10 @@ struct Perimeter {
   // Random position also uses this flexibility to set final seam point position
   bool finalized = false;
   Vec3f final_seam_position = Vec3f::Zero();
+
+  // Stores precise seam coordinates found by Precise Seam modifiers
+  std::optional<Vec3f> precise_seam_point;
+  size_t precise_seam_index{};
 };
 
 //Struct over which all processing of perimeters is done. For each perimeter point, its respective candidate is created,
@@ -102,6 +112,9 @@ struct PrintObjectSeamData
   // Map of PrintObjects (PO) -> vector of layers of PO -> unique_ptr to KD
   // tree of all points of the given layer
 
+  // Indicates presence of strong Precise Seam modifiers (CENTER/LEFT/RIGHT) for this object
+  bool has_precise_seam_strong_volumes = false;
+
   void clear()
   {
     layers.clear();
@@ -141,11 +154,12 @@ public:
   //The following data structures hold all perimeter points for all PrintObject.
   std::unordered_map<const PrintObject*, PrintObjectSeamData> m_seam_per_object;
 
-  void init(const Print &print, std::function<void(void)> throw_if_canceled_func);
+  void init(Print &print, std::function<void(void)> throw_if_canceled_func);
 
   void place_seam(const Layer *layer, ExtrusionLoop &loop, const Point &last_pos, float& overhang) const;
 private:
-  void gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info);
+  void gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info,
+                              PreciseSeam::PreciseSeamWarnings* warnings = nullptr);
   void calculate_candidates_visibility(const PrintObject *po,
                                        const SeamPlacerImpl::GlobalModelInfo &global_model_info);
   void calculate_overhangs_and_layer_embedding(const PrintObject *po);

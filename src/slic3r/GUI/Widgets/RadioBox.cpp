@@ -1,6 +1,9 @@
 #include "RadioBox.hpp"
 
 #include "../wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"
@@ -34,11 +37,6 @@ void RadioBox::SetValue(bool value)
 {
     wxBitmapToggleButton::SetValue(value);
     update();
-}
-
-bool RadioBox::GetValue()
-{
-    return wxBitmapToggleButton::GetValue();
 }
 
 

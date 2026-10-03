@@ -2,8 +2,14 @@
 #define slic3r_GCodeWriter_hpp_
 
 #include "libslic3r.h"
+#include <cstddef>
+#include <cassert>
+#include <array>
+#include <cmath>
+#include <cstring>
 #include <string>
 #include <charconv>
+#include <vector>
 #include "Extruder.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -165,7 +171,6 @@ public:
 
 
     //BBS
-    unsigned int    m_last_additional_fan_speed;
     int             m_last_bed_temperature;
     bool            m_last_bed_temperature_reached;
     double          m_lifted;

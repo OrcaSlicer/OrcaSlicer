@@ -1,9 +1,11 @@
 #ifndef slic3r_Fill_hpp_
 #define slic3r_Fill_hpp_
 
+#include <cstddef>
 #include <memory.h>
 #include <float.h>
 #include <stdint.h>
+#include <string>
 
 #include "../libslic3r.h"
 #include "../PrintConfig.hpp"
@@ -14,6 +16,12 @@ namespace Slic3r {
 
 class ExtrusionEntityCollection;
 class LayerRegion;
+class PrintObject;
+
+// Orca: Share the layer rotation calculation between infill generation and internal
+// bridge angle selection so both interpret rotation templates in the same way.
+double calculate_infill_rotation_angle(const PrintObject *object, size_t layer_id,
+                                      const double &fixed_infill_angle, const std::string &template_string);
 
 // An interface class to Perl, aggregating an instance of a Fill and a FillData.
 class Filler

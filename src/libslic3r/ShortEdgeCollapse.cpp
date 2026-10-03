@@ -1,10 +1,14 @@
 #include "ShortEdgeCollapse.hpp"
+#include "Point.hpp"
+#include "TriangleMesh.hpp"
 #include "libslic3r/NormalUtils.hpp"
 
+#include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
 #include <random>
 #include <algorithm>
+#include <vector>
 
 namespace Slic3r {
 

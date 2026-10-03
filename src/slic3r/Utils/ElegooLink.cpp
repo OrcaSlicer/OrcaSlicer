@@ -1,8 +1,19 @@
 #include "ElegooLink.hpp"
 
 #include <algorithm>
+#include "libslic3r/Utils.hpp"
+#include <boost/optional/optional.hpp>
+#include <cstddef>
+#include <ios>
+#include <boost/uuid/random_generator.hpp>
+#include <chrono>
+#include <cctype>
+#include "libslic3r/PrintConfig.hpp"
+#include <iostream>
 #include <map>
 #include <mutex>
+#include <regex>
+#include <ostream>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -20,8 +31,15 @@
 
 #include <curl/curl.h>
 
+#include <string>
+#include <utility>
+#include <thread>
+#include <vector>
 #include <wx/progdlg.h>
 
+#include "OctoPrint.hpp"
+#include "PrintHost.hpp"
+#include "WebSocketClient.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -340,9 +358,7 @@ namespace Slic3r {
         if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
             return fallback_webui;
 
-        std::string web_path = resources_dir() + "/web/elegoolink/lan_service_web/index.html";
-        std::replace(web_path.begin(), web_path.end(), '\\', '/');
-        web_path = "file://" + web_path;
+        std::string web_path = GUI::into_u8(GUI::file_url_from_path(boost::filesystem::path(resources_dir()) / "web/elegoolink/lan_service_web/index.html"));
         const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
         const std::string host_ip = Http::get_host_header_value(host);
 

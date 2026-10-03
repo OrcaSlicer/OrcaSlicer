@@ -1,8 +1,37 @@
 #include "IMSlider.hpp"
 #include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "NotificationManager.hpp"
 #include "Widgets/StateColor.hpp"
+#include "libslic3r/libslic3r.h"
+#include <imgui.h>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/ExPolygon.hpp"
+#include <string>
+#include "libslic3r/CustomGCode.hpp"
+#include <cstdio>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Utils.hpp"
+#include <algorithm>
+#include <vector>
+#include "slic3r/GUI/TickCode.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/colour.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <set>
+#include <wx/string.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include <wx/slider.h>
+#include <array>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -790,7 +819,7 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
 
 void IMSlider::show_tooltip(const std::string tooltip) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 6 * m_scale, 3 * m_scale });
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, { 3 * m_scale });
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 3 * m_scale);
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGuiWrapper::COL_WINDOW_BACKGROUND);
     ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));

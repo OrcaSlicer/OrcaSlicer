@@ -1,10 +1,36 @@
 #include "SimplyPrint.hpp"
 
+#include <boost/asio/ip/basic_endpoint.hpp>
+#include <cstdint>
+#include <ios>
+#include <iomanip>
+#include <cstdlib>
+#include <algorithm>
+#include <iterator>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <boost/nowide/cstdio.hpp>
+#include <functional>
+#include <cstddef>
+#include <cmath>
+#include <cassert>
+#include <boost/filesystem/fstream.hpp>
 #include <openssl/sha.h>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem.hpp>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/Jobs/OAuthJob.hpp"
+#include <ostream>
+#include <wx/string.h>
+#include <wx/utils.h>
 
+#include "PrintHost.hpp"
 #include "nlohmann/json.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -192,7 +218,7 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
 
     bool res = true;
 
-    const auto create_request = [this, &build_request, &res, &on_complete](const std::string& access_token, bool is_retry) {
+    const auto create_request = [&build_request, &res, &on_complete](const std::string& access_token, bool is_retry) {
         auto http = build_request(is_retry);
         set_auth(http, access_token);
         http.header("User-Agent", "SimplyPrint Orca Plugin")
@@ -300,7 +326,7 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
 
             return http;
         },
-        [&error_fn, &filename, this](std::string body, unsigned status) {
+        [&error_fn, &filename](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(info) << boost::format("SimplyPrint: File uploaded: HTTP %1%: %2%") % status % body;
 
             // Get file UUID
@@ -423,7 +449,7 @@ bool SimplyPrint::do_chunk_upload(const boost::filesystem::path& file_path, cons
 
                 return http;
             },
-            [&error_fn, i, chunk_amount, this, &chunk_id, &delete_token](std::string body, unsigned status) {
+            [&error_fn, i, chunk_amount, &chunk_id, &delete_token](std::string body, unsigned status) {
                 BOOST_LOG_TRIVIAL(info) << boost::format("SimplyPrint: File chunk [%1%/%2%] uploaded: HTTP %3%: %4%") % (i + 1) % chunk_amount % status % body;
                 if (i == 0) {
                     // First chunk, parse chunk id

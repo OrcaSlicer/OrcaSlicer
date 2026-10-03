@@ -4,7 +4,14 @@
 	"inherits": "Generic PETG-CF @System",
 	"from": "system",
 	"setting_id": "Gg9H6I32fOqoLSqE",
+	"filament_id": "OF0AquDh",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"FusRock"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -62,7 +69,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"S-Multi"
+		"PA"
 	],
 	"nozzle_temperature": [
 		"280"

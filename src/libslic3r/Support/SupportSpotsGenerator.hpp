@@ -8,6 +8,8 @@
 #include "MaterialType.hpp"
 #include <boost/log/trivial.hpp>
 #include <cstddef>
+#include <string>
+#include <utility>
 #include <vector>
 
 

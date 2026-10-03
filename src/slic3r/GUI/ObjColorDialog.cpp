@@ -1,4 +1,19 @@
 #include <algorithm>
+#include "libslic3r/TriangleSelector.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Format/OBJ.hpp"
+#include <cstddef>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GuiColor.hpp"
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <cmath>
+#include <cstdlib>
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Camera.hpp"
 #include <sstream>
 //#include "libslic3r/FlushVolCalc.hpp"
 #include "ObjColorDialog.hpp"
@@ -13,7 +28,22 @@
 #include "BitmapComboBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <vector>
+#include <string>
+#include <wx/dialog.h>
+#include <wx/panel.h>
+#include <wx/busycursor.h>
+#include <wx/arrstr.h>
+#include <wx/image.h>
+#include <wx/anybutton.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/spinctrl.h>
 
 #include "libslic3r/ObjColorUtils.hpp"
 #include "libslic3r/Model.hpp"
@@ -86,8 +116,6 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxDEFAULT_DIALOG_STYLE /* | wxRESIZE_BORDER*/)
-    , m_filament_ids(in_out.filament_ids)
-    , m_first_extruder_id(in_out.first_extruder_id)
 {
     auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
@@ -254,7 +282,7 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
             m_color_cluster_num_by_user_ebox->Bind(wxEVT_TEXT_ENTER, on_apply_color_cluster_text_modify);
             m_color_cluster_num_by_user_ebox->Bind(wxEVT_SPINCTRL, on_apply_color_cluster_text_modify);
 
-            m_color_cluster_num_by_user_ebox->Bind(wxEVT_CHAR, [this](wxKeyEvent &e) {
+            m_color_cluster_num_by_user_ebox->Bind(wxEVT_CHAR, [](wxKeyEvent &e) {
                 int keycode = e.GetKeyCode();
                 wxString input_char = wxString::Format("%c", keycode);
                 long     value;
@@ -357,7 +385,7 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
         //new color table
         m_scrolledWindow = new wxScrolledWindow(m_page_simple, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
         m_scrolledWindow->SetBackgroundColour(*wxWHITE);
-        m_scrolledWindow->SetScrollRate(0, 20);
+        m_scrolledWindow->SetScrollRate(0, FromDIP(20));
         m_scrolledWindow->EnableScrolling(false, true);
         m_scrolledWindow->ShowScrollbars(wxScrollbarVisibility::wxSHOW_SB_NEVER, wxScrollbarVisibility::wxSHOW_SB_DEFAULT);
         draw_new_table();

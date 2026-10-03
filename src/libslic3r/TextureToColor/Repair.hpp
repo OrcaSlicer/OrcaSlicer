@@ -4,18 +4,22 @@
 #include "Callbacks.hpp"
 #include <CGAL/Polygon_mesh_processing/border.h>
 #include <CGAL/Polygon_mesh_processing/manifoldness.h>
+#include <CGAL/Polygon_mesh_processing/repair_degeneracies.h>
 #include <CGAL/Polygon_mesh_processing/repair_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/Polygon_mesh_processing/stitch_borders.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_hole.h>
+#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <boost/log/trivial.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <iterator>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace Slic3r { namespace tex2color {
 

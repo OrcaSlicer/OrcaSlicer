@@ -4,6 +4,7 @@
 	"inherits": "Snapmaker J1 ABS @base",
 	"from": "system",
 	"setting_id": "b1Z94AhG8viXuDsq",
+	"filament_id": "OF8dCquh",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"
@@ -52,12 +53,6 @@
 	],
 	"filament_unloading_speed": [
 		"35"
-	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
 	],
 	"filament_cooling_moves": [
 		"2"

@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @OrcaArena base",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"filament_id": "OFLPAxz3",
+	"instantiation": "false",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	]
+}

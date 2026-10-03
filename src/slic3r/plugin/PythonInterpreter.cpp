@@ -2,9 +2,15 @@
 #include "GeneratedConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "PluginAuditManager.hpp"
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cstdlib>
+#include <memory>
+#include <exception>
 #include <pytypedefs.h>
 #include "PluginFsUtils.hpp"
+#include <pybind11/pybind11.h>
 
 #include <pybind11/embed.h>
 
@@ -16,7 +22,10 @@
 #include <ctime>
 #include <iomanip>
 #include <mutex>
+#include <shared_mutex>
 #include <sstream>
+#include <utility>
+#include <string>
 #include <vector>
 
 namespace Slic3r {
@@ -86,6 +95,12 @@ void log_python_exception_keep(pybind11::error_already_set& err)
     PythonGILState gil;
     if (!gil)
         return;
+
+    // Traceback output is host-owned work.  In particular, the stderr tee opens the Python log
+    // file on every write.  Keep that open outside the plugin audit context, otherwise an ordinary
+    // exception raised by a plugin can recursively trigger the filesystem permission dialog while
+    // its original exception is being reported.
+    ScopedPluginAuditContext audit_suppression("");
 
     // Non-destructive: print the traceback to sys.stderr (tee'd to the session log)
     // WITHOUT consuming err, so the caller can rethrow it intact. For example, downstream C++
@@ -339,15 +354,20 @@ boost::filesystem::path find_bundled_python_home()
     fs::path bundle_python = fs::path(resources_dir()).parent_path() / "MacOS" / "python";
     if (valid_python_home(bundle_python))
         return bundle_python;
-#elif defined(_WIN32)
-    fs::path exe_python = boost::dll::program_location().parent_path() / "python";
-    if (valid_python_home(exe_python))
-        return exe_python;
-#else
+#elif !defined(_WIN32)
     fs::path linux_python = fs::path(resources_dir()).parent_path() / "lib" / "python";
     if (valid_python_home(linux_python))
         return linux_python;
 #endif
+
+    // Next to the executable: the Windows install layout, and the runtime copied
+    // beside every platform's unit-test binary (tests/slic3rutils/CMakeLists.txt).
+    // The CI test runner only receives the build/tests tree, so the candidates
+    // below -- all of which point into the deps or install trees -- never resolve
+    // there.
+    fs::path exe_python = boost::dll::program_location().parent_path() / "python";
+    if (valid_python_home(exe_python))
+        return exe_python;
 
     fs::path configured_python = ORCA_BUNDLED_PYTHON_ROOT;
     if (!configured_python.empty() && valid_python_home(configured_python))
@@ -622,10 +642,6 @@ bool PythonInterpreter::initialize()
         else
             BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
 
-        // Install the CPython audit hook for plugin policy enforcement.
-        // This is defense-in-depth: today it only inspects the `open` audit event
-        // and blocks writes outside the allowed roots; subprocess/socket/ctypes and
-        // other events are not yet handled.  It is NOT a full security sandbox.
         PluginAuditManager::instance().install_hook();
 
         // Persist Python stderr (plugin tracebacks, including uncaught

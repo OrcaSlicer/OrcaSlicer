@@ -4,8 +4,16 @@
 #include "../Layer.hpp"
 #include "../Polygon.hpp"
 #include "../Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
+#include <utility>
+#include <algorithm>
+#include <vector>
 
 namespace Slic3r {
 

@@ -10,8 +10,19 @@
 
 #include "libslic3r/ObjectID.hpp"
 
+#include <cstdlib>
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <memory>
+#include <utility>
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include <wx/event.h>
+#include <cereal/specialize.hpp>
 #include <wx/timer.h>
 #include <map>
+#include <optional>
 
 //BBS: GUI refactor: to support top layout
 #define BBS_TOOLBAR_ON_TOP 1
@@ -84,12 +95,19 @@ public:
         Seam,
         FuzzySkin,
         MmSegmentation,
+        TextureDisplacement,
         Emboss,
         Svg,
         Measure,
         Assembly,
         Simplify,
         BrimEars,
+#ifdef SLIC3R_CAD
+        // Both need the CAD kernel (GeometryEngine); keep them last so that with
+        // SLIC3R_CAD off the enum matches upstream's numbering exactly.
+        Primitive,
+        Sketch,
+#endif
         //SlaSupports,
         // BBS
         //FaceRecognition,
@@ -164,7 +182,6 @@ private:
     bool gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event);
 public:
 
-    std::unique_ptr<AssembleViewDataPool> m_assemble_view_data;
     enum MENU_ICON_NAME {
         IC_TOOLBAR_RESET            = 0,
         IC_TOOLBAR_RESET_HOVER,
@@ -181,6 +198,14 @@ public:
         IC_CANVAS_ZOOM_HOVER,
         IC_CANVAS_ZOOM_DARK,
         IC_CANVAS_ZOOM_DARK_HOVER,
+        IC_CANVAS_SECTION,
+        IC_CANVAS_SECTION_HOVER,
+        IC_CANVAS_SECTION_DARK,
+        IC_CANVAS_SECTION_DARK_HOVER,
+        IC_CANVAS_SECTION_ACTIVE,
+        IC_CANVAS_SECTION_ACTIVE_HOVER,
+        IC_CANVAS_SECTION_ACTIVE_DARK,
+        IC_CANVAS_SECTION_ACTIVE_DARK_HOVER,
     };
 
     explicit GLGizmosManager(GLCanvas3D& parent);
@@ -249,7 +274,8 @@ public:
     /// Should be called when selection changed
     /// </summary>
     void update_data();
-    void update_assemble_view_data();
+    // Passes the canvas' section view to the object clipper of the painting and brim ears gizmos.
+    void update_section_view();
 
     EType get_current_type() const { return m_current; }
     GLGizmoBase* get_current() const;
@@ -257,7 +283,10 @@ public:
     EType get_gizmo_from_name(const std::string& gizmo_name) const;
 
     bool is_running() const;
-    bool handle_shortcut(int key);
+    // Opens the gizmo bound to a Plater-context shortcut; false when no gizmo has it or it cannot open now.
+    bool open_gizmo_by_shortcut(Shortcut shortcut);
+    // Lets the current gizmo consume the delete key; false when it did not.
+    bool on_delete_key();
 
     bool is_dragging() const;
 
@@ -277,8 +306,8 @@ public:
 
     bool is_paint_gizmo();
     bool is_allow_select_all();
-    ClippingPlane get_clipping_plane() const;
-    ClippingPlane get_assemble_view_clipping_plane() const;
+    // Empty when the open gizmo has no object clipper.
+    std::optional<ClippingPlane> get_clipping_plane() const;
     bool wants_reslice_supports_on_undo() const;
 
     bool is_in_editing_mode(bool error_notification = false) const;
@@ -287,9 +316,11 @@ public:
     void on_change_color_mode(bool is_dark);
     void render_current_gizmo() const;
     void render_painter_gizmo();
-    void render_painter_assemble_view() const;
 
     void render_overlay();
+    void render_overlay_input_window();
+    // Hash of the state render_overlay() draws from: enabled, hover, current and highlight.
+    size_t get_overlay_state_hash() const;
 
     void render_arrow(const GLCanvas3D& parent, EType highlighted_type) const;
 
@@ -323,7 +354,7 @@ private:
     
     void render_background(float left, float top, float right, float bottom, float border_w, float border_h) const;
     
-    void do_render_overlay() const;
+    void do_render_overlay(bool draw_icons) const;
 
     bool generate_icons_texture();
 

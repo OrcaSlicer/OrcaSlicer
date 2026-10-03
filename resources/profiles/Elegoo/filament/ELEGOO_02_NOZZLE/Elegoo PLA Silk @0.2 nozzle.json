@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Silk @0.2 nozzle",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Silk @base",
 	"from": "system",
 	"setting_id": "9cy4zu57LxlFIrLB",
 	"instantiation": "true",

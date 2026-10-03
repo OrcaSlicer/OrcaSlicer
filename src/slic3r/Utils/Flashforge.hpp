@@ -45,6 +45,8 @@ public:
     PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint; }
     std::string                get_host() const override { return m_host; }
     bool                       fetch_material_slots(std::vector<FlashforgeMaterialSlot>& slots, bool* supports_material_station, wxString& msg) const;
+    // Parses a local API "detail" reply. Returns false when the body is not valid JSON.
+    static bool                parse_material_slots(const std::string& body, std::vector<FlashforgeMaterialSlot>& slots, bool* supports_material_station);
     static bool                discover_printers(std::vector<FlashforgeDiscoveredPrinter>& printers, wxString& msg, int timeout_ms = 10000, int idle_timeout_ms = 1500, int max_retries = 3);
 
 private:
@@ -68,7 +70,6 @@ private:
     bool request_local_api_json(const std::string& path, const std::string& body, std::string& response_body, wxString& error_msg) const;
     std::string make_http_url(const std::string& path) const;
     std::string extract_host_name() const;
-    int  get_err_code_from_body(const std::string &body) const;
     bool connect(wxString& msg) const;
     bool start_print(wxString& msg, const std::string& filename) const;
 };

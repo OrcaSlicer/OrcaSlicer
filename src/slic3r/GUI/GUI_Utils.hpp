@@ -1,6 +1,10 @@
 #ifndef slic3r_GUI_Utils_hpp_
 #define slic3r_GUI_Utils_hpp_
 
+#include <deque>
+#include <cstddef>
+#include <cmath>
+#include <boost/optional/optional.hpp>
 #include <memory>
 #include <string>
 #include <ostream>
@@ -9,11 +13,14 @@
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <type_traits>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
 #include <wx/gdicmn.h>
+#include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/dcclient.h>
 #include <wx/debug.h>
@@ -23,6 +30,9 @@
 #include <wx/inspector/inspector.h>
 
 #include <chrono>
+#include <wx/version.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
 #include "Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
@@ -478,6 +488,8 @@ int get_dpi_for_window(const wxWindow *window);
 #ifdef __WXOSX__
 void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
+// Clip a top-level window (and its webview) to a rounded rect with a native layer.
+void set_window_corner_radius(wxWindow* win, int radius);
 #endif
 
 #ifdef __WXGTK__

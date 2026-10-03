@@ -5,7 +5,6 @@
 	"instantiation": "false",
 	"precise_outer_wall": "1",
 	"enable_overhang_speed": "1",
-	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "1",
 	"max_travel_detour_distance": "0",
 	"extra_perimeters_on_overhangs": "1",

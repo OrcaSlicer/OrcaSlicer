@@ -2,7 +2,11 @@
 #ifndef _WX_ERRORMSGSTATTEXT_H_
 #define _WX_ERRORMSGSTATTEXT_H_
 
+#include <wx/dlimpexp.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
+#include <wx/string.h>
 #include "wx/stattext.h"
 
 class WXDLLIMPEXP_CORE ErrorMsgStaticText : public wxPanel
@@ -17,7 +21,7 @@ public:
 
     void paintEvent(wxPaintEvent &evt);
 
-    void SetLabel(wxString msg){m_msg = msg;};
+    void SetLabel(const wxString &msg) override { m_msg = msg; }
 
 };
 #endif

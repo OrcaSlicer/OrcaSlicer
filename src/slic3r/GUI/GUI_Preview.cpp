@@ -5,6 +5,23 @@
 #include "GUI_Preview.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#include <wx/slider.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <vector>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <functional>
+#include "libslic3r/Config.hpp"
+#include <boost/log/trivial.hpp>
+#include "libslic3r/CustomGCode.hpp"
+#include <wx/event.h>
+#include <algorithm>
+#include <cstdlib>
+#include <cassert>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include <cmath>
+#include "libvgcode/include/Types.hpp"
 #if ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "GUI_Init.hpp"
 #endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
@@ -280,8 +297,6 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     m_canvas->enable_assemble_view_toolbar(false);
 
     // sizer, m_canvas_widget
-    m_canvas_widget->Bind(wxEVT_KEY_DOWN, &Preview::update_layers_slider_from_canvas, this);
-
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
 
@@ -503,28 +518,6 @@ void Preview::update_layers_slider_mode()
 
     IMSlider *m_layers_slider = m_canvas->get_gcode_viewer().get_layers_slider();
     m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder, can_change_color);
-}
-
-void Preview::update_layers_slider_from_canvas(wxKeyEvent &event)
-{
-    if (event.HasModifiers()) {
-        event.Skip();
-        return;
-    }
-
-    const auto key = event.GetKeyCode();
-
-    IMSlider *m_layers_slider = m_canvas->get_gcode_viewer().get_layers_slider();
-    IMSlider *m_moves_slider  = m_canvas->get_gcode_viewer().get_moves_slider();
-    if (key == 'L') {
-        if(!m_layers_slider->switch_one_layer_mode())
-            event.Skip();
-        m_canvas->set_as_dirty();
-    }
-    /*else if (key == WXK_SHIFT)
-        m_layers_slider->UseDefaultColors(false);*/
-    else
-        event.Skip();
 }
 
 void Preview::update_layers_slider(const std::vector<double>& layers_z, bool keep_z_range)

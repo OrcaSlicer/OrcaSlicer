@@ -11,6 +11,12 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include <string>
+#include <algorithm>
+#include <cstddef>
+#include <tuple>
+#include <exception>
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r { namespace GUI {
 
@@ -55,7 +61,7 @@ void RotoptimizeJob::process(Ctl &ctl)
         sla::RotOptimizeParams{}
             .accuracy(m_accuracy)
             .print_config(&m_default_print_cfg)
-            .statucb([this, &prev_status, &ctl/*, &statustxt*/](int s)
+            .statucb([&ctl/*, &statustxt*/](int s)
         {
             return !ctl.was_canceled();
         });

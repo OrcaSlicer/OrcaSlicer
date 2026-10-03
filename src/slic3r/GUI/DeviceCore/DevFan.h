@@ -1,8 +1,12 @@
 #pragma once
+#include <functional>
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include "slic3r/Utils/json_diff.hpp"
 
 #include <map>
+#include <vector>
+#include <string>
 
 namespace Slic3r {
 

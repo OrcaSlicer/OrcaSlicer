@@ -1,11 +1,22 @@
 #include "BBLNetworkPlugin.hpp"
 #include "NetworkAgent.hpp"
 
+#include <mutex>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <boost/filesystem/file_status.hpp>
+#include <set>
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <boost/log/trivial.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include "bambu_networking.hpp"
+#include <string>
+#include <vector>
+#include <utility>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/FileTransferUtils.hpp"
 
@@ -349,7 +360,7 @@ void* BBLNetworkPlugin::get_function(const char* name)
         return function;
 
 #if defined(_MSC_VER) || defined(_WIN32)
-    function = GetProcAddress(m_networking_module, name);
+    function = reinterpret_cast<void*>(GetProcAddress(m_networking_module, name));
 #else
     function = dlsym(m_networking_module, name);
 #endif

@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Prusament PETG @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"filament_id": "OFkR8E2c",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Prusa Polymers"
+	]
+}

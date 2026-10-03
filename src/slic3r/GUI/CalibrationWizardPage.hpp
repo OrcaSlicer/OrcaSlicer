@@ -13,6 +13,20 @@
 
 #include "slic3r/Utils/CalibUtils.hpp"
 #include "../../libslic3r/calib.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/PrintConfig.hpp"
+#include <string>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <vector>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/string.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include <wx/scrolwin.h>
 
 namespace Slic3r { namespace GUI {
 

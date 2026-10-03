@@ -3,7 +3,7 @@
 	"name": "Fiberon PET-CF @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFL54",
+	"filament_id": "OFHWSM21",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"
