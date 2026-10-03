@@ -1,0 +1,70 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Prusa CORE One INDX",
+	"inherits": "Generic ABS @Prusa base",
+	"from": "system",
+	"setting_id": "JEatvybG9xIkrPk3",
+	"instantiation": "true",
+	"filament_cost": [
+		"34.65"
+	],
+	"filament_notes": [
+		"\nPrusa INDX 2.5.10 tuning."
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"slow_down_layer_time": [
+		"20"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"overhang_fan_speed": [
+		"25"
+	],
+	"close_fan_the_first_x_layers": [
+		"4"
+	],
+	"default_filament_colour": [
+		"#FFF2EC"
+	],
+	"filament_max_volumetric_speed": [
+		"25"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"fan_max_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"15"
+	],
+	"chamber_temperature": [
+		"55"
+	],
+	"chamber_minimal_temperature": [
+		"40"
+	],
+	"filament_shrinkage_compensation_z": [
+		"0.22%"
+	],
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"textured_plate_temp": [
+		"110"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	],
+	"activate_chamber_temp_control": [
+		"1"
+	],
+	"filament_shrink": [
+		"99.78%"
+	]
+}

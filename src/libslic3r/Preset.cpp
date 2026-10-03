@@ -318,6 +318,10 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     auto replace_nil_and_resize = [&](const std::string & key, int length){
         ConfigOption* raw_ptr = config.option(key);
         ConfigOptionVectorBase* opt_vec = static_cast<ConfigOptionVectorBase *>(raw_ptr);
+        // A blank nullable filament override means inherit the printer value.
+        // Seed nil before expanding it; an empty vector has no first value to copy.
+        if (opt_vec->empty() && raw_ptr->nullable() && is_filament_extruder_override_key(key))
+            raw_ptr->deserialize("nil");
         if(set_nil_to_default && raw_ptr->is_nil() && defaults.has(key) && !is_filament_extruder_override_key(key)){
             opt_vec->clear();
             opt_vec->resize(length, defaults.option(key));
@@ -1574,6 +1578,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "grab_length", "support_object_skip_flush", "physical_extruder_map",
     "cooling_tube_retraction",
     "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower", "wait_for_temp_on_wipe_tower",
+    "filament_change_lift_type",
     "z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset",
@@ -1688,6 +1693,9 @@ const std::vector<std::string>& Preset::printer_options()
 {
     static std::vector<std::string> s_opts = [](){
         std::vector<std::string> opts = s_Preset_printer_options;
+        opts.emplace_back("machine_filament_overrides");
+        for (const std::string &key : machine_filament_override_keys())
+            opts.emplace_back("machine_" + key);
         append(opts, s_Preset_machine_limits_options);
         append(opts, Preset::nozzle_options());
         return opts;

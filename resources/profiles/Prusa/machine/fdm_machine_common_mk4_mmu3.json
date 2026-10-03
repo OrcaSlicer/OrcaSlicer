@@ -1,0 +1,129 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_common_mk4_mmu3",
+	"inherits": "Prusa MK4 0.4 nozzle",
+	"from": "system",
+	"instantiation": "false",
+	"machine_start_gcode": "M17 ; enable steppers\nM862.1 P[nozzle_diameter] A{((is_extruder_used[0] and (required_nozzle_HRC[0] > 0)) ? 1 : (is_extruder_used[1] and (required_nozzle_HRC[1] > 0)) ? 1 : (is_extruder_used[2] and (required_nozzle_HRC[2] > 0)) ? 1 : (is_extruder_used[3] and (required_nozzle_HRC[3] > 0)) ? 1 : (is_extruder_used[4] and (required_nozzle_HRC[4] > 0)) ? 1 : 0)} F{(true ? 1 : 0)} ; nozzle check\nM862.3 P \"MK4\" ; printer model check\nM862.5 P2 ; g-code level check\nM862.6 P \"Input shaper\" ; FW feature check\nM862.6 P \"MMU3\" ; FW feature check\nM115 U6.5.7+12836\n\n; setup MMU\nM708 A0x0b X5   ; extra load distance\nM708 A0x0d X140 ; unload feeedrate\nM708 A0x11 X140 ; load feedrate\nM708 A0x14 X50  ; slow feedrate\nM708 A0x1e X12  ; Pulley current to ~200mA\nM708 A0x12 X90  ; selector feedrate mm/s\nM708 A0x13 X400 ; idler feedrate deg/s\nM708 A0x0f X400 ; selector acceleration mm/s2\n\nM555 X{(min(print_bed_max[0], first_layer_print_min[0] + 32) - 32)} Y{(max(0, first_layer_print_min[1]) - 4)} W{((min(print_bed_max[0], max(first_layer_print_min[0] + 32, first_layer_print_max[0])))) - ((min(print_bed_max[0], first_layer_print_min[0] + 32) - 32))} H{((first_layer_print_max[1])) - ((max(0, first_layer_print_min[1]) - 4))}\n\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\n\nM140 S[first_layer_bed_temperature] ; set bed temp\nM104 S{((filament_notes[initial_tool]=~/.*MBL160.*/) ? 160 : (filament_notes[initial_tool]=~/.*HT_MBL10.*/) ? (nozzle_temperature_initial_layer[initial_tool] - 10) : (filament_type[initial_tool] == \"PC\" or filament_type[initial_tool] == \"PA\") ? (nozzle_temperature_initial_layer[initial_tool] - 25) : (filament_type[initial_tool] == \"TPU\") ? 210 : (filament_type[initial_tool]=~/.*PET.*/) ? 175 : 170)} ; set extruder temp for bed leveling\nM109 R{((filament_notes[initial_tool]=~/.*MBL160.*/) ? 160 : (filament_notes[initial_tool]=~/.*HT_MBL10.*/) ? (nozzle_temperature_initial_layer[initial_tool] - 10) : (filament_type[initial_tool] == \"PC\" or filament_type[initial_tool] == \"PA\") ? (nozzle_temperature_initial_layer[initial_tool] - 25) : (filament_type[initial_tool] == \"TPU\") ? 210 : (filament_type[initial_tool]=~/.*PET.*/) ? 175 : 170)} ; wait for temp\n\nM84 E ; turn off E motor\n\nG28 ; home all without mesh bed level\n\nG1 X42 Y-4 Z5 F4800\n\nM302 S155 ; lower cold extrusion limit to 155C\n\n{if filament_type[initial_tool]==\"TPU\"}\nG1 E-4 F2400 ; retraction\n{else}\nG1 E-2 F2400 ; retraction\n{endif}\n\nM84 E ; turn off E motor\n\nG29 P9 X10 Y-4 W32 H4\n\n{if first_layer_bed_temperature[initial_tool]<=60}M106 S100{endif}\n\nG0 Z40 F10000\n\nM190 S[first_layer_bed_temperature] ; wait for bed temp\n\nM107\n\n;\n; MBL\n;\nM84 E ; turn off E motor\nG29 P1 ; invalidate mbl & probe print area\nG29 P1 X0 Y0 W130 H20 C ; probe near purge place\nG29 P3.2 ; interpolate mbl probes\nG29 P3.13 ; extrapolate mbl outside probe area\nG29 A ; activate mbl\n\n; prepare for purge\nM104 S{nozzle_temperature_initial_layer[initial_tool]}\nG0 X0 Y-4 Z15 F4800 ; move away and ready for the purge\nM109 S{nozzle_temperature_initial_layer[initial_tool]}\n\nG92 E0\nM569 S0 E ; set spreadcycle mode for extruder\n\nT[initial_tool]\nG1 E{parking_pos_retraction + extra_loading_move - 15} F1000 ; load to the nozzle\n\n;\n; Extrude purge line\n;\nG92 E0 ; reset extruder position\nG1 E{(filament_type[initial_tool] == \"TPU\" ? 4 : 2)} F2400 ; deretraction after the initial one before nozzle cleaning\nG0 E7 X15 Z0.2 F500 ; purge\nG0 X105 E36 F500 ; purge\nG0 X115 E4 F650 ; purge\nG0 X125 E4 F800 ; purge\nG0 X128 Z0.05 F8000 ; wipe, move close to the bed\nG0 X131 Z0.2 F8000 ; wipe, move quickly away from the bed\n\nG92 E0\nM221 S100 ; set flow to 100%",
+	"machine_end_gcode": "{if layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+1, printable_height)} F720 ; Move print head up{endif}\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X241 Y170 F3600 ; park\n{if layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+23, printable_height)} F300 ; Move print head up{endif}\nM702 ; unload the current filament\nG4 ; wait\nM572 S0 ; reset PA\nM593 X T2 F0 ; disable IS\nM593 Y T2 F0 ; disable IS\nM84 X Y E ; disable motors\n; max_layer_z = [max_layer_z]",
+	"extruder_colour": [
+		"#FF8000"
+	],
+	"machine_max_acceleration_extruding": [
+		"4000",
+		"2500"
+	],
+	"machine_max_acceleration_retracting": [
+		"2500",
+		"2500"
+	],
+	"machine_max_acceleration_travel": [
+		"4000",
+		"2500"
+	],
+	"machine_max_acceleration_x": [
+		"4000",
+		"2500"
+	],
+	"machine_max_acceleration_y": [
+		"4000",
+		"2500"
+	],
+	"machine_max_speed_e": [
+		"100",
+		"100"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"160"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"160"
+	],
+	"machine_max_speed_z": [
+		"40",
+		"40"
+	],
+	"machine_max_jerk_e": [
+		"10",
+		"10"
+	],
+	"machine_max_jerk_x": [
+		"8",
+		"8"
+	],
+	"machine_max_jerk_y": [
+		"8",
+		"8"
+	],
+	"machine_max_jerk_z": [
+		"2",
+		"2"
+	],
+	"extruder_clearance_radius": "45",
+	"extruder_clearance_height_to_rod": "13",
+	"retraction_minimum_travel": [
+		"1.5"
+	],
+	"retract_before_wipe": [
+		"80"
+	],
+	"retraction_length": [
+		"0.7"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
+	"z_hop": [
+		"0.2"
+	],
+	"retraction_speed": [
+		"35"
+	],
+	"deretraction_speed": [
+		"25"
+	],
+	"change_filament_gcode": "",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\nM201 X{interpolate_table(extruded_weight_total, (0,4000), (1400,2500), (20000,2500))} Y{interpolate_table(extruded_weight_total, (0,4000), (1400,2500), (20000,2500))}\n",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n{if ! spiral_mode}M74 W[extruded_weight_total]{endif}\n",
+	"machine_pause_gcode": "M400 U1\n",
+	"machine_filament_overrides": "1",
+	"retract_lift_above": [
+		"0"
+	],
+	"retract_lift_below": [
+		"219"
+	],
+	"use_firmware_retraction": "0",
+	"use_relative_e_distances": "1",
+	"z_offset": "0",
+	"high_current_on_filament_swap": "0",
+	"travel_slope": [
+		"1"
+	],
+	"machine_max_junction_deviation": [
+		"0.01",
+		"0.01"
+	],
+	"cooling_tube_retraction": "45",
+	"cooling_tube_length": "20",
+	"parking_pos_retraction": "84",
+	"extra_loading_move": "-52",
+	"wipe_tower_type": "type2",
+	"default_bed_type": "Textured PEI Plate",
+	"printer_extruder_id": [
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"thumbnails": "16x16/QOI,313x173/QOI,440x240/QOI",
+	"thumbnails_format": "QOI",
+	"machine_load_filament_time": "0",
+	"machine_unload_filament_time": "0",
+	"nozzle_type": [
+		"undefine"
+	],
+	"host_type": "octoprint"
+}

@@ -580,6 +580,7 @@ TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][expor
     const int instances = GENERATE(1, 3);
     CAPTURE(instances);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"printable_area", "0x0,1000x0,1000x1000,0x1000"}});
     TestMesh           mesh   = TestMesh::ipadstand;
     SECTION("infill reversed by chaining") { config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}}); }
     SECTION("support reversed by chaining") {
@@ -588,7 +589,17 @@ TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][expor
     }
     Print print;
     Model model;
-    Slic3r::Test::init_print({Slic3r::Test::mesh(mesh)}, print, model, config, nullptr, true, instances);
+    Slic3r::Test::init_print({Slic3r::Test::mesh(mesh)}, print, model, config, nullptr, false, instances);
+    // Keep this export regression independent of the nesting algorithm.
+    ModelObject *object = model.objects.front();
+    object->center_around_origin();
+    const double spacing = object->raw_mesh_bounding_box().size().x() + 20.0;
+    for (size_t i = 0; i < object->instances.size(); ++i)
+        object->instances[i]->set_offset(Vec3d(200.0 + i * spacing, 200.0, 0.0));
+    object->invalidate_bounding_box();
+    object->ensure_on_bed();
+    print.apply(model, config);
+    print.validate();
 
     const auto export_without_timestamp = [&print]() {
         std::string gcode = Slic3r::Test::gcode(print);

@@ -1576,6 +1576,27 @@ struct MachineFilaments
 
 } // namespace
 
+TEST_CASE("Installed materials enable their compatible printer specific replacements", "[Preset][Bundle][Regression]")
+{
+    MachineFilaments f;
+    AppConfig config;
+    const std::string installed = GENERATE(std::string("Generic ABS @System"), std::string("Generic ABS"));
+    const bool material_enabled = GENERATE(false, true);
+    if (material_enabled)
+        config.set(AppConfig::SECTION_FILAMENTS, installed, "true");
+    f.bundle.printers.find_preset("Printer A 0.4 nozzle")->config.option<ConfigOptionString>("printer_variant")->value = "0.4";
+    config.set_variant(f.vendor.id, "Printer A", "0.4", true);
+    f.add_filament(f.vendor, "Generic ABS @Printer B", "Generic ABS", {"Printer B 0.4 nozzle"});
+    // An unrelated compatible material must not prevent enabling the replacement.
+    config.set(AppConfig::SECTION_FILAMENTS, "FilAr ABS @System", "true");
+    config.set("presets", PRESET_PRINTER_NAME, "Printer A 0.4 nozzle");
+    f.bundle.load_selections(config);
+    CHECK(f.bundle.filaments.find_preset("Generic ABS @Printer A")->is_visible == material_enabled);
+    CHECK(config.has(AppConfig::SECTION_FILAMENTS, "Generic ABS @Printer A") == material_enabled);
+    CHECK_FALSE(f.bundle.filaments.find_preset("Generic ABS @Printer B")->is_visible);
+    CHECK_FALSE(f.bundle.filaments.find_preset("Vendor PLA @Printer B")->is_visible);
+}
+
 TEST_CASE("Filaments offered for a machine follow the app's compatibility rule", "[Preset][Bundle]")
 {
     MachineFilaments f;

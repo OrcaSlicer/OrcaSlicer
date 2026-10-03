@@ -612,6 +612,13 @@ static const t_config_enum_values s_keys_map_ZHopType = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ZHopType)
 
+static const t_config_enum_values s_keys_map_LiftType = {
+    { "Normal Lift", LiftType::NormalLift },
+    { "Slope Lift", LiftType::SlopeLift },
+    { "Spiral Lift", LiftType::SpiralLift }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(LiftType)
+
 static const t_config_enum_values s_keys_map_RetractLiftEnforceType = {
     {"All Surfaces",        rletAllSurfaces},
     {"Top Only",         rletTopOnly},
@@ -896,6 +903,32 @@ static void assign_printer_technology_to_unknown(t_optiondef_map &options, Print
     for (std::pair<const t_config_option_key, ConfigOptionDef> &kvp : options)
         if (kvp.second.printer_technology == ptUnknown)
             kvp.second.printer_technology = printer_technology;
+}
+
+const std::vector<std::string>& machine_filament_override_keys()
+{
+    static const std::vector<std::string> keys {
+        "filament_ramming_parameters",
+        "filament_loading_speed",
+        "filament_loading_speed_start",
+        "filament_unloading_speed",
+        "filament_unloading_speed_start",
+        "filament_toolchange_delay",
+        "filament_cooling_moves",
+        "filament_cooling_initial_speed",
+        "filament_cooling_final_speed",
+        "filament_stamping_distance",
+        "filament_stamping_loading_speed",
+        "filament_multitool_ramming",
+        "filament_multitool_ramming_volume",
+        "filament_multitool_ramming_flow",
+        "filament_minimal_purge_on_wipe_tower",
+        "filament_start_gcode",
+        "filament_end_gcode",
+        "enable_pressure_advance",
+        "filament_z_hop_types",
+    };
+    return keys;
 }
 
 PrintConfigDef::PrintConfigDef()
@@ -6744,6 +6777,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("filament_change_lift_type", coEnum);
+    def->label = L("Filament change lift type");
+    def->tooltip = L("Type of Z-hop before running the change filament G-code. Slope uses a normal lift when no XY travel destination is available.");
+    def->enum_keys_map = &ConfigOptionEnum<LiftType>::get_enum_values();
+    def->enum_values = { "Normal Lift", "Slope Lift", "Spiral Lift" };
+    def->enum_labels = { L("Normal"), L("Slope"), L("Spiral") };
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<LiftType>(LiftType::SpiralLift));
+
     def = this->add("wipe_tower_type", coEnum);
     def->label = L("Wipe tower type");
     def->tooltip = L("Choose the wipe tower implementation for multi-material prints. Type 1 is recommended for Bambu and Qidi printers with a filament cutter. Type 2 offers better compatibility with multi-tool and MMU printers and provide overall better compatibility.");
@@ -8390,6 +8432,33 @@ void PrintConfigDef::init_fff_params()
                      "Otherwise, the rectilinear pattern will be used by default.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("machine_filament_overrides", coBool);
+    def->label = L("Override filament tool-change settings");
+    def->tooltip = L("Use the printer profile's ramming, loading, unloading, cooling, minimum purge, filament start/end G-code, Z-hop type and pressure-advance enable settings for every filament. "
+                     "Settings not supplied by the printer remain unchanged.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Empty vectors mean inherit the filament value; a one-element vector overrides
+    // every filament, including an explicitly empty G-code string.
+    for (const std::string &key : machine_filament_override_keys()) {
+        const ConfigOptionDef *source = this->get(key);
+        def = this->add("machine_" + key, source->type);
+        def->nullable = source->nullable;
+        def->enum_keys_map = source->enum_keys_map;
+        def->enum_values = source->enum_values;
+        def->enum_labels = source->enum_labels;
+        def->label = source->label;
+        def->tooltip = source->tooltip;
+        def->min = source->min;
+        def->max = source->max;
+        def->multiline = source->multiline;
+        def->mode = comAdvanced;
+        ConfigOption *value = source->create_default_option();
+        static_cast<ConfigOptionVectorBase *>(value)->resize(0);
+        def->set_default_value(value);
+    }
 }
 
 void PrintConfigDef::init_extruder_option_keys()
@@ -9708,8 +9777,30 @@ double min_object_distance(const ConfigBase &cfg)
     return ret;
 }
 
+void DynamicPrintConfig::apply_machine_filament_overrides()
+{
+    const auto *enabled = this->option<ConfigOptionBool>("machine_filament_overrides");
+    if (!enabled || !enabled->value)
+        return;
+
+    const auto *diameters = this->option<ConfigOptionFloats>("filament_diameter");
+    for (const std::string &key : machine_filament_override_keys()) {
+        const auto *source = dynamic_cast<const ConfigOptionVectorBase *>(this->option("machine_" + key));
+        if (!source || source->empty())
+            continue;
+        if (source->size() != 1)
+            throw ConfigurationError("machine_" + key + " must contain exactly one value for all filaments");
+        auto *target = dynamic_cast<ConfigOptionVectorBase *>(this->option(key, true));
+        const size_t count = std::max(target->size(), diameters ? diameters->size() : size_t(1));
+        target->resize(count);
+        for (size_t i = 0; i < count; ++i)
+            target->set_at(source, i, 0);
+    }
+}
+
 void DynamicPrintConfig::normalize_fdm(int used_filaments)
 {
+    this->apply_machine_filament_overrides();
     if (this->has("extruder")) {
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");
@@ -9807,6 +9898,7 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
 //BBS:divide normalize_fdm to 2 steps and call them one by one in Print::Apply
 void DynamicPrintConfig::normalize_fdm_1()
 {
+    this->apply_machine_filament_overrides();
     if (this->has("extruder")) {
         int extruder = this->option("extruder")->getInt();
         this->erase("extruder");

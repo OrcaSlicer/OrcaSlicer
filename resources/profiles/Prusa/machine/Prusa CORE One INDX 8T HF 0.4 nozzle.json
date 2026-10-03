@@ -1,0 +1,210 @@
+{
+	"type": "machine",
+	"name": "Prusa CORE One INDX 8T HF 0.4 nozzle",
+	"inherits": "fdm_machine_common_coreone_indx",
+	"from": "system",
+	"setting_id": "8SAlV75rzPq2N1u2",
+	"instantiation": "true",
+	"deretraction_speed": [
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30"
+	],
+	"extruder_colour": [
+		"#F58231",
+		"#1F77B4",
+		"#2CA02C",
+		"#D62728",
+		"#9467BD",
+		"#8C564B",
+		"#17BECF",
+		"#BCBD22"
+	],
+	"extruder_offset": [
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0"
+	],
+	"max_layer_height": [
+		"0.3",
+		"0.3",
+		"0.3",
+		"0.3",
+		"0.3",
+		"0.3",
+		"0.3",
+		"0.3"
+	],
+	"min_layer_height": [
+		"0.07",
+		"0.07",
+		"0.07",
+		"0.07",
+		"0.07",
+		"0.07",
+		"0.07",
+		"0.07"
+	],
+	"nozzle_diameter": [
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4"
+	],
+	"retraction_minimum_travel": [
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5"
+	],
+	"retract_before_wipe": [
+		"80%",
+		"80%",
+		"80%",
+		"80%",
+		"80%",
+		"80%",
+		"80%",
+		"80%"
+	],
+	"retract_when_changing_layer": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_length": [
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8"
+	],
+	"retract_length_toolchange": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_lift_above": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_lift_below": [
+		"269",
+		"269",
+		"269",
+		"269",
+		"269",
+		"269",
+		"269",
+		"269"
+	],
+	"retract_restart_extra": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retraction_speed": [
+		"40",
+		"40",
+		"40",
+		"40",
+		"40",
+		"40",
+		"40",
+		"40"
+	],
+	"z_hop": [
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5",
+		"1.5"
+	],
+	"travel_slope": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"wipe": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"printer_model": "Prusa CORE One INDX 8T",
+	"printer_variant": "0.4",
+	"z_hop_types": [
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift"
+	]
+}

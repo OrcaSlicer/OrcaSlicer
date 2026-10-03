@@ -738,6 +738,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(LiftType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
 
@@ -829,6 +830,8 @@ public:
     // Overrides ConfigBase::def(). Static configuration definition. Any value stored into this ConfigBase shall have its definition here.
     const ConfigDef*    def() const override { return &print_config_def; }
 
+    // Apply machine-owned tool-change values to every filament in a composed config.
+    void                apply_machine_filament_overrides();
     void                normalize_fdm(int used_filaments = 0);
     void                normalize_fdm_1();
     //return the changed param set
@@ -907,6 +910,7 @@ public:
 };
 extern std::set<std::string> printer_extruder_options;
 extern std::set<std::string> print_options_with_variant;
+const std::vector<std::string>& machine_filament_override_keys();
 extern std::set<std::string> filament_options_with_variant;
 extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
@@ -1686,6 +1690,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
+    ((ConfigOptionEnum<LiftType>,      filament_change_lift_type))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionString,              toolchange_cyclic_order))
