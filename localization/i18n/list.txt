@@ -74,11 +74,8 @@ src/slic3r/GUI/Gizmos/GizmoObjectManipulation.cpp
 src/slic3r/GUI/Gizmos/GLGizmoCut.cpp
 src/slic3r/GUI/Gizmos/GLGizmoCut.hpp
 src/slic3r/GUI/Gizmos/GLGizmoSimplify.cpp
-src/slic3r/GUI/Gizmos/GLGizmoFaceDetector.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSeam.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSeam.hpp
-src/slic3r/GUI/Gizmos/GLGizmoText.cpp
-src/slic3r/GUI/Gizmos/GLGizmoText.hpp
 src/slic3r/GUI/Gizmos/GLGizmoEmboss.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSVG.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMeasure.cpp
@@ -258,7 +255,6 @@ src/slic3r/Utils/MKS.cpp
 src/slic3r/Utils/Moonraker.cpp
 src/slic3r/Utils/OctoPrint.cpp
 src/slic3r/Utils/Repetier.cpp
-src/slic3r/Utils/ProfileDescription.hpp
 src/slic3r/GUI/SendMultiMachinePage.cpp
 src/slic3r/GUI/MultiMachinePage.cpp
 src/slic3r/GUI/MultiMachineManagerPage.cpp
