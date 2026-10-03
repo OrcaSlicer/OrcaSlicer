@@ -19,17 +19,19 @@
 #include <boost/log/trivial.hpp>
 #include <cassert>
 #include <cfloat>
-#include <utility>
-#include <vector>
+#include <cmath>
 #include <cstddef>
-#include <initializer_list>
-#include <set>
 #include <cstdlib>
 #include <functional>
+#include <initializer_list>
+#include <limits>
 #include <memory>
-#include <unordered_set>
-#include <unordered_map>
 #include <mutex>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -315,6 +317,25 @@ static t_config_option_keys print_config_diffs(
                 else if ((plate_index < option_new->values.size())||(plate_index < option_old->values.size()))
                     print_diff.emplace_back(opt_key);
             }
+            else if (!opt_key.compare("independent_wipe_tower_x") || !opt_key.compare("independent_wipe_tower_y")) {
+                const auto *option_new = dynamic_cast<const ConfigOptionVector<double>*>(opt_new);
+                const auto *option_old = dynamic_cast<const ConfigOptionVector<double>*>(opt_old);
+                if (!option_new || !option_old)
+                    print_diff.emplace_back(opt_key);
+                else {
+                const int begin = plate_index * INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+                const int end   = begin + INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+                bool changed = option_new->values.size() != option_old->values.size();
+                for (int i = begin; !changed && i < end; ++i) {
+                    const double a = size_t(i) < option_old->values.size() ? option_old->values[size_t(i)] : std::numeric_limits<double>::quiet_NaN();
+                    const double b = size_t(i) < option_new->values.size() ? option_new->values[size_t(i)] : std::numeric_limits<double>::quiet_NaN();
+                    if (a != b && !(std::isnan(a) && std::isnan(b)))
+                        changed = true;
+                }
+                if (changed)
+                    print_diff.emplace_back(opt_key);
+                }
+            }
             else
                 print_diff.emplace_back(opt_key);
         }
@@ -345,6 +366,25 @@ static t_config_option_keys full_print_config_diffs(const DynamicPrintConfig &cu
                 }
                 else if ((plate_index < option_new->values.size())||(plate_index < option_old->values.size()))
                     full_config_diff.emplace_back(opt_key);
+            }
+            else if (opt_old && (!opt_key.compare("independent_wipe_tower_x") || !opt_key.compare("independent_wipe_tower_y"))) {
+                const auto *option_new = dynamic_cast<const ConfigOptionVector<double>*>(opt_new);
+                const auto *option_oldf = dynamic_cast<const ConfigOptionVector<double>*>(opt_old);
+                if (!option_new || !option_oldf)
+                    full_config_diff.emplace_back(opt_key);
+                else {
+                const int begin = plate_index * INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+                const int end   = begin + INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+                bool changed = option_new->values.size() != option_oldf->values.size();
+                for (int i = begin; !changed && i < end; ++i) {
+                    const double a = size_t(i) < option_oldf->values.size() ? option_oldf->values[size_t(i)] : std::numeric_limits<double>::quiet_NaN();
+                    const double b = size_t(i) < option_new->values.size() ? option_new->values[size_t(i)] : std::numeric_limits<double>::quiet_NaN();
+                    if (a != b && !(std::isnan(a) && std::isnan(b)))
+                        changed = true;
+                }
+                if (changed)
+                    full_config_diff.emplace_back(opt_key);
+                }
             }
             else
                 full_config_diff.emplace_back(opt_key);

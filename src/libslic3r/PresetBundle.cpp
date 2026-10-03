@@ -37,6 +37,7 @@
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "PrintConfig.hpp"
+#include "GCode/WipeTower.hpp"
 #include "PublishSettings.hpp"
 #include "FilamentMixer.hpp"
 #include "Semver.hpp"
@@ -102,6 +103,10 @@ static std::vector<std::string> s_project_options {
     "filament_multi_colour",
     "wipe_tower_x",
     "wipe_tower_y",
+    "independent_wipe_tower_x",
+    "independent_wipe_tower_y",
+    // Independent tower sharing overrides (filament pair matrix); filament data, not plate geometry.
+    "prime_tower_share_matrix",
     "curr_bed_type",
     "flush_multiplier",
     // Fast-purge mode: project-level purge control, inert at Default.
@@ -146,7 +151,7 @@ static std::vector<std::string> s_project_options {
 // state (it must NOT be added). curr_bed_type is deliberately NOT in this list: the receiver
 // keeps its own bed type when loading a published project. The published-mode project_config
 // assertions in tests/libslic3r/test_preset_bundle_loading.cpp guard both directions.
-static std::vector<std::string> s_project_options_published{"wipe_tower_x", "wipe_tower_y", "wipe_tower_rotation_angle"};
+static std::vector<std::string> s_project_options_published{"wipe_tower_x", "wipe_tower_y", "independent_wipe_tower_x", "independent_wipe_tower_y", "wipe_tower_rotation_angle"};
 
 //Orca: add custom as default
 const char *PresetBundle::ORCA_DEFAULT_BUNDLE = "Custom";
@@ -326,7 +331,7 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     // BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    static const char *keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament", "ironing_filament"};
     for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i) {
         std::string key = std::string(keys[i]);
         auto       *opt = dynamic_cast<ConfigOptionInt *>(out.option(key, false));
@@ -5039,7 +5044,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     //BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char* keys[] = {"support_filament", "support_interface_filament", "wipe_tower_filament"};
+    static const char* keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament", "wipe_tower_filament", "ironing_filament"};
     for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++ i) {
         std::string key = std::string(keys[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
@@ -7648,6 +7653,25 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
                 }
             }
         this->project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = new_matrix;
+    }
+
+    // Independent tower sharing overrides: an n*n matrix like the flush volumes, kept in step with the
+    // filament count the same way (a removed filament drops its row and column, new ones are Auto).
+    if (auto *share_opt = this->project_config.option<ConfigOptionInts>("prime_tower_share_matrix", true);
+        share_opt != nullptr && share_opt->values.size() != num_filaments * num_filaments) {
+        const std::vector<int> old_share = share_opt->values;
+        const size_t old_n = size_t(std::sqrt(double(old_share.size())) + 0.5);
+        std::vector<int> new_share(num_filaments * num_filaments, int(PrimeTowerShare::Auto));
+        if (old_n * old_n == old_share.size() && old_n > 0) {
+            for (size_t i = 0; i < num_filaments; ++i)
+                for (size_t j = 0; j < num_filaments; ++j) {
+                    const size_t old_i = i >= to_delete_filament_id ? i + 1 : i;
+                    const size_t old_j = j >= to_delete_filament_id ? j + 1 : j;
+                    if (old_i < old_n && old_j < old_n)
+                        new_share[i * num_filaments + j] = old_share[old_i * old_n + old_j];
+                }
+        }
+        share_opt->values = new_share;
     }
 }
 

@@ -582,6 +582,24 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         }
     }
 
+    // Orca: the multimaterial tower splits the rectangular footprint into a shell ring and a core,
+    // so the cone and rib walls (which change the outline per layer) cannot carry it.
+    if (config->opt_bool("enable_prime_tower") && config->opt_bool("prime_tower_multimaterial") &&
+        config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type") != WipeTowerWallType::wtwRectangle) {
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("wipe_tower_wall_type", new ConfigOptionEnum<WipeTowerWallType>(WipeTowerWallType::wtwRectangle));
+        apply(config, &new_conf);
+    }
+
+    // Independent towers and the multimaterial shell/core tower cannot run together: one
+    // splits the footprint, the other prints a whole tower per filament.
+    if (config->opt_bool("enable_prime_tower") && config->opt_bool("prime_tower_independent") &&
+        config->opt_bool("prime_tower_multimaterial")) {
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("prime_tower_multimaterial", new ConfigOptionBool(false));
+        apply(config, &new_conf);
+    }
+
     // Check "enable_support" and "overhangs" relations only on global settings level
     if (is_global_config && config->opt_bool("enable_support")) {
         // Ask only once.
@@ -1005,7 +1023,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool can_ironing_support = have_raft || (have_support_material && config->opt_int("support_interface_top_layers") > 0);
     toggle_field("support_ironing", can_ironing_support);
     bool has_support_ironing = can_ironing_support && config->opt_bool("support_ironing");
-    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
+    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing", "support_ironing_filament" })
         toggle_line(el, has_support_ironing);
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
@@ -1036,7 +1054,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                  have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
-    for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
+    for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed", "ironing_filament" })
         toggle_line(el, has_ironing);
     bool has_rectilinear_ironing = (config->opt_enum<InfillPattern>("ironing_pattern") == InfillPattern::ipRectilinear);
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
@@ -1047,6 +1065,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_zaa = config->opt_bool("zaa_enabled");
     for (auto el : {"zaa_minimize_perimeter_height", "zaa_min_z", "zaa_dont_alternate_fill_direction", "ironing_expansion"})
         toggle_line(el, has_zaa);
+
 
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })
@@ -1066,7 +1085,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("preheat_steps", have_ooze_prevention && (preheat_steps > 0));
 
     bool have_prime_tower = config->opt_bool("enable_prime_tower");
-    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
+    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_brim_object_gap", "prime_tower_brim_flow_ratio", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
         toggle_line(el, have_prime_tower);
 
     toggle_line("enable_tower_interface_cooldown_during_tower",
@@ -1076,11 +1095,24 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
                     "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
+                    "prime_tower_acceleration",
                     "wipe_tower_bridging", "wipe_tower_extra_flow"})
             toggle_line(el, have_prime_tower && supports_wipe_tower_2);
 
     // Orca: both tower generators skip sparse layers, so this is not a wipe tower 2 exclusive.
     toggle_line("wipe_tower_no_sparse_layers", have_prime_tower);
+    toggle_line("wipe_tower_use_first_layer_height",
+                have_prime_tower && supports_wipe_tower_2 && config->opt_bool("wipe_tower_no_sparse_layers"));
+
+    // Orca: the multimaterial tower splits the tower footprint into a shell and a core region,
+    // which only the rectangular wall provides; it is generated by WipeTower2 only.
+    const bool have_multimaterial_tower = config->opt_bool("prime_tower_multimaterial");
+    const bool have_independent_towers  = config->opt_bool("prime_tower_independent");
+    toggle_line("prime_tower_multimaterial", have_prime_tower && supports_wipe_tower_2 && !have_independent_towers);
+    toggle_line("prime_tower_independent", have_prime_tower && supports_wipe_tower_2 && !have_multimaterial_tower);
+    const bool independent_active = have_prime_tower && supports_wipe_tower_2 && have_independent_towers && !have_multimaterial_tower;
+    toggle_line("prime_tower_group_by_material", independent_active);
+    toggle_line("prime_tower_independent_full_height", independent_active);
     // Dropping the sparse layers outright leaves nothing to combine, so the two are exclusive.
     toggle_line("wipe_tower_sparse_layers_combination", have_prime_tower && !config->opt_bool("wipe_tower_no_sparse_layers"));
 
@@ -1091,6 +1123,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("wipe_tower_rib_width", have_rib_wall);
     toggle_line("wipe_tower_fillet_wall", have_rib_wall);
     toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
+    toggle_field("wipe_tower_wall_type", !(have_prime_tower && supports_wipe_tower_2 && have_multimaterial_tower));
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
 

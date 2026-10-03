@@ -1633,7 +1633,8 @@ int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
                 || (cfg.ironing_type == IroningType::TopmostOnly && is_topmost_layer)));
     if (!gate)
         return -1;
-    return cfg.top_surface_filament_id;
+    // "Default" (0) irons with the filament of the surface below.
+    return cfg.ironing_filament > 0 ? cfg.ironing_filament : cfg.top_surface_filament_id;
 }
 
 // Create ironing extrusions over top surfaces.
@@ -1712,20 +1713,17 @@ void Layer::make_ironing()
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
-				// ORCA: Get filament-specific overrides if configured, otherwise use process values
-				size_t extruder_idx = ironing_params.extruder - 1;
-				ironing_params.line_spacing = std::max(IRONING_SPACING_MIN, !config.filament_ironing_spacing.is_nil(extruder_idx)
-					? config.filament_ironing_spacing.get_at(extruder_idx)
-					: config.ironing_spacing.value);
-                ironing_params.inset = (!config.filament_ironing_inset.is_nil(extruder_idx)
-					? config.filament_ironing_inset.get_at(extruder_idx)
-					: config.ironing_inset);
-				ironing_params.height = default_layer_height * 0.01 * (!config.filament_ironing_flow.is_nil(extruder_idx)
-					? config.filament_ironing_flow.get_at(extruder_idx)
-					: config.ironing_flow);
-                ironing_params.speed = (!config.filament_ironing_speed.is_nil(extruder_idx)
-                    ? config.filament_ironing_speed.get_at(extruder_idx)
-                    : config.ironing_speed);
+				// ORCA: Get filament-specific overrides if configured, otherwise use process values.
+				// is_nil() indexes unchecked while get_at() clamps to the first value, so an index past the
+				// override vector has to be treated as "not set" - otherwise it reads filament 1's nil.
+				const size_t extruder_idx = ironing_params.extruder - 1;
+				auto filament_override = [extruder_idx](const auto &opt, double process_value) {
+					return extruder_idx < opt.values.size() && ! opt.is_nil(extruder_idx) ? opt.get_at(extruder_idx) : process_value;
+				};
+				ironing_params.line_spacing = std::max(IRONING_SPACING_MIN, filament_override(config.filament_ironing_spacing, config.ironing_spacing.value));
+                ironing_params.inset = filament_override(config.filament_ironing_inset, config.ironing_inset);
+				ironing_params.height = default_layer_height * 0.01 * filament_override(config.filament_ironing_flow, config.ironing_flow);
+                ironing_params.speed = filament_override(config.filament_ironing_speed, config.ironing_speed);
                 const bool top_layer_direction_set = config.top_layer_direction.value >= 0.;
                 const double top_layer_base_angle  = top_layer_direction_set ?
                     Geometry::deg2rad(config.top_layer_direction.value) :

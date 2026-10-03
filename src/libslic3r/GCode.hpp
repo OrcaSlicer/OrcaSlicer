@@ -119,8 +119,12 @@ public:
         m_enable_wrapping_detection(print_config.enable_wrapping_detection && (print_config.wrapping_exclude_area.values.size() > 2) && (slice_used_filaments.size() <= 1)),
         m_is_first_print(true),
         m_print_config(&print_config),
+        m_plate_idx(plate_idx),
         m_last_wipe_tower_print_z(print_config.z_offset.value),
         m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config)),
+        m_independent_towers(print_config.prime_tower_independent && !print_config.prime_tower_multimaterial),
+        m_independent_last_z(print_config.filament_colour.values.size(), print_config.z_offset.value),
+        m_independent_z_layer(print_config.filament_colour.values.size(), -1),
         m_sparse_layers_combined(wipe_tower_sparse_layers_combined(print_config))
     {
         // Precomputed rather than accumulated while emitting, so that the clearance validator and
@@ -155,8 +159,22 @@ private:
     std::string tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, const std::string &tcr_gcode) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
-    std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
-    Vec2f transform_wt2_pt(const Vec2f &pt) const;
+    std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos, const Vec2f &tower_pos) const;
+    Vec2f transform_wt2_pt(const Vec2f &pt) const { return transform_wt2_pt(pt, m_wipe_tower_pos); }
+    Vec2f transform_wt2_pt(const Vec2f &pt, const Vec2f &tower_pos) const;
+    Vec2f tcr_tower_pos(const WipeTower::ToolChangeResult &tcr) const
+    {
+        if (tcr.has_tower_pos) {
+            Vec2f stored;
+            if (tcr.tower_filament >= 0 &&
+                independent_wipe_tower_stored_pos(m_print_config->independent_wipe_tower_x.values,
+                                                  m_print_config->independent_wipe_tower_y.values,
+                                                  independent_wipe_tower_pos_index(m_plate_idx, tcr.tower_filament), stored))
+                return stored;
+            return tcr.tower_pos;
+        }
+        return m_wipe_tower_pos;
+    }
     Polygons shared_printable_area(GCode &gcodegen) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
@@ -184,6 +202,7 @@ private:
     bool                                                         m_enable_wrapping_detection;
     bool                                                         m_is_first_print;
     const PrintConfig *                                          m_print_config;
+    const int                                                    m_plate_idx;
     float                                                        m_wipe_tower_depth;
     BoundingBoxf                                                 m_wipe_tower_bbx;
     Vec2f                                                        m_rib_offset{Vec2f(0, 0)};
@@ -195,6 +214,12 @@ private:
     const bool                                                   m_sparse_layers_combined;
     // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
     std::vector<float>                                           m_compacted_tower_z;
+    const bool                                                   m_independent_towers;
+    // Compacted print z per independent tower (indexed by group id = tower_filament), and the
+    // print layer it was last raised on, so a tower rises once per layer however many filaments
+    // of its group purge into it.
+    std::vector<double>                                          m_independent_last_z;
+    std::vector<int>                                             m_independent_z_layer;
 };
 
 class ColorPrintColors
@@ -289,6 +314,9 @@ public:
     void            apply_print_config(const PrintConfig &print_config);
 
     std::string     travel_to(const Point& point, ExtrusionRole role, std::string comment, double z = DBL_MAX);
+    // While a Type2 prime-tower block is being written, travel_to / extrude use this instead of the
+    // normal travel/print accelerations. 0 = no override.
+    void            set_prime_tower_acceleration_override(unsigned int accel) { m_wipe_tower_acceleration = accel; }
     bool            needs_retraction(const Polyline& travel, ExtrusionRole role, LiftType& lift_type);
     std::string     retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::NormalLift, bool apply_instantly = false, ExtrusionRole role = erNone);
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
@@ -517,8 +545,11 @@ private:
     {
         ObjectByExtruder() : support(nullptr), support_extrusion_role(erNone) {}
         const ExtrusionEntityCollection  *support;
-        // erSupportMaterial / erSupportMaterialInterface / erSupportTransition or erMixed.
+        // erSupportMaterial / erSupportMaterialInterface / erSupportTransition, erIroning or erMixed.
         ExtrusionRole                     support_extrusion_role;
+        // Set when support ironing shares this group's extruder, so the group emits the ironing pass too.
+        // A dedicated erIroning group prints it via its role instead.
+        bool                              prints_ironing = false;
 
         struct Island
         {
@@ -809,6 +840,7 @@ private:
     double   m_sub_layer_flow_ratio = 0.0;
     double   m_sub_layer_height     = 0.0;
     bool m_need_change_layer_lift_z = false;
+    unsigned int m_wipe_tower_acceleration = 0;
     int m_start_gcode_filament = -1;
     std::string m_filament_instances_code;
 

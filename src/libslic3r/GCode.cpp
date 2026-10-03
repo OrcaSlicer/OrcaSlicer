@@ -948,10 +948,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
     // Type2 tower-local point -> bed frame. The rib-wall offset is tower-local, so it
     // rotates with the tower (unlike the BBL tower in append_tcr, which never rotates).
-    Vec2f WipeTowerIntegration::transform_wt2_pt(const Vec2f &pt) const
+    Vec2f WipeTowerIntegration::transform_wt2_pt(const Vec2f &pt, const Vec2f &tower_pos) const
     {
         const float alpha = m_wipe_tower_rotation / 180.f * float(M_PI);
-        return Eigen::Rotation2Df(alpha) * (pt + m_rib_offset) + m_wipe_tower_pos;
+        return Eigen::Rotation2Df(alpha) * (pt + m_rib_offset) + tower_pos;
     }
 
     // Bed outline the tower-approach router plans against, in object coordinates. The real
@@ -974,7 +974,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     // caller still travels to start_wipe_pos itself. Returns an empty string when the
     // gap wall is off (option off or cone wall) or the approach already starts inside
     // the tower: such hops never cross the wall and must stay direct.
-    std::string WipeTowerIntegration::travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const
+    std::string WipeTowerIntegration::travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos, const Vec2f &tower_pos) const
     {
         if (!WipeTower2::use_gap_wall(gcodegen.m_config))
             return {};
@@ -984,7 +984,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         auto tower_polygon = [&](const BoundingBoxf &bbx) {
             Polygon poly = scaled(bbx).polygon();
             for (Point &p : poly.points)
-                p = wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(unscale(p).cast<float>()) + plate_origin_2d);
+                p = wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(unscale(p).cast<float>(), tower_pos) + plate_origin_2d);
             return poly;
         };
         // The avoid envelope covers the first-layer brim (and rib flare), which a travel may
@@ -1584,21 +1584,20 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // Priming lines are absolute bed moves; everything else is tower-local
         // (transform_wt2_pt).
+        const Vec2f tower_pos = tcr_tower_pos(tcr);
         Vec2f start_pos = tcr.start_pos;
         Vec2f end_pos   = tcr.end_pos;
         if (!tcr.priming) {
-            start_pos = transform_wt2_pt(start_pos);
-            end_pos   = transform_wt2_pt(end_pos);
+            start_pos = transform_wt2_pt(start_pos, tower_pos);
+            end_pos   = transform_wt2_pt(end_pos, tower_pos);
         }
 
-        Vec2f wipe_tower_offset   = tcr.priming ? Vec2f::Zero() : Vec2f(m_wipe_tower_pos + Eigen::Rotation2Df(alpha) * m_rib_offset);
+        Vec2f wipe_tower_offset   = tcr.priming ? Vec2f::Zero() : Vec2f(tower_pos + Eigen::Rotation2Df(alpha) * m_rib_offset);
         float wipe_tower_rotation = tcr.priming ? 0.f : alpha;
         Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
 
 
         std::string tcr_rotated_gcode = post_process_wipe_tower_moves(tcr, wipe_tower_offset, wipe_tower_rotation);
-
-        gcode += gcodegen.writer().unlift(); // Make sure there is no z-hop (in most cases, there isn't).
 
         double current_z = gcodegen.writer().get_position().z();
 
@@ -1621,15 +1620,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                                                              || is_ramming
                                                              || tool_change_on_wipe_tower);
 
-        const Point start_wipe_pos     = wipe_tower_point_to_object_point(gcodegen, start_pos + plate_origin_2d);
-        const bool travel_to_tower_now = should_travel_to_tower || gcodegen.m_need_change_layer_lift_z;
-        if (travel_to_tower_now) {
-            // FIXME: It would be better if the wipe tower set the force_travel flag for all toolchanges,
-            // then we could simplify the condition and make it more readable.
+        // Independent towers: never park the old nozzle on the next tower's corner
+        // before Tx. That knocks the printed tower and smears the previous colour onto it.
+        const bool independent_toolchange = tcr.has_tower_pos && needs_toolchange && !tcr.priming;
 
-            // Orca: pass the configured lift type, as append_tcr does above. lazy_lift() keeps
-            // the first type it is given, so the NormalLift default would pin this hop to a
-            // standing move. Slope and spiral both need a known head position.
+        const unsigned int tower_accel = (unsigned int) std::floor(gcodegen.config().prime_tower_acceleration.value + 0.5);
+        gcodegen.set_prime_tower_acceleration_override(tower_accel);
+        auto emit_tower_accel = [&]() {
+            if (tower_accel == 0)
+                return;
+            gcode += gcodegen.writer().set_print_acceleration(tower_accel);
+            gcode += gcodegen.writer().set_travel_acceleration(tower_accel);
+        };
+        emit_tower_accel();
+
+        auto wipe_tower_lift_type = [&]() {
             LiftType lift_type = LiftType::NormalLift;
             if (gcodegen.writer().filament() != nullptr && gcodegen.writer().is_current_position_clear()) {
                 ZHopType z_hop_type = ZHopType(gcodegen.config().z_hop_types.get_at(
@@ -1638,10 +1643,26 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     z_hop_type = ZHopType::zhtSpiral;
                 lift_type = gcodegen.to_lift_type(z_hop_type);
             }
-            gcode += gcodegen.retract(false, false, lift_type);
+            return lift_type;
+        };
+
+        if (!independent_toolchange)
+            gcode += gcodegen.writer().unlift(); // Make sure there is no z-hop (in most cases, there isn't).
+
+        const Point start_wipe_pos     = wipe_tower_point_to_object_point(gcodegen, start_pos + plate_origin_2d);
+        const bool travel_to_tower_now = !independent_toolchange &&
+                                         (should_travel_to_tower || gcodegen.m_need_change_layer_lift_z);
+        if (travel_to_tower_now) {
+            // FIXME: It would be better if the wipe tower set the force_travel flag for all toolchanges,
+            // then we could simplify the condition and make it more readable.
+
+            // Orca: pass the configured lift type, as append_tcr does above. lazy_lift() keeps
+            // the first type it is given, so the NormalLift default would pin this hop to a
+            // standing move. Slope and spiral both need a known head position.
+            gcode += gcodegen.retract(false, false, wipe_tower_lift_type());
             gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
             if (!tcr.priming && gcodegen.last_pos_defined())
-                gcode += travel_to_tower_gap(gcodegen, gcodegen.last_pos(), start_wipe_pos);
+                gcode += travel_to_tower_gap(gcodegen, gcodegen.last_pos(), start_wipe_pos, tower_pos);
             gcode += gcodegen.travel_to(start_wipe_pos, erMixed, "Travel to a Wipe Tower");
             gcode += gcodegen.unretract();
         } else {
@@ -1651,7 +1672,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // toolchange gcode (and the head position it ends at) is known.
         }
 
-        if (will_go_down) {
+        if (will_go_down && !independent_toolchange) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(z, "Travel down to the last wipe tower layer.");
             gcode += gcodegen.writer().unretract();
@@ -1670,16 +1691,20 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(gcodegen.get_filament_config_index(new_extruder_id));
                 toolchange_temp_override = interface_temp;
             }
+            // Object-layer on_first_layer() is not the same as "this is the tower's first
+            // printed layer" (sparse layers skipped, independent tower first used later).
+            // Force the filament's first-layer temperature into set_extruder so M104/M109
+            // and filament_start_gcode placeholders do not pick the other-layers value.
+            if (toolchange_temp_override <= 0 && tcr.is_first_layer && new_extruder_id >= 0) {
+                size_t new_fi = gcodegen.get_filament_config_index(new_extruder_id);
+                toolchange_temp_override = gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi);
+            }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
                                                          WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
-            if (!travel_to_tower_now && !tcr.priming && WipeTower2::use_gap_wall(gcodegen.m_config)) {
-                // The tool changed in place (multi-tool printer without ramming), so the
-                // tower entry is the tcr's own positioning move — a straight line across
-                // the printed wall. Route it around the tower and in through the wall
-                // opening instead, riding at the end of the change_filament_gcode
-                // substitution so the generator's positioning move degrades to a
-                // zero-length one (append_tcr parity: travel after the filament change,
-                // retracted, with the new filament).
+            if (independent_toolchange || (!travel_to_tower_now && !tcr.priming && WipeTower2::use_gap_wall(gcodegen.m_config))) {
+                // Independent toolchanges: fly to THIS filament's tower only after Tx, still
+                // retracted. Stock multi-tool without ramming uses the same post-Tx routing
+                // so the tcr's own positioning move does not drag across the printed wall.
                 Vec3f last_gcode_pos = gcodegen.writer().get_position().cast<float>();
                 Point route_start;
                 bool  have_start = false;
@@ -1695,7 +1720,28 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (have_start) {
                     gcodegen.set_last_pos(route_start);
                     gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
-                    std::string travel = travel_to_tower_gap(gcodegen, route_start, start_wipe_pos);
+                    std::string travel;
+                    if (independent_toolchange) {
+                        // Wait for the new nozzle before flying to the bed. Otherwise the
+                        // preview (and a firmware that tracks one current temp) still sees
+                        // the previous tool's idle/cooldown M104 (e.g. 145-160 °C) while
+                        // this tower's inner wipe already started.
+                        if (new_extruder_id >= 0) {
+                            size_t new_fi = gcodegen.get_filament_config_index(new_extruder_id);
+                            int wait_temp = (tcr.is_first_layer || gcodegen.config().nozzle_temperature.get_at(new_fi) == 0)
+                                                ? gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi)
+                                                : gcodegen.config().nozzle_temperature.get_at(new_fi);
+                            if (wait_temp > 0) {
+                                std::string wait_gcode = gcodegen.writer().set_temperature(wait_temp, true, new_extruder_id);
+                                size_t nl = wait_gcode.find('\n');
+                                if (nl != std::string::npos)
+                                    wait_gcode.insert(nl, " " + WipeTower2::wait_for_temp_tag());
+                                travel += wait_gcode;
+                            }
+                        }
+                        travel += gcodegen.retract(false, false, wipe_tower_lift_type());
+                    }
+                    travel += travel_to_tower_gap(gcodegen, route_start, start_wipe_pos, tower_pos);
                     travel += gcodegen.travel_to(start_wipe_pos, erMixed, "Travel to a Wipe Tower");
                     check_add_eol(travel);
                     toolchange_gcode_str += travel;
@@ -1714,9 +1760,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (toolchange_temp_override > 0) {
             // new_extruder_id is the incoming filament id; resolve its per-variant config column.
             size_t new_fi = gcodegen.get_filament_config_index(new_extruder_id);
-            int base_temp = gcodegen.on_first_layer() ? gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi)
+            int base_temp = (gcodegen.on_first_layer() || tcr.is_first_layer) ? gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi)
                                                       : gcodegen.config().nozzle_temperature.get_at(new_fi);
-            if (std::abs(tcr.print_z) < EPSILON)
+            if (std::abs(tcr.print_z) < EPSILON || tcr.is_first_layer)
                 base_temp = gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi);
             const std::string t_token = " T" + std::to_string(new_extruder_id);
             std::string out;
@@ -1730,7 +1776,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 std::string trimmed = line;
                 trimmed.erase(0, trimmed.find_first_not_of(" \t"));
                 bool skip_line = false;
-                if (boost::starts_with(trimmed, "M109")) {
+                if (boost::starts_with(trimmed, "M109") && trimmed.find(WipeTower2::wait_for_temp_tag()) == std::string::npos) {
                     bool matches_extruder = trimmed.find(t_token) != std::string::npos;
                     if (!matches_extruder) {
                         size_t t_pos = trimmed.find('T');
@@ -1863,6 +1909,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string tcr_gcode,
             tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_extruder_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
+        // Travel_to / set_extruder may have restored the normal acceleration. Re-apply so the
+        // tower's own G1s (Type2 emits none) print at prime_tower_acceleration.
+        emit_tower_accel();
         gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         check_add_eol(toolchange_gcode_str);
@@ -1884,11 +1933,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // Prepare a future wipe.
             gcodegen.m_wipe.reset_path();
             for (const Vec2f& wipe_pt : tcr.wipe_path)
-                gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(wipe_pt) + plate_origin_2d));
+                gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(wipe_pt, tower_pos) + plate_origin_2d));
         }
 
         // Let the planner know we are traveling between objects.
         gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+        gcodegen.set_prime_tower_acceleration_override(0);
         return gcode;
     }
 
@@ -1991,6 +2041,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode;
     }
 
+    // Independent towers store every tower's TCRs on the same layer; tower_filament is the group
+    // id, not the printing filament. append_tcr2 requires new_extruder_id == tcr.new_tool, so the
+    // TCR is matched on the tool it really switches to. Every extruder prints once per layer and
+    // belongs to exactly one group, so this picks each TCR exactly once.
+    static bool independent_wipe_tower_tcr_matches(const WipeTower::ToolChangeResult &tcr, int extruder_id)
+    {
+        return tcr.has_tower_pos && tcr.new_tool == extruder_id;
+    }
+
     std::string WipeTowerIntegration::tool_change(GCode &gcodegen, int extruder_id, bool finish_layer)
     {
         std::string gcode;
@@ -1999,7 +2058,25 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (m_layer_idx >= (int) m_tool_changes.size())
             return gcode;
         if (gcodegen.wipe_tower_type() == WipeTowerType::Type2) {
-            if (gcodegen.writer().need_toolchange(extruder_id) || finish_layer) {
+            if (m_independent_towers) {
+                const auto &layer = m_tool_changes[m_layer_idx];
+                for (const WipeTower::ToolChangeResult &tcr : layer) {
+                    if (!independent_wipe_tower_tcr_matches(tcr, extruder_id))
+                        continue;
+                    double wipe_tower_z = -1;
+                    const int tower = tcr.tower_filament >= 0 ? tcr.tower_filament : tcr.new_tool;
+                    if (tower >= 0 && size_t(tower) < m_independent_last_z.size()) {
+                        // One compacted step per tower per print layer, even when several filaments
+                        // of the same group purge into it on that layer.
+                        if (m_independent_z_layer[size_t(tower)] != m_layer_idx) {
+                            m_independent_last_z[size_t(tower)] += tcr.layer_height;
+                            m_independent_z_layer[size_t(tower)] = m_layer_idx;
+                        }
+                        wipe_tower_z = m_independent_last_z[size_t(tower)];
+                    }
+                    gcode += append_tcr2(gcodegen, tcr, tcr.new_tool, wipe_tower_z);
+                }
+            } else if (gcodegen.writer().need_toolchange(extruder_id) || finish_layer) {
                 if (m_layer_idx < (int) m_tool_changes.size()) {
                     if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
                         throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
@@ -2056,6 +2133,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         assert(m_layer_idx >= 0);
         if (m_layer_idx >= (int) m_tool_changes.size())
             return true;
+
+        if (m_independent_towers) {
+            for (const WipeTower::ToolChangeResult &tcr : m_tool_changes[m_layer_idx]) {
+                if (independent_wipe_tower_tcr_matches(tcr, extruder_id))
+                    return false;
+            }
+            return true;
+        }
 
         bool   ignore_sparse = wipe_tower_layer_is_combined_away(m_tool_changes[m_layer_idx]);
         if (m_sparse_layers_skipped)
@@ -6128,6 +6213,19 @@ LayerResult GCode::process_layer(
                 // Both the support and the support interface are printed with the same extruder, therefore
                 // the interface may be interleaved with the support base.
                 bool single_extruder = ! has_support || support_extruder == interface_extruder;
+                // The extruder the support base group prints with; the interface group always uses interface_extruder.
+                const unsigned int base_extruder = has_support ? support_extruder : interface_extruder;
+                // Support ironing extruder. "Default" (0) follows the support interface filament.
+                unsigned int ironing_extruder = object.config().support_ironing_filament.value > 0
+                    ? (unsigned int) (object.config().support_ironing_filament.value - 1)
+                    : interface_extruder;
+                // Ironing sits on the top interface, so not every layer has it.
+                bool has_ironing = false;
+                for (const ExtrusionEntity *ee : support_layer.support_fills.entities)
+                    if (ee->role() == erIroning) { has_ironing = true; break; }
+                // Ironing needs its own group only when neither existing group already uses its extruder.
+                bool ironing_own_group = has_ironing && ironing_extruder != base_extruder && ironing_extruder != interface_extruder;
+
                 // Farthest-point timelapse: record the extruder for each support role so
                 // compute_farthest_point can attribute farthest support points correctly.
                 if (has_support) {
@@ -6135,17 +6233,27 @@ LayerResult GCode::process_layer(
                     support_filaments[{ &support_layer, erSupportTransition }] = support_extruder;
                 }
                 if (has_interface) {
-                    support_filaments[{ &support_layer, erSupportMaterialInterface }] =
-                        single_extruder ? (has_support ? support_extruder : interface_extruder) : interface_extruder;
+                    support_filaments[{ &support_layer, erSupportMaterialInterface }] = interface_extruder;
                 }
+                if (has_ironing)
+                    support_filaments[{ &support_layer, erIroning }] = ironing_extruder;
                 // Assign an extruder to the base.
-                ObjectByExtruder &obj = object_by_extruder(by_extruder, has_support ? support_extruder : interface_extruder, &layer_to_print - layers.data(), layers.size());
+                ObjectByExtruder &obj = object_by_extruder(by_extruder, base_extruder, &layer_to_print - layers.data(), layers.size());
                 obj.support = &support_layer.support_fills;
                 obj.support_extrusion_role = single_extruder ? erMixed : erSupportMaterial;
+                // Each group prints the ironing pass when the ironing filament is the one it already uses.
+                obj.prints_ironing = has_ironing && ironing_extruder == base_extruder;
                 if (! single_extruder && has_interface) {
                     ObjectByExtruder &obj_interface = object_by_extruder(by_extruder, interface_extruder, &layer_to_print - layers.data(), layers.size());
                     obj_interface.support = &support_layer.support_fills;
                     obj_interface.support_extrusion_role = erSupportMaterialInterface;
+                    obj_interface.prints_ironing = has_ironing && ironing_extruder == interface_extruder;
+                }
+                if (ironing_own_group) {
+                    ObjectByExtruder &obj_ironing = object_by_extruder(by_extruder, ironing_extruder, &layer_to_print - layers.data(), layers.size());
+                    obj_ironing.support = &support_layer.support_fills;
+                    // The erIroning role makes extrude_support() emit only the ironing pass for this group.
+                    obj_ironing.support_extrusion_role = erIroning;
                 }
             }
         }
@@ -6683,14 +6791,18 @@ LayerResult GCode::process_layer(
                     bool support_intf_overridden = wiping_extrusions.is_support_interface_overridden(layer_to_print.original_object);
 
                     ExtrusionRole support_extrusion_role = instance_to_print.object_by_extruder.support_extrusion_role;
-                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden : support_overridden;
+                    // A dedicated ironing group (role erIroning) prints in the normal, non-wiping pass.
+                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden
+                                       : support_extrusion_role == erIroning                 ? false
+                                       :                                                        support_overridden;
                     if (is_overridden == (print_wipe_extrusions != 0)) {
                         gcode += this->extrude_support(
-                            // support_extrusion_role is erSupportMaterial, erSupportTransition, erSupportMaterialInterface or erMixed for all extrusion paths.
+                            // support_extrusion_role is erSupportMaterial, erSupportTransition, erSupportMaterialInterface,
+                            // erIroning (dedicated ironing group) or erMixed for all extrusion paths.
                             *instance_to_print.object_by_extruder.support, support_extrusion_role);
 
-                        // Make sure ironing is the last
-                        if (support_extrusion_role == erMixed || support_extrusion_role == erSupportMaterialInterface) {
+                        // Ironing goes last. A dedicated ironing group already emitted it above via its role.
+                        if (instance_to_print.object_by_extruder.prints_ironing) {
                             gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                         }
                     }
@@ -7075,8 +7187,9 @@ LayerResult GCode::process_layer(
                     }
                     ExtrusionRole support_role = instance_to_print.object_by_extruder.support_extrusion_role;
                     gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, support_role);
-                    // Make sure ironing is the last (Orca names this role erIroning, not erSupportIroning).
-                    if (support_role == erMixed || support_role == erSupportMaterialInterface)
+                    // Ironing goes last (Orca names this role erIroning, not erSupportIroning). A dedicated
+                    // ironing group (role erIroning) already emitted it above.
+                    if (instance_to_print.object_by_extruder.prints_ironing)
                         gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                 }
 
@@ -8188,6 +8301,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         }
         acceleration_i = (unsigned int)floor(acceleration + 0.5);
     }
+    if (m_wipe_tower_acceleration > 0)
+        acceleration_i = m_wipe_tower_acceleration;
 
     // adjust X Y jerk
     if (NOZZLE_CONFIG(default_jerk) > 0) {
@@ -9191,6 +9306,9 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             }
         }
     }
+
+    if (m_wipe_tower_acceleration > 0)
+        acceleration_to_set = m_wipe_tower_acceleration;
     
     if (m_writer.get_gcode_flavor() == gcfKlipper) {
         gcode += m_writer.set_accel_and_jerk(acceleration_to_set, jerk_to_set);

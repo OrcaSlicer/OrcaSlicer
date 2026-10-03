@@ -7,6 +7,7 @@
 #include <math.h>
 #include <limits>
 #include <string>
+#include <vector>
 #include <sstream>
 #include <unordered_map>
 #include <utility>
@@ -178,6 +179,17 @@ public:
 		// Orca: set by WipeTower2 (non-BBL tower) to force a travel to the tower even when the
 		// previous position is unknown; read by WipeTowerIntegration::append_tcr2 (GCode.cpp).
 		bool force_travel = false;
+
+        // Independent Type2 towers: each filament has its own tower. G-code looks the TCR up by
+        // tower_filament and translates with tower_pos instead of the plate's wipe_tower_x/y.
+        bool  has_tower_pos   = false;
+        Vec2f tower_pos       = Vec2f::Zero();
+        int   tower_filament  = -1;
+
+        // First printed layer of this tower (brim / first-layer height), which may not be the
+        // object's layer 0 when sparse layers are skipped. G-code uses this for first-layer
+        // nozzle temperature and fan-off, not GCode::on_first_layer().
+        bool  is_first_layer  = false;
 	};
 
     struct box_coordinates
@@ -500,6 +512,8 @@ private:
 	float  m_wipe_tower_height = 0.f;
     float  m_wipe_tower_brim_width      = 0.f; 	// Width of brim (mm) from config
     float  m_wipe_tower_brim_width_real = 0.f; 	// Width of brim (mm) after generation
+    float  m_wipe_tower_brim_object_gap = 0.f;
+    float  m_wipe_tower_brim_flow_ratio = 1.f;
 	float  m_wipe_tower_rotation_angle = 0.f; // Wipe tower rotation angle in degrees (with respect to x axis)
     float  m_internal_rotation  = 0.f;
 	float  m_y_shift			= 0.f;  // y shift passed to writer
@@ -716,6 +730,132 @@ bool wipe_tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &
 // the z the tower starts from, which Orca offsets by z_offset.
 std::vector<float> compute_compacted_wipe_tower_z(const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes,
                                                   float base_z = 0.f);
+
+// Independent Type2 prime towers: one per used filament, placed separately so a short tower's
+// first layers do not run the toolhead through a taller neighbour.
+static constexpr int INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS = 16;
+static constexpr int INDEPENDENT_WIPE_TOWER_OBJECT_BASE   = 2000;
+static constexpr int WIPE_TOWER_OBJECT_BASE               = 1000;
+
+inline bool is_independent_wipe_tower_object(int object_idx)
+{
+    return object_idx >= INDEPENDENT_WIPE_TOWER_OBJECT_BASE;
+}
+
+inline bool is_wipe_tower_object_idx(int object_idx)
+{
+    return object_idx >= WIPE_TOWER_OBJECT_BASE;
+}
+
+inline int independent_wipe_tower_object_idx(int plate_idx, int filament_id)
+{
+    return INDEPENDENT_WIPE_TOWER_OBJECT_BASE + plate_idx * INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS + filament_id;
+}
+
+inline int independent_wipe_tower_filament_id(int object_idx)
+{
+    return (object_idx - INDEPENDENT_WIPE_TOWER_OBJECT_BASE) % INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+}
+
+inline int independent_wipe_tower_pos_index(int plate_idx, int filament_id)
+{
+    return plate_idx * INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS + filament_id;
+}
+
+inline int wipe_tower_object_plate_idx(int object_idx)
+{
+    if (is_independent_wipe_tower_object(object_idx))
+        return (object_idx - INDEPENDENT_WIPE_TOWER_OBJECT_BASE) / INDEPENDENT_WIPE_TOWER_MAX_FILAMENTS;
+    return object_idx - WIPE_TOWER_OBJECT_BASE;
+}
+
+inline float independent_wipe_tower_spacing(float width, float brim_width)
+{
+    return width + 2.f * std::max(brim_width, 0.f) + 8.f;
+}
+
+inline Vec2f independent_wipe_tower_auto_position(const Vec2f &base, size_t used_order, float spacing)
+{
+    return base + Vec2f(float(used_order) * spacing, 0.f);
+}
+
+// Place towers in a grid that stays on the plate: a single row along +X from `base`, wrapping
+// toward the side with more room when the next cell would leave the printable rectangle.
+inline Vec2f independent_wipe_tower_layout_pos(const Vec2f &base, size_t used_order, float spacing,
+                                               float plate_width, float plate_depth,
+                                               float tower_w, float tower_d, float brim = 0.f)
+{
+    if (plate_width <= 0.f || plate_depth <= 0.f || spacing <= 0.f)
+        return independent_wipe_tower_auto_position(base, used_order, spacing);
+
+    const float margin = 1.f + std::max(brim, 0.f);
+    const float min_x  = margin;
+    const float min_y  = margin;
+    const float max_x  = std::max(min_x, plate_width - std::max(tower_w, 0.f) - margin);
+    const float max_y  = std::max(min_y, plate_depth - std::max(tower_d, 0.f) - margin);
+    const float start_x = std::clamp(base.x(), min_x, max_x);
+    const float start_y = std::clamp(base.y(), min_y, max_y);
+    const int   cols    = std::max(1, int(std::floor(std::max(0.f, max_x - start_x) / spacing + 1e-3f)) + 1);
+    const int   col     = int(used_order % size_t(cols));
+    const int   row     = int(used_order / size_t(cols));
+    const bool  go_down = (start_y - min_y) >= (max_y - start_y);
+    Vec2f pos(start_x + float(col) * spacing,
+              go_down ? start_y - float(row) * spacing : start_y + float(row) * spacing);
+    pos.x() = std::clamp(pos.x(), min_x, max_x);
+    pos.y() = std::clamp(pos.y(), min_y, max_y);
+    return pos;
+}
+
+inline bool independent_wipe_tower_stored_pos(const std::vector<double> &xs, const std::vector<double> &ys, int index, Vec2f &out)
+{
+    if (index < 0 || size_t(index) >= xs.size() || size_t(index) >= ys.size())
+        return false;
+    if (!std::isfinite(xs[size_t(index)]) || !std::isfinite(ys[size_t(index)]))
+        return false;
+    out = Vec2f(float(xs[size_t(index)]), float(ys[size_t(index)]));
+    return true;
+}
+
+// Independent towers grouped by material. Filaments whose materials bond with each other share one
+// tower (printed layer by layer like the stock tower), filaments that do not bond get their own.
+// The project-level n*n matrix `prime_tower_share_matrix` overrides single pairs:
+//   -1 (Auto)     decide from MaterialType::bonds() when prime_tower_group_by_material is on,
+//                 otherwise every filament gets its own tower;
+//    0 (Separate) never put the pair directly on one tower;
+//    1 (Share)    always put the pair on one tower.
+// A group is the transitive closure of the sharing pairs, and is identified by the smallest filament
+// index among its members, so every per-filament storage (positions, object ids) keeps working.
+enum class PrimeTowerShare : int { Auto = -1, Separate = 0, Share = 1 };
+
+// Override stored for pair (a, b); Auto when the matrix is missing or too short.
+PrimeTowerShare prime_tower_share_override(const std::vector<int> &share_matrix, size_t filament_count, unsigned int a, unsigned int b);
+// Writes the override for pair (a, b) symmetrically, growing the matrix to filament_count^2 if needed.
+void prime_tower_set_share_override(std::vector<int> &share_matrix, size_t filament_count, unsigned int a, unsigned int b, PrimeTowerShare value);
+// Whether a and b end up on one tower by the direct rule (override, else material compatibility).
+bool prime_tower_filaments_share(const std::vector<std::string> &filament_types, const std::vector<int> &share_matrix,
+                                 bool auto_by_material, unsigned int a, unsigned int b);
+// Group id per filament index for the given used filaments. The result has filament_types.size()
+// entries (at least max(filaments)+1); filaments not in `filaments` map to themselves.
+std::vector<int> prime_tower_groups(const std::vector<std::string> &filament_types, const std::vector<int> &share_matrix,
+                                    bool auto_by_material, const std::vector<unsigned int> &filaments);
+// Distinct group ids of `filaments` in the order they first appear.
+std::vector<int> prime_tower_group_ids(const std::vector<int> &group_of, const std::vector<unsigned int> &filaments);
+// Group map and ids for the filaments of one plate straight from the print config.
+std::vector<int> prime_tower_groups(const PrintConfig &config, const std::vector<unsigned int> &filaments);
+
+// Centre-to-centre step of the automatic independent tower layout. Compact towers (the default)
+// end at different heights, so a tall tower must stay a full toolhead radius away from a lower
+// neighbour that is still being printed; full-height towers only need a small gap.
+float independent_wipe_tower_auto_spacing(const PrintConfig &config, float width, float brim_width);
+inline float independent_wipe_tower_auto_spacing(bool full_height, float extruder_clearance_radius, float width, float brim_width)
+{
+    const float spacing = independent_wipe_tower_spacing(width, brim_width);
+    if (full_height)
+        return spacing;
+    // Same horizontal rule the compacted-tower clearance check applies between a tower and an
+    // object: hulls a full extruder_clearance_radius apart, plus a little slack.
+    return std::max(spacing, width + 2.f * std::max(brim_width, 0.f) + extruder_clearance_radius + 2.f);
+}
 
 
 // Combination rule for wipe_tower_sparse_layers_combination. Nothing is compacted - the tower keeps

@@ -675,7 +675,6 @@ static const t_config_enum_values s_keys_map_PrimeVolumeMode = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrimeVolumeMode)
 
-
 //BBS
 std::string get_extruder_variant_string(ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type)
 {
@@ -4900,7 +4899,18 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Concentric"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    
+
+    def = this->add("ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Ironing filament");
+    def->category = L("Quality");
+    def->tooltip  = L("Filament to iron the surfaces with.\n\"Default\" uses the filament of the surface being ironed.\n"
+                      "Selecting a specific filament lets the ironing pass use another material than the surface below it, "
+                      "for example a smoother one for a cleaner finish.");
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("ironing_flow", coPercent);
     def->label = L("Ironing flow");
     def->category = L("Quality");
@@ -6799,6 +6809,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wipe_tower_use_first_layer_height", coBool);
+    def->label = L("Use first layer height");
+    def->tooltip = L("If enabled together with \"No sparse layers\", the first wipe tower layer that is actually printed uses the print's first layer height. "
+                    "Without this, that layer follows the thinner object layer it happens to land on, which can weaken bed adhesion.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("wipe_tower_sparse_layers_combination", coBool);
     def->label = L("Combine sparse layers");
     def->tooltip = L("If enabled, consecutive layers on which the prime tower has no filament change are printed as a single "
@@ -7439,6 +7456,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
 
+    def = this->add("support_ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Support ironing filament");
+    def->category = L("Support");
+    def->tooltip = L("Filament to iron the support interface with.\n\"Default\" uses the same filament as the support interface.\n"
+                     "Selecting a specific filament lets the ironing pass use a different material than the interface, "
+                     "for example a smoother or non-bonding filament for a cleaner support-facing surface.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");
     def->tooltip = L("Enable this option for automated chamber temperature control. "
@@ -7676,6 +7704,60 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("prime_tower_multimaterial", coBool);
+    def->label = L("Multimaterial tower");
+    def->tooltip = L("Give each filament its own region of the prime tower, so that a filament is never "
+                     "printed on top of a different one. One filament purges into the outer shell of the "
+                     "tower (and prints its brim), the other purges into the inner core. This helps when "
+                     "the filaments do not bond to each other, such as PLA and PETG.\n\n"
+                     "The tower is sized so that every region can absorb at least its required purge "
+                     "volume, so the tower may use more material than the purge alone would need. On a "
+                     "layer with no tool change only one filament is available, and that layer is "
+                     "printed as a normal single-material tower layer.\n\n"
+                     "Requires exactly two filaments, a rectangular tower wall and a printer that does not "
+                     "ram the old filament into the tower.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("prime_tower_independent", coBool);
+    def->label = L("Independent towers");
+    def->tooltip = L("Alpha version.\n\n"
+                     "Print a separate prime tower for each filament used on the plate. The towers share "
+                     "the prime tower settings (wall type, brim, prime volume) and can be placed "
+                     "independently so the toolhead does not hit an older, taller tower while printing "
+                     "the first layers of a new one.\n\n"
+                     "Cannot be combined with the multimaterial tower. Requires a printer that does not "
+                     "ram the old filament into the tower.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("prime_tower_group_by_material", coBool);
+    def->label = L("Group towers by material");
+    def->tooltip = L("With independent towers, filaments whose materials bond to each other (for example "
+                     "several PETG colours) share one tower that is printed layer by layer like the "
+                     "standard prime tower, while materials that do not bond (for example PLA supports "
+                     "next to PETG parts) get a tower of their own. Materials with unknown compatibility "
+                     "are kept apart.\n\n"
+                     "Single pairs can be overridden in the \"Tower sharing\" table next to the filament list.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("prime_tower_independent_full_height", coBool);
+    def->label = L("Full height towers");
+    def->tooltip = L("Keep every independent tower as tall as the object. On a layer where none of a tower's "
+                     "filaments is printed, a change to one of them is forced so the tower still gets a layer. "
+                     "This costs extra tool changes and purge.\n\n"
+                     "Off: a tower only grows on the layers where one of its filaments prints and stays lower "
+                     "than the object (compact towers).");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Project-level n*n override matrix for independent tower sharing; see PrimeTowerShare.
+    def = this->add("prime_tower_share_matrix", coInts);
+    def->label = L("Tower sharing");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInts{});
+
     def = this->add("flush_volumes_vector", coFloats);
     // BBS: remove _L()
     def->label = ("Purging volumes - load/unload volumes");
@@ -7751,6 +7833,16 @@ void PrintConfigDef::init_fff_params()
     // BBS: change data type to floats to add partplate logic
     def->set_default_value(new ConfigOptionFloats{ 220. });
 
+    def = this->add("independent_wipe_tower_x", coFloats);
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{});
+
+    def = this->add("independent_wipe_tower_y", coFloats);
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{});
+
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");
     def->tooltip = L("This is the width of prime towers.");
@@ -7777,6 +7869,26 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Auto"));
     def->set_default_value(new ConfigOptionFloat(3.));
 
+    def = this->add("prime_tower_brim_object_gap", coFloat);
+    def->label = L("Brim-object gap");
+    def->tooltip = L("This creates a gap between the innermost brim line and the prime tower and can make the brim easier to remove. "
+                     "A negative value presses the brim into the prime tower. "
+                     "The model's Brim-object gap is not used here.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = -1;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("prime_tower_brim_flow_ratio", coFloat);
+    def->label = L("Brim flow ratio");
+    def->tooltip = L("This factor affects the amount of material for the prime tower brim. The model's Brim flow ratio is not used here.\n\n"
+                     "The actual brim flow used is calculated by multiplying this value by the filament flow ratio.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
+
     def = this->add("wipe_tower_cone_angle", coFloat);
     def->label = L("Stabilization cone apex angle");
     def->tooltip = L("Angle at the apex of the cone that is used to stabilize the wipe tower. "
@@ -7799,6 +7911,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->min = 10;
     def->set_default_value(new ConfigOptionFloat(90.));
+
+    def = this->add("prime_tower_acceleration", coFloat);
+    def->label = L("Acceleration");
+    def->tooltip = L("Acceleration used when travelling to the prime tower and printing it. "
+                     "Set to 0 to keep the current print and travel acceleration.\n\n"
+                     "A lower value reduces how hard the nozzle hits the tower.");
+    def->sidetext = L(u8"mm/s²");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
 
     def = this->add("wipe_tower_wall_type", coEnum);
     def->label = L("Wall type");
