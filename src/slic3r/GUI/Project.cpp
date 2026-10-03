@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <utility>
 #include <vector>
 #include <string>
 #include "slic3r/GUI/GUI.hpp"

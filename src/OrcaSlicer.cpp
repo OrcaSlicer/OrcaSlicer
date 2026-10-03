@@ -37,6 +37,7 @@
 #include "libslic3r/TriangleSelector.hpp"
 #include <algorithm>
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Format/AssembleList.hpp"
 #include <cstdlib>
 #include <stdlib.h>
 #include <stdexcept>

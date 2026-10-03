@@ -3,9 +3,16 @@
 #include <algorithm>
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
+#include <exception>
 
 #include "nlohmann/json.hpp"
 

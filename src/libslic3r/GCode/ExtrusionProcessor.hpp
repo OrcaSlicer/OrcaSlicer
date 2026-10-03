@@ -15,6 +15,7 @@
 #include "../ClipperUtils.hpp"
 #include "../Flow.hpp"
 #include "../Config.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 
@@ -22,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <memory>
