@@ -140,6 +140,8 @@ using namespace nlohmann;
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GuiColor.hpp"
 #include <GLFW/glfw3.h>
+#include <boost/nowide/convert.hpp>
+#include <stdio.h>
 
 #ifdef __WXGTK__
 #if __has_include(<X11/Xlib.h>)

@@ -14,6 +14,8 @@
 #include <stdexcept>
 
 #include <fast_float/fast_float.h>
+#include <clocale>
+#include <system_error>
 
 
 namespace Slic3r {

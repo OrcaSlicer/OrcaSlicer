@@ -35,6 +35,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
+#include <cstddef>
 
 #ifdef _WIN32
 #include <windows.h>

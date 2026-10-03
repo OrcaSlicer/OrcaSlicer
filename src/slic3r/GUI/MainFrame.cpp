@@ -136,6 +136,9 @@
 #include <wx/glcanvas.h>
 #endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
+#include <cassert>
+#include <wx/display.h>
+#include <wx/window.h>
 
 
 namespace Slic3r {

@@ -20,6 +20,7 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/event.h>
+#include <wx/dvrenderers.h>
 #ifdef wxHAS_GENERIC_DATAVIEWCTRL
 #include "wx/generic/private/markuptext.h"
 #include "wx/generic/private/rowheightcache.h"

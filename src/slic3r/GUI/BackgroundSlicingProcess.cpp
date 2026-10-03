@@ -56,6 +56,9 @@
 
 #include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
+#ifdef _WIN32
+#include <excpt.h>
+#endif
 
 namespace Slic3r {
 

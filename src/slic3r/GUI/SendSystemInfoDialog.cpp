@@ -74,6 +74,9 @@
 
 #include <atomic>
 #include <thread>
+#include "slic3r/GUI/GUI.hpp"
+#include <cstdlib>
+#include <iomanip>
 
 #ifdef _WIN32
     #include <windows.h>

@@ -40,6 +40,7 @@
 #include "GUI.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
+#include <wx/types.h>
 
 
 namespace fs = boost::filesystem;

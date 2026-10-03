@@ -64,6 +64,8 @@
 #include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
+#include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
 
 namespace Slic3r { namespace GUI {
 

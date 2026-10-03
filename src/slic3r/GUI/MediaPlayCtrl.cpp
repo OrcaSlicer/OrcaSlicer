@@ -73,6 +73,7 @@
 
 #include <wx/clipbrd.h>
 #include "wx/evtloop.h"
+#include <boost/nowide/convert.hpp>
 
 static std::map<int, std::string> error_messages = {
     {1, L("The device cannot handle more conversations. Please retry later.")},
