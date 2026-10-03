@@ -260,6 +260,7 @@ set(lisbslic3r_sources
     GCode/SeamPlacer.hpp
     GCode/PreciseSeam.cpp
     GCode/PreciseSeam.hpp
+    GCode/PreciseSeamInternal.hpp
     #GCodeSender.cpp
     #GCodeSender.hpp
     GCode/SmallAreaInfillFlowCompensator.cpp

@@ -27362,17 +27362,30 @@ msgstr ""
 msgid "Precise Seam"
 msgstr "Точный шов"
 
-msgid "multiple intersections with a perimeter detected"
-msgstr "обнаружены множественные пересечения с периметром"
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "failed to process some intersections (%1%)"
+msgstr "не удалось обработать некоторые пересечения (%1%)"
 
-msgid "modifier fully crosses the printable perimeter"
-msgstr "модификатор пересекает печатаемый периметр насквозь"
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "multiple intersections with a perimeter, only one was used (%1%)"
+msgstr "несколько пересечений с периметром, использовано только одно (%1%)"
 
-msgid "modifier shape is not solid (has holes inside) and was ignored"
-msgstr "форма модификатора не сплошная (имеет отверстия) и была проигнорирована"
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "a perimeter is fully inside a modifier, the modifier was not applied to it (%1%)"
+msgstr "периметр целиком внутри модификатора, модификатор для него не применён (%1%)"
 
-msgid "perimeter is fully contained inside modifier and was ignored"
-msgstr "периметр полностью содержится внутри модификатора и был проигнорирован"
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr "модификатор «%1%» модели «%2%» не повлиял на шов (возможно, он не достигает осевой линии печатаемого периметра)"
+
+#: src/libslic3r/GCode/SeamPlacer.cpp
+#, possible-boost-format
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
+msgstr "модификатор «%1%» модели «%2%» (всего: %3%) не повлиял на шов (возможно, он не достигает осевой линии печатаемого периметра)"
 
 msgid "Seam placement may differ from expected."
 msgstr "Размещение шва может отличаться от ожидаемого."

@@ -1577,19 +1577,12 @@ ExPolygons PrintObject::_shrink_contour_holes(double contour_delta, double hole_
 
 std::vector<Polygons> PrintObject::slice_support_volumes(const ModelVolumeType model_volume_type) const
 {
-    // Supports merge every matching volume; Precise Seam calls the shared slicer one volume at a time.
-    std::vector<const ModelVolume*> volumes;
-    for (const ModelVolume *volume : this->model_object()->volumes)
-        if (volume->type() == model_volume_type)
-            volumes.push_back(volume);
-    return this->slice_modifier_volumes(volumes);
-}
-
-std::vector<Polygons> PrintObject::slice_modifier_volumes(const std::vector<const ModelVolume*> &volumes) const
-{
+    auto it_volume     = this->model_object()->volumes.begin();
+    auto it_volume_end = this->model_object()->volumes.end();
+    for (; it_volume != it_volume_end && (*it_volume)->type() != model_volume_type; ++ it_volume) ;
     std::vector<Polygons> slices;
-    if (!volumes.empty()) {
-        // Share layer heights, transforms and cancellation handling across the selected volumes.
+    if (it_volume != it_volume_end) {
+        // Found at least a single support volume of model_volume_type.
         std::vector<float> zs = zs_from_layers(this->layers());
         std::vector<char>  merge_layers;
         bool               merge = false;
@@ -1597,26 +1590,27 @@ std::vector<Polygons> PrintObject::slice_modifier_volumes(const std::vector<cons
         auto               throw_on_cancel_callback = std::function<void()>([print](){ print->throw_if_canceled(); });
         MeshSlicingParamsEx params;
         params.trafo = this->trafo_centered();
-        for (const ModelVolume *volume : volumes) {
-            std::vector<ExPolygons> slices2 = slice_volume(*volume, zs, params, throw_on_cancel_callback);
-            if (slices.empty()) {
-                slices.reserve(slices2.size());
-                for (ExPolygons &src : slices2)
-                    slices.emplace_back(to_polygons(std::move(src)));
-            } else if (!slices2.empty()) {
-                if (merge_layers.empty())
-                    merge_layers.assign(zs.size(), false);
-                for (size_t i = 0; i < zs.size(); ++ i) {
-                    if (slices[i].empty())
-                        slices[i] = to_polygons(std::move(slices2[i]));
-                    else if (! slices2[i].empty()) {
-                        append(slices[i], to_polygons(std::move(slices2[i])));
-                        merge_layers[i] = true;
-                        merge = true;
+        for (; it_volume != it_volume_end; ++ it_volume)
+            if ((*it_volume)->type() == model_volume_type) {
+                std::vector<ExPolygons> slices2 = slice_volume(*(*it_volume), zs, params, throw_on_cancel_callback);
+                if (slices.empty()) {
+                    slices.reserve(slices2.size());
+                    for (ExPolygons &src : slices2)
+                        slices.emplace_back(to_polygons(std::move(src)));
+                } else if (!slices2.empty()) {
+                    if (merge_layers.empty())
+                        merge_layers.assign(zs.size(), false);
+                    for (size_t i = 0; i < zs.size(); ++ i) {
+                        if (slices[i].empty())
+                            slices[i] = to_polygons(std::move(slices2[i]));
+                        else if (! slices2[i].empty()) {
+                            append(slices[i], to_polygons(std::move(slices2[i])));
+                            merge_layers[i] = true;
+                            merge = true;
+                        }
                     }
                 }
             }
-        }
         if (merge) {
             std::vector<Polygons*> to_merge;
             to_merge.reserve(zs.size());
@@ -1632,6 +1626,18 @@ std::vector<Polygons> PrintObject::slice_modifier_volumes(const std::vector<cons
         }
     }
     return slices;
+}
+
+std::vector<ExPolygons> PrintObject::slice_single_volume_regions(const ModelVolume* volume) const
+{
+    if (volume == nullptr)
+        return {};
+    // Match the existing slicing heights and centered transform without flattening holes.
+    const std::vector<float> zs = zs_from_layers(this->layers());
+    MeshSlicingParamsEx params;
+    params.trafo = this->trafo_centered();
+    const Print *print = this->print();
+    return slice_volume(*volume, zs, params, [print]() { print->throw_if_canceled(); });
 }
 
 } // namespace Slic3r
