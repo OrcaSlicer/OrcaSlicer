@@ -1633,7 +1633,7 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
                 // Orca: An extruder name only disambiguates variants on printers with multiple extruders.
                 if (multiple_extruders && extruder_id && variant_index < extruder_id->size() && extruder_id->values[variant_index] > 0) {
                     const wxString extruder_name = Tab::translate_category(
-                        wxString::Format("Extruder %d", extruder_id->values[variant_index]), Preset::TYPE_PRINTER);
+                        wxString::Format("T%d", extruder_id->values[variant_index]), Preset::TYPE_PRINTER);
                     variant_label = extruder_name + " (" + variant_label + ")";
                 }
                 category = variant_label + ": " + category;

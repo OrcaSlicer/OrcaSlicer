@@ -170,6 +170,7 @@ public:
         btns[index]->SetTextColor(color);
         btns[index]->Refresh();
     }
+    void SetModified(int index, bool modified);
     void SetButtonCornerRadius(double radius);
     void SetButtonPadding(const wxSize &padding);
 
@@ -194,6 +195,7 @@ private:
     void on_size(wxSizeEvent &evt);
 
     std::vector<Button *> btns;
+    std::vector<bool> btns_modified;
     // The buttons are laid out inside this scrolled area so that a switch holding more options than
     // the layout has room for scrolls instead of clipping its tail.
     wxScrolledWindow     *m_scroll         = nullptr;
@@ -203,6 +205,8 @@ private:
 
     StateColor m_bg_color;
     StateColor m_text_color;
+    StateColor m_br_color_modified;
+    StateColor m_fg_color_modified;
     double     m_button_radius;
     wxSize     m_button_padding;
 };

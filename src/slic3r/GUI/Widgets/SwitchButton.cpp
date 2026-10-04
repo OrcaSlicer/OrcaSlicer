@@ -632,10 +632,16 @@ bool SwitchBoard::Enable(bool enable /* = true */)
 MultiSwitchButton::MultiSwitchButton(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)
     : StaticBox(parent, id, pos, size, style)
     , m_bg_color(StateColor(
-          std::make_pair(0xE8E8E8, (int) StateColor::NotChecked),
+          std::make_pair(0xD9D9D9, (int) StateColor::NotChecked),
           std::make_pair(0x009688, (int) StateColor::Normal)))
     , m_text_color(StateColor(
           std::make_pair(0x6B6B6B, (int) StateColor::NotChecked),
+          std::make_pair(0xFFFFFE, (int) StateColor::Normal)))
+    , m_br_color_modified(StateColor(
+          std::make_pair(0xD9D9D9, (int) StateColor::NotChecked),
+          std::make_pair(0xF1754F, (int) StateColor::Normal)))
+    , m_fg_color_modified(StateColor(
+          std::make_pair(0xF1754E, (int) StateColor::NotChecked),
           std::make_pair(0xFFFFFE, (int) StateColor::Normal)))
     , m_button_radius(10.0)
     , m_button_padding(FromDIP(wxSize(11, 3)))
@@ -647,6 +653,7 @@ MultiSwitchButton::MultiSwitchButton(wxWindow *parent, wxWindowID id, const wxPo
     // tool), so they live in a scrolled area: the caller caps the switch at its natural width and
     // this scrolls horizontally instead of clipping the last buttons.
     m_scroll = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxBORDER_NONE);
+    //m_scroll->SetBackgroundColour(wxColour("#D9D9D9"));
     m_scroll->SetBackgroundColour(GetBackgroundColour());
     // The buttons are a single row, so only the horizontal bar may ever appear: a vertical one would
     // eat into the row's height.
@@ -754,15 +761,17 @@ void MultiSwitchButton::scroll_option_into_view(Button *btn)
 int MultiSwitchButton::AppendOption(const wxString &option, void *clientData)
 {
     Button *btn = new Button();
-    btn->Create(m_scroll, option, "", wxBORDER_NONE);
+    btn->Create(m_scroll, option);
     btn->SetFont(GetFont());
     btn->SetBackgroundColor(m_bg_color);
+    btn->SetBorderColor(m_bg_color);
     btn->SetTextColor(m_text_color);
     btn->SetCornerRadius(m_button_radius);
     btn->SetPaddingSize(m_button_padding);
     btn->SetClientData(clientData);
 
     btns.push_back(btn);
+    btns_modified.push_back(false);
     sizer->Add(btn, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
     return int(btns.size()) - 1;
@@ -787,6 +796,7 @@ void MultiSwitchButton::DeleteAllOptions()
             btn->Destroy();
     }
     btns.clear();
+    btns_modified.clear();
     if (sizer)
         sizer->Clear();
 }
@@ -848,8 +858,8 @@ void MultiSwitchButton::update_button_styles()
 {
     for (int i = 0; i < (int) btns.size(); ++i) {
         btns[i]->SetValue(i == sel);
-        btns[i]->SetBackgroundColor(m_bg_color);
-        btns[i]->SetTextColor(m_text_color);
+        btns[i]->SetBorderColor(btns_modified[i] ? m_br_color_modified : m_bg_color  );
+        btns[i]->SetTextColor(  btns_modified[i] ? m_fg_color_modified : m_text_color); 
         btns[i]->Refresh();
     }
 }
@@ -884,6 +894,13 @@ void MultiSwitchButton::SetButtonPadding(const wxSize &padding)
     update_scroll_range();
     Layout();
     Refresh();
+}
+
+void MultiSwitchButton::SetModified(int index, bool modified){
+    if(index < 0 || index >= btns_modified.size())
+        return;
+    btns_modified[index] = modified;
+    update_button_styles();
 }
 
 void MultiSwitchButton::Rescale()

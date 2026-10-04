@@ -554,6 +554,7 @@ void Tab::create_preset_tab()
 
     if (dynamic_cast<TabPrinter *>(this) || dynamic_cast<TabPrint *>(this)) {
         m_extruder_switch = new MultiSwitchButton(panel);
+        m_extruder_switch->SetFont(Label::Body_11);
         m_extruder_switch->SetFitToOptions();
         m_extruder_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
             evt.Skip();
@@ -579,23 +580,32 @@ void Tab::create_preset_tab()
             sync_excluder();
         });
 
+        static ScalableBitmap multi_extruder;
+        add_scaled_bitmap(panel, multi_extruder, "multi_extruder");
+        auto icon = new wxStaticBitmap(panel, wxID_ANY, multi_extruder.bmp());
+        icon->SetToolTip(_L("Parameters with this icon can be configurable per nozzle."));
+
         auto sync_box_sizer = new wxBoxSizer(wxHORIZONTAL);
         sync_box_sizer->Add(m_extruder_sync, 1, wxEXPAND);
         m_extruder_sync_box->SetSizer(sync_box_sizer);
 
         m_variant_sizer  = new wxBoxSizer(wxHORIZONTAL);
         auto right_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto left_sizer  = new wxBoxSizer(wxHORIZONTAL);
 
+        m_variant_sizer->Add(left_sizer, 0, wxALIGN_CENTER);
         m_variant_sizer->AddStretchSpacer(1);
         // Orca: proportion 1 lets a narrow row squeeze the switch, which then scrolls its buttons.
         m_variant_sizer->Add(m_extruder_switch, 1, wxALIGN_CENTER, 0);
-        m_variant_sizer->Add(right_sizer, 1, wxALIGN_CENTER);
-        right_sizer->AddStretchSpacer(1);
+        m_variant_sizer->AddStretchSpacer(1);
+        m_variant_sizer->Add(right_sizer, 0, wxALIGN_CENTER);
+        left_sizer->Add(icon               , 0, wxALIGN_CENTER | wxLEFT , m_em_unit);
         right_sizer->Add(m_extruder_sync_box, 0, wxALIGN_CENTER | wxRIGHT, m_em_unit);
 
         m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
     } else if (dynamic_cast<TabFilament *>(this)) {
         m_variant_combo = new MultiSwitchButton(panel);
+        m_variant_combo->SetFont(Label::Body_11);
         m_variant_combo->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
             evt.Skip();
             switch_excluder(evt.GetInt());
@@ -607,11 +617,17 @@ void Tab::create_preset_tab()
             m_page_view->GetParent()->Layout();
         });
 
+        static ScalableBitmap multi_extruder;
+        add_scaled_bitmap(panel, multi_extruder, "multi_extruder");
+        auto icon = new wxStaticBitmap(panel, wxID_ANY, multi_extruder.bmp());
+        icon->SetToolTip(_L("Parameters with this icon can be configurable per nozzle."));
+
 
         wxBoxSizer *combo_sizer = new wxBoxSizer(wxHORIZONTAL);
         combo_sizer->Add(m_variant_combo, 1, wxEXPAND);
         wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
-        top_sizer->Add(combo_sizer, 1, wxEXPAND | wxLEFT, m_em_unit);
+        top_sizer->Add(icon       , 0, wxALIGN_CENTER);
+        top_sizer->Add(combo_sizer, 1, wxEXPAND | wxLEFT, FromDIP(2));
         m_variant_sizer  = new wxBoxSizer(wxVERTICAL);
         m_variant_sizer->Add(top_sizer, 0, wxLEFT, m_em_unit);
         m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
@@ -810,7 +826,7 @@ wxString Tab::translate_category(const wxString& title, Preset::Type preset_type
             if (title == "Extruder 1") return _("Left Extruder");
             if (title == "Extruder 2") return _("Right Extruder");
         }
-        return _("Extruder") + title.SubString(8, title.Last());
+        return _("T") + title.SubString(9, title.Last()); // ORCA use T1,T2... instead "Extruder 1" .. to make printer settings usable for toolchangers
     }
     return _(title);
 }
@@ -1220,43 +1236,30 @@ void Tab::update_extruder_switch_colors()
     }
 
     auto options = generate_extruder_options();
-    auto extruders = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnumsGeneric>("extruder_type");
 
-    for (size_t switch_index = 0; switch_index < options.size(); ++switch_index) {
-        int selection = m_extruder_switch ? m_extruder_switch->GetSelection() : (m_variant_combo ? m_variant_combo->GetSelection() : 0);
-        if (switch_index == selection) continue;
-
-        bool sys_extruder = true;
-        bool modified_extruder = false;
-        std::vector<PageShp> pages_to_check;
-
-        if (m_active_page) {
-            if (m_active_page->title() == "Speed" || m_active_page->title() == "Motion ability" || m_active_page->title() == "Filament" ||
-                m_active_page->title() == "Setting Overrides" || m_active_page->title() == "Multimaterial") {
-                for (auto page_ptr : m_pages) {
-                    if (page_ptr.get() == m_active_page) {
-                        pages_to_check.push_back(page_ptr);
-                        break;
-                    }
+    std::vector<PageShp> pages_to_check;
+    if (m_active_page) {
+        const wxString t = m_active_page->title();
+        if (t == "Speed" || t == "Motion ability" || t == "Filament" ||
+            t == "Setting Overrides" || t == "Multimaterial") {
+            for (auto &p : m_pages){
+                if (p.get() == m_active_page) {
+                    pages_to_check.push_back(p);
+                    break;
                 }
             }
         }
-        if (pages_to_check.empty()) {
-            continue;
-        }
-        check_extruder_options_status(switch_index, sys_extruder, modified_extruder, pages_to_check);
+    }
 
-        StateColor default_color(std::make_pair(0x6B6B6B, (int) StateColor::NotChecked), std::make_pair(0xFFFFFE, (int) StateColor::Normal));
-        StateColor color = modified_extruder ? StateColor(m_modified_label_clr) : default_color;
+    for (size_t switch_index = 0; switch_index < options.size(); ++switch_index) {
+        bool sys_extruder = true;
+        bool modified_extruder = false;
+        if (!pages_to_check.empty())
+            check_extruder_options_status((int) switch_index, sys_extruder, modified_extruder, pages_to_check);
+        // no matching page: clear the flag so the tag doesn't keep a stale color
 
-        if (m_extruder_switch)
-            m_extruder_switch->SetButtonTextColor(switch_index, color);
-        if (m_variant_combo) {
-            Button *btn = m_variant_combo->GetButton(switch_index);
-            if (btn) {
-                m_variant_combo->SetButtonTextColor(switch_index, color);
-            }
-        }
+        if (m_extruder_switch) m_extruder_switch->SetModified(switch_index, modified_extruder);
+        if (m_variant_combo)   m_variant_combo->SetModified(switch_index, modified_extruder);
     }
 }
 
@@ -8244,6 +8247,9 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         if (extruder_nums >= 2 && m_preset_bundle->support_different_extruders()) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
+            int item_n = options.empty() ? 0 : options.size();
+            int h_pad  = item_n > 6 ? 6 : (item_n > 4 ? 8 : (item_n > 2 ? 10 : 16));
+            m_extruder_switch->SetButtonPadding(FromDIP(wxSize(h_pad,3)));
 
             int selection_index;
             if (extruder_id >= 0) {
@@ -8270,6 +8276,9 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         const int selection = m_variant_combo->GetSelection();
         auto      options   = generate_extruder_options();
         m_variant_combo->SetOptions(options);
+        int item_n = options.empty() ? 0 : options.size();
+        int h_pad  = item_n > 6 ? 6 : (item_n > 4 ? 8 : (item_n > 2 ? 10 : 16));
+        m_variant_combo->SetButtonPadding(FromDIP(wxSize(h_pad,3)));
 
         if (!options.empty())
             m_variant_combo->SetSelection(selection < 0 || selection >= (int) options.size() ? 0 : selection);
@@ -8347,7 +8356,7 @@ std::vector<wxString> Tab::generate_extruder_options()
                     nozzle = "";
                 }
             }
-            options.push_back(wxString::Format(_L("%s: %s"), _L(drive), short_nozzle_volume_name(nozzle)));
+            options.push_back(wxString::Format(_L("%s %s"), _L(drive), short_nozzle_volume_name(nozzle)));
         }
         return options;
     }
@@ -8372,10 +8381,10 @@ std::vector<wxString> Tab::generate_extruder_options()
         NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
 
         if (volume_type == NozzleVolumeType::nvtHybrid) {
-            options.push_back(wxString::Format(_L("%s: %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard))));
-            options.push_back(wxString::Format(_L("%s: %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow))));
+            options.push_back(wxString::Format(_L("%s %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard))));
+            options.push_back(wxString::Format(_L("%s %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow))));
         } else {
-            options.push_back(wxString::Format(_L("%s: %s"), extruder_name,
+            options.push_back(wxString::Format(_L("%s %s"), extruder_name,
                                                short_nozzle_volume_name(get_nozzle_volume_type_string(volume_type))));
         }
     }

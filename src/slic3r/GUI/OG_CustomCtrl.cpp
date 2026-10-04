@@ -203,10 +203,11 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                 wxSize near_label_widget_sz = line.near_label_widget_win->GetSize();
                 if (field_in)
                     h_pos += near_label_widget_sz.GetWidth() + m_h_gap;
-                else
+                else {
+                    h_pos += m_h_gap; // ORCA fixes alignment of checkboxes on Setting Overrides page
                     break;
+                }
             }
-
             wxString label = line.label;
             if (opt_group->label_width != 0)
                 add_label_width(ctrl_line, label, opt_group->label_width * m_em_unit);
@@ -804,10 +805,20 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         return;
     }
 
+    const std::vector<Option>& option_set = og_line.get_options();
+
+    // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned
+    bool is_multi_extruder = false;
+    if (ctrl->opt_group->draw_multi_extruder)
+        for (const Option& opt : option_set)
+            is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
+    if (is_multi_extruder) {
+        static ScalableBitmap multi_extruder(ctrl, "multi_extruder");
+        h_pos = draw_act_bmps(dc, wxPoint(h_pos - multi_extruder.bmp().GetWidth() - ctrl->m_h_gap, v_pos), multi_extruder.bmp(), multi_extruder.bmp(), false, 0, true).x + ctrl->m_h_gap;
+    }
+
     if (og_line.near_label_widget_win)
         h_pos += og_line.near_label_widget_win->GetSize().x + ctrl->m_h_gap;
-
-    const std::vector<Option>& option_set = og_line.get_options();
 
     wxString label = og_line.label;
     wxColour blink_color = StateColor::darkModeColorFor("#009688");
@@ -821,18 +832,9 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
                 break;
             }
         }
-        bool is_multi_extruder = false;
-        if (ctrl->opt_group->draw_multi_extruder)
-            for (const Option& opt : option_set)
-                is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
-        wxCoord icon_pos = h_pos;
-        if (is_multi_extruder) {
-            static ScalableBitmap multi_extruder(ctrl, "multi_extruder");
-            h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), multi_extruder.bmp(), multi_extruder.bmp(), false, 0, true).x;
-        }
         is_url_string = !suppress_hyperlinks && !og_line.label_path.empty();
         // BBS
-        h_pos = draw_text(dc, wxPoint(h_pos, v_pos), label /* + ":" */, text_clr, icon_pos + ctrl->opt_group->label_width * ctrl->m_em_unit - h_pos, is_url_string, true);
+        h_pos = draw_text(dc, wxPoint(h_pos, v_pos), label /* + ":" */, text_clr, h_pos + ctrl->opt_group->label_width * ctrl->m_em_unit - h_pos, is_url_string, true);
     }
 
     // If there's a widget, build it and set result to the correct position.
