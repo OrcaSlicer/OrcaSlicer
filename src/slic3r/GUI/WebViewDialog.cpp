@@ -1,5 +1,6 @@
 #include "WebViewDialog.hpp"
 
+#include "CloudProvider.hpp"
 #include "I18N.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -7,15 +8,41 @@
 #include "libslic3r_version.h"
 #include "../Utils/Http.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
+#include <algorithm>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <utility>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Utils.hpp"
+#include <wx/log.h>
+#include "libslic3r/Config.hpp"
+#include <wx/filefn.h>
+#include <wx/filename.h>
+#include <sstream>
+#include <string>
+#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <functional>
+#include <cstddef>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/timer.h>
+#include <wx/textctrl.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
+#include <wx/toplevel.h>
 #include <wx/url.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
+#include <wx/webview.h>
+#include <wx/utils.h>
+#include <wx/window.h>
 
 namespace pt = boost::property_tree;
 
@@ -36,10 +63,10 @@ namespace GUI {
 WebViewPanel::WebViewPanel(wxWindow *parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
  {
-    wxString url = wxString::Format("file://%s/web/homepage/index.html", from_u8(resources_dir()));
+    m_home_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/homepage/index.html");
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
-        url = wxString::Format("file://%s/web/homepage/index.html?lang=%s", from_u8(resources_dir()), strlang);
+        m_home_url += "?lang=" + strlang;
 
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
     
@@ -83,12 +110,8 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     m_info = new wxInfoBar(this);
     topsizer->Add(m_info, wxSizerFlags().Expand());
     // Create the webview
-    m_browser = WebView::CreateWebView(this, url);
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
-    m_browser->Hide();
+    create_browser();
+    m_reset_on_show = WebView::NeedsRecreateOnShow();
     SetSizer(topsizer);
 
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
@@ -219,6 +242,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     Bind(wxEVT_CLOSE_WINDOW, &WebViewPanel::OnClose, this);
 
     m_LoginUpdateTimer = nullptr;
+    update_mode();
  }
 
 WebViewPanel::~WebViewPanel()
@@ -236,6 +260,27 @@ WebViewPanel::~WebViewPanel()
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " End";
 }
 
+
+void WebViewPanel::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, m_home_url);
+    m_browser->Hide();
+}
+
+void WebViewPanel::reset_browser()
+{
+    m_browser->Destroy(); // also removes it from the sizer
+    create_browser();
+    GetSizer()->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+    Layout();
+}
+
+bool WebViewPanel::Show(bool show)
+{
+    if (show && std::exchange(m_reset_on_show, false))
+        reset_browser();
+    return wxPanel::Show(show);
+}
 
 void WebViewPanel::load_url(wxString& url)
 {
@@ -416,8 +461,7 @@ void WebViewPanel::OnClose(wxCloseEvent& evt)
 
 void WebViewPanel::OnFreshLoginStatus(wxTimerEvent &event)
 {
-    auto mainframe = Slic3r::GUI::wxGetApp().mainframe;
-    if (mainframe && mainframe->m_webview == this) {
+    if (WebViewPanel::if_built() == this) {
         auto* app_config = Slic3r::GUI::wxGetApp().app_config;
         if (app_config && app_config->get_stealth_mode()) return;
         Slic3r::GUI::wxGetApp().get_login_info(ORCA_CLOUD_PROVIDER);

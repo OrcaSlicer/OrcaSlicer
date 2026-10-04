@@ -7,6 +7,19 @@
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
+#include <memory>
+#include <unordered_map>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <vector>
+#include <exception>
+#include <cassert>
+#include <boost/log/trivial.hpp>
+#include <optional>
+#include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 #include <wx/string.h>
 
 namespace Slic3r

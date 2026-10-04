@@ -2,6 +2,12 @@
 #define slic3r_GUI_HintNotification_hpp_
 
 #include "NotificationManager.hpp"
+#include <string>
+#include <cstddef>
+#include <functional>
+#include <boost/filesystem/path.hpp>
+#include <vector>
+#include <wx/event.h>
 
 namespace Slic3r {namespace GUI {
 

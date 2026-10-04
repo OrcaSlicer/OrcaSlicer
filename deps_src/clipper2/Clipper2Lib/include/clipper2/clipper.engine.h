@@ -15,6 +15,13 @@
 #include <functional>
 #include <memory>
 
+// Orca: engine nodes are allocated through tbbmalloc, see clipper.engine.cpp.
+#define CLIPPER2_NODE_ALLOCATOR \
+	static void* operator new(size_t size); \
+	static void operator delete(void* ptr) noexcept; \
+	static void* operator new[](size_t size); \
+	static void operator delete[](void* ptr) noexcept;
+
 #ifdef USINGZ
 namespace Clipper2Lib_Z {
 #else
@@ -50,6 +57,7 @@ namespace Clipper2Lib {
 	}
 
 	struct Vertex {
+		CLIPPER2_NODE_ALLOCATOR
 		Point64 pt;
 		Vertex* next = nullptr;
 		Vertex* prev = nullptr;
@@ -57,6 +65,7 @@ namespace Clipper2Lib {
 	};
 
 	struct OutPt {
+		CLIPPER2_NODE_ALLOCATOR
 		Point64 pt;
 		OutPt*	next = nullptr;
 		OutPt*	prev = nullptr;
@@ -81,6 +90,7 @@ namespace Clipper2Lib {
 	//OutRec: contains a path in the clipping solution. Edges in the AEL will
 	//have OutRec pointers assigned when they form part of the clipping solution.
 	struct OutRec {
+		CLIPPER2_NODE_ALLOCATOR
 		size_t idx = 0;
 		OutRec* owner = nullptr;
 		Active* front_edge = nullptr;
@@ -106,6 +116,7 @@ namespace Clipper2Lib {
 	///////////////////////////////////////////////////////////////////
 
 	struct Active {
+		CLIPPER2_NODE_ALLOCATOR
 		Point64 bot;
 		Point64 top;
 		int64_t curr_x = 0;		//current (updated at every new scanline)
@@ -133,6 +144,7 @@ namespace Clipper2Lib {
 	};
 
 	struct LocalMinima {
+		CLIPPER2_NODE_ALLOCATOR
 		Vertex* vertex;
 		PathType polytype;
 		bool is_open;
@@ -303,6 +315,7 @@ namespace Clipper2Lib {
 	protected:
 		PolyPath* parent_;
 	public:
+		CLIPPER2_NODE_ALLOCATOR
 		PolyPath(PolyPath* parent = nullptr): parent_(parent){}
 		virtual ~PolyPath() {};
 		//https://en.cppreference.com/w/cpp/language/rule_of_three
@@ -330,15 +343,16 @@ namespace Clipper2Lib {
 			//Even levels except level 0
 			return lvl && !(lvl & 1);
 		}
-        template<typename T>
-        static double Clipper2LibArea(const Path<T> &poly)
-        {
+		// Area() of the namespace this header is compiled into (Clipper2Lib or Clipper2Lib_Z).
+		template<typename T>
+		static double Clipper2LibArea(const Path<T> &poly)
+		{
 #ifdef USINGZ
-            return Clipper2Lib_Z::Area<T>(poly);
+			return Clipper2Lib_Z::Area<T>(poly);
 #else
-            return Clipper2Lib::Area<T>(poly);
+			return Clipper2Lib::Area<T>(poly);
 #endif
-        }
+		}
 	};
 
 	typedef typename std::vector<std::unique_ptr<PolyPath64>> PolyPath64List;
@@ -388,7 +402,8 @@ namespace Clipper2Lib {
 
 		double Area() const
 		{
-			return std::accumulate(childs_.cbegin(), childs_.cend(), Clipper2LibArea<int64_t>(polygon_),
+			return std::accumulate(childs_.cbegin(), childs_.cend(),
+				Clipper2LibArea<int64_t>(polygon_),
 				[](double a, const auto& child) {return a + child->Area(); });
 		}
 
@@ -462,7 +477,8 @@ namespace Clipper2Lib {
 
 		double Area() const
 		{
-			return std::accumulate(childs_.begin(), childs_.end(), Clipper2LibArea<double>(polygon_),
+			return std::accumulate(childs_.begin(), childs_.end(),
+				Clipper2LibArea<double>(polygon_),
 				[](double a, const auto& child) {return a + child->Area(); });
 		}
 	};

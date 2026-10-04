@@ -4,8 +4,12 @@
 
 #include "I18N.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
 #include <wx/font.h>
 #include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
 #include <wx/settings.h>
 #include <wx/string.h>
 #include <wx/sizer.h>

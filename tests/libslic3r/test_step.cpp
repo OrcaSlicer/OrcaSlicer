@@ -1,7 +1,11 @@
 #include <catch2/catch_all.hpp>
 
 #include <boost/nowide/fstream.hpp>
+#include <string>
+#include <ios>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "test_utils.hpp"
@@ -51,6 +55,22 @@ TEST_CASE("Part names with multi-byte UTF-8 survive import", "[Step]")
     CHECK(object->volumes[0]->name == "pi\xC3\xA8" "ce");
     CHECK(object->volumes[1]->name == "Geh\xC3\xA4use");
     CHECK(object->volumes[2]->name == "bracket");
+}
+
+TEST_CASE("A security classification assignment does not crash import", "[Step]")
+{
+    const std::string path = std::string(TEST_DATA_DIR) + PATH_SEPARATOR "security_classification.step";
+
+    Model model;
+    bool  cancel = false;
+    Step  step(path);
+
+    REQUIRE(step.load() == Step::Step_Status::LOAD_SUCCESS);
+    REQUIRE(step.mesh(&model, cancel, false) == Step::Step_Status::MESH_SUCCESS);
+
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE(model.objects.front()->volumes.size() == 1);
+    CHECK(model.objects.front()->volumes.front()->mesh().facets_count() == 4); // a tetrahedron
 }
 
 TEST_CASE("isUtf8 recognises two, three and four byte sequences", "[Step]")

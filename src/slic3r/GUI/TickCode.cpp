@@ -1,4 +1,9 @@
 #include "TickCode.hpp"
+#include <string>
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Color.hpp"
+#include <algorithm>
+#include <set>
 
 namespace Slic3r {
 namespace GUI {

@@ -1,6 +1,7 @@
 #ifndef slic3r_TextLines_hpp_
 #define slic3r_TextLines_hpp_
 
+#include "libslic3r/TextConfiguration.hpp"
 #include <vector>
 #include <libslic3r/Polygon.hpp>
 #include <libslic3r/Point.hpp>

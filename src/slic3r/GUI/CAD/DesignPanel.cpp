@@ -1,28 +1,64 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
-#include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see docs/ux/tool_atlas.json
+#include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see scripts/CAD/tool_atlas.json
 #include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
 #include "libslic3r/TriangleMesh.hpp"     // mesh import: STL/OBJ -> indexed_triangle_set
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"   // put_other_changes: mark the project dirty outside the undo stack
 
+#include <TopoDS_Face.hxx>
+#include <TopoDS_Edge.hxx>
+#include <TopoDS_Shape.hxx>
+#include <Eigen/Geometry>
+#include <TopAbs_Orientation.hxx>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>          // the offer/atlas join check reports on the log
-#include <Standard_Failure.hxx>
 
 #include <cassert>
 #include <cstdarg>                        // offer_trace: diagnostic row dump for the offer ladder
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include <exception>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
 #include <map>
+#include <math.h>
 #include <set>
+#include <wx/accel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/chartype.h>
+#include <vector>
+#include <wx/scrolwin.h>
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/listbase.h>
+#include <wx/busycursor.h>
+#include <wx/colourdata.h>
+#include "slic3r/GUI/CAD/DesignInteraction.hpp"
 #include <wx/sizer.h>
 #include <wx/button.h>
+#include <wx/spinbutt.h>
 #include <wx/stattext.h>
 #include <wx/checkbox.h>
 #include <wx/checklst.h>
 #include <wx/spinctrl.h>
 #include <wx/listctrl.h>
+#include <wx/string.h>
+#include <wx/treebase.h>
+#include <wx/tglbtn.h>
+#include <wx/textctrl.h>
+#include <wx/translation.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/statline.h>
@@ -35,6 +71,7 @@
 #include <wx/colordlg.h>
 #include <wx/menu.h>
 #include <wx/progdlg.h>
+#include <wx/unichar.h>
 #include <wx/utils.h>    // wxWindowDisabler, wxMilliSleep
 #include <wx/msgdlg.h>   // wxMessageBox
 
@@ -45,6 +82,7 @@
 #include <algorithm>
 #include <thread>
 #include <atomic>
+#include <wx/window.h>
 
 #include "slic3r/GUI/wxExtensions.hpp"   // ScalableButton, create_scaled_bitmap
 #include "slic3r/GUI/Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca
@@ -3521,7 +3559,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_mate,        false, true);
 
     m_form->FitInside();
-    m_form->SetScrollRate(0, 10);   // vertical only, like Prepare's sidebar: never scroll labels out
+    m_form->SetScrollRate(0, FromDIP(20));   // vertical only, like Prepare's sidebar: never scroll labels out
     m_form->SetMinSize(wxSize(264, -1));
 
     // Right column: a small view toolbar over the live 3D viewport that mirrors
@@ -4655,7 +4693,7 @@ void DesignPanel::on_import_svg()
 // (parse + tessellate); running it inline froze the whole window — the compositor marked the
 // app unresponsive and nothing repainted. The dialog is app-modal, so the document cannot be
 // touched while the worker owns it. Exceptions must not escape the worker: `work` is expected
-// to swallow them (OCCT throws Standard_Failure, which is not a std::exception).
+// to swallow them.
 static void run_off_ui_thread(wxWindow* parent, const wxString& message, const std::function<void()>& work)
 {
     std::atomic<bool> done{false};
@@ -4683,10 +4721,6 @@ static void run_off_ui_thread(wxWindow* parent, const wxString& message, const s
     worker.join();
 }
 
-// Rebuild the document off the UI thread. Every feature op (fillet, cut, shell, boolean, ...)
-// goes through recompute(), and on a heavy imported solid that is seconds of OCCT work — inline
-// it freezes the window. OCCT throws Standard_Failure, which is not a std::exception and would
-// terminate the process if it escaped the worker, so both are caught here.
 // Keep the Model's copy of the recipe in step with the document.
 //
 // This used to be written in exactly ONE place — on_commit(), as a side effect of Commit to
@@ -4717,18 +4751,15 @@ void DesignPanel::sync_recipe_to_model()
     Slic3r::put_other_changes();
 }
 
+// Runs recompute() off the UI thread, because on a heavy imported solid it takes seconds.
 bool DesignPanel::recompute_guarded(const wxString& message)
 {
     bool ok = false;
     run_off_ui_thread(this, message, [this, &ok]() {
         try {
             ok = m_doc.recompute();
-        } catch (const Standard_Failure& e) {
-            const char* what = e.GetMessageString();
-            m_doc.error = (what != nullptr && *what != '\0') ? what : "OCCT failure";
-            ok = false;
         } catch (const std::exception& e) {
-            m_doc.error = e.what();
+            m_doc.error = *e.what() ? e.what() : "OCCT failure";
             ok = false;
         }
     });
@@ -4753,11 +4784,8 @@ void DesignPanel::on_import_step()
     run_off_ui_thread(this, _L("Reading STEP…"), [&]() {
         try {
             solids = GeometryEngine::read_step_solids(path, err);
-        } catch (const Standard_Failure& e) {
-            const char* what = e.GetMessageString();
-            err = (what != nullptr && *what != '\0') ? what : "OCCT failure";
         } catch (const std::exception& e) {
-            err = e.what();
+            err = *e.what() ? e.what() : "OCCT failure";
         }
     });
     if (solids.empty()) {
@@ -4781,11 +4809,8 @@ void DesignPanel::on_import_step()
     run_off_ui_thread(this, _L("Rebuilding model…"), [&]() {
         try {
             rebuilt = m_doc.recompute();
-        } catch (const Standard_Failure& e) {
-            const char* what = e.GetMessageString();
-            m_doc.error = (what != nullptr && *what != '\0') ? what : "OCCT failure";
         } catch (const std::exception& e) {
-            m_doc.error = e.what();
+            m_doc.error = *e.what() ? e.what() : "OCCT failure";
         }
     });
     if (!rebuilt) {
@@ -4863,11 +4888,7 @@ void DesignPanel::on_import_mesh()
         shape = GeometryEngine::mesh_to_brep(mesh.its, MESH_IMPORT_TOLERANCE,
                                              MESH_IMPORT_MERGE_ANGLE_DEG, stats);
     } catch (const std::exception& e) {
-        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
-        return;
-    } catch (const Standard_Failure& e) {   // OCCT throws outside std::exception
-        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(
-                 e.GetMessageString() ? e.GetMessageString() : "OCCT error"));
+        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(*e.what() ? e.what() : "OCCT error"));
         return;
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }
@@ -6067,7 +6088,7 @@ bool DesignPanel::sketch_plane_target(wxString& what) const
 // ---------------------------------------------------------------------------------------------
 // The object-driven offer (charter §4.1). Right-click the geometry and get a vertical list in the
 // ratified row order, with the verbs that do not apply DISABLED IN PLACE carrying their reason.
-// The rows come from DesignOffer.hpp, generated from docs/ux/tool_atlas.json — the same file the
+// The rows come from DesignOffer.hpp, generated from scripts/CAD/tool_atlas.json — the same file the
 // mockups are drawn from, so a drawing and the product cannot drift apart.
 // ---------------------------------------------------------------------------------------------
 

@@ -26,9 +26,9 @@ endif()
 
 cmake_minimum_required(VERSION 3.2)
 if (APPLE)
-    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 11.3
+    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 12.0 (the lowest Xcode 27 accepts)
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.3" CACHE STRING "Minimum OS X deployment version" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum OS X deployment version" FORCE)
     endif ()
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 
@@ -37,6 +37,14 @@ endif ()
 if(POLICY CMP0135) # DOWNLOAD_EXTRACT_TIMESTAMP
     cmake_policy(SET CMP0135 NEW)
 endif()
+
+# project() reads this, so set it first. scripts/flatpak/make_deps_tar.sh packs deps/
+# without cmake/, so the file is missing in a Flatpak build.
+set(_rules_override "${CMAKE_CURRENT_LIST_DIR}/../cmake/modules/ClangClShowIncludes.cmake")
+if (EXISTS "${_rules_override}")
+    set(CMAKE_USER_MAKE_RULES_OVERRIDE "${_rules_override}")
+endif ()
+unset(_rules_override)
 
 project(OrcaSlicer-deps)
 
@@ -156,7 +164,7 @@ if (NOT _is_multi AND NOT CMAKE_BUILD_TYPE)
 endif ()
 
 function(orcaslicer_add_cmake_project projectname)
-    cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
+    cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND;SOURCE_DIR" "CMAKE_ARGS" ${ARGN})
 
     # MSVC is true for clang-cl as well, so the sub-build toolchain has to key on the
     # generator. A non-Visual-Studio superbuild passes its own generator down, and with
@@ -202,12 +210,18 @@ function(orcaslicer_add_cmake_project projectname)
       set(_build_j "-j${NPROC}")
     endif ()
 
+    set(_source_dir_arg "")
+    if (P_ARGS_SOURCE_DIR)
+        set(_source_dir_arg SOURCE_DIR ${P_ARGS_SOURCE_DIR})
+    endif ()
+
 if (NOT IS_CROSS_COMPILE OR NOT APPLE)
     ExternalProject_Add(
         dep_${projectname}
         EXCLUDE_FROM_ALL    ON
         INSTALL_DIR         ${DESTDIR}
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
+        ${_source_dir_arg}
         ${_gen}
         CMAKE_ARGS
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
@@ -220,6 +234,7 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
             -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
             -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
+            -DCMAKE_USER_MAKE_RULES_OVERRIDE:STRING=${CMAKE_USER_MAKE_RULES_OVERRIDE}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
             -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
             -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
@@ -240,12 +255,14 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
         # note for future devs: shared libs may actually create a size reduction
         # but orcaslicer_deps tends to get really funny regarding linking after that (notably boost)
         # so, as much as I would like to use that, it's not happening
-        ExternalProject_Add_Step(dep_${projectname} free_download_space
-                DEPENDEES download # do after download
-                COMMENT "Freeing Space: Removing source archive"
-                WORKING_DIRECTORY ${DEP_DOWNLOAD_DIR}
-                COMMAND ${CMAKE_COMMAND} -E rm -r ${projectname}
-        )
+        if (NOT P_ARGS_SOURCE_DIR)
+            ExternalProject_Add_Step(dep_${projectname} free_download_space
+                    DEPENDEES download # do after download
+                    COMMENT "Freeing Space: Removing source archive"
+                    WORKING_DIRECTORY ${DEP_DOWNLOAD_DIR}
+                    COMMAND ${CMAKE_COMMAND} -E rm -rf ${projectname}
+            )
+        endif ()
         ExternalProject_Add_Step(dep_${projectname} free_build_space
                 DEPENDEES install # do after install
                 COMMENT "Freeing Space: Removing source and build files"
@@ -259,6 +276,7 @@ else()
         EXCLUDE_FROM_ALL    ON
         INSTALL_DIR         ${DESTDIR}
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
+        ${_source_dir_arg}
         ${_gen}
         CMAKE_ARGS
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
@@ -267,6 +285,7 @@ else()
             -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
             -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
             -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
+            -DCMAKE_USER_MAKE_RULES_OVERRIDE:STRING=${CMAKE_USER_MAKE_RULES_OVERRIDE}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"
@@ -386,10 +405,6 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
-include(FFMPEG/FFMPEG.cmake)
-include(Assimp/Assimp.cmake)
-
-
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
 # a grep across the repo shows it is used for other things
@@ -399,6 +414,12 @@ if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
     set(OPENSSL_PKG dep_OpenSSL)
 endif()
+
+include(FFMPEG/FFMPEG.cmake)
+include(Assimp/Assimp.cmake)
+
+include(DataChannel/DataChannel.cmake)
+set(DATACHANNEL_PKG dep_DataChannel)
 
 # we don't want to load a "wrong" openssl when loading curl
 # so, just don't even bother
@@ -473,6 +494,7 @@ set(_dep_list
     dep_wxInspector
     dep_FFMPEG
     dep_Assimp
+    ${DATACHANNEL_PKG}
     )
 
 if (MSVC)

@@ -6,16 +6,26 @@
 // Based on original work by Alexander Þór licensed under the GPLv3:
 // https://github.com/Alexander-T-Moss/Small-Area-Flow-Comp
 
+#include <cmath>
+#include <limits>
+#include <exception>
 #include <math.h>
 #include <cstring>
 #include <cfloat>
+#include <ostream>
+#include <memory>
 #include <regex>
 
 #include "../libslic3r.h"
 #include "../PrintConfig.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/GCode/PchipInterpolatorHelper.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
 #include "SmallAreaInfillFlowCompensator.hpp"
 #include <boost/log/trivial.hpp>
+#include <sstream>
+#include <string>
 
 namespace Slic3r {
 

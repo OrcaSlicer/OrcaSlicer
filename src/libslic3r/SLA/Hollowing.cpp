@@ -1,5 +1,20 @@
+#include "libslic3r/SLA/JobController.hpp"
+#include <cassert>
+#include <Eigen/Geometry>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <cstdlib>
+#include "libslic3r/ExPolygon.hpp"
+#include <algorithm>
+#include "libslic3r/SLA/Concurrency.hpp"
 #include <functional>
+#include <limits>
+#include <mutex>
 #include <numeric>
+#include <openvdb/openvdb.h>
 #include <optional>
 
 #include <libslic3r/OpenVDBUtils.hpp>
@@ -15,6 +30,8 @@
 
 #include <libslic3r/MTUtils.hpp>
 #include <libslic3r/I18N.hpp>
+#include <utility>
+#include <vector>
 
 //! macro used to mark string used at localization,
 //! return same string

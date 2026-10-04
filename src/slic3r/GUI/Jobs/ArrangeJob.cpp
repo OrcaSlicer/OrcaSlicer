@@ -16,6 +16,27 @@
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include "libnest2d/common.hpp"
+#include "libslic3r/Arrange.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <boost/log/trivial.hpp>
+#include <cstddef>
+#include <vector>
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <set>
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <cassert>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <numeric>
+#include <exception>
+#include "libslic3r/LifecycleEvents.hpp"
+#include <optional>
 
 #define SAVE_ARRANGE_POLY 0
 

@@ -1,11 +1,42 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include <vector>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include "libslic3r/Utils.hpp"
+#include <filesystem>
+#include <boost/filesystem/operations.hpp>
+#include <wx/msgdlg.h>
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/PartSkipCommon.hpp"
+#include <iterator>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/simplebook.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
 #include <wx/webrequest.h>
 #include <wx/control.h>
 #include <wx/dcclient.h>
@@ -30,6 +61,8 @@
 #include "MediaPlayCtrl.h"
 
 #include "DeviceCore/DevManager.h"
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
@@ -148,7 +181,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_line->SetBackgroundColour(wxColor(238, 238, 238));
 
     m_list_view = new wxScrolledWindow(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxSize(267, -1), wxHSCROLL | wxVSCROLL);
-    m_list_view->SetScrollRate(5, 5);
+    m_list_view->SetScrollRate(5, FromDIP(30));
     m_list_view->SetMinSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetMaxSize(wxSize(FromDIP(267), FromDIP(378)));
     m_list_view->SetBackgroundColour(*wxWHITE);

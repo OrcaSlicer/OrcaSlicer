@@ -1,7 +1,9 @@
 #include "DevFilaAmsSetting.h"
 #include "DevFilaSystem.h"
 
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
+#include <string>
 
 namespace Slic3r {
     int DevAmsSystemFirmwareSwitch::CrtlSwitchFirmware(int firmware_idx)

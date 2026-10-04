@@ -1,7 +1,15 @@
 #ifndef slic3r_PerimeterGenerator_hpp_
 #define slic3r_PerimeterGenerator_hpp_
 
+#include "ExtrusionEntityCollection.hpp"
+#include "Point.hpp"
+#include "Surface.hpp"
 #include "libslic3r.h"
+#include <functional>
+#include <cstddef>
+#include <boost/container_hash/hash.hpp>
+#include <optional>
+#include <utility>
 #include <vector>
 #include "Layer.hpp"
 #include "Flow.hpp"
@@ -105,6 +113,8 @@ public:
     bool                                            has_fuzzy_hole = false;
     // Preserve construction order so overlap precedence remains deterministic.
     std::vector<std::pair<FuzzySkinConfig, ExPolygons>> regions_by_fuzzify;
+    // Area resting on the layer below, where fuzzy skin is allowed. Unset means no restriction.
+    std::optional<ExPolygons>                       fuzzy_supported_area;
     
     PerimeterGenerator(
         // Input:

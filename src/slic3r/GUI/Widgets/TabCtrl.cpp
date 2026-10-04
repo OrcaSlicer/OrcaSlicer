@@ -1,6 +1,17 @@
 #include "TabCtrl.hpp"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <cstddef>
+#include <utility>
+#include <wx/colour.h>
+#include <algorithm>
 #include <wx/dc.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);

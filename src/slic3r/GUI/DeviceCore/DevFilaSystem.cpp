@@ -1,5 +1,24 @@
+#include <array>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <ctime>
+#include <cstdlib>
+#include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/colour.h>
+#include <string>
+#include <wx/string.h>
+#include <optional>
+#include <unordered_map>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <set>
+#include <utility>
 #include "DevFilaSystem.h"
+#include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
@@ -762,9 +781,9 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 curr_tray->remain = -1;
                             }
-                            if (tray_it->contains("tray_slot_placeholder")) {
-                                curr_tray->is_slot_placeholder = true;
-                            }
+                            // The tray objects are reused across status updates. Reset this
+                            // state when a previously empty slot receives a filament again.
+                            curr_tray->is_slot_placeholder = tray_it->contains("tray_slot_placeholder");
                             int ams_id_int = 0;
                             int tray_id_int = 0;
                             try

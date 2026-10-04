@@ -1,8 +1,17 @@
 #ifndef slic3r_DesignPanel_hpp_
 #define slic3r_DesignPanel_hpp_
 
+#include <string>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <wx/accel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/treebase.h>   // wxTreeItemId
 
 #include <vector>
@@ -12,6 +21,7 @@
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "slic3r/GUI/CAD/DesignInteraction.hpp"   // CadLevel: what one Esc press means
+#include "slic3r/GUI/Lazy.hpp"
 
 class ComboBox;    // Orca dropdown (Widgets/ComboBox.hpp) — replaces wxChoice everywhere here
 class StaticBox;   // Orca rounded card frame (Widgets/StaticBox.hpp)
@@ -46,7 +56,7 @@ class DesignCanvas;
 // Design (CAD) tab: a sketch-first, Onshape-style form-driven CAD panel.
 // Sketch and Extrude are independent tools: the user creates a Sketch first,
 // then selects it and Extrudes to produce a solid.
-class DesignPanel : public wxPanel
+class DesignPanel : public wxPanel, public LazyInstance<DesignPanel>
 {
 public:
     explicit DesignPanel(wxWindow* parent);

@@ -1,4 +1,10 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+#include <cmath>
+#include <cfloat>
+#include <imgui.h>
 #include <imgui/imgui_internal.h>
 
 #include "GizmoObjectManipulation.hpp"
@@ -18,6 +24,17 @@
 #include "GLGizmoUtils.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include "libslic3r/Point.hpp"
+#include <limits>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <math.h>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include <vector>
+#include <string_view>
+#include "libslic3r/Color.hpp"
 
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}

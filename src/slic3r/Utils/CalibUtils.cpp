@@ -6,6 +6,7 @@
 #include "NetworkAgent.hpp"
 #include "../GUI/Jobs/ProgressIndicator.hpp"
 #include "../GUI/PartPlate.hpp"
+#include "json_diff.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Utils.hpp"
@@ -22,6 +23,44 @@
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "libslic3r/FlushVolCalc.hpp"
 #include "../GUI/Plater.hpp"
+#include <memory>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <string>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Flow.hpp"
+#include <cstddef>
+#include "libslic3r/ParameterUtils.hpp"
+#include <cmath>
+#include <algorithm>
+#include <cassert>
+#include "libslic3r/calib.hpp"
+#include <wx/string.h>
+#include "libslic3r/CommonDefs.hpp"
+#include <cstdlib>
+#include <boost/log/trivial.hpp>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Semver.hpp"
+#include <array>
+#include "libslic3r/BoundingBox.hpp"
+#include <wx/colour.h>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include <utility>
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {
@@ -106,6 +145,10 @@ wxString get_nozzle_volume_type_name(NozzleVolumeType type)
         return _L("Hybrid");
     } else if (NozzleVolumeType::nvtTPUHighFlow == type) {
         return _L("TPU High Flow");
+    } else if (NozzleVolumeType::nvtE3DHighFlow == type) {
+        return _L("E3D High Flow");
+    } else if (NozzleVolumeType::nvtExtraHighFlow == type) {
+        return _L("Extra High Flow");
     }
     return wxString();
 }
@@ -753,7 +796,9 @@ bool CalibUtils::calib_flowrate(int pass, const CalibInfo &calib_info, wxString 
         _obj->config.set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter * 1.2f, false));
         _obj->config.set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter * 1.2f, false));
         _obj->config.set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonic));
-        _obj->config.set_key_value("top_solid_infill_flow_ratio", new ConfigOptionFloat(1.0f));
+        const auto *top_solid_flow = dynamic_cast<const ConfigOptionFloatsNullable *>(_obj->config.option("top_solid_infill_flow_ratio"));
+        _obj->config.set_key_value("top_solid_infill_flow_ratio",
+                                   new ConfigOptionFloatsNullable(top_solid_flow ? top_solid_flow->size() : 1, 1.0f));
         _obj->config.set_key_value("infill_direction", new ConfigOptionFloat(45));
         _obj->config.set_key_value("ironing_type", new ConfigOptionEnum<IroningType>(IroningType::NoIroning));
         _obj->config.set_key_value("internal_solid_infill_speed", new ConfigOptionFloatsNullable({internal_solid_speed}));

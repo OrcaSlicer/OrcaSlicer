@@ -2,6 +2,7 @@
 
 #include "DevConfig.h"
 #include "DevUtil.h"
+#include "json_diff.hpp"
 
 using namespace nlohmann;
 

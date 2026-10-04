@@ -1,11 +1,14 @@
 {
 	"type": "filament",
-	"filament_id": "OFesA6rF",
-	"setting_id": "WAHQZmwHoS4WjoTx",
 	"name": "Generic PLA Silk @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "WAHQZmwHoS4WjoTx",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

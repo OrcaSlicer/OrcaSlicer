@@ -23,11 +23,16 @@
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
 #include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRack.h"
 
+#include <string>
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/webview.h>
 
 #include <memory>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -64,7 +69,9 @@ struct NozzleOption
 class ManualNozzleCountDialog : public DPIDialog
 {
 public:
-    ManualNozzleCountDialog(wxWindow *parent, NozzleVolumeType volume_type, int standard_count, int highflow_count, int max_nozzle_count, bool force_no_zero);
+    // supported_types lists the volume types the extruder physically provides; an empty set means "unknown", in which case no filtering is applied.
+    ManualNozzleCountDialog(wxWindow *parent, NozzleVolumeType volume_type, int standard_count, int highflow_count, int e3d_count, int max_nozzle_count, bool force_no_zero,
+                            const std::set<NozzleVolumeType> &supported_types);
     ~ManualNozzleCountDialog() override = default;
     void on_dpi_changed(const wxRect &suggested_rect) override {}
     int  GetNozzleCount(NozzleVolumeType volume_type) const;
@@ -72,6 +79,7 @@ public:
 private:
     ComboBox        *m_standard_choice{nullptr};
     ComboBox        *m_highflow_choice{nullptr};
+    ComboBox        *m_e3d_choice{nullptr};
     Button          *m_confirm_btn{nullptr};
     wxStaticText    *m_error_label{nullptr};
 };

@@ -2,6 +2,7 @@
 #define slic3r_AmsWidgets_hpp_
 
 
+#include <wx/arrstr.h>
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -10,6 +11,7 @@
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/artprov.h>
+#include <wx/variant.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/string.h>
 #include <wx/stattext.h>

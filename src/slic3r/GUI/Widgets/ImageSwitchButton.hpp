@@ -7,6 +7,11 @@
 #include "Button.hpp"
 
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/gdicmn.h>
 #include <wx/tglbtn.h>
 
 class ImageSwitchButton : public StaticBox

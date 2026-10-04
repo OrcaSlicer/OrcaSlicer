@@ -12,14 +12,17 @@
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <utility>
 #include <wx/frame.h>
 #include <wx/event.h>
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -144,15 +147,6 @@ bool ESP3D::start_print(wxString& msg, const std::string& filename) const
         .perform_sync();
 
     return ret;
-}
-
-int ESP3D::get_err_code_from_body(const std::string& body) const
-{
-    pt::ptree          root;
-    std::istringstream iss(body); // wrap returned json to istringstream
-    pt::read_json(iss, root);
-
-    return root.get<int>("err", 0);
 }
 
 // ESP3D only accepts 8.3 filenames else it crashes marlin and other undefined behaviour

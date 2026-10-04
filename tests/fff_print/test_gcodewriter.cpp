@@ -1,17 +1,38 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstdlib>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include "nlohmann/json.hpp"
+
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
 #include "test_helpers.hpp"
@@ -19,10 +40,7 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-// Arrange on a finite bed, not an unbounded InfiniteBed: the latter places items
-// near INT64_MIN/4 (~2.3e18), which reaches ClipperLib's coordinate limit and throws
-// "Coordinate outside allowed range" on Windows/arm64. A 500x500 bed keeps coordinates
-// small while still covering large printers.
+// Arrange on a 500x500 bed, which keeps coordinates small while still covering large printers.
 static void arrange_objects_on_test_bed(Model &model, const DynamicPrintConfig &config)
 {
     const BoundingBox bed{Point::new_scale(0., 0.), Point::new_scale(500., 500.)};
@@ -94,6 +112,22 @@ SCENARIO("Origin manipulation", "[GCodeWriter]") {
     		REQUIRE(gcodegen.origin() == Vec2d(15,5));
     	}
     }
+}
+
+TEST_CASE("A cached config slot is looked up again whenever its key changes", "[GCodeWriter]")
+{
+    GCode::ConfigIndexCache cache;
+    int lookups = 0;
+    auto slot = [&](int filament, size_t layer, size_t generation) {
+        return cache.get(filament, layer, generation, [&] { ++lookups; return filament * 100 + int(layer) * 10 + int(generation); });
+    };
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(lookups == 1);
+    REQUIRE(slot(4, 2, 3) == 423);
+    REQUIRE(slot(4, 5, 3) == 453);
+    REQUIRE(slot(4, 5, 6) == 456);
+    REQUIRE(lookups == 4);
 }
 
 // Verify that emit_machine_limits_to_gcode emits the correct max value across
@@ -420,6 +454,65 @@ TEST_CASE("EXTRUDER_LIMIT per-extruder clamping and max fallback", "[GCodeWriter
     }
 }
 
+TEST_CASE("Acceleration and velocity limit commands print their values in general notation", "[GCodeWriter]")
+{
+    enum class Command { Print, Travel, KlipperLimits };
+    struct Case
+    {
+        GCodeFlavor              flavor;
+        Command                  command;
+        unsigned int             acceleration;
+        double                   jerk;
+        bool                     comments;
+        std::vector<std::string> present;
+        std::vector<std::string> absent;
+    };
+    // accel_to_decel_factor is 50%, so ACCEL_TO_DECEL is half the acceleration.
+    const Case c = GENERATE(values<Case>({
+        {gcfKlipper, Command::KlipperLimits, 2000000, 25. / 3., false,
+         {"SET_VELOCITY_LIMIT ACCEL=2000000 ", "ACCEL_TO_DECEL=1e+06 ", "SQUARE_CORNER_VELOCITY=8.33333\n"}, {}},
+        {gcfKlipper, Command::KlipperLimits, 12345, 0., false, {"ACCEL=12345 ", "ACCEL_TO_DECEL=6172.5\n"}, {"SQUARE_CORNER_VELOCITY"}},
+        {gcfKlipper, Command::KlipperLimits, 0, 0.25, true, {"SQUARE_CORNER_VELOCITY=0.25 ", "; adjust VELOCITY_LIMIT"}, {"ACCEL"}},
+        {gcfKlipper, Command::Print, 3001, 0., true, {"ACCEL=3001 ", "ACCEL_TO_DECEL=1500.5 ", "; adjust ACCEL_TO_DECEL", "; adjust acceleration"}, {}},
+        {gcfMarlinFirmware, Command::Print, 2500, 0., false, {"M204 P2500\n"}, {}},
+        {gcfMarlinFirmware, Command::Travel, 7000, 0., false, {"M204 T7000\n"}, {}},
+        {gcfRepRapFirmware, Command::Travel, 7000, 0., true, {"M204 T7000 ", "; adjust acceleration"}, {}},
+        {gcfMarlinLegacy, Command::Print, 2500, 0., false, {"M204 S2500\n"}, {}},
+        {gcfRepetier, Command::Print, 2500, 0., false, {"M201 X2500 Y2500\n"}, {}},
+        {gcfRepetier, Command::Travel, 7000, 0., false, {"M202 X7000 Y7000\n"}, {}},
+    }));
+
+    struct CommentGuard
+    {
+        bool saved = GCodeWriter::full_gcode_comment;
+        ~CommentGuard() { GCodeWriter::full_gcode_comment = saved; }
+    } comment_guard;
+    GCodeWriter::full_gcode_comment = c.comments;
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("gcode_flavor", new ConfigOptionEnum<GCodeFlavor>(c.flavor));
+    config.set_key_value("accel_to_decel_enable", new ConfigOptionBool(true));
+    config.set_key_value("accel_to_decel_factor", new ConfigOptionPercent(50));
+    for (const char *limit : {"machine_max_acceleration_extruding", "machine_max_acceleration_travel", "machine_max_acceleration_x",
+                              "machine_max_acceleration_y", "machine_max_jerk_x", "machine_max_jerk_y"}) {
+        std::vector<double> &values = config.option<ConfigOptionFloats>(limit)->values;
+        std::fill(values.begin(), values.end(), 0.);
+    }
+    PrintConfig print_config;
+    print_config.apply(config, true);
+    GCodeWriter writer;
+    writer.apply_print_config(print_config);
+
+    const std::string line = c.command == Command::Print         ? writer.set_print_acceleration(c.acceleration) :
+                             c.command == Command::Travel        ? writer.set_travel_acceleration(c.acceleration) :
+                                                                   writer.set_accel_and_jerk(c.acceleration, c.jerk);
+    INFO(line);
+    for (const std::string &token : c.present)
+        CHECK_THAT(line, Catch::Matchers::ContainsSubstring(token));
+    for (const std::string &token : c.absent)
+        CHECK_THAT(line, !Catch::Matchers::ContainsSubstring(token));
+}
+
 SCENARIO("Extruder reads the injected config column", "[GCodeWriter][H2C]") {
     GIVEN("A writer whose per-variant arrays hold three columns for two filaments") {
         GCodeWriter writer;
@@ -726,20 +819,41 @@ static std::string slice_two_object_bbl(DynamicPrintConfig &config)
 }
 
 // The real change_filament_gcode of a shipped "<printer> 0.4 nozzle" machine profile.
+// The profile does not state it inline any more: it names the template carrying it in
+// `include`, and the loader layers that template under the preset. Follow the same list
+// - so a profile that stops naming one fails here instead of silently slicing G-code it
+// no longer ships.
 static std::string shipped_change_filament_gcode(const std::string &printer)
 {
-    const std::string path = std::string(PROFILES_DIR) + "/BBL/machine/Bambu Lab " + printer + " 0.4 nozzle.json";
+    const std::string machine_dir   = std::string(PROFILES_DIR) + "/BBL/machine/";
+    const std::string machine_path  = machine_dir + "Bambu Lab " + printer + " 0.4 nozzle.json";
+    const std::string template_name = "Bambu Lab " + printer + " 0.4 nozzle template change_filament_gcode";
     // PROFILES_DIR is an absolute path baked in at build time; a sparse test checkout
     // without resources/ leaves it missing. Skip rather than dereference a config that
     // never loaded - this is the only fff_print test that reads a shipped profile.
-    if (!boost::filesystem::exists(path))
-        SKIP("shipped profile not present in this checkout: " << path);
-    DynamicPrintConfig                 config;
-    std::map<std::string, std::string> key_values;
-    std::string                        reason;
-    config.load_from_json(path, ForwardCompatibilitySubstitutionRule::Enable, key_values, reason);
-    // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
-    INFO("profile: " << path << (reason.empty() ? "" : ("  load reason: " + reason)));
+    if (!boost::filesystem::exists(machine_path))
+        SKIP("shipped profile not present in this checkout: " << machine_path);
+
+    auto load = [](const std::string &file, std::map<std::string, std::string> &key_values) {
+        DynamicPrintConfig        config;
+        ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+        std::string               reason;
+        // false: `inherits` and `include` stay out of the config and land in key_values,
+        // for the loader to resolve - neither is a slicing setting.
+        config.load_from_json(file, substitutions, false, key_values, reason);
+        // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
+        INFO("profile: " << file << (reason.empty() ? "" : ("  load reason: " + reason)));
+        return config;
+    };
+
+    std::map<std::string, std::string> machine_values;
+    load(machine_path, machine_values);
+    REQUIRE(machine_values.count("include") == 1);
+    const nlohmann::json includes = nlohmann::json::parse(machine_values["include"]);
+    REQUIRE(std::find(includes.begin(), includes.end(), nlohmann::json(template_name)) != includes.end());
+
+    std::map<std::string, std::string> template_values;
+    const DynamicPrintConfig           config = load(machine_dir + template_name + ".json", template_values);
     REQUIRE(config.has("change_filament_gcode"));
     return config.opt_string("change_filament_gcode");
 }
@@ -849,4 +963,47 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(custom_gcode_pos != std::string::npos);
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}
+
+TEST_CASE("Percent accelerations resolve against the option they are a percentage of", "[GCodeWriter]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                       "marlin" },
+        { "machine_max_acceleration_extruding", "20000,20000" },
+        { "default_acceleration",               "4000" },
+        { "initial_layer_acceleration",         "0" },
+        { "outer_wall_acceleration",            "3000" },
+        { "bridge_acceleration",                "50%" },
+        { "sparse_infill_acceleration",         "25%" },
+        { "internal_solid_infill_acceleration", "60%" },
+        { "sparse_infill_density",              "20%" },
+    });
+    // get_abs_value_at() resolves each percentage through the ratio_over in the config definitions.
+    const std::map<std::string, int> expected = {
+        { "Bridge",                int(config.get_abs_value_at("bridge_acceleration", 0)) },
+        { "Sparse infill",         int(config.get_abs_value_at("sparse_infill_acceleration", 0)) },
+        { "Internal solid infill", int(config.get_abs_value_at("internal_solid_infill_acceleration", 0)) },
+    };
+    REQUIRE(expected.at("Bridge") == 1500);
+    REQUIRE(expected.at("Sparse infill") == 1000);
+    REQUIRE(expected.at("Internal solid infill") == 2400);
+
+    std::map<std::string, std::set<int>> accelerations_by_role;
+    std::string role;
+    int         acceleration = 0;
+    GCodeReader reader;
+    reader.parse_buffer(Slic3r::Test::slice({ TestMesh::bridge }, config), [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        float value;
+        if (boost::starts_with(line.raw(), ";TYPE:"))
+            role = line.raw().substr(6);
+        else if (line.cmd_is("M204") && line.has_value('S', value))
+            acceleration = int(value);
+        else if (line.extruding(self) && line.dist_XY(self) > 0)
+            accelerations_by_role[role].insert(acceleration);
+    });
+    for (const auto &[role_name, value] : expected) {
+        INFO(role_name);
+        REQUIRE(accelerations_by_role[role_name] == std::set<int>{ value });
+    }
 }

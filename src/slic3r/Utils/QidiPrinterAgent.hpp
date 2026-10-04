@@ -1,6 +1,7 @@
 #ifndef __QIDI_PRINTER_AGENT_HPP__
 #define __QIDI_PRINTER_AGENT_HPP__
 
+#include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 
 #include <map>
@@ -19,7 +20,7 @@ public:
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
     // Override filament sync (Qidi-specific implementation)
-    bool fetch_filament_info(std::string dev_id) override;
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
 private:
     struct QidiFilamentDict

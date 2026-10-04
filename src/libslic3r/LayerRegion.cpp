@@ -1,20 +1,44 @@
+#include "Flow.hpp"
+#include "Config.hpp"
+#include "ExPolygon.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Exception.hpp"
 #include "Layer.hpp"
 #include "BridgeDetector.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
+#include "Line.hpp"
 #include "PerimeterGenerator.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
 #include "Print.hpp"
+#include "PrintConfig.hpp"
 #include "Surface.hpp"
 #include "BoundingBox.hpp"
 #include "SVG.hpp"
 #include "Algorithm/RegionExpansion.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
 
+#include <cmath>
+#include <array>
+#include <cstddef>
+#include <initializer_list>
+#include <algorithm>
+#include <cstdint>
+#include <optional>
+#include <iterator>
+#include <stdexcept>
+#include <math.h>
+#include <cassert>
 #include <string>
 #include <map>
 
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/clamp.hpp>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -627,9 +651,9 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
 }
 #else
 
-//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
-//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 1.5
-#define EXTERNAL_SURFACES_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
+//#define EXTERNAL_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
+#define EXTERNAL_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Polygons *lower_layer_covered)
 {

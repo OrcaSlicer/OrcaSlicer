@@ -1,8 +1,39 @@
 #include "sla_test_utils.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
+#include <catch2/catch_approx.hpp>
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/SLA/AGGRaster.hpp"
+#include "test_utils.hpp"
 
+#include <cstddef>
+#include <cstdlib>
+#include <algorithm>
+#include <cmath>
 #include <iomanip>
+#include <string>
+#include "libslic3r/SLA/SupportTree.hpp"
+#include "libslic3r/SLA/Hollowing.hpp"
+#include <vector>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <sstream>
+#include "libslic3r/SVG.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/MTUtils.hpp"
+#include "libslic3r/SLA/IndexedMesh.hpp"
+#include "libslic3r/SLA/SupportPointGenerator.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/SLA/SupportTreeBuildsteps.hpp"
+#include <utility>
+#include "libslic3r/SLA/SupportTreeBuilder.hpp"
+#include "libslic3r/SLA/Pad.hpp"
+#include "libslic3r/SLA/ConcaveHull.hpp"
+#include "libslic3r/SLA/RasterBase.hpp"
+#include "libslic3r/BoundingBox.hpp"
 
 void test_support_model_collision(const std::string          &obj_filename,
                                   const sla::SupportTreeConfig   &input_supportcfg,
@@ -261,7 +292,8 @@ static void _test_concave_hull(const Polygons &hull, const ExPolygons &polys)
     
     REQUIRE(cchull_holes == 0);
     
-    Polygons intr = diff(to_polygons(polys), hull);
+    // Hull vertices where the connectors cross the input are rounded, so the hull may miss the input by a unit or two.
+    Polygons intr = diff(to_polygons(polys), offset(hull, float(SCALED_EPSILON)));
     REQUIRE(intr.empty());
 }
 

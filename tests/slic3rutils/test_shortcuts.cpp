@@ -1,10 +1,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <catch2/catch_message.hpp>
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 
+#include <wx/accel.h>
+#include <string>
+#include <vector>
+#include <cstddef>
+#include <optional>
 #include <wx/event.h>
 
 using namespace Slic3r;
@@ -118,6 +124,20 @@ TEST_CASE("Only modified or non-printable chords qualify as menu accelerators", 
     CHECK(registry.accelerator(Shortcut::Arrange).empty());
     CHECK(registry.accelerator(Shortcut::ArrangePlate).empty());
     CHECK(registry.accelerator(Shortcut::KeyboardShortcuts).empty());
+}
+
+TEST_CASE("Chords the desktop keeps for itself are recognized", "[Shortcuts]")
+{
+#ifdef _WIN32
+    CHECK(KeyChord{ WXK_F4, wxMOD_ALT }.is_system_shortcut());
+    CHECK(KeyChord{ WXK_SPACE, wxMOD_ALT }.is_system_shortcut());
+#else
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_ALT }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_SPACE, wxMOD_ALT }.is_system_shortcut());
+#endif
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_ALT | wxMOD_SHIFT }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_CONTROL }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_SPACE }.is_system_shortcut());
 }
 
 TEST_CASE("Chords convert to wx accelerator entries", "[Shortcuts]")
@@ -307,7 +327,6 @@ TEST_CASE("Custom bindings replace the default and survive a config round trip",
 TEST_CASE("A Global shortcut refuses a config binding that would swallow typing", "[Shortcuts]")
 {
     AppConfig config;
-    // A string literal would pick AppConfig::set's bool overload.
     config.set("shortcuts", "save_project", std::string("S"));
     config.set("shortcuts", "new_project", std::string("F9"));
     ShortcutRegistry registry;

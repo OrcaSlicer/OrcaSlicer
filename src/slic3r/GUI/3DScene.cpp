@@ -1,3 +1,7 @@
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <cmath>
 #include <glad/gl.h>
 
 #include "3DScene.hpp"
@@ -25,6 +29,30 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <optional>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
+#include <set>
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Exception.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +64,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <Eigen/Dense>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef HAS_GLSAFE
 void glAssertRecentCallImpl(const char* file_name, unsigned int line, const char* function_name)
@@ -161,6 +192,14 @@ ColorRGBA GLVolume::SUPPORT_ENFORCER_COL = {0.3f, 0.3f, 1.0f, 0.4f};
 ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {1.0f, 0.3f, 0.3f, 0.4f};
 
 ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};
+
+// Precise Seam modifier colors
+ColorRGBA GLVolume::PRECISE_SEAM_CENTER_COL   = {1.0f,   0.627f, 0.082f, 0.6f};  // FFA015 - orange
+ColorRGBA GLVolume::PRECISE_SEAM_LEFT_COL     = {1.0f,   0.753f, 0.0f,   0.6f};  // FFC000 - golden
+ColorRGBA GLVolume::PRECISE_SEAM_RIGHT_COL    = {1.0f,   0.514f, 0.0f,   0.6f};  // FF8300 - dark orange
+ColorRGBA GLVolume::PRECISE_SEAM_ENFORCED_COL = {0.412f, 0.820f, 0.412f, 0.6f};  // 69D169 - green
+ColorRGBA GLVolume::PRECISE_SEAM_NEUTRAL_COL  = {0.655f, 0.655f, 0.655f, 0.6f};  // A7A7A7 - gray
+ColorRGBA GLVolume::PRECISE_SEAM_BLOCKED_COL  = {0.820f, 0.412f, 0.412f, 0.6f};  // D16969 - red
 
 std::array<ColorRGBA, 5> GLVolume::MODEL_COLOR = { {
     { 1.0f, 1.0f, 0.0f, 1.f },
@@ -363,6 +402,28 @@ ColorRGBA color_from_model_volume(const ModelVolume& model_volume)
     ColorRGBA color;
     if (model_volume.is_negative_volume())
         return GLVolume::MODEL_NEGTIVE_COL;
+    else if (model_volume.is_precise_seam()) {
+        // Return color based on Precise Seam subtype.
+        // Exhaustive switch (no default) so -Wswitch flags any future PRECISE_SEAM_* additions.
+        switch (model_volume.type()) {
+            case ModelVolumeType::PRECISE_SEAM_CENTER:   return GLVolume::PRECISE_SEAM_CENTER_COL;
+            case ModelVolumeType::PRECISE_SEAM_LEFT:     return GLVolume::PRECISE_SEAM_LEFT_COL;
+            case ModelVolumeType::PRECISE_SEAM_RIGHT:    return GLVolume::PRECISE_SEAM_RIGHT_COL;
+            case ModelVolumeType::PRECISE_SEAM_ENFORCED: return GLVolume::PRECISE_SEAM_ENFORCED_COL;
+            case ModelVolumeType::PRECISE_SEAM_NEUTRAL:  return GLVolume::PRECISE_SEAM_NEUTRAL_COL;
+            case ModelVolumeType::PRECISE_SEAM_BLOCKED:  return GLVolume::PRECISE_SEAM_BLOCKED_COL;
+            // Non-seam types are unreachable due to the outer is_precise_seam() guard;
+            // listed explicitly so this switch stays exhaustive over ModelVolumeType.
+            case ModelVolumeType::INVALID:
+            case ModelVolumeType::MODEL_PART:
+            case ModelVolumeType::NEGATIVE_VOLUME:
+            case ModelVolumeType::PARAMETER_MODIFIER:
+            case ModelVolumeType::SUPPORT_BLOCKER:
+            case ModelVolumeType::SUPPORT_ENFORCER:
+                break;
+        }
+        return GLVolume::MODEL_MIDIFIER_COL; // unreachable fallback
+    }
     else if (model_volume.is_modifier())
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
         return GLVolume::MODEL_MIDIFIER_COL;
@@ -1066,8 +1127,17 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
         );
     }
     else if (type == GLVolumeCollection::ERenderType::Opaque && list.size() > 1) {
+        // Orca: nearest first after the selected ones, so the depth test skips shading hidden surfaces.
+        for (GLVolumeWithIdAndZ& volume : list) {
+            volume.second.second = volume.first->transformed_bounding_box().transformed(view_matrix).max(2);
+        }
+
         std::sort(list.begin(), list.end(),
-            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool { return v1.first->selected && !v2.first->selected; }
+            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool {
+                if (v1.first->selected != v2.first->selected)
+                    return v1.first->selected;
+                return v1.second.second > v2.second.second;
+            }
         );
     }
 

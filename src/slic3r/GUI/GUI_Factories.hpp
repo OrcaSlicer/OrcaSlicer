@@ -2,6 +2,7 @@
 #define slic3r_GUI_Factories_hpp_
 
 #include <map>
+#include <string>
 #include <vector>
 #include <array>
 #include <cstddef>
@@ -174,6 +175,7 @@ private:
     void        append_menu_item_merge_to_single_object(wxMenu* menu);
     void        append_menu_item_merge_parts_to_single_part(wxMenu *menu);
     void        append_menu_items_mirror(wxMenu *menu);
+    void        append_menu_item_precise_seam_submenu(wxMenu* menu);
     void        append_menu_item_invalidate_cut_info(wxMenu *menu);
     void        append_menu_item_edit_text(wxMenu *menu);
     void        append_menu_item_edit_svg(wxMenu *menu);

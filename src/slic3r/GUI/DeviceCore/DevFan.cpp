@@ -1,6 +1,12 @@
+#include <boost/log/trivial.hpp>
+#include <cstdint>
+#include <cmath>
 #include <nlohmann/json.hpp>
 #include "DevFan.h"
+#include <string>
+#include <vector>
 #include <wx/app.h>
+#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"

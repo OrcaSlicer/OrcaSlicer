@@ -1,10 +1,18 @@
 #include "PluginHostBindings.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 
+#include <cstddef>
 #include <libslic3r/BoundingBox.hpp>
 #include <libslic3r/ClipperUtils.hpp> // offset/offset_ex/union_ex/diff_ex/intersection_ex
 #include <libslic3r/ExPolygon.hpp>
 
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
 #include <pybind11/stl.h>
 
 #include <string>

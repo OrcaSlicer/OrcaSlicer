@@ -1,5 +1,10 @@
 //#include "D:/dev/bamboo_slicer/build_release/src/slic3r/CMakeFiles/libslic3r_gui.dir/Release/cmake_pch.hxx"
 #include "DevHMS.h"
+#include <string>
+#include <cstdio>
+#include "json_diff.hpp"
+#include <exception>
+#include <cassert>
 
 namespace Slic3r
 {
